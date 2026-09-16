@@ -488,6 +488,14 @@
 #define DSP4_TEST_NODES 0
 #endif
 
+/* The chip-2 RTA filterbank (S64, chip2/rta.asm): 31 x 1/3-octave x 3
+ * biquads x 2 channels with ballistics, called at the end of chip 2's
+ * chain. Off in shipping until PW lands it; the host arms it with RtaOn
+ * (the diag register until the contract carries the cell). */
+#ifndef DSP4_RTA
+#define DSP4_RTA 0
+#endif
+
 /* The measurement window, in BLOCKS. 256 blocks x 16 samples =
  * 4096 samples = 85.3 ms at 48 kHz. Long enough that the
  * lowest oscillator frequency the contract carries (20 Hz) fits

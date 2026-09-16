@@ -68,6 +68,7 @@ blink/bulkprobe.asm
 blink/clkprobe.asm
 blink/rdyprobe.asm
 blink/sruprobe.asm
+bulk_read.asm
 c_abi.h
 cgu_init.asm
 chip1/dsp_params.asm

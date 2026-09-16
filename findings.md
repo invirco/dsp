@@ -6,6 +6,89 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE RTA FROM THE CUE BUS: THE GRAPH HAS NO CUE BUS, TWO BIQUADS A BAND CANNOT MAKE 40 dB, AND THE FILTERBANK IS RIGHT ON THE PART BUT COSTS CHIP 2 10.5 % AND DOES NOT FIT THE D24 (2026-09-16, session 64 — desk + digital loop, MW-D24-2)
+
+**Pairs.**
+- **`s64`** (`DSP4_TEST_NODES=1 DSP4_RTA=1`): chip1 `57948d77` (S62's, byte for byte), chip2 `9ea76239` (313,516 B). Staged at `~/s64`. Booted and configured D24 twice, then D32 twice for the D32 row.
+- **`s64lim`**: the same tree with `DSP4_NODE_LIMIT2=27`, chip2 `bef25110`, staged at `~/s64lim`. It is the proof instrument (S64-4).
+- **Shipping:** `DSP4_RTA=0` from the final tree is still **`36daa238` / `3a9c950d`**, 451,892 / 307,980 B, byte for byte S61/S62's shipping pair.
+- **Shipping with the switch on** (`DSP4_RTA=1`, TEST_NODES 0): chip2 `e213e98e`, 311,952 B. This one was built and **not booted**.
+
+**Scope.** Digital only. The chain, MIC 5, the analog path, AN_EN and CS_M were not touched. Tools are in `MW/D24/DSP/s64/tools/`, data in `MW/D24/DSP/s64/data/`. Generator: `tools/dsp/rta_design.py` (new) and `dsp_codegen.py::gen_rta`, which emits `src/chip2/rta.asm` and hooks it at the end of chip 2's chain. Hand-written: diag registers `0xE0C0..0xE0C7` (`diag.h`/`diag.asm`), plus the `DSP4_RTA` flag in `build.sh` and `shipping.config` (0). Proposal: `proposals/CONTRACT-PROPOSAL-S64.md`.
+
+**S64-1. There is no cue bus in the DSP. Chip 2 is the right chip, and the stereo it would need is not in the graph either.**
+- **No cue node anywhere.** `dsp.csv` has no cue or PFL node on chip 1 or chip 2. The master's `Chan*CueSel`, `Sys001Cue*` and `Sys001CueMode` are all control-plane (`defs/products/d24/dsp-unmapped.csv`: "the DSP has one monitor source word … open question Q5").
+- **The monitor is the nearest thing.** It is `C2_MON` on chip 2, feeding the phones codec (`C2_MON_OUT`, CODEC_OUT_1). It reads only `C2_MAIN_FDR`. Its `_mon_source_C2_MON` word (generator comment: 0 = Main, 1–12 = Aux, 13 = Cue) has **no reader**.
+- **Chip 2's "2-channel" nodes are mono.** `C2_MAIN_FDR`, `C2_MON`, `C2_MAIN_DLY` and the others each carry ONE `_blk_` array. Main L and R stay separate only as far as `C2_MIX_MAIN_L/R`, then collapse at the fader.
+- **What that means:** a stereo cue needs graph work (a cue bus pair, the monitor source switch, stereo monitor nodes) before any RTA can "follow the cue".
+- **What was built.** The RTA reads a **pointer pair**. Its default is `C2_MIX_MAIN_L/R`, the only distinct stereo pair on chip 2, and it can be repointed through `DIAG_RTA_SRC_L/R` on a TEST_NODES image. The kernel's cost does not depend on its source (S64-3). When a cue bus exists, the generator's `RTA_SRC_DEFAULT` names it.
+
+**S64-2. The dispatch's "class-2 shape = two biquads per band" cannot pass its own ≥ 40 dB-at-one-octave gate. Three can.**
+- **Design.** Digital Butterworth bandpass, both −3 dB edges prewarped onto the IEC 61260 base-ten edges.
+- **One octave from centre** (`rta_design.py`): prototype order 2 (two biquads) gives **32.2–32.5 dB** on every band below 5 kHz. Narrowing it until its edges read −5 dB still gives only 35.9 dB. Order 3 (three biquads) gives **48.3–48.8 dB**.
+- **So the built bank is 31 × 3 × 2 = 186 biquads**, not 124.
+- **Kernel shape.** Every section is (1 − z⁻²)/(1 + a1 z⁻¹ + a2 z⁻²). There is no numerator multiply, and the band gain goes into a block-rate normaliser.
+- **Precision.** float32 DF1 was simulated first and holds the 20 Hz band (pole radius 0.9997). The kernel runs band-outer / sample-inner with all six coefficients and states of a band in registers: 25 instructions per band per sample.
+- **Detector.** Mean square per block, then one pole at block rate: fast τ 35 ms, slow 125 ms, or peak-hold (fast, held until reset, branch-free as `max(hold·out, e)`).
+- **Law.** dBFS = 10·log10(word), the TEST_MEAS `RmsResult` law.
+
+**S64-3. The price, measured on the part: +34.4 k cycles a block (10.5 % of chip 2) whatever the product, the load or the signal. The D24 does not fit.**
+*Method.* `_proc_cyc` (exact TCOUNT per pass) was read on chip 2 with `RTA_ON` toggled 0/1, interleaved on one boot, and `_diag_blk_overrun` was read by delta per arm (`s64_cost.py`). The budget is 327,680 cycles (block 16).
+
+| image / configuration | chip 2 off | chip 2 on | Δ cycles | missed blocks (on arm) |
+|---|---:|---:|---:|---:|
+| `s64` D24, FX engines as booted (all 6 on, Type 0) | 316,642 = **96.63 %** | 351,197 = **107.18 %** | +34,555 | **820** in 4.0 s |
+| `s64` D24, six engines parked (`FxnOn 0`) | 299,993 = 91.55 % | 334,169 = 101.98 % | +34,176 | **250** |
+| `s64` **D32** configuration | 410,859 = **125.38 %** (2,450 missed with the RTA OFF) | 445,257 = 135.88 % | +34,398 | 3,192 |
+| `s64lim` D24 (chain cut at position 27) | 33,086 = 10.10 % | 67,485 = 20.59 % | +34,399 | 0 |
+
+- **What it costs.** **+34.2–34.6 k cycles in all four conditions**, a spread of 1.1 %. It is data- and product-independent, as the kernel is (no branch in it). That is 11.6 cycles per section per sample including overhead, or 10.5 % of chip 2.
+- **Why the base is not "driven".** The base figures were NOT taken with S19's driveall CPLD method: that means a LOGIC flash on the rev C unit with the analog chain loaded, which this dispatch excludes. Only the base would move under drive, and only upward.
+- **Memory.** 749 DM words (217 coefficient, 372 state, 124 detector/output, 36 other). Loader +3,972 B (shipping + switch vs shipping).
+- **THE D24 DOES NOT FIT.** Chip 2 on today's D24 image is at 96.6 % before the RTA. The RTA takes it to 107 % and misses 5 % of blocks. Even with every plugin parked it reaches 102 % and still misses blocks.
+- **D32, reported, not a gate.** Its chip 2 is already over budget at 125 % with the RTA off.
+- **An overrunning RTA reads wrong, and it looks plausible.** On the full image, the 1 kHz tone read −24.67 (−1.65 dB) with the one-octave neighbours only 18–24 dB down (`s64_prove_full_overrunning.jsonl`). The spectrum smears in proportion to frequency, the signature of a stream with dropped blocks.
+- **Levers, priced from the measured 11.6 cycles/section-sample:**
+  - *(i) Multirate.* The 20 bands ≤ 1.6 kHz run on the stream decimated by 8, after a 4-section anti-alias filter at full rate. That is 712 section-evaluations a channel instead of 1,488, **≈ 16.5 k cycles = 5.0 %**. It still does not fit with the engines on (101.6 %). It fits only with them parked (96.6 %, no margin).
+  - *(ii) Mono.* Half of either figure.
+  - *(iii) Host FFT (B).*
+  - **None of the DSP levers fits beside today's D24 plugin load.**
+- **(B) HOST FFT**, priced from S56 and S61/S62 as asked, no build.
+  - *DSP cost.* The capture arm costs +72 cycles per pass for one channel (S56-1), so ≈ 150 cycles for L+R, **0.05 % of chip 2**. It fits.
+  - *Full-rate captures.* A 4,096-sample capture has 11.7 Hz bins. The 20/25/31.5 Hz bands are 4.6/5.8/7.3 Hz wide, so they need ≥ 16,384 samples (2.9 Hz bins, 341 ms). For two channels that is 32,768 words ≈ 0.44 s of bulk read (S62: 0.22 s per 16 k), so **≈ 1.3 fps** if every frame is a fresh 16 k pair. A 4,096 pair gives ≈ 7–8 fps (85 ms fill + ≈ 0.11 s read), but the bottom four bands are then unresolved.
+  - *The multi-rate fix.* The DSP decimates the cue pair by 16 to one sample per block (a 4-biquad anti-alias filter: ≈ 16 × 4 × 11.6 ≈ 740 cycles a channel, ≈ 0.5 % stereo) into a ring the host reads, plus a short full-rate capture. 1,024 decimated samples give 341 ms with 2.9 Hz bins for bands ≤ 1.25 kHz. 1,024 full-rate samples give 47 Hz bins for bands ≥ 1.6 kHz. That is ≈ 4,100 words a frame ≈ 60 ms of read, so **≈ 10–15 fps** with a sliding low window, for ≈ 0.5 % of chip 2.
+  - **This is the only priced option that fits beside the D24's plugin load today.** It moves 31-band maths per channel onto the CM4, where it is small.
+- **(C) GOERTZEL.** It is the wrong tool for a band power. It is a single-bin detector: its response is a sinc of width fs/N centred on one frequency, not a flat 1/3-octave passband. A tone between bands is scalloped by up to ~4 dB (rectangular window), pink or broadband energy in the band is under-read, and its sidelobes decay 6 dB/octave, so the one-octave rejection of the biquad bank is not reachable. Making it a band detector means windowing it to the band's width: N ≈ fs/bandwidth, 10 k samples for the 20 Hz band (208 ms), with a window multiply every sample. *Price, trivial:* one multiply and two adds a sample a band ≈ 5 cycles, so 31 × 2 × 16 × 5 ≈ **10 k cycles ≈ 3 %** unwindowed, ≈ 5 % windowed. Cheaper than the biquads and still over the D24's 3.4 % headroom, for a worse answer.
+- **The meter ring rate.** The CM4 daemon's shm meter-ring rate is **not in this repo or readable on the unit** (stripped binary). The only meter cadence on record is the MCU poll at ~260 ms. The DSP side refreshes the 62 words 3,000 times a second. By single peeks one word takes 1.25 ms (62 in 78 ms, ≈ 13 fps). The hub owns the ring figure.
+- **The image does not say it carries the RTA.** `DIAG_BUILD_CFG`/`CFG2` read the same word as S62 (`0xCF45FF10` / `0xC3010244`), which is S12-7's shape. Until a CFG2 bit is assigned, detect it with `DIAG_RTA_BANDS` = 31.
+
+**S64-4. Proof through the digital loop: the right band at the right dBFS to 0.12 dB, one-octave neighbours 40.7–50.9 dB down, the other channel at −214 dB, ballistics τ 35.0 / 125.0 ms, peak-hold held and reset.**
+*The instrument.* A proof on an overrunning image measures the overruns (S64-3), so the proof image is `s64lim`. `DSP4_NODE_LIMIT2=27` stops chip 2's chain after position 26. The RTA is called after the chain and is byte-identical in `rta.asm`, and chip 2 runs at 10.1 %/20.6 % with 0 missed blocks.
+*The source.* The stand-in pair is `C2_RECV_AUX_01` (L) / `C2_RECV_AUX_02` (R), chain positions 7/8. With no FX sends, S23 proved the aux sum bit-exact to the receive. The aux sums themselves are positions 59/60, beyond the cut.
+*The stimulus.* TEST_OSC −20 dBFS pk on strip 6 → AUX 1 (the S56 donor route, unity). Nothing sends to AUX 2. Expected reading: 10·log10(0.1²/2) = −23.010.
+*The bank as a whole on the full image.* A bulk-read snapshot of `_blk_C2_MIX_AUX_01` fitted a 1 kHz sine to a residual of 1.9 × 10⁻⁸, so the source block is contiguous.
+
+| tone | band | reads, dBFS | error | TEST_MEAS strip 6 | one octave down / up | adjacent | cold channel |
+|---|---|---:|---:|---:|---|---|---:|
+| 63 Hz | 63 | −23.127 | −0.117 | −22.987 | 48.52 / 48.52 dB | 18.06 / 18.36 | −∞ (exact zero) |
+| 1 kHz | 1k | −23.014 | −0.004 | −23.012 | 48.69 / 48.57 dB | 18.30 / 18.29 | −∞ |
+| 8 kHz | 8k | −23.011 | −0.000 | −23.011 | 50.86 / 40.74 dB | 19.84 / 16.43 | −∞ |
+| 1 kHz, **L/R swapped** | 1k on **R** | −23.014 | −0.004 | −23.012 | 48.69 / 48.57 dB | 18.30 / 18.28 | L max −214.06 |
+
+- **Every row passes** (|error| ≤ 0.5 dB, both octave neighbours ≥ 40 dB, cold channel > 60 dB below).
+- **Against the design.** The 8 kHz tone's upper neighbour (16 kHz band) reads 40.7 dB against a design value of 41.1 dB: the bilinear skirt of the top bands. The 63 Hz error (−0.12 dB) is inside the 0.5 dB gate; the float32 model of the same kernel predicts −23.05 for a 63.1 Hz tone over a 0.6 s read, so about half of it is the model's own, and the rest was not chased.
+- **Stereo separation.** A tone on L only shows on L; swapping the source moves it to R and nothing else changes.
+- **Ballistics.** Decay after the tone stops, slope fitted over 3–40 dB below the start: **fast −124.0 dB/s = τ 35.0 ms** (479 points), **slow −34.7 dB/s = τ 125.0 ms** (1,867 points), against designed 35 / 125 ms.
+- **Peak-hold.** −23.0 dBFS still held 1 s after the tone stopped. `RTA_RESET` → −130.1 dBFS within 0.5 s, and the reset word read back 0 (consumed).
+- **`RTA_SEQ`** advanced 1,508 in 0.5 s (3,016/s by host clock; 3,000 nominal).
+
+**Hand-back (18:16 BST).**
+- **Pair and cells.** The s60 pair was rebooted twice (`fe522a7f` / `c56ed0ab`), then `s56_setup.py`, then `s60_handback.py` **without its `R.chain(0)` line**.
+- **Check.** `s60_found.py after_s64` against this session's `found_s64` snapshot: **every field identical** (`data/s64_found_after.jsonl`). MIC 5 idle −105.9 dBFS found and −106.1 after.
+- **Unit pins and app.** AN_EN `op pd | hi` and CS_M `op pu | hi` were read before and after, never written. `matrix-app` inactive as found.
+- **Staged.** `~/s64` and `~/s64lim` hold the pairs and tools. `~/s60`, `~/s62`, `~/s63` and `~/dspboot` are untouched.
+- **Side note: the drift gate.** `check-sharc-codegen-drift.sh` was already failing on main. S61's hand-written `src/bulk_read.asm` had never been added to its HANDWRITTEN list. It is added now, and `check-contract-drift.sh` passes with `rta.asm` counted as generated.
+
 ## GAIN-CHANGE ARTEFACTS ON MIC 5: SILENCE HIDES ALL BUT A 0→1 THUMP; THE TONE FINDS A BREAK-BEFORE-MAKE DROPOUT TO THE AND CODE ON EVERY MULTI-BIT STEP; THE PREAMP ACTS ~10 ms AFTER THE LATCH; THD AT MAX GAIN −64.3 dB (2026-09-16, session 63 — bench, MW-D24-2)
 
 **Pair and unit.**

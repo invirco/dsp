@@ -196,6 +196,18 @@
 #define DIAG_BULK_CTL        0xE0D2  /* W 1 arm, 2 go, 0 cancel; R state   */
 #define DIAG_BULK_LAST       0xE0D9  /* last register of the block         */
 
+/* The chip-2 RTA filterbank (S64, chip2/rta.asm; DSP4_RTA builds only).
+ * Diag registers until the contract carries RtaOn / the band cells. */
+#define DIAG_RTA_ON          0xE0C0  /* RW 1 = run the filterbank          */
+#define DIAG_RTA_MODE        0xE0C1  /* RW 0 fast 35 ms, 1 slow 125, 2 peak */
+#define DIAG_RTA_RESET       0xE0C2  /* RW write 1: restart the peak hold  */
+#define DIAG_RTA_SEQ         0xE0C3  /* R  blocks processed while on       */
+#define DIAG_RTA_SRC_L       0xE0C4  /* RW source _blk_ array address, L   */
+#define DIAG_RTA_SRC_R       0xE0C5  /* RW source _blk_ array address, R   */
+#define DIAG_RTA_OUT         0xE0C6  /* R  address of _rta_out[62]         */
+#define DIAG_RTA_BANDS       0xE0C7  /* R  bands per channel (31)          */
+#define DIAG_RTA_LAST        0xE0C7
+
 /* ---- DIAG_BUILD_CFG — THE IMAGE SAYS WHAT IT IS ---------------------
  *
  * A mismeasured configuration must never be silent again (findings S8-2,
