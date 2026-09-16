@@ -1,0 +1,14 @@
+STEP 1  lane band power, code 63, 150 ohm, 20 captures (energy avg; mean-square dBFS, FS sine = -3.01 dBFS)
+        20 Hz-20 kHz -94.63  (range -94.87..-94.31)   A-weighted -97.93   DC-24 kHz (DC removed) -91.63
+STEP 2  FS-sine reference: +3.01 dB  ->  20-20k -91.62, A -94.92 dB re FS sine
+STEP 3  the FS sine at the mic XLR at CODE 0 = +23.13 dBu (DAC FS at J45, PW DMM) - 5.578 dB (T1 code-0 loop gain) = +17.55 dBu
+        -> output-referred at the code-0 scale: 20-20k -74.07 dBu, A -77.37 dBu
+STEP 4  code 63 above code 0 = 58.717 - 5.578 = 53.139 dB (NOT 58.717: code 0's 5.578 dB is already inside +17.55)
+        EIN 20-20k = -127.21 dBu   A-weighted = -130.51 dBu(A)   DC-24 kHz = -124.21 dBu
+        (hub arithmetic: -74.07 - 58.717 = -132.78 dBu: the 5.578 dB counted twice)
+STEP 5  thermal, 4kTRB, dBu = 20log10(V/0.7746)
+        T 290 K  150 ohm       20-20k -130.97 dBu   A-weighted -133.02 dBu(A)   (A re flat 20-20k -2.05 dB, white)
+        T 290 K  150 || 3.32k  20-20k -131.16 dBu   A-weighted -133.21 dBu(A)   (A re flat 20-20k -2.05 dB, white)
+        T 300 K  150 ohm       20-20k -130.82 dBu   A-weighted -132.87 dBu(A)   (A re flat 20-20k -2.05 dB, white)
+        T 300 K  150 || 3.32k  20-20k -131.01 dBu   A-weighted -133.06 dBu(A)   (A re flat 20-20k -2.05 dB, white)
+STEP 6  margin over thermal (290 K, 150 ohm): 20-20k +3.76 dB (NF), A +2.51 dB

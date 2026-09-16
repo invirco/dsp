@@ -37,6 +37,26 @@ line and no hum line stronger than −104.6 dBu. The three LF peaks sit within a
 *Void:* a code-0 run meant as the 150 Ω floor (`f150c0`, 3 captures) turned out to have been taken after the cable swap (node −104 dBFS, not
 −113.8). It is moved to `~/s57/void` on the bench and is not used.
 
+**S57-R. Input-side reconciliation, desk part (hub 10:1xZ: "−132.8 dBu is below thermal").** Steps in `s57/data/s57_reconcile_desk.out`.
+(1) Gate-1 lane power, code 63, 150 Ω, 20 captures energy-averaged: 20 Hz–20 kHz −94.63 dBFS (−94.87 … −94.31), A −97.93, DC–24 kHz −91.63
+(mean-square dBFS, so a full-scale sine reads −3.01). (2) +3.01 dB to the FS-sine reference. (3) FS sine at the mic XLR at **code 0** = +23.13 dBu
+(DAC FS at J45) − 5.578 dB (T1 code-0 loop gain) = +17.55 dBu. (4) Code 63 sits **53.139 dB above code 0** (58.717 − 5.578). **The error was in
+the hub arithmetic: −94.6 + 20.56 − 58.72 subtracts the absolute code-63 loop gain, but code 0's 5.578 dB is already inside +17.55, so it was
+counted twice (−5.58 dB).** EIN = −94.63 + 20.56 − 53.14 = **−127.21 dBu 20 Hz–20 kHz, −130.51 dBu(A)** (DC–24 kHz −124.21 dBu, which carries
+the sub-20 Hz wander). (5) Thermal 150 Ω, 4kTRB, 19.98 kHz: −130.97 dBu at 290 K (−130.82 at 300 K); A-weighted white = flat − 2.05 dB →
+−133.02 dBu(A). (6) **Margin over thermal: +3.76 dB unweighted (NF), +2.51 dB A-weighted: above thermal, physically possible.** The
+convention checks: T1's loop gain is `H_db`, coherent PEAK over oscillator PEAK (`s54lib.windows`), and `gain_rms_db` uses RMS over
+osc − 3.01 dB, so both are like-for-like; S54-1 had them equal to 0.001 dB, and S56-1 had FFT RMS equal to RmsResult to 0.002 dB. No
+peak/RMS mix-up in the gain. **Preamp input R (netlist + analog BOM rev B), per leg:** J25.2 → C331 33 µF → node C1 → R696 2k2 to GND
+(C345 220 pF to GND) → R695 10 Ω → the input pair's base (Q220/Q221, C343 across the pair). On the XLR side, R697 6k8 goes to the phantom
+node PH (Q219 switch) and R701 33 k to the TRS ring (open). Cold leg mirrors (C348, R750 2k2, R741 10 Ω, R749 6k8, R702 33 k).
+**Differential input R ≈ 4.4 kΩ (2 × 2k2) if PH floats with phantom off, or 3.32 kΩ (2 × 2k2‖6k8) if the switch grounds it**, with the bases'
+own input impedance in parallel (not modelled). Loading: T1's ≈ 66 Ω loop source loses 0.13–0.17 dB into that R; a 150 Ω source loses
+0.29–0.38 dB. Referred to the source EMF, the EIN moves **+0.16 to +0.21 dB** (−127.0 dBu / −130.3 dBu(A)); if PW's J45 DMM reading was
+unloaded, that is −0.13 to −0.17 dB the other way. So ±0.2 dB, not the 5.6 dB. Thermal of 150 ‖ 3.32 k is −131.16 dBu. **Still open (bench):**
+the code-63 gain re-measured from an FFT of a capture (needs the loop cable, which is on now), and the value of the resistor PW fitted (hub asking).
+EIN is not final until both are in.
+
 **S57 gate 1, as far as it got (20 of 20 captures at code 63, 150 Ω, tone off; gate 3 5 of 10; gates 2, 4 not run).** Early result, to be
 finished: the "bursts" are **below 20 Hz**. Every capture's 20 Hz–20 kHz band sits at −94.6 ± 0.3 dBFS and A-weighted at −97.9 ± 0.2,
 while the DC-removed DC–24 kHz total ranges −89.9 … −92.2. The excess is a smooth sub-5 Hz wander of up to ±40 µFS across the 0.34 s
