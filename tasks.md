@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-16 10:53Z — S55 — the mic test on every powered channel, hands-free by lane detection; the universal step/trim table calibrated as you go   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-16 10:53Z — S55 — the mic test on every powered channel, hands-free by lane detection; the universal step/trim table calibrated as you go   [status: 🟢 done — 15 powered channels (J26–J32, J35–J42) through the loop set + 150 Ω noise hands-free, J25 from S54/S57 (J15–J22 unpowered, skipped); 1,113/1,113 chain images verified, 0 overruns on 135 captures. T1: every law monotonic, 15 channels agree ≤ 0.171 dB; **J29 (MIC 7) FLAG: its code-8 stage ~9 % low (−0.85 dB), a part off-value — excluded from the mean**. Universal table (15 ch, 25 codes) edge error ≤ 0.078 dB, trim ≤ 12 dB in range, 54–60 dB = code 63 + trim → `proposals/CONTRACT-PROPOSAL-S55.md` (`common/tables/mic-gain-law.csv`, no address change). T2/T3/T5/T8 uniform (20 Hz −0.41 / −2.07…−2.19 dB, inverted, 91.40–91.41 samples). EIN 150 Ω code 63: 14 ch −126.5…−128.7 dBu / −130.2…−130.9 dBu(A); **J31/J32 (lanes 5/6) −123.2/−125.2 dBu from a HF excess (2–24 kHz +3…+10 dB)**. Findings S55-1..6. Unit: TEST_OSC off, nothing on AUX 1, S57 image (J25 open code 0, rest muted), MeasChan 20, AN_EN hi]   [model: opus]
 
 model: opus
 
@@ -13,6 +13,8 @@ THE TABLE, AS YOU GO: after every channel append its 64-code law to `MW/D24/DSP/
 REPORT: per channel one summary row (T1 range/largest step, T2 20 Hz at 0/63, T3 best, T4b EIN both weightings, T5, T8) in `MW/D24/DSP/s55/channels.md`; at the end the defs contract proposal for the table (common/ declaration the GAIN node consumes; addresses proposed the S44 way). findings S55-1..n. Leave the unit as found at the end (AN_EN high, all registers code 0 muted except as PW left them, osc off).
 
 Bounded: the day. Sonnet subagents for the sweeps.
+
+NEXT (S55): PW probes J29's bit-3 (code 8, Q5) gain stage; hub/PW: what serves lanes 5/6 (J31/J32) — shared converter, preamp compensation — and a shunt re-seat + T4 re-capture on J31 to exclude the fixture (`s55_run.py` with ONLY=J31, DONE=all others); hub rules on CONTRACT-PROPOSAL-S55 (table + Chan Gain Notes; matrix-app consumes it after the S52-2 send-order fix); more units for unit-to-unit spread (re-run `s55_run.py` + `s55_ingest.py` unchanged); `app cli chain-set` cannot address send position 0 (J42's gain) — mx26 fix or adopt the spidev writer's image form; T1 settle for THD+N if that column is wanted.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;

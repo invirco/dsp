@@ -1,0 +1,1472 @@
+12:00:20 AN_EN: 26: op -- pd | hi // GPIO26 = output
+12:00:21 base image VERIFIED; strips on AUX 1: [6]
+12:00:21 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25']
+12:00:23 DETECT: tone on lane 18 (pk -14.43 dBFS; next lane 7 at -106.43) -> J27 (MIC 6)
+12:00:24 J27 presence: code 0 osc -20 -> coh gain +5.580 dB, lane coh pk -14.42 dBFS
+12:00:25 J27 T1 code  0 osc  -18.58  lane coh pk  -13.00  gain   +5.580 dB (rms   +5.580)  THD+N  -89.32 dB
+12:00:26 J27 T1 code  1 osc  -31.43  lane coh pk  -13.00  gain  +18.426 dB (rms  +18.426)  THD+N  -50.81 dB
+12:00:27 J27 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.042 dB (rms  +25.043)  THD+N  -42.26 dB
+12:00:28 J27 T1 code  3 osc  -40.71  lane coh pk  -13.00  gain  +27.715 dB (rms  +27.715)  THD+N  -50.82 dB
+12:00:29 J27 T1 code  4 osc  -45.48  lane coh pk  -13.01  gain  +32.468 dB (rms  +32.468)  THD+N  -60.45 dB
+12:00:31 J27 T1 code  5 osc  -46.70  lane coh pk  -13.00  gain  +33.705 dB (rms  +33.705)  THD+N  -62.74 dB
+12:00:32 J27 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.263 dB (rms  +35.263)  THD+N  -61.09 dB
+12:00:33 J27 T1 code  7 osc  -49.18  lane coh pk  -13.00  gain  +36.176 dB (rms  +36.176)  THD+N  -60.16 dB
+12:00:34 J27 T1 code  8 osc  -52.92  lane coh pk  -13.01  gain  +39.917 dB (rms  +39.917)  THD+N  -56.44 dB
+12:00:35 J27 T1 code  9 osc  -53.46  lane coh pk  -13.00  gain  +40.462 dB (rms  +40.462)  THD+N  -55.70 dB
+12:00:36 J27 T1 code 10 osc  -54.21  lane coh pk  -13.00  gain  +41.210 dB (rms  +41.210)  THD+N  -55.09 dB
+12:00:37 J27 T1 code 11 osc  -54.68  lane coh pk  -13.00  gain  +41.682 dB (rms  +41.682)  THD+N  -54.58 dB
+12:00:39 J27 T1 code 12 osc  -55.86  lane coh pk  -13.00  gain  +42.860 dB (rms  +42.860)  THD+N  -53.44 dB
+12:00:40 J27 T1 code 13 osc  -56.25  lane coh pk  -13.00  gain  +43.251 dB (rms  +43.251)  THD+N  -53.06 dB
+12:00:41 J27 T1 code 14 osc  -56.80  lane coh pk  -13.00  gain  +43.801 dB (rms  +43.801)  THD+N  -52.53 dB
+12:00:42 J27 T1 code 15 osc  -57.15  lane coh pk  -13.00  gain  +44.152 dB (rms  +44.152)  THD+N  -52.10 dB
+12:00:43 J27 T1 code 16 osc  -60.16  lane coh pk  -13.01  gain  +47.148 dB (rms  +47.148)  THD+N  -49.28 dB
+12:00:44 J27 T1 code 17 osc  -60.39  lane coh pk  -13.00  gain  +47.388 dB (rms  +47.388)  THD+N  -49.12 dB
+12:00:45 J27 T1 code 18 osc  -60.73  lane coh pk  -13.00  gain  +47.733 dB (rms  +47.733)  THD+N  -48.58 dB
+12:00:46 J27 T1 code 19 osc  -60.96  lane coh pk  -13.00  gain  +47.957 dB (rms  +47.957)  THD+N  -48.35 dB
+12:00:47 J27 T1 code 20 osc  -61.55  lane coh pk  -13.00  gain  +48.545 dB (rms  +48.545)  THD+N  -47.76 dB
+12:00:49 J27 T1 code 21 osc  -61.75  lane coh pk  -13.00  gain  +48.750 dB (rms  +48.750)  THD+N  -47.64 dB
+12:00:50 J27 T1 code 22 osc  -62.04  lane coh pk  -13.00  gain  +49.044 dB (rms  +49.044)  THD+N  -47.31 dB
+12:00:51 J27 T1 code 23 osc  -62.24  lane coh pk  -13.00  gain  +49.238 dB (rms  +49.238)  THD+N  -47.11 dB
+12:00:52 J27 T1 code 24 osc  -63.21  lane coh pk  -13.00  gain  +50.209 dB (rms  +50.209)  THD+N  -46.20 dB
+12:00:53 J27 T1 code 25 osc  -63.38  lane coh pk  -13.00  gain  +50.378 dB (rms  +50.378)  THD+N  -46.04 dB
+12:00:54 J27 T1 code 26 osc  -63.62  lane coh pk  -13.00  gain  +50.622 dB (rms  +50.622)  THD+N  -45.76 dB
+12:00:55 J27 T1 code 27 osc  -63.78  lane coh pk  -13.00  gain  +50.784 dB (rms  +50.785)  THD+N  -45.65 dB
+12:00:57 J27 T1 code 28 osc  -64.21  lane coh pk  -13.00  gain  +51.211 dB (rms  +51.211)  THD+N  -45.25 dB
+12:00:58 J27 T1 code 29 osc  -64.36  lane coh pk  -13.00  gain  +51.361 dB (rms  +51.361)  THD+N  -45.03 dB
+12:00:59 J27 T1 code 30 osc  -64.58  lane coh pk  -13.00  gain  +51.578 dB (rms  +51.578)  THD+N  -44.79 dB
+12:01:00 J27 T1 code 31 osc  -64.72  lane coh pk  -13.00  gain  +51.723 dB (rms  +51.724)  THD+N  -44.66 dB
+12:01:01 J27 T1 code 32 osc  -66.73  lane coh pk  -13.07  gain  +53.660 dB (rms  +53.660)  THD+N  -42.59 dB
+12:01:02 J27 T1 code 33 osc  -66.78  lane coh pk  -13.00  gain  +53.772 dB (rms  +53.772)  THD+N  -42.58 dB
+12:01:03 J27 T1 code 34 osc  -66.93  lane coh pk  -13.00  gain  +53.937 dB (rms  +53.937)  THD+N  -42.55 dB
+12:01:04 J27 T1 code 35 osc  -67.05  lane coh pk  -13.00  gain  +54.048 dB (rms  +54.049)  THD+N  -42.44 dB
+12:01:05 J27 T1 code 36 osc  -67.34  lane coh pk  -13.00  gain  +54.342 dB (rms  +54.342)  THD+N  -42.05 dB
+12:01:07 J27 T1 code 37 osc  -67.45  lane coh pk  -13.00  gain  +54.446 dB (rms  +54.446)  THD+N  -41.98 dB
+12:01:08 J27 T1 code 38 osc  -67.60  lane coh pk  -13.00  gain  +54.598 dB (rms  +54.598)  THD+N  -41.83 dB
+12:01:09 J27 T1 code 39 osc  -67.70  lane coh pk  -13.00  gain  +54.701 dB (rms  +54.701)  THD+N  -41.71 dB
+12:01:10 J27 T1 code 40 osc  -68.22  lane coh pk  -13.00  gain  +55.225 dB (rms  +55.225)  THD+N  -41.19 dB
+12:01:11 J27 T1 code 41 osc  -68.32  lane coh pk  -13.00  gain  +55.319 dB (rms  +55.320)  THD+N  -41.14 dB
+12:01:12 J27 T1 code 42 osc  -68.46  lane coh pk  -13.00  gain  +55.458 dB (rms  +55.458)  THD+N  -40.88 dB
+12:01:14 J27 T1 code 43 osc  -68.55  lane coh pk  -13.00  gain  +55.548 dB (rms  +55.548)  THD+N  -40.80 dB
+12:01:15 J27 T1 code 44 osc  -68.79  lane coh pk  -13.00  gain  +55.796 dB (rms  +55.796)  THD+N  -40.55 dB
+12:01:16 J27 T1 code 45 osc  -68.88  lane coh pk  -13.00  gain  +55.886 dB (rms  +55.886)  THD+N  -40.54 dB
+12:01:17 J27 T1 code 46 osc  -69.01  lane coh pk  -13.00  gain  +56.015 dB (rms  +56.016)  THD+N  -40.41 dB
+12:01:18 J27 T1 code 47 osc  -69.10  lane coh pk  -13.00  gain  +56.102 dB (rms  +56.103)  THD+N  -40.37 dB
+12:01:19 J27 T1 code 48 osc  -69.94  lane coh pk  -13.00  gain  +56.938 dB (rms  +56.939)  THD+N  -39.33 dB
+12:01:20 J27 T1 code 49 osc  -70.01  lane coh pk  -13.00  gain  +57.014 dB (rms  +57.015)  THD+N  -39.40 dB
+12:01:21 J27 T1 code 50 osc  -70.13  lane coh pk  -13.00  gain  +57.128 dB (rms  +57.128)  THD+N  -39.26 dB
+12:01:22 J27 T1 code 51 osc  -70.20  lane coh pk  -13.00  gain  +57.205 dB (rms  +57.206)  THD+N  -39.15 dB
+12:01:24 J27 T1 code 52 osc  -70.41  lane coh pk  -13.00  gain  +57.407 dB (rms  +57.407)  THD+N  -38.95 dB
+12:01:25 J27 T1 code 53 osc  -70.48  lane coh pk  -13.00  gain  +57.479 dB (rms  +57.479)  THD+N  -38.88 dB
+12:01:26 J27 T1 code 54 osc  -70.58  lane coh pk  -13.00  gain  +57.585 dB (rms  +57.585)  THD+N  -38.86 dB
+12:01:27 J27 T1 code 55 osc  -70.65  lane coh pk  -13.00  gain  +57.658 dB (rms  +57.659)  THD+N  -38.74 dB
+12:01:28 J27 T1 code 56 osc  -71.03  lane coh pk  -13.00  gain  +58.027 dB (rms  +58.028)  THD+N  -38.38 dB
+12:01:29 J27 T1 code 57 osc  -71.10  lane coh pk  -13.00  gain  +58.098 dB (rms  +58.099)  THD+N  -38.27 dB
+12:01:30 J27 T1 code 58 osc  -71.20  lane coh pk  -13.00  gain  +58.199 dB (rms  +58.200)  THD+N  -38.08 dB
+12:01:31 J27 T1 code 59 osc  -71.26  lane coh pk  -13.00  gain  +58.263 dB (rms  +58.264)  THD+N  -38.10 dB
+12:01:33 J27 T1 code 60 osc  -71.44  lane coh pk  -13.00  gain  +58.441 dB (rms  +58.442)  THD+N  -37.95 dB
+12:01:34 J27 T1 code 61 osc  -71.51  lane coh pk  -13.00  gain  +58.509 dB (rms  +58.509)  THD+N  -37.89 dB
+12:01:35 J27 T1 code 62 osc  -71.60  lane coh pk  -13.00  gain  +58.603 dB (rms  +58.604)  THD+N  -37.74 dB
+12:01:36 J27 T1 code 63 osc  -71.66  lane coh pk  -13.00  gain  +58.668 dB (rms  +58.669)  THD+N  -37.61 dB
+12:01:48 J27 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:01:59 J27 T2 code 63 re 1 kHz: 20:-2.08  50:-0.44  100:-0.11  200:-0.01  500:+0.02  1000:+0.00  2000:+0.01  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:02:02 J27 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.50 dB = 0.00750 %  noise -105.51  meter pk -20.01 dBFS
+12:02:04 J27 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.27 dB = 0.00273 %  noise -104.28  meter pk -10.01 dBFS
+12:02:06 J27 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.89 dB = 0.00285 %  noise -99.90  meter pk -6.01 dBFS
+12:02:08 J27 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.43 dB = 0.00379 %  noise -94.44  meter pk -3.01 dBFS
+12:02:10 J27 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.48 dB = 0.66981 %  noise -49.49  meter pk -2.87 dBFS
+12:02:22 J27 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+12:02:22 PROMPT >>> J27 (MIC 6) LOOP SET DONE — fit the 150 Ω on J27
+12:02:22 SHUNT: TEST_OSC off, J27 at code 63, watching lane 18 for < -70 dBFS
+12:02:22   J27 lane 18 RMS -51.00 dBFS
+12:03:22   J27 lane 18 RMS -51.20 dBFS
+12:04:22   J27 lane 18 RMS -51.76 dBFS
+12:05:22   J27 lane 18 RMS -51.71 dBFS
+12:06:22   J27 lane 18 RMS -51.64 dBFS
+12:07:22   J27 lane 18 RMS -51.84 dBFS
+12:08:22   J27 lane 18 RMS -51.61 dBFS
+12:09:22   J27 lane 18 RMS -51.78 dBFS
+12:10:22   J27 lane 18 RMS -51.79 dBFS
+12:11:22   J27 lane 18 RMS -51.77 dBFS
+12:12:22 PROMPT >>> WAITING — 150 Ω on J27 (MIC 6)?
+12:12:22   J27 lane 18 RMS -51.89 dBFS
+12:13:22   J27 lane 18 RMS -51.73 dBFS
+12:14:23   J27 lane 18 RMS -51.65 dBFS
+12:15:23   J27 lane 18 RMS -51.41 dBFS
+12:16:23   J27 lane 18 RMS -51.69 dBFS
+12:17:23   J27 lane 18 RMS -51.93 dBFS
+12:18:23   J27 lane 18 RMS -51.97 dBFS
+12:19:23   J27 lane 18 RMS -51.75 dBFS
+12:20:23   J27 lane 18 RMS -51.28 dBFS
+12:21:23   J27 lane 18 RMS -51.71 dBFS
+12:22:22 PROMPT >>> WAITING — 150 Ω on J27 (MIC 6)?
+12:22:23   J27 lane 18 RMS -51.71 dBFS
+12:23:23   J27 lane 18 RMS -51.79 dBFS
+12:24:23   J27 lane 18 RMS -51.61 dBFS
+12:24:39   J27 lane 18 RMS -33.41 dBFS
+12:24:39   J27 lane 18 RMS -78.12 dBFS
+12:24:40   J27 lane 18 RMS -72.10 dBFS
+12:24:43   J27 lane 18 RMS -79.84 dBFS
+12:24:46   J27 lane 18 RMS -31.58 dBFS
+12:24:46   J27 lane 18 RMS -48.99 dBFS
+12:24:46   J27 lane 18 RMS -55.50 dBFS
+12:24:46   J27 lane 18 RMS -87.73 dBFS
+12:24:50   J27 lane 18 RMS -80.39 dBFS
+12:24:50   J27 lane 18 RMS -89.87 dBFS
+12:24:51   J27 lane 18 RMS -82.08 dBFS
+12:24:51   J27 lane 18 RMS -88.15 dBFS
+12:24:55   J27 lane 18 RMS -82.10 dBFS
+12:24:55   J27 lane 18 RMS -88.20 dBFS
+12:24:58 J27: floor -87.22 dBFS held 12 s -> 150 ohm taken as fitted
+12:26:24 J27 T4 code 63 (150 ohm): RmsResult -82.04 dBFS NoiseResult -82.04 (after captures -82.41); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+12:27:05 J27 T4 code  0 (150 ohm): RmsResult -114.15 dBFS NoiseResult -114.15 (after captures -111.00); 3 captures, overruns [0, 0, 0]
+12:27:06 PROMPT >>> J27 (MIC 6) DONE — move the loop cable to the next XLR
+12:27:06 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27']
+12:35:21 DETECT: tone on lane 7 (pk -14.43 dBFS; next lane 24 at -103.67) -> J29 (MIC 7)
+12:35:22 J29 presence: code 0 osc -20 -> coh gain +5.577 dB, lane coh pk -14.42 dBFS
+12:35:23 J29 T1 code  0 osc  -18.58  lane coh pk  -13.00  gain   +5.577 dB (rms   +5.577)  THD+N  -89.23 dB
+12:35:24 J29 T1 code  1 osc  -31.42  lane coh pk  -13.00  gain  +18.423 dB (rms  +18.423)  THD+N  -48.33 dB
+12:35:25 J29 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.044 dB (rms  +25.044)  THD+N  -40.41 dB
+12:35:26 J29 T1 code  3 osc  -40.72  lane coh pk  -13.00  gain  +27.715 dB (rms  +27.715)  THD+N  -48.98 dB
+12:35:28 J29 T1 code  4 osc  -45.48  lane coh pk  -13.01  gain  +32.470 dB (rms  +32.470)  THD+N  -59.64 dB
+12:35:29 J29 T1 code  5 osc  -46.71  lane coh pk  -13.00  gain  +33.707 dB (rms  +33.707)  THD+N  -62.70 dB
+12:35:30 J29 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.264 dB (rms  +35.264)  THD+N  -61.20 dB
+12:35:31 J29 T1 code  7 osc  -49.18  lane coh pk  -13.00  gain  +36.178 dB (rms  +36.178)  THD+N  -60.25 dB
+12:35:33 J29 T1 code  8 osc  -58.58  lane coh pk  -19.51  gain  +39.070 dB (rms  +39.098)  THD+N  -22.34 dB
+12:35:35 J29 T1 code  9 osc  -52.61  lane coh pk  -12.94  gain  +39.670 dB (rms  +39.670)  THD+N  -52.70 dB
+12:35:36 J29 T1 code 10 osc  -53.42  lane coh pk  -12.93  gain  +40.488 dB (rms  +40.488)  THD+N  -55.73 dB
+12:35:37 J29 T1 code 11 osc  -53.96  lane coh pk  -12.96  gain  +40.999 dB (rms  +40.999)  THD+N  -55.37 dB
+12:35:38 J29 T1 code 12 osc  -55.18  lane coh pk  -12.91  gain  +42.268 dB (rms  +42.268)  THD+N  -54.13 dB
+12:35:39 J29 T1 code 13 osc  -55.66  lane coh pk  -12.97  gain  +42.686 dB (rms  +42.686)  THD+N  -53.67 dB
+12:35:40 J29 T1 code 14 osc  -56.23  lane coh pk  -12.96  gain  +43.272 dB (rms  +43.272)  THD+N  -53.00 dB
+12:35:41 J29 T1 code 15 osc  -56.62  lane coh pk  -12.98  gain  +43.645 dB (rms  +43.645)  THD+N  -52.61 dB
+12:35:43 J29 T1 code 16 osc  -59.65  lane coh pk  -12.50  gain  +47.158 dB (rms  +47.158)  THD+N  -49.71 dB
+12:35:44 J29 T1 code 17 osc  -60.40  lane coh pk  -13.00  gain  +47.398 dB (rms  +47.398)  THD+N  -49.07 dB
+12:35:45 J29 T1 code 18 osc  -60.74  lane coh pk  -13.00  gain  +47.742 dB (rms  +47.742)  THD+N  -48.75 dB
+12:35:46 J29 T1 code 19 osc  -60.97  lane coh pk  -13.00  gain  +47.966 dB (rms  +47.966)  THD+N  -48.38 dB
+12:35:47 J29 T1 code 20 osc  -61.55  lane coh pk  -13.00  gain  +48.554 dB (rms  +48.554)  THD+N  -47.83 dB
+12:35:48 J29 T1 code 21 osc  -61.76  lane coh pk  -13.00  gain  +48.758 dB (rms  +48.758)  THD+N  -47.56 dB
+12:35:49 J29 T1 code 22 osc  -62.05  lane coh pk  -13.00  gain  +49.052 dB (rms  +49.052)  THD+N  -47.39 dB
+12:35:50 J29 T1 code 23 osc  -62.24  lane coh pk  -13.00  gain  +49.246 dB (rms  +49.246)  THD+N  -47.19 dB
+12:35:52 J29 T1 code 24 osc  -63.22  lane coh pk  -13.25  gain  +49.969 dB (rms  +49.969)  THD+N  -46.16 dB
+12:35:53 J29 T1 code 25 osc  -63.14  lane coh pk  -12.99  gain  +50.143 dB (rms  +50.144)  THD+N  -46.19 dB
+12:35:54 J29 T1 code 26 osc  -63.39  lane coh pk  -12.99  gain  +50.393 dB (rms  +50.393)  THD+N  -46.14 dB
+12:35:55 J29 T1 code 27 osc  -63.55  lane coh pk  -13.00  gain  +50.559 dB (rms  +50.559)  THD+N  -45.76 dB
+12:35:56 J29 T1 code 28 osc  -63.99  lane coh pk  -12.99  gain  +50.997 dB (rms  +50.997)  THD+N  -45.42 dB
+12:35:57 J29 T1 code 29 osc  -64.15  lane coh pk  -13.00  gain  +51.152 dB (rms  +51.152)  THD+N  -45.15 dB
+12:35:58 J29 T1 code 30 osc  -64.37  lane coh pk  -13.00  gain  +51.375 dB (rms  +51.375)  THD+N  -45.03 dB
+12:36:00 J29 T1 code 31 osc  -64.52  lane coh pk  -13.00  gain  +51.523 dB (rms  +51.523)  THD+N  -44.86 dB
+12:36:01 J29 T1 code 32 osc  -66.53  lane coh pk  -12.83  gain  +53.701 dB (rms  +53.701)  THD+N  -42.99 dB
+12:36:02 J29 T1 code 33 osc  -66.82  lane coh pk  -13.00  gain  +53.812 dB (rms  +53.812)  THD+N  -42.52 dB
+12:36:03 J29 T1 code 34 osc  -66.97  lane coh pk  -13.00  gain  +53.975 dB (rms  +53.975)  THD+N  -42.44 dB
+12:36:04 J29 T1 code 35 osc  -67.08  lane coh pk  -13.00  gain  +54.086 dB (rms  +54.086)  THD+N  -42.30 dB
+12:36:05 J29 T1 code 36 osc  -67.38  lane coh pk  -13.00  gain  +54.380 dB (rms  +54.380)  THD+N  -42.05 dB
+12:36:06 J29 T1 code 37 osc  -67.49  lane coh pk  -13.00  gain  +54.483 dB (rms  +54.483)  THD+N  -41.89 dB
+12:36:07 J29 T1 code 38 osc  -67.63  lane coh pk  -13.00  gain  +54.637 dB (rms  +54.637)  THD+N  -41.82 dB
+12:36:08 J29 T1 code 39 osc  -67.74  lane coh pk  -13.00  gain  +54.735 dB (rms  +54.735)  THD+N  -41.68 dB
+12:36:10 J29 T1 code 40 osc  -68.26  lane coh pk  -13.13  gain  +55.122 dB (rms  +55.122)  THD+N  -41.26 dB
+12:36:11 J29 T1 code 41 osc  -68.22  lane coh pk  -13.00  gain  +55.217 dB (rms  +55.217)  THD+N  -41.20 dB
+12:36:12 J29 T1 code 42 osc  -68.35  lane coh pk  -12.99  gain  +55.359 dB (rms  +55.359)  THD+N  -41.14 dB
+12:36:13 J29 T1 code 43 osc  -68.45  lane coh pk  -13.00  gain  +55.451 dB (rms  +55.451)  THD+N  -41.03 dB
+12:36:14 J29 T1 code 44 osc  -68.70  lane coh pk  -13.00  gain  +55.700 dB (rms  +55.701)  THD+N  -40.70 dB
+12:36:15 J29 T1 code 45 osc  -68.79  lane coh pk  -13.00  gain  +55.791 dB (rms  +55.792)  THD+N  -40.59 dB
+12:36:16 J29 T1 code 46 osc  -68.92  lane coh pk  -13.00  gain  +55.921 dB (rms  +55.922)  THD+N  -40.53 dB
+12:36:18 J29 T1 code 47 osc  -69.01  lane coh pk  -13.00  gain  +56.006 dB (rms  +56.006)  THD+N  -40.37 dB
+12:36:19 J29 T1 code 48 osc  -69.84  lane coh pk  -12.88  gain  +56.966 dB (rms  +56.966)  THD+N  -39.59 dB
+12:36:20 J29 T1 code 49 osc  -70.04  lane coh pk  -13.00  gain  +57.045 dB (rms  +57.045)  THD+N  -39.47 dB
+12:36:21 J29 T1 code 50 osc  -70.16  lane coh pk  -13.00  gain  +57.156 dB (rms  +57.157)  THD+N  -39.23 dB
+12:36:22 J29 T1 code 51 osc  -70.23  lane coh pk  -13.00  gain  +57.230 dB (rms  +57.230)  THD+N  -39.26 dB
+12:36:23 J29 T1 code 52 osc  -70.43  lane coh pk  -13.00  gain  +57.433 dB (rms  +57.434)  THD+N  -39.04 dB
+12:36:24 J29 T1 code 53 osc  -70.51  lane coh pk  -13.00  gain  +57.505 dB (rms  +57.506)  THD+N  -38.97 dB
+12:36:26 J29 T1 code 54 osc  -70.61  lane coh pk  -13.00  gain  +57.613 dB (rms  +57.614)  THD+N  -38.79 dB
+12:36:27 J29 T1 code 55 osc  -70.68  lane coh pk  -13.00  gain  +57.685 dB (rms  +57.685)  THD+N  -38.79 dB
+12:36:28 J29 T1 code 56 osc  -71.06  lane coh pk  -13.10  gain  +57.958 dB (rms  +57.959)  THD+N  -38.42 dB
+12:36:29 J29 T1 code 57 osc  -71.03  lane coh pk  -13.00  gain  +58.026 dB (rms  +58.027)  THD+N  -38.35 dB
+12:36:30 J29 T1 code 58 osc  -71.13  lane coh pk  -13.00  gain  +58.127 dB (rms  +58.127)  THD+N  -38.36 dB
+12:36:31 J29 T1 code 59 osc  -71.19  lane coh pk  -13.00  gain  +58.193 dB (rms  +58.194)  THD+N  -38.31 dB
+12:36:32 J29 T1 code 60 osc  -71.37  lane coh pk  -13.00  gain  +58.375 dB (rms  +58.376)  THD+N  -38.11 dB
+12:36:33 J29 T1 code 61 osc  -71.44  lane coh pk  -13.00  gain  +58.441 dB (rms  +58.442)  THD+N  -38.08 dB
+12:36:34 J29 T1 code 62 osc  -71.53  lane coh pk  -13.00  gain  +58.534 dB (rms  +58.535)  THD+N  -37.88 dB
+12:36:36 J29 T1 code 63 osc  -71.60  lane coh pk  -13.00  gain  +58.600 dB (rms  +58.601)  THD+N  -37.71 dB
+12:36:47 J29 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:36:59 J29 T2 code 63 re 1 kHz: 20:-2.11  50:-0.45  100:-0.13  200:-0.02  500:+0.01  1000:+0.00  2000:-0.01  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:37:01 J29 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.40 dB = 0.00758 %  noise -105.41  meter pk -20.01 dBFS
+12:37:03 J29 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.03 dB = 0.00281 %  noise -104.04  meter pk -10.01 dBFS
+12:37:05 J29 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.08 dB = 0.00313 %  noise -99.09  meter pk -6.01 dBFS
+12:37:07 J29 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.76 dB = 0.00409 %  noise -93.77  meter pk -3.01 dBFS
+12:37:10 J29 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.48 dB = 0.66990 %  noise -49.49  meter pk -2.89 dBFS
+12:37:22 J29 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+12:37:22 PROMPT >>> J29 (MIC 7) LOOP SET DONE — fit the 150 Ω on J29
+12:37:22 SHUNT: TEST_OSC off, J29 at code 63, watching lane 7 for < -70 dBFS
+12:37:22   J29 lane 7 RMS -51.64 dBFS
+12:38:08   J29 lane 7 RMS -61.70 dBFS
+12:38:08   J29 lane 7 RMS -68.69 dBFS
+12:38:08   J29 lane 7 RMS -75.44 dBFS
+12:38:09   J29 lane 7 RMS -43.10 dBFS
+12:38:09   J29 lane 7 RMS -62.93 dBFS
+12:38:10   J29 lane 7 RMS -55.73 dBFS
+12:38:10   J29 lane 7 RMS -63.60 dBFS
+12:38:10   J29 lane 7 RMS -46.14 dBFS
+12:38:10   J29 lane 7 RMS -52.54 dBFS
+12:38:10   J29 lane 7 RMS -78.90 dBFS
+12:38:11   J29 lane 7 RMS -91.43 dBFS
+12:38:11   J29 lane 7 RMS -78.80 dBFS
+12:38:11   J29 lane 7 RMS -86.01 dBFS
+12:38:20   J29 lane 7 RMS -79.72 dBFS
+12:38:20   J29 lane 7 RMS -86.74 dBFS
+12:38:23 J29: floor -89.24 dBFS held 12 s -> 150 ohm taken as fitted
+12:39:55 J29 T4 code 63 (150 ohm): RmsResult -90.25 dBFS NoiseResult -90.25 (after captures -91.75); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+12:40:48 J29 T4 code  0 (150 ohm): RmsResult -113.72 dBFS NoiseResult -113.72 (after captures -114.32); 3 captures, overruns [0, 0, 0]
+12:40:49 PROMPT >>> J29 (MIC 7) DONE — move the loop cable to the next XLR
+12:40:49 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29']
+12:42:23 DETECT: tone on lane 5 (pk -14.44 dBFS; next lane 11 at -102.77) -> J31 (MIC 8)
+12:42:24 J31 presence: code 0 osc -20 -> coh gain +5.574 dB, lane coh pk -14.43 dBFS
+12:42:25 J31 T1 code  0 osc  -18.57  lane coh pk  -13.00  gain   +5.574 dB (rms   +5.574)  THD+N  -89.15 dB
+12:42:26 J31 T1 code  1 osc  -31.42  lane coh pk  -13.00  gain  +18.418 dB (rms  +18.418)  THD+N  -53.78 dB
+12:42:27 J31 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.037 dB (rms  +25.037)  THD+N  -45.13 dB
+12:42:28 J31 T1 code  3 osc  -40.71  lane coh pk  -13.00  gain  +27.708 dB (rms  +27.708)  THD+N  -53.63 dB
+12:42:29 J31 T1 code  4 osc  -45.47  lane coh pk  -13.01  gain  +32.463 dB (rms  +32.463)  THD+N  -62.19 dB
+12:42:30 J31 T1 code  5 osc  -46.70  lane coh pk  -13.00  gain  +33.700 dB (rms  +33.700)  THD+N  -62.34 dB
+12:42:32 J31 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.257 dB (rms  +35.257)  THD+N  -61.07 dB
+12:42:33 J31 T1 code  7 osc  -49.17  lane coh pk  -13.00  gain  +36.171 dB (rms  +36.171)  THD+N  -60.19 dB
+12:42:34 J31 T1 code  8 osc  -52.92  lane coh pk  -13.02  gain  +39.896 dB (rms  +39.896)  THD+N  -56.16 dB
+12:42:35 J31 T1 code  9 osc  -53.44  lane coh pk  -13.00  gain  +40.443 dB (rms  +40.443)  THD+N  -55.87 dB
+12:42:36 J31 T1 code 10 osc  -54.19  lane coh pk  -13.00  gain  +41.192 dB (rms  +41.192)  THD+N  -55.21 dB
+12:42:37 J31 T1 code 11 osc  -54.66  lane coh pk  -13.00  gain  +41.665 dB (rms  +41.665)  THD+N  -54.62 dB
+12:42:38 J31 T1 code 12 osc  -55.84  lane coh pk  -13.00  gain  +42.844 dB (rms  +42.844)  THD+N  -53.50 dB
+12:42:39 J31 T1 code 13 osc  -56.24  lane coh pk  -13.00  gain  +43.236 dB (rms  +43.236)  THD+N  -53.05 dB
+12:42:41 J31 T1 code 14 osc  -56.78  lane coh pk  -13.00  gain  +43.786 dB (rms  +43.786)  THD+N  -52.56 dB
+12:42:42 J31 T1 code 15 osc  -57.14  lane coh pk  -13.00  gain  +44.138 dB (rms  +44.138)  THD+N  -52.14 dB
+12:42:43 J31 T1 code 16 osc  -60.15  lane coh pk  -13.02  gain  +47.128 dB (rms  +47.128)  THD+N  -49.22 dB
+12:42:44 J31 T1 code 17 osc  -60.37  lane coh pk  -13.00  gain  +47.367 dB (rms  +47.367)  THD+N  -48.94 dB
+12:42:45 J31 T1 code 18 osc  -60.71  lane coh pk  -13.00  gain  +47.711 dB (rms  +47.711)  THD+N  -48.52 dB
+12:42:46 J31 T1 code 19 osc  -60.94  lane coh pk  -13.00  gain  +47.936 dB (rms  +47.936)  THD+N  -48.60 dB
+12:42:47 J31 T1 code 20 osc  -61.52  lane coh pk  -13.00  gain  +48.527 dB (rms  +48.527)  THD+N  -47.97 dB
+12:42:48 J31 T1 code 21 osc  -61.73  lane coh pk  -13.00  gain  +48.732 dB (rms  +48.732)  THD+N  -47.67 dB
+12:42:49 J31 T1 code 22 osc  -62.03  lane coh pk  -13.00  gain  +49.026 dB (rms  +49.027)  THD+N  -47.30 dB
+12:42:51 J31 T1 code 23 osc  -62.22  lane coh pk  -13.00  gain  +49.220 dB (rms  +49.220)  THD+N  -47.15 dB
+12:42:52 J31 T1 code 24 osc  -63.19  lane coh pk  -13.00  gain  +50.187 dB (rms  +50.187)  THD+N  -46.24 dB
+12:42:53 J31 T1 code 25 osc  -63.36  lane coh pk  -13.00  gain  +50.357 dB (rms  +50.357)  THD+N  -45.99 dB
+12:42:54 J31 T1 code 26 osc  -63.60  lane coh pk  -13.00  gain  +50.602 dB (rms  +50.602)  THD+N  -45.81 dB
+12:42:55 J31 T1 code 27 osc  -63.76  lane coh pk  -13.00  gain  +50.764 dB (rms  +50.764)  THD+N  -45.66 dB
+12:42:56 J31 T1 code 28 osc  -64.19  lane coh pk  -13.00  gain  +51.191 dB (rms  +51.191)  THD+N  -45.27 dB
+12:42:57 J31 T1 code 29 osc  -64.34  lane coh pk  -13.00  gain  +51.341 dB (rms  +51.341)  THD+N  -45.22 dB
+12:42:58 J31 T1 code 30 osc  -64.56  lane coh pk  -13.00  gain  +51.560 dB (rms  +51.560)  THD+N  -44.86 dB
+12:42:59 J31 T1 code 31 osc  -64.70  lane coh pk  -13.00  gain  +51.705 dB (rms  +51.705)  THD+N  -44.71 dB
+12:43:01 J31 T1 code 32 osc  -66.71  lane coh pk  -13.02  gain  +53.691 dB (rms  +53.691)  THD+N  -42.71 dB
+12:43:02 J31 T1 code 33 osc  -66.81  lane coh pk  -13.00  gain  +53.804 dB (rms  +53.805)  THD+N  -42.57 dB
+12:43:03 J31 T1 code 34 osc  -66.97  lane coh pk  -13.00  gain  +53.968 dB (rms  +53.968)  THD+N  -42.49 dB
+12:43:04 J31 T1 code 35 osc  -67.08  lane coh pk  -13.00  gain  +54.077 dB (rms  +54.078)  THD+N  -42.43 dB
+12:43:05 J31 T1 code 36 osc  -67.37  lane coh pk  -13.00  gain  +54.371 dB (rms  +54.371)  THD+N  -42.02 dB
+12:43:06 J31 T1 code 37 osc  -67.48  lane coh pk  -13.00  gain  +54.475 dB (rms  +54.475)  THD+N  -41.96 dB
+12:43:07 J31 T1 code 38 osc  -67.62  lane coh pk  -13.00  gain  +54.627 dB (rms  +54.627)  THD+N  -41.78 dB
+12:43:08 J31 T1 code 39 osc  -67.73  lane coh pk  -13.00  gain  +54.729 dB (rms  +54.729)  THD+N  -41.78 dB
+12:43:09 J31 T1 code 40 osc  -68.25  lane coh pk  -13.00  gain  +55.247 dB (rms  +55.247)  THD+N  -41.27 dB
+12:43:11 J31 T1 code 41 osc  -68.34  lane coh pk  -13.00  gain  +55.342 dB (rms  +55.342)  THD+N  -41.09 dB
+12:43:12 J31 T1 code 42 osc  -68.48  lane coh pk  -13.00  gain  +55.479 dB (rms  +55.479)  THD+N  -41.04 dB
+12:43:13 J31 T1 code 43 osc  -68.57  lane coh pk  -13.00  gain  +55.572 dB (rms  +55.572)  THD+N  -40.87 dB
+12:43:14 J31 T1 code 44 osc  -68.82  lane coh pk  -13.00  gain  +55.816 dB (rms  +55.817)  THD+N  -40.65 dB
+12:43:15 J31 T1 code 45 osc  -68.90  lane coh pk  -13.00  gain  +55.904 dB (rms  +55.904)  THD+N  -40.53 dB
+12:43:16 J31 T1 code 46 osc  -69.03  lane coh pk  -13.00  gain  +56.033 dB (rms  +56.034)  THD+N  -40.38 dB
+12:43:17 J31 T1 code 47 osc  -69.12  lane coh pk  -13.00  gain  +56.120 dB (rms  +56.120)  THD+N  -40.26 dB
+12:43:18 J31 T1 code 48 osc  -69.96  lane coh pk  -13.01  gain  +56.949 dB (rms  +56.949)  THD+N  -39.53 dB
+12:43:19 J31 T1 code 49 osc  -70.02  lane coh pk  -13.00  gain  +57.028 dB (rms  +57.029)  THD+N  -39.40 dB
+12:43:21 J31 T1 code 50 osc  -70.14  lane coh pk  -13.00  gain  +57.140 dB (rms  +57.140)  THD+N  -39.29 dB
+12:43:22 J31 T1 code 51 osc  -70.22  lane coh pk  -13.00  gain  +57.217 dB (rms  +57.218)  THD+N  -39.23 dB
+12:43:23 J31 T1 code 52 osc  -70.42  lane coh pk  -13.00  gain  +57.420 dB (rms  +57.421)  THD+N  -38.95 dB
+12:43:24 J31 T1 code 53 osc  -70.49  lane coh pk  -13.00  gain  +57.491 dB (rms  +57.492)  THD+N  -38.85 dB
+12:43:25 J31 T1 code 54 osc  -70.60  lane coh pk  -13.00  gain  +57.598 dB (rms  +57.598)  THD+N  -38.87 dB
+12:43:26 J31 T1 code 55 osc  -70.67  lane coh pk  -13.00  gain  +57.670 dB (rms  +57.671)  THD+N  -38.77 dB
+12:43:27 J31 T1 code 56 osc  -71.04  lane coh pk  -13.00  gain  +58.039 dB (rms  +58.039)  THD+N  -38.42 dB
+12:43:28 J31 T1 code 57 osc  -71.11  lane coh pk  -13.00  gain  +58.106 dB (rms  +58.107)  THD+N  -38.33 dB
+12:43:30 J31 T1 code 58 osc  -71.21  lane coh pk  -13.00  gain  +58.206 dB (rms  +58.206)  THD+N  -38.23 dB
+12:43:31 J31 T1 code 59 osc  -71.27  lane coh pk  -13.00  gain  +58.273 dB (rms  +58.273)  THD+N  -38.01 dB
+12:43:32 J31 T1 code 60 osc  -71.45  lane coh pk  -13.00  gain  +58.452 dB (rms  +58.453)  THD+N  -38.00 dB
+12:43:33 J31 T1 code 61 osc  -71.52  lane coh pk  -13.00  gain  +58.516 dB (rms  +58.517)  THD+N  -38.01 dB
+12:43:34 J31 T1 code 62 osc  -71.61  lane coh pk  -13.00  gain  +58.610 dB (rms  +58.611)  THD+N  -37.81 dB
+12:43:35 J31 T1 code 63 osc  -71.67  lane coh pk  -13.00  gain  +58.674 dB (rms  +58.675)  THD+N  -37.77 dB
+12:43:46 J31 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:43:58 J31 T2 code 63 re 1 kHz: 20:-2.07  50:-0.43  100:-0.13  200:-0.02  500:+0.02  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:44:00 J31 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -81.59 dB = 0.00832 %  noise -104.60  meter pk -20.01 dBFS
+12:44:02 J31 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.46 dB = 0.00267 %  noise -104.47  meter pk -10.01 dBFS
+12:44:04 J31 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -92.93 dB = 0.00226 %  noise -101.94  meter pk -6.01 dBFS
+12:44:07 J31 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.39 dB = 0.00380 %  noise -94.40  meter pk -3.01 dBFS
+12:44:09 J31 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.67 dB = 0.65505 %  noise -49.68  meter pk -2.88 dBFS
+12:44:21 J31 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+12:44:21 PROMPT >>> J31 (MIC 8) LOOP SET DONE — fit the 150 Ω on J31
+12:44:21 SHUNT: TEST_OSC off, J31 at code 63, watching lane 5 for < -70 dBFS
+12:44:21   J31 lane 5 RMS -51.03 dBFS
+12:45:21   J31 lane 5 RMS -51.77 dBFS
+12:46:21   J31 lane 5 RMS -51.86 dBFS
+12:46:49   J31 lane 5 RMS -78.05 dBFS
+12:46:51   J31 lane 5 RMS -70.25 dBFS
+12:46:52   J31 lane 5 RMS -77.65 dBFS
+12:46:52   J31 lane 5 RMS -61.31 dBFS
+12:46:52   J31 lane 5 RMS -85.39 dBFS
+12:46:53   J31 lane 5 RMS -78.76 dBFS
+12:46:53   J31 lane 5 RMS -84.99 dBFS
+12:47:04 J31: floor -86.80 dBFS held 12 s -> 150 ohm taken as fitted
+12:48:25 J31 T4 code 63 (150 ohm): RmsResult -86.42 dBFS NoiseResult -86.42 (after captures -84.41); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+12:49:07 J31 T4 code  0 (150 ohm): RmsResult -113.52 dBFS NoiseResult -113.52 (after captures -113.72); 3 captures, overruns [0, 0, 0]
+12:49:08 PROMPT >>> J31 (MIC 8) DONE — move the loop cable to the next XLR
+12:49:08 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29', 'J31']
+12:50:35 DETECT: tone on lane 24 (pk -14.46 dBFS; next lane 10 at -92.81) -> J35 (MIC 9)
+12:50:36 J35 presence: code 0 osc -20 -> coh gain +5.553 dB, lane coh pk -14.45 dBFS
+12:50:37 J35 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.553 dB (rms   +5.553)  THD+N  -87.28 dB
+12:50:40 J35 T1 code  1 osc  -31.40  lane coh pk  -13.00  gain  +18.397 dB (rms  +18.397)  THD+N  -52.74 dB
+12:50:42 J35 T1 code  2 osc  -38.02  lane coh pk  -13.00  gain  +25.017 dB (rms  +25.018)  THD+N  -36.83 dB
+12:50:43 J35 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.688 dB (rms  +27.689)  THD+N  -44.61 dB
+12:50:44 J35 T1 code  4 osc  -45.45  lane coh pk  -13.01  gain  +32.441 dB (rms  +32.441)  THD+N  -57.03 dB
+12:50:45 J35 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.678 dB (rms  +33.678)  THD+N  -62.40 dB
+12:50:46 J35 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.236 dB (rms  +35.236)  THD+N  -61.08 dB
+12:50:47 J35 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.149 dB (rms  +36.149)  THD+N  -59.76 dB
+12:50:48 J35 T1 code  8 osc  -52.90  lane coh pk  -13.02  gain  +39.873 dB (rms  +39.873)  THD+N  -56.23 dB
+12:50:49 J35 T1 code  9 osc  -53.42  lane coh pk  -13.00  gain  +40.419 dB (rms  +40.419)  THD+N  -55.96 dB
+12:50:50 J35 T1 code 10 osc  -54.17  lane coh pk  -13.00  gain  +41.169 dB (rms  +41.169)  THD+N  -55.23 dB
+12:50:52 J35 T1 code 11 osc  -54.64  lane coh pk  -13.00  gain  +41.642 dB (rms  +41.642)  THD+N  -54.55 dB
+12:50:53 J35 T1 code 12 osc  -55.82  lane coh pk  -13.00  gain  +42.821 dB (rms  +42.821)  THD+N  -53.42 dB
+12:50:54 J35 T1 code 13 osc  -56.21  lane coh pk  -13.00  gain  +43.213 dB (rms  +43.213)  THD+N  -53.04 dB
+12:50:55 J35 T1 code 14 osc  -56.76  lane coh pk  -13.00  gain  +43.762 dB (rms  +43.762)  THD+N  -52.63 dB
+12:50:56 J35 T1 code 15 osc  -57.11  lane coh pk  -13.00  gain  +44.115 dB (rms  +44.115)  THD+N  -52.12 dB
+12:50:57 J35 T1 code 16 osc  -60.12  lane coh pk  -13.03  gain  +47.090 dB (rms  +47.090)  THD+N  -49.16 dB
+12:50:58 J35 T1 code 17 osc  -60.33  lane coh pk  -13.00  gain  +47.331 dB (rms  +47.331)  THD+N  -49.00 dB
+12:50:59 J35 T1 code 18 osc  -60.67  lane coh pk  -13.00  gain  +47.675 dB (rms  +47.675)  THD+N  -48.64 dB
+12:51:01 J35 T1 code 19 osc  -60.90  lane coh pk  -13.00  gain  +47.901 dB (rms  +47.901)  THD+N  -48.51 dB
+12:51:02 J35 T1 code 20 osc  -61.49  lane coh pk  -13.00  gain  +48.492 dB (rms  +48.492)  THD+N  -47.90 dB
+12:51:03 J35 T1 code 21 osc  -61.70  lane coh pk  -13.00  gain  +48.697 dB (rms  +48.697)  THD+N  -47.69 dB
+12:51:04 J35 T1 code 22 osc  -61.99  lane coh pk  -13.00  gain  +48.993 dB (rms  +48.993)  THD+N  -47.49 dB
+12:51:05 J35 T1 code 23 osc  -62.19  lane coh pk  -13.00  gain  +49.187 dB (rms  +49.187)  THD+N  -47.16 dB
+12:51:06 J35 T1 code 24 osc  -63.16  lane coh pk  -13.00  gain  +50.154 dB (rms  +50.154)  THD+N  -46.33 dB
+12:51:07 J35 T1 code 25 osc  -63.32  lane coh pk  -13.00  gain  +50.323 dB (rms  +50.323)  THD+N  -46.20 dB
+12:51:08 J35 T1 code 26 osc  -63.57  lane coh pk  -13.00  gain  +50.570 dB (rms  +50.570)  THD+N  -45.84 dB
+12:51:09 J35 T1 code 27 osc  -63.73  lane coh pk  -13.00  gain  +50.731 dB (rms  +50.731)  THD+N  -45.61 dB
+12:51:11 J35 T1 code 28 osc  -64.16  lane coh pk  -13.00  gain  +51.159 dB (rms  +51.159)  THD+N  -45.24 dB
+12:51:12 J35 T1 code 29 osc  -64.31  lane coh pk  -13.00  gain  +51.311 dB (rms  +51.311)  THD+N  -45.06 dB
+12:51:13 J35 T1 code 30 osc  -64.53  lane coh pk  -13.00  gain  +51.530 dB (rms  +51.530)  THD+N  -44.82 dB
+12:51:14 J35 T1 code 31 osc  -64.67  lane coh pk  -13.00  gain  +51.674 dB (rms  +51.674)  THD+N  -44.67 dB
+12:51:15 J35 T1 code 32 osc  -66.68  lane coh pk  -13.08  gain  +53.596 dB (rms  +53.596)  THD+N  -42.80 dB
+12:51:16 J35 T1 code 33 osc  -66.71  lane coh pk  -13.00  gain  +53.707 dB (rms  +53.708)  THD+N  -42.70 dB
+12:51:17 J35 T1 code 34 osc  -66.87  lane coh pk  -12.99  gain  +53.874 dB (rms  +53.874)  THD+N  -42.53 dB
+12:51:18 J35 T1 code 35 osc  -66.98  lane coh pk  -13.00  gain  +53.985 dB (rms  +53.985)  THD+N  -42.51 dB
+12:51:20 J35 T1 code 36 osc  -67.28  lane coh pk  -12.99  gain  +54.281 dB (rms  +54.282)  THD+N  -42.20 dB
+12:51:21 J35 T1 code 37 osc  -67.39  lane coh pk  -13.00  gain  +54.387 dB (rms  +54.387)  THD+N  -42.10 dB
+12:51:22 J35 T1 code 38 osc  -67.54  lane coh pk  -13.00  gain  +54.539 dB (rms  +54.539)  THD+N  -41.96 dB
+12:51:23 J35 T1 code 39 osc  -67.64  lane coh pk  -13.00  gain  +54.643 dB (rms  +54.643)  THD+N  -41.83 dB
+12:51:24 J35 T1 code 40 osc  -68.17  lane coh pk  -13.00  gain  +55.166 dB (rms  +55.166)  THD+N  -41.27 dB
+12:51:25 J35 T1 code 41 osc  -68.26  lane coh pk  -13.00  gain  +55.261 dB (rms  +55.261)  THD+N  -41.19 dB
+12:51:26 J35 T1 code 42 osc  -68.40  lane coh pk  -13.00  gain  +55.399 dB (rms  +55.400)  THD+N  -41.02 dB
+12:51:27 J35 T1 code 43 osc  -68.49  lane coh pk  -13.00  gain  +55.492 dB (rms  +55.492)  THD+N  -40.95 dB
+12:51:29 J35 T1 code 44 osc  -68.74  lane coh pk  -13.00  gain  +55.741 dB (rms  +55.741)  THD+N  -40.78 dB
+12:51:30 J35 T1 code 45 osc  -68.83  lane coh pk  -13.00  gain  +55.829 dB (rms  +55.829)  THD+N  -40.72 dB
+12:51:31 J35 T1 code 46 osc  -68.96  lane coh pk  -13.00  gain  +55.955 dB (rms  +55.956)  THD+N  -40.49 dB
+12:51:32 J35 T1 code 47 osc  -69.04  lane coh pk  -13.00  gain  +56.044 dB (rms  +56.045)  THD+N  -40.27 dB
+12:51:33 J35 T1 code 48 osc  -69.88  lane coh pk  -13.00  gain  +56.877 dB (rms  +56.877)  THD+N  -39.60 dB
+12:51:34 J35 T1 code 49 osc  -69.95  lane coh pk  -13.00  gain  +56.953 dB (rms  +56.954)  THD+N  -39.59 dB
+12:51:35 J35 T1 code 50 osc  -70.07  lane coh pk  -13.00  gain  +57.064 dB (rms  +57.065)  THD+N  -39.37 dB
+12:51:36 J35 T1 code 51 osc  -70.14  lane coh pk  -13.00  gain  +57.140 dB (rms  +57.140)  THD+N  -39.30 dB
+12:51:38 J35 T1 code 52 osc  -70.34  lane coh pk  -13.00  gain  +57.345 dB (rms  +57.346)  THD+N  -39.13 dB
+12:51:39 J35 T1 code 53 osc  -70.42  lane coh pk  -13.00  gain  +57.420 dB (rms  +57.421)  THD+N  -38.99 dB
+12:51:40 J35 T1 code 54 osc  -70.53  lane coh pk  -13.00  gain  +57.526 dB (rms  +57.527)  THD+N  -38.92 dB
+12:51:41 J35 T1 code 55 osc  -70.60  lane coh pk  -13.00  gain  +57.598 dB (rms  +57.598)  THD+N  -38.85 dB
+12:51:42 J35 T1 code 56 osc  -70.97  lane coh pk  -13.00  gain  +57.969 dB (rms  +57.970)  THD+N  -38.33 dB
+12:51:43 J35 T1 code 57 osc  -71.04  lane coh pk  -13.00  gain  +58.036 dB (rms  +58.037)  THD+N  -38.25 dB
+12:51:44 J35 T1 code 58 osc  -71.14  lane coh pk  -13.00  gain  +58.137 dB (rms  +58.137)  THD+N  -38.24 dB
+12:51:45 J35 T1 code 59 osc  -71.20  lane coh pk  -13.00  gain  +58.203 dB (rms  +58.203)  THD+N  -38.25 dB
+12:51:47 J35 T1 code 60 osc  -71.38  lane coh pk  -13.00  gain  +58.385 dB (rms  +58.386)  THD+N  -38.04 dB
+12:51:48 J35 T1 code 61 osc  -71.45  lane coh pk  -13.00  gain  +58.449 dB (rms  +58.449)  THD+N  -38.09 dB
+12:51:49 J35 T1 code 62 osc  -71.54  lane coh pk  -13.00  gain  +58.542 dB (rms  +58.542)  THD+N  -37.92 dB
+12:51:50 J35 T1 code 63 osc  -71.60  lane coh pk  -13.00  gain  +58.607 dB (rms  +58.607)  THD+N  -37.89 dB
+12:52:02 J35 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:52:13 J35 T2 code 63 re 1 kHz: 20:-2.06  50:-0.45  100:-0.11  200:-0.01  500:+0.02  1000:+0.00  2000:-0.00  5000:-0.00  10000:+0.07  15000:-0.01  20000:-0.12
+12:52:16 J35 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.49 dB = 0.00751 %  noise -105.50  meter pk -20.01 dBFS
+12:52:18 J35 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.61 dB = 0.00263 %  noise -104.62  meter pk -10.01 dBFS
+12:52:20 J35 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -92.78 dB = 0.00230 %  noise -101.79  meter pk -6.01 dBFS
+12:52:22 J35 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.80 dB = 0.00363 %  noise -94.81  meter pk -3.01 dBFS
+12:52:24 J35 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.19 dB = 0.69245 %  noise -49.20  meter pk -2.88 dBFS
+12:52:36 J35 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+12:52:36 PROMPT >>> J35 (MIC 9) LOOP SET DONE — fit the 150 Ω on J35
+12:52:37 SHUNT: TEST_OSC off, J35 at code 63, watching lane 24 for < -70 dBFS
+12:52:37   J35 lane 24 RMS -51.44 dBFS
+12:53:20   J35 lane 24 RMS -38.69 dBFS
+12:53:21   J35 lane 24 RMS -81.14 dBFS
+12:53:25   J35 lane 24 RMS -51.28 dBFS
+12:53:25   J35 lane 24 RMS -78.19 dBFS
+12:53:25   J35 lane 24 RMS -71.49 dBFS
+12:53:26   J35 lane 24 RMS -92.10 dBFS
+12:53:27   J35 lane 24 RMS -59.78 dBFS
+12:53:28   J35 lane 24 RMS -67.60 dBFS
+12:53:28   J35 lane 24 RMS -89.28 dBFS
+12:53:28   J35 lane 24 RMS -83.20 dBFS
+12:53:28   J35 lane 24 RMS -91.94 dBFS
+12:53:29   J35 lane 24 RMS -85.76 dBFS
+12:53:29   J35 lane 24 RMS -92.90 dBFS
+12:53:30   J35 lane 24 RMS -86.29 dBFS
+12:53:32   J35 lane 24 RMS -92.84 dBFS
+12:53:32   J35 lane 24 RMS -83.07 dBFS
+12:53:33   J35 lane 24 RMS -90.40 dBFS
+12:53:40   J35 lane 24 RMS -83.80 dBFS
+12:53:40 J35: floor -86.03 dBFS held 12 s -> 150 ohm taken as fitted
+12:55:00 J35 T4 code 63 (150 ohm): RmsResult -91.27 dBFS NoiseResult -91.27 (after captures -92.22); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+12:55:46 J35 T4 code  0 (150 ohm): RmsResult -113.69 dBFS NoiseResult -113.69 (after captures -114.19); 3 captures, overruns [0, 0, 0]
+12:55:46 PROMPT >>> J35 (MIC 9) DONE — move the loop cable to the next XLR
+12:55:46 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29', 'J31', 'J35']
+12:56:33 DETECT: tone on lane 22 (pk -14.46 dBFS; next lane 6 at -103.99) -> J37 (MIC 10)
+12:56:34 J37 presence: code 0 osc -20 -> coh gain +5.552 dB, lane coh pk -14.45 dBFS
+12:56:35 J37 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.552 dB (rms   +5.552)  THD+N  -89.20 dB
+12:56:37 J37 T1 code  1 osc  -31.40  lane coh pk  -13.00  gain  +18.395 dB (rms  +18.395)  THD+N  -52.09 dB
+12:56:38 J37 T1 code  2 osc  -38.01  lane coh pk  -13.00  gain  +25.013 dB (rms  +25.013)  THD+N  -43.61 dB
+12:56:39 J37 T1 code  3 osc  -40.68  lane coh pk  -13.00  gain  +27.685 dB (rms  +27.685)  THD+N  -52.59 dB
+12:56:40 J37 T1 code  4 osc  -45.45  lane coh pk  -13.01  gain  +32.439 dB (rms  +32.439)  THD+N  -61.79 dB
+12:56:41 J37 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.676 dB (rms  +33.676)  THD+N  -62.79 dB
+12:56:42 J37 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.233 dB (rms  +35.233)  THD+N  -61.04 dB
+12:56:43 J37 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.147 dB (rms  +36.147)  THD+N  -60.21 dB
+12:56:44 J37 T1 code  8 osc  -52.89  lane coh pk  -13.00  gain  +39.892 dB (rms  +39.892)  THD+N  -56.37 dB
+12:56:45 J37 T1 code  9 osc  -53.44  lane coh pk  -13.00  gain  +40.437 dB (rms  +40.437)  THD+N  -55.95 dB
+12:56:47 J37 T1 code 10 osc  -54.18  lane coh pk  -13.00  gain  +41.185 dB (rms  +41.185)  THD+N  -55.21 dB
+12:56:48 J37 T1 code 11 osc  -54.66  lane coh pk  -13.00  gain  +41.657 dB (rms  +41.657)  THD+N  -54.76 dB
+12:56:49 J37 T1 code 12 osc  -55.83  lane coh pk  -13.00  gain  +42.834 dB (rms  +42.834)  THD+N  -53.56 dB
+12:56:50 J37 T1 code 13 osc  -56.23  lane coh pk  -13.00  gain  +43.226 dB (rms  +43.226)  THD+N  -53.18 dB
+12:56:51 J37 T1 code 14 osc  -56.77  lane coh pk  -13.00  gain  +43.774 dB (rms  +43.774)  THD+N  -52.58 dB
+12:56:52 J37 T1 code 15 osc  -57.13  lane coh pk  -13.00  gain  +44.126 dB (rms  +44.126)  THD+N  -52.27 dB
+12:56:53 J37 T1 code 16 osc  -60.13  lane coh pk  -13.05  gain  +47.083 dB (rms  +47.083)  THD+N  -49.05 dB
+12:56:54 J37 T1 code 17 osc  -60.32  lane coh pk  -13.00  gain  +47.325 dB (rms  +47.325)  THD+N  -48.99 dB
+12:56:56 J37 T1 code 18 osc  -60.67  lane coh pk  -13.00  gain  +47.670 dB (rms  +47.670)  THD+N  -48.72 dB
+12:56:57 J37 T1 code 19 osc  -60.89  lane coh pk  -13.00  gain  +47.895 dB (rms  +47.896)  THD+N  -48.44 dB
+12:56:58 J37 T1 code 20 osc  -61.48  lane coh pk  -13.00  gain  +48.486 dB (rms  +48.487)  THD+N  -47.97 dB
+12:56:59 J37 T1 code 21 osc  -61.69  lane coh pk  -13.00  gain  +48.692 dB (rms  +48.692)  THD+N  -47.69 dB
+12:57:00 J37 T1 code 22 osc  -61.99  lane coh pk  -13.00  gain  +48.987 dB (rms  +48.987)  THD+N  -47.30 dB
+12:57:01 J37 T1 code 23 osc  -62.18  lane coh pk  -13.00  gain  +49.181 dB (rms  +49.181)  THD+N  -47.10 dB
+12:57:02 J37 T1 code 24 osc  -63.15  lane coh pk  -13.00  gain  +50.156 dB (rms  +50.156)  THD+N  -46.18 dB
+12:57:03 J37 T1 code 25 osc  -63.33  lane coh pk  -13.00  gain  +50.326 dB (rms  +50.326)  THD+N  -46.01 dB
+12:57:04 J37 T1 code 26 osc  -63.57  lane coh pk  -13.00  gain  +50.570 dB (rms  +50.570)  THD+N  -45.95 dB
+12:57:05 J37 T1 code 27 osc  -63.73  lane coh pk  -13.00  gain  +50.731 dB (rms  +50.731)  THD+N  -45.74 dB
+12:57:07 J37 T1 code 28 osc  -64.16  lane coh pk  -13.00  gain  +51.159 dB (rms  +51.159)  THD+N  -45.26 dB
+12:57:08 J37 T1 code 29 osc  -64.31  lane coh pk  -13.00  gain  +51.311 dB (rms  +51.311)  THD+N  -44.97 dB
+12:57:09 J37 T1 code 30 osc  -64.53  lane coh pk  -13.00  gain  +51.529 dB (rms  +51.529)  THD+N  -44.87 dB
+12:57:10 J37 T1 code 31 osc  -64.67  lane coh pk  -13.00  gain  +51.673 dB (rms  +51.673)  THD+N  -44.72 dB
+12:57:11 J37 T1 code 32 osc  -66.68  lane coh pk  -13.03  gain  +53.643 dB (rms  +53.643)  THD+N  -42.70 dB
+12:57:12 J37 T1 code 33 osc  -66.76  lane coh pk  -13.00  gain  +53.754 dB (rms  +53.755)  THD+N  -42.75 dB
+12:57:13 J37 T1 code 34 osc  -66.92  lane coh pk  -12.99  gain  +53.920 dB (rms  +53.921)  THD+N  -42.46 dB
+12:57:14 J37 T1 code 35 osc  -67.03  lane coh pk  -13.00  gain  +54.031 dB (rms  +54.031)  THD+N  -42.44 dB
+12:57:16 J37 T1 code 36 osc  -67.32  lane coh pk  -13.00  gain  +54.325 dB (rms  +54.325)  THD+N  -42.14 dB
+12:57:17 J37 T1 code 37 osc  -67.43  lane coh pk  -13.00  gain  +54.431 dB (rms  +54.431)  THD+N  -42.00 dB
+12:57:18 J37 T1 code 38 osc  -67.58  lane coh pk  -13.00  gain  +54.583 dB (rms  +54.583)  THD+N  -41.86 dB
+12:57:19 J37 T1 code 39 osc  -67.68  lane coh pk  -13.00  gain  +54.683 dB (rms  +54.683)  THD+N  -41.72 dB
+12:57:20 J37 T1 code 40 osc  -68.20  lane coh pk  -13.00  gain  +55.207 dB (rms  +55.207)  THD+N  -41.25 dB
+12:57:21 J37 T1 code 41 osc  -68.30  lane coh pk  -13.00  gain  +55.301 dB (rms  +55.302)  THD+N  -41.10 dB
+12:57:22 J37 T1 code 42 osc  -68.44  lane coh pk  -13.00  gain  +55.440 dB (rms  +55.440)  THD+N  -40.97 dB
+12:57:23 J37 T1 code 43 osc  -68.53  lane coh pk  -13.00  gain  +55.529 dB (rms  +55.530)  THD+N  -40.95 dB
+12:57:25 J37 T1 code 44 osc  -68.78  lane coh pk  -13.00  gain  +55.778 dB (rms  +55.779)  THD+N  -40.73 dB
+12:57:26 J37 T1 code 45 osc  -68.87  lane coh pk  -13.00  gain  +55.867 dB (rms  +55.868)  THD+N  -40.59 dB
+12:57:27 J37 T1 code 46 osc  -69.00  lane coh pk  -13.00  gain  +55.995 dB (rms  +55.996)  THD+N  -40.46 dB
+12:57:28 J37 T1 code 47 osc  -69.08  lane coh pk  -13.00  gain  +56.082 dB (rms  +56.082)  THD+N  -40.36 dB
+12:57:29 J37 T1 code 48 osc  -69.92  lane coh pk  -13.01  gain  +56.905 dB (rms  +56.905)  THD+N  -39.54 dB
+12:57:30 J37 T1 code 49 osc  -69.98  lane coh pk  -13.00  gain  +56.982 dB (rms  +56.982)  THD+N  -39.55 dB
+12:57:31 J37 T1 code 50 osc  -70.09  lane coh pk  -13.00  gain  +57.095 dB (rms  +57.096)  THD+N  -39.38 dB
+12:57:32 J37 T1 code 51 osc  -70.17  lane coh pk  -13.00  gain  +57.169 dB (rms  +57.169)  THD+N  -39.24 dB
+12:57:33 J37 T1 code 52 osc  -70.37  lane coh pk  -13.00  gain  +57.372 dB (rms  +57.373)  THD+N  -39.11 dB
+12:57:35 J37 T1 code 53 osc  -70.44  lane coh pk  -13.00  gain  +57.446 dB (rms  +57.446)  THD+N  -39.02 dB
+12:57:36 J37 T1 code 54 osc  -70.55  lane coh pk  -13.00  gain  +57.552 dB (rms  +57.553)  THD+N  -39.02 dB
+12:57:37 J37 T1 code 55 osc  -70.62  lane coh pk  -12.99  gain  +57.627 dB (rms  +57.628)  THD+N  -38.82 dB
+12:57:38 J37 T1 code 56 osc  -71.00  lane coh pk  -13.00  gain  +57.994 dB (rms  +57.995)  THD+N  -38.47 dB
+12:57:39 J37 T1 code 57 osc  -71.06  lane coh pk  -13.00  gain  +58.065 dB (rms  +58.065)  THD+N  -38.30 dB
+12:57:40 J37 T1 code 58 osc  -71.16  lane coh pk  -13.00  gain  +58.164 dB (rms  +58.165)  THD+N  -38.39 dB
+12:57:41 J37 T1 code 59 osc  -71.23  lane coh pk  -13.00  gain  +58.230 dB (rms  +58.231)  THD+N  -38.24 dB
+12:57:42 J37 T1 code 60 osc  -71.41  lane coh pk  -13.00  gain  +58.409 dB (rms  +58.410)  THD+N  -38.05 dB
+12:57:43 J37 T1 code 61 osc  -71.47  lane coh pk  -13.00  gain  +58.474 dB (rms  +58.475)  THD+N  -37.88 dB
+12:57:45 J37 T1 code 62 osc  -71.57  lane coh pk  -13.00  gain  +58.569 dB (rms  +58.570)  THD+N  -37.92 dB
+12:57:46 J37 T1 code 63 osc  -71.63  lane coh pk  -13.00  gain  +58.631 dB (rms  +58.632)  THD+N  -37.79 dB
+12:57:57 J37 T2 code 0 re 1 kHz: 20:-0.42  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+12:58:09 J37 T2 code 63 re 1 kHz: 20:-2.13  50:-0.47  100:-0.13  200:-0.02  500:+0.02  1000:+0.00  2000:+0.00  5000:-0.00  10000:+0.08  15000:-0.01  20000:-0.11
+12:58:11 J37 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.55 dB = 0.00746 %  noise -105.56  meter pk -20.01 dBFS
+12:58:14 J37 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -90.93 dB = 0.00284 %  noise -103.94  meter pk -10.01 dBFS
+12:58:16 J37 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -89.75 dB = 0.00326 %  noise -98.76  meter pk -6.01 dBFS
+12:58:18 J37 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.04 dB = 0.00445 %  noise -93.05  meter pk -3.01 dBFS
+12:58:20 J37 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.25 dB = 0.68786 %  noise -49.26  meter pk -2.87 dBFS
+12:58:32 J37 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+12:58:32 PROMPT >>> J37 (MIC 10) LOOP SET DONE — fit the 150 Ω on J37
+12:58:32 SHUNT: TEST_OSC off, J37 at code 63, watching lane 22 for < -70 dBFS
+12:58:32   J37 lane 22 RMS -51.44 dBFS
+12:58:56   J37 lane 22 RMS -36.51 dBFS
+12:58:56   J37 lane 22 RMS -73.22 dBFS
+12:58:56   J37 lane 22 RMS -81.45 dBFS
+12:58:57   J37 lane 22 RMS -54.40 dBFS
+12:58:58   J37 lane 22 RMS -74.45 dBFS
+12:58:58   J37 lane 22 RMS -66.07 dBFS
+12:58:58   J37 lane 22 RMS -90.10 dBFS
+12:58:59   J37 lane 22 RMS -77.56 dBFS
+12:58:59   J37 lane 22 RMS -83.85 dBFS
+12:58:59   J37 lane 22 RMS -93.31 dBFS
+12:58:59   J37 lane 22 RMS -86.36 dBFS
+12:59:00   J37 lane 22 RMS -93.52 dBFS
+12:59:00   J37 lane 22 RMS -87.08 dBFS
+12:59:01   J37 lane 22 RMS -93.31 dBFS
+12:59:03   J37 lane 22 RMS -77.28 dBFS
+12:59:04   J37 lane 22 RMS -83.93 dBFS
+12:59:04   J37 lane 22 RMS -92.42 dBFS
+12:59:04   J37 lane 22 RMS -84.40 dBFS
+12:59:05   J37 lane 22 RMS -90.61 dBFS
+12:59:10 J37: floor -92.53 dBFS held 12 s -> 150 ohm taken as fitted
+13:00:30 J37 T4 code 63 (150 ohm): RmsResult -88.45 dBFS NoiseResult -88.45 (after captures -93.27); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:01:17 J37 T4 code  0 (150 ohm): RmsResult -113.76 dBFS NoiseResult -113.76 (after captures -114.08); 3 captures, overruns [0, 0, 0]
+13:01:17 PROMPT >>> J37 (MIC 10) DONE — move the loop cable to the next XLR
+13:01:17 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29', 'J31', 'J35', 'J37']
+13:02:00 DETECT: tone on lane 11 (pk -14.46 dBFS; next lane 18 at -102.91) -> J39 (MIC 11)
+13:02:01 J39 presence: code 0 osc -20 -> coh gain +5.553 dB, lane coh pk -14.45 dBFS
+13:02:02 J39 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.553 dB (rms   +5.553)  THD+N  -89.37 dB
+13:02:03 J39 T1 code  1 osc  -31.40  lane coh pk  -13.00  gain  +18.399 dB (rms  +18.399)  THD+N  -62.82 dB
+13:02:05 J39 T1 code  2 osc  -38.02  lane coh pk  -13.00  gain  +25.015 dB (rms  +25.015)  THD+N  -53.21 dB
+13:02:06 J39 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.688 dB (rms  +27.687)  THD+N  -61.28 dB
+13:02:07 J39 T1 code  4 osc  -45.45  lane coh pk  -13.00  gain  +32.446 dB (rms  +32.446)  THD+N  -63.69 dB
+13:02:08 J39 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.683 dB (rms  +33.683)  THD+N  -62.69 dB
+13:02:09 J39 T1 code  6 osc  -48.24  lane coh pk  -13.00  gain  +35.239 dB (rms  +35.239)  THD+N  -60.79 dB
+13:02:10 J39 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.152 dB (rms  +36.152)  THD+N  -60.03 dB
+13:02:11 J39 T1 code  8 osc  -52.90  lane coh pk  -13.00  gain  +39.897 dB (rms  +39.897)  THD+N  -56.52 dB
+13:02:12 J39 T1 code  9 osc  -53.44  lane coh pk  -13.00  gain  +40.441 dB (rms  +40.441)  THD+N  -55.71 dB
+13:02:14 J39 T1 code 10 osc  -54.19  lane coh pk  -13.00  gain  +41.190 dB (rms  +41.190)  THD+N  -55.20 dB
+13:02:15 J39 T1 code 11 osc  -54.66  lane coh pk  -13.00  gain  +41.661 dB (rms  +41.661)  THD+N  -54.72 dB
+13:02:16 J39 T1 code 12 osc  -55.84  lane coh pk  -13.00  gain  +42.839 dB (rms  +42.839)  THD+N  -53.66 dB
+13:02:17 J39 T1 code 13 osc  -56.23  lane coh pk  -13.00  gain  +43.230 dB (rms  +43.230)  THD+N  -53.04 dB
+13:02:18 J39 T1 code 14 osc  -56.78  lane coh pk  -13.00  gain  +43.778 dB (rms  +43.778)  THD+N  -52.61 dB
+13:02:19 J39 T1 code 15 osc  -57.13  lane coh pk  -13.00  gain  +44.130 dB (rms  +44.130)  THD+N  -52.26 dB
+13:02:20 J39 T1 code 16 osc  -60.14  lane coh pk  -13.02  gain  +47.117 dB (rms  +47.117)  THD+N  -49.33 dB
+13:02:21 J39 T1 code 17 osc  -60.36  lane coh pk  -13.00  gain  +47.358 dB (rms  +47.358)  THD+N  -49.13 dB
+13:02:23 J39 T1 code 18 osc  -60.70  lane coh pk  -13.00  gain  +47.701 dB (rms  +47.701)  THD+N  -48.76 dB
+13:02:24 J39 T1 code 19 osc  -60.92  lane coh pk  -13.00  gain  +47.925 dB (rms  +47.925)  THD+N  -48.50 dB
+13:02:25 J39 T1 code 20 osc  -61.51  lane coh pk  -13.00  gain  +48.515 dB (rms  +48.516)  THD+N  -47.89 dB
+13:02:26 J39 T1 code 21 osc  -61.72  lane coh pk  -13.00  gain  +48.721 dB (rms  +48.721)  THD+N  -47.52 dB
+13:02:27 J39 T1 code 22 osc  -62.02  lane coh pk  -13.00  gain  +49.015 dB (rms  +49.016)  THD+N  -47.31 dB
+13:02:28 J39 T1 code 23 osc  -62.21  lane coh pk  -13.00  gain  +49.208 dB (rms  +49.208)  THD+N  -47.28 dB
+13:02:29 J39 T1 code 24 osc  -63.18  lane coh pk  -13.00  gain  +50.179 dB (rms  +50.180)  THD+N  -46.30 dB
+13:02:30 J39 T1 code 25 osc  -63.35  lane coh pk  -13.00  gain  +50.349 dB (rms  +50.349)  THD+N  -46.05 dB
+13:02:31 J39 T1 code 26 osc  -63.59  lane coh pk  -13.00  gain  +50.594 dB (rms  +50.594)  THD+N  -45.67 dB
+13:02:33 J39 T1 code 27 osc  -63.76  lane coh pk  -13.00  gain  +50.754 dB (rms  +50.754)  THD+N  -45.63 dB
+13:02:34 J39 T1 code 28 osc  -64.18  lane coh pk  -13.00  gain  +51.183 dB (rms  +51.183)  THD+N  -45.18 dB
+13:02:35 J39 T1 code 29 osc  -64.33  lane coh pk  -13.00  gain  +51.333 dB (rms  +51.333)  THD+N  -45.06 dB
+13:02:36 J39 T1 code 30 osc  -64.55  lane coh pk  -13.00  gain  +51.550 dB (rms  +51.551)  THD+N  -44.84 dB
+13:02:37 J39 T1 code 31 osc  -64.69  lane coh pk  -13.00  gain  +51.694 dB (rms  +51.694)  THD+N  -44.74 dB
+13:02:38 J39 T1 code 32 osc  -66.70  lane coh pk  -13.07  gain  +53.625 dB (rms  +53.625)  THD+N  -42.54 dB
+13:02:39 J39 T1 code 33 osc  -66.74  lane coh pk  -13.00  gain  +53.740 dB (rms  +53.740)  THD+N  -42.60 dB
+13:02:40 J39 T1 code 34 osc  -66.90  lane coh pk  -13.00  gain  +53.904 dB (rms  +53.904)  THD+N  -42.39 dB
+13:02:41 J39 T1 code 35 osc  -67.01  lane coh pk  -13.00  gain  +54.013 dB (rms  +54.013)  THD+N  -42.39 dB
+13:02:43 J39 T1 code 36 osc  -67.30  lane coh pk  -13.00  gain  +54.306 dB (rms  +54.306)  THD+N  -42.14 dB
+13:02:44 J39 T1 code 37 osc  -67.41  lane coh pk  -13.00  gain  +54.410 dB (rms  +54.410)  THD+N  -42.09 dB
+13:02:45 J39 T1 code 38 osc  -67.56  lane coh pk  -12.99  gain  +54.565 dB (rms  +54.565)  THD+N  -41.80 dB
+13:02:46 J39 T1 code 39 osc  -67.67  lane coh pk  -13.00  gain  +54.666 dB (rms  +54.666)  THD+N  -41.79 dB
+13:02:47 J39 T1 code 40 osc  -68.19  lane coh pk  -13.00  gain  +55.190 dB (rms  +55.191)  THD+N  -41.23 dB
+13:02:48 J39 T1 code 41 osc  -68.28  lane coh pk  -13.00  gain  +55.286 dB (rms  +55.286)  THD+N  -41.12 dB
+13:02:49 J39 T1 code 42 osc  -68.42  lane coh pk  -13.00  gain  +55.423 dB (rms  +55.424)  THD+N  -40.98 dB
+13:02:50 J39 T1 code 43 osc  -68.51  lane coh pk  -13.00  gain  +55.516 dB (rms  +55.516)  THD+N  -40.76 dB
+13:02:51 J39 T1 code 44 osc  -68.76  lane coh pk  -13.00  gain  +55.761 dB (rms  +55.762)  THD+N  -40.51 dB
+13:02:53 J39 T1 code 45 osc  -68.85  lane coh pk  -13.00  gain  +55.851 dB (rms  +55.851)  THD+N  -40.51 dB
+13:02:54 J39 T1 code 46 osc  -68.98  lane coh pk  -13.00  gain  +55.982 dB (rms  +55.982)  THD+N  -40.38 dB
+13:02:55 J39 T1 code 47 osc  -69.07  lane coh pk  -13.00  gain  +56.067 dB (rms  +56.068)  THD+N  -40.30 dB
+13:02:56 J39 T1 code 48 osc  -69.90  lane coh pk  -13.00  gain  +56.901 dB (rms  +56.902)  THD+N  -39.45 dB
+13:02:57 J39 T1 code 49 osc  -69.98  lane coh pk  -13.00  gain  +56.979 dB (rms  +56.979)  THD+N  -39.36 dB
+13:02:58 J39 T1 code 50 osc  -70.09  lane coh pk  -13.00  gain  +57.090 dB (rms  +57.091)  THD+N  -39.42 dB
+13:02:59 J39 T1 code 51 osc  -70.17  lane coh pk  -13.00  gain  +57.167 dB (rms  +57.168)  THD+N  -39.24 dB
+13:03:00 J39 T1 code 52 osc  -70.37  lane coh pk  -13.00  gain  +57.370 dB (rms  +57.371)  THD+N  -39.06 dB
+13:03:02 J39 T1 code 53 osc  -70.44  lane coh pk  -13.00  gain  +57.444 dB (rms  +57.445)  THD+N  -39.00 dB
+13:03:03 J39 T1 code 54 osc  -70.55  lane coh pk  -13.00  gain  +57.552 dB (rms  +57.552)  THD+N  -38.75 dB
+13:03:04 J39 T1 code 55 osc  -70.62  lane coh pk  -13.00  gain  +57.623 dB (rms  +57.624)  THD+N  -38.74 dB
+13:03:05 J39 T1 code 56 osc  -70.99  lane coh pk  -13.00  gain  +57.994 dB (rms  +57.995)  THD+N  -38.46 dB
+13:03:06 J39 T1 code 57 osc  -71.06  lane coh pk  -13.00  gain  +58.063 dB (rms  +58.063)  THD+N  -38.33 dB
+13:03:07 J39 T1 code 58 osc  -71.16  lane coh pk  -13.00  gain  +58.164 dB (rms  +58.164)  THD+N  -38.19 dB
+13:03:08 J39 T1 code 59 osc  -71.23  lane coh pk  -13.00  gain  +58.228 dB (rms  +58.229)  THD+N  -38.09 dB
+13:03:09 J39 T1 code 60 osc  -71.41  lane coh pk  -13.00  gain  +58.410 dB (rms  +58.410)  THD+N  -37.97 dB
+13:03:10 J39 T1 code 61 osc  -71.48  lane coh pk  -13.00  gain  +58.473 dB (rms  +58.474)  THD+N  -37.99 dB
+13:03:12 J39 T1 code 62 osc  -71.57  lane coh pk  -13.00  gain  +58.569 dB (rms  +58.570)  THD+N  -37.65 dB
+13:03:13 J39 T1 code 63 osc  -71.63  lane coh pk  -13.00  gain  +58.628 dB (rms  +58.628)  THD+N  -37.80 dB
+13:03:25 J39 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:03:36 J39 T2 code 63 re 1 kHz: 20:-2.09  50:-0.44  100:-0.11  200:-0.01  500:+0.02  1000:+0.00  2000:+0.00  5000:+0.01  10000:+0.07  15000:-0.00  20000:-0.11
+13:03:38 J39 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.28 dB = 0.00769 %  noise -105.29  meter pk -20.01 dBFS
+13:03:40 J39 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -89.98 dB = 0.00317 %  noise -102.99  meter pk -10.01 dBFS
+13:03:43 J39 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -89.68 dB = 0.00328 %  noise -98.69  meter pk -6.01 dBFS
+13:03:45 J39 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -86.83 dB = 0.00455 %  noise -92.84  meter pk -3.01 dBFS
+13:03:47 J39 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.31 dB = 0.68313 %  noise -49.32  meter pk -2.89 dBFS
+13:03:59 J39 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:03:59 PROMPT >>> J39 (MIC 11) LOOP SET DONE — fit the 150 Ω on J39
+13:03:59 SHUNT: TEST_OSC off, J39 at code 63, watching lane 11 for < -70 dBFS
+13:03:59   J39 lane 11 RMS -51.33 dBFS
+13:04:35   J39 lane 11 RMS -35.15 dBFS
+13:04:35   J39 lane 11 RMS -79.96 dBFS
+13:04:35   J39 lane 11 RMS -73.52 dBFS
+13:04:36   J39 lane 11 RMS -80.98 dBFS
+13:04:36   J39 lane 11 RMS -66.91 dBFS
+13:04:37   J39 lane 11 RMS -90.41 dBFS
+13:04:41   J39 lane 11 RMS -83.55 dBFS
+13:04:42   J39 lane 11 RMS -89.62 dBFS
+13:04:44   J39 lane 11 RMS -83.15 dBFS
+13:04:44   J39 lane 11 RMS -92.18 dBFS
+13:04:45   J39 lane 11 RMS -84.41 dBFS
+13:04:45   J39 lane 11 RMS -90.69 dBFS
+13:04:47   J39 lane 11 RMS -81.38 dBFS
+13:04:47   J39 lane 11 RMS -90.07 dBFS
+13:04:49 J39: floor -92.49 dBFS held 12 s -> 150 ohm taken as fitted
+13:06:09 J39 T4 code 63 (150 ohm): RmsResult -92.00 dBFS NoiseResult -92.00 (after captures -91.67); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:07:00 J39 T4 code  0 (150 ohm): RmsResult -112.94 dBFS NoiseResult -112.94 (after captures -113.74); 3 captures, overruns [0, 0, 0]
+13:07:00 PROMPT >>> J39 (MIC 11) DONE — move the loop cable to the next XLR
+13:07:00 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29', 'J31', 'J35', 'J37', 'J39']
+13:08:39 DETECT: tone on lane 9 (pk -16.80 dBFS; next lane 7 at -101.09) -> J41 (MIC 12)
+13:08:40 J41 presence: code 0 osc -20 -> coh gain +5.552 dB, lane coh pk -14.45 dBFS
+13:08:41 J41 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.552 dB (rms   +5.552)  THD+N  -88.69 dB
+13:08:42 J41 T1 code  1 osc  -31.40  lane coh pk  -13.00  gain  +18.397 dB (rms  +18.397)  THD+N  -50.42 dB
+13:08:43 J41 T1 code  2 osc  -38.01  lane coh pk  -13.00  gain  +25.016 dB (rms  +25.016)  THD+N  -41.47 dB
+13:08:44 J41 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.687 dB (rms  +27.687)  THD+N  -50.34 dB
+13:08:46 J41 T1 code  4 osc  -45.45  lane coh pk  -13.01  gain  +32.439 dB (rms  +32.439)  THD+N  -60.77 dB
+13:08:47 J41 T1 code  5 osc  -46.67  lane coh pk  -13.00  gain  +33.676 dB (rms  +33.676)  THD+N  -62.50 dB
+13:08:48 J41 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.234 dB (rms  +35.234)  THD+N  -61.12 dB
+13:08:49 J41 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.147 dB (rms  +36.147)  THD+N  -60.28 dB
+13:08:50 J41 T1 code  8 osc  -52.89  lane coh pk  -13.02  gain  +39.879 dB (rms  +39.879)  THD+N  -56.54 dB
+13:08:51 J41 T1 code  9 osc  -53.42  lane coh pk  -13.00  gain  +40.425 dB (rms  +40.425)  THD+N  -55.83 dB
+13:08:52 J41 T1 code 10 osc  -54.17  lane coh pk  -13.00  gain  +41.174 dB (rms  +41.174)  THD+N  -55.20 dB
+13:08:53 J41 T1 code 11 osc  -54.65  lane coh pk  -13.00  gain  +41.646 dB (rms  +41.646)  THD+N  -54.66 dB
+13:08:54 J41 T1 code 12 osc  -55.82  lane coh pk  -13.00  gain  +42.825 dB (rms  +42.825)  THD+N  -53.49 dB
+13:08:56 J41 T1 code 13 osc  -56.22  lane coh pk  -13.00  gain  +43.217 dB (rms  +43.217)  THD+N  -53.21 dB
+13:08:57 J41 T1 code 14 osc  -56.76  lane coh pk  -13.00  gain  +43.765 dB (rms  +43.765)  THD+N  -52.64 dB
+13:08:58 J41 T1 code 15 osc  -57.12  lane coh pk  -13.00  gain  +44.118 dB (rms  +44.118)  THD+N  -52.28 dB
+13:08:59 J41 T1 code 16 osc  -60.13  lane coh pk  -13.01  gain  +47.116 dB (rms  +47.116)  THD+N  -49.24 dB
+13:09:00 J41 T1 code 17 osc  -60.36  lane coh pk  -13.00  gain  +47.356 dB (rms  +47.356)  THD+N  -48.97 dB
+13:09:01 J41 T1 code 18 osc  -60.70  lane coh pk  -13.00  gain  +47.701 dB (rms  +47.701)  THD+N  -48.63 dB
+13:09:02 J41 T1 code 19 osc  -60.93  lane coh pk  -13.00  gain  +47.925 dB (rms  +47.925)  THD+N  -48.46 dB
+13:09:03 J41 T1 code 20 osc  -61.51  lane coh pk  -13.00  gain  +48.512 dB (rms  +48.512)  THD+N  -47.89 dB
+13:09:05 J41 T1 code 21 osc  -61.72  lane coh pk  -13.00  gain  +48.718 dB (rms  +48.718)  THD+N  -47.73 dB
+13:09:06 J41 T1 code 22 osc  -62.01  lane coh pk  -13.00  gain  +49.012 dB (rms  +49.012)  THD+N  -47.36 dB
+13:09:07 J41 T1 code 23 osc  -62.20  lane coh pk  -13.00  gain  +49.207 dB (rms  +49.207)  THD+N  -47.23 dB
+13:09:08 J41 T1 code 24 osc  -63.18  lane coh pk  -13.00  gain  +50.174 dB (rms  +50.174)  THD+N  -46.27 dB
+13:09:09 J41 T1 code 25 osc  -63.34  lane coh pk  -13.00  gain  +50.342 dB (rms  +50.343)  THD+N  -46.13 dB
+13:09:10 J41 T1 code 26 osc  -63.59  lane coh pk  -13.00  gain  +50.587 dB (rms  +50.587)  THD+N  -45.80 dB
+13:09:11 J41 T1 code 27 osc  -63.75  lane coh pk  -13.00  gain  +50.748 dB (rms  +50.748)  THD+N  -45.68 dB
+13:09:12 J41 T1 code 28 osc  -64.18  lane coh pk  -13.00  gain  +51.176 dB (rms  +51.176)  THD+N  -45.19 dB
+13:09:14 J41 T1 code 29 osc  -64.33  lane coh pk  -13.00  gain  +51.325 dB (rms  +51.326)  THD+N  -45.03 dB
+13:09:15 J41 T1 code 30 osc  -64.54  lane coh pk  -13.00  gain  +51.544 dB (rms  +51.544)  THD+N  -44.87 dB
+13:09:16 J41 T1 code 31 osc  -64.69  lane coh pk  -13.00  gain  +51.688 dB (rms  +51.688)  THD+N  -44.74 dB
+13:09:17 J41 T1 code 32 osc  -66.69  lane coh pk  -13.00  gain  +53.688 dB (rms  +53.688)  THD+N  -42.75 dB
+13:09:18 J41 T1 code 33 osc  -66.80  lane coh pk  -13.00  gain  +53.800 dB (rms  +53.801)  THD+N  -42.73 dB
+13:09:19 J41 T1 code 34 osc  -66.96  lane coh pk  -13.00  gain  +53.963 dB (rms  +53.963)  THD+N  -42.41 dB
+13:09:20 J41 T1 code 35 osc  -67.07  lane coh pk  -13.00  gain  +54.074 dB (rms  +54.074)  THD+N  -42.31 dB
+13:09:22 J41 T1 code 36 osc  -67.36  lane coh pk  -13.00  gain  +54.364 dB (rms  +54.364)  THD+N  -42.01 dB
+13:09:23 J41 T1 code 37 osc  -67.47  lane coh pk  -13.00  gain  +54.470 dB (rms  +54.470)  THD+N  -41.98 dB
+13:09:24 J41 T1 code 38 osc  -67.62  lane coh pk  -13.00  gain  +54.622 dB (rms  +54.622)  THD+N  -41.96 dB
+13:09:25 J41 T1 code 39 osc  -67.72  lane coh pk  -13.00  gain  +54.719 dB (rms  +54.719)  THD+N  -41.72 dB
+13:09:26 J41 T1 code 40 osc  -68.24  lane coh pk  -13.00  gain  +55.241 dB (rms  +55.241)  THD+N  -41.20 dB
+13:09:27 J41 T1 code 41 osc  -68.33  lane coh pk  -13.00  gain  +55.337 dB (rms  +55.337)  THD+N  -41.06 dB
+13:09:28 J41 T1 code 42 osc  -68.47  lane coh pk  -13.00  gain  +55.472 dB (rms  +55.473)  THD+N  -40.91 dB
+13:09:29 J41 T1 code 43 osc  -68.56  lane coh pk  -13.00  gain  +55.564 dB (rms  +55.564)  THD+N  -40.78 dB
+13:09:31 J41 T1 code 44 osc  -68.81  lane coh pk  -13.00  gain  +55.809 dB (rms  +55.810)  THD+N  -40.66 dB
+13:09:32 J41 T1 code 45 osc  -68.90  lane coh pk  -13.00  gain  +55.896 dB (rms  +55.897)  THD+N  -40.50 dB
+13:09:33 J41 T1 code 46 osc  -69.02  lane coh pk  -13.00  gain  +56.024 dB (rms  +56.025)  THD+N  -40.32 dB
+13:09:34 J41 T1 code 47 osc  -69.11  lane coh pk  -13.00  gain  +56.111 dB (rms  +56.112)  THD+N  -40.33 dB
+13:09:35 J41 T1 code 48 osc  -69.95  lane coh pk  -13.01  gain  +56.943 dB (rms  +56.944)  THD+N  -39.52 dB
+13:09:36 J41 T1 code 49 osc  -70.02  lane coh pk  -13.00  gain  +57.019 dB (rms  +57.019)  THD+N  -39.39 dB
+13:09:37 J41 T1 code 50 osc  -70.13  lane coh pk  -13.00  gain  +57.130 dB (rms  +57.131)  THD+N  -39.33 dB
+13:09:38 J41 T1 code 51 osc  -70.21  lane coh pk  -13.00  gain  +57.205 dB (rms  +57.206)  THD+N  -39.29 dB
+13:09:39 J41 T1 code 52 osc  -70.41  lane coh pk  -13.00  gain  +57.409 dB (rms  +57.410)  THD+N  -38.98 dB
+13:09:41 J41 T1 code 53 osc  -70.48  lane coh pk  -13.00  gain  +57.480 dB (rms  +57.481)  THD+N  -38.87 dB
+13:09:42 J41 T1 code 54 osc  -70.59  lane coh pk  -13.00  gain  +57.586 dB (rms  +57.587)  THD+N  -38.85 dB
+13:09:43 J41 T1 code 55 osc  -70.66  lane coh pk  -13.00  gain  +57.659 dB (rms  +57.660)  THD+N  -38.77 dB
+13:09:44 J41 T1 code 56 osc  -71.03  lane coh pk  -13.00  gain  +58.028 dB (rms  +58.028)  THD+N  -38.51 dB
+13:09:45 J41 T1 code 57 osc  -71.10  lane coh pk  -13.00  gain  +58.096 dB (rms  +58.096)  THD+N  -38.39 dB
+13:09:46 J41 T1 code 58 osc  -71.19  lane coh pk  -13.00  gain  +58.195 dB (rms  +58.195)  THD+N  -38.25 dB
+13:09:47 J41 T1 code 59 osc  -71.26  lane coh pk  -13.00  gain  +58.260 dB (rms  +58.260)  THD+N  -38.15 dB
+13:09:48 J41 T1 code 60 osc  -71.44  lane coh pk  -13.00  gain  +58.439 dB (rms  +58.439)  THD+N  -37.98 dB
+13:09:50 J41 T1 code 61 osc  -71.50  lane coh pk  -13.00  gain  +58.500 dB (rms  +58.501)  THD+N  -37.95 dB
+13:09:51 J41 T1 code 62 osc  -71.59  lane coh pk  -13.00  gain  +58.597 dB (rms  +58.597)  THD+N  -37.84 dB
+13:09:52 J41 T1 code 63 osc  -71.66  lane coh pk  -13.00  gain  +58.660 dB (rms  +58.660)  THD+N  -37.81 dB
+13:10:03 J41 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:10:15 J41 T2 code 63 re 1 kHz: 20:-2.16  50:-0.44  100:-0.12  200:-0.01  500:+0.03  1000:+0.00  2000:+0.01  5000:+0.02  10000:+0.08  15000:-0.00  20000:-0.11
+13:10:17 J41 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.43 dB = 0.00756 %  noise -105.44  meter pk -20.01 dBFS
+13:10:19 J41 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.99 dB = 0.00251 %  noise -105.00  meter pk -10.01 dBFS
+13:10:21 J41 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -92.97 dB = 0.00225 %  noise -101.98  meter pk -6.01 dBFS
+13:10:23 J41 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.61 dB = 0.00371 %  noise -94.62  meter pk -3.01 dBFS
+13:10:25 J41 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.22 dB = 0.69034 %  noise -49.23  meter pk -2.89 dBFS
+13:10:38 J41 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:10:38 PROMPT >>> J41 (MIC 12) LOOP SET DONE — fit the 150 Ω on J41
+13:10:38 SHUNT: TEST_OSC off, J41 at code 63, watching lane 9 for < -70 dBFS
+13:10:38   J41 lane 9 RMS -51.63 dBFS
+13:10:59   J41 lane 9 RMS -41.08 dBFS
+13:10:59   J41 lane 9 RMS -66.05 dBFS
+13:11:00   J41 lane 9 RMS -77.82 dBFS
+13:11:00   J41 lane 9 RMS -49.32 dBFS
+13:11:00   J41 lane 9 RMS -71.21 dBFS
+13:11:01   J41 lane 9 RMS -64.02 dBFS
+13:11:01   J41 lane 9 RMS -76.89 dBFS
+13:11:01   J41 lane 9 RMS -83.80 dBFS
+13:11:02   J41 lane 9 RMS -90.81 dBFS
+13:11:02   J41 lane 9 RMS -83.62 dBFS
+13:11:03   J41 lane 9 RMS -91.91 dBFS
+13:11:05   J41 lane 9 RMS -82.53 dBFS
+13:11:05   J41 lane 9 RMS -89.70 dBFS
+13:11:13 J41: floor -92.57 dBFS held 12 s -> 150 ohm taken as fitted
+13:12:47 J41 T4 code 63 (150 ohm): RmsResult -91.17 dBFS NoiseResult -91.17 (after captures -92.39); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:13:41 J41 T4 code  0 (150 ohm): RmsResult -113.65 dBFS NoiseResult -113.65 (after captures -114.57); 3 captures, overruns [0, 0, 0]
+13:13:41 PROMPT >>> J41 (MIC 12) DONE — move the loop cable to the next XLR
+13:13:41 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J27', 'J29', 'J31', 'J35', 'J37', 'J39', 'J41']
+13:16:52 DETECT: tone on lane 19 (pk -14.46 dBFS; next lane 17 at -104.32) -> J26 (MIC 17)
+13:16:53 J26 presence: code 0 osc -20 -> coh gain +5.574 dB, lane coh pk -14.43 dBFS
+13:16:54 J26 T1 code  0 osc  -18.57  lane coh pk  -13.00  gain   +5.574 dB (rms   +5.574)  THD+N  -89.31 dB
+13:16:55 J26 T1 code  1 osc  -31.42  lane coh pk  -13.00  gain  +18.422 dB (rms  +18.422)  THD+N  -54.83 dB
+13:16:56 J26 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.043 dB (rms  +25.043)  THD+N  -45.86 dB
+13:16:57 J26 T1 code  3 osc  -40.71  lane coh pk  -13.00  gain  +27.714 dB (rms  +27.714)  THD+N  -54.56 dB
+13:16:58 J26 T1 code  4 osc  -45.48  lane coh pk  -13.01  gain  +32.470 dB (rms  +32.470)  THD+N  -62.97 dB
+13:16:59 J26 T1 code  5 osc  -46.71  lane coh pk  -13.00  gain  +33.706 dB (rms  +33.706)  THD+N  -62.46 dB
+13:17:00 J26 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.264 dB (rms  +35.264)  THD+N  -61.04 dB
+13:17:02 J26 T1 code  7 osc  -49.18  lane coh pk  -13.00  gain  +36.177 dB (rms  +36.177)  THD+N  -60.22 dB
+13:17:03 J26 T1 code  8 osc  -52.92  lane coh pk  -12.99  gain  +39.932 dB (rms  +39.932)  THD+N  -56.35 dB
+13:17:04 J26 T1 code  9 osc  -53.48  lane coh pk  -13.00  gain  +40.476 dB (rms  +40.476)  THD+N  -55.89 dB
+13:17:05 J26 T1 code 10 osc  -54.22  lane coh pk  -13.00  gain  +41.223 dB (rms  +41.223)  THD+N  -55.11 dB
+13:17:06 J26 T1 code 11 osc  -54.70  lane coh pk  -13.00  gain  +41.694 dB (rms  +41.694)  THD+N  -54.65 dB
+13:17:07 J26 T1 code 12 osc  -55.87  lane coh pk  -13.00  gain  +42.871 dB (rms  +42.871)  THD+N  -53.45 dB
+13:17:08 J26 T1 code 13 osc  -56.26  lane coh pk  -13.00  gain  +43.262 dB (rms  +43.262)  THD+N  -53.05 dB
+13:17:09 J26 T1 code 14 osc  -56.81  lane coh pk  -13.00  gain  +43.810 dB (rms  +43.810)  THD+N  -52.47 dB
+13:17:10 J26 T1 code 15 osc  -57.16  lane coh pk  -13.00  gain  +44.162 dB (rms  +44.162)  THD+N  -52.08 dB
+13:17:12 J26 T1 code 16 osc  -60.17  lane coh pk  -12.98  gain  +47.190 dB (rms  +47.190)  THD+N  -49.10 dB
+13:17:13 J26 T1 code 17 osc  -60.43  lane coh pk  -13.00  gain  +47.429 dB (rms  +47.429)  THD+N  -48.91 dB
+13:17:14 J26 T1 code 18 osc  -60.77  lane coh pk  -13.00  gain  +47.771 dB (rms  +47.771)  THD+N  -48.52 dB
+13:17:15 J26 T1 code 19 osc  -61.00  lane coh pk  -13.00  gain  +47.994 dB (rms  +47.994)  THD+N  -48.36 dB
+13:17:16 J26 T1 code 20 osc  -61.58  lane coh pk  -13.00  gain  +48.580 dB (rms  +48.580)  THD+N  -47.76 dB
+13:17:17 J26 T1 code 21 osc  -61.79  lane coh pk  -13.00  gain  +48.786 dB (rms  +48.786)  THD+N  -47.64 dB
+13:17:18 J26 T1 code 22 osc  -62.08  lane coh pk  -13.00  gain  +49.078 dB (rms  +49.078)  THD+N  -47.38 dB
+13:17:20 J26 T1 code 23 osc  -62.27  lane coh pk  -13.00  gain  +49.271 dB (rms  +49.271)  THD+N  -47.17 dB
+13:17:21 J26 T1 code 24 osc  -63.24  lane coh pk  -13.00  gain  +50.242 dB (rms  +50.242)  THD+N  -46.13 dB
+13:17:22 J26 T1 code 25 osc  -63.41  lane coh pk  -13.00  gain  +50.410 dB (rms  +50.410)  THD+N  -45.88 dB
+13:17:23 J26 T1 code 26 osc  -63.65  lane coh pk  -13.00  gain  +50.654 dB (rms  +50.654)  THD+N  -45.69 dB
+13:17:24 J26 T1 code 27 osc  -63.82  lane coh pk  -13.00  gain  +50.814 dB (rms  +50.815)  THD+N  -45.67 dB
+13:17:25 J26 T1 code 28 osc  -64.24  lane coh pk  -13.00  gain  +51.241 dB (rms  +51.241)  THD+N  -45.12 dB
+13:17:26 J26 T1 code 29 osc  -64.39  lane coh pk  -13.00  gain  +51.391 dB (rms  +51.391)  THD+N  -45.07 dB
+13:17:27 J26 T1 code 30 osc  -64.61  lane coh pk  -13.00  gain  +51.608 dB (rms  +51.608)  THD+N  -44.81 dB
+13:17:29 J26 T1 code 31 osc  -64.75  lane coh pk  -13.00  gain  +51.752 dB (rms  +51.752)  THD+N  -44.71 dB
+13:17:30 J26 T1 code 32 osc  -66.75  lane coh pk  -12.97  gain  +53.788 dB (rms  +53.788)  THD+N  -42.64 dB
+13:17:31 J26 T1 code 33 osc  -66.90  lane coh pk  -13.00  gain  +53.899 dB (rms  +53.899)  THD+N  -42.55 dB
+13:17:32 J26 T1 code 34 osc  -67.06  lane coh pk  -13.00  gain  +54.061 dB (rms  +54.061)  THD+N  -42.44 dB
+13:17:33 J26 T1 code 35 osc  -67.17  lane coh pk  -13.00  gain  +54.169 dB (rms  +54.169)  THD+N  -42.18 dB
+13:17:34 J26 T1 code 36 osc  -67.46  lane coh pk  -13.00  gain  +54.459 dB (rms  +54.460)  THD+N  -41.85 dB
+13:17:35 J26 T1 code 37 osc  -67.56  lane coh pk  -13.00  gain  +54.561 dB (rms  +54.561)  THD+N  -41.91 dB
+13:17:36 J26 T1 code 38 osc  -67.71  lane coh pk  -13.00  gain  +54.713 dB (rms  +54.713)  THD+N  -41.72 dB
+13:17:37 J26 T1 code 39 osc  -67.81  lane coh pk  -13.00  gain  +54.812 dB (rms  +54.812)  THD+N  -41.63 dB
+13:17:39 J26 T1 code 40 osc  -68.33  lane coh pk  -13.00  gain  +55.333 dB (rms  +55.333)  THD+N  -41.00 dB
+13:17:40 J26 T1 code 41 osc  -68.43  lane coh pk  -13.00  gain  +55.425 dB (rms  +55.425)  THD+N  -41.07 dB
+13:17:41 J26 T1 code 42 osc  -68.56  lane coh pk  -13.00  gain  +55.562 dB (rms  +55.563)  THD+N  -40.92 dB
+13:17:42 J26 T1 code 43 osc  -68.65  lane coh pk  -13.00  gain  +55.653 dB (rms  +55.653)  THD+N  -40.97 dB
+13:17:43 J26 T1 code 44 osc  -68.90  lane coh pk  -13.00  gain  +55.897 dB (rms  +55.897)  THD+N  -40.56 dB
+13:17:44 J26 T1 code 45 osc  -68.98  lane coh pk  -13.00  gain  +55.984 dB (rms  +55.984)  THD+N  -40.50 dB
+13:17:45 J26 T1 code 46 osc  -69.11  lane coh pk  -13.00  gain  +56.112 dB (rms  +56.112)  THD+N  -40.34 dB
+13:17:46 J26 T1 code 47 osc  -69.20  lane coh pk  -13.00  gain  +56.197 dB (rms  +56.198)  THD+N  -40.26 dB
+13:17:48 J26 T1 code 48 osc  -70.03  lane coh pk  -13.00  gain  +57.035 dB (rms  +57.035)  THD+N  -39.51 dB
+13:17:49 J26 T1 code 49 osc  -70.11  lane coh pk  -13.00  gain  +57.111 dB (rms  +57.111)  THD+N  -39.30 dB
+13:17:50 J26 T1 code 50 osc  -70.22  lane coh pk  -13.00  gain  +57.223 dB (rms  +57.223)  THD+N  -39.12 dB
+13:17:51 J26 T1 code 51 osc  -70.30  lane coh pk  -13.00  gain  +57.298 dB (rms  +57.299)  THD+N  -39.05 dB
+13:17:52 J26 T1 code 52 osc  -70.50  lane coh pk  -13.00  gain  +57.498 dB (rms  +57.498)  THD+N  -38.98 dB
+13:17:53 J26 T1 code 53 osc  -70.57  lane coh pk  -13.00  gain  +57.569 dB (rms  +57.570)  THD+N  -38.88 dB
+13:17:54 J26 T1 code 54 osc  -70.68  lane coh pk  -13.00  gain  +57.678 dB (rms  +57.678)  THD+N  -38.84 dB
+13:17:55 J26 T1 code 55 osc  -70.75  lane coh pk  -13.00  gain  +57.747 dB (rms  +57.748)  THD+N  -38.61 dB
+13:17:56 J26 T1 code 56 osc  -71.12  lane coh pk  -13.00  gain  +58.118 dB (rms  +58.119)  THD+N  -38.34 dB
+13:17:58 J26 T1 code 57 osc  -71.19  lane coh pk  -13.00  gain  +58.185 dB (rms  +58.186)  THD+N  -38.23 dB
+13:17:59 J26 T1 code 58 osc  -71.28  lane coh pk  -13.00  gain  +58.283 dB (rms  +58.283)  THD+N  -38.23 dB
+13:18:00 J26 T1 code 59 osc  -71.35  lane coh pk  -13.00  gain  +58.349 dB (rms  +58.350)  THD+N  -38.06 dB
+13:18:01 J26 T1 code 60 osc  -71.53  lane coh pk  -13.00  gain  +58.527 dB (rms  +58.528)  THD+N  -38.07 dB
+13:18:02 J26 T1 code 61 osc  -71.59  lane coh pk  -13.00  gain  +58.591 dB (rms  +58.591)  THD+N  -37.90 dB
+13:18:03 J26 T1 code 62 osc  -71.68  lane coh pk  -13.00  gain  +58.685 dB (rms  +58.686)  THD+N  -37.73 dB
+13:18:04 J26 T1 code 63 osc  -71.75  lane coh pk  -13.00  gain  +58.748 dB (rms  +58.748)  THD+N  -37.63 dB
+13:18:16 J26 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:18:28 J26 T2 code 63 re 1 kHz: 20:-2.12  50:-0.43  100:-0.13  200:-0.02  500:+0.02  1000:+0.00  2000:+0.00  5000:+0.01  10000:+0.07  15000:-0.01  20000:-0.11
+13:18:30 J26 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.59 dB = 0.00742 %  noise -105.60  meter pk -20.01 dBFS
+13:18:32 J26 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.00 dB = 0.00282 %  noise -104.01  meter pk -10.01 dBFS
+13:18:35 J26 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.27 dB = 0.00307 %  noise -99.28  meter pk -6.01 dBFS
+13:18:37 J26 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.71 dB = 0.00412 %  noise -93.72  meter pk -3.01 dBFS
+13:18:39 J26 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -44.32 dB = 0.60811 %  noise -50.33  meter pk -2.86 dBFS
+13:18:51 J26 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:18:51 PROMPT >>> J26 (MIC 17) LOOP SET DONE — fit the 150 Ω on J26
+13:18:51 SHUNT: TEST_OSC off, J26 at code 63, watching lane 19 for < -70 dBFS
+13:18:51   J26 lane 19 RMS -51.34 dBFS
+13:19:51   J26 lane 19 RMS -51.74 dBFS
+13:20:51   J26 lane 19 RMS -51.68 dBFS
+13:21:31   J26 lane 19 RMS -77.01 dBFS
+13:21:31   J26 lane 19 RMS -48.87 dBFS
+13:21:32   J26 lane 19 RMS -67.33 dBFS
+13:21:32   J26 lane 19 RMS -94.53 dBFS
+13:21:33   J26 lane 19 RMS -81.47 dBFS
+13:21:33   J26 lane 19 RMS -92.80 dBFS
+13:21:33   J26 lane 19 RMS -81.52 dBFS
+13:21:34   J26 lane 19 RMS -89.99 dBFS
+13:21:34   J26 lane 19 RMS -82.52 dBFS
+13:21:34   J26 lane 19 RMS -94.01 dBFS
+13:21:35   J26 lane 19 RMS -85.06 dBFS
+13:21:35   J26 lane 19 RMS -92.26 dBFS
+13:21:38   J26 lane 19 RMS -83.94 dBFS
+13:21:38   J26 lane 19 RMS -94.47 dBFS
+13:21:38   J26 lane 19 RMS -84.91 dBFS
+13:21:38   J26 lane 19 RMS -93.47 dBFS
+13:21:39   J26 lane 19 RMS -85.51 dBFS
+13:21:40   J26 lane 19 RMS -94.97 dBFS
+13:21:41   J26 lane 19 RMS -82.15 dBFS
+13:21:42   J26 lane 19 RMS -91.81 dBFS
+13:21:44 J26: floor -94.54 dBFS held 12 s -> 150 ohm taken as fitted
+13:23:10 J26 T4 code 63 (150 ohm): RmsResult -93.46 dBFS NoiseResult -93.46 (after captures -94.27); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:24:03 J26 T4 code  0 (150 ohm): RmsResult -112.67 dBFS NoiseResult -112.67 (after captures -112.78); 3 captures, overruns [0, 0, 0]
+13:24:04 PROMPT >>> J26 (MIC 17) DONE — move the loop cable to the next XLR
+13:24:04 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J29', 'J31', 'J35', 'J37', 'J39', 'J41']
+13:24:42 DETECT: tone on lane 17 (pk -14.43 dBFS; next lane 9 at -101.95) -> J28 (MIC 18)
+13:24:43 J28 presence: code 0 osc -20 -> coh gain +5.575 dB, lane coh pk -14.43 dBFS
+13:24:45 J28 T1 code  0 osc  -18.57  lane coh pk  -13.00  gain   +5.575 dB (rms   +5.575)  THD+N  -89.38 dB
+13:24:46 J28 T1 code  1 osc  -31.42  lane coh pk  -13.00  gain  +18.420 dB (rms  +18.420)  THD+N  -53.78 dB
+13:24:47 J28 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.035 dB (rms  +25.035)  THD+N  -45.58 dB
+13:24:48 J28 T1 code  3 osc  -40.71  lane coh pk  -13.00  gain  +27.707 dB (rms  +27.707)  THD+N  -54.30 dB
+13:24:49 J28 T1 code  4 osc  -45.47  lane coh pk  -13.00  gain  +32.465 dB (rms  +32.465)  THD+N  -62.07 dB
+13:24:50 J28 T1 code  5 osc  -46.70  lane coh pk  -13.00  gain  +33.702 dB (rms  +33.702)  THD+N  -62.68 dB
+13:24:51 J28 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.258 dB (rms  +35.258)  THD+N  -61.09 dB
+13:24:52 J28 T1 code  7 osc  -49.17  lane coh pk  -13.00  gain  +36.171 dB (rms  +36.171)  THD+N  -60.27 dB
+13:24:53 J28 T1 code  8 osc  -52.92  lane coh pk  -13.00  gain  +39.919 dB (rms  +39.919)  THD+N  -56.54 dB
+13:24:55 J28 T1 code  9 osc  -53.46  lane coh pk  -13.00  gain  +40.464 dB (rms  +40.464)  THD+N  -55.86 dB
+13:24:56 J28 T1 code 10 osc  -54.21  lane coh pk  -13.00  gain  +41.211 dB (rms  +41.211)  THD+N  -55.14 dB
+13:24:57 J28 T1 code 11 osc  -54.68  lane coh pk  -13.00  gain  +41.682 dB (rms  +41.682)  THD+N  -54.62 dB
+13:24:58 J28 T1 code 12 osc  -55.86  lane coh pk  -13.00  gain  +42.860 dB (rms  +42.860)  THD+N  -53.52 dB
+13:24:59 J28 T1 code 13 osc  -56.25  lane coh pk  -13.00  gain  +43.251 dB (rms  +43.251)  THD+N  -53.09 dB
+13:25:00 J28 T1 code 14 osc  -56.80  lane coh pk  -13.00  gain  +43.800 dB (rms  +43.800)  THD+N  -52.41 dB
+13:25:01 J28 T1 code 15 osc  -57.15  lane coh pk  -13.00  gain  +44.152 dB (rms  +44.152)  THD+N  -52.16 dB
+13:25:02 J28 T1 code 16 osc  -60.16  lane coh pk  -12.99  gain  +47.167 dB (rms  +47.167)  THD+N  -49.08 dB
+13:25:04 J28 T1 code 17 osc  -60.41  lane coh pk  -13.00  gain  +47.406 dB (rms  +47.406)  THD+N  -48.96 dB
+13:25:05 J28 T1 code 18 osc  -60.75  lane coh pk  -13.00  gain  +47.748 dB (rms  +47.748)  THD+N  -48.53 dB
+13:25:06 J28 T1 code 19 osc  -60.97  lane coh pk  -13.00  gain  +47.973 dB (rms  +47.973)  THD+N  -48.43 dB
+13:25:07 J28 T1 code 20 osc  -61.56  lane coh pk  -13.00  gain  +48.559 dB (rms  +48.559)  THD+N  -47.84 dB
+13:25:08 J28 T1 code 21 osc  -61.76  lane coh pk  -13.00  gain  +48.764 dB (rms  +48.764)  THD+N  -47.72 dB
+13:25:09 J28 T1 code 22 osc  -62.06  lane coh pk  -13.00  gain  +49.057 dB (rms  +49.057)  THD+N  -47.31 dB
+13:25:10 J28 T1 code 23 osc  -62.25  lane coh pk  -13.00  gain  +49.250 dB (rms  +49.250)  THD+N  -47.08 dB
+13:25:11 J28 T1 code 24 osc  -63.22  lane coh pk  -13.00  gain  +50.221 dB (rms  +50.221)  THD+N  -46.27 dB
+13:25:12 J28 T1 code 25 osc  -63.39  lane coh pk  -13.00  gain  +50.390 dB (rms  +50.390)  THD+N  -46.06 dB
+13:25:14 J28 T1 code 26 osc  -63.63  lane coh pk  -13.00  gain  +50.633 dB (rms  +50.633)  THD+N  -45.66 dB
+13:25:15 J28 T1 code 27 osc  -63.80  lane coh pk  -13.00  gain  +50.794 dB (rms  +50.794)  THD+N  -45.60 dB
+13:25:16 J28 T1 code 28 osc  -64.22  lane coh pk  -13.00  gain  +51.221 dB (rms  +51.221)  THD+N  -45.19 dB
+13:25:17 J28 T1 code 29 osc  -64.37  lane coh pk  -13.00  gain  +51.371 dB (rms  +51.371)  THD+N  -45.21 dB
+13:25:18 J28 T1 code 30 osc  -64.59  lane coh pk  -13.00  gain  +51.588 dB (rms  +51.588)  THD+N  -45.02 dB
+13:25:19 J28 T1 code 31 osc  -64.73  lane coh pk  -13.00  gain  +51.732 dB (rms  +51.732)  THD+N  -44.56 dB
+13:25:20 J28 T1 code 32 osc  -66.73  lane coh pk  -13.03  gain  +53.703 dB (rms  +53.703)  THD+N  -42.63 dB
+13:25:21 J28 T1 code 33 osc  -66.82  lane coh pk  -13.00  gain  +53.815 dB (rms  +53.815)  THD+N  -42.52 dB
+13:25:22 J28 T1 code 34 osc  -66.98  lane coh pk  -13.00  gain  +53.979 dB (rms  +53.979)  THD+N  -42.42 dB
+13:25:24 J28 T1 code 35 osc  -67.09  lane coh pk  -13.00  gain  +54.090 dB (rms  +54.090)  THD+N  -42.35 dB
+13:25:25 J28 T1 code 36 osc  -67.38  lane coh pk  -13.00  gain  +54.380 dB (rms  +54.380)  THD+N  -42.08 dB
+13:25:26 J28 T1 code 37 osc  -67.48  lane coh pk  -13.00  gain  +54.483 dB (rms  +54.483)  THD+N  -41.94 dB
+13:25:27 J28 T1 code 38 osc  -67.63  lane coh pk  -13.00  gain  +54.635 dB (rms  +54.635)  THD+N  -41.75 dB
+13:25:28 J28 T1 code 39 osc  -67.74  lane coh pk  -13.00  gain  +54.737 dB (rms  +54.737)  THD+N  -41.71 dB
+13:25:29 J28 T1 code 40 osc  -68.26  lane coh pk  -13.00  gain  +55.259 dB (rms  +55.259)  THD+N  -41.20 dB
+13:25:30 J28 T1 code 41 osc  -68.35  lane coh pk  -13.00  gain  +55.355 dB (rms  +55.356)  THD+N  -41.15 dB
+13:25:31 J28 T1 code 42 osc  -68.49  lane coh pk  -13.00  gain  +55.490 dB (rms  +55.490)  THD+N  -40.92 dB
+13:25:32 J28 T1 code 43 osc  -68.58  lane coh pk  -13.00  gain  +55.580 dB (rms  +55.581)  THD+N  -40.87 dB
+13:25:34 J28 T1 code 44 osc  -68.83  lane coh pk  -13.00  gain  +55.828 dB (rms  +55.828)  THD+N  -40.62 dB
+13:25:35 J28 T1 code 45 osc  -68.92  lane coh pk  -13.00  gain  +55.917 dB (rms  +55.917)  THD+N  -40.57 dB
+13:25:36 J28 T1 code 46 osc  -69.04  lane coh pk  -13.00  gain  +56.044 dB (rms  +56.044)  THD+N  -40.43 dB
+13:25:37 J28 T1 code 47 osc  -69.13  lane coh pk  -13.00  gain  +56.129 dB (rms  +56.129)  THD+N  -40.29 dB
+13:25:38 J28 T1 code 48 osc  -69.97  lane coh pk  -13.00  gain  +56.967 dB (rms  +56.967)  THD+N  -39.57 dB
+13:25:39 J28 T1 code 49 osc  -70.04  lane coh pk  -13.00  gain  +57.046 dB (rms  +57.046)  THD+N  -39.31 dB
+13:25:40 J28 T1 code 50 osc  -70.16  lane coh pk  -13.00  gain  +57.156 dB (rms  +57.156)  THD+N  -39.34 dB
+13:25:41 J28 T1 code 51 osc  -70.23  lane coh pk  -13.00  gain  +57.233 dB (rms  +57.233)  THD+N  -39.25 dB
+13:25:43 J28 T1 code 52 osc  -70.43  lane coh pk  -13.00  gain  +57.437 dB (rms  +57.437)  THD+N  -39.02 dB
+13:25:44 J28 T1 code 53 osc  -70.51  lane coh pk  -13.00  gain  +57.510 dB (rms  +57.511)  THD+N  -38.99 dB
+13:25:45 J28 T1 code 54 osc  -70.62  lane coh pk  -13.00  gain  +57.615 dB (rms  +57.615)  THD+N  -38.87 dB
+13:25:46 J28 T1 code 55 osc  -70.68  lane coh pk  -13.00  gain  +57.687 dB (rms  +57.687)  THD+N  -38.80 dB
+13:25:47 J28 T1 code 56 osc  -71.06  lane coh pk  -13.00  gain  +58.058 dB (rms  +58.058)  THD+N  -38.31 dB
+13:25:48 J28 T1 code 57 osc  -71.13  lane coh pk  -13.00  gain  +58.123 dB (rms  +58.123)  THD+N  -38.28 dB
+13:25:49 J28 T1 code 58 osc  -71.22  lane coh pk  -13.00  gain  +58.224 dB (rms  +58.225)  THD+N  -38.29 dB
+13:25:50 J28 T1 code 59 osc  -71.29  lane coh pk  -13.00  gain  +58.291 dB (rms  +58.292)  THD+N  -38.27 dB
+13:25:52 J28 T1 code 60 osc  -71.47  lane coh pk  -13.00  gain  +58.468 dB (rms  +58.469)  THD+N  -38.06 dB
+13:25:53 J28 T1 code 61 osc  -71.53  lane coh pk  -13.00  gain  +58.535 dB (rms  +58.536)  THD+N  -37.94 dB
+13:25:54 J28 T1 code 62 osc  -71.63  lane coh pk  -13.00  gain  +58.625 dB (rms  +58.626)  THD+N  -37.79 dB
+13:25:55 J28 T1 code 63 osc  -71.69  lane coh pk  -13.00  gain  +58.690 dB (rms  +58.690)  THD+N  -37.83 dB
+13:26:07 J28 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:26:18 J28 T2 code 63 re 1 kHz: 20:-2.13  50:-0.43  100:-0.12  200:-0.01  500:+0.02  1000:+0.00  2000:+0.01  5000:+0.01  10000:+0.08  15000:-0.01  20000:-0.11
+13:26:21 J28 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.52 dB = 0.00748 %  noise -105.53  meter pk -20.01 dBFS
+13:26:23 J28 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.12 dB = 0.00278 %  noise -104.13  meter pk -10.01 dBFS
+13:26:25 J28 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.37 dB = 0.00303 %  noise -99.38  meter pk -6.01 dBFS
+13:26:27 J28 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.61 dB = 0.00416 %  noise -93.62  meter pk -3.01 dBFS
+13:26:29 J28 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.10 dB = 0.69982 %  noise -49.11  meter pk -2.89 dBFS
+13:26:41 J28 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:26:41 PROMPT >>> J28 (MIC 18) LOOP SET DONE — fit the 150 Ω on J28
+13:26:42 SHUNT: TEST_OSC off, J28 at code 63, watching lane 17 for < -70 dBFS
+13:26:42   J28 lane 17 RMS -51.30 dBFS
+13:27:11   J28 lane 17 RMS -77.58 dBFS
+13:27:13   J28 lane 17 RMS -71.04 dBFS
+13:27:13   J28 lane 17 RMS -87.14 dBFS
+13:27:13   J28 lane 17 RMS -93.75 dBFS
+13:27:13   J28 lane 17 RMS -86.06 dBFS
+13:27:14   J28 lane 17 RMS -92.98 dBFS
+13:27:16   J28 lane 17 RMS -86.50 dBFS
+13:27:16   J28 lane 17 RMS -93.14 dBFS
+13:27:21   J28 lane 17 RMS -81.93 dBFS
+13:27:21   J28 lane 17 RMS -92.31 dBFS
+13:27:25 J28: floor -93.87 dBFS held 12 s -> 150 ohm taken as fitted
+13:28:55 J28 T4 code 63 (150 ohm): RmsResult -91.61 dBFS NoiseResult -91.61 (after captures -90.00); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:29:49 J28 T4 code  0 (150 ohm): RmsResult -112.43 dBFS NoiseResult -112.43 (after captures -114.38); 3 captures, overruns [0, 0, 0]
+13:29:50 PROMPT >>> J28 (MIC 18) DONE — move the loop cable to the next XLR
+13:29:50 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J31', 'J35', 'J37', 'J39', 'J41']
+13:30:29 DETECT: tone on lane 8 (pk -14.63 dBFS; next lane 22 at -103.67) -> J30 (MIC 19)
+13:30:30 J30 presence: code 0 osc -20 -> coh gain +5.569 dB, lane coh pk -14.43 dBFS
+13:30:31 J30 T1 code  0 osc  -18.57  lane coh pk  -13.00  gain   +5.569 dB (rms   +5.569)  THD+N  -89.31 dB
+13:30:32 J30 T1 code  1 osc  -31.41  lane coh pk  -13.00  gain  +18.414 dB (rms  +18.414)  THD+N  -54.97 dB
+13:30:33 J30 T1 code  2 osc  -38.03  lane coh pk  -13.00  gain  +25.031 dB (rms  +25.031)  THD+N  -45.95 dB
+13:30:34 J30 T1 code  3 osc  -40.70  lane coh pk  -13.00  gain  +27.704 dB (rms  +27.704)  THD+N  -54.90 dB
+13:30:36 J30 T1 code  4 osc  -45.47  lane coh pk  -13.00  gain  +32.465 dB (rms  +32.465)  THD+N  -63.10 dB
+13:30:37 J30 T1 code  5 osc  -46.70  lane coh pk  -13.00  gain  +33.701 dB (rms  +33.701)  THD+N  -62.27 dB
+13:30:38 J30 T1 code  6 osc  -48.26  lane coh pk  -13.00  gain  +35.258 dB (rms  +35.258)  THD+N  -61.12 dB
+13:30:39 J30 T1 code  7 osc  -49.17  lane coh pk  -13.00  gain  +36.171 dB (rms  +36.171)  THD+N  -60.25 dB
+13:30:40 J30 T1 code  8 osc  -52.92  lane coh pk  -12.99  gain  +39.925 dB (rms  +39.925)  THD+N  -56.32 dB
+13:30:41 J30 T1 code  9 osc  -53.47  lane coh pk  -13.00  gain  +40.469 dB (rms  +40.469)  THD+N  -55.85 dB
+13:30:42 J30 T1 code 10 osc  -54.22  lane coh pk  -13.00  gain  +41.216 dB (rms  +41.216)  THD+N  -55.08 dB
+13:30:43 J30 T1 code 11 osc  -54.69  lane coh pk  -13.00  gain  +41.687 dB (rms  +41.687)  THD+N  -54.65 dB
+13:30:44 J30 T1 code 12 osc  -55.86  lane coh pk  -13.00  gain  +42.865 dB (rms  +42.865)  THD+N  -53.53 dB
+13:30:46 J30 T1 code 13 osc  -56.26  lane coh pk  -13.00  gain  +43.256 dB (rms  +43.256)  THD+N  -53.08 dB
+13:30:47 J30 T1 code 14 osc  -56.80  lane coh pk  -13.00  gain  +43.804 dB (rms  +43.804)  THD+N  -52.48 dB
+13:30:48 J30 T1 code 15 osc  -57.16  lane coh pk  -13.00  gain  +44.155 dB (rms  +44.155)  THD+N  -52.13 dB
+13:30:49 J30 T1 code 16 osc  -60.16  lane coh pk  -13.02  gain  +47.139 dB (rms  +47.139)  THD+N  -49.16 dB
+13:30:50 J30 T1 code 17 osc  -60.38  lane coh pk  -13.00  gain  +47.379 dB (rms  +47.379)  THD+N  -49.00 dB
+13:30:51 J30 T1 code 18 osc  -60.72  lane coh pk  -13.00  gain  +47.723 dB (rms  +47.723)  THD+N  -48.67 dB
+13:30:53 J30 T1 code 19 osc  -60.95  lane coh pk  -13.00  gain  +47.947 dB (rms  +47.947)  THD+N  -48.41 dB
+13:30:54 J30 T1 code 20 osc  -61.54  lane coh pk  -13.00  gain  +48.537 dB (rms  +48.537)  THD+N  -47.79 dB
+13:30:55 J30 T1 code 21 osc  -61.74  lane coh pk  -13.00  gain  +48.743 dB (rms  +48.743)  THD+N  -47.72 dB
+13:30:56 J30 T1 code 22 osc  -62.04  lane coh pk  -13.00  gain  +49.036 dB (rms  +49.036)  THD+N  -47.28 dB
+13:30:57 J30 T1 code 23 osc  -62.23  lane coh pk  -13.00  gain  +49.231 dB (rms  +49.231)  THD+N  -47.02 dB
+13:30:58 J30 T1 code 24 osc  -63.20  lane coh pk  -13.00  gain  +50.204 dB (rms  +50.204)  THD+N  -46.27 dB
+13:30:59 J30 T1 code 25 osc  -63.37  lane coh pk  -13.00  gain  +50.374 dB (rms  +50.374)  THD+N  -46.13 dB
+13:31:00 J30 T1 code 26 osc  -63.62  lane coh pk  -13.00  gain  +50.618 dB (rms  +50.618)  THD+N  -45.78 dB
+13:31:01 J30 T1 code 27 osc  -63.78  lane coh pk  -13.00  gain  +50.778 dB (rms  +50.778)  THD+N  -45.52 dB
+13:31:03 J30 T1 code 28 osc  -64.21  lane coh pk  -13.00  gain  +51.207 dB (rms  +51.207)  THD+N  -45.18 dB
+13:31:04 J30 T1 code 29 osc  -64.36  lane coh pk  -13.00  gain  +51.357 dB (rms  +51.357)  THD+N  -45.16 dB
+13:31:05 J30 T1 code 30 osc  -64.58  lane coh pk  -13.00  gain  +51.573 dB (rms  +51.573)  THD+N  -44.83 dB
+13:31:06 J30 T1 code 31 osc  -64.72  lane coh pk  -13.00  gain  +51.719 dB (rms  +51.719)  THD+N  -44.58 dB
+13:31:07 J30 T1 code 32 osc  -66.72  lane coh pk  -12.99  gain  +53.727 dB (rms  +53.728)  THD+N  -42.73 dB
+13:31:08 J30 T1 code 33 osc  -66.84  lane coh pk  -13.00  gain  +53.838 dB (rms  +53.838)  THD+N  -42.52 dB
+13:31:09 J30 T1 code 34 osc  -67.00  lane coh pk  -13.00  gain  +54.001 dB (rms  +54.001)  THD+N  -42.39 dB
+13:31:10 J30 T1 code 35 osc  -67.11  lane coh pk  -13.00  gain  +54.110 dB (rms  +54.110)  THD+N  -42.27 dB
+13:31:11 J30 T1 code 36 osc  -67.40  lane coh pk  -13.00  gain  +54.403 dB (rms  +54.403)  THD+N  -42.02 dB
+13:31:13 J30 T1 code 37 osc  -67.51  lane coh pk  -13.00  gain  +54.507 dB (rms  +54.507)  THD+N  -41.86 dB
+13:31:14 J30 T1 code 38 osc  -67.66  lane coh pk  -13.00  gain  +54.658 dB (rms  +54.659)  THD+N  -41.73 dB
+13:31:15 J30 T1 code 39 osc  -67.76  lane coh pk  -13.00  gain  +54.758 dB (rms  +54.758)  THD+N  -41.70 dB
+13:31:16 J30 T1 code 40 osc  -68.28  lane coh pk  -13.00  gain  +55.281 dB (rms  +55.282)  THD+N  -41.12 dB
+13:31:17 J30 T1 code 41 osc  -68.37  lane coh pk  -13.00  gain  +55.375 dB (rms  +55.375)  THD+N  -40.85 dB
+13:31:18 J30 T1 code 42 osc  -68.51  lane coh pk  -13.00  gain  +55.511 dB (rms  +55.511)  THD+N  -40.85 dB
+13:31:19 J30 T1 code 43 osc  -68.60  lane coh pk  -13.00  gain  +55.602 dB (rms  +55.602)  THD+N  -40.83 dB
+13:31:20 J30 T1 code 44 osc  -68.85  lane coh pk  -13.00  gain  +55.848 dB (rms  +55.848)  THD+N  -40.60 dB
+13:31:21 J30 T1 code 45 osc  -68.94  lane coh pk  -13.00  gain  +55.934 dB (rms  +55.935)  THD+N  -40.44 dB
+13:31:22 J30 T1 code 46 osc  -69.06  lane coh pk  -13.00  gain  +56.062 dB (rms  +56.062)  THD+N  -40.40 dB
+13:31:24 J30 T1 code 47 osc  -69.15  lane coh pk  -13.00  gain  +56.148 dB (rms  +56.148)  THD+N  -40.33 dB
+13:31:25 J30 T1 code 48 osc  -69.98  lane coh pk  -13.01  gain  +56.976 dB (rms  +56.977)  THD+N  -39.43 dB
+13:31:26 J30 T1 code 49 osc  -70.05  lane coh pk  -13.00  gain  +57.053 dB (rms  +57.054)  THD+N  -39.44 dB
+13:31:27 J30 T1 code 50 osc  -70.17  lane coh pk  -13.00  gain  +57.166 dB (rms  +57.167)  THD+N  -39.32 dB
+13:31:28 J30 T1 code 51 osc  -70.24  lane coh pk  -13.00  gain  +57.241 dB (rms  +57.242)  THD+N  -39.20 dB
+13:31:29 J30 T1 code 52 osc  -70.44  lane coh pk  -13.00  gain  +57.445 dB (rms  +57.446)  THD+N  -38.96 dB
+13:31:30 J30 T1 code 53 osc  -70.52  lane coh pk  -13.00  gain  +57.518 dB (rms  +57.519)  THD+N  -38.96 dB
+13:31:31 J30 T1 code 54 osc  -70.62  lane coh pk  -13.00  gain  +57.624 dB (rms  +57.625)  THD+N  -38.87 dB
+13:31:32 J30 T1 code 55 osc  -70.69  lane coh pk  -13.00  gain  +57.697 dB (rms  +57.698)  THD+N  -38.71 dB
+13:31:34 J30 T1 code 56 osc  -71.07  lane coh pk  -13.00  gain  +58.066 dB (rms  +58.067)  THD+N  -38.42 dB
+13:31:35 J30 T1 code 57 osc  -71.14  lane coh pk  -13.00  gain  +58.134 dB (rms  +58.135)  THD+N  -38.31 dB
+13:31:36 J30 T1 code 58 osc  -71.23  lane coh pk  -13.00  gain  +58.231 dB (rms  +58.232)  THD+N  -38.21 dB
+13:31:37 J30 T1 code 59 osc  -71.30  lane coh pk  -13.00  gain  +58.296 dB (rms  +58.297)  THD+N  -38.20 dB
+13:31:38 J30 T1 code 60 osc  -71.47  lane coh pk  -13.00  gain  +58.476 dB (rms  +58.477)  THD+N  -38.11 dB
+13:31:39 J30 T1 code 61 osc  -71.54  lane coh pk  -13.00  gain  +58.540 dB (rms  +58.541)  THD+N  -37.95 dB
+13:31:40 J30 T1 code 62 osc  -71.63  lane coh pk  -13.00  gain  +58.636 dB (rms  +58.636)  THD+N  -37.81 dB
+13:31:41 J30 T1 code 63 osc  -71.70  lane coh pk  -13.00  gain  +58.701 dB (rms  +58.702)  THD+N  -37.78 dB
+13:31:53 J30 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:32:04 J30 T2 code 63 re 1 kHz: 20:-2.15  50:-0.47  100:-0.12  200:-0.02  500:+0.01  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:32:07 J30 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.55 dB = 0.00746 %  noise -105.56  meter pk -20.01 dBFS
+13:32:09 J30 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.25 dB = 0.00274 %  noise -104.26  meter pk -10.01 dBFS
+13:32:11 J30 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.62 dB = 0.00294 %  noise -99.63  meter pk -6.01 dBFS
+13:32:13 J30 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.68 dB = 0.00413 %  noise -93.69  meter pk -3.01 dBFS
+13:32:15 J30 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.98 dB = 0.63277 %  noise -49.99  meter pk -2.89 dBFS
+13:32:27 J30 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:32:27 PROMPT >>> J30 (MIC 19) LOOP SET DONE — fit the 150 Ω on J30
+13:32:27 SHUNT: TEST_OSC off, J30 at code 63, watching lane 8 for < -70 dBFS
+13:32:27   J30 lane 8 RMS -51.18 dBFS
+13:33:11   J30 lane 8 RMS -44.71 dBFS
+13:33:11   J30 lane 8 RMS -65.62 dBFS
+13:33:11   J30 lane 8 RMS -72.58 dBFS
+13:33:11   J30 lane 8 RMS -79.86 dBFS
+13:33:12   J30 lane 8 RMS -42.12 dBFS
+13:33:12   J30 lane 8 RMS -60.77 dBFS
+13:33:12   J30 lane 8 RMS -51.05 dBFS
+13:33:13   J30 lane 8 RMS -87.75 dBFS
+13:33:18   J30 lane 8 RMS -93.81 dBFS
+13:33:20   J30 lane 8 RMS -87.17 dBFS
+13:33:20   J30 lane 8 RMS -93.17 dBFS
+13:33:20   J30 lane 8 RMS -86.26 dBFS
+13:33:21   J30 lane 8 RMS -93.15 dBFS
+13:33:25 J30: floor -91.98 dBFS held 12 s -> 150 ohm taken as fitted
+13:35:05 J30 T4 code 63 (150 ohm): RmsResult -91.60 dBFS NoiseResult -91.60 (after captures -92.11); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:35:59 J30 T4 code  0 (150 ohm): RmsResult -113.58 dBFS NoiseResult -113.58 (after captures -111.17); 3 captures, overruns [0, 0, 0]
+13:35:59 PROMPT >>> J30 (MIC 19) DONE — move the loop cable to the next XLR
+13:35:59 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J35', 'J37', 'J39', 'J41']
+13:36:50 DETECT: tone on lane 6 (pk -14.43 dBFS; next lane 21 at -103.36) -> J32 (MIC 20)
+13:36:52 J32 presence: code 0 osc -20 -> coh gain +5.579 dB, lane coh pk -14.42 dBFS
+13:36:53 J32 T1 code  0 osc  -18.58  lane coh pk  -13.00  gain   +5.579 dB (rms   +5.579)  THD+N  -89.18 dB
+13:36:54 J32 T1 code  1 osc  -31.42  lane coh pk  -13.00  gain  +18.424 dB (rms  +18.424)  THD+N  -48.50 dB
+13:36:55 J32 T1 code  2 osc  -38.04  lane coh pk  -13.00  gain  +25.039 dB (rms  +25.039)  THD+N  -40.47 dB
+13:36:56 J32 T1 code  3 osc  -40.71  lane coh pk  -13.00  gain  +27.712 dB (rms  +27.712)  THD+N  -50.25 dB
+13:36:57 J32 T1 code  4 osc  -45.47  lane coh pk  -13.00  gain  +32.475 dB (rms  +32.475)  THD+N  -60.64 dB
+13:36:58 J32 T1 code  5 osc  -46.71  lane coh pk  -13.00  gain  +33.711 dB (rms  +33.711)  THD+N  -62.57 dB
+13:37:00 J32 T1 code  6 osc  -48.27  lane coh pk  -13.00  gain  +35.266 dB (rms  +35.266)  THD+N  -60.91 dB
+13:37:01 J32 T1 code  7 osc  -49.18  lane coh pk  -13.00  gain  +36.180 dB (rms  +36.180)  THD+N  -60.21 dB
+13:37:02 J32 T1 code  8 osc  -52.93  lane coh pk  -13.01  gain  +39.921 dB (rms  +39.921)  THD+N  -56.57 dB
+13:37:03 J32 T1 code  9 osc  -53.47  lane coh pk  -13.00  gain  +40.466 dB (rms  +40.466)  THD+N  -55.82 dB
+13:37:04 J32 T1 code 10 osc  -54.21  lane coh pk  -13.00  gain  +41.213 dB (rms  +41.213)  THD+N  -55.25 dB
+13:37:05 J32 T1 code 11 osc  -54.68  lane coh pk  -13.00  gain  +41.685 dB (rms  +41.685)  THD+N  -54.62 dB
+13:37:06 J32 T1 code 12 osc  -55.86  lane coh pk  -13.00  gain  +42.865 dB (rms  +42.865)  THD+N  -53.39 dB
+13:37:07 J32 T1 code 13 osc  -56.26  lane coh pk  -13.00  gain  +43.256 dB (rms  +43.256)  THD+N  -53.10 dB
+13:37:08 J32 T1 code 14 osc  -56.80  lane coh pk  -13.00  gain  +43.804 dB (rms  +43.804)  THD+N  -52.45 dB
+13:37:10 J32 T1 code 15 osc  -57.16  lane coh pk  -13.00  gain  +44.156 dB (rms  +44.156)  THD+N  -52.33 dB
+13:37:11 J32 T1 code 16 osc  -60.16  lane coh pk  -13.00  gain  +47.167 dB (rms  +47.167)  THD+N  -49.25 dB
+13:37:12 J32 T1 code 17 osc  -60.41  lane coh pk  -13.00  gain  +47.407 dB (rms  +47.407)  THD+N  -49.02 dB
+13:37:13 J32 T1 code 18 osc  -60.75  lane coh pk  -13.00  gain  +47.750 dB (rms  +47.750)  THD+N  -48.67 dB
+13:37:14 J32 T1 code 19 osc  -60.97  lane coh pk  -13.00  gain  +47.974 dB (rms  +47.974)  THD+N  -48.40 dB
+13:37:15 J32 T1 code 20 osc  -61.56  lane coh pk  -13.00  gain  +48.562 dB (rms  +48.562)  THD+N  -47.87 dB
+13:37:16 J32 T1 code 21 osc  -61.77  lane coh pk  -13.00  gain  +48.767 dB (rms  +48.767)  THD+N  -47.64 dB
+13:37:17 J32 T1 code 22 osc  -62.06  lane coh pk  -13.00  gain  +49.060 dB (rms  +49.060)  THD+N  -47.30 dB
+13:37:19 J32 T1 code 23 osc  -62.25  lane coh pk  -13.00  gain  +49.254 dB (rms  +49.254)  THD+N  -47.24 dB
+13:37:20 J32 T1 code 24 osc  -63.23  lane coh pk  -13.00  gain  +50.222 dB (rms  +50.222)  THD+N  -46.30 dB
+13:37:21 J32 T1 code 25 osc  -63.39  lane coh pk  -13.00  gain  +50.391 dB (rms  +50.391)  THD+N  -46.03 dB
+13:37:22 J32 T1 code 26 osc  -63.63  lane coh pk  -13.00  gain  +50.634 dB (rms  +50.634)  THD+N  -45.81 dB
+13:37:23 J32 T1 code 27 osc  -63.80  lane coh pk  -13.00  gain  +50.795 dB (rms  +50.795)  THD+N  -45.55 dB
+13:37:24 J32 T1 code 28 osc  -64.22  lane coh pk  -13.00  gain  +51.222 dB (rms  +51.222)  THD+N  -45.11 dB
+13:37:25 J32 T1 code 29 osc  -64.37  lane coh pk  -13.00  gain  +51.372 dB (rms  +51.372)  THD+N  -45.02 dB
+13:37:26 J32 T1 code 30 osc  -64.59  lane coh pk  -13.00  gain  +51.590 dB (rms  +51.590)  THD+N  -44.92 dB
+13:37:28 J32 T1 code 31 osc  -64.73  lane coh pk  -13.00  gain  +51.735 dB (rms  +51.735)  THD+N  -44.54 dB
+13:37:29 J32 T1 code 32 osc  -66.74  lane coh pk  -13.04  gain  +53.694 dB (rms  +53.694)  THD+N  -42.58 dB
+13:37:30 J32 T1 code 33 osc  -66.81  lane coh pk  -13.00  gain  +53.806 dB (rms  +53.806)  THD+N  -42.68 dB
+13:37:31 J32 T1 code 34 osc  -66.97  lane coh pk  -13.00  gain  +53.970 dB (rms  +53.970)  THD+N  -42.51 dB
+13:37:32 J32 T1 code 35 osc  -67.08  lane coh pk  -13.00  gain  +54.080 dB (rms  +54.081)  THD+N  -42.37 dB
+13:37:33 J32 T1 code 36 osc  -67.37  lane coh pk  -13.00  gain  +54.373 dB (rms  +54.373)  THD+N  -42.11 dB
+13:37:34 J32 T1 code 37 osc  -67.48  lane coh pk  -13.00  gain  +54.478 dB (rms  +54.479)  THD+N  -41.88 dB
+13:37:36 J32 T1 code 38 osc  -67.63  lane coh pk  -13.00  gain  +54.629 dB (rms  +54.629)  THD+N  -41.81 dB
+13:37:37 J32 T1 code 39 osc  -67.73  lane coh pk  -13.00  gain  +54.732 dB (rms  +54.732)  THD+N  -41.73 dB
+13:37:38 J32 T1 code 40 osc  -68.25  lane coh pk  -13.00  gain  +55.254 dB (rms  +55.254)  THD+N  -41.21 dB
+13:37:39 J32 T1 code 41 osc  -68.35  lane coh pk  -13.00  gain  +55.349 dB (rms  +55.350)  THD+N  -41.19 dB
+13:37:40 J32 T1 code 42 osc  -68.49  lane coh pk  -13.00  gain  +55.484 dB (rms  +55.484)  THD+N  -40.94 dB
+13:37:41 J32 T1 code 43 osc  -68.57  lane coh pk  -13.00  gain  +55.575 dB (rms  +55.575)  THD+N  -40.78 dB
+13:37:42 J32 T1 code 44 osc  -68.82  lane coh pk  -13.00  gain  +55.823 dB (rms  +55.824)  THD+N  -40.57 dB
+13:37:43 J32 T1 code 45 osc  -68.91  lane coh pk  -13.00  gain  +55.913 dB (rms  +55.913)  THD+N  -40.59 dB
+13:37:45 J32 T1 code 46 osc  -69.04  lane coh pk  -13.00  gain  +56.040 dB (rms  +56.040)  THD+N  -40.35 dB
+13:37:46 J32 T1 code 47 osc  -69.12  lane coh pk  -13.00  gain  +56.127 dB (rms  +56.127)  THD+N  -40.33 dB
+13:37:47 J32 T1 code 48 osc  -69.96  lane coh pk  -13.00  gain  +56.964 dB (rms  +56.965)  THD+N  -39.39 dB
+13:37:48 J32 T1 code 49 osc  -70.04  lane coh pk  -13.00  gain  +57.042 dB (rms  +57.042)  THD+N  -39.49 dB
+13:37:49 J32 T1 code 50 osc  -70.15  lane coh pk  -13.00  gain  +57.154 dB (rms  +57.155)  THD+N  -39.27 dB
+13:37:50 J32 T1 code 51 osc  -70.23  lane coh pk  -13.00  gain  +57.228 dB (rms  +57.228)  THD+N  -39.20 dB
+13:37:51 J32 T1 code 52 osc  -70.43  lane coh pk  -13.00  gain  +57.431 dB (rms  +57.431)  THD+N  -39.04 dB
+13:37:52 J32 T1 code 53 osc  -70.50  lane coh pk  -13.00  gain  +57.506 dB (rms  +57.507)  THD+N  -38.84 dB
+13:37:54 J32 T1 code 54 osc  -70.61  lane coh pk  -13.00  gain  +57.612 dB (rms  +57.612)  THD+N  -38.71 dB
+13:37:55 J32 T1 code 55 osc  -70.68  lane coh pk  -13.00  gain  +57.681 dB (rms  +57.681)  THD+N  -38.72 dB
+13:37:56 J32 T1 code 56 osc  -71.05  lane coh pk  -13.00  gain  +58.053 dB (rms  +58.053)  THD+N  -38.37 dB
+13:37:57 J32 T1 code 57 osc  -71.12  lane coh pk  -13.00  gain  +58.120 dB (rms  +58.121)  THD+N  -38.36 dB
+13:37:58 J32 T1 code 58 osc  -71.22  lane coh pk  -13.00  gain  +58.218 dB (rms  +58.219)  THD+N  -38.15 dB
+13:37:59 J32 T1 code 59 osc  -71.28  lane coh pk  -13.00  gain  +58.286 dB (rms  +58.287)  THD+N  -38.27 dB
+13:38:00 J32 T1 code 60 osc  -71.46  lane coh pk  -13.00  gain  +58.463 dB (rms  +58.464)  THD+N  -37.96 dB
+13:38:01 J32 T1 code 61 osc  -71.53  lane coh pk  -13.00  gain  +58.530 dB (rms  +58.530)  THD+N  -37.86 dB
+13:38:02 J32 T1 code 62 osc  -71.62  lane coh pk  -13.00  gain  +58.624 dB (rms  +58.625)  THD+N  -37.94 dB
+13:38:04 J32 T1 code 63 osc  -71.68  lane coh pk  -13.00  gain  +58.686 dB (rms  +58.687)  THD+N  -37.97 dB
+13:38:15 J32 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:38:27 J32 T2 code 63 re 1 kHz: 20:-2.13  50:-0.45  100:-0.11  200:-0.02  500:+0.02  1000:+0.00  2000:+0.01  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:38:29 J32 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.25 dB = 0.00771 %  noise -105.26  meter pk -20.01 dBFS
+13:38:31 J32 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -90.83 dB = 0.00287 %  noise -103.84  meter pk -10.01 dBFS
+13:38:34 J32 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -91.18 dB = 0.00276 %  noise -100.19  meter pk -6.01 dBFS
+13:38:36 J32 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.49 dB = 0.00376 %  noise -94.50  meter pk -3.01 dBFS
+13:38:38 J32 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.16 dB = 0.69509 %  noise -49.17  meter pk -2.89 dBFS
+13:38:50 J32 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:38:50 PROMPT >>> J32 (MIC 20) LOOP SET DONE — fit the 150 Ω on J32
+13:38:50 SHUNT: TEST_OSC off, J32 at code 63, watching lane 6 for < -70 dBFS
+13:38:50   J32 lane 6 RMS -52.00 dBFS
+13:39:14   J32 lane 6 RMS -73.49 dBFS
+13:39:15   J32 lane 6 RMS -50.18 dBFS
+13:39:15   J32 lane 6 RMS -67.47 dBFS
+13:39:16   J32 lane 6 RMS -75.86 dBFS
+13:39:16   J32 lane 6 RMS -87.36 dBFS
+13:39:28 J32: floor -85.00 dBFS held 12 s -> 150 ohm taken as fitted
+13:41:13 J32 T4 code 63 (150 ohm): RmsResult -86.51 dBFS NoiseResult -86.51 (after captures -88.99); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:42:04 J32 T4 code  0 (150 ohm): RmsResult -113.54 dBFS NoiseResult -113.54 (after captures -113.85); 3 captures, overruns [0, 0, 0]
+13:42:05 PROMPT >>> J32 (MIC 20) DONE — move the loop cable to the next XLR
+13:42:05 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J32', 'J35', 'J37', 'J39', 'J41']
+13:42:50 DETECT: tone on lane 23 (pk -14.48 dBFS; next lane 24 at -101.70) -> J36 (MIC 21)
+13:42:51 J36 presence: code 0 osc -20 -> coh gain +5.551 dB, lane coh pk -14.45 dBFS
+13:42:52 J36 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.551 dB (rms   +5.551)  THD+N  -89.37 dB
+13:42:53 J36 T1 code  1 osc  -31.40  lane coh pk  -13.00  gain  +18.398 dB (rms  +18.398)  THD+N  -49.54 dB
+13:42:54 J36 T1 code  2 osc  -38.02  lane coh pk  -13.00  gain  +25.014 dB (rms  +25.014)  THD+N  -41.01 dB
+13:42:55 J36 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.686 dB (rms  +27.686)  THD+N  -49.91 dB
+13:42:56 J36 T1 code  4 osc  -45.45  lane coh pk  -13.00  gain  +32.447 dB (rms  +32.447)  THD+N  -61.30 dB
+13:42:57 J36 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.684 dB (rms  +33.684)  THD+N  -62.65 dB
+13:42:59 J36 T1 code  6 osc  -48.24  lane coh pk  -13.00  gain  +35.240 dB (rms  +35.240)  THD+N  -60.90 dB
+13:43:00 J36 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.153 dB (rms  +36.153)  THD+N  -60.34 dB
+13:43:01 J36 T1 code  8 osc  -52.90  lane coh pk  -13.00  gain  +39.901 dB (rms  +39.901)  THD+N  -56.47 dB
+13:43:02 J36 T1 code  9 osc  -53.45  lane coh pk  -13.00  gain  +40.445 dB (rms  +40.445)  THD+N  -55.89 dB
+13:43:03 J36 T1 code 10 osc  -54.19  lane coh pk  -13.00  gain  +41.193 dB (rms  +41.193)  THD+N  -55.09 dB
+13:43:04 J36 T1 code 11 osc  -54.66  lane coh pk  -13.00  gain  +41.664 dB (rms  +41.664)  THD+N  -54.65 dB
+13:43:05 J36 T1 code 12 osc  -55.84  lane coh pk  -13.00  gain  +42.843 dB (rms  +42.843)  THD+N  -53.42 dB
+13:43:06 J36 T1 code 13 osc  -56.23  lane coh pk  -13.00  gain  +43.234 dB (rms  +43.234)  THD+N  -53.12 dB
+13:43:07 J36 T1 code 14 osc  -56.78  lane coh pk  -13.00  gain  +43.781 dB (rms  +43.781)  THD+N  -52.42 dB
+13:43:09 J36 T1 code 15 osc  -57.13  lane coh pk  -13.00  gain  +44.133 dB (rms  +44.133)  THD+N  -52.34 dB
+13:43:10 J36 T1 code 16 osc  -60.14  lane coh pk  -13.00  gain  +47.138 dB (rms  +47.138)  THD+N  -49.30 dB
+13:43:11 J36 T1 code 17 osc  -60.38  lane coh pk  -13.00  gain  +47.378 dB (rms  +47.378)  THD+N  -48.93 dB
+13:43:12 J36 T1 code 18 osc  -60.72  lane coh pk  -13.00  gain  +47.721 dB (rms  +47.721)  THD+N  -48.68 dB
+13:43:13 J36 T1 code 19 osc  -60.94  lane coh pk  -13.00  gain  +47.945 dB (rms  +47.945)  THD+N  -48.32 dB
+13:43:14 J36 T1 code 20 osc  -61.53  lane coh pk  -13.00  gain  +48.533 dB (rms  +48.533)  THD+N  -47.88 dB
+13:43:15 J36 T1 code 21 osc  -61.74  lane coh pk  -13.00  gain  +48.738 dB (rms  +48.738)  THD+N  -47.72 dB
+13:43:16 J36 T1 code 22 osc  -62.03  lane coh pk  -13.00  gain  +49.031 dB (rms  +49.031)  THD+N  -47.21 dB
+13:43:18 J36 T1 code 23 osc  -62.22  lane coh pk  -13.00  gain  +49.224 dB (rms  +49.224)  THD+N  -47.14 dB
+13:43:19 J36 T1 code 24 osc  -63.20  lane coh pk  -13.00  gain  +50.196 dB (rms  +50.196)  THD+N  -46.24 dB
+13:43:20 J36 T1 code 25 osc  -63.36  lane coh pk  -13.00  gain  +50.364 dB (rms  +50.364)  THD+N  -46.01 dB
+13:43:21 J36 T1 code 26 osc  -63.61  lane coh pk  -13.00  gain  +50.608 dB (rms  +50.608)  THD+N  -45.77 dB
+13:43:22 J36 T1 code 27 osc  -63.77  lane coh pk  -13.00  gain  +50.770 dB (rms  +50.770)  THD+N  -45.69 dB
+13:43:23 J36 T1 code 28 osc  -64.20  lane coh pk  -13.00  gain  +51.197 dB (rms  +51.197)  THD+N  -45.21 dB
+13:43:24 J36 T1 code 29 osc  -64.35  lane coh pk  -13.00  gain  +51.346 dB (rms  +51.346)  THD+N  -45.10 dB
+13:43:25 J36 T1 code 30 osc  -64.56  lane coh pk  -13.00  gain  +51.563 dB (rms  +51.563)  THD+N  -44.86 dB
+13:43:27 J36 T1 code 31 osc  -64.71  lane coh pk  -13.00  gain  +51.708 dB (rms  +51.708)  THD+N  -44.69 dB
+13:43:28 J36 T1 code 32 osc  -66.71  lane coh pk  -12.99  gain  +53.718 dB (rms  +53.719)  THD+N  -42.69 dB
+13:43:29 J36 T1 code 33 osc  -66.83  lane coh pk  -13.00  gain  +53.830 dB (rms  +53.830)  THD+N  -42.53 dB
+13:43:30 J36 T1 code 34 osc  -66.99  lane coh pk  -13.00  gain  +53.992 dB (rms  +53.992)  THD+N  -42.36 dB
+13:43:31 J36 T1 code 35 osc  -67.10  lane coh pk  -13.00  gain  +54.102 dB (rms  +54.102)  THD+N  -42.33 dB
+13:43:32 J36 T1 code 36 osc  -67.39  lane coh pk  -13.00  gain  +54.392 dB (rms  +54.392)  THD+N  -42.03 dB
+13:43:33 J36 T1 code 37 osc  -67.50  lane coh pk  -13.00  gain  +54.497 dB (rms  +54.497)  THD+N  -41.95 dB
+13:43:34 J36 T1 code 38 osc  -67.65  lane coh pk  -13.00  gain  +54.648 dB (rms  +54.648)  THD+N  -41.86 dB
+13:43:35 J36 T1 code 39 osc  -67.75  lane coh pk  -13.00  gain  +54.749 dB (rms  +54.749)  THD+N  -41.72 dB
+13:43:37 J36 T1 code 40 osc  -68.27  lane coh pk  -13.00  gain  +55.267 dB (rms  +55.268)  THD+N  -41.17 dB
+13:43:38 J36 T1 code 41 osc  -68.36  lane coh pk  -13.00  gain  +55.362 dB (rms  +55.363)  THD+N  -41.09 dB
+13:43:39 J36 T1 code 42 osc  -68.50  lane coh pk  -13.00  gain  +55.498 dB (rms  +55.499)  THD+N  -40.97 dB
+13:43:40 J36 T1 code 43 osc  -68.59  lane coh pk  -13.00  gain  +55.590 dB (rms  +55.590)  THD+N  -40.88 dB
+13:43:41 J36 T1 code 44 osc  -68.84  lane coh pk  -13.00  gain  +55.834 dB (rms  +55.834)  THD+N  -40.50 dB
+13:43:42 J36 T1 code 45 osc  -68.92  lane coh pk  -13.00  gain  +55.921 dB (rms  +55.922)  THD+N  -40.59 dB
+13:43:43 J36 T1 code 46 osc  -69.05  lane coh pk  -13.00  gain  +56.048 dB (rms  +56.049)  THD+N  -40.33 dB
+13:43:44 J36 T1 code 47 osc  -69.13  lane coh pk  -13.00  gain  +56.137 dB (rms  +56.137)  THD+N  -40.30 dB
+13:43:46 J36 T1 code 48 osc  -69.97  lane coh pk  -13.00  gain  +56.970 dB (rms  +56.970)  THD+N  -39.40 dB
+13:43:47 J36 T1 code 49 osc  -70.04  lane coh pk  -13.00  gain  +57.047 dB (rms  +57.047)  THD+N  -39.34 dB
+13:43:48 J36 T1 code 50 osc  -70.16  lane coh pk  -13.00  gain  +57.157 dB (rms  +57.158)  THD+N  -39.38 dB
+13:43:49 J36 T1 code 51 osc  -70.23  lane coh pk  -13.00  gain  +57.233 dB (rms  +57.233)  THD+N  -39.22 dB
+13:43:50 J36 T1 code 52 osc  -70.43  lane coh pk  -13.00  gain  +57.434 dB (rms  +57.434)  THD+N  -38.95 dB
+13:43:51 J36 T1 code 53 osc  -70.51  lane coh pk  -13.00  gain  +57.507 dB (rms  +57.508)  THD+N  -38.92 dB
+13:43:52 J36 T1 code 54 osc  -70.61  lane coh pk  -13.00  gain  +57.612 dB (rms  +57.613)  THD+N  -38.94 dB
+13:43:53 J36 T1 code 55 osc  -70.68  lane coh pk  -13.00  gain  +57.684 dB (rms  +57.685)  THD+N  -38.72 dB
+13:43:55 J36 T1 code 56 osc  -71.05  lane coh pk  -13.00  gain  +58.056 dB (rms  +58.057)  THD+N  -38.42 dB
+13:43:56 J36 T1 code 57 osc  -71.13  lane coh pk  -13.00  gain  +58.122 dB (rms  +58.123)  THD+N  -38.37 dB
+13:43:57 J36 T1 code 58 osc  -71.22  lane coh pk  -13.00  gain  +58.223 dB (rms  +58.223)  THD+N  -38.26 dB
+13:43:58 J36 T1 code 59 osc  -71.29  lane coh pk  -13.00  gain  +58.288 dB (rms  +58.288)  THD+N  -37.99 dB
+13:43:59 J36 T1 code 60 osc  -71.47  lane coh pk  -13.00  gain  +58.466 dB (rms  +58.466)  THD+N  -37.94 dB
+13:44:00 J36 T1 code 61 osc  -71.53  lane coh pk  -13.00  gain  +58.532 dB (rms  +58.533)  THD+N  -37.89 dB
+13:44:01 J36 T1 code 62 osc  -71.63  lane coh pk  -13.00  gain  +58.625 dB (rms  +58.626)  THD+N  -37.82 dB
+13:44:02 J36 T1 code 63 osc  -71.69  lane coh pk  -13.00  gain  +58.687 dB (rms  +58.688)  THD+N  -37.73 dB
+13:44:14 J36 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:44:26 J36 T2 code 63 re 1 kHz: 20:-2.13  50:-0.44  100:-0.12  200:-0.01  500:+0.02  1000:+0.00  2000:+0.00  5000:+0.00  10000:+0.07  15000:-0.01  20000:-0.11
+13:44:28 J36 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.23 dB = 0.00773 %  noise -105.24  meter pk -20.01 dBFS
+13:44:30 J36 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -90.96 dB = 0.00283 %  noise -103.97  meter pk -10.01 dBFS
+13:44:32 J36 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.21 dB = 0.00309 %  noise -99.22  meter pk -6.01 dBFS
+13:44:34 J36 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -87.73 dB = 0.00411 %  noise -93.74  meter pk -3.01 dBFS
+13:44:36 J36 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.37 dB = 0.67868 %  noise -49.38  meter pk -2.87 dBFS
+13:44:49 J36 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:44:49 PROMPT >>> J36 (MIC 21) LOOP SET DONE — fit the 150 Ω on J36
+13:44:49 SHUNT: TEST_OSC off, J36 at code 63, watching lane 23 for < -70 dBFS
+13:44:49   J36 lane 23 RMS -51.24 dBFS
+13:45:19   J36 lane 23 RMS -73.04 dBFS
+13:45:19   J36 lane 23 RMS -80.89 dBFS
+13:45:20   J36 lane 23 RMS -43.08 dBFS
+13:45:20   J36 lane 23 RMS -66.34 dBFS
+13:45:21   J36 lane 23 RMS -59.34 dBFS
+13:45:21   J36 lane 23 RMS -90.85 dBFS
+13:45:21   J36 lane 23 RMS -84.84 dBFS
+13:45:22   J36 lane 23 RMS -77.29 dBFS
+13:45:22   J36 lane 23 RMS -85.83 dBFS
+13:45:22   J36 lane 23 RMS -92.38 dBFS
+13:45:22   J36 lane 23 RMS -84.90 dBFS
+13:45:22   J36 lane 23 RMS -91.23 dBFS
+13:45:23   J36 lane 23 RMS -85.10 dBFS
+13:45:24   J36 lane 23 RMS -91.55 dBFS
+13:45:33 J36: floor -93.34 dBFS held 12 s -> 150 ohm taken as fitted
+13:47:17 J36 T4 code 63 (150 ohm): RmsResult -91.04 dBFS NoiseResult -91.04 (after captures -93.25); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:47:59 J36 T4 code  0 (150 ohm): RmsResult -113.74 dBFS NoiseResult -113.74 (after captures -113.98); 3 captures, overruns [0, 0, 0]
+13:48:00 PROMPT >>> J36 (MIC 21) DONE — move the loop cable to the next XLR
+13:48:00 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J32', 'J35', 'J36', 'J37', 'J39', 'J41']
+13:49:40 DETECT: tone on lane 21 (pk -14.48 dBFS; next lane 9 at -102.77) -> J38 (MIC 22)
+13:49:41 J38 presence: code 0 osc -20 -> coh gain +5.548 dB, lane coh pk -14.45 dBFS
+13:49:42 J38 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.548 dB (rms   +5.548)  THD+N  -89.21 dB
+13:49:43 J38 T1 code  1 osc  -31.39  lane coh pk  -13.00  gain  +18.392 dB (rms  +18.392)  THD+N  -49.56 dB
+13:49:44 J38 T1 code  2 osc  -38.01  lane coh pk  -13.00  gain  +25.013 dB (rms  +25.014)  THD+N  -41.26 dB
+13:49:45 J38 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.684 dB (rms  +27.684)  THD+N  -50.65 dB
+13:49:46 J38 T1 code  4 osc  -45.45  lane coh pk  -13.01  gain  +32.441 dB (rms  +32.441)  THD+N  -60.90 dB
+13:49:47 J38 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.677 dB (rms  +33.677)  THD+N  -62.75 dB
+13:49:49 J38 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.235 dB (rms  +35.235)  THD+N  -61.16 dB
+13:49:50 J38 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.148 dB (rms  +36.148)  THD+N  -60.22 dB
+13:49:51 J38 T1 code  8 osc  -52.89  lane coh pk  -13.01  gain  +39.889 dB (rms  +39.889)  THD+N  -56.52 dB
+13:49:52 J38 T1 code  9 osc  -53.43  lane coh pk  -13.00  gain  +40.434 dB (rms  +40.434)  THD+N  -55.84 dB
+13:49:53 J38 T1 code 10 osc  -54.18  lane coh pk  -13.00  gain  +41.183 dB (rms  +41.183)  THD+N  -55.01 dB
+13:49:54 J38 T1 code 11 osc  -54.65  lane coh pk  -13.00  gain  +41.654 dB (rms  +41.654)  THD+N  -54.70 dB
+13:49:55 J38 T1 code 12 osc  -55.83  lane coh pk  -13.00  gain  +42.832 dB (rms  +42.832)  THD+N  -53.53 dB
+13:49:56 J38 T1 code 13 osc  -56.22  lane coh pk  -13.00  gain  +43.224 dB (rms  +43.224)  THD+N  -53.12 dB
+13:49:58 J38 T1 code 14 osc  -56.77  lane coh pk  -13.00  gain  +43.772 dB (rms  +43.772)  THD+N  -52.68 dB
+13:49:59 J38 T1 code 15 osc  -57.12  lane coh pk  -13.00  gain  +44.124 dB (rms  +44.124)  THD+N  -52.15 dB
+13:50:00 J38 T1 code 16 osc  -60.13  lane coh pk  -12.99  gain  +47.138 dB (rms  +47.138)  THD+N  -49.26 dB
+13:50:01 J38 T1 code 17 osc  -60.38  lane coh pk  -13.00  gain  +47.377 dB (rms  +47.377)  THD+N  -49.00 dB
+13:50:02 J38 T1 code 18 osc  -60.72  lane coh pk  -13.00  gain  +47.720 dB (rms  +47.720)  THD+N  -48.71 dB
+13:50:03 J38 T1 code 19 osc  -60.94  lane coh pk  -13.00  gain  +47.944 dB (rms  +47.944)  THD+N  -48.45 dB
+13:50:04 J38 T1 code 20 osc  -61.53  lane coh pk  -13.00  gain  +48.531 dB (rms  +48.531)  THD+N  -47.82 dB
+13:50:05 J38 T1 code 21 osc  -61.74  lane coh pk  -13.00  gain  +48.735 dB (rms  +48.735)  THD+N  -47.67 dB
+13:50:06 J38 T1 code 22 osc  -62.03  lane coh pk  -13.00  gain  +49.030 dB (rms  +49.030)  THD+N  -47.44 dB
+13:50:08 J38 T1 code 23 osc  -62.22  lane coh pk  -13.00  gain  +49.223 dB (rms  +49.223)  THD+N  -47.32 dB
+13:50:09 J38 T1 code 24 osc  -63.19  lane coh pk  -13.00  gain  +50.192 dB (rms  +50.192)  THD+N  -46.24 dB
+13:50:10 J38 T1 code 25 osc  -63.36  lane coh pk  -13.00  gain  +50.361 dB (rms  +50.361)  THD+N  -46.13 dB
+13:50:11 J38 T1 code 26 osc  -63.60  lane coh pk  -13.00  gain  +50.604 dB (rms  +50.604)  THD+N  -45.83 dB
+13:50:12 J38 T1 code 27 osc  -63.77  lane coh pk  -13.00  gain  +50.765 dB (rms  +50.765)  THD+N  -45.73 dB
+13:50:13 J38 T1 code 28 osc  -64.19  lane coh pk  -13.00  gain  +51.190 dB (rms  +51.190)  THD+N  -45.20 dB
+13:50:14 J38 T1 code 29 osc  -64.34  lane coh pk  -13.00  gain  +51.342 dB (rms  +51.342)  THD+N  -45.09 dB
+13:50:15 J38 T1 code 30 osc  -64.56  lane coh pk  -13.00  gain  +51.558 dB (rms  +51.558)  THD+N  -44.83 dB
+13:50:17 J38 T1 code 31 osc  -64.70  lane coh pk  -13.00  gain  +51.703 dB (rms  +51.703)  THD+N  -44.72 dB
+13:50:18 J38 T1 code 32 osc  -66.71  lane coh pk  -13.05  gain  +53.657 dB (rms  +53.657)  THD+N  -42.79 dB
+13:50:19 J38 T1 code 33 osc  -66.77  lane coh pk  -13.00  gain  +53.767 dB (rms  +53.768)  THD+N  -42.53 dB
+13:50:20 J38 T1 code 34 osc  -66.93  lane coh pk  -13.00  gain  +53.932 dB (rms  +53.932)  THD+N  -42.49 dB
+13:50:21 J38 T1 code 35 osc  -67.04  lane coh pk  -13.00  gain  +54.042 dB (rms  +54.043)  THD+N  -42.42 dB
+13:50:22 J38 T1 code 36 osc  -67.33  lane coh pk  -13.00  gain  +54.334 dB (rms  +54.334)  THD+N  -42.10 dB
+13:50:23 J38 T1 code 37 osc  -67.44  lane coh pk  -13.00  gain  +54.442 dB (rms  +54.442)  THD+N  -41.99 dB
+13:50:24 J38 T1 code 38 osc  -67.59  lane coh pk  -13.00  gain  +54.591 dB (rms  +54.591)  THD+N  -41.94 dB
+13:50:25 J38 T1 code 39 osc  -67.69  lane coh pk  -13.00  gain  +54.694 dB (rms  +54.694)  THD+N  -41.70 dB
+13:50:27 J38 T1 code 40 osc  -68.22  lane coh pk  -13.00  gain  +55.215 dB (rms  +55.215)  THD+N  -41.27 dB
+13:50:28 J38 T1 code 41 osc  -68.31  lane coh pk  -13.00  gain  +55.309 dB (rms  +55.309)  THD+N  -41.29 dB
+13:50:29 J38 T1 code 42 osc  -68.45  lane coh pk  -13.00  gain  +55.447 dB (rms  +55.447)  THD+N  -41.03 dB
+13:50:30 J38 T1 code 43 osc  -68.54  lane coh pk  -13.00  gain  +55.538 dB (rms  +55.538)  THD+N  -40.86 dB
+13:50:31 J38 T1 code 44 osc  -68.78  lane coh pk  -13.00  gain  +55.783 dB (rms  +55.784)  THD+N  -40.62 dB
+13:50:32 J38 T1 code 45 osc  -68.87  lane coh pk  -13.00  gain  +55.871 dB (rms  +55.872)  THD+N  -40.59 dB
+13:50:33 J38 T1 code 46 osc  -69.00  lane coh pk  -13.00  gain  +56.001 dB (rms  +56.001)  THD+N  -40.45 dB
+13:50:34 J38 T1 code 47 osc  -69.09  lane coh pk  -13.00  gain  +56.087 dB (rms  +56.087)  THD+N  -40.41 dB
+13:50:35 J38 T1 code 48 osc  -69.92  lane coh pk  -13.00  gain  +56.927 dB (rms  +56.927)  THD+N  -39.48 dB
+13:50:37 J38 T1 code 49 osc  -70.00  lane coh pk  -13.00  gain  +57.004 dB (rms  +57.005)  THD+N  -39.46 dB
+13:50:38 J38 T1 code 50 osc  -70.12  lane coh pk  -13.00  gain  +57.115 dB (rms  +57.116)  THD+N  -39.36 dB
+13:50:39 J38 T1 code 51 osc  -70.19  lane coh pk  -13.00  gain  +57.191 dB (rms  +57.191)  THD+N  -39.21 dB
+13:50:40 J38 T1 code 52 osc  -70.39  lane coh pk  -13.00  gain  +57.392 dB (rms  +57.392)  THD+N  -38.97 dB
+13:50:41 J38 T1 code 53 osc  -70.46  lane coh pk  -13.00  gain  +57.468 dB (rms  +57.468)  THD+N  -39.05 dB
+13:50:42 J38 T1 code 54 osc  -70.57  lane coh pk  -13.00  gain  +57.572 dB (rms  +57.572)  THD+N  -38.90 dB
+13:50:43 J38 T1 code 55 osc  -70.64  lane coh pk  -13.00  gain  +57.645 dB (rms  +57.645)  THD+N  -38.82 dB
+13:50:44 J38 T1 code 56 osc  -71.02  lane coh pk  -13.00  gain  +58.015 dB (rms  +58.016)  THD+N  -38.38 dB
+13:50:46 J38 T1 code 57 osc  -71.08  lane coh pk  -13.00  gain  +58.085 dB (rms  +58.085)  THD+N  -38.39 dB
+13:50:47 J38 T1 code 58 osc  -71.18  lane coh pk  -13.00  gain  +58.182 dB (rms  +58.183)  THD+N  -38.29 dB
+13:50:48 J38 T1 code 59 osc  -71.25  lane coh pk  -13.00  gain  +58.249 dB (rms  +58.250)  THD+N  -38.25 dB
+13:50:49 J38 T1 code 60 osc  -71.43  lane coh pk  -13.00  gain  +58.429 dB (rms  +58.429)  THD+N  -37.97 dB
+13:50:50 J38 T1 code 61 osc  -71.49  lane coh pk  -13.00  gain  +58.492 dB (rms  +58.493)  THD+N  -37.93 dB
+13:50:51 J38 T1 code 62 osc  -71.59  lane coh pk  -13.00  gain  +58.587 dB (rms  +58.587)  THD+N  -37.90 dB
+13:50:52 J38 T1 code 63 osc  -71.65  lane coh pk  -13.00  gain  +58.651 dB (rms  +58.652)  THD+N  -37.81 dB
+13:51:04 J38 T2 code 0 re 1 kHz: 20:-0.42  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+13:51:16 J38 T2 code 63 re 1 kHz: 20:-2.19  50:-0.46  100:-0.13  200:-0.02  500:+0.02  1000:+0.00  2000:+0.00  5000:+0.01  10000:+0.07  15000:-0.01  20000:-0.11
+13:51:18 J38 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.54 dB = 0.00746 %  noise -105.55  meter pk -20.01 dBFS
+13:51:20 J38 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.23 dB = 0.00274 %  noise -104.24  meter pk -10.01 dBFS
+13:51:22 J38 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -90.64 dB = 0.00294 %  noise -99.65  meter pk -6.01 dBFS
+13:51:24 J38 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.09 dB = 0.00394 %  noise -94.10  meter pk -3.01 dBFS
+13:51:27 J38 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -44.40 dB = 0.60247 %  noise -50.41  meter pk -2.92 dBFS
+13:51:38 J38 T8 91.40 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+13:51:38 PROMPT >>> J38 (MIC 22) LOOP SET DONE — fit the 150 Ω on J38
+13:51:39 SHUNT: TEST_OSC off, J38 at code 63, watching lane 21 for < -70 dBFS
+13:51:39   J38 lane 21 RMS -51.43 dBFS
+13:52:39   J38 lane 21 RMS -51.84 dBFS
+13:53:39   J38 lane 21 RMS -51.70 dBFS
+13:54:03   J38 lane 21 RMS -42.40 dBFS
+13:54:03   J38 lane 21 RMS -81.67 dBFS
+13:54:04   J38 lane 21 RMS -50.53 dBFS
+13:54:04   J38 lane 21 RMS -58.74 dBFS
+13:54:05   J38 lane 21 RMS -91.68 dBFS
+13:54:05   J38 lane 21 RMS -79.32 dBFS
+13:54:06   J38 lane 21 RMS -93.09 dBFS
+13:54:07   J38 lane 21 RMS -82.82 dBFS
+13:54:07   J38 lane 21 RMS -88.82 dBFS
+13:54:07   J38 lane 21 RMS -78.19 dBFS
+13:54:07   J38 lane 21 RMS -88.34 dBFS
+13:54:17 J38: floor -88.69 dBFS held 12 s -> 150 ohm taken as fitted
+13:55:39 J38 T4 code 63 (150 ohm): RmsResult -92.61 dBFS NoiseResult -92.61 (after captures -92.26); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+13:56:33 J38 T4 code  0 (150 ohm): RmsResult -112.94 dBFS NoiseResult -112.94 (after captures -114.12); 3 captures, overruns [0, 0, 0]
+13:56:33 PROMPT >>> J38 (MIC 22) DONE — move the loop cable to the next XLR
+13:56:33 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J32', 'J35', 'J36', 'J37', 'J38', 'J39', 'J41']
+13:58:40 DETECT: tone on lane 12 (pk -14.47 dBFS; next lane 23 at -103.36) -> J40 (MIC 23)
+13:58:42 J40 presence: code 0 osc -20 -> coh gain +5.544 dB, lane coh pk -14.46 dBFS
+13:58:43 J40 T1 code  0 osc  -18.54  lane coh pk  -13.00  gain   +5.544 dB (rms   +5.544)  THD+N  -86.10 dB
+13:58:44 J40 T1 code  1 osc  -31.39  lane coh pk  -13.00  gain  +18.393 dB (rms  +18.393)  THD+N  -52.35 dB
+13:58:45 J40 T1 code  2 osc  -38.01  lane coh pk  -13.00  gain  +25.007 dB (rms  +25.007)  THD+N  -44.15 dB
+13:58:46 J40 T1 code  3 osc  -40.68  lane coh pk  -13.00  gain  +27.680 dB (rms  +27.680)  THD+N  -52.86 dB
+13:58:47 J40 T1 code  4 osc  -45.44  lane coh pk  -13.00  gain  +32.441 dB (rms  +32.441)  THD+N  -62.49 dB
+13:58:48 J40 T1 code  5 osc  -46.68  lane coh pk  -13.00  gain  +33.678 dB (rms  +33.678)  THD+N  -62.43 dB
+13:58:49 J40 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.233 dB (rms  +35.233)  THD+N  -61.02 dB
+13:58:50 J40 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.147 dB (rms  +36.147)  THD+N  -59.96 dB
+13:58:52 J40 T1 code  8 osc  -52.89  lane coh pk  -13.00  gain  +39.894 dB (rms  +39.894)  THD+N  -56.53 dB
+13:58:53 J40 T1 code  9 osc  -53.44  lane coh pk  -13.00  gain  +40.438 dB (rms  +40.438)  THD+N  -55.93 dB
+13:58:54 J40 T1 code 10 osc  -54.19  lane coh pk  -13.00  gain  +41.186 dB (rms  +41.186)  THD+N  -55.10 dB
+13:58:55 J40 T1 code 11 osc  -54.66  lane coh pk  -13.00  gain  +41.656 dB (rms  +41.656)  THD+N  -54.64 dB
+13:58:56 J40 T1 code 12 osc  -55.83  lane coh pk  -13.00  gain  +42.836 dB (rms  +42.836)  THD+N  -53.49 dB
+13:58:57 J40 T1 code 13 osc  -56.23  lane coh pk  -13.00  gain  +43.227 dB (rms  +43.227)  THD+N  -53.10 dB
+13:58:58 J40 T1 code 14 osc  -56.77  lane coh pk  -13.00  gain  +43.774 dB (rms  +43.774)  THD+N  -52.48 dB
+13:58:59 J40 T1 code 15 osc  -57.13  lane coh pk  -13.00  gain  +44.127 dB (rms  +44.127)  THD+N  -52.24 dB
+13:59:00 J40 T1 code 16 osc  -60.14  lane coh pk  -13.00  gain  +47.139 dB (rms  +47.139)  THD+N  -49.21 dB
+13:59:02 J40 T1 code 17 osc  -60.38  lane coh pk  -13.00  gain  +47.378 dB (rms  +47.378)  THD+N  -48.94 dB
+13:59:03 J40 T1 code 18 osc  -60.72  lane coh pk  -13.00  gain  +47.720 dB (rms  +47.720)  THD+N  -48.65 dB
+13:59:04 J40 T1 code 19 osc  -60.94  lane coh pk  -13.00  gain  +47.944 dB (rms  +47.944)  THD+N  -48.38 dB
+13:59:05 J40 T1 code 20 osc  -61.53  lane coh pk  -13.00  gain  +48.532 dB (rms  +48.532)  THD+N  -48.01 dB
+13:59:06 J40 T1 code 21 osc  -61.74  lane coh pk  -13.00  gain  +48.737 dB (rms  +48.737)  THD+N  -47.66 dB
+13:59:07 J40 T1 code 22 osc  -62.03  lane coh pk  -13.00  gain  +49.030 dB (rms  +49.030)  THD+N  -47.44 dB
+13:59:08 J40 T1 code 23 osc  -62.22  lane coh pk  -13.00  gain  +49.223 dB (rms  +49.223)  THD+N  -47.22 dB
+13:59:09 J40 T1 code 24 osc  -63.19  lane coh pk  -13.00  gain  +50.193 dB (rms  +50.193)  THD+N  -46.17 dB
+13:59:11 J40 T1 code 25 osc  -63.36  lane coh pk  -13.00  gain  +50.362 dB (rms  +50.362)  THD+N  -46.10 dB
+13:59:12 J40 T1 code 26 osc  -63.60  lane coh pk  -13.00  gain  +50.605 dB (rms  +50.605)  THD+N  -45.78 dB
+13:59:13 J40 T1 code 27 osc  -63.77  lane coh pk  -13.00  gain  +50.767 dB (rms  +50.767)  THD+N  -45.71 dB
+13:59:14 J40 T1 code 28 osc  -64.19  lane coh pk  -13.00  gain  +51.193 dB (rms  +51.193)  THD+N  -45.33 dB
+13:59:15 J40 T1 code 29 osc  -64.34  lane coh pk  -13.00  gain  +51.344 dB (rms  +51.344)  THD+N  -45.11 dB
+13:59:16 J40 T1 code 30 osc  -64.56  lane coh pk  -13.00  gain  +51.560 dB (rms  +51.561)  THD+N  -44.77 dB
+13:59:17 J40 T1 code 31 osc  -64.70  lane coh pk  -13.00  gain  +51.705 dB (rms  +51.705)  THD+N  -44.74 dB
+13:59:18 J40 T1 code 32 osc  -66.71  lane coh pk  -13.00  gain  +53.712 dB (rms  +53.712)  THD+N  -42.76 dB
+13:59:20 J40 T1 code 33 osc  -66.83  lane coh pk  -13.00  gain  +53.825 dB (rms  +53.825)  THD+N  -42.61 dB
+13:59:21 J40 T1 code 34 osc  -66.99  lane coh pk  -13.00  gain  +53.986 dB (rms  +53.986)  THD+N  -42.48 dB
+13:59:22 J40 T1 code 35 osc  -67.09  lane coh pk  -13.00  gain  +54.094 dB (rms  +54.094)  THD+N  -42.35 dB
+13:59:23 J40 T1 code 36 osc  -67.39  lane coh pk  -13.00  gain  +54.386 dB (rms  +54.386)  THD+N  -41.96 dB
+13:59:24 J40 T1 code 37 osc  -67.49  lane coh pk  -13.00  gain  +54.489 dB (rms  +54.490)  THD+N  -41.88 dB
+13:59:25 J40 T1 code 38 osc  -67.64  lane coh pk  -13.00  gain  +54.642 dB (rms  +54.642)  THD+N  -41.76 dB
+13:59:26 J40 T1 code 39 osc  -67.74  lane coh pk  -13.00  gain  +54.742 dB (rms  +54.742)  THD+N  -41.63 dB
+13:59:27 J40 T1 code 40 osc  -68.26  lane coh pk  -13.00  gain  +55.261 dB (rms  +55.261)  THD+N  -41.06 dB
+13:59:29 J40 T1 code 41 osc  -68.35  lane coh pk  -13.00  gain  +55.356 dB (rms  +55.356)  THD+N  -40.99 dB
+13:59:30 J40 T1 code 42 osc  -68.49  lane coh pk  -13.00  gain  +55.492 dB (rms  +55.492)  THD+N  -40.82 dB
+13:59:31 J40 T1 code 43 osc  -68.58  lane coh pk  -13.00  gain  +55.583 dB (rms  +55.583)  THD+N  -40.80 dB
+13:59:32 J40 T1 code 44 osc  -68.83  lane coh pk  -13.00  gain  +55.826 dB (rms  +55.826)  THD+N  -40.55 dB
+13:59:33 J40 T1 code 45 osc  -68.91  lane coh pk  -13.00  gain  +55.916 dB (rms  +55.916)  THD+N  -40.44 dB
+13:59:34 J40 T1 code 46 osc  -69.04  lane coh pk  -13.00  gain  +56.042 dB (rms  +56.042)  THD+N  -40.30 dB
+13:59:35 J40 T1 code 47 osc  -69.13  lane coh pk  -13.00  gain  +56.129 dB (rms  +56.130)  THD+N  -40.31 dB
+13:59:36 J40 T1 code 48 osc  -69.97  lane coh pk  -13.00  gain  +56.964 dB (rms  +56.964)  THD+N  -39.55 dB
+13:59:38 J40 T1 code 49 osc  -70.04  lane coh pk  -13.00  gain  +57.040 dB (rms  +57.040)  THD+N  -39.30 dB
+13:59:39 J40 T1 code 50 osc  -70.15  lane coh pk  -13.00  gain  +57.151 dB (rms  +57.151)  THD+N  -39.35 dB
+13:59:40 J40 T1 code 51 osc  -70.23  lane coh pk  -13.00  gain  +57.226 dB (rms  +57.227)  THD+N  -39.19 dB
+13:59:41 J40 T1 code 52 osc  -70.43  lane coh pk  -13.00  gain  +57.428 dB (rms  +57.428)  THD+N  -38.91 dB
+13:59:42 J40 T1 code 53 osc  -70.50  lane coh pk  -13.00  gain  +57.501 dB (rms  +57.501)  THD+N  -38.92 dB
+13:59:43 J40 T1 code 54 osc  -70.61  lane coh pk  -13.00  gain  +57.607 dB (rms  +57.608)  THD+N  -38.88 dB
+13:59:44 J40 T1 code 55 osc  -70.68  lane coh pk  -13.00  gain  +57.679 dB (rms  +57.679)  THD+N  -38.74 dB
+13:59:45 J40 T1 code 56 osc  -71.05  lane coh pk  -13.00  gain  +58.047 dB (rms  +58.048)  THD+N  -38.50 dB
+13:59:47 J40 T1 code 57 osc  -71.12  lane coh pk  -13.00  gain  +58.115 dB (rms  +58.115)  THD+N  -38.30 dB
+13:59:48 J40 T1 code 58 osc  -71.21  lane coh pk  -13.00  gain  +58.216 dB (rms  +58.217)  THD+N  -38.16 dB
+13:59:49 J40 T1 code 59 osc  -71.28  lane coh pk  -13.00  gain  +58.279 dB (rms  +58.279)  THD+N  -38.08 dB
+13:59:50 J40 T1 code 60 osc  -71.46  lane coh pk  -13.00  gain  +58.458 dB (rms  +58.459)  THD+N  -38.01 dB
+13:59:51 J40 T1 code 61 osc  -71.52  lane coh pk  -13.00  gain  +58.523 dB (rms  +58.524)  THD+N  -37.99 dB
+13:59:52 J40 T1 code 62 osc  -71.62  lane coh pk  -13.00  gain  +58.620 dB (rms  +58.621)  THD+N  -37.85 dB
+13:59:53 J40 T1 code 63 osc  -71.68  lane coh pk  -13.00  gain  +58.681 dB (rms  +58.682)  THD+N  -37.80 dB
+14:00:05 J40 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+14:00:17 J40 T2 code 63 re 1 kHz: 20:-2.13  50:-0.44  100:-0.13  200:-0.02  500:+0.01  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+14:00:19 J40 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.52 dB = 0.00748 %  noise -105.53  meter pk -20.01 dBFS
+14:00:21 J40 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -91.24 dB = 0.00274 %  noise -104.25  meter pk -10.01 dBFS
+14:00:23 J40 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -91.19 dB = 0.00276 %  noise -100.20  meter pk -6.01 dBFS
+14:00:25 J40 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -88.47 dB = 0.00377 %  noise -94.48  meter pk -3.01 dBFS
+14:00:27 J40 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -44.41 dB = 0.60217 %  noise -50.42  meter pk -2.89 dBFS
+14:00:39 J40 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+14:00:39 PROMPT >>> J40 (MIC 23) LOOP SET DONE — fit the 150 Ω on J40
+14:00:40 SHUNT: TEST_OSC off, J40 at code 63, watching lane 12 for < -70 dBFS
+14:00:40   J40 lane 12 RMS -51.39 dBFS
+14:01:40   J40 lane 12 RMS -51.87 dBFS
+14:02:40   J40 lane 12 RMS -51.66 dBFS
+14:03:40   J40 lane 12 RMS -51.82 dBFS
+14:04:40   J40 lane 12 RMS -51.79 dBFS
+14:05:40   J40 lane 12 RMS -51.60 dBFS
+14:06:40   J40 lane 12 RMS -51.60 dBFS
+14:06:43   J40 lane 12 RMS -43.19 dBFS
+14:06:43   J40 lane 12 RMS -63.55 dBFS
+14:06:44   J40 lane 12 RMS -76.70 dBFS
+14:06:44   J40 lane 12 RMS -43.14 dBFS
+14:06:44   J40 lane 12 RMS -66.04 dBFS
+14:06:45   J40 lane 12 RMS -91.06 dBFS
+14:06:46   J40 lane 12 RMS -81.48 dBFS
+14:06:46   J40 lane 12 RMS -93.36 dBFS
+14:06:49   J40 lane 12 RMS -85.94 dBFS
+14:06:49   J40 lane 12 RMS -92.51 dBFS
+14:06:51   J40 lane 12 RMS -86.33 dBFS
+14:06:52   J40 lane 12 RMS -92.51 dBFS
+14:06:54   J40 lane 12 RMS -85.24 dBFS
+14:06:55   J40 lane 12 RMS -92.56 dBFS
+14:06:57 J40: floor -90.13 dBFS held 12 s -> 150 ohm taken as fitted
+14:08:42 J40 T4 code 63 (150 ohm): RmsResult -92.32 dBFS NoiseResult -92.32 (after captures -93.34); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+14:09:29 J40 T4 code  0 (150 ohm): RmsResult -113.93 dBFS NoiseResult -113.93 (after captures -114.02); 3 captures, overruns [0, 0, 0]
+14:09:30 PROMPT >>> J40 (MIC 23) DONE — move the loop cable to the next XLR
+14:09:30 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J32', 'J35', 'J36', 'J37', 'J38', 'J39', 'J40', 'J41']
+14:10:07 DETECT: tone on lane 10 (pk -14.48 dBFS; next lane 7 at -104.49) -> J42 (MIC 24)
+14:10:08 J42 presence: code 0 osc -20 -> coh gain +5.550 dB, lane coh pk -14.45 dBFS
+14:10:09 J42 T1 code  0 osc  -18.55  lane coh pk  -13.00  gain   +5.550 dB (rms   +5.550)  THD+N  -89.29 dB
+14:10:10 J42 T1 code  1 osc  -31.40  lane coh pk  -13.01  gain  +18.390 dB (rms  +18.390)  THD+N  -70.43 dB
+14:10:11 J42 T1 code  2 osc  -38.01  lane coh pk  -12.99  gain  +25.015 dB (rms  +25.015)  THD+N  -62.36 dB
+14:10:13 J42 T1 code  3 osc  -40.69  lane coh pk  -13.00  gain  +27.684 dB (rms  +27.684)  THD+N  -67.09 dB
+14:10:14 J42 T1 code  4 osc  -45.45  lane coh pk  -13.01  gain  +32.438 dB (rms  +32.438)  THD+N  -63.71 dB
+14:10:15 J42 T1 code  5 osc  -46.67  lane coh pk  -13.00  gain  +33.674 dB (rms  +33.674)  THD+N  -62.69 dB
+14:10:16 J42 T1 code  6 osc  -48.23  lane coh pk  -13.00  gain  +35.233 dB (rms  +35.233)  THD+N  -61.22 dB
+14:10:17 J42 T1 code  7 osc  -49.15  lane coh pk  -13.00  gain  +36.146 dB (rms  +36.146)  THD+N  -60.04 dB
+14:10:18 J42 T1 code  8 osc  -52.89  lane coh pk  -12.99  gain  +39.906 dB (rms  +39.906)  THD+N  -56.43 dB
+14:10:19 J42 T1 code  9 osc  -53.45  lane coh pk  -13.00  gain  +40.450 dB (rms  +40.450)  THD+N  -55.81 dB
+14:10:20 J42 T1 code 10 osc  -54.20  lane coh pk  -13.00  gain  +41.197 dB (rms  +41.197)  THD+N  -54.98 dB
+14:10:21 J42 T1 code 11 osc  -54.67  lane coh pk  -13.00  gain  +41.668 dB (rms  +41.668)  THD+N  -54.53 dB
+14:10:23 J42 T1 code 12 osc  -55.85  lane coh pk  -13.00  gain  +42.843 dB (rms  +42.843)  THD+N  -53.45 dB
+14:10:24 J42 T1 code 13 osc  -56.23  lane coh pk  -13.00  gain  +43.234 dB (rms  +43.234)  THD+N  -53.19 dB
+14:10:25 J42 T1 code 14 osc  -56.78  lane coh pk  -13.00  gain  +43.782 dB (rms  +43.782)  THD+N  -52.57 dB
+14:10:26 J42 T1 code 15 osc  -57.13  lane coh pk  -13.00  gain  +44.133 dB (rms  +44.133)  THD+N  -52.18 dB
+14:10:27 J42 T1 code 16 osc  -60.14  lane coh pk  -13.00  gain  +47.146 dB (rms  +47.146)  THD+N  -49.16 dB
+14:10:28 J42 T1 code 17 osc  -60.39  lane coh pk  -13.00  gain  +47.385 dB (rms  +47.385)  THD+N  -49.10 dB
+14:10:29 J42 T1 code 18 osc  -60.73  lane coh pk  -13.00  gain  +47.727 dB (rms  +47.727)  THD+N  -48.74 dB
+14:10:31 J42 T1 code 19 osc  -60.95  lane coh pk  -13.00  gain  +47.951 dB (rms  +47.951)  THD+N  -48.38 dB
+14:10:32 J42 T1 code 20 osc  -61.54  lane coh pk  -13.00  gain  +48.538 dB (rms  +48.538)  THD+N  -47.84 dB
+14:10:33 J42 T1 code 21 osc  -61.74  lane coh pk  -13.00  gain  +48.742 dB (rms  +48.742)  THD+N  -47.52 dB
+14:10:34 J42 T1 code 22 osc  -62.04  lane coh pk  -13.00  gain  +49.036 dB (rms  +49.036)  THD+N  -47.36 dB
+14:10:35 J42 T1 code 23 osc  -62.23  lane coh pk  -13.00  gain  +49.229 dB (rms  +49.229)  THD+N  -47.14 dB
+14:10:36 J42 T1 code 24 osc  -63.20  lane coh pk  -13.00  gain  +50.203 dB (rms  +50.203)  THD+N  -46.22 dB
+14:10:37 J42 T1 code 25 osc  -63.37  lane coh pk  -13.00  gain  +50.370 dB (rms  +50.370)  THD+N  -46.12 dB
+14:10:38 J42 T1 code 26 osc  -63.61  lane coh pk  -13.00  gain  +50.614 dB (rms  +50.614)  THD+N  -45.85 dB
+14:10:39 J42 T1 code 27 osc  -63.78  lane coh pk  -13.00  gain  +50.774 dB (rms  +50.774)  THD+N  -45.63 dB
+14:10:40 J42 T1 code 28 osc  -64.20  lane coh pk  -13.00  gain  +51.201 dB (rms  +51.201)  THD+N  -45.22 dB
+14:10:42 J42 T1 code 29 osc  -64.35  lane coh pk  -13.00  gain  +51.350 dB (rms  +51.350)  THD+N  -44.98 dB
+14:10:43 J42 T1 code 30 osc  -64.57  lane coh pk  -13.00  gain  +51.567 dB (rms  +51.567)  THD+N  -44.79 dB
+14:10:44 J42 T1 code 31 osc  -64.71  lane coh pk  -13.00  gain  +51.711 dB (rms  +51.711)  THD+N  -44.66 dB
+14:10:45 J42 T1 code 32 osc  -66.71  lane coh pk  -13.03  gain  +53.687 dB (rms  +53.688)  THD+N  -42.80 dB
+14:10:46 J42 T1 code 33 osc  -66.80  lane coh pk  -13.00  gain  +53.799 dB (rms  +53.799)  THD+N  -42.56 dB
+14:10:47 J42 T1 code 34 osc  -66.96  lane coh pk  -13.00  gain  +53.962 dB (rms  +53.962)  THD+N  -42.54 dB
+14:10:48 J42 T1 code 35 osc  -67.07  lane coh pk  -13.00  gain  +54.071 dB (rms  +54.071)  THD+N  -42.35 dB
+14:10:50 J42 T1 code 36 osc  -67.36  lane coh pk  -13.00  gain  +54.362 dB (rms  +54.363)  THD+N  -42.12 dB
+14:10:51 J42 T1 code 37 osc  -67.47  lane coh pk  -13.00  gain  +54.469 dB (rms  +54.469)  THD+N  -42.03 dB
+14:10:52 J42 T1 code 38 osc  -67.62  lane coh pk  -13.00  gain  +54.618 dB (rms  +54.619)  THD+N  -41.82 dB
+14:10:53 J42 T1 code 39 osc  -67.72  lane coh pk  -13.00  gain  +54.719 dB (rms  +54.719)  THD+N  -41.81 dB
+14:10:54 J42 T1 code 40 osc  -68.24  lane coh pk  -13.00  gain  +55.243 dB (rms  +55.243)  THD+N  -41.07 dB
+14:10:55 J42 T1 code 41 osc  -68.34  lane coh pk  -13.00  gain  +55.337 dB (rms  +55.338)  THD+N  -41.10 dB
+14:10:56 J42 T1 code 42 osc  -68.47  lane coh pk  -13.00  gain  +55.472 dB (rms  +55.473)  THD+N  -40.92 dB
+14:10:57 J42 T1 code 43 osc  -68.56  lane coh pk  -13.00  gain  +55.566 dB (rms  +55.566)  THD+N  -40.82 dB
+14:10:59 J42 T1 code 44 osc  -68.81  lane coh pk  -13.00  gain  +55.809 dB (rms  +55.809)  THD+N  -40.51 dB
+14:11:00 J42 T1 code 45 osc  -68.90  lane coh pk  -13.00  gain  +55.898 dB (rms  +55.898)  THD+N  -40.40 dB
+14:11:01 J42 T1 code 46 osc  -69.03  lane coh pk  -13.00  gain  +56.025 dB (rms  +56.026)  THD+N  -40.31 dB
+14:11:02 J42 T1 code 47 osc  -69.11  lane coh pk  -13.00  gain  +56.110 dB (rms  +56.111)  THD+N  -40.26 dB
+14:11:03 J42 T1 code 48 osc  -69.95  lane coh pk  -13.00  gain  +56.948 dB (rms  +56.949)  THD+N  -39.49 dB
+14:11:04 J42 T1 code 49 osc  -70.02  lane coh pk  -13.00  gain  +57.026 dB (rms  +57.026)  THD+N  -39.44 dB
+14:11:05 J42 T1 code 50 osc  -70.14  lane coh pk  -13.00  gain  +57.138 dB (rms  +57.138)  THD+N  -39.31 dB
+14:11:06 J42 T1 code 51 osc  -70.21  lane coh pk  -13.00  gain  +57.213 dB (rms  +57.213)  THD+N  -39.27 dB
+14:11:07 J42 T1 code 52 osc  -70.41  lane coh pk  -13.00  gain  +57.416 dB (rms  +57.417)  THD+N  -39.06 dB
+14:11:09 J42 T1 code 53 osc  -70.49  lane coh pk  -13.00  gain  +57.487 dB (rms  +57.488)  THD+N  -38.99 dB
+14:11:10 J42 T1 code 54 osc  -70.59  lane coh pk  -13.00  gain  +57.594 dB (rms  +57.595)  THD+N  -38.82 dB
+14:11:11 J42 T1 code 55 osc  -70.66  lane coh pk  -13.00  gain  +57.664 dB (rms  +57.665)  THD+N  -38.85 dB
+14:11:12 J42 T1 code 56 osc  -71.04  lane coh pk  -13.00  gain  +58.037 dB (rms  +58.038)  THD+N  -38.36 dB
+14:11:13 J42 T1 code 57 osc  -71.11  lane coh pk  -13.00  gain  +58.105 dB (rms  +58.106)  THD+N  -38.35 dB
+14:11:14 J42 T1 code 58 osc  -71.20  lane coh pk  -13.00  gain  +58.202 dB (rms  +58.203)  THD+N  -38.26 dB
+14:11:15 J42 T1 code 59 osc  -71.27  lane coh pk  -13.00  gain  +58.270 dB (rms  +58.271)  THD+N  -38.26 dB
+14:11:17 J42 T1 code 60 osc  -71.45  lane coh pk  -13.00  gain  +58.448 dB (rms  +58.449)  THD+N  -37.98 dB
+14:11:18 J42 T1 code 61 osc  -71.51  lane coh pk  -13.00  gain  +58.512 dB (rms  +58.513)  THD+N  -37.95 dB
+14:11:19 J42 T1 code 62 osc  -71.61  lane coh pk  -13.00  gain  +58.607 dB (rms  +58.608)  THD+N  -37.75 dB
+14:11:20 J42 T1 code 63 osc  -71.67  lane coh pk  -13.00  gain  +58.669 dB (rms  +58.670)  THD+N  -37.77 dB
+14:11:32 J42 T2 code 0 re 1 kHz: 20:-0.41  50:-0.05  100:+0.01  200:+0.03  500:+0.03  1000:+0.00  2000:-0.00  5000:-0.01  10000:+0.06  15000:-0.02  20000:-0.12
+14:11:43 J42 T2 code 63 re 1 kHz: 20:-2.14  50:-0.44  100:-0.13  200:-0.01  500:+0.02  1000:+0.00  2000:+0.00  5000:-0.00  10000:+0.07  15000:-0.02  20000:-0.12
+14:11:45 J42 T3 code  0 lane -20.0 dBFS pk (coh -20.00): THD+N -82.64 dB = 0.00738 %  noise -105.65  meter pk -20.01 dBFS
+14:11:47 J42 T3 code  0 lane -10.0 dBFS pk (coh -10.00): THD+N -90.83 dB = 0.00288 %  noise -103.84  meter pk -10.01 dBFS
+14:11:50 J42 T3 code  0 lane -6.0 dBFS pk (coh -6.00): THD+N -89.76 dB = 0.00325 %  noise -98.77  meter pk -6.01 dBFS
+14:11:52 J42 T3 code  0 lane -3.0 dBFS pk (coh -3.00): THD+N -86.74 dB = 0.00460 %  noise -92.75  meter pk -3.01 dBFS
+14:11:54 J42 T3 code 63 lane -3.0 dBFS pk (coh -3.00): THD+N -43.50 dB = 0.66864 %  noise -49.50  meter pk -2.90 dBFS
+14:12:06 J42 T8 91.41 samples (1-2 kHz, resid 0.03 deg; 1-10 kHz 91.60)  T5 intercept 180.2 deg -> INVERTED
+14:12:06 PROMPT >>> J42 (MIC 24) LOOP SET DONE — fit the 150 Ω on J42
+14:12:06 SHUNT: TEST_OSC off, J42 at code 63, watching lane 10 for < -70 dBFS
+14:12:06   J42 lane 10 RMS -51.43 dBFS
+14:12:34   J42 lane 10 RMS -40.00 dBFS
+14:12:35   J42 lane 10 RMS -79.53 dBFS
+14:12:35   J42 lane 10 RMS -42.81 dBFS
+14:12:36   J42 lane 10 RMS -62.24 dBFS
+14:12:36   J42 lane 10 RMS -75.62 dBFS
+14:12:36   J42 lane 10 RMS -85.18 dBFS
+14:12:37   J42 lane 10 RMS -78.41 dBFS
+14:12:37   J42 lane 10 RMS -88.96 dBFS
+14:12:38   J42 lane 10 RMS -81.22 dBFS
+14:12:38   J42 lane 10 RMS -90.86 dBFS
+14:12:39   J42 lane 10 RMS -83.15 dBFS
+14:12:39   J42 lane 10 RMS -89.61 dBFS
+14:12:46   J42 lane 10 RMS -80.67 dBFS
+14:12:46   J42 lane 10 RMS -89.35 dBFS
+14:12:46   J42 lane 10 RMS -83.06 dBFS
+14:12:46   J42 lane 10 RMS -90.39 dBFS
+14:12:48 J42: floor -91.92 dBFS held 12 s -> 150 ohm taken as fitted
+14:14:33 J42 T4 code 63 (150 ohm): RmsResult -92.20 dBFS NoiseResult -92.20 (after captures -91.19); 6 captures, overruns [0, 0, 0, 0, 0, 0]
+14:15:15 J42 T4 code  0 (150 ohm): RmsResult -113.24 dBFS NoiseResult -113.24 (after captures -114.42); 3 captures, overruns [0, 0, 0]
+14:15:16 PROMPT >>> J42 (MIC 24) DONE — move the loop cable to the next XLR
+14:15:16 WATCH: 1 kHz -20 dBFS on strip 6 -> AUX 1; all powered registers open at code 0; done: ['J25', 'J26', 'J27', 'J28', 'J29', 'J30', 'J31', 'J32', 'J35', 'J36', 'J37', 'J38', 'J39', 'J40', 'J41', 'J42']

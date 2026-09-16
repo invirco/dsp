@@ -6,6 +6,64 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## SIXTEEN MIC PREAMPS, ONE LAW: THE UNIVERSAL STEP/TRIM TABLE HOLDS TO 0.08 dB; J29 HAS A STAGE OFF-VALUE, J31/J32 A HIGH-FREQUENCY NOISE EXCESS (2026-09-16, session 55 — bench, MW-D24-2, hands-free)
+
+**Pair:** `s56`, as S56/S57 left it; nothing rebooted or flashed. AN_EN (`op pd | hi`) read before every channel, never written.
+**Loop:** TEST_OSC 1 kHz on donor strip 6 → AUX 1 → J45 → loop cable → XLR under test → preamp → lane (strip) → TEST_MEAS
+(strip 1 was the donor for J32, whose lane is strip 6). **T4/T4b source:** a 150 Ω shunt across pins 2–3, loop cable off, tone off.
+PW moved the cables; nobody typed. Conventions per spec-audio-test-set.md: dBFS on its own side, mean-square noise, EIN dBu =
+P + 3.01 + 23.13 − G_loop(code) with the channel's own loop gain at that code. Data `MW/D24/DSP/s55/` (`law.csv`, `trim-table.md/.csv`,
+`channels.md`, `data/<XLR>_loop.json`, `data/<XLR>_c63_*.json` / `_c00_*.json` captures, `data/s55_run.jsonl/.out`); tools `MW/D24/DSP/s55/tools/`.
+
+**S55-1. Method and coverage.** `s55_run.py` ran 12:00–14:15 BST as one state machine: WATCH (the lane carrying the tone names the XLR,
+three scans agreeing; 15 of 15 detections right, the tone lane −14.4 dBFS against ≤ −92.8 dBFS on the next lane), LOOP SET
+(T1 64 codes, T2 codes 0/63, T3, T5/T8, ≈ 2 min per channel), SHUNT (code 63, floor < −70 dBFS held 12 s; the fitted floors read
+−85.0 … −94.5 dBFS), NOISE (8 windows + six 16k captures at code 63, three at code 0), then back to WATCH. **Every 595 image was
+sent by `s55_chain.py` (spidev, the `chain-set` wire protocol) and verified 200/200 — 1,113 of 1,113.** It exists because
+`app cli chain-set` cannot put a gain on send position 0 (J42's register, which `chain-set` prints as `SHIFT`); validated by the app's
+own pass-1 readback showing the bytes written (`A8 04 …`), and J42 then swept its full law. **0 capture overruns on 135 captures.**
+All 15 powered registers not under test stayed open at code 0; INSTR byte (p24) 0x00 throughout. J25 (MIC 5) enters the table from S54's
+sweep (same loop, same method). J15–J22 (U15, lanes 1–4/13–16) have no rails on this unit: **not tested.**
+
+**S55-2. T1 on 16 channels: every law monotonic, code-0 loop gain +5.544…+5.580 dB (spread 0.036 dB), range 53.02–53.17 dB. One
+flag: J29 (MIC 7).** Against J27, J29 matches to 0.01 dB at every code whose bit 3 (code 8, byte bit Q5) is clear, and is low at every
+code where it is set: −0.84 dB at code 8, −0.50 at 15, −0.24 at 24, −0.10 at 40, −0.06 at 63 — the offset shrinks exactly as a smaller
+parallel increment would once the other stages add. The code-8 stage gives **~9 % less linear gain** on J29: one part in that stage
+(the bit-3 feedback resistor or its switch's on-resistance) is off-value. PW: probe J29's bit-3 stage. The other 15 channels agree within
+0.171 dB at every code (worst at the code-32 stage, 0.17 dB; code 1–7 stages ≤ 0.010 dB).
+
+**S55-3. The universal table (`trim-table.md`, proposed as `common/tables/mic-gain-law.csv`, `proposals/CONTRACT-PROPOSAL-S55.md`).**
+Built from the 15 unflagged channels (J29 reported, not averaged). Target 0–60 dB → largest mean hardware gain ≤ target, trim ≥ 0.
+It uses 25 codes (0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 13, 15, 17, 20, 23, 25, 29, 31, 37, 42, 47, 53, 61, 63). **A channel at the
+spread's edge is off by ≤ 0.078 dB** at any of those codes. Largest trim inside the hardware range 12.0 dB (targets 1–12 ride on code 0;
+the first hardware step is 12.84 dB); 54–60 dB take code 63 (+53.11 dB) + 0.89…6.89 dB. J29 at its worst table code (9) would be
+−0.76 dB. No address change is proposed: `Chan[nnn]Gain001` (GAIN word 0, law 0–60 dB) receives the trim, the code goes to the chain.
+
+**S55-4. T2/T3/T5/T8 are uniform across all 15 new channels.** T2 20 Hz re 1 kHz −0.41/−0.42 dB at code 0 and −2.07…−2.19 dB at code 63
+(50 Hz −0.43…−0.47 at 63); 100 Hz–15 kHz −0.13…+0.08 dB (the −0.13 is 100 Hz at code 63), 20 kHz −0.11/−0.12 dB. T3 at code 0: −20 dBFS −81.6…−82.6 dB (≈ 0.008 %, noise-limited),
+best −89.98 … −92.97 dB = 0.0032 … 0.0023 % at −10 or −6 dBFS, −3 dBFS −86.7 … −88.8 dB; code 63 at −3 dBFS −43.10 … −44.41 dB
+(0.60–0.70 %, the code-63 noise floor, not distortion, as S54-3). No sample at FS (block peak −2.86…−2.92 dBFS at code 63).
+**T5: every loop inverts** (intercept 180.2°). **T8: 91.40–91.41 samples** (1–2 kHz fit, residual 0.03°). Method note: T1's per-code
+THD+N column is settling-limited (two windows 85 ms after a gain switch; codes 1–3 read −41…−70 dB on every channel against S54's −77 at
+longer settle) — it is not a spec figure; T3 is.
+
+**S55-5. T4/T4b at 150 Ω: 14 channels EIN −126.5 … −128.7 dBu 20 Hz–20 kHz and −130.2 … −130.9 dBu(A) at code 63; J31 and J32 are
+worse, −123.2 / −128.7 and −125.2 / −129.8, from a high-frequency excess.** Band split against J26/J28/J30 (six captures each): J31
+2–20 kHz +4.9 dB, 20–24 kHz +10.4 dB; J32 +3.3 / +7.4 dB; below 2 kHz identical to ≤ 0.5 dB. Smooth (no lines 12 dB above the local
+floor except isolated −113 … −123 dBFS bins), Gaussian (kurtosis ≤ 3.13), mains ≤ 0.14 %. T2 at 10–20 kHz matches the other channels, so
+it is not gain peaking. J31/J32 are lanes 5/6 and adjacent sends p9/p8 — a shared converter pair or neighbouring-stage cause is the suspect
+(PW: what U-number serves lanes 5/6, any oscillation-prone compensation on those two preamps); a re-seat of the shunt and a re-capture
+would exclude the fixture. Code 0 (converter floor at 150 Ω): −112.4 … −114.2 dBFS node, −115.0 … −115.8 dBFS 20–20k on every channel.
+**Sub-20 Hz (S57's wander) comes and goes per channel:** −123.5 (J27) … −142.9 dBu (J36) input-referred, so the raw DC–24 kHz figure
+ranges −119.2 … −126.0 dBu while the 20–20k figure does not move — the in-band number is the spec figure (S57-5).
+
+**S55-6. Unit and bookkeeping.** Hand-back (`s55_handback.py`): TEST_OSC off, MeasChan 20, nothing on AUX 1, the S57 image (J25 open
+code 0, every other register 0x01, INSTR byte 0x00) VERIFIED, lane 20 −108.7…−111.7 dBFS at code 0 with the 150 Ω. Two slips, both
+repaired: (a) my first pre-flight crashed on a strip-1 AuxSend write after `strip_unity(1)` had run, so strip 1 was left unmuted with
+the compressor off and a later save recorded that state; restored by hand to `Mute 1, CompOn 1, AuxOn 0, AuxSend 0.0` (the S55 start
+snapshot). (b) `pkill -f s55_run.py` also killed its own ssh shell; the runner was stopped in WATCH (tone on, all registers open code 0)
+and the hand-back then ran separately. AN_EN hi, GPIO 27 hi at the end.
+
 ## THE BURST IS BELOW 20 Hz: THE AUDIO-BAND FLOOR AT FULL GAIN IS STEADY, AND THE EIN RECONCILES ABOVE THERMAL (2026-09-16, session 57 — bench, MW-D24-2; closed early, remaining gates carried into S55)
 
 **Pair:** `s56`, running as S56 left it; nothing rebooted. AN_EN (`op pd | hi`) and CS_M (`op pu | hi`) never written. Data: `MW/D24/DSP/s57/data/`,
