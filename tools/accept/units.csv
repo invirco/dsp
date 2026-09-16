@@ -1,0 +1,7 @@
+# units.csv -- per-unit references the runner needs to turn dBFS into spec figures (S66).
+# dac_fs_dbu: DAC full scale at the output XLR, measured once per unit (spec-audio-test-set.md measured references).
+# loop: how the stimulus reaches the path on this unit; donor strip / aux / output XLR. loop_polarity and
+# loop_latency_samples are the loop's own expected values (T5/T8 are judged against them, not against 0).
+# adc_floor_dbfs: the lane's own floor at code 0 with the stimulus idle, used to floor-correct output noise (S57).
+unit,product,dac_fs_dbu,donor_strip,loop_aux,loop_out_xlr,loop_polarity,loop_latency_samples,ein_source,adc_floor_dbfs,source
+MW-D24-2,d24,23.13,6,1,J45,inverted,91.40,150 ohm across pins 2-3 (loop cable off),-113.8,S54/S55/S57/S60 (PW DMM at J45 2026-09-16)

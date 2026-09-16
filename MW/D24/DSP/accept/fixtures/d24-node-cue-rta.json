@@ -1,0 +1,138 @@
+{
+ "absent": [
+  "Cue001Src001 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Cue001Active001 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Rta001Mode001 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Rta001PeakReset001 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Rta001MtrL001..031 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Rta001MtrR001..031 (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Aux[1-12]CueSel (proposed, CONTRACT-PROPOSAL-S65; not in the master)",
+  "Grp[1-4]CueSel (proposed, CONTRACT-PROPOSAL-S65; not in the master)"
+ ],
+ "cases": [
+  {
+   "case": "A afl pan L",
+   "mono": false,
+   "tones_hz": [
+    63,
+    1000,
+    8000
+   ]
+  },
+  {
+   "case": "A afl pan R",
+   "mono": false,
+   "tones_hz": [
+    1000
+   ]
+  },
+  {
+   "case": "B pfl",
+   "mono": true,
+   "tones_hz": [
+    1000
+   ]
+  },
+  {
+   "case": "C source main L/R, pan L",
+   "mono": false,
+   "tones_hz": [
+    1000
+   ]
+  },
+  {
+   "case": "C source aux 1",
+   "mono": true,
+   "tones_hz": [
+    1000
+   ]
+  }
+ ],
+ "drive": [
+  {
+   "cells": "Chan[1-24]CueSel001",
+   "role": "drive",
+   "why": "drive: 1 on the strip under test"
+  },
+  {
+   "cells": "Sys001CueMode001",
+   "dsp_add": null,
+   "neutral": "-",
+   "role": "drive"
+  },
+  {
+   "cells": "Mon001InputSel001",
+   "dsp_add": "1788",
+   "neutral": "-",
+   "role": "drive"
+  }
+ ],
+ "fixture": "d24-node-cue-rta",
+ "generated_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ },
+ "path": {
+  "build": "DSP4_CUE=1 DSP4_RTA=1 (both 0 in shipping.config)",
+  "delivered": "chip 2 C2_MON via MIX_2 slots 9/10 (S65-1)",
+  "node": "cue",
+  "route": [
+   "pick.postfdr",
+   "cue",
+   "rta"
+  ]
+ },
+ "product": "d24",
+ "set": [],
+ "status": "proposal",
+ "stimulus": {
+  "donor_strip": 6,
+  "kind": "test_osc",
+  "osc_dbfs_pk": -20.0
+ },
+ "tests": [
+  {
+   "factory": true,
+   "full": true,
+   "method": "chirp",
+   "name": "level / gain law",
+   "osc_dbfs_pk": -20.0,
+   "reads": "gain at 1 kHz per code; stage gains vs the universal table; code 63 vs the stage sum",
+   "test": "T1",
+   "tones_hz": [
+    63,
+    1000,
+    8000
+   ]
+  },
+  {
+   "factory": true,
+   "full": true,
+   "method": "chirp",
+   "name": "frequency response",
+   "osc_dbfs_pk": -20.0,
+   "reads": "dB re 1 kHz at 20 50 100 200 500 1k 2k 5k 10k 15k 20k Hz",
+   "test": "T2",
+   "tones_hz": [
+    63,
+    1000,
+    8000
+   ]
+  }
+ ],
+ "topology": [
+  "pick.prefdr",
+  "pick.postfdr",
+  "cue",
+  "rta",
+  "mon"
+ ],
+ "type": "node",
+ "undecidable": []
+}

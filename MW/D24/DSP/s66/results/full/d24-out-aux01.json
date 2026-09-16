@@ -1,0 +1,110 @@
+{
+ "fixture": "d24-out-aux01",
+ "panel": "Aux Out A1",
+ "type": "output",
+ "unit": "MW-D24-2",
+ "mode": "full",
+ "source": "replay MW/D24/DSP/s66/replay/d24-out-aux01.json (AUX 1 / J45 output noise: S57, looped into MIC 5 at code 0)",
+ "verdict": "INCOMPLETE",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "NO DATA",
+   "summary": "output/node T1 not in the recorded sets",
+   "detail": {}
+  },
+  {
+   "test": "T2",
+   "verdict": "NO DATA",
+   "summary": "output/node response not in the recorded sets",
+   "detail": {}
+  },
+  {
+   "test": "T3",
+   "verdict": "NO DATA",
+   "summary": "output THD+N not in the recorded sets",
+   "detail": {}
+  },
+  {
+   "test": "T4",
+   "verdict": "PASS",
+   "summary": "-84.55 dBu 20-20k, -86.96 dBu(A), -83.78 dBu DC-24k (20 captures; floor-corrected -85.18 / -88.13)",
+   "detail": {
+    "flags": [],
+    "captures": 20,
+    "lane_dbfs": {
+     "20-20k": -105.11122527479932,
+     "A": -107.5267536952955,
+     "DC-24k": -104.34448032056834
+    },
+    "dbu": {
+     "20-20k": -84.54892527479933,
+     "A": -86.9644536952955,
+     "DC-24k": -83.78218032056833
+    },
+    "dbu_floor_corrected": {
+     "20-20k": -85.17999650464836,
+     "A": -88.13278940817852
+    },
+    "ref_gain_db": 5.578,
+    "from": [
+     "MW/D24/DSP/s57/data/aux1n_00.json",
+     "MW/D24/DSP/s57/data/aux1n_01.json",
+     "MW/D24/DSP/s57/data/aux1n_02.json",
+     "MW/D24/DSP/s57/data/aux1n_03.json",
+     "MW/D24/DSP/s57/data/aux1n_04.json",
+     "MW/D24/DSP/s57/data/aux1n_05.json",
+     "MW/D24/DSP/s57/data/aux1n_06.json",
+     "MW/D24/DSP/s57/data/aux1n_07.json",
+     "MW/D24/DSP/s57/data/aux1n_08.json",
+     "MW/D24/DSP/s57/data/aux1n_09.json",
+     "MW/D24/DSP/s57/data/aux1n_10.json",
+     "MW/D24/DSP/s57/data/aux1n_11.json",
+     "MW/D24/DSP/s57/data/aux1n_12.json",
+     "MW/D24/DSP/s57/data/aux1n_13.json",
+     "MW/D24/DSP/s57/data/aux1n_14.json",
+     "MW/D24/DSP/s57/data/aux1n_15.json",
+     "MW/D24/DSP/s57/data/aux1n_16.json",
+     "MW/D24/DSP/s57/data/aux1n_17.json",
+     "MW/D24/DSP/s57/data/aux1n_18.json",
+     "MW/D24/DSP/s57/data/aux1n_19.json"
+    ]
+   }
+  },
+  {
+   "test": "T5",
+   "verdict": "NO DATA",
+   "summary": "no chirp or phase fit",
+   "detail": {}
+  },
+  {
+   "test": "T6",
+   "verdict": "NO DATA",
+   "summary": "no output mute measurement exists",
+   "detail": {}
+  },
+  {
+   "test": "T7",
+   "verdict": "NO DATA",
+   "summary": "no output crosstalk measurement exists",
+   "detail": {}
+  },
+  {
+   "test": "T8",
+   "verdict": "NO DATA",
+   "summary": "no chirp or phase fit",
+   "detail": {}
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

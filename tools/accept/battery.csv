@@ -1,0 +1,16 @@
+# battery.csv -- the Matrix audio test set as the acceptance generator reads it (S66).
+# Source: mx26 docs/spec-audio-test-set.md (2026-09-16), rows T1..T8 + T4b; A1 is the S63 gain-change artefact
+# check (PW's S63 limit). One row per test. applies = path types it runs on (input|output|node, ';'-separated).
+# factory = what the factory (and beta) run does with it; full = the characterisation run. method = the fast
+# form (chirp/fft, S60/S61) the runner uses; a replay may substitute the recorded tone/meter result and says so.
+test,name,applies,factory,full,method,stimulus,reads
+T1,level / gain law,input;output;node,codes 0 1 2 4 8 16 32 63 (inputs); unity (outputs),all 64 codes (inputs); unity (outputs),chirp,log chirp 20 Hz-20 kHz lane -10 dBFS pk (osc = -10 - G_ref),gain at 1 kHz per code; stage gains vs the universal table; code 63 vs the stage sum
+T2,frequency response,input;output;node,from the T1 chirps at min and max gain,same,chirp,T1's chirps,dB re 1 kHz at 20 50 100 200 500 1k 2k 5k 10k 15k 20k Hz
+T3,THD+N / THD,input;output,THD+N min gain + THD max gain at lane -3 dBFS pk,+ THD+N vs level at min gain,fft,1 kHz sine lane -3 dBFS pk (bin-centred),THD+N dB and % (min gain); THD h2..h10 dB and % (max gain; THD only until the harness pad)
+T4,noise floor,input;output;node,outputs only (dBu 20-20k and A),all T1 codes (inputs); outputs,fft,tone off,dBFS per code (inputs); dBu 20-20k + A at the output XLR
+T4b,EIN,input,full gain only,full gain + code 0,fft,tone off with the unit's source (150 ohm on the harness),dBu 20-20k + A (+ raw DC-24k) with the source impedance stated
+T5,polarity,input;output;node,from the code-0 chirp,same,chirp,T1's chirps,sign of the impulse peak vs the loop's expected sign
+T6,mute depth (DSP strip mute),input;output,-,mute engaged vs released,meter,1 kHz tone,dB of attenuation
+T7,crosstalk at 10 kHz,input;output,10 kHz,10 kHz,meter,10 kHz sine lane -6 dBFS pk on the path; every other lane idle,worst neighbour dB (coherent) and the detector floor
+T8,latency,input;output;node,from the code-0 chirp,same,chirp,T1's chirps,samples (group delay 1-2 kHz) and ms
+A1,gain-change artefacts,input,-,the table's transitions silent + tone,span,silence and 1 kHz across each 595 change,peak dBFS and DC pump ms per transition

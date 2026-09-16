@@ -1,0 +1,516 @@
+{
+ "base": "",
+ "fixture": "d24-in-mic22",
+ "items": {
+  "artefacts": {
+   "kind": "none",
+   "why": "S63 ran MIC 5 only; the WATCH path for the other channels was not exercised"
+  },
+  "gain:c00": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 5.548
+  },
+  "gain:c01": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 18.392
+  },
+  "gain:c02": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 25.013
+  },
+  "gain:c03": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 27.684
+  },
+  "gain:c04": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 32.441
+  },
+  "gain:c05": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 33.677
+  },
+  "gain:c06": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 35.235
+  },
+  "gain:c07": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 36.148
+  },
+  "gain:c08": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 39.889
+  },
+  "gain:c09": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 40.434
+  },
+  "gain:c10": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 41.183
+  },
+  "gain:c11": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 41.654
+  },
+  "gain:c12": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 42.832
+  },
+  "gain:c13": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 43.224
+  },
+  "gain:c14": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 43.772
+  },
+  "gain:c15": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 44.124
+  },
+  "gain:c16": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 47.138
+  },
+  "gain:c17": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 47.377
+  },
+  "gain:c18": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 47.72
+  },
+  "gain:c19": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 47.944
+  },
+  "gain:c20": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 48.531
+  },
+  "gain:c21": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 48.735
+  },
+  "gain:c22": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 49.03
+  },
+  "gain:c23": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 49.223
+  },
+  "gain:c24": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 50.192
+  },
+  "gain:c25": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 50.361
+  },
+  "gain:c26": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 50.604
+  },
+  "gain:c27": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 50.765
+  },
+  "gain:c28": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 51.19
+  },
+  "gain:c29": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 51.342
+  },
+  "gain:c30": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 51.558
+  },
+  "gain:c31": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 51.703
+  },
+  "gain:c32": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 53.657
+  },
+  "gain:c33": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 53.767
+  },
+  "gain:c34": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 53.932
+  },
+  "gain:c35": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 54.042
+  },
+  "gain:c36": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 54.334
+  },
+  "gain:c37": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 54.442
+  },
+  "gain:c38": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 54.591
+  },
+  "gain:c39": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 54.694
+  },
+  "gain:c40": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.215
+  },
+  "gain:c41": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.309
+  },
+  "gain:c42": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.447
+  },
+  "gain:c43": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.538
+  },
+  "gain:c44": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.783
+  },
+  "gain:c45": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 55.871
+  },
+  "gain:c46": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 56.001
+  },
+  "gain:c47": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 56.087
+  },
+  "gain:c48": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 56.927
+  },
+  "gain:c49": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.004
+  },
+  "gain:c50": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.115
+  },
+  "gain:c51": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.191
+  },
+  "gain:c52": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.392
+  },
+  "gain:c53": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.468
+  },
+  "gain:c54": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.572
+  },
+  "gain:c55": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 57.645
+  },
+  "gain:c56": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.015
+  },
+  "gain:c57": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.085
+  },
+  "gain:c58": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.182
+  },
+  "gain:c59": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.249
+  },
+  "gain:c60": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.429
+  },
+  "gain:c61": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.492
+  },
+  "gain:c62": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.587
+  },
+  "gain:c63": {
+   "from": "MW/D24/DSP/s55/law.csv",
+   "kind": "value",
+   "method": "TEST_MEAS coherent gain, 1 kHz tone",
+   "value": 58.651
+  },
+  "mute": {
+   "kind": "none",
+   "why": "no DSP strip-mute measurement exists"
+  },
+  "phase": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t58",
+   "kind": "value",
+   "method": "tone phase fit 1-2 kHz",
+   "value": {
+    "latency_gd12": 91.39964809833744,
+    "polarity": -1
+   }
+  },
+  "resp:c00": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t2",
+   "kind": "value",
+   "method": "tone, coherent",
+   "value": {
+    "100": 0.011661727331469862,
+    "1000": 0.0,
+    "10000": 0.0604633366540428,
+    "15000": -0.019519328436438776,
+    "20": -0.415255894042005,
+    "200": 0.029580633132151313,
+    "2000": -0.002396176872214717,
+    "20000": -0.11776118656325174,
+    "50": -0.04957676965733704,
+    "500": 0.026925390555335937,
+    "5000": -0.005522648993673052
+   }
+  },
+  "resp:c63": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t2",
+   "kind": "value",
+   "method": "tone, coherent",
+   "value": {
+    "100": -0.13276703938543477,
+    "1000": 0.0,
+    "10000": 0.07385532940723039,
+    "15000": -0.009301390420816347,
+    "20": -2.188609123862811,
+    "200": -0.02067638496476576,
+    "2000": 0.001754997918148149,
+    "20000": -0.11435828909983314,
+    "50": -0.46473193069807905,
+    "500": 0.018233801509296654,
+    "5000": 0.011991452570299543
+   }
+  },
+  "silence150:c00": {
+   "files": [
+    "MW/D24/DSP/s55/data/J38_c00_0.json",
+    "MW/D24/DSP/s55/data/J38_c00_1.json",
+    "MW/D24/DSP/s55/data/J38_c00_2.json"
+   ],
+   "kind": "capture",
+   "method": "S55 150 ohm"
+  },
+  "silence150:c63": {
+   "files": [
+    "MW/D24/DSP/s55/data/J38_c63_0.json",
+    "MW/D24/DSP/s55/data/J38_c63_1.json",
+    "MW/D24/DSP/s55/data/J38_c63_2.json",
+    "MW/D24/DSP/s55/data/J38_c63_3.json",
+    "MW/D24/DSP/s55/data/J38_c63_4.json",
+    "MW/D24/DSP/s55/data/J38_c63_5.json"
+   ],
+   "kind": "capture",
+   "method": "S55 150 ohm"
+  },
+  "thd_avg:c63": {
+   "kind": "none",
+   "why": "THD-only at max gain was measured on MIC 5 only (S63)"
+  },
+  "thdn:c00:m3": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t3",
+   "kind": "value",
+   "method": "TEST_MEAS ThdResult (THD+N)",
+   "value": -88.09352111816406
+  },
+  "thdn:c63:m3": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t3",
+   "kind": "value",
+   "method": "TEST_MEAS ThdResult (THD+N)",
+   "value": -44.40128517150879
+  },
+  "thdn_vs_level": {
+   "from": "MW/D24/DSP/s55/data/J38_loop.json t3",
+   "kind": "value",
+   "value": [
+    {
+     "code": 0,
+     "lane_dbfs": -20.0,
+     "thdn_db": -82.54201761881511
+    },
+    {
+     "code": 0,
+     "lane_dbfs": -10.0,
+     "thdn_db": -91.22927983601888
+    },
+    {
+     "code": 0,
+     "lane_dbfs": -6.0,
+     "thdn_db": -90.64255905151367
+    },
+    {
+     "code": 0,
+     "lane_dbfs": -3.0,
+     "thdn_db": -88.09352111816406
+    },
+    {
+     "code": 63,
+     "lane_dbfs": -3.0,
+     "thdn_db": -44.40128517150879
+    }
+   ]
+  },
+  "xtalk10k": {
+   "kind": "none",
+   "why": "S55 did not measure crosstalk (S60 did, on MIC 5 only)"
+  }
+ },
+ "what": "MIC 22 / J38: S55 (tone law, T2/T3/T5/T8 by TEST_MEAS, 150 ohm captures)"
+}

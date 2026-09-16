@@ -1,0 +1,665 @@
+{
+ "fixture": "d24-in-mic22",
+ "panel": "MIC 22",
+ "type": "input",
+ "unit": "MW-D24-2",
+ "mode": "full",
+ "source": "replay MW/D24/DSP/s66/replay/d24-in-mic22.json (MIC 22 / J38: S55 (tone law, T2/T3/T5/T8 by TEST_MEAS, 150 ohm captures))",
+ "verdict": "INCOMPLETE",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "PASS",
+   "summary": "code 0 +5.548 dB, code 63 +58.651 dB (range 53.10 dB); code 63 vs stage sum -0.104 dB; worst stage vs universal -0.020 dB (code 33); monotonic yes",
+   "detail": {
+    "method": "recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone)",
+    "rows": [
+     {
+      "code": 0,
+      "gain_db": 5.548,
+      "hw_re_c0_db": 0.0,
+      "universal_db": 0.0,
+      "dev_db": 0.0
+     },
+     {
+      "code": 1,
+      "gain_db": 18.392,
+      "hw_re_c0_db": 12.844,
+      "universal_db": 12.845,
+      "dev_db": -0.001
+     },
+     {
+      "code": 2,
+      "gain_db": 25.013,
+      "hw_re_c0_db": 19.465,
+      "universal_db": 19.463,
+      "dev_db": 0.002
+     },
+     {
+      "code": 3,
+      "gain_db": 27.684,
+      "hw_re_c0_db": 22.136,
+      "universal_db": 22.135,
+      "dev_db": 0.001
+     },
+     {
+      "code": 4,
+      "gain_db": 32.441,
+      "hw_re_c0_db": 26.893,
+      "universal_db": 26.892,
+      "dev_db": 0.001
+     },
+     {
+      "code": 5,
+      "gain_db": 33.677,
+      "hw_re_c0_db": 28.129,
+      "universal_db": 28.129,
+      "dev_db": -0.0
+     },
+     {
+      "code": 6,
+      "gain_db": 35.235,
+      "hw_re_c0_db": 29.687,
+      "universal_db": 29.686,
+      "dev_db": 0.001
+     },
+     {
+      "code": 7,
+      "gain_db": 36.148,
+      "hw_re_c0_db": 30.6,
+      "universal_db": 30.599,
+      "dev_db": 0.001
+     },
+     {
+      "code": 8,
+      "gain_db": 39.889,
+      "hw_re_c0_db": 34.341,
+      "universal_db": 34.342,
+      "dev_db": -0.001
+     },
+     {
+      "code": 9,
+      "gain_db": 40.434,
+      "hw_re_c0_db": 34.886,
+      "universal_db": 34.887,
+      "dev_db": -0.001
+     },
+     {
+      "code": 10,
+      "gain_db": 41.183,
+      "hw_re_c0_db": 35.635,
+      "universal_db": 35.635,
+      "dev_db": 0.0
+     },
+     {
+      "code": 11,
+      "gain_db": 41.654,
+      "hw_re_c0_db": 36.106,
+      "universal_db": 36.107,
+      "dev_db": -0.001
+     },
+     {
+      "code": 12,
+      "gain_db": 42.832,
+      "hw_re_c0_db": 37.284,
+      "universal_db": 37.285,
+      "dev_db": -0.001
+     },
+     {
+      "code": 13,
+      "gain_db": 43.224,
+      "hw_re_c0_db": 37.676,
+      "universal_db": 37.676,
+      "dev_db": -0.0
+     },
+     {
+      "code": 14,
+      "gain_db": 43.772,
+      "hw_re_c0_db": 38.224,
+      "universal_db": 38.225,
+      "dev_db": -0.001
+     },
+     {
+      "code": 15,
+      "gain_db": 44.124,
+      "hw_re_c0_db": 38.576,
+      "universal_db": 38.577,
+      "dev_db": -0.001
+     },
+     {
+      "code": 16,
+      "gain_db": 47.138,
+      "hw_re_c0_db": 41.59,
+      "universal_db": 41.576,
+      "dev_db": 0.014
+     },
+     {
+      "code": 17,
+      "gain_db": 47.377,
+      "hw_re_c0_db": 41.829,
+      "universal_db": 41.816,
+      "dev_db": 0.013
+     },
+     {
+      "code": 18,
+      "gain_db": 47.72,
+      "hw_re_c0_db": 42.172,
+      "universal_db": 42.159,
+      "dev_db": 0.013
+     },
+     {
+      "code": 19,
+      "gain_db": 47.944,
+      "hw_re_c0_db": 42.396,
+      "universal_db": 42.384,
+      "dev_db": 0.012
+     },
+     {
+      "code": 20,
+      "gain_db": 48.531,
+      "hw_re_c0_db": 42.983,
+      "universal_db": 42.972,
+      "dev_db": 0.011
+     },
+     {
+      "code": 21,
+      "gain_db": 48.735,
+      "hw_re_c0_db": 43.187,
+      "universal_db": 43.177,
+      "dev_db": 0.01
+     },
+     {
+      "code": 22,
+      "gain_db": 49.03,
+      "hw_re_c0_db": 43.482,
+      "universal_db": 43.471,
+      "dev_db": 0.011
+     },
+     {
+      "code": 23,
+      "gain_db": 49.223,
+      "hw_re_c0_db": 43.675,
+      "universal_db": 43.665,
+      "dev_db": 0.01
+     },
+     {
+      "code": 24,
+      "gain_db": 50.192,
+      "hw_re_c0_db": 44.644,
+      "universal_db": 44.635,
+      "dev_db": 0.009
+     },
+     {
+      "code": 25,
+      "gain_db": 50.361,
+      "hw_re_c0_db": 44.813,
+      "universal_db": 44.804,
+      "dev_db": 0.009
+     },
+     {
+      "code": 26,
+      "gain_db": 50.604,
+      "hw_re_c0_db": 45.056,
+      "universal_db": 45.048,
+      "dev_db": 0.008
+     },
+     {
+      "code": 27,
+      "gain_db": 50.765,
+      "hw_re_c0_db": 45.217,
+      "universal_db": 45.209,
+      "dev_db": 0.008
+     },
+     {
+      "code": 28,
+      "gain_db": 51.19,
+      "hw_re_c0_db": 45.642,
+      "universal_db": 45.636,
+      "dev_db": 0.006
+     },
+     {
+      "code": 29,
+      "gain_db": 51.342,
+      "hw_re_c0_db": 45.794,
+      "universal_db": 45.787,
+      "dev_db": 0.007
+     },
+     {
+      "code": 30,
+      "gain_db": 51.558,
+      "hw_re_c0_db": 46.01,
+      "universal_db": 46.004,
+      "dev_db": 0.006
+     },
+     {
+      "code": 31,
+      "gain_db": 51.703,
+      "hw_re_c0_db": 46.155,
+      "universal_db": 46.149,
+      "dev_db": 0.006
+     },
+     {
+      "code": 32,
+      "gain_db": 53.657,
+      "hw_re_c0_db": 48.109,
+      "universal_db": 48.127,
+      "dev_db": -0.018
+     },
+     {
+      "code": 33,
+      "gain_db": 53.767,
+      "hw_re_c0_db": 48.219,
+      "universal_db": 48.239,
+      "dev_db": -0.02
+     },
+     {
+      "code": 34,
+      "gain_db": 53.932,
+      "hw_re_c0_db": 48.384,
+      "universal_db": 48.402,
+      "dev_db": -0.018
+     },
+     {
+      "code": 35,
+      "gain_db": 54.042,
+      "hw_re_c0_db": 48.494,
+      "universal_db": 48.512,
+      "dev_db": -0.018
+     },
+     {
+      "code": 36,
+      "gain_db": 54.334,
+      "hw_re_c0_db": 48.786,
+      "universal_db": 48.804,
+      "dev_db": -0.018
+     },
+     {
+      "code": 37,
+      "gain_db": 54.442,
+      "hw_re_c0_db": 48.894,
+      "universal_db": 48.909,
+      "dev_db": -0.015
+     },
+     {
+      "code": 38,
+      "gain_db": 54.591,
+      "hw_re_c0_db": 49.043,
+      "universal_db": 49.061,
+      "dev_db": -0.018
+     },
+     {
+      "code": 39,
+      "gain_db": 54.694,
+      "hw_re_c0_db": 49.146,
+      "universal_db": 49.162,
+      "dev_db": -0.016
+     },
+     {
+      "code": 40,
+      "gain_db": 55.215,
+      "hw_re_c0_db": 49.667,
+      "universal_db": 49.684,
+      "dev_db": -0.017
+     },
+     {
+      "code": 41,
+      "gain_db": 55.309,
+      "hw_re_c0_db": 49.761,
+      "universal_db": 49.778,
+      "dev_db": -0.017
+     },
+     {
+      "code": 42,
+      "gain_db": 55.447,
+      "hw_re_c0_db": 49.899,
+      "universal_db": 49.915,
+      "dev_db": -0.016
+     },
+     {
+      "code": 43,
+      "gain_db": 55.538,
+      "hw_re_c0_db": 49.99,
+      "universal_db": 50.006,
+      "dev_db": -0.016
+     },
+     {
+      "code": 44,
+      "gain_db": 55.783,
+      "hw_re_c0_db": 50.235,
+      "universal_db": 50.252,
+      "dev_db": -0.017
+     },
+     {
+      "code": 45,
+      "gain_db": 55.871,
+      "hw_re_c0_db": 50.323,
+      "universal_db": 50.34,
+      "dev_db": -0.017
+     },
+     {
+      "code": 46,
+      "gain_db": 56.001,
+      "hw_re_c0_db": 50.453,
+      "universal_db": 50.468,
+      "dev_db": -0.015
+     },
+     {
+      "code": 47,
+      "gain_db": 56.087,
+      "hw_re_c0_db": 50.539,
+      "universal_db": 50.555,
+      "dev_db": -0.016
+     },
+     {
+      "code": 48,
+      "gain_db": 56.927,
+      "hw_re_c0_db": 51.379,
+      "universal_db": 51.389,
+      "dev_db": -0.01
+     },
+     {
+      "code": 49,
+      "gain_db": 57.004,
+      "hw_re_c0_db": 51.456,
+      "universal_db": 51.466,
+      "dev_db": -0.01
+     },
+     {
+      "code": 50,
+      "gain_db": 57.115,
+      "hw_re_c0_db": 51.567,
+      "universal_db": 51.578,
+      "dev_db": -0.011
+     },
+     {
+      "code": 51,
+      "gain_db": 57.191,
+      "hw_re_c0_db": 51.643,
+      "universal_db": 51.653,
+      "dev_db": -0.01
+     },
+     {
+      "code": 52,
+      "gain_db": 57.392,
+      "hw_re_c0_db": 51.844,
+      "universal_db": 51.856,
+      "dev_db": -0.012
+     },
+     {
+      "code": 53,
+      "gain_db": 57.468,
+      "hw_re_c0_db": 51.92,
+      "universal_db": 51.929,
+      "dev_db": -0.009
+     },
+     {
+      "code": 54,
+      "gain_db": 57.572,
+      "hw_re_c0_db": 52.024,
+      "universal_db": 52.035,
+      "dev_db": -0.011
+     },
+     {
+      "code": 55,
+      "gain_db": 57.645,
+      "hw_re_c0_db": 52.097,
+      "universal_db": 52.107,
+      "dev_db": -0.01
+     },
+     {
+      "code": 56,
+      "gain_db": 58.015,
+      "hw_re_c0_db": 52.467,
+      "universal_db": 52.477,
+      "dev_db": -0.01
+     },
+     {
+      "code": 57,
+      "gain_db": 58.085,
+      "hw_re_c0_db": 52.537,
+      "universal_db": 52.545,
+      "dev_db": -0.008
+     },
+     {
+      "code": 58,
+      "gain_db": 58.182,
+      "hw_re_c0_db": 52.634,
+      "universal_db": 52.644,
+      "dev_db": -0.01
+     },
+     {
+      "code": 59,
+      "gain_db": 58.249,
+      "hw_re_c0_db": 52.701,
+      "universal_db": 52.71,
+      "dev_db": -0.009
+     },
+     {
+      "code": 60,
+      "gain_db": 58.429,
+      "hw_re_c0_db": 52.881,
+      "universal_db": 52.889,
+      "dev_db": -0.008
+     },
+     {
+      "code": 61,
+      "gain_db": 58.492,
+      "hw_re_c0_db": 52.944,
+      "universal_db": 52.954,
+      "dev_db": -0.01
+     },
+     {
+      "code": 62,
+      "gain_db": 58.587,
+      "hw_re_c0_db": 53.039,
+      "universal_db": 53.048,
+      "dev_db": -0.009
+     },
+     {
+      "code": 63,
+      "gain_db": 58.651,
+      "hw_re_c0_db": 53.103,
+      "universal_db": 53.111,
+      "dev_db": -0.008
+     }
+    ],
+    "c63_stage_sum_db": 58.75539217095283,
+    "flags": [],
+    "provenance": [
+     "MW/D24/DSP/s55/law.csv"
+    ]
+   }
+  },
+  {
+   "test": "T2",
+   "verdict": "PASS",
+   "summary": "code 0: 20 Hz -0.41, 20 kHz -0.12; code 63: 20 Hz -2.19, 20 kHz -0.11",
+   "detail": {
+    "method": "recorded tone (MW/D24/DSP/s55/data/J38_loop.json t2)",
+    "response": {
+     "0": {
+      "100": 0.012,
+      "1000": 0.0,
+      "10000": 0.06,
+      "15000": -0.02,
+      "20": -0.415,
+      "200": 0.03,
+      "2000": -0.002,
+      "20000": -0.118,
+      "50": -0.05,
+      "500": 0.027,
+      "5000": -0.006
+     },
+     "63": {
+      "100": -0.133,
+      "1000": 0.0,
+      "10000": 0.074,
+      "15000": -0.009,
+      "20": -2.189,
+      "200": -0.021,
+      "2000": 0.002,
+      "20000": -0.114,
+      "50": -0.465,
+      "500": 0.018,
+      "5000": 0.012
+     }
+    },
+    "flags": []
+   }
+  },
+  {
+   "test": "T3",
+   "verdict": "NO DATA",
+   "summary": "THD+N code 0 -88.09 dB = 0.0039 %; THD-only at code 63 not measured (THD+N -44.40 dB = 0.6025 %, noise-limited)",
+   "detail": {
+    "flags": [],
+    "missing": [
+     "THD at max gain"
+    ],
+    "thdn_min": {
+     "code": 0,
+     "thdn_db": -88.09352111816406,
+     "method": "TEST_MEAS ThdResult",
+     "from": "MW/D24/DSP/s55/data/J38_loop.json t3"
+    },
+    "thdn_max_meter": {
+     "thdn_db": -44.40128517150879,
+     "from": "MW/D24/DSP/s55/data/J38_loop.json t3"
+    },
+    "thdn_vs_level": [
+     {
+      "code": 0,
+      "lane_dbfs": -20.0,
+      "thdn_db": -82.54201761881511
+     },
+     {
+      "code": 0,
+      "lane_dbfs": -10.0,
+      "thdn_db": -91.22927983601888
+     },
+     {
+      "code": 0,
+      "lane_dbfs": -6.0,
+      "thdn_db": -90.64255905151367
+     },
+     {
+      "code": 0,
+      "lane_dbfs": -3.0,
+      "thdn_db": -88.09352111816406
+     },
+     {
+      "code": 63,
+      "lane_dbfs": -3.0,
+      "thdn_db": -44.40128517150879
+     }
+    ]
+   }
+  },
+  {
+   "test": "T4",
+   "verdict": "NO DATA",
+   "summary": "no tone-off floors at the T1 codes",
+   "detail": {}
+  },
+  {
+   "test": "T4b",
+   "verdict": "PASS",
+   "summary": "EIN -128.2 dBu 20-20k / -130.9 dBu(A) (DC-24k -126.1; 6 captures, source 150 ohm across pins 2-3 (loop cable off)); code 0 -95.0 dBu 20-20k (converter floor)",
+   "detail": {
+    "flags": [],
+    "codes": {
+     "63": {
+      "captures": 6,
+      "lane_dbfs": {
+       "20-20k": -95.6947059025843,
+       "A": -98.38109706619932,
+       "DC-24k": -93.60380330798735
+      },
+      "dbu": {
+       "20-20k": -128.2054059025843,
+       "A": -130.89179706619933,
+       "DC-24k": -126.11450330798735
+      },
+      "loop_gain_db": 58.651,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s55/data/J38_c63_0.json",
+       "MW/D24/DSP/s55/data/J38_c63_1.json",
+       "MW/D24/DSP/s55/data/J38_c63_2.json",
+       "MW/D24/DSP/s55/data/J38_c63_3.json",
+       "MW/D24/DSP/s55/data/J38_c63_4.json",
+       "MW/D24/DSP/s55/data/J38_c63_5.json"
+      ]
+     },
+     "0": {
+      "captures": 3,
+      "lane_dbfs": {
+       "20-20k": -115.56007845316584,
+       "A": -117.84406868863933,
+       "DC-24k": -114.39464200017224
+      },
+      "dbu": {
+       "20-20k": -94.96777845316583,
+       "A": -97.25176868863932,
+       "DC-24k": -93.80234200017225
+      },
+      "loop_gain_db": 5.548,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s55/data/J38_c00_0.json",
+       "MW/D24/DSP/s55/data/J38_c00_1.json",
+       "MW/D24/DSP/s55/data/J38_c00_2.json"
+      ]
+     }
+    },
+    "note": "dBu = P + 3.01 + 23.13 - G_loop(code), G from T1 of this run (recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone))"
+   }
+  },
+  {
+   "test": "T5",
+   "verdict": "PASS",
+   "summary": "inverted (loop expects inverted)",
+   "detail": {
+    "method": "tone phase fit (MW/D24/DSP/s55/data/J38_loop.json t58)"
+   }
+  },
+  {
+   "test": "T6",
+   "verdict": "NO DATA",
+   "summary": "no DSP strip-mute measurement exists",
+   "detail": {}
+  },
+  {
+   "test": "T7",
+   "verdict": "NO DATA",
+   "summary": "S55 did not measure crosstalk (S60 did, on MIC 5 only)",
+   "detail": {}
+  },
+  {
+   "test": "T8",
+   "verdict": "PASS",
+   "summary": "91.400 samples = 1.904 ms (loop nominal 91.40 +- 0.50)",
+   "detail": {
+    "method": "tone phase fit (MW/D24/DSP/s55/data/J38_loop.json t58)",
+    "latency_samples": 91.39964809833744
+   }
+  },
+  {
+   "test": "A1",
+   "verdict": "NO DATA",
+   "summary": "S63 ran MIC 5 only; the WATCH path for the other channels was not exercised",
+   "detail": {}
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

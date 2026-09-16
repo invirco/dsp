@@ -1,0 +1,105 @@
+{
+ "base": "",
+ "fixture": "d24-node-cue-rta",
+ "items": {
+  "node_rows": {
+   "from": "MW/D24/DSP/s65/data/s65_prove.jsonl",
+   "kind": "value",
+   "method": "Rta001MtrL/R band reads, median of 3",
+   "value": [
+    {
+     "band": "63",
+     "case": "A afl pan L",
+     "cold_max_db": -359.07,
+     "cold_same_band_db": -359.101,
+     "err_db": -0.072,
+     "f": 63.0,
+     "hot_db": -23.082,
+     "oct_db": {
+      "125": 48.71,
+      "31.5": 48.38
+     }
+    },
+    {
+     "band": "1k",
+     "case": "A afl pan L",
+     "cold_max_db": -359.07,
+     "cold_same_band_db": -359.098,
+     "err_db": 0.009,
+     "f": 1000.0,
+     "hot_db": -23.001,
+     "oct_db": {
+      "2k": 48.58,
+      "500": 48.72
+     }
+    },
+    {
+     "band": "8k",
+     "case": "A afl pan L",
+     "cold_max_db": -359.07,
+     "cold_same_band_db": -359.095,
+     "err_db": 0.001,
+     "f": 8000.0,
+     "hot_db": -23.009,
+     "oct_db": {
+      "16k": 40.74,
+      "4k": 50.86
+     }
+    },
+    {
+     "band": "1k",
+     "case": "A afl pan R",
+     "cold_max_db": -207.16,
+     "cold_same_band_db": -271.643,
+     "err_db": -0.001,
+     "f": 1000.0,
+     "hot_db": -23.011,
+     "oct_db": {
+      "2k": 48.57,
+      "500": 48.69
+     }
+    },
+    {
+     "band": "1k",
+     "case": "B pfl",
+     "cold_max_db": -23.01,
+     "cold_same_band_db": -23.011,
+     "err_db": -0.001,
+     "f": 1000.0,
+     "hot_db": -23.011,
+     "oct_db": {
+      "2k": 48.57,
+      "500": 48.69
+     }
+    },
+    {
+     "band": "1k",
+     "case": "C source main L/R, pan L",
+     "cold_max_db": -162.3,
+     "cold_same_band_db": -213.514,
+     "err_db": -0.001,
+     "f": 1000.0,
+     "hot_db": -23.011,
+     "oct_db": {
+      "2k": 48.57,
+      "500": 48.69
+     }
+    },
+    {
+     "band": "1k",
+     "case": "C source aux 1",
+     "cold_max_db": -23.01,
+     "cold_same_band_db": -23.011,
+     "err_db": -0.001,
+     "f": 1000.0,
+     "hot_db": -23.011,
+     "oct_db": {
+      "2k": 48.57,
+      "500": 48.69
+     }
+    }
+   ]
+  }
+ },
+ "what": "cue bus + RTA: S65 proof rows through the parameter link"
+}

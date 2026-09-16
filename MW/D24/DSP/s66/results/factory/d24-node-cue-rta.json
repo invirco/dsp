@@ -1,0 +1,49 @@
+{
+ "fixture": "d24-node-cue-rta",
+ "panel": "cue",
+ "type": "node",
+ "unit": "MW-D24-2",
+ "mode": "factory",
+ "source": "replay MW/D24/DSP/s66/replay/d24-node-cue-rta.json (cue bus + RTA: S65 proof rows through the parameter link)",
+ "verdict": "PASS",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "PASS",
+   "summary": "7 rows; worst level -0.072 dB re expected",
+   "detail": {
+    "rows": [
+     "A afl pan L 63 Hz -0.072 dB, octave >= 48.38, cold -359.1",
+     "A afl pan L 1000 Hz +0.009 dB, octave >= 48.58, cold -359.1",
+     "A afl pan L 8000 Hz +0.001 dB, octave >= 40.74, cold -359.1",
+     "A afl pan R 1000 Hz -0.001 dB, octave >= 48.57, cold -207.2",
+     "B pfl 1000 Hz -0.001 dB, octave >= 48.57, cold mono (both hot)",
+     "C source main L/R, pan L 1000 Hz -0.001 dB, octave >= 48.57, cold -162.3",
+     "C source aux 1 1000 Hz -0.001 dB, octave >= 48.57, cold mono (both hot)"
+    ],
+    "flags": [],
+    "method": "Rta001MtrL/R band reads, median of 3",
+    "provenance": "MW/D24/DSP/s65/data/s65_prove.jsonl"
+   }
+  },
+  {
+   "test": "T2",
+   "verdict": "PASS",
+   "summary": "octave neighbours >= 40.74 dB down; cold side <= -162.3 dBFS; mono cases equal on both sides",
+   "detail": {
+    "flags": []
+   }
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

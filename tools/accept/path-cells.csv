@@ -1,0 +1,101 @@
+# path-cells.csv -- which cells belong to which topology element (S66). PROPOSED FOR defs: the topology master
+# (common/topology/diagram-master.csv) names nodes and edges but binds no cells, and the Neutral column says what
+# each cell's transparent/enabled code is; the fixture generator needs the join. Until defs carries it, this table
+# is the join, and every row is checked against the product's expanded matrix (a family the matrix lacks is
+# reported, never invented).
+# element = a topology node id, or an edge "from>to" for path elements (assigns/sends).
+# scope   = Chan (the strip), Aux (the aux bus k), MainL / MainR / Main (the main bus), Test (never set by a fixture).
+# role    = neutral: write the cell's Neutral code; drive: the test sets it (the fixture names the range);
+#           assign: Neutral enables the path; everything else on the same bus gets the off code 0 (isolation).
+# per     = strip | bus | none: which index the [n] is (the strip under test, the aux number, none).
+# note    = why, when not obvious.
+element,scope,family,role,per,note
+ch.insel,Chan,InputSel,neutral,strip,Mic = 0
+ch.pre,Chan,Gain,drive,strip,DSP trim word; the 595 code goes to the chain (inputs.csv send_pos); trim 0 dB = Neutral 0
+ch.pre,Chan,Phantom,neutral,strip,off
+ch.pre,Chan,Instr,neutral,strip,Chan[1-2] only
+ch.pre,Chan,AntiClip,neutral,strip,not a topology node; auto gain reduction sits at the pre (M&W)
+ch.pre,Chan,TubeOn,neutral,strip,not a topology node (tube saturation); bypassed
+ch.pre,Chan,TubeSat,neutral,strip,not a topology node
+ch.phase,Chan,Pol,neutral,strip,
+ch.hpf,Chan,EqHpf,neutral,strip,lowest frequency (no HPF on/off cell)
+ch.lpf,Chan,EqLpf,neutral,strip,highest frequency (no LPF on/off cell)
+ch.gate,Chan,GateOn,neutral,strip,
+ch.gate,Chan,GateThr,neutral,strip,
+ch.gate,Chan,GateRng,neutral,strip,
+ch.gate,Chan,GateFilterOn,neutral,strip,
+ch.eq,Chan,EqOn,neutral,strip,
+ch.eq,Chan,EqGain,neutral,strip,
+ch.comp,Chan,CompOn,neutral,strip,S54-2: a donor strip left CompOn 1 compresses above -19 dBFS
+ch.comp,Chan,CompThr,neutral,strip,
+ch.comp,Chan,CompRat,neutral,strip,
+ch.comp,Chan,CompMake,neutral,strip,
+ch.comp,Chan,CompPar,neutral,strip,
+ch.comp,Chan,CompFilterOn,neutral,strip,
+ch.delay,Chan,Delay,neutral,strip,
+ch.ins,Chan,InsertOn,neutral,strip,
+ch.fdr,Chan,Level,neutral,strip,0 dB
+ch.fdr,Chan,Mute,neutral,strip,unmuted
+ch.fdr,Chan,MuteGrp,neutral,strip,no mute group
+ch.fdr,Chan,DcaOn,neutral,strip,not following a DCA
+ch.fdr,Chan,Dca,neutral,strip,
+ch.pan,Chan,Pan,neutral,strip,centre
+ch.pan,Chan,Link,neutral,strip,unlinked
+ch.pan>bus.main,Chan,MainOn,assign,strip,
+ctl.auxpick>bus.aux,Chan,AuxOn,assign,bus,
+ctl.auxpick>bus.aux,Chan,AuxSend,neutral,bus,0 dB send
+ch.fdr>bus.grp,Chan,GrpOn,assign,bus,
+pick.postfdr>bus.fx,Chan,FxOn,assign,bus,
+ch.pan>sub,Chan,CtrOn,assign,strip,
+ctl.auxpick>bus.mtx,Chan,MatrixOn,assign,bus,
+aux.eq,Aux,EqOn,neutral,bus,
+aux.eq,Aux,EqGain,neutral,bus,
+aux.eq,Aux,EqHpf,neutral,bus,
+aux.eq,Aux,Geq,neutral,bus,
+aux.lim,Aux,LimiterOn,neutral,bus,
+aux.lim,Aux,LimiterThr,neutral,bus,
+aux.fbs,Aux,AntiFbOn,neutral,bus,
+aux.fbs,Aux,AntiFbCtrlOn,neutral,bus,
+aux.fbs,Aux,AntiFbNotchGain,neutral,bus,
+ctl.auxpickglob,Aux,Level,neutral,bus,aux master 0 dB
+ctl.auxpickglob,Aux,Mute,neutral,bus,
+ctl.auxpickglob,Aux,Pan,neutral,bus,
+ctl.auxpickglob,Aux,Delay,neutral,bus,
+ctl.auxpickglob,Aux,DcaOn,neutral,bus,
+bus.main,Main,Level,neutral,none,Neutral EMPTY in the master (no value table): undecidable
+bus.main,Main,Mute,neutral,none,
+bus.main,Main,Delay,neutral,none,
+bus.main,Main,DcaOn,neutral,none,
+main.geq,Main,Geq,neutral,none,
+main.geq,MainL,PeqGain,neutral,none,
+main.geq,MainR,PeqGain,neutral,none,
+main.comp,MainL,CompOn,neutral,none,
+main.comp,MainL,CompThr,neutral,none,
+main.comp,MainL,CompRat,neutral,none,
+main.comp,MainL,CompMake,neutral,none,
+main.comp,MainL,CompPar,neutral,none,
+main.comp,MainL,CompFilterOn,neutral,none,
+main.comp,MainL,EqOn,neutral,none,output PEQ sits with the dynamics in the product (not a topology node)
+main.comp,MainL,EqGain,neutral,none,
+main.comp,MainL,EqHpf,neutral,none,
+main.comp,MainR,CompOn,neutral,none,
+main.comp,MainR,CompThr,neutral,none,
+main.comp,MainR,CompRat,neutral,none,
+main.comp,MainR,CompMake,neutral,none,
+main.comp,MainR,CompPar,neutral,none,
+main.comp,MainR,CompFilterOn,neutral,none,
+main.comp,MainR,EqOn,neutral,none,
+main.comp,MainR,EqGain,neutral,none,
+main.comp,MainR,EqHpf,neutral,none,
+main.lim,MainL,LimiterOn,neutral,none,
+main.lim,MainL,LimiterThr,neutral,none,
+main.lim,MainL,LimiterRng,neutral,none,
+main.lim,MainL,Level,neutral,none,
+main.lim,MainL,Mute,neutral,none,
+main.lim,MainL,Delay,neutral,none,
+main.lim,MainR,LimiterOn,neutral,none,
+main.lim,MainR,LimiterThr,neutral,none,
+main.lim,MainR,LimiterRng,neutral,none,
+main.lim,MainR,Level,neutral,none,
+main.lim,MainR,Mute,neutral,none,
+main.lim,MainR,Delay,neutral,none,

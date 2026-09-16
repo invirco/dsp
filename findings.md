@@ -6,6 +6,78 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE ACCEPTANCE LAYER IS GENERATED: 38 FIXTURES FROM DEFS, ONE RUNNER, AND THE RECORDED D24 DATA REPRODUCES THE HAND TABLES 187 OF 187; A FACTORY UNIT IS ≈ 18 MIN ON THE HARNESS, OF WHICH 10 IS CROSSTALK (2026-09-16, session 66 — desk, no unit)
+
+**Scope.** Desk only; the unit was not touched. New: `tools/accept/` (generator, battery, limits, units, step costs, the
+topology→cell binding, replay-map builder, comparator, `dryrun_d24.sh`), `tools/pi/dsp4_accept.py` (runner: `run` / `report` /
+`plan`), fixtures `MW/D24/DSP/accept/`, dry run `MW/D24/DSP/s66/` (`replay/`, `results/{factory,full}/`, `run.out`, `report.md`,
+`compare.md`, `plan.out`). Description: `docs/acceptance-audio-layer.md`. No contract, generator or image change.
+
+**S66-1. The fixtures come from defs, and defs is missing four joins the generator needs; each is reported, none is invented.**
+- *Rule* (PW 09-14): the in-line path is the LONGEST topology route to the measurement point. Every cell bound to a path
+  element goes to its `Neutral`. An assign on the path goes to `Neutral` (enabled), and the same assign on every other strip
+  of that bus goes to 0. The measured strip has every assign off, so it cannot feed its own loop. The stimulus block is the
+  loop's: donor strip 6 transparent (CompOn/MainOn 0, S54-2) → AUX 1 → J45, or strip 1 when strip 6 is under test. An empty
+  `Neutral` is listed as undecidable, and a family the product lacks is listed as absent.
+- *D24:* 38 fixtures: 24 inputs (61 path cells + a 98-cell stimulus block each), 11 outputs, 2 Monitor Out fixtures marked
+  undecidable, and the cue/RTA node (status proposal). Deterministic; the manifest records the defs commit and a sha256 per table.
+- *Trap fixed:* a shortest-path walk went `ch.phase → pick.preeq → ctl.compkey → ctl.compfilt → ch.comp` and skipped
+  HPF/LPF/gate/EQ. The topology does not distinguish a sidechain edge from an audio edge, so the generator excludes nodes
+  gated `ch.key` and passes pick taps only at the ends.
+- *Gaps for defs:*
+  - (a) **The topology binds no cells.** `tools/accept/path-cells.csv` is the join and is PROPOSED for
+    `common/topology/`. Tube, AntiClip and the output PEQ have cells but no topology node.
+  - (b) **Outputs have no table like `inputs.csv`.** Output XLR refs and DAC slots are undeclared (AUX 1 = J45 is known
+    only from S42/S48).
+  - (c) **The D24 topology has no `mon → io.out` edge**, so the Monitor Out L/R paths cannot be generated. `aux.comp` has
+    no cells on D24. `Main001Level001` has an empty `Neutral` (undecidable on both main outputs, as defs already lists).
+  - (d) **The factory T1 reference is not in defs.** `mic-gain-law.csv` carries only its target codes (no 8/16/32), so
+    the per-code universal mean is averaged from `s55/law.csv` (15 channels, J29 out) and recorded in each fixture.
+    The RTA is gated off in `d24.csv` while S65 builds it.
+
+**S66-2. The dry run: 187 of 187 comparisons against the hand tables agree, and the generated table flags what the sessions found.**
+- *Method:* `replay_d24_recorded.py` maps every runner key to the files the sessions committed. S61 chirps, reference and
+  THD+N tones; S63 THD average and span captures; S57 150 Ω and AUX 1 noise captures; S60 T7; S55 law, loop json and 150 Ω
+  captures; S65 proof rows. Captures are analysed as live captures would be. A recorded tone/meter result carries its
+  file and method.
+- *Exact* (≤ 0.0005 dB, or the hand table's printing precision):
+  - MIC 5 against S61 `results.json`: eight chirp gains, T2 at five points × two codes, latency 91.398, inverted,
+    THD+N −88.96 dB.
+  - THD at code 63 −64.33 dB (S63, 32 averaged). EIN lane powers (S57).
+  - A1: 70 silent transitions, 68 PASS / 2 pump, worst −74.0 dBFS (S63).
+  - The 15 S55 channels: T2 20 Hz, T3 code 63, EIN 20–20k / A, T5, T8 and the T1 deviation (`channels.md`, `trim-table.md`).
+  - AUX 1 −84.55 dBu / −86.96 dBu(A) (S57). The cue node's seven rows (S65-3).
+- *Explained, not hidden:*
+  - (i) MIC 5 EIN dBu is 0.024 dB below S57's. The powers are identical; the divisor is this run's chirp G(63) = 58.743,
+    which carries the loop source's noise (+0.026, S61-3), where S57 used S54's tone 58.717.
+  - (ii) The T1 deviations match to the 0.001 dB rounding of the 3-decimal `law.csv`.
+  - (iii) The first node run flagged PFL and the mono aux source for a hot cold side. They are mono by design; the
+    fixture now says so and the runner checks the sides are equal.
+- *Factory verdicts* (`report.md`):
+  - MIC 5 PASS.
+  - **MIC 7 / J29 FLAG, T1 code 8 −0.849 dB** (the bit-3 stage, S55-2).
+  - **MIC 8 / J31 and MIC 20 / J32 FLAG, EIN −123.2 / −125.2 dBu** against the provisional −126.0 (S55-5).
+  - The other 12 S55 channels INCOMPLETE: THD-only at max gain and T7 were measured on MIC 5 only.
+  - AUX 1 INCOMPLETE (only T4, PASS). Cue/RTA node PASS. MIC 1–4 and 13–16 not run (no rails, S55-1).
+- *Full mode:* MIC 5 FLAG on A1, the 0→1 thump (pump 229 ms, and the repeat still open). **T6 is NO DATA on every path:**
+  no DSP strip-mute measurement exists, because S54's T6 was the phantom shunt (PW 09-16).
+- *Limits:* all in `tools/accept/limits.csv`, all provisional, each with the measurement it was set from.
+
+**S66-3. Time, and what the runner has not done.**
+- *Factory per input path:* 51.5 s with desk analysis, 63.6 s with CM4 analysis. That is S61's 26.5 s battery plus
+  25 s of 10 kHz T7, 23 neighbours × 1.09 s by meter (S60-4). An output path is ≈ 20 s (step count modelled, not measured).
+- *Unit, manual loop:* 24.2 min of instrument time; with 35 cable moves at 30 s, 41.7 min.
+- *Unit, harness* (S61's model: per code one setup, per lane 1.55 s): chirps 5.1 + tone/noise 2.3 + analysis 0.4 =
+  7.8 min, **plus T7 10.0 min = 17.8 min**.
+  - T7 by meter is now the largest factory item. Same-converter neighbours only (7) would make it ≈ 3.0 min and the unit
+    ≈ 10.9 min (arithmetic). A multi-lane capture arm is the other lever.
+  - The spec's ≈ 2 min harness figure is not reachable with a per-strip arm/fill.
+- *Full mode:* 5.1 h manual and 4.7 h on the harness. The A1 spans are 8.6 min a channel (S63), 3.4 h of it.
+- *Not done:* **the live source is not exercised.** This repo has no verified host command that writes a cell by MxDat
+  code (`app cli` has `chain-set`, not a cell set), so live mode refuses until `ACCEPT_SET_CMD` names one. The meter-method
+  keys (T6, T7, the T4 floors) are wired for replay only. The first live run is a bench dispatch: MIC 5 factory against
+  this dry run's numbers.
+
 ## THE CUE BUS AND THE RTA ON CHIP 1: BUILT, PROVEN THROUGH THE PARAMETER LINK, DELIVERED TO CHIP 2; +0.6 % FOR THE BUS, +10.6 % FOR THE RTA; THE D24 FITS AT 70.6 % DRIVEN ON THE s26 LEVERS AND DOES NOT FIT ON TODAY'S SHIPPING CONFIG (121.8 % BEFORE EITHER) (2026-09-16, session 65 — desk + digital loop, MW-D24-2)
 
 **Pairs** (all built from this tree; bench dirs in brackets).

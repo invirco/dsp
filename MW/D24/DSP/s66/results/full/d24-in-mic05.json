@@ -1,0 +1,1820 @@
+{
+ "fixture": "d24-in-mic05",
+ "panel": "MIC 5",
+ "type": "input",
+ "unit": "MW-D24-2",
+ "mode": "full",
+ "source": "replay MW/D24/DSP/s66/replay/d24-in-mic05.json (MIC 5 / J25: S61 chirps + tones, S63 THD avg + spans, S57 150 ohm, S60 T7, S54/S55 law)",
+ "verdict": "FLAG",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "PASS",
+   "summary": "code 0 +5.578 dB, code 63 +58.717 dB (range 53.14 dB); code 63 vs stage sum -0.101 dB; worst stage vs universal +0.042 dB (code 33); monotonic yes",
+   "detail": {
+    "method": "recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone)",
+    "rows": [
+     {
+      "code": 0,
+      "gain_db": 5.578,
+      "hw_re_c0_db": 0.0,
+      "universal_db": 0.0,
+      "dev_db": 0.0
+     },
+     {
+      "code": 1,
+      "gain_db": 18.423,
+      "hw_re_c0_db": 12.845,
+      "universal_db": 12.845,
+      "dev_db": -0.0
+     },
+     {
+      "code": 2,
+      "gain_db": 25.041,
+      "hw_re_c0_db": 19.463,
+      "universal_db": 19.463,
+      "dev_db": 0.0
+     },
+     {
+      "code": 3,
+      "gain_db": 27.713,
+      "hw_re_c0_db": 22.135,
+      "universal_db": 22.135,
+      "dev_db": 0.0
+     },
+     {
+      "code": 4,
+      "gain_db": 32.475,
+      "hw_re_c0_db": 26.897,
+      "universal_db": 26.892,
+      "dev_db": 0.005
+     },
+     {
+      "code": 5,
+      "gain_db": 33.711,
+      "hw_re_c0_db": 28.133,
+      "universal_db": 28.129,
+      "dev_db": 0.004
+     },
+     {
+      "code": 6,
+      "gain_db": 35.267,
+      "hw_re_c0_db": 29.689,
+      "universal_db": 29.686,
+      "dev_db": 0.003
+     },
+     {
+      "code": 7,
+      "gain_db": 36.18,
+      "hw_re_c0_db": 30.602,
+      "universal_db": 30.599,
+      "dev_db": 0.003
+     },
+     {
+      "code": 8,
+      "gain_db": 39.927,
+      "hw_re_c0_db": 34.349,
+      "universal_db": 34.342,
+      "dev_db": 0.007
+     },
+     {
+      "code": 9,
+      "gain_db": 40.472,
+      "hw_re_c0_db": 34.894,
+      "universal_db": 34.887,
+      "dev_db": 0.007
+     },
+     {
+      "code": 10,
+      "gain_db": 41.219,
+      "hw_re_c0_db": 35.641,
+      "universal_db": 35.635,
+      "dev_db": 0.006
+     },
+     {
+      "code": 11,
+      "gain_db": 41.691,
+      "hw_re_c0_db": 36.113,
+      "universal_db": 36.107,
+      "dev_db": 0.006
+     },
+     {
+      "code": 12,
+      "gain_db": 42.869,
+      "hw_re_c0_db": 37.291,
+      "universal_db": 37.285,
+      "dev_db": 0.006
+     },
+     {
+      "code": 13,
+      "gain_db": 43.26,
+      "hw_re_c0_db": 37.682,
+      "universal_db": 37.676,
+      "dev_db": 0.006
+     },
+     {
+      "code": 14,
+      "gain_db": 43.808,
+      "hw_re_c0_db": 38.23,
+      "universal_db": 38.225,
+      "dev_db": 0.005
+     },
+     {
+      "code": 15,
+      "gain_db": 44.16,
+      "hw_re_c0_db": 38.582,
+      "universal_db": 38.577,
+      "dev_db": 0.005
+     },
+     {
+      "code": 16,
+      "gain_db": 47.169,
+      "hw_re_c0_db": 41.591,
+      "universal_db": 41.576,
+      "dev_db": 0.015
+     },
+     {
+      "code": 17,
+      "gain_db": 47.409,
+      "hw_re_c0_db": 41.831,
+      "universal_db": 41.816,
+      "dev_db": 0.015
+     },
+     {
+      "code": 18,
+      "gain_db": 47.752,
+      "hw_re_c0_db": 42.174,
+      "universal_db": 42.159,
+      "dev_db": 0.015
+     },
+     {
+      "code": 19,
+      "gain_db": 47.976,
+      "hw_re_c0_db": 42.398,
+      "universal_db": 42.384,
+      "dev_db": 0.014
+     },
+     {
+      "code": 20,
+      "gain_db": 48.564,
+      "hw_re_c0_db": 42.986,
+      "universal_db": 42.972,
+      "dev_db": 0.014
+     },
+     {
+      "code": 21,
+      "gain_db": 48.769,
+      "hw_re_c0_db": 43.191,
+      "universal_db": 43.177,
+      "dev_db": 0.014
+     },
+     {
+      "code": 22,
+      "gain_db": 49.063,
+      "hw_re_c0_db": 43.485,
+      "universal_db": 43.471,
+      "dev_db": 0.014
+     },
+     {
+      "code": 23,
+      "gain_db": 49.255,
+      "hw_re_c0_db": 43.677,
+      "universal_db": 43.665,
+      "dev_db": 0.012
+     },
+     {
+      "code": 24,
+      "gain_db": 50.227,
+      "hw_re_c0_db": 44.649,
+      "universal_db": 44.635,
+      "dev_db": 0.014
+     },
+     {
+      "code": 25,
+      "gain_db": 50.396,
+      "hw_re_c0_db": 44.818,
+      "universal_db": 44.804,
+      "dev_db": 0.014
+     },
+     {
+      "code": 26,
+      "gain_db": 50.639,
+      "hw_re_c0_db": 45.061,
+      "universal_db": 45.048,
+      "dev_db": 0.013
+     },
+     {
+      "code": 27,
+      "gain_db": 50.801,
+      "hw_re_c0_db": 45.223,
+      "universal_db": 45.209,
+      "dev_db": 0.014
+     },
+     {
+      "code": 28,
+      "gain_db": 51.228,
+      "hw_re_c0_db": 45.65,
+      "universal_db": 45.636,
+      "dev_db": 0.014
+     },
+     {
+      "code": 29,
+      "gain_db": 51.378,
+      "hw_re_c0_db": 45.8,
+      "universal_db": 45.787,
+      "dev_db": 0.013
+     },
+     {
+      "code": 30,
+      "gain_db": 51.597,
+      "hw_re_c0_db": 46.019,
+      "universal_db": 46.004,
+      "dev_db": 0.015
+     },
+     {
+      "code": 31,
+      "gain_db": 51.741,
+      "hw_re_c0_db": 46.163,
+      "universal_db": 46.149,
+      "dev_db": 0.014
+     },
+     {
+      "code": 32,
+      "gain_db": 53.744,
+      "hw_re_c0_db": 48.166,
+      "universal_db": 48.127,
+      "dev_db": 0.039
+     },
+     {
+      "code": 33,
+      "gain_db": 53.859,
+      "hw_re_c0_db": 48.281,
+      "universal_db": 48.239,
+      "dev_db": 0.042
+     },
+     {
+      "code": 34,
+      "gain_db": 54.02,
+      "hw_re_c0_db": 48.442,
+      "universal_db": 48.402,
+      "dev_db": 0.04
+     },
+     {
+      "code": 35,
+      "gain_db": 54.129,
+      "hw_re_c0_db": 48.551,
+      "universal_db": 48.512,
+      "dev_db": 0.039
+     },
+     {
+      "code": 36,
+      "gain_db": 54.42,
+      "hw_re_c0_db": 48.842,
+      "universal_db": 48.804,
+      "dev_db": 0.038
+     },
+     {
+      "code": 37,
+      "gain_db": 54.525,
+      "hw_re_c0_db": 48.947,
+      "universal_db": 48.909,
+      "dev_db": 0.038
+     },
+     {
+      "code": 38,
+      "gain_db": 54.674,
+      "hw_re_c0_db": 49.096,
+      "universal_db": 49.061,
+      "dev_db": 0.035
+     },
+     {
+      "code": 39,
+      "gain_db": 54.776,
+      "hw_re_c0_db": 49.198,
+      "universal_db": 49.162,
+      "dev_db": 0.036
+     },
+     {
+      "code": 40,
+      "gain_db": 55.298,
+      "hw_re_c0_db": 49.72,
+      "universal_db": 49.684,
+      "dev_db": 0.036
+     },
+     {
+      "code": 41,
+      "gain_db": 55.391,
+      "hw_re_c0_db": 49.813,
+      "universal_db": 49.778,
+      "dev_db": 0.035
+     },
+     {
+      "code": 42,
+      "gain_db": 55.527,
+      "hw_re_c0_db": 49.949,
+      "universal_db": 49.915,
+      "dev_db": 0.034
+     },
+     {
+      "code": 43,
+      "gain_db": 55.618,
+      "hw_re_c0_db": 50.04,
+      "universal_db": 50.006,
+      "dev_db": 0.034
+     },
+     {
+      "code": 44,
+      "gain_db": 55.864,
+      "hw_re_c0_db": 50.286,
+      "universal_db": 50.252,
+      "dev_db": 0.034
+     },
+     {
+      "code": 45,
+      "gain_db": 55.952,
+      "hw_re_c0_db": 50.374,
+      "universal_db": 50.34,
+      "dev_db": 0.034
+     },
+     {
+      "code": 46,
+      "gain_db": 56.08,
+      "hw_re_c0_db": 50.502,
+      "universal_db": 50.468,
+      "dev_db": 0.034
+     },
+     {
+      "code": 47,
+      "gain_db": 56.164,
+      "hw_re_c0_db": 50.586,
+      "universal_db": 50.555,
+      "dev_db": 0.031
+     },
+     {
+      "code": 48,
+      "gain_db": 57.001,
+      "hw_re_c0_db": 51.423,
+      "universal_db": 51.389,
+      "dev_db": 0.034
+     },
+     {
+      "code": 49,
+      "gain_db": 57.076,
+      "hw_re_c0_db": 51.498,
+      "universal_db": 51.466,
+      "dev_db": 0.032
+     },
+     {
+      "code": 50,
+      "gain_db": 57.189,
+      "hw_re_c0_db": 51.611,
+      "universal_db": 51.578,
+      "dev_db": 0.033
+     },
+     {
+      "code": 51,
+      "gain_db": 57.265,
+      "hw_re_c0_db": 51.687,
+      "universal_db": 51.653,
+      "dev_db": 0.034
+     },
+     {
+      "code": 52,
+      "gain_db": 57.467,
+      "hw_re_c0_db": 51.889,
+      "universal_db": 51.856,
+      "dev_db": 0.033
+     },
+     {
+      "code": 53,
+      "gain_db": 57.539,
+      "hw_re_c0_db": 51.961,
+      "universal_db": 51.929,
+      "dev_db": 0.032
+     },
+     {
+      "code": 54,
+      "gain_db": 57.645,
+      "hw_re_c0_db": 52.067,
+      "universal_db": 52.035,
+      "dev_db": 0.032
+     },
+     {
+      "code": 55,
+      "gain_db": 57.715,
+      "hw_re_c0_db": 52.137,
+      "universal_db": 52.107,
+      "dev_db": 0.03
+     },
+     {
+      "code": 56,
+      "gain_db": 58.086,
+      "hw_re_c0_db": 52.508,
+      "universal_db": 52.477,
+      "dev_db": 0.031
+     },
+     {
+      "code": 57,
+      "gain_db": 58.155,
+      "hw_re_c0_db": 52.577,
+      "universal_db": 52.545,
+      "dev_db": 0.032
+     },
+     {
+      "code": 58,
+      "gain_db": 58.254,
+      "hw_re_c0_db": 52.676,
+      "universal_db": 52.644,
+      "dev_db": 0.032
+     },
+     {
+      "code": 59,
+      "gain_db": 58.318,
+      "hw_re_c0_db": 52.74,
+      "universal_db": 52.71,
+      "dev_db": 0.03
+     },
+     {
+      "code": 60,
+      "gain_db": 58.496,
+      "hw_re_c0_db": 52.918,
+      "universal_db": 52.889,
+      "dev_db": 0.029
+     },
+     {
+      "code": 61,
+      "gain_db": 58.562,
+      "hw_re_c0_db": 52.984,
+      "universal_db": 52.954,
+      "dev_db": 0.03
+     },
+     {
+      "code": 62,
+      "gain_db": 58.656,
+      "hw_re_c0_db": 53.078,
+      "universal_db": 53.048,
+      "dev_db": 0.03
+     },
+     {
+      "code": 63,
+      "gain_db": 58.717,
+      "hw_re_c0_db": 53.139,
+      "universal_db": 53.111,
+      "dev_db": 0.028
+     }
+    ],
+    "c63_stage_sum_db": 58.81846210854355,
+    "flags": [],
+    "provenance": [
+     "MW/D24/DSP/s55/law.csv (J25 from S54 s54_t1all)"
+    ]
+   }
+  },
+  {
+   "test": "T2",
+   "verdict": "PASS",
+   "summary": "code 0: 20 Hz -0.42, 20 kHz -0.12; code 63: 20 Hz -2.07, 20 kHz -0.20",
+   "detail": {
+    "method": "chirp",
+    "response": {
+     "0": {
+      "20": -0.418,
+      "50": -0.049,
+      "100": 0.012,
+      "200": 0.029,
+      "500": 0.027,
+      "1000": 0.0,
+      "2000": -0.002,
+      "5000": -0.005,
+      "10000": 0.061,
+      "15000": -0.019,
+      "20000": -0.117
+     },
+     "63": {
+      "20": -2.068,
+      "50": -0.46,
+      "100": -0.138,
+      "200": -0.033,
+      "500": -0.003,
+      "1000": 0.0,
+      "2000": -0.049,
+      "5000": 0.0,
+      "10000": 0.058,
+      "15000": -0.042,
+      "20000": -0.195
+     }
+    },
+    "flags": []
+   }
+  },
+  {
+   "test": "T3",
+   "verdict": "PASS",
+   "summary": "THD+N code 0 -88.96 dB = 0.0036 %; THD code 63 -64.33 dB = 0.0608 % (coherent average), single capture -60.98 dB = 0.0893 %",
+   "detail": {
+    "flags": [],
+    "missing": [],
+    "thdn_min": {
+     "code": 0,
+     "thdn_db": -88.95893217898217,
+     "thd_db": -89.53277794330964,
+     "fund_dbfs": -6.0102326424557795,
+     "method": "FFT (dsp4_fft)",
+     "from": [
+      "MW/D24/DSP/s61/data/thdn_c00.json"
+     ]
+    },
+    "thd_max_single": {
+     "code": 63,
+     "thd_db": -60.979414315544076,
+     "thdn_db": -47.053222796375884,
+     "n": 1,
+     "method": "FFT h2..h10, 1 capture(s)",
+     "from": [
+      "MW/D24/DSP/s61/data/thdn_c63.json"
+     ]
+    },
+    "thd_max_avg": {
+     "floor_dbc": -103.15999555311109,
+     "n": 32,
+     "thd_db": -64.32666967484086,
+     "method": "coherent average (MW/D24/DSP/s63/data/s63_thd_J25.json)"
+    }
+   }
+  },
+  {
+   "test": "T4",
+   "verdict": "NO DATA",
+   "summary": "no tone-off floors at the T1 codes",
+   "detail": {}
+  },
+  {
+   "test": "T4b",
+   "verdict": "PASS",
+   "summary": "EIN -127.2 dBu 20-20k / -130.5 dBu(A) (DC-24k -124.6; 20 captures, source 150 ohm across pins 2-3 (loop cable off)); code 0 -95.1 dBu 20-20k (converter floor)",
+   "detail": {
+    "flags": [],
+    "codes": {
+     "63": {
+      "captures": 20,
+      "lane_dbfs": {
+       "20-20k": -94.62754460457285,
+       "A": -97.92757370366351,
+       "DC-24k": -91.98945871275868
+      },
+      "dbu": {
+       "20-20k": -127.20424460457285,
+       "A": -130.5042737036635,
+       "DC-24k": -124.56615871275868
+      },
+      "loop_gain_db": 58.717,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s57/data/g1_00.json",
+       "MW/D24/DSP/s57/data/g1_01.json",
+       "MW/D24/DSP/s57/data/g1_02.json",
+       "MW/D24/DSP/s57/data/g1_03.json",
+       "MW/D24/DSP/s57/data/g1_04.json",
+       "MW/D24/DSP/s57/data/g1_05.json",
+       "MW/D24/DSP/s57/data/g1_06.json",
+       "MW/D24/DSP/s57/data/g1_07.json",
+       "MW/D24/DSP/s57/data/g1_08.json",
+       "MW/D24/DSP/s57/data/g1_09.json",
+       "MW/D24/DSP/s57/data/g1_10.json",
+       "MW/D24/DSP/s57/data/g1_11.json",
+       "MW/D24/DSP/s57/data/g1_12.json",
+       "MW/D24/DSP/s57/data/g1_13.json",
+       "MW/D24/DSP/s57/data/g1_14.json",
+       "MW/D24/DSP/s57/data/g1_15.json",
+       "MW/D24/DSP/s57/data/g1_16.json",
+       "MW/D24/DSP/s57/data/g1_17.json",
+       "MW/D24/DSP/s57/data/g1_18.json",
+       "MW/D24/DSP/s57/data/g1_19.json"
+      ]
+     },
+     "0": {
+      "captures": 5,
+      "lane_dbfs": {
+       "20-20k": -115.63441202202648,
+       "A": -118.02925580758874,
+       "DC-24k": -114.6829246096776
+      },
+      "dbu": {
+       "20-20k": -95.07211202202649,
+       "A": -97.46695580758873,
+       "DC-24k": -94.1206246096776
+      },
+      "loop_gain_db": 5.578,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s57/data/f150c0_00.json",
+       "MW/D24/DSP/s57/data/f150c0_01.json",
+       "MW/D24/DSP/s57/data/f150c0_02.json",
+       "MW/D24/DSP/s57/data/f150c0_03.json",
+       "MW/D24/DSP/s57/data/f150c0_04.json"
+      ]
+     }
+    },
+    "note": "dBu = P + 3.01 + 23.13 - G_loop(code), G from T1 of this run (recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone))"
+   }
+  },
+  {
+   "test": "T5",
+   "verdict": "PASS",
+   "summary": "inverted (loop expects inverted)",
+   "detail": {
+    "method": "chirp code 0"
+   }
+  },
+  {
+   "test": "T6",
+   "verdict": "NO DATA",
+   "summary": "no DSP strip-mute measurement exists: S54's T6 toggled the 595 bit 0, which is the PHANTOM SHUNT (PW 09-16), not a mute",
+   "detail": {}
+  },
+  {
+   "test": "T7",
+   "verdict": "PASS",
+   "summary": "worst neighbour strip 17 -133.06 dB of 22, detector floor -144.18 dB",
+   "detail": {
+    "neighbours": {
+     "1": -138.08523205903973,
+     "10": -141.24506033324658,
+     "11": -136.39956899777405,
+     "12": -141.54409273269448,
+     "13": -140.26717376625652,
+     "14": -142.0954508832288,
+     "15": -143.0839324069211,
+     "16": -142.9994969812655,
+     "17": -133.05643418272913,
+     "18": -137.56642436040067,
+     "19": -148.6068465408262,
+     "2": -139.19104231877802,
+     "20": -139.82112427908243,
+     "21": -138.98582413189018,
+     "22": -136.44476679488275,
+     "23": -153.09647997495074,
+     "24": -139.53916356664794,
+     "3": -149.2214663467383,
+     "4": -139.98792745470786,
+     "7": -146.6788550910436,
+     "8": -145.4535800323559,
+     "9": -141.3630416405559
+    },
+    "control_db": -144.18202620881434,
+    "method": "S60 coherent 10 kHz, code 2, lane -6 dBFS pk",
+    "provenance": "MW/D24/DSP/s60/data/s60_t7.jsonl"
+   }
+  },
+  {
+   "test": "T8",
+   "verdict": "PASS",
+   "summary": "91.398 samples = 1.904 ms (loop nominal 91.40 +- 0.50)",
+   "detail": {
+    "method": "chirp code 0",
+    "latency_samples": 91.39817780897089
+   }
+  },
+  {
+   "test": "A1",
+   "verdict": "FLAG",
+   "summary": "silent: 70 transitions, 68 PASS / 2 FLAG; worst detected -74.0 dBFS hw_up 0->1; flagged: hw_up 0->1 (pump), bit 0->1 (pump)",
+   "detail": {
+    "rows": [
+     {
+      "kind": "hw_up",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       1,
+       0.0
+      ],
+      "peak_dbfs": -73.99154359946613,
+      "detected": true,
+      "pump_ms": 228.72916666666669,
+      "pump_open": false,
+      "flag": "pump"
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       1,
+       0.0
+      ],
+      "to": [
+       2,
+       0.0
+      ],
+      "peak_dbfs": -72.56152598521476,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       2,
+       0.0
+      ],
+      "to": [
+       3,
+       0.0
+      ],
+      "peak_dbfs": -70.09275445193224,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       3,
+       0.0
+      ],
+      "to": [
+       4,
+       0.0
+      ],
+      "peak_dbfs": -67.33932385987133,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       4,
+       0.0
+      ],
+      "to": [
+       5,
+       0.0
+      ],
+      "peak_dbfs": -64.6214639770238,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       5,
+       0.0
+      ],
+      "to": [
+       6,
+       0.0
+      ],
+      "peak_dbfs": -64.45318374498679,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       6,
+       0.0
+      ],
+      "to": [
+       7,
+       0.0
+      ],
+      "peak_dbfs": -62.5014108107089,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       7,
+       0.0
+      ],
+      "to": [
+       9,
+       0.0
+      ],
+      "peak_dbfs": -57.41928503312485,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       9,
+       0.0
+      ],
+      "to": [
+       10,
+       0.0
+      ],
+      "peak_dbfs": -57.70643814281681,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       10,
+       0.0
+      ],
+      "to": [
+       11,
+       0.0
+      ],
+      "peak_dbfs": -56.39078930842711,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       11,
+       0.0
+      ],
+      "to": [
+       13,
+       0.0
+      ],
+      "peak_dbfs": -54.61145667589132,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       13,
+       0.0
+      ],
+      "to": [
+       15,
+       0.0
+      ],
+      "peak_dbfs": -54.84125847902134,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       15,
+       0.0
+      ],
+      "to": [
+       17,
+       0.0
+      ],
+      "peak_dbfs": -51.477066747824736,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       17,
+       0.0
+      ],
+      "to": [
+       20,
+       0.0
+      ],
+      "peak_dbfs": -49.80771481351076,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       20,
+       0.0
+      ],
+      "to": [
+       23,
+       0.0
+      ],
+      "peak_dbfs": -49.34927094622731,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       23,
+       0.0
+      ],
+      "to": [
+       25,
+       0.0
+      ],
+      "peak_dbfs": -47.92735063387699,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       25,
+       0.0
+      ],
+      "to": [
+       29,
+       0.0
+      ],
+      "peak_dbfs": -47.27659715099202,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       29,
+       0.0
+      ],
+      "to": [
+       31,
+       0.0
+      ],
+      "peak_dbfs": -44.46055748983799,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       31,
+       0.0
+      ],
+      "to": [
+       37,
+       0.0
+      ],
+      "peak_dbfs": -42.14364136673203,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       37,
+       0.0
+      ],
+      "to": [
+       42,
+       0.0
+      ],
+      "peak_dbfs": -42.98873024323213,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       42,
+       0.0
+      ],
+      "to": [
+       47,
+       0.0
+      ],
+      "peak_dbfs": -39.92477229113531,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       47,
+       0.0
+      ],
+      "to": [
+       53,
+       0.0
+      ],
+      "peak_dbfs": -41.37831689408135,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       53,
+       0.0
+      ],
+      "to": [
+       61,
+       0.0
+      ],
+      "peak_dbfs": -38.80879017918345,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_up",
+      "from": [
+       61,
+       0.0
+      ],
+      "to": [
+       63,
+       0.0
+      ],
+      "peak_dbfs": -38.8228550556495,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       63,
+       0.0
+      ],
+      "to": [
+       61,
+       0.0
+      ],
+      "peak_dbfs": -40.55176775347508,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       61,
+       0.0
+      ],
+      "to": [
+       53,
+       0.0
+      ],
+      "peak_dbfs": -37.671484253718376,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       53,
+       0.0
+      ],
+      "to": [
+       47,
+       0.0
+      ],
+      "peak_dbfs": -41.553425079586006,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       47,
+       0.0
+      ],
+      "to": [
+       42,
+       0.0
+      ],
+      "peak_dbfs": -43.92371723914095,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       42,
+       0.0
+      ],
+      "to": [
+       37,
+       0.0
+      ],
+      "peak_dbfs": -44.24969687346362,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       37,
+       0.0
+      ],
+      "to": [
+       31,
+       0.0
+      ],
+      "peak_dbfs": -45.24588137532349,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       31,
+       0.0
+      ],
+      "to": [
+       29,
+       0.0
+      ],
+      "peak_dbfs": -47.8364947083295,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       29,
+       0.0
+      ],
+      "to": [
+       25,
+       0.0
+      ],
+      "peak_dbfs": -47.86739867241592,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       25,
+       0.0
+      ],
+      "to": [
+       23,
+       0.0
+      ],
+      "peak_dbfs": -47.96039049473823,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       23,
+       0.0
+      ],
+      "to": [
+       20,
+       0.0
+      ],
+      "peak_dbfs": -48.83469540369303,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       20,
+       0.0
+      ],
+      "to": [
+       17,
+       0.0
+      ],
+      "peak_dbfs": -50.113523873979474,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       17,
+       0.0
+      ],
+      "to": [
+       15,
+       0.0
+      ],
+      "peak_dbfs": -52.57210957635329,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       15,
+       0.0
+      ],
+      "to": [
+       13,
+       0.0
+      ],
+      "peak_dbfs": -54.66535588541432,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       13,
+       0.0
+      ],
+      "to": [
+       11,
+       0.0
+      ],
+      "peak_dbfs": -55.40218114906321,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       11,
+       0.0
+      ],
+      "to": [
+       10,
+       0.0
+      ],
+      "peak_dbfs": -57.514029240340975,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       10,
+       0.0
+      ],
+      "to": [
+       9,
+       0.0
+      ],
+      "peak_dbfs": -58.524310293085705,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       9,
+       0.0
+      ],
+      "to": [
+       7,
+       0.0
+      ],
+      "peak_dbfs": -58.551901493375155,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       7,
+       0.0
+      ],
+      "to": [
+       6,
+       0.0
+      ],
+      "peak_dbfs": -63.612273099608274,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       6,
+       0.0
+      ],
+      "to": [
+       5,
+       0.0
+      ],
+      "peak_dbfs": -63.5328637074426,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       5,
+       0.0
+      ],
+      "to": [
+       4,
+       0.0
+      ],
+      "peak_dbfs": -65.2448250886112,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       4,
+       0.0
+      ],
+      "to": [
+       3,
+       0.0
+      ],
+      "peak_dbfs": -67.79283195844202,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       3,
+       0.0
+      ],
+      "to": [
+       2,
+       0.0
+      ],
+      "peak_dbfs": -70.87640463577947,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       2,
+       0.0
+      ],
+      "to": [
+       1,
+       0.0
+      ],
+      "peak_dbfs": -74.07349469167534,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "hw_dn",
+      "from": [
+       1,
+       0.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -81.06268701485718,
+      "detected": true,
+      "pump_ms": 11.041666666666666,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       31,
+       0.0
+      ],
+      "to": [
+       32,
+       0.0
+      ],
+      "peak_dbfs": -43.73993776864323,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       32,
+       0.0
+      ],
+      "to": [
+       31,
+       0.0
+      ],
+      "peak_dbfs": -46.582471559706036,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       15,
+       0.0
+      ],
+      "to": [
+       16,
+       0.0
+      ],
+      "peak_dbfs": -50.477934478713664,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       16,
+       0.0
+      ],
+      "to": [
+       15,
+       0.0
+      ],
+      "peak_dbfs": -52.93453917065947,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       7,
+       0.0
+      ],
+      "to": [
+       8,
+       0.0
+      ],
+      "peak_dbfs": -59.00925477429958,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       8,
+       0.0
+      ],
+      "to": [
+       7,
+       0.0
+      ],
+      "peak_dbfs": -61.458677863459464,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       3,
+       0.0
+      ],
+      "to": [
+       4,
+       0.0
+      ],
+      "peak_dbfs": -64.07557872679625,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       4,
+       0.0
+      ],
+      "to": [
+       3,
+       0.0
+      ],
+      "peak_dbfs": -68.36675690784017,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       1,
+       0.0
+      ],
+      "to": [
+       2,
+       0.0
+      ],
+      "peak_dbfs": -73.89509217533801,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       2,
+       0.0
+      ],
+      "to": [
+       1,
+       0.0
+      ],
+      "peak_dbfs": -73.3263807659212,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "bit",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       1,
+       0.0
+      ],
+      "peak_dbfs": -75.44436829153298,
+      "detected": true,
+      "pump_ms": 231.125,
+      "pump_open": true,
+      "flag": "pump"
+     },
+     {
+      "kind": "bit",
+      "from": [
+       1,
+       0.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -81.00140632550526,
+      "detected": true,
+      "pump_ms": 10.645833333333334,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       0,
+       1.0
+      ],
+      "peak_dbfs": -90.19046109688881,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       1.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -91.20326593100586,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       0,
+       3.0
+      ],
+      "peak_dbfs": -90.53593622286641,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       3.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -91.79680450694832,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       0,
+       6.0
+      ],
+      "peak_dbfs": -85.34999234826077,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       6.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -91.04573830562785,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       0.0
+      ],
+      "to": [
+       0,
+       12.0
+      ],
+      "peak_dbfs": -79.58903604115966,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "trim",
+      "from": [
+       0,
+       12.0
+      ],
+      "to": [
+       0,
+       0.0
+      ],
+      "peak_dbfs": -85.36269495293251,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "combo",
+      "from": [
+       6,
+       0.315
+      ],
+      "to": [
+       7,
+       0.401
+      ],
+      "peak_dbfs": -60.753399258274534,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     },
+     {
+      "kind": "combo",
+      "from": [
+       7,
+       0.401
+      ],
+      "to": [
+       6,
+       0.315
+      ],
+      "peak_dbfs": -63.00114814633098,
+      "detected": false,
+      "pump_ms": 0.0,
+      "pump_open": false,
+      "flag": ""
+     }
+    ],
+    "method": "s63_analyse.analyse_one on the span captures, limits from limits.csv"
+   }
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

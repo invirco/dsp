@@ -1,0 +1,1491 @@
+{
+ "absent": [
+  "Aux006AntiFbCtrlOn (index not on this product)",
+  "Aux006AntiFbOn (index not on this product)",
+  "Aux006DcaOn (index not on this product)",
+  "Aux006Delay (index not on this product)",
+  "Aux006EqGain (index not on this product)",
+  "Aux006EqHpf (index not on this product)",
+  "Aux006EqOn (index not on this product)",
+  "Aux006Level (index not on this product)",
+  "Aux006LimiterOn (index not on this product)",
+  "Aux006LimiterThr (index not on this product)",
+  "Aux006Mute (index not on this product)",
+  "Aux006Pan (index not on this product)",
+  "Chan005Instr (index not on this product)",
+  "Chan006Instr (index not on this product)"
+ ],
+ "fixture": "d24-out-aux06",
+ "generated_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ },
+ "path": {
+  "connector": "XLR",
+  "measure": {
+   "code": 0,
+   "loop_into": "MIC 5",
+   "meas_chan": 5,
+   "node": "C1_TEST_MEAS",
+   "refer": "lane dBFS -> output dBu: P + 3.01 + dac_fs_dbu - G_loop(ref, code 0) (S57)",
+   "send_pos": 15,
+   "strip": 5,
+   "xlr": "J25"
+  },
+  "panel": "Aux Out A6",
+  "physical_ref": null
+ },
+ "product": "d24",
+ "set": [
+  {
+   "cell": "Chan006InputSel001",
+   "chip": "1",
+   "dsp_add": 723,
+   "element": "ch.insel",
+   "neutral": "0",
+   "value": 0,
+   "why": "Mic = 0"
+  },
+  {
+   "cell": "Chan006Phantom001",
+   "chip": "1",
+   "dsp_add": 722,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "off"
+  },
+  {
+   "cell": "Chan006AntiClip001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node; auto gain reduction sits at the pre (M&W)"
+  },
+  {
+   "cell": "Chan006TubeOn001",
+   "chip": "1",
+   "dsp_add": 796,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node (tube saturation); bypassed"
+  },
+  {
+   "cell": "Chan006TubeSat001",
+   "chip": "1",
+   "dsp_add": 797,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node"
+  },
+  {
+   "cell": "Chan006Pol001",
+   "chip": "1",
+   "dsp_add": 721,
+   "element": "ch.phase",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqHpf001",
+   "chip": "1",
+   "dsp_add": 724,
+   "element": "ch.hpf",
+   "neutral": "0",
+   "value": 0,
+   "why": "lowest frequency (no HPF on/off cell)"
+  },
+  {
+   "cell": "Chan006EqLpf001",
+   "chip": "1",
+   "dsp_add": 730,
+   "element": "ch.lpf",
+   "neutral": "254",
+   "value": 254,
+   "why": "highest frequency (no LPF on/off cell)"
+  },
+  {
+   "cell": "Chan006GateOn001",
+   "chip": "1",
+   "dsp_add": 760,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006GateThr001",
+   "chip": "1",
+   "dsp_add": 761,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006GateRng001",
+   "chip": "1",
+   "dsp_add": 765,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006GateFilterOn001",
+   "chip": "1",
+   "dsp_add": 768,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqOn001",
+   "chip": "1",
+   "dsp_add": 757,
+   "element": "ch.eq",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqGain001",
+   "chip": "1",
+   "dsp_add": 736,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqGain002",
+   "chip": "1",
+   "dsp_add": 741,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqGain003",
+   "chip": "1",
+   "dsp_add": 746,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006EqGain004",
+   "chip": "1",
+   "dsp_add": 751,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006CompOn001",
+   "chip": "1",
+   "dsp_add": 776,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "S54-2: a donor strip left CompOn 1 compresses above -19 dBFS"
+  },
+  {
+   "cell": "Chan006CompThr001",
+   "chip": "1",
+   "dsp_add": 777,
+   "element": "ch.comp",
+   "neutral": "140",
+   "value": 140,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006CompRat001",
+   "chip": "1",
+   "dsp_add": 778,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006CompMake001",
+   "chip": "1",
+   "dsp_add": 781,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006CompPar001",
+   "chip": "1",
+   "dsp_add": 783,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006CompFilterOn001",
+   "chip": "1",
+   "dsp_add": 789,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006Delay001",
+   "chip": "1",
+   "dsp_add": 798,
+   "element": "ch.delay",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006InsertOn001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.ins",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006Level001",
+   "chip": "1",
+   "dsp_add": 800,
+   "element": "ch.fdr",
+   "neutral": "190",
+   "value": 190,
+   "why": "0 dB"
+  },
+  {
+   "cell": "Chan006Mute001",
+   "chip": "1",
+   "dsp_add": 802,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "unmuted"
+  },
+  {
+   "cell": "Chan006MuteGrp001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp002",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp003",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp004",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp005",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp006",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp007",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006MuteGrp008",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan006DcaOn001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "not following a DCA"
+  },
+  {
+   "cell": "Chan006Dca001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan006Pan001",
+   "chip": "1",
+   "dsp_add": 801,
+   "element": "ch.pan",
+   "neutral": "63",
+   "value": 63,
+   "why": "centre"
+  },
+  {
+   "cell": "Chan006Link001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.pan",
+   "neutral": "0",
+   "value": 0,
+   "why": "unlinked"
+  },
+  {
+   "cell": "Chan006MainOn001",
+   "chip": "1",
+   "dsp_add": 804,
+   "element": "ch.pan>bus.main",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006AuxOn006",
+   "chip": "1",
+   "dsp_add": 815,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 1,
+   "why": "assign neutral"
+  },
+  {
+   "cell": "Chan006AuxSend006",
+   "chip": "1",
+   "dsp_add": 827,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "254",
+   "value": 254,
+   "why": "0 dB send"
+  },
+  {
+   "cell": "Chan006AuxOn001",
+   "chip": "1",
+   "dsp_add": 810,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn002",
+   "chip": "1",
+   "dsp_add": 811,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn003",
+   "chip": "1",
+   "dsp_add": 812,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn004",
+   "chip": "1",
+   "dsp_add": 813,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn005",
+   "chip": "1",
+   "dsp_add": 814,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn007",
+   "chip": "1",
+   "dsp_add": 816,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006AuxOn008",
+   "chip": "1",
+   "dsp_add": 817,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: only bus 6 live"
+  },
+  {
+   "cell": "Chan006GrpOn001",
+   "chip": "1",
+   "dsp_add": 806,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006GrpOn002",
+   "chip": "1",
+   "dsp_add": 807,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006GrpOn003",
+   "chip": "1",
+   "dsp_add": 808,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006GrpOn004",
+   "chip": "1",
+   "dsp_add": 809,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn001",
+   "chip": "1",
+   "dsp_add": 846,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn002",
+   "chip": "1",
+   "dsp_add": 847,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn003",
+   "chip": "1",
+   "dsp_add": 848,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn004",
+   "chip": "1",
+   "dsp_add": 849,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn005",
+   "chip": "1",
+   "dsp_add": 850,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006FxOn006",
+   "chip": "1",
+   "dsp_add": 851,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006CtrOn001",
+   "chip": "1",
+   "dsp_add": 805,
+   "element": "ch.pan>sub",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006MatrixOn001",
+   "chip": "1",
+   "dsp_add": 4826,
+   "element": "ctl.auxpick>bus.mtx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan006MatrixOn002",
+   "chip": "1",
+   "dsp_add": 4827,
+   "element": "ctl.auxpick>bus.mtx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Aux006Geq006",
+   "chip": "2",
+   "dsp_add": 483,
+   "element": "aux.eq",
+   "neutral": "32",
+   "value": 32,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Aux006AntiFbNotchGain006",
+   "chip": "2",
+   "dsp_add": 522,
+   "element": "aux.fbs",
+   "neutral": "20",
+   "value": 20,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan001AuxOn006",
+   "chip": "1",
+   "dsp_add": 95,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 1 off bus"
+  },
+  {
+   "cell": "Chan002AuxOn006",
+   "chip": "1",
+   "dsp_add": 239,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 2 off bus"
+  },
+  {
+   "cell": "Chan003AuxOn006",
+   "chip": "1",
+   "dsp_add": 383,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 3 off bus"
+  },
+  {
+   "cell": "Chan004AuxOn006",
+   "chip": "1",
+   "dsp_add": 527,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 4 off bus"
+  },
+  {
+   "cell": "Chan005AuxOn006",
+   "chip": "1",
+   "dsp_add": 671,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 5 off bus"
+  },
+  {
+   "cell": "Chan007AuxOn006",
+   "chip": "1",
+   "dsp_add": 959,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 7 off bus"
+  },
+  {
+   "cell": "Chan008AuxOn006",
+   "chip": "1",
+   "dsp_add": 1103,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 8 off bus"
+  },
+  {
+   "cell": "Chan009AuxOn006",
+   "chip": "1",
+   "dsp_add": 1247,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 9 off bus"
+  },
+  {
+   "cell": "Chan010AuxOn006",
+   "chip": "1",
+   "dsp_add": 1391,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 10 off bus"
+  },
+  {
+   "cell": "Chan011AuxOn006",
+   "chip": "1",
+   "dsp_add": 1535,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 11 off bus"
+  },
+  {
+   "cell": "Chan012AuxOn006",
+   "chip": "1",
+   "dsp_add": 1679,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 12 off bus"
+  },
+  {
+   "cell": "Chan013AuxOn006",
+   "chip": "1",
+   "dsp_add": 1823,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 13 off bus"
+  },
+  {
+   "cell": "Chan014AuxOn006",
+   "chip": "1",
+   "dsp_add": 1967,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 14 off bus"
+  },
+  {
+   "cell": "Chan015AuxOn006",
+   "chip": "1",
+   "dsp_add": 2111,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 15 off bus"
+  },
+  {
+   "cell": "Chan016AuxOn006",
+   "chip": "1",
+   "dsp_add": 2255,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 16 off bus"
+  },
+  {
+   "cell": "Chan017AuxOn006",
+   "chip": "1",
+   "dsp_add": 2399,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 17 off bus"
+  },
+  {
+   "cell": "Chan018AuxOn006",
+   "chip": "1",
+   "dsp_add": 2543,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 18 off bus"
+  },
+  {
+   "cell": "Chan019AuxOn006",
+   "chip": "1",
+   "dsp_add": 2687,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 19 off bus"
+  },
+  {
+   "cell": "Chan020AuxOn006",
+   "chip": "1",
+   "dsp_add": 2831,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 20 off bus"
+  },
+  {
+   "cell": "Chan021AuxOn006",
+   "chip": "1",
+   "dsp_add": 2975,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 21 off bus"
+  },
+  {
+   "cell": "Chan022AuxOn006",
+   "chip": "1",
+   "dsp_add": 3119,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 22 off bus"
+  },
+  {
+   "cell": "Chan023AuxOn006",
+   "chip": "1",
+   "dsp_add": 3263,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 23 off bus"
+  },
+  {
+   "cell": "Chan024AuxOn006",
+   "chip": "1",
+   "dsp_add": 3407,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: strip 24 off bus"
+  },
+  {
+   "cell": "Chan005InputSel001",
+   "chip": "1",
+   "dsp_add": 579,
+   "element": "ch.insel",
+   "neutral": "0",
+   "value": 0,
+   "why": "Mic = 0"
+  },
+  {
+   "cell": "Chan005Phantom001",
+   "chip": "1",
+   "dsp_add": 578,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "off"
+  },
+  {
+   "cell": "Chan005AntiClip001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node; auto gain reduction sits at the pre (M&W)"
+  },
+  {
+   "cell": "Chan005TubeOn001",
+   "chip": "1",
+   "dsp_add": 652,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node (tube saturation); bypassed"
+  },
+  {
+   "cell": "Chan005TubeSat001",
+   "chip": "1",
+   "dsp_add": 653,
+   "element": "ch.pre",
+   "neutral": "0",
+   "value": 0,
+   "why": "not a topology node"
+  },
+  {
+   "cell": "Chan005Pol001",
+   "chip": "1",
+   "dsp_add": 577,
+   "element": "ch.phase",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqHpf001",
+   "chip": "1",
+   "dsp_add": 580,
+   "element": "ch.hpf",
+   "neutral": "0",
+   "value": 0,
+   "why": "lowest frequency (no HPF on/off cell)"
+  },
+  {
+   "cell": "Chan005EqLpf001",
+   "chip": "1",
+   "dsp_add": 586,
+   "element": "ch.lpf",
+   "neutral": "254",
+   "value": 254,
+   "why": "highest frequency (no LPF on/off cell)"
+  },
+  {
+   "cell": "Chan005GateOn001",
+   "chip": "1",
+   "dsp_add": 616,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005GateThr001",
+   "chip": "1",
+   "dsp_add": 617,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005GateRng001",
+   "chip": "1",
+   "dsp_add": 621,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005GateFilterOn001",
+   "chip": "1",
+   "dsp_add": 624,
+   "element": "ch.gate",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqOn001",
+   "chip": "1",
+   "dsp_add": 613,
+   "element": "ch.eq",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqGain001",
+   "chip": "1",
+   "dsp_add": 592,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqGain002",
+   "chip": "1",
+   "dsp_add": 597,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqGain003",
+   "chip": "1",
+   "dsp_add": 602,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005EqGain004",
+   "chip": "1",
+   "dsp_add": 607,
+   "element": "ch.eq",
+   "neutral": "60",
+   "value": 60,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005CompOn001",
+   "chip": "1",
+   "dsp_add": 632,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "S54-2: a donor strip left CompOn 1 compresses above -19 dBFS"
+  },
+  {
+   "cell": "Chan005CompThr001",
+   "chip": "1",
+   "dsp_add": 633,
+   "element": "ch.comp",
+   "neutral": "140",
+   "value": 140,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005CompRat001",
+   "chip": "1",
+   "dsp_add": 634,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005CompMake001",
+   "chip": "1",
+   "dsp_add": 637,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005CompPar001",
+   "chip": "1",
+   "dsp_add": 639,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005CompFilterOn001",
+   "chip": "1",
+   "dsp_add": 645,
+   "element": "ch.comp",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005Delay001",
+   "chip": "1",
+   "dsp_add": 654,
+   "element": "ch.delay",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005InsertOn001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.ins",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005Level001",
+   "chip": "1",
+   "dsp_add": 656,
+   "element": "ch.fdr",
+   "neutral": "190",
+   "value": 190,
+   "why": "0 dB"
+  },
+  {
+   "cell": "Chan005Mute001",
+   "chip": "1",
+   "dsp_add": 658,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "unmuted"
+  },
+  {
+   "cell": "Chan005MuteGrp001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp002",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp003",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp004",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp005",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp006",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp007",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005MuteGrp008",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "no mute group"
+  },
+  {
+   "cell": "Chan005DcaOn001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "not following a DCA"
+  },
+  {
+   "cell": "Chan005Dca001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.fdr",
+   "neutral": "0",
+   "value": 0,
+   "why": "neutral neutral"
+  },
+  {
+   "cell": "Chan005Pan001",
+   "chip": "1",
+   "dsp_add": 657,
+   "element": "ch.pan",
+   "neutral": "63",
+   "value": 63,
+   "why": "centre"
+  },
+  {
+   "cell": "Chan005Link001",
+   "chip": null,
+   "dsp_add": null,
+   "element": "ch.pan",
+   "neutral": "0",
+   "value": 0,
+   "why": "unlinked"
+  },
+  {
+   "cell": "Chan005MainOn001",
+   "chip": "1",
+   "dsp_add": 660,
+   "element": "ch.pan>bus.main",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn001",
+   "chip": "1",
+   "dsp_add": 666,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn002",
+   "chip": "1",
+   "dsp_add": 667,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn003",
+   "chip": "1",
+   "dsp_add": 668,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn004",
+   "chip": "1",
+   "dsp_add": 669,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn005",
+   "chip": "1",
+   "dsp_add": 670,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn007",
+   "chip": "1",
+   "dsp_add": 672,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005AuxOn008",
+   "chip": "1",
+   "dsp_add": 673,
+   "element": "ctl.auxpick>bus.aux",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005GrpOn001",
+   "chip": "1",
+   "dsp_add": 662,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005GrpOn002",
+   "chip": "1",
+   "dsp_add": 663,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005GrpOn003",
+   "chip": "1",
+   "dsp_add": 664,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005GrpOn004",
+   "chip": "1",
+   "dsp_add": 665,
+   "element": "ch.fdr>bus.grp",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn001",
+   "chip": "1",
+   "dsp_add": 702,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn002",
+   "chip": "1",
+   "dsp_add": 703,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn003",
+   "chip": "1",
+   "dsp_add": 704,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn004",
+   "chip": "1",
+   "dsp_add": 705,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn005",
+   "chip": "1",
+   "dsp_add": 706,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005FxOn006",
+   "chip": "1",
+   "dsp_add": 707,
+   "element": "pick.postfdr>bus.fx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005CtrOn001",
+   "chip": "1",
+   "dsp_add": 661,
+   "element": "ch.pan>sub",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005MatrixOn001",
+   "chip": "1",
+   "dsp_add": 4822,
+   "element": "ctl.auxpick>bus.mtx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  },
+  {
+   "cell": "Chan005MatrixOn002",
+   "chip": "1",
+   "dsp_add": 4823,
+   "element": "ctl.auxpick>bus.mtx",
+   "neutral": "1",
+   "value": 0,
+   "why": "isolation: path element off"
+  }
+ ],
+ "status": "ok",
+ "stimulus": {
+  "donor_strip": 6,
+  "kind": "test_osc"
+ },
+ "tests": [
+  {
+   "codes_factory": [
+    "unity"
+   ],
+   "codes_full": [
+    "unity"
+   ],
+   "factory": true,
+   "full": true,
+   "lane_dbfs_pk": -10.0,
+   "method": "chirp",
+   "name": "level / gain law",
+   "reads": "gain at 1 kHz per code; stage gains vs the universal table; code 63 vs the stage sum",
+   "test": "T1"
+  },
+  {
+   "codes": [
+    "unity"
+   ],
+   "factory": true,
+   "full": true,
+   "method": "chirp",
+   "name": "frequency response",
+   "points_hz": [
+    20,
+    50,
+    100,
+    200,
+    500,
+    1000,
+    2000,
+    5000,
+    10000,
+    15000,
+    20000
+   ],
+   "reads": "dB re 1 kHz at 20 50 100 200 500 1k 2k 5k 10k 15k 20k Hz",
+   "test": "T2"
+  },
+  {
+   "factory": true,
+   "freq_hz": 1000.0,
+   "full": true,
+   "lane_dbfs_pk": -3.0,
+   "method": "fft",
+   "name": "THD+N / THD",
+   "reads": "THD+N dB and % (min gain); THD h2..h10 dB and % (max gain; THD only until the harness pad)",
+   "test": "T3",
+   "thdn_code": "unity"
+  },
+  {
+   "bands": [
+    "20-20k",
+    "A",
+    "DC-24k"
+   ],
+   "factory": true,
+   "full": true,
+   "method": "fft",
+   "name": "noise floor",
+   "reads": "dBFS per code (inputs); dBu 20-20k + A at the output XLR",
+   "ref_input_code": 0,
+   "test": "T4"
+  },
+  {
+   "factory": true,
+   "full": true,
+   "method": "chirp",
+   "name": "polarity",
+   "reads": "sign of the impulse peak vs the loop's expected sign",
+   "test": "T5"
+  },
+  {
+   "factory": false,
+   "freq_hz": 1000.0,
+   "full": true,
+   "lane_dbfs_pk": -20.0,
+   "method": "meter",
+   "name": "mute depth (DSP strip mute)",
+   "reads": "dB of attenuation",
+   "test": "T6"
+  },
+  {
+   "factory": true,
+   "freq_hz": 10000.0,
+   "full": true,
+   "lane_dbfs_pk": -6.0,
+   "method": "meter",
+   "name": "crosstalk at 10 kHz",
+   "neighbours": "every other output",
+   "reads": "worst neighbour dB (coherent) and the detector floor",
+   "test": "T7"
+  },
+  {
+   "factory": true,
+   "full": true,
+   "method": "chirp",
+   "name": "latency",
+   "reads": "samples (group delay 1-2 kHz) and ms",
+   "test": "T8"
+  }
+ ],
+ "topology": [
+  "pick.postfdr",
+  "ctl.auxpick",
+  "bus.aux",
+  "aux.eq",
+  "aux.comp",
+  "aux.lim",
+  "aux.fbs",
+  "ctl.auxpickglob",
+  "io.out"
+ ],
+ "type": "output",
+ "undecidable": []
+}

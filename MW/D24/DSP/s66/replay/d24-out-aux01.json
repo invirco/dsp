@@ -1,0 +1,46 @@
+{
+ "base": "",
+ "fixture": "d24-out-aux01",
+ "items": {
+  "mute": {
+   "kind": "none",
+   "why": "no output mute measurement exists"
+  },
+  "outnoise": {
+   "files": [
+    "MW/D24/DSP/s57/data/aux1n_00.json",
+    "MW/D24/DSP/s57/data/aux1n_01.json",
+    "MW/D24/DSP/s57/data/aux1n_02.json",
+    "MW/D24/DSP/s57/data/aux1n_03.json",
+    "MW/D24/DSP/s57/data/aux1n_04.json",
+    "MW/D24/DSP/s57/data/aux1n_05.json",
+    "MW/D24/DSP/s57/data/aux1n_06.json",
+    "MW/D24/DSP/s57/data/aux1n_07.json",
+    "MW/D24/DSP/s57/data/aux1n_08.json",
+    "MW/D24/DSP/s57/data/aux1n_09.json",
+    "MW/D24/DSP/s57/data/aux1n_10.json",
+    "MW/D24/DSP/s57/data/aux1n_11.json",
+    "MW/D24/DSP/s57/data/aux1n_12.json",
+    "MW/D24/DSP/s57/data/aux1n_13.json",
+    "MW/D24/DSP/s57/data/aux1n_14.json",
+    "MW/D24/DSP/s57/data/aux1n_15.json",
+    "MW/D24/DSP/s57/data/aux1n_16.json",
+    "MW/D24/DSP/s57/data/aux1n_17.json",
+    "MW/D24/DSP/s57/data/aux1n_18.json",
+    "MW/D24/DSP/s57/data/aux1n_19.json"
+   ],
+   "kind": "capture",
+   "method": "S57 output noise via MIC 5 code 0"
+  },
+  "refgain:c00": {
+   "from": "MW/D24/DSP/s55/law.csv J25 code 0",
+   "kind": "value",
+   "value": 5.578
+  },
+  "xtalk10k": {
+   "kind": "none",
+   "why": "no output crosstalk measurement exists"
+  }
+ },
+ "what": "AUX 1 / J45 output noise: S57, looped into MIC 5 at code 0"
+}

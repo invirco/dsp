@@ -1,0 +1,273 @@
+{
+ "fixture": "d24-in-mic05",
+ "panel": "MIC 5",
+ "type": "input",
+ "unit": "MW-D24-2",
+ "mode": "factory",
+ "source": "replay MW/D24/DSP/s66/replay/d24-in-mic05.json (MIC 5 / J25: S61 chirps + tones, S63 THD avg + spans, S57 150 ohm, S60 T7, S54/S55 law)",
+ "verdict": "PASS",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "PASS",
+   "summary": "code 0 +5.578 dB, code 63 +58.743 dB (range 53.16 dB); code 63 vs stage sum -0.068 dB; worst stage vs universal +0.026 dB (code 32)",
+   "detail": {
+    "method": "chirp (dsp4_chirp, S60/S61 fast form)",
+    "rows": [
+     {
+      "code": 0,
+      "gain_db": 5.578,
+      "hw_re_c0_db": 0.0,
+      "universal_db": 0.0,
+      "dev_db": 0.0
+     },
+     {
+      "code": 1,
+      "gain_db": 18.423,
+      "hw_re_c0_db": 12.845,
+      "universal_db": 12.845,
+      "dev_db": 0.0
+     },
+     {
+      "code": 2,
+      "gain_db": 25.041,
+      "hw_re_c0_db": 19.463,
+      "universal_db": 19.463,
+      "dev_db": 0.0
+     },
+     {
+      "code": 4,
+      "gain_db": 32.474,
+      "hw_re_c0_db": 26.896,
+      "universal_db": 26.892,
+      "dev_db": 0.004
+     },
+     {
+      "code": 8,
+      "gain_db": 39.926,
+      "hw_re_c0_db": 34.348,
+      "universal_db": 34.342,
+      "dev_db": 0.006
+     },
+     {
+      "code": 16,
+      "gain_db": 47.17,
+      "hw_re_c0_db": 41.592,
+      "universal_db": 41.576,
+      "dev_db": 0.016
+     },
+     {
+      "code": 32,
+      "gain_db": 53.731,
+      "hw_re_c0_db": 48.153,
+      "universal_db": 48.127,
+      "dev_db": 0.026
+     },
+     {
+      "code": 63,
+      "gain_db": 58.743,
+      "hw_re_c0_db": 53.165,
+      "universal_db": 53.111,
+      "dev_db": 0.054
+     }
+    ],
+    "c63_stage_sum_db": 58.811205150075345,
+    "flags": [],
+    "provenance": [
+     "MW/D24/DSP/s61/data/chirp_c00_1.json",
+     "MW/D24/DSP/s61/data/chirp_c00_2.json",
+     "MW/D24/DSP/s61/data/chirp_c01_1.json",
+     "MW/D24/DSP/s61/data/chirp_c02_1.json",
+     "MW/D24/DSP/s61/data/chirp_c04_1.json",
+     "MW/D24/DSP/s61/data/chirp_c08_1.json",
+     "MW/D24/DSP/s61/data/chirp_c16_1.json",
+     "MW/D24/DSP/s61/data/chirp_c32_1.json",
+     "MW/D24/DSP/s61/data/chirp_c63_1.json",
+     "MW/D24/DSP/s61/data/chirp_c63_2.json"
+    ]
+   }
+  },
+  {
+   "test": "T2",
+   "verdict": "PASS",
+   "summary": "code 0: 20 Hz -0.42, 20 kHz -0.12; code 63: 20 Hz -2.07, 20 kHz -0.20",
+   "detail": {
+    "method": "chirp",
+    "response": {
+     "0": {
+      "20": -0.418,
+      "50": -0.049,
+      "100": 0.012,
+      "200": 0.029,
+      "500": 0.027,
+      "1000": 0.0,
+      "2000": -0.002,
+      "5000": -0.005,
+      "10000": 0.061,
+      "15000": -0.019,
+      "20000": -0.117
+     },
+     "63": {
+      "20": -2.068,
+      "50": -0.46,
+      "100": -0.138,
+      "200": -0.033,
+      "500": -0.003,
+      "1000": 0.0,
+      "2000": -0.049,
+      "5000": 0.0,
+      "10000": 0.058,
+      "15000": -0.042,
+      "20000": -0.195
+     }
+    },
+    "flags": []
+   }
+  },
+  {
+   "test": "T3",
+   "verdict": "PASS",
+   "summary": "THD+N code 0 -88.96 dB = 0.0036 %; THD code 63 -64.33 dB = 0.0608 % (coherent average), single capture -60.98 dB = 0.0893 %",
+   "detail": {
+    "flags": [],
+    "missing": [],
+    "thdn_min": {
+     "code": 0,
+     "thdn_db": -88.95893217898217,
+     "thd_db": -89.53277794330964,
+     "fund_dbfs": -6.0102326424557795,
+     "method": "FFT (dsp4_fft)",
+     "from": [
+      "MW/D24/DSP/s61/data/thdn_c00.json"
+     ]
+    },
+    "thd_max_single": {
+     "code": 63,
+     "thd_db": -60.979414315544076,
+     "thdn_db": -47.053222796375884,
+     "n": 1,
+     "method": "FFT h2..h10, 1 capture(s)",
+     "from": [
+      "MW/D24/DSP/s61/data/thdn_c63.json"
+     ]
+    },
+    "thd_max_avg": {
+     "floor_dbc": -103.15999555311109,
+     "n": 32,
+     "thd_db": -64.32666967484086,
+     "method": "coherent average (MW/D24/DSP/s63/data/s63_thd_J25.json)"
+    }
+   }
+  },
+  {
+   "test": "T4b",
+   "verdict": "PASS",
+   "summary": "EIN -127.2 dBu 20-20k / -130.5 dBu(A) (DC-24k -124.6; 20 captures, source 150 ohm across pins 2-3 (loop cable off))",
+   "detail": {
+    "flags": [],
+    "codes": {
+     "63": {
+      "captures": 20,
+      "lane_dbfs": {
+       "20-20k": -94.62754460457285,
+       "A": -97.92757370366351,
+       "DC-24k": -91.98945871275868
+      },
+      "dbu": {
+       "20-20k": -127.22999115313947,
+       "A": -130.53002025223014,
+       "DC-24k": -124.5919052613253
+      },
+      "loop_gain_db": 58.742746548566615,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s57/data/g1_00.json",
+       "MW/D24/DSP/s57/data/g1_01.json",
+       "MW/D24/DSP/s57/data/g1_02.json",
+       "MW/D24/DSP/s57/data/g1_03.json",
+       "MW/D24/DSP/s57/data/g1_04.json",
+       "MW/D24/DSP/s57/data/g1_05.json",
+       "MW/D24/DSP/s57/data/g1_06.json",
+       "MW/D24/DSP/s57/data/g1_07.json",
+       "MW/D24/DSP/s57/data/g1_08.json",
+       "MW/D24/DSP/s57/data/g1_09.json",
+       "MW/D24/DSP/s57/data/g1_10.json",
+       "MW/D24/DSP/s57/data/g1_11.json",
+       "MW/D24/DSP/s57/data/g1_12.json",
+       "MW/D24/DSP/s57/data/g1_13.json",
+       "MW/D24/DSP/s57/data/g1_14.json",
+       "MW/D24/DSP/s57/data/g1_15.json",
+       "MW/D24/DSP/s57/data/g1_16.json",
+       "MW/D24/DSP/s57/data/g1_17.json",
+       "MW/D24/DSP/s57/data/g1_18.json",
+       "MW/D24/DSP/s57/data/g1_19.json"
+      ]
+     }
+    },
+    "note": "dBu = P + 3.01 + 23.13 - G_loop(code), G from T1 of this run (chirp (dsp4_chirp, S60/S61 fast form))"
+   }
+  },
+  {
+   "test": "T5",
+   "verdict": "PASS",
+   "summary": "inverted (loop expects inverted)",
+   "detail": {
+    "method": "chirp code 0"
+   }
+  },
+  {
+   "test": "T7",
+   "verdict": "PASS",
+   "summary": "worst neighbour strip 17 -133.06 dB of 22, detector floor -144.18 dB",
+   "detail": {
+    "neighbours": {
+     "1": -138.08523205903973,
+     "10": -141.24506033324658,
+     "11": -136.39956899777405,
+     "12": -141.54409273269448,
+     "13": -140.26717376625652,
+     "14": -142.0954508832288,
+     "15": -143.0839324069211,
+     "16": -142.9994969812655,
+     "17": -133.05643418272913,
+     "18": -137.56642436040067,
+     "19": -148.6068465408262,
+     "2": -139.19104231877802,
+     "20": -139.82112427908243,
+     "21": -138.98582413189018,
+     "22": -136.44476679488275,
+     "23": -153.09647997495074,
+     "24": -139.53916356664794,
+     "3": -149.2214663467383,
+     "4": -139.98792745470786,
+     "7": -146.6788550910436,
+     "8": -145.4535800323559,
+     "9": -141.3630416405559
+    },
+    "control_db": -144.18202620881434,
+    "method": "S60 coherent 10 kHz, code 2, lane -6 dBFS pk",
+    "provenance": "MW/D24/DSP/s60/data/s60_t7.jsonl"
+   }
+  },
+  {
+   "test": "T8",
+   "verdict": "PASS",
+   "summary": "91.398 samples = 1.904 ms (loop nominal 91.40 +- 0.50)",
+   "detail": {
+    "method": "chirp code 0",
+    "latency_samples": 91.39817780897089
+   }
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

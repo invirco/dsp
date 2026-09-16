@@ -1,0 +1,208 @@
+{
+ "fixture": "d24-in-mic17",
+ "panel": "MIC 17",
+ "type": "input",
+ "unit": "MW-D24-2",
+ "mode": "factory",
+ "source": "replay MW/D24/DSP/s66/replay/d24-in-mic17.json (MIC 17 / J26: S55 (tone law, T2/T3/T5/T8 by TEST_MEAS, 150 ohm captures))",
+ "verdict": "INCOMPLETE",
+ "tests": [
+  {
+   "test": "T1",
+   "verdict": "PASS",
+   "summary": "code 0 +5.574 dB, code 63 +58.748 dB (range 53.17 dB); code 63 vs stage sum -0.101 dB; worst stage vs universal +0.087 dB (code 32)",
+   "detail": {
+    "method": "recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone)",
+    "rows": [
+     {
+      "code": 0,
+      "gain_db": 5.574,
+      "hw_re_c0_db": 0.0,
+      "universal_db": 0.0,
+      "dev_db": 0.0
+     },
+     {
+      "code": 1,
+      "gain_db": 18.422,
+      "hw_re_c0_db": 12.848,
+      "universal_db": 12.845,
+      "dev_db": 0.003
+     },
+     {
+      "code": 2,
+      "gain_db": 25.043,
+      "hw_re_c0_db": 19.469,
+      "universal_db": 19.463,
+      "dev_db": 0.006
+     },
+     {
+      "code": 4,
+      "gain_db": 32.47,
+      "hw_re_c0_db": 26.896,
+      "universal_db": 26.892,
+      "dev_db": 0.004
+     },
+     {
+      "code": 8,
+      "gain_db": 39.932,
+      "hw_re_c0_db": 34.358,
+      "universal_db": 34.342,
+      "dev_db": 0.016
+     },
+     {
+      "code": 16,
+      "gain_db": 47.19,
+      "hw_re_c0_db": 41.616,
+      "universal_db": 41.576,
+      "dev_db": 0.04
+     },
+     {
+      "code": 32,
+      "gain_db": 53.788,
+      "hw_re_c0_db": 48.214,
+      "universal_db": 48.127,
+      "dev_db": 0.087
+     },
+     {
+      "code": 63,
+      "gain_db": 58.748,
+      "hw_re_c0_db": 53.174,
+      "universal_db": 53.111,
+      "dev_db": 0.063
+     }
+    ],
+    "c63_stage_sum_db": 58.848903944037154,
+    "flags": [],
+    "provenance": [
+     "MW/D24/DSP/s55/law.csv"
+    ]
+   }
+  },
+  {
+   "test": "T2",
+   "verdict": "PASS",
+   "summary": "code 0: 20 Hz -0.41, 20 kHz -0.12; code 63: 20 Hz -2.12, 20 kHz -0.12",
+   "detail": {
+    "method": "recorded tone (MW/D24/DSP/s55/data/J26_loop.json t2)",
+    "response": {
+     "0": {
+      "100": 0.011,
+      "1000": 0.0,
+      "10000": 0.061,
+      "15000": -0.019,
+      "20": -0.413,
+      "200": 0.029,
+      "2000": -0.002,
+      "20000": -0.116,
+      "50": -0.05,
+      "500": 0.027,
+      "5000": -0.005
+     },
+     "63": {
+      "100": -0.125,
+      "1000": 0.0,
+      "10000": 0.066,
+      "15000": -0.013,
+      "20": -2.125,
+      "200": -0.016,
+      "2000": 0.005,
+      "20000": -0.115,
+      "50": -0.434,
+      "500": 0.021,
+      "5000": 0.007
+     }
+    },
+    "flags": []
+   }
+  },
+  {
+   "test": "T3",
+   "verdict": "NO DATA",
+   "summary": "THD+N code 0 -87.71 dB = 0.0041 %; THD-only at code 63 not measured (THD+N -44.32 dB = 0.6081 %, noise-limited)",
+   "detail": {
+    "flags": [],
+    "missing": [
+     "THD at max gain"
+    ],
+    "thdn_min": {
+     "code": 0,
+     "thdn_db": -87.7080446879069,
+     "method": "TEST_MEAS ThdResult",
+     "from": "MW/D24/DSP/s55/data/J26_loop.json t3"
+    },
+    "thdn_max_meter": {
+     "thdn_db": -44.32041231791178,
+     "from": "MW/D24/DSP/s55/data/J26_loop.json t3"
+    }
+   }
+  },
+  {
+   "test": "T4b",
+   "verdict": "PASS",
+   "summary": "EIN -128.7 dBu 20-20k / -130.9 dBu(A) (DC-24k -126.4; 6 captures, source 150 ohm across pins 2-3 (loop cable off))",
+   "detail": {
+    "flags": [],
+    "codes": {
+     "63": {
+      "captures": 6,
+      "lane_dbfs": {
+       "20-20k": -96.05558547286408,
+       "A": -98.31711602487255,
+       "DC-24k": -93.77823918026223
+      },
+      "dbu": {
+       "20-20k": -128.66328547286406,
+       "A": -130.92481602487254,
+       "DC-24k": -126.38593918026223
+      },
+      "loop_gain_db": 58.748,
+      "overruns": 0,
+      "from": [
+       "MW/D24/DSP/s55/data/J26_c63_0.json",
+       "MW/D24/DSP/s55/data/J26_c63_1.json",
+       "MW/D24/DSP/s55/data/J26_c63_2.json",
+       "MW/D24/DSP/s55/data/J26_c63_3.json",
+       "MW/D24/DSP/s55/data/J26_c63_4.json",
+       "MW/D24/DSP/s55/data/J26_c63_5.json"
+      ]
+     }
+    },
+    "note": "dBu = P + 3.01 + 23.13 - G_loop(code), G from T1 of this run (recorded tone/meter gain (TEST_MEAS coherent gain, 1 kHz tone))"
+   }
+  },
+  {
+   "test": "T5",
+   "verdict": "PASS",
+   "summary": "inverted (loop expects inverted)",
+   "detail": {
+    "method": "tone phase fit (MW/D24/DSP/s55/data/J26_loop.json t58)"
+   }
+  },
+  {
+   "test": "T7",
+   "verdict": "NO DATA",
+   "summary": "S55 did not measure crosstalk (S60 did, on MIC 5 only)",
+   "detail": {}
+  },
+  {
+   "test": "T8",
+   "verdict": "PASS",
+   "summary": "91.399 samples = 1.904 ms (loop nominal 91.40 +- 0.50)",
+   "detail": {
+    "method": "tone phase fit (MW/D24/DSP/s55/data/J26_loop.json t58)",
+    "latency_samples": 91.39891890181724
+   }
+  }
+ ],
+ "limits": "tools/accept/limits.csv",
+ "fixture_from": {
+  "contract": "defs-v2026.09.16.5",
+  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "loop": {
+   "donor_strip": 6,
+   "loop_aux": 1,
+   "ref_input": "MIC 5"
+  },
+  "matrix_gen": "39836144a9ba"
+ }
+}

@@ -1,0 +1,24 @@
+# limits.csv -- PROVISIONAL pass/flag limits for tools/pi/dsp4_accept.py (S66). PW tunes these; the runner reads
+# nothing else. Until the product's ranges are extracted from the manual/block/skins a FLAG is a number to look at,
+# not a reject (spec-audio-test-set.md).
+key,value,unit,source
+t1_stage_tol_db,0.5,dB,spec factory T1: each single-stage gain within +-0.5 dB of the universal table's mean for that code
+t1_c63_sum_tol_db,0.5,dB,spec factory T1: code 63 within +-0.5 dB of the sum of its stages (linear-additive)
+t1_monotonic,1,bool,spec T1 (full): every code's gain above the previous code with a lower bit set
+t2_path_tol_db,0.5,dB,spec T2: flag beyond +-0.5 dB re 1 kHz (path)
+t2_20hz_maxgain_down_db,2.5,dB,spec T2 (PW/team 09-16): 20 Hz at maximum gain may be up to 2.5 dB down
+t3_thdn_min_gain_max_db,-80.0,dB,provisional: S54/S55/S61 measured -86.7..-89.0 dB at lane -3 dBFS code 0
+t3_thd_max_gain_max_db,-55.0,dB,provisional: S63 -64.3 dB (32 averaged); S60 single capture -60.9 dB (noise in the bins)
+t4_out_noise_max_dbu,-80.0,dBu,provisional: S57 AUX 1 -84.55 dBu 20-20k unweighted
+t4_out_noise_a_max_dbu,-82.0,dBu(A),provisional: S57 AUX 1 -86.97 dBu(A)
+t4b_ein_max_dbu,-126.0,dBu,provisional: S55 14 channels -126.5..-128.7 dBu 20-20k; J31/J32 -123.2/-125.2 (HF excess)
+t4b_ein_a_max_dbu,-129.5,dBu(A),provisional: S55 14 channels -130.2..-130.9 dBu(A); J31 -128.7
+t5_expected,inverted,sign,the unit's loop (units.csv) overrides; S54/S55/S60: every MIC loop through AUX 1 inverts
+t6_mute_min_db,90.0,dB,provisional: no DSP-mute measurement exists yet (S54's T6 was the 595 bit 0 = phantom shunt)
+t7_xtalk_max_db,-90.0,dB,provisional: S60 worst neighbour at 10 kHz -133.06 dB
+t8_latency_tol_samples,0.5,samples,the unit's loop nominal (units.csv) +- this; S54/S55/S60 91.40..91.46
+a1_peak_max_dbfs,-60.0,dBFS,PW S63: artefact peak at the lane (silent)
+a1_pump_max_ms,50.0,ms,PW S63: no DC pump longer than this (silent)
+node_level_tol_db,0.1,dB,S65-3 acceptance: every band/row within 0.1 dB of the expected level
+node_octave_min_db,40.0,dB,S65-3: octave neighbours at least 40 dB down (40.7 measured worst)
+node_cold_max_dbfs,-120.0,dBFS,S65-3: the uncued/cold side at or below this

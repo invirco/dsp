@@ -1,0 +1,10 @@
+mode factory, 24 input + 11 output paths
+  d24-in-mic01     {'chirp_capture': 8, 'tone_capture': 2, 'silence_capture': 1, 'xtalk_neighbour_meter': 23} -> 51.5 s desk / 63.6 s CM4 analysis
+  d24-out-mainr    {'chirp_capture': 1, 'tone_capture': 1, 'silence_capture': 1, 'xtalk_neighbour_meter': 12} -> 19.6 s desk / 22.9 s CM4 analysis
+  manual loop, one path at a time: 24.2 min instrument time (desk analysis), 29.6 min CM4; + 35 cable moves = 41.7 min
+  harness (inputs): chirps 5.1 min + tone/noise 2.3 min + analysis 0.4 min = 7.8 min; + 10 kHz crosstalk by meter, every source x 23 neighbours, 10.0 min (total 17.8 min)
+mode full, 24 input + 11 output paths
+  d24-in-mic01     {'chirp_capture': 66, 'tone_capture': 11, 'silence_capture': 10, 'xtalk_neighbour_meter': 23, 'span_capture': 72} -> 758.3 s desk / 933.2 s CM4 analysis
+  d24-out-mainr    {'chirp_capture': 1, 'tone_capture': 3, 'silence_capture': 1, 'xtalk_neighbour_meter': 12} -> 23.6 s desk / 29.1 s CM4 analysis
+  manual loop, one path at a time: 307.7 min instrument time (desk analysis), 378.6 min CM4; + 35 cable moves = 325.2 min
+  harness (inputs): chirps 41.0 min + tone/noise/spans 222.0 min + analysis 6.4 min = 269.3 min; + 10 kHz crosstalk by meter, every source x 23 neighbours, 10.0 min (total 279.4 min)

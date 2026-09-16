@@ -1,0 +1,13 @@
+# step-costs.csv -- measured wall-clock per runner step, for the time projection (S66). Seconds.
+# Every number is a measurement on MW-D24-2 with the bulk readout (S61) unless the source says otherwise.
+step,seconds,source
+chirp_capture,2.46,S61-3: osc words 0.05 + chain 0.17 + settle 1.0 + 1.2 periods 0.41 + arm/fill ~0.5 + read 0.25
+tone_capture,1.89,S61-3: THD+N tone capture
+silence_capture,1.87,S61-3: EIN capture
+analysis_desk,0.10,S61-3: desk numpy per capture
+analysis_cm4,1.20,S61-3: CM4 stdlib per capture
+xtalk_neighbour_meter,1.09,S60-4: 22 neighbour strips (up + coherent window + restore) in 24 s
+harness_code_setup,1.20,S61-3: per code chain + settle once on the harness (all registers at one code)
+harness_lane_chirp,1.55,S61-3: per lane strip up 0.20 + 1.2 periods 0.41 + arm/fill 0.5 + read 0.25 + restore 0.19
+cable_move_manual,30.0,S61-3: assumed per cable move on the manual loop
+span_capture,7.16,S63-1: 8.6 min per channel for 72 transitions (A1)
