@@ -10,7 +10,7 @@ P = lambda *a: print(*a, flush=True)
 def mtr(n=40):
     m = 0.0
     for _ in range(n):
-        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_20'))); time.sleep(0.01)
+        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_%02d' % T.LOOP))); time.sleep(0.01)
     return m
 R.chain(63); R.meas(T.LOOP)
 L = -3.0 - 58.717

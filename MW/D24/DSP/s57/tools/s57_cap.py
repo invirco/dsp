@@ -1,5 +1,5 @@
-"""s57_cap.py <tag> <code> <count> [gap_s] [tone] — MIC 5 at <code> (150 ohm on J25), MeasChan 20, TEST_OSC off
-(or 1 kHz -20 dBFS pk on AUX 1 when tone=1), <count> 16k capture-arm captures of strip 20 post-fader, start-to-start
+"""s57_cap.py <tag> <code> <count> [gap_s] [tone] — MIC 5 at <code> (150 ohm on J25), MeasChan = the MIC 5 strip, TEST_OSC off
+(or 1 kHz -20 dBFS pk on AUX 1 when tone=1), <count> 16k capture-arm captures of the MIC 5 strip post-fader, start-to-start
 <gap_s> apart (0 = back to back). Each capture saved as data/<tag>_<i>.json with wall time, overruns and one TEST_MEAS
 window (RmsResult) taken straight after it."""
 import json, os, sys, time
@@ -14,7 +14,7 @@ tone = int(A[4]) if len(A) > 4 else 0
 D = '/home/app/s57/data'
 os.makedirs(D, exist_ok=True)
 r = T.Rig(logpath='/home/app/s57/s57_cap.jsonl')
-r.meas(20)
+r.meas(T.LOOP)
 if tone:
     r.osc(1000.0, -20.0, on=True)
 else:

@@ -17,18 +17,18 @@ def c2peak(n=16):
 def c1peak(n=16):
     m = 0.0
     for _ in range(n):
-        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_20'))); time.sleep(0.01)
+        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_%02d' % T.LOOP))); time.sleep(0.01)
     return m
 R.chain(0)
 for L in (-25.0, -20.0, -19.0, -18.5, -18.0, -17.0, -10.0):
     R.osc(1000.0, L)
     R.meas(6); d = R.windows(2, settle_windows=4, tag='knee_dig')
-    R.meas(20); m = R.windows(3, settle_windows=5, tag='knee_loop')
+    R.meas(T.LOOP); m = R.windows(3, settle_windows=5, tag='knee_loop')
     env = c2.sc.peek(c2.sc.sym['_lim_envelope_C2_AUX_LIM_01'])
     P('code 0 osc %6.2f | strip6 THD+N %8.2f coh %+6.3f | C2 AUX1 meter pk %+7.2f dBFS lim_env 0x%08X | loop coh pk %7.2f THD+N %7.2f dB (%.4f %%) C1 mtr pk %+7.2f'
       % (L, T.summ(d, 'thd'), T.summ(d, 'H_db'), T.dbv(c2peak()), env, T.summ(m, 'coh_pk_dbfs'), T.summ(m, 'thd'), T.pct(T.summ(m, 'thd')), T.dbv(c1peak())))
     T.log({'ev': 'knee_c2', 'osc': L, 'c2_aux1_peak_db': T.dbv(c2peak()), 'lim_env': env})
-R.chain(2); R.meas(20)
+R.chain(2); R.meas(T.LOOP)
 g2 = 25.041
 for tgt in (-20, -14, -13, -12, -10, -6, -3, -1, 0, 1):
     L = tgt - g2

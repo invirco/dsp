@@ -1,0 +1,30 @@
+# d24/inputs.csv — PROPOSED (S58): D24 mic inputs, XLR <-> preamp register <-> converter slot <-> console strip.
+# Source: D24 Analog PCBA rev B CADCAM netlist walk (mx26 docs/d24-analog-xlr-map.md), measured S51-4/S52-1/S55/S58.
+# chain_index counts from the 595 head (U34 = 0); send_pos = 24 - chain_index (first byte on the wire = far end).
+# sport_id/tdm_slot = the converter lane; rx_cell = the INPUT_TDM cell with that (sport, slot) in dsp.csv;
+# strip = the console channel (ChanNNN cells, C1_GAIN_NN) the host input patch delivers it to.
+panel,xlr,preamp_595,chain_index,send_pos,adc,sport_id,ain,tdm_slot,rx_cell,strip
+MIC 1,J15,U17,1,23,U15,0,8,7,C1_IN_08,1
+MIC 2,J17,U21,3,21,U15,0,6,5,C1_IN_06,2
+MIC 3,J19,U25,5,19,U15,0,3,2,C1_IN_03,3
+MIC 4,J21,U29,7,17,U15,0,1,0,C1_IN_01,4
+MIC 5,J25,U41,9,15,U39,1,8,7,C1_IN_16,5
+MIC 6,J27,U45,11,13,U39,1,6,5,C1_IN_14,6
+MIC 7,J29,U49,13,11,U39,1,3,2,C1_IN_11,7
+MIC 8,J31,U53,15,9,U39,1,1,0,C1_IN_09,8
+MIC 9,J35,U62,17,7,U60,2,8,7,C1_IN_24,9
+MIC 10,J37,U66,19,5,U60,2,6,5,C1_IN_22,10
+MIC 11,J39,U70,21,3,U60,2,3,2,C1_IN_19,11
+MIC 12,J41,U74,23,1,U60,2,1,0,C1_IN_17,12
+MIC 13,J16,U19,2,22,U15,0,7,6,C1_IN_07,13
+MIC 14,J18,U23,4,20,U15,0,5,4,C1_IN_05,14
+MIC 15,J20,U27,6,18,U15,0,4,3,C1_IN_04,15
+MIC 16,J22,U31,8,16,U15,0,2,1,C1_IN_02,16
+MIC 17,J26,U43,10,14,U39,1,7,6,C1_IN_15,17
+MIC 18,J28,U47,12,12,U39,1,5,4,C1_IN_13,18
+MIC 19,J30,U51,14,10,U39,1,4,3,C1_IN_12,19
+MIC 20,J32,U55,16,8,U39,1,2,1,C1_IN_10,20
+MIC 21,J36,U64,18,6,U60,2,7,6,C1_IN_23,21
+MIC 22,J38,U68,20,4,U60,2,5,4,C1_IN_21,22
+MIC 23,J40,U72,22,2,U60,2,4,3,C1_IN_20,23
+MIC 24,J42,U76,24,0,U60,2,2,1,C1_IN_18,24

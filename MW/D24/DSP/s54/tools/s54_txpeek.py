@@ -22,7 +22,7 @@ def txwords(n=160):
         except IOError:
             pass
     return [X.s32(x) / 2.0 ** 28 for x in w]
-R.chain(0); R.meas(20)
+R.chain(0); R.meas(T.LOOP)
 for L in [float(a) for a in _ARGV[1:]] or [-40.0, -20.0, -19.0, -18.5, -18.0, -15.0, -12.0]:
     R.osc(1000.0, L)
     m = R.windows(2, settle_windows=4, tag='txpeek')

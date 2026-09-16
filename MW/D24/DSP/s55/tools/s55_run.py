@@ -2,7 +2,7 @@
 """s55_run.py — S55 hands-free: the mic test on every powered channel, PW moves the cables, nobody types.
 
 Loop: DAC -> AUX 1 (J45) -> loop cable -> J2x -> preamp -> lane (strip) -> TEST_MEAS. Stimulus TEST_OSC on donor
-strip 6 -> AUX 1 (strip 1, an unpowered lane, when the channel under test IS lane 6 = J32). All 16 powered registers
+strip 6 -> AUX 1 (strip 1, an unpowered lane, when the channel under test IS strip 6: J27 under the S58 patch, J32 before). All 16 powered registers
 open at code 0, INSTR byte (p24) 0x00, images sent by s55_chain (spidev; chain-set cannot gain p0 = J42).
 
   WATCH   tone on AUX 1; scan the 16 powered lanes (raw RX peeks); the lane carrying it names the XLR (3 scans agree).
@@ -25,11 +25,12 @@ X = T.X
 HOME = '/home/app/s55'
 DATA = HOME + '/data'
 os.makedirs(DATA, exist_ok=True)
-# XLR, send position p, lane (strip), panel name
-CHANNELS = [('J25', 15, 20, 'MIC 5'), ('J26', 14, 19, 'MIC 17'), ('J27', 13, 18, 'MIC 6'), ('J28', 12, 17, 'MIC 18'),
-            ('J29', 11, 7, 'MIC 7'), ('J30', 10, 8, 'MIC 19'), ('J31', 9, 5, 'MIC 8'), ('J32', 8, 6, 'MIC 20'),
-            ('J35', 7, 24, 'MIC 9'), ('J36', 6, 23, 'MIC 21'), ('J37', 5, 22, 'MIC 10'), ('J38', 4, 21, 'MIC 22'),
-            ('J39', 3, 11, 'MIC 11'), ('J40', 2, 12, 'MIC 23'), ('J41', 1, 9, 'MIC 12'), ('J42', 0, 10, 'MIC 24')]
+# XLR, send position p, lane (strip), panel name -- from the one map (tools/pi/d24_inputs.py): the 16 powered XLRs
+# (U39 + U60; U15 = J15-J22 has no rails), strip under the landed D24_INPUT_PATCH. S55 ran under the pre-S58 patch,
+# so its records' "lane" is d24_inputs.strip(xlr, PRE_S58_PATCH).
+sys.path.insert(0, '/home/app/dspboot')
+import d24_inputs as D24
+CHANNELS = [(r.xlr, r.send, r.strip(), r.name) for r in D24.XLRS if r.adc in ('U39', 'U60')]
 BY_LANE = {c[2]: c for c in CHANNELS}
 # MIC 5's S54 law (loop gain dB per code): only the osc level's first guess per code
 G5 = [5.578, 18.423, 25.041, 27.713, 32.475, 33.711, 35.267, 36.18, 39.927, 40.472, 41.219, 41.691, 42.869, 43.26, 43.808,
@@ -404,7 +405,7 @@ def main():
             R.strip_restore(lane, saved)
             if R.donor != 6:
                 R.set_donor(6)
-            R.meas(20)
+            R.meas(T.LOOP)
         if xlr in done:
             PROMPT('%s (%s) DONE — move the loop cable to the next XLR' % (xlr, panel))
 

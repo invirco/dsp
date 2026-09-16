@@ -63,13 +63,19 @@ CFG_PATCH_BASE = 0xF010
 # gate 3 and deliberately not applied inside the release window.
 PRODUCT_IDS = {'d32': 0, 'd24': 1, 'd16': 1, 'd12': 1}
 
-# D24 console-channel interleave (product-config.md): packed RX DMA
-# channel i is delivered to the slot var of default index PATCH[i].
-# AD0 carries ch 1-4 & 13-16, AD1 ch 5-8 & 17-20, AD2 ch 9-12 & 21-24.
+# D24 input patch: packed RX DMA channel i is delivered to the slot var of
+# default index PATCH[i] (strip PATCH[i] + 1). i = 8 * AD + slot, AD0 = U15
+# (J15-J22), AD1 = U39 (J25-J32), AD2 = U60 (J35-J42). Within each AK5558
+# the netlist puts XLR position 1..8 on slot 7,6,5,4,2,3,0,1 and the panel
+# numbers alternate rows (J15 = ch 1, J16 = ch 13, ...), so each converter's
+# slot 7 is its first panel channel. The table is that walk, read per slot;
+# `d24_inputs.py` holds the XLR rows and checks every XLR lands on its panel
+# strip. S58 replaced the half-frame table ([0,1,2,3,12,13,14,15] + ...),
+# which assumed slots 0-3 = ch 1-4 and put MIC 5 on strip 20 (S52-1).
 D24_INPUT_PATCH = (
-    [0, 1, 2, 3, 12, 13, 14, 15]        # AD0 slots 0-7
-    + [4, 5, 6, 7, 16, 17, 18, 19]      # AD1
-    + [8, 9, 10, 11, 20, 21, 22, 23]    # AD2
+    [3, 15, 2, 14, 13, 1, 12, 0]        # AD0 = U15 slots 0-7
+    + [7, 19, 6, 18, 17, 5, 16, 4]      # AD1 = U39
+    + [11, 23, 10, 22, 21, 9, 20, 8]    # AD2 = U60
     + list(range(24, 32))               # AD3 lane: NET returns, identity
     + list(range(32, 46))               # superset sources, identity
 )

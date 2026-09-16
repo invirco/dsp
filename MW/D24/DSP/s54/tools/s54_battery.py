@@ -7,7 +7,7 @@
   t58 <G0 dB>          phase vs frequency (latency T8, polarity T5)
   t6 <G0 dB>           mute depth, register mute bit, alternating arms
   t7 <G0 dB>           crosstalk: every other strip 1..24
-  handback             MIC 5 open code 0, 1 kHz -20 dBFS on strip 6, MeasChan 20
+  handback             MIC 5 open code 0, 1 kHz -20 dBFS on strip 6, MeasChan = the MIC 5 strip
 
 Every record goes to /home/app/s54/s54_<gate>.jsonl.
 """
@@ -30,7 +30,7 @@ STRIP_KEYS = ['Gain001', 'Pol001', 'Level001', 'CompOn001', 'GateOn001', 'EqOn00
 def mtr_peak(n=24):
     m = 0.0
     for _ in range(n):
-        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_20')))
+        m = max(m, X.from_f32(R.peek('_mtr_peak_C1_MTR_%02d' % T.LOOP)))
         time.sleep(0.01)
     return m
 
@@ -155,7 +155,7 @@ elif gate == 't7':
     R.meas(T.LOOP)
     ref = R.windows(4, settle_windows=4, tag='t7ref')
     refpk = T.summ(ref, 'coh_pk_dbfs'); refrms = T.summ(ref, 'rms')
-    P('strip 20 (source): RMS %.2f dBFS, coherent peak %.2f dBFS' % (refrms, refpk))
+    P('the MIC 5 strip (source): RMS %.2f dBFS, coherent peak %.2f dBFS' % (refrms, refpk))
     worst = None
     for n in [s for s in range(1, 25) if s not in (T.DONOR, T.LOOP)]:
         pfx = 'Chan%03d' % n

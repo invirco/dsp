@@ -6,6 +6,63 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE D24 INPUT PATCH IN NETLIST ORDER: MIC 5 ON STRIP 5, EVERY MEASURED XLR ON ITS PANEL STRIP (2026-09-16, session 58 — desk + bench, MW-D24-2)
+
+**Pair:** `s56`, as S55 handed it back; nothing rebooted or flashed. AN_EN (`op pd | hi`) read at start and end, never written.
+**Loop:** PW's cable J45 → J25 (MIC 5), TEST_OSC 1 kHz −20 dBFS pk on donor strip 6 → AUX 1 (MainOn/CompOn 0), MIC 5's register
+as found (send p15 open, code 0). **No 595 write at all** (the tone was present, so the code-63 floor fallback did not run).
+Data `MW/D24/DSP/s58/data/` (`s58_prove.out/.json`, `s58.jsonl`); tool `MW/D24/DSP/s58/tools/s58_prove.py`. (In `s58_prove.out` the XLR names printed beside the pre-S58 and identity scans
+were looked up through the new patch — "20 (J32, rx 15)" is rx 15 = J25; the rx numbers are right, and the tool now labels by rx.)
+
+**S58-1. Landed and proven: `D24_INPUT_PATCH` = `[3,15,2,14,13,1,12,0] + [7,19,6,18,17,5,16,4] + [11,23,10,22,21,9,20,8]` + identity.**
+Written live to INPUT_PATCH[0..45] + CONFIG_COMMIT on the running pair. Raw RX peak of the tone, three scans per patch, strips 1–24:
+
+| patch | tone on strip | peak dBFS | next strip |
+|---|---:|---:|---|
+| as found (pre-S58 half-frame; `_c1_rx_node_entry` = its inverse, verified) | 20 | −14.43 | 18 at −99.39 |
+| **S58 netlist order** (`node_entry` = `[7,5,2,0,15,13,10,8,23,21,18,16,6,4,3,1,14,12,11,9,22,20,19,17]` = its inverse) | **5** | −14.45 | 6 at −103.99 |
+| identity (comparison) | 16 | −14.43 | 24 at −101.45 |
+| S58 re-applied | **5** | −14.45 | 7 at −102.63 |
+
+TEST_MEAS on strip 5 (made transparent, off every bus): RmsResult −17.43 dBFS, ThdResult −87.9 dB, coherent peak −14.42 dBFS —
+the S52 figures for MIC 5 at code 0 on strip 20 (−17.43 / −87.6). Strip 20 (now J32, no cable): −114.04 dBFS. Strip 16 (now J22,
+U15 section unpowered): exact digital zero. The S58 patch is left applied on the part and staged for boot
+(`~/dspboot` and `~/s56` `dsp4_config.py`, old copies `*.bak-2026-09-16-pre-s58`). `product-config.md`'s "verify the within-ADC8
+slot order" note is discharged with these numbers.
+
+**S58-2. Every channel S55 measured now resolves to its panel strip — read off the part, not assumed.** For each of the 16 XLRs S55
+detected (U39 + U60), the RX entry the part resolved for its S55 lane under the old patch equals the entry the part now resolves for
+its panel strip, and both equal the netlist slot (8 × AD + slot): J25 20→rx15→5, J26 19→14→17, J27 18→13→6, J28 17→12→18,
+J29 7→10→7, J30 8→11→19, J31 5→8→8, J32 6→9→20, J35 24→23→9, J36 23→22→21, J37 22→21→10, J38 21→20→22, J39 11→18→11,
+J40 12→19→23, J41 9→16→12, J42 10→17→24 — 16/16. This is the U60 proof the gate asked for (J41 → strip 12, J35 → strip 9): only
+J25 is cabled, so the other 15 are proven through S55's tone detections plus the part's own tables. U15 (J15–J22) is unmeasured.
+
+**S58-3. The dispatch's expectation "strip 16 = C1_IN_16" names the LANE, and the ruled patch delivers that lane to STRIP 5; and
+`s54lib.chain` had gone stale.** (a) `C1_IN_16` (`sport_id=1;slot_start=7`) is J25's converter lane and stays right in dsp.csv.
+The ruled array puts packed RX 15 on strip index 4 (`patch[15] = 4`): strip 5 = `Chan005` = panel MIC 5. Only the identity patch
+puts J25 on strip 16, and that is a console where fader 16 plays MIC 5. Measured both ways (S58-1), landed the ruled array. "Lane N"
+and "strip N" are different numbers from here on: tools say **strip** for the console channel (`d24_inputs.strip(xlr)`) and
+**lane** for the `C1_IN_nn` INPUT_TDM cell (`Xlr.lane`). The declaration carries both (`proposals/CONTRACT-PROPOSAL-S58.md`).
+(b) Every S54/S57 tool reached MIC 5 through `s54lib.Rig.chain` = `app cli chain-set ch8:… ch24:mute=0 instr1=1`, S52's workaround
+for the reversed wire order. Since the app's wire-order fix (`AnalogControlChain.ToWire`), `ch8` is J31's register and that image
+unmutes J42 and asserts INSTR1 again. It now sends the bytes by spidev (`s55_chain`, send position 15, every other register muted,
+INSTR byte 0x00), independent of the app build.
+
+**Tools changed (gate 3).** One map, `tools/pi/d24_inputs.py` (XLR, panel, 595 ref, chain index, send position, ADC, AIN, slot,
+lane; strip computed from `D24_INPUT_PATCH`; `PRE_S58_PATCH` to read old records). Hard-coded MIC 5 = 20 replaced by
+`d24_inputs.MIC5_STRIP` / `s54lib.LOOP` in: `tools/pi/dsp4_s48_scan.py` (also scans strips 1–24, not 1–12, labelled by XLR);
+`s52/tools/s52lib.py` (patch from dsp4_config); `s54/tools/s54lib.py` (LOOP, chain), `s54_battery.py`, `s54_knee.py`,
+`s54_t3c63.py`, `s54_txpeek.py`; `s55/tools/s55_run.py` (CHANNELS generated), `s55_handback.py`, `s55_repeat.py`, `s55_ingest.py`
+(`channels.md` regenerated with "lane (S55)" and "strip (S58)" columns, no figure changed); `s56/tools/s56_setup.py`, `s56_fs.py`;
+`s57/tools/s57_cap.py`, `s57_code0.py`, `s57_code63.py`, `s57_gain_set.py`, `s57_handback.py`, `s57_lfrec.py`, `s57_link.py`,
+`s57_pw_setup.py`, `s57_readline.py`, `s57_readonly.py`. All deployed to the Pi (old copies `*.bak-2026-09-16-pre-s58`) and imported
+there (`LOOP 5`). Left as records: the S52 shell scripts (`s52_law.sh`, `s52_meas51.sh`, `--meas 20` for the s49tap pair, which
+is not the running pair). `s57_readonly.py`'s "strip 20" console text became "the MIC 5 strip".
+
+**Unit handed back:** OscOn 0, OscChan 6, strip 6 and strip 5 as found (read back equal), MeasChan **5** (= MIC 5; was 20 = MIC 5
+under the old patch), chain image as found (J25 open code 0, rest muted, INSTR off; not rewritten), S58 patch applied, AN_EN hi.
+Loop cable still on J25.
+
 ## SIXTEEN MIC PREAMPS, ONE LAW: THE UNIVERSAL STEP/TRIM TABLE HOLDS TO 0.08 dB; J29 HAS A STAGE OFF-VALUE, J31/J32 A HIGH-FREQUENCY NOISE EXCESS (2026-09-16, session 55 — bench, MW-D24-2, hands-free)
 
 **Pair:** `s56`, as S56/S57 left it; nothing rebooted or flashed. AN_EN (`op pd | hi`) read before every channel, never written.

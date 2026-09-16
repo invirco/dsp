@@ -8,8 +8,8 @@ import os
 SYMDIR = os.environ.get('SYMDIR', '/home/app/s49tap')
 L = json.load(open('/home/app/dspboot/landed-d24.json'))['cells']
 CFG_COMMIT, CFG_PATCH_BASE = 0xF004, 0xF010
-D24_PATCH = ([0, 1, 2, 3, 12, 13, 14, 15] + [4, 5, 6, 7, 16, 17, 18, 19]
-             + [8, 9, 10, 11, 20, 21, 22, 23] + list(range(24, 46)))
+from dsp4_config import D24_INPUT_PATCH as _P  # the landed patch (S58: netlist order)
+D24_PATCH = list(_P)
 
 
 def f32(x): return struct.unpack('<I', struct.pack('<f', float(x)))[0]

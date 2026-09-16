@@ -1,7 +1,7 @@
 """s54lib — the standard audio test set (T1-T8) driver for the MIC 5 -> AUX 1 loop, no-tap pair.
 
-Stimulus = TEST_OSC on donor strip 6 (-> AUX 1 -> DAC -> J25 -> MIC 5 -> strip 20).
-Measurement = TEST_MEAS on strip 20: RmsResult / ThdResult / NoiseResult, plus the
+Stimulus = TEST_OSC on donor strip 6 (-> AUX 1 -> DAC -> J25 -> MIC 5 -> the MIC 5 strip).
+Measurement = TEST_MEAS on the MIC 5 strip: RmsResult / ThdResult / NoiseResult, plus the
 window's own fit coefficients `_meas_a_` / `_meas_b_` (peeked), which give the
 tone's COHERENT amplitude and phase against the injected reference.
 
@@ -19,7 +19,9 @@ import s52lib as X                                          # noqa: E402
 FS = 48000.0
 A_MEASCHAN, A_RMS, A_THD, A_NOISE, A_XSRC, A_XDST, A_XTALK, A_SEQ = range(4967, 4975)
 A_OSCON, A_OSCFREQ, A_OSCLEVEL, A_OSCCHAN = range(4975, 4979)
-DONOR, LOOP = 6, 20
+sys.path.insert(0, '/home/app/dspboot')
+import d24_inputs as D24                                     # noqa: E402
+DONOR, LOOP = 6, D24.MIC5_STRIP     # MIC 5 = J25's strip under the landed D24_INPUT_PATCH (5 since S58; 20 before)
 WIN_S = 4096 / FS
 LOG = None
 
@@ -83,21 +85,25 @@ class Rig:
 
     # ---- analog chain --------------------------------------------------
     def chain(self, code, mute=0):
-        """MIC 5 register alone open (send p=15, label ch8), phantom off. ch24:mute=0 lands on U34
-        (INSTR off) and instr1=1 lands on J42 (mute) -- S52-2's reversed-chain hand-back image."""
-        cmd = ['/home/app/app', 'cli', 'chain-set', '27', 'ch8:mute=%d,gain=%d' % (mute, code), 'ch24:mute=0', 'instr1=1']
-        for attempt in range(3):
-            out = subprocess.run(cmd, capture_output=True, text=True).stdout
-            ok = 'VERIFIED' in out and '200/200' in out
-            byte = [l for l in out.splitlines() if '[15] ch8' in l]
+        """MIC 5's register (J25 = U41, chain index 9 = send position 15) alone open, phantom off, every other register
+        muted, INSTR byte (send position 24 = U34) 0x00: the image as bytes on the wire, by spidev (s55_chain), so it
+        does not depend on which side of the app's 2026-09-16 wire-order fix `chain-set`'s channel labels are."""
+        sys.path.insert(0, '/home/app/s55')
+        import s55_chain as CH
+        img = [0x01] * 25
+        img[D24.MIC5.send] = CH.byte(mute=mute, gain=code)
+        img[24] = 0x00
+        for attempt in range(4):
+            ok, got = CH.send(img)
             if ok:
                 break
-        log({'ev': 'chain', 'code': code, 'mute': mute, 'verified': ok, 'p15': byte[-1].strip() if byte else None})
+        byte = 'p%d=0x%02X' % (D24.MIC5.send, img[D24.MIC5.send])
+        log({'ev': 'chain', 'code': code, 'mute': mute, 'verified': ok, 'p15': byte, 'img': ['%02X' % b for b in img]})
         if not ok:
-            raise SystemExit('chain-set code %d mute %d NOT VERIFIED:\n%s' % (code, mute, out[-800:]))
+            raise SystemExit('chain image code %d mute %d NOT VERIFIED: %s' % (code, mute, got))
         subprocess.run(['sudo', 'pinctrl', 'set', '6,24', 'op', 'dh'], check=True)
         self.code = code
-        return byte[-1].strip() if byte else ''
+        return byte
 
     # ---- oscillator / measurement ---------------------------------------
     def osc(self, freq=None, level_db=None, on=True, chan=DONOR):

@@ -30,6 +30,7 @@ _A = sys.argv[1:]
 sys.argv = ['s']
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import d24_inputs as D24
 
 DONOR = int(_A[0]) if len(_A) > 0 else 6
 N     = int(_A[1]) if len(_A) > 1 else 3
@@ -103,8 +104,9 @@ def c2_lane(name, n=16):
 
 def sweep():
     out = {}
-    for L in range(1, 13):
-        out['C1 lane %2d' % L] = c1_lane(L)
+    for L in range(1, 25):     # all 24 analog strips (S51-4: lanes 13-24 are converter slots too)
+        x = D24.xlr_on(L)
+        out['C1 lane %2d %s' % (L, x.xlr if x else '')] = c1_lane(L)
     for n in IC_WATCH:
         out['C2 %s' % n] = c2_lane(n)
     return out
@@ -136,13 +138,13 @@ print('pass 3: stimulus OFF again (must fall back)', flush=True)
 off2 = sweep()
 
 print('', flush=True)
-print('%-18s %10s %10s %10s %10s   %s'
+print('%-22s %10s %10s %10s %10s   %s'
       % ('lane', 'off1 rms', 'ON rms', 'off2 rms', 'ON peak', 'verdict'), flush=True)
 hits = []
 for k in off1:
     a = off1[k][0]; b = on[k][0]; b2 = on2[k][0]; c = off2[k][0]; pk = on[k][1]
     if a is None or b is None:
-        print('%-18s   unreadable' % k, flush=True)
+        print('%-22s   unreadable' % k, flush=True)
         continue
     rise = db(b) - db(a)
     fall = db(b) - db(c) if c else 0.0
@@ -153,7 +155,7 @@ for k in off1:
         hits.append((k, rise, pk))
     elif rise > 6.0:
         v = 'rose %+.1f dB but did NOT fall back — not the stimulus' % rise
-    print('%-18s %10.2f %10.2f %10.2f %10.2f   %s'
+    print('%-22s %10.2f %10.2f %10.2f %10.2f   %s'
           % (k, db(a), db(b), db(c), db(pk) if pk else float('-inf'), v), flush=True)
 
 print('', flush=True)
@@ -161,7 +163,7 @@ print('NOTE ON THE CHIP-2 LANES: they are the INTER-CHIP fabric carrying chip 1\
 print('mix buses to chip 2, i.e. DOWNSTREAM of the injection and part of the DSP\'s', flush=True)
 print('own path. C2_RECV_MAIN_L and C2_RECV_AUX_01 rising is EXPECTED and is a', flush=True)
 print('positive control that the stimulus is real -- it is NOT the analog return.', flush=True)
-print('Only chip-1 lanes 1-12 are analog inputs and only they can answer the loop.', flush=True)
+print('Only chip-1 lanes 1-24 are analog inputs and only they can answer the loop.', flush=True)
 print('', flush=True)
 analog_hits = [h for h in hits if h[0].startswith('C1 ')]
 fabric_hits = [h for h in hits if not h[0].startswith('C1 ')]
@@ -173,9 +175,9 @@ if hits:
     for k, r, pk in sorted(hits, key=lambda x: -x[1]):
         print('HIT: %s rises %+.1f dB, peak %.2f dBFS%s'
               % (k, r, db(pk), '  — CLIPPING' if pk and pk > 0.5 else ''), flush=True)
-    print('The loop returns on the lane(s) above. If that is not the lane this '
-          'session calls MIC %d, the RX lane <-> physical channel map is the '
-          'fault, not the audio path.' % 5, flush=True)
+    print('The loop returns on the lane(s) above. MIC 5 (J25) is lane %d under the '
+          'landed D24_INPUT_PATCH; if the hit is elsewhere, the RX lane <-> physical '
+          'channel map is the fault, not the audio path.' % D24.MIC5_STRIP, flush=True)
 else:
     print('NO ANALOG INPUT LANE carries the stimulus. With the square proven '
           'present at J45 AND at J25 pins 2-3 on a DMM, and the 595 image for '

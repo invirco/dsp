@@ -1,4 +1,4 @@
-"""s57_lfrec.py <tag> <seconds> — a long, slow record of MIC 5's raw RX lane (strip 20's converter slot, rx24in32,
+"""s57_lfrec.py <tag> <seconds> — a long, slow record of MIC 5's raw RX lane (the MIC 5 strip converter slot, rx24in32,
 before any strip processing): one live RX word peeked per sample, wall-clock stamped, for <seconds>. At ~600 point
 samples/s the audio-band noise aliases flat across 0-300 Hz, and anything concentrated below a few Hz stands far
 above it -- the record the 0.34 s capture is too short to give (is the sub-20 Hz wander periodic, and at what rate).
@@ -12,7 +12,7 @@ X = T.X
 tag, secs = ARGV[1], float(ARGV[2])
 r = T.Rig(logpath='/home/app/s57/s57_lfrec.jsonl')
 sc = r.sc
-e = sc.peek(sc.sym['_c1_rx_node_entry'] + 20 - 1)
+e = sc.peek(sc.sym['_c1_rx_node_entry'] + T.LOOP - 1)
 off = sc.peek(sc.sym['_c1_rx_off'] + e); st = sc.peek(sc.sym['_c1_rx_stride'] + e)
 bufs = sc.sym['_rx_active_buf']
 t, v = [], []

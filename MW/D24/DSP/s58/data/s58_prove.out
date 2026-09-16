@@ -1,0 +1,13 @@
+14:43:12 S58 prove — MIC 5 = J25 = U39 rx 15 -> strip 5 under D24_INPUT_PATCH (pre-S58: 20); AN_EN 26: op -- pd | hi // GPIO26 = output
+14:43:13 found: OscOn 0 OscChan 6 MeasChan 20
+14:43:13 node_entry[1..24] as found: [0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 4, 5, 6, 7, 12, 13, 14, 15, 20, 21, 22, 23]  pre-S58 inverse: True  new inverse: False
+14:43:16 pre-S58 patch, tone on: top strips by peak: 20 (J32, rx 15) -14.43, 18 (J28, rx 13) -99.39, 19 (J30, rx 14) -103.67, 11 (J39, rx 18) -104.32
+14:43:16 after D24_INPUT_PATCH + COMMIT: node_entry [7, 5, 2, 0, 15, 13, 10, 8, 23, 21, 18, 16, 6, 4, 3, 1, 14, 12, 11, 9, 22, 20, 19, 17]  == new inverse: True
+14:43:19 S58 patch, tone on: top strips by peak: 5 (J25, rx 15) -14.45, 6 (J27, rx 13) -103.99, 7 (J29, rx 10) -104.15, 17 (J26, rx 14) -104.15
+14:43:20 TEST_MEAS strip  5 (J25): RmsResult -17.43 dBFS, ThdResult -87.91 dB, coherent pk -14.42 dBFS
+14:43:21 TEST_MEAS strip 16 (J22): RmsResult -336.12 dBFS, ThdResult 0.00 dB, coherent pk -inf dBFS
+14:43:21 TEST_MEAS strip 20 (J32): RmsResult -114.04 dBFS, ThdResult -0.00 dB, coherent pk -148.29 dBFS
+14:43:24 IDENTITY patch, tone on: top strips by peak: 16 (J22, rx 15) -14.43, 24 (J42, rx 23) -101.45, 9 (J35, rx 8) -102.35, 19 (J30, rx 18) -102.91
+14:43:26 S58 patch re-applied, tone on: top strips by peak: 5 (J25, rx 15) -14.45, 7 (J29, rx 10) -102.63, 8 (J31, rx 8) -102.91, 19 (J30, rx 11) -103.36
+14:43:27 S55 cross-check (XLR: S55 lane -> rx -> strip now): J25 20->15->5, J26 19->14->17, J27 18->13->6, J28 17->12->18, J29 7->10->7, J30 8->11->19, J31 5->8->8, J32 6->9->20, J35 24->23->9, J36 23->22->21, J37 22->21->10, J38 21->20->22, J39 11->18->11, J40 12->19->23, J41 9->16->12, J42 10->17->24
+14:43:27 HANDBACK {'osc_on': 0, 'osc_chan': 6, 'meas': 5, 'strip6': True, 'strip5': True, 'entry_is_new': True, 'an_en': '26: op -- pd | hi // GPIO26 = output'}

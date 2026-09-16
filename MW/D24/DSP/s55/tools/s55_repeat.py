@@ -59,6 +59,6 @@ else:
 R.osc(on=False)
 R.chain(0)
 R.strip_restore(lane, saved)
-R.meas(20)
+R.meas(T.LOOP)
 S.P('DONE status=%s' % status)
 sys.exit(0 if status == 'refit' else 2)

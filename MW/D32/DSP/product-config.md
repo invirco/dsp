@@ -49,29 +49,43 @@ snake (38-45). Out-of-range values clamp.
 
 ### D24 preset
 
-D24's analog boards interleave console channels across the three fitted
-ADC8s (hardware-map.md): AD0 carries ch 1-4 & 13-16, AD1 ch 5-8 & 17-20,
-AD2 ch 9-12 & 21-24. AD3 has no D24 ADC (NET-only). The patch below maps
-each packed DMA channel to the console strip that should receive it
-(strip k is default index k-1):
+D24's analog board (D24 Analog rev B netlist, mx26 `docs/d24-analog-xlr-map.md`)
+puts eight mic XLRs on each of three AK5558s: U15 = AD0 (J15–J22), U39 = AD1
+(J25–J32), U60 = AD2 (J35–J42). AD3 has no D24 ADC (NET-only). Within each
+converter the XLRs were placed for layout, not channel number: XLR position
+1..8 → AIN 8,7,6,5,3,4,1,2 → **TDM slot 7,6,5,4,2,3,0,1**, and the panel
+numbers alternate rows along the board (J15 = ch 1, J16 = ch 13, J17 = ch 2 …).
+The patch delivers each converter slot to its panel strip (strip k is default
+index k−1; packed RX `i` = 8 × AD + slot):
 
-| DMA ch (lane/slot) | Console ch | INPUT_PATCH[i] |
-|---|---|---|
-| 0-3 (AD0 s0-3) | 1-4 | 0,1,2,3 |
-| 4-7 (AD0 s4-7) | 13-16 | 12,13,14,15 |
-| 8-11 (AD1 s0-3) | 5-8 | 4,5,6,7 |
-| 12-15 (AD1 s4-7) | 17-20 | 16,17,18,19 |
-| 16-19 (AD2 s0-3) | 9-12 | 8,9,10,11 |
-| 20-23 (AD2 s4-7) | 21-24 | 20,21,22,23 |
-| 24-31 (AD3) | NET returns 25-32 | 24..31 (identity) |
-| 32-45 | superset sources | identity |
+| DMA ch `i` (AD, slot 0–7) | XLRs on slots 0–7 | Console ch (strip) | INPUT_PATCH[i] |
+|---|---|---|---|
+| 0-7 (AD0 = U15) | J21 J22 J19 J20 J18 J17 J16 J15 | 4 16 3 15 14 2 13 1 | 3,15,2,14,13,1,12,0 |
+| 8-15 (AD1 = U39) | J31 J32 J29 J30 J28 J27 J26 J25 | 8 20 7 19 18 6 17 5 | 7,19,6,18,17,5,16,4 |
+| 16-23 (AD2 = U60) | J41 J42 J39 J40 J38 J37 J36 J35 | 12 24 11 23 22 10 21 9 | 11,23,10,22,21,9,20,8 |
+| 24-31 (AD3) | — | NET returns 25-32 | 24..31 (identity) |
+| 32-45 | — | superset sources | identity |
+
+The per-XLR rows (panel name, 595 chain index and send position, converter,
+AIN, slot, packed RX, strip) are `tools/pi/d24_inputs.py`, which computes the
+strip from `dsp4_config.D24_INPUT_PATCH` and asserts every XLR lands on its
+panel strip; `proposals/CONTRACT-PROPOSAL-S58.md` proposes the table as a defs
+declaration that generates the patch.
 
 D24 also boots CHAN_MASK = 0x00FFFFFF (strips 25-32 unused unless NET
 sources are patched in).
 
-NOTE: verify the within-ADC8 slot order (ch 1-4 on slots 0-3 vs
-interleaved) against the D24 Analog rev B converter wiring before
-bring-up; the table assumes block order per the hardware map reading.
+**Slot order verified on the part (S58, 2026-09-16; was "verify before
+bring-up").** The previous table assumed block order (AD slots 0–3 = ch 1–4,
+4–7 = ch 13–16) and put MIC 5 on strip 20 (S52-1). With the loop cable on J25
+(U39 AIN8 = AD1 slot 7 = packed RX 15) and 1 kHz −20 dBFS on AUX 1: the
+pre-S58 patch reads the tone on strip 20, this patch on **strip 5**
+(−14.45 dBFS peak raw RX, TEST_MEAS −17.43 dBFS, next strip −102.6), the
+identity patch on strip 16 (= `C1_IN_16`, sport 1 slot 7). The part's
+resolved `_c1_rx_node_entry[1..24]` equals this table's inverse, and every
+one of the 16 XLRs S55 detected on the pre-S58 patch (U39 + U60) now resolves
+to its panel strip (findings S58-1/S58-2). U15's rows follow the same
+permutation; that section is unpowered and unmeasured.
 
 ## Open items
 
