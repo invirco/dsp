@@ -1,0 +1,276 @@
++ cd /home/app/s65base
++ bash boot.sh /home/app/s65base
++ tail -4
+            DSP4_TEST_NODES = 1, shipping is 0
+chip 2: raw 0xCF45FF10
+          == the shipping configuration
+          raw2 0xC3010244
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65base
++ python3 s65_drive.py d24
+  LimiterThr   absent for this product
+  MainOn        24/24  written 0x00000001
+  MatrixOn     absent for this product
+  MatrixSend   absent for this product
+  Mute          24/24  written 0x00000000
+chip 1 load: 644 written, 4 FAILED, 4 families absent, 7 s
+OscChan 99 OscOn 1 level -6.00 dBFS
+witness {'_mtr_gr_C1_MTR_01': '0x00000000', '_mtr_cgr_C1_MTR_01': '0xC21E8392', '_mtr_peak_C1_MTR_01': '0x3F004596', '_mtr_gr_C1_MTR_02': '0x00000000', '_mtr_cgr_C1_MTR_02': '0xC21E6EAC', '_mtr_peak_C1_MTR_02': '0x3F004DCD', '_mtr_gr_C1_MTR_03': '0x00000000', '_mtr_cgr_C1_MTR_03': '0xC21E6EAC', '_mtr_peak_C1_MTR_03': '0x3F003D60'}
++ P
++ sudo pinctrl set 6,24 op dh
++ BASE=1
++ SYMDIR=/home/app/s65base
++ python3 s65_cost.py d24_base_driven 6
+{
+ "ev": "cost",
+ "tag": "d24_base_driven",
+ "budget": 327680,
+ "arms": {
+  "base": {
+   "n": 2751,
+   "min": 397826,
+   "p10": 397885,
+   "median": 399085,
+   "p90": 400286,
+   "max": 401688,
+   "pct": 121.79,
+   "pct_max": 122.59,
+   "overruns": 1619,
+   "seconds": 3.0,
+   "active": []
+  }
+ },
+ "t": 1789582480.019
+}
++ cd /home/app/s65
++ bash boot.sh /home/app/s65
++ tail -4
+            DSP4_TEST_NODES = 1, shipping is 0
+chip 2: raw 0xCF45FF10
+          == the shipping configuration
+          raw2 0xC3010244
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65
++ python3 s65_drive.py d24
+  LimiterThr   absent for this product
+  MainOn        24/24  written 0x00000001
+  MatrixOn     absent for this product
+  MatrixSend   absent for this product
+  Mute          24/24  written 0x00000000
+chip 1 load: 648 written, 0 FAILED, 4 families absent, 5 s
+OscChan 99 OscOn 1 level -6.00 dBFS
+witness {'_mtr_gr_C1_MTR_01': '0x00000000', '_mtr_cgr_C1_MTR_01': '0xC21E6EAC', '_mtr_peak_C1_MTR_01': '0x3F003D60', '_mtr_gr_C1_MTR_02': '0x00000000', '_mtr_cgr_C1_MTR_02': '0xC21E9F41', '_mtr_peak_C1_MTR_02': '0x3F004596', '_mtr_gr_C1_MTR_03': '0x00000000', '_mtr_cgr_C1_MTR_03': '0xC21E6EAC', '_mtr_peak_C1_MTR_03': '0x3F004DCD'}
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65
++ NSTRIPS=24
++ python3 s65_cost.py d24_s65_driven 6
+{
+ "ev": "cost",
+ "tag": "d24_s65_driven",
+ "budget": 327680,
+ "arms": {
+  "none_off": {
+   "n": 2748,
+   "min": 399232,
+   "p10": 399283,
+   "median": 400459.0,
+   "p90": 401612,
+   "max": 402968,
+   "pct": 122.21,
+   "pct_max": 122.98,
+   "overruns": 1647,
+   "seconds": 3.0,
+   "active": [
+    0
+   ]
+  },
+  "none_on": {
+   "n": 2615,
+   "min": 433626,
+   "p10": 433698,
+   "median": 434878,
+   "p90": 436038,
+   "max": 437508,
+   "pct": 132.71,
+   "pct_max": 133.52,
+   "overruns": 2229,
+   "seconds": 3.0,
+   "active": [
+    0
+   ]
+  },
+  "pfl1": {
+   "n": 2553,
+   "min": 433842,
+   "p10": 433913,
+   "median": 435103,
+   "p90": 436256,
+   "max": 437744,
+   "pct": 132.78,
+   "pct_max": 133.59,
+   "overruns": 2233,
+   "seconds": 3.0,
+   "active": [
+    1
+   ]
+  },
+  "afl_all": {
+   "n": 2592,
+   "min": 439478,
+   "p10": 439580,
+   "median": 440766.0,
+   "p90": 441926,
+   "max": 443393,
+   "pct": 134.51,
+   "pct_max": 135.31,
+   "overruns": 2320,
+   "seconds": 3.0,
+   "active": [
+    24
+   ]
+  }
+ },
+ "t": 1789582528.166
+}
++ cd /home/app/s65
++ bash boot_d32.sh /home/app/s65
++ tail -4
+            DSP4_TEST_NODES = 1, shipping is 0
+chip 2: raw 0xCF45FF10
+          == the shipping configuration
+          raw2 0xC3010244
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65
++ python3 s65_drive.py d32
+  LimiterThr   absent for this product
+  MainOn        24/24  written 0x00000001
+  MatrixOn     absent for this product
+  MatrixSend   absent for this product
+  Mute          24/24  written 0x00000000
+chip 1 load: 648 written, 0 FAILED, 4 families absent, 6 s
+OscChan 99 OscOn 1 level -6.00 dBFS
+witness {'_mtr_gr_C1_MTR_01': '0x00000000', '_mtr_cgr_C1_MTR_01': '0xC21E9F41', '_mtr_peak_C1_MTR_01': '0x3F003D60', '_mtr_gr_C1_MTR_02': '0x00000000', '_mtr_cgr_C1_MTR_02': '0xC21E9F41', '_mtr_peak_C1_MTR_02': '0x3F004596', '_mtr_gr_C1_MTR_03': '0x00000000', '_mtr_cgr_C1_MTR_03': '0xC21E9F41', '_mtr_peak_C1_MTR_03': '0x3F004DCD'}
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65
++ NSTRIPS=32
++ python3 s65_cost.py d32_s65_driven 6
+{
+ "ev": "cost",
+ "tag": "d32_s65_driven",
+ "budget": 327680,
+ "arms": {
+  "none_off": {
+   "n": 2469,
+   "min": 484732,
+   "p10": 484926,
+   "median": 486283,
+   "p90": 487569,
+   "max": 489339,
+   "pct": 148.4,
+   "pct_max": 149.33,
+   "overruns": 2950,
+   "seconds": 3.0,
+   "active": [
+    0
+   ]
+  },
+  "none_on": {
+   "n": 2345,
+   "min": 519121,
+   "p10": 519331,
+   "median": 520720,
+   "p90": 521980,
+   "max": 523749,
+   "pct": 158.91,
+   "pct_max": 159.84,
+   "overruns": 3356,
+   "seconds": 3.0,
+   "active": [
+    0
+   ]
+  },
+  "pfl1": {
+   "n": 2315,
+   "min": 519332,
+   "p10": 519546,
+   "median": 520928,
+   "p90": 522198,
+   "max": 523976,
+   "pct": 158.97,
+   "pct_max": 159.9,
+   "overruns": 3357,
+   "seconds": 3.0,
+   "active": [
+    1
+   ]
+  },
+  "afl_all": {
+   "n": 2331,
+   "min": 526935,
+   "p10": 527144,
+   "median": 528527,
+   "p90": 529805,
+   "max": 531584,
+   "pct": 161.29,
+   "pct_max": 162.23,
+   "overruns": 3439,
+   "seconds": 3.0,
+   "active": [
+    32
+   ]
+  }
+ },
+ "t": 1789582577.296
+}
++ cd /home/app/s65base
++ bash boot_d32.sh /home/app/s65base
++ tail -4
+            DSP4_TEST_NODES = 1, shipping is 0
+chip 2: raw 0xCF45FF10
+          == the shipping configuration
+          raw2 0xC3010244
++ P
++ sudo pinctrl set 6,24 op dh
++ SYMDIR=/home/app/s65base
++ python3 s65_drive.py d32
+  LimiterThr   absent for this product
+  MainOn        24/24  written 0x00000001
+  MatrixOn     absent for this product
+  MatrixSend   absent for this product
+  Mute          24/24  written 0x00000000
+chip 1 load: 646 written, 2 FAILED, 4 families absent, 6 s
+OscChan 99 OscOn 1 level -6.00 dBFS
+witness {'_mtr_gr_C1_MTR_01': '0x00000000', '_mtr_cgr_C1_MTR_01': '0xC21E8392', '_mtr_peak_C1_MTR_01': '0x3F003D60', '_mtr_gr_C1_MTR_02': '0x00000000', '_mtr_cgr_C1_MTR_02': '0xC21E8392', '_mtr_peak_C1_MTR_02': '0x3F003D60', '_mtr_gr_C1_MTR_03': '0x00000000', '_mtr_cgr_C1_MTR_03': '0xC21E8392', '_mtr_peak_C1_MTR_03': '0x3F004596'}
++ P
++ sudo pinctrl set 6,24 op dh
++ BASE=1
++ SYMDIR=/home/app/s65base
++ python3 s65_cost.py d32_base_driven 6
+{
+ "ev": "cost",
+ "tag": "d32_base_driven",
+ "budget": 327680,
+ "arms": {
+  "base": {
+   "n": 2458,
+   "min": 483237,
+   "p10": 483432,
+   "median": 484788.0,
+   "p90": 486072,
+   "max": 487836,
+   "pct": 147.95,
+   "pct_max": 148.88,
+   "overruns": 2932,
+   "seconds": 3.0,
+   "active": []
+  }
+ },
+ "t": 1789582596.281
+}
++ echo LADDER_DONE
+LADDER_DONE

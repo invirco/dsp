@@ -19,6 +19,23 @@
 #error "STALE GENERATED FILE: baked for DSP4_BLOCK_SIZE=16, built against a different one. Regenerate: python3 tools/dsp/dsp_codegen.py <dsp.csv> <src> --force"
 #endif
 
+#if DSP4_CUE
+const int c2_ic_lanes_count = 3;
+const int c2_ic_lanes_dir = 0;    /* 0 = RX (half A), 1 = TX (half B) */
+const int c2_ic_lanes_mcpde = 1;
+const int c2_ic_lanes_wsize = 15;
+const int c2_ic_lanes_mfd[3] = { 1, 1, 1 };
+const int c2_ic_lanes[12] = {
+    0, 0xFFFF, 16, 0,   /* MFD 1 */
+    1, 0xFFFF, 16, 256,   /* MFD 1 */
+    2, 0x07FF, 11, 512   /* MFD 1 */
+};
+
+const int c2_ic_region_words = 688;
+#pragma align 32
+unsigned int c2_ic_buf_ping[2 * 688];  /* [0..688) ping, [688..2*688) pong */
+
+#else
 const int c2_ic_lanes_count = 3;
 const int c2_ic_lanes_dir = 0;    /* 0 = RX (half A), 1 = TX (half B) */
 const int c2_ic_lanes_mcpde = 1;
@@ -33,6 +50,8 @@ const int c2_ic_lanes[12] = {
 const int c2_ic_region_words = 656;
 #pragma align 32
 unsigned int c2_ic_buf_ping[2 * 656];  /* [0..656) ping, [656..2*656) pong */
+
+#endif
 
 const int c2_tx_lanes_count = 5;
 const int c2_tx_lanes_dir = 1;    /* 0 = RX (half A), 1 = TX (half B) */

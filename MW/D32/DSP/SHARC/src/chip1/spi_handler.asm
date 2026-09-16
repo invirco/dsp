@@ -93,6 +93,10 @@
  * 6 FxSend) and +1/+2/+3 would land on the next crosspoint. */
 .extern _spi_dispatch_c1_stride;
 .extern _spi_dispatch_c1_convert;
+#if DSP4_CUE && DSP4_BLOCK_KERNELS
+.extern _cue_spi_read;
+.extern _cue_spi_write;
+#endif
 .extern _spi_dispatch_c1_dirty;
 .extern _spi_dispatch_c1_spms;
 
@@ -255,7 +259,11 @@ _spi2_rx_work:
     /* Bounds check address against dispatch table size (generated) */
     r4 = dm(_spi_dispatch_c1_size);
     comp(r2, r4);
+#if DSP4_CUE && DSP4_BLOCK_KERNELS
+    if ge jump (pc, .spi_cue_write);
+#else
     if ge jump (pc, .spi_error);
+#endif
 
     /* Wire-unit conversion, before the ramp/instant dispatch. */
     i0 = _spi_dispatch_c1_convert;
@@ -436,6 +444,17 @@ _spi2_rx_work:
 #endif
     jump (pc, .spi_write_answer);
 
+#if DSP4_CUE && DSP4_BLOCK_KERNELS
+.spi_cue_write:
+    /* S65: the proposed cue / RTA cell block sits directly after the
+     * generated dispatch table (CUE_SPI_BASE, dsp_block.h), so only an
+     * address the table does not hold can reach it. Plain word writes. */
+    call _cue_spi_write;             /* r4 = 0 taken, 1 refused */
+    r4 = pass r4;
+    if ne jump (pc, .spi_error);
+    jump (pc, .spi_write_answer);
+#endif
+
 .spi_error:
     r2 = dm(_spi_err_count);
     r5 = 1;
@@ -573,7 +592,14 @@ _spi2_rx_work:
     if ge jump (pc, .spi_read_diag);
     r4 = dm(_spi_dispatch_c1_size);
     comp(r2, r4);
+#if DSP4_CUE && DSP4_BLOCK_KERNELS
+    if lt jump (pc, .spi_read_table);
+    call _cue_spi_read;                  /* S65 cue / RTA block; 0 outside it */
+    jump (pc, .spi_read_respond);
+.spi_read_table:
+#else
     if ge jump (pc, .spi_read_zero);     /* out-of-range → return 0 */
+#endif
     i0 = _spi_dispatch_c1;
     m0 = r2;
     modify(i0, m0);

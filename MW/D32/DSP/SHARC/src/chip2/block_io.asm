@@ -6,6 +6,190 @@
 .section/dm seg_dmda;
 
 /* IC RX node tables (41 packed mix-fabric slots over 3 lanes) */
+#if DSP4_CUE
+/* S65: + the cue pair on MIX_2 slots 9/10 (global 41/42) */
+.extern _rx_ic_slot_C2_RECV_MAIN_L;
+.extern _rx_ic_slot_C2_RECV_MAIN_R;
+.extern _rx_ic_slot_C2_RECV_SUB;
+.extern _rx_ic_slot_C2_RECV_GRP_01;
+.extern _rx_ic_slot_C2_RECV_GRP_02;
+.extern _rx_ic_slot_C2_RECV_GRP_03;
+.extern _rx_ic_slot_C2_RECV_GRP_04;
+.extern _rx_ic_slot_C2_RECV_AUX_01;
+.extern _rx_ic_slot_C2_RECV_AUX_02;
+.extern _rx_ic_slot_C2_RECV_AUX_03;
+.extern _rx_ic_slot_C2_RECV_AUX_04;
+.extern _rx_ic_slot_C2_RECV_AUX_05;
+.extern _rx_ic_slot_C2_RECV_AUX_06;
+.extern _rx_ic_slot_C2_RECV_AUX_07;
+.extern _rx_ic_slot_C2_RECV_AUX_08;
+.extern _rx_ic_slot_C2_RECV_AUX_09;
+.extern _rx_ic_slot_C2_RECV_AUX_10;
+.extern _rx_ic_slot_C2_RECV_AUX_11;
+.extern _rx_ic_slot_C2_RECV_AUX_12;
+.extern _rx_ic_slot_C2_RECV_FX_01;
+.extern _rx_ic_slot_C2_RECV_FX_02;
+.extern _rx_ic_slot_C2_RECV_FX_03;
+.extern _rx_ic_slot_C2_RECV_FX_04;
+.extern _rx_ic_slot_C2_RECV_FX_05;
+.extern _rx_ic_slot_C2_RECV_FX_06;
+.extern _rx_ic_slot_C2_XR_CODEC_AUX_L;
+.extern _rx_ic_slot_C2_XR_CODEC_AUX_R;
+.extern _rx_ic_slot_C2_XR_PI_L;
+.extern _rx_ic_slot_C2_XR_PI_R;
+.extern _rx_ic_slot_C2_XR_SNAKE_01;
+.extern _rx_ic_slot_C2_XR_SNAKE_02;
+.extern _rx_ic_slot_C2_XR_SNAKE_03;
+.extern _rx_ic_slot_C2_XR_SNAKE_04;
+.extern _rx_ic_slot_C2_XR_SNAKE_05;
+.extern _rx_ic_slot_C2_XR_SNAKE_06;
+.extern _rx_ic_slot_C2_XR_SNAKE_07;
+.extern _rx_ic_slot_C2_XR_SNAKE_08;
+.extern _rx_ic_slot_C2_RECV_MTX_01;
+.extern _rx_ic_slot_C2_RECV_MTX_02;
+.extern _rx_ic_slot_C2_RECV_MTX_03;
+.extern _rx_ic_slot_C2_RECV_MTX_04;
+.extern _rx_ic_slot_C2_RECV_CUE_L;
+.extern _rx_ic_slot_C2_RECV_CUE_R;
+#if DSP4_BLOCK_KERNELS
+.global _c2_ic_rx_off;
+.global _c2_ic_rx_stride;
+#endif
+.var _c2_ic_rx_off[43] =
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    512,
+    513,
+    514,
+    515,
+    516,
+    517,
+    518,
+    519,
+    520,
+    521,
+    522;
+.var _c2_ic_rx_stride[43] =
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11;
+.var _c2_ic_rx_ptrs[43] =
+    _rx_ic_slot_C2_RECV_MAIN_L,
+    _rx_ic_slot_C2_RECV_MAIN_R,
+    _rx_ic_slot_C2_RECV_SUB,
+    _rx_ic_slot_C2_RECV_GRP_01,
+    _rx_ic_slot_C2_RECV_GRP_02,
+    _rx_ic_slot_C2_RECV_GRP_03,
+    _rx_ic_slot_C2_RECV_GRP_04,
+    _rx_ic_slot_C2_RECV_AUX_01,
+    _rx_ic_slot_C2_RECV_AUX_02,
+    _rx_ic_slot_C2_RECV_AUX_03,
+    _rx_ic_slot_C2_RECV_AUX_04,
+    _rx_ic_slot_C2_RECV_AUX_05,
+    _rx_ic_slot_C2_RECV_AUX_06,
+    _rx_ic_slot_C2_RECV_AUX_07,
+    _rx_ic_slot_C2_RECV_AUX_08,
+    _rx_ic_slot_C2_RECV_AUX_09,
+    _rx_ic_slot_C2_RECV_AUX_10,
+    _rx_ic_slot_C2_RECV_AUX_11,
+    _rx_ic_slot_C2_RECV_AUX_12,
+    _rx_ic_slot_C2_RECV_FX_01,
+    _rx_ic_slot_C2_RECV_FX_02,
+    _rx_ic_slot_C2_RECV_FX_03,
+    _rx_ic_slot_C2_RECV_FX_04,
+    _rx_ic_slot_C2_RECV_FX_05,
+    _rx_ic_slot_C2_RECV_FX_06,
+    _rx_ic_slot_C2_XR_CODEC_AUX_L,
+    _rx_ic_slot_C2_XR_CODEC_AUX_R,
+    _rx_ic_slot_C2_XR_PI_L,
+    _rx_ic_slot_C2_XR_PI_R,
+    _rx_ic_slot_C2_XR_SNAKE_01,
+    _rx_ic_slot_C2_XR_SNAKE_02,
+    _rx_ic_slot_C2_XR_SNAKE_03,
+    _rx_ic_slot_C2_XR_SNAKE_04,
+    _rx_ic_slot_C2_XR_SNAKE_05,
+    _rx_ic_slot_C2_XR_SNAKE_06,
+    _rx_ic_slot_C2_XR_SNAKE_07,
+    _rx_ic_slot_C2_XR_SNAKE_08,
+    _rx_ic_slot_C2_RECV_MTX_01,
+    _rx_ic_slot_C2_RECV_MTX_02,
+    _rx_ic_slot_C2_RECV_MTX_03,
+    _rx_ic_slot_C2_RECV_MTX_04,
+    _rx_ic_slot_C2_RECV_CUE_L,
+    _rx_ic_slot_C2_RECV_CUE_R;
+
+#define C2_IC_RX_N 43
+#else
 .extern _rx_ic_slot_C2_RECV_MAIN_L;
 .extern _rx_ic_slot_C2_RECV_MAIN_R;
 .extern _rx_ic_slot_C2_RECV_SUB;
@@ -178,6 +362,8 @@
     _rx_ic_slot_C2_RECV_MTX_03,
     _rx_ic_slot_C2_RECV_MTX_04;
 
+#define C2_IC_RX_N 41
+#endif
 /* TX node tables (24 outputs over 5 full-window lanes of 8) */
 .extern _tx_out_slot_C2_AUX_OUT_08;
 .extern _tx_out_slot_C2_AUX_OUT_07;
@@ -299,7 +485,7 @@ _scatter_chip2:
     i1 = _c2_ic_rx_off;
     i2 = _c2_ic_rx_stride;
     i3 = _c2_ic_rx_ptrs;
-    r7 = 41;
+    r7 = C2_IC_RX_N;
     lcntr = r7; do .scatter_chip2_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */

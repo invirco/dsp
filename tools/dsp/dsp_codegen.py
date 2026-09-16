@@ -5873,7 +5873,11 @@ def gen_test_osc(node):
     A('    if eq rts;')
     A('    r2 = dm(_osc_chan_%s);' % nid)
     A('    comp(r0, r2);')
+    A('    if eq jump (pc, .osc_inj_go_%s);' % nid)
+    A('    r3 = 99;                  /* S65: 99 = EVERY strip, the driven-capacity arm */')
+    A('    comp(r2, r3);')
     A('    if ne rts;')
+    A('.osc_inj_go_%s:' % nid)
     A('    i4 = r1;')
     A('    l4 = 0;')
     A('    i5 = _osc_blk_q_%s;' % nid)
@@ -7119,6 +7123,17 @@ def gen_block_io(chip_label, chip_nodes):
         ic_specs = [(n, int(n['params'].get('sport_id', '7')),
                      int(n['params'].get('slot', '0'))) for n in send_nodes]
         ic_lanes, ic_map = lane_layout(ic_specs, mfd=MFD_FABRIC)
+        # S65: the cue pair, MIX_2 slots 9/10, behind DSP4_CUE.
+        cue_sends = [{'id': 'C1_CUE_%s_SEND' % sd, 'type': 'INTERCHIP_SEND',
+                      'inputs_str': 'C1_CUE_%s' % sd,
+                      'params': {'sport_id': '2', 'slot': str(sl), 'global_slot': str(g)}}
+                     for sd, sl, g in CUE_IC]
+        _taken = {(sp, sl) for _n, sp, sl in ic_specs}
+        for _c in cue_sends:
+            if (2, int(_c['params']['slot'])) in _taken:
+                raise SystemExit('cue slot MIX_2/%s is taken in dsp.csv' % _c['params']['slot'])
+        ic_specs_c = ic_specs + [(n, 2, int(n['params']['slot'])) for n in cue_sends]
+        ic_lanes_c, ic_map_c = lane_layout(ic_specs_c, mfd=MFD_FABRIC)
 
         lines.append('.section/dm seg_dmda;')
         lines.append('')
@@ -7182,12 +7197,22 @@ def gen_block_io(chip_label, chip_nodes):
         # gather reads exactly the words the copy would have handed it.
         lines.append('/* D25: under block kernels these point at the SOURCE bus')
         lines.append(' * buffers, and the INTERCHIP_SEND bodies are empty. */')
+        lines.append('#if DSP4_CUE')
+        lines.append('/* S65: + the cue pair on MIX_2 slots 9/10 (global 41/42) */')
+        emit_tables(lines, '_c1_ic_tx', send_nodes + cue_sends, ic_map_c,
+                    '_tx_slot_{id}', '_c1_ic_tx_ptrs',
+                    blk_sym=lambda nd: f'_buf_{nd["inputs_str"]}')
+        lines.append('#define C1_IC_TX_N %d' % (num_ic + len(cue_sends)))
+        lines.append('#else')
         emit_tables(lines, '_c1_ic_tx', send_nodes, ic_map,
                     '_tx_slot_{id}', '_c1_ic_tx_ptrs',
                     blk_sym=lambda nd: f'_buf_{nd["inputs_str"]}')
+        lines.append('#define C1_IC_TX_N %d' % num_ic)
+        lines.append('#endif')
 
         rx_words = region_words(rx_lanes)
         ic_words = region_words(ic_lanes)
+        ic_words_c = region_words(ic_lanes_c)
 
         lines.append('/* DMA ping-pong buffers live in generated lane_config.c')
         lines.append(' * (byte-addressed C world — DMA + descriptors take byte')
@@ -7207,7 +7232,7 @@ def gen_block_io(chip_label, chip_nodes):
         emit_meter_scan(lines, '_meter_scan_chip1', num_rx,
                         '_c1_rx_slot_ptrs', 'RX inputs', dead_under_block=True)
         lines.append(f'/* Gather {num_ic} inter-chip sends (lane-major packed) */')
-        emit_copy_loop(lines, '_gather_chip1', num_ic, '_ic_tx_active_buf',
+        emit_copy_loop(lines, '_gather_chip1', 'C1_IC_TX_N', '_ic_tx_active_buf',
                        '_c1_ic_tx_off', '_c1_ic_tx_stride', '_c1_ic_tx_ptrs',
                        to_dma=True)
 
@@ -7258,6 +7283,11 @@ def gen_block_io(chip_label, chip_nodes):
         ic_specs = [(n, int(n['params'].get('sport_id', '7')),
                      int(n['params'].get('slot', '0'))) for n in recv_nodes]
         ic_lanes, ic_map = lane_layout(ic_specs, mfd=MFD_FABRIC)
+        cue_recvs = [{'id': 'C2_RECV_CUE_%s' % sd, 'type': 'INTERCHIP_RECV',
+                      'params': {'sport_id': '2', 'slot': str(sl), 'global_slot': str(g)}}
+                     for sd, sl, g in CUE_IC]
+        ic_specs_c = ic_specs + [(n, 2, int(n['params']['slot'])) for n in cue_recvs]
+        ic_lanes_c, ic_map_c = lane_layout(ic_specs_c, mfd=MFD_FABRIC)
 
         # --- TX: OUTPUT_TDM nodes, full-window lanes (MCPDE=0) ---
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
@@ -7287,8 +7317,16 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('')
         lines.append(f'/* IC RX node tables ({num_ic_rx} packed mix-fabric slots '
                      f'over {len(ic_lanes)} lanes) */')
+        lines.append('#if DSP4_CUE')
+        lines.append('/* S65: + the cue pair on MIX_2 slots 9/10 (global 41/42) */')
+        emit_tables(lines, '_c2_ic_rx', recv_nodes + cue_recvs, ic_map_c,
+                    '_rx_ic_slot_{id}', '_c2_ic_rx_ptrs')
+        lines.append('#define C2_IC_RX_N %d' % (num_ic_rx + len(cue_recvs)))
+        lines.append('#else')
         emit_tables(lines, '_c2_ic_rx', recv_nodes, ic_map,
                     '_rx_ic_slot_{id}', '_c2_ic_rx_ptrs')
+        lines.append('#define C2_IC_RX_N %d' % num_ic_rx)
+        lines.append('#endif')
 
         lines.append(f'/* TX node tables ({num_tx} outputs over '
                      f'{len(tx_lanes)} full-window lanes of {sps}) */')
@@ -7296,6 +7334,7 @@ def gen_block_io(chip_label, chip_nodes):
                     '_tx_out_slot_{id}', '_c2_tx_ptrs')
 
         ic_words = region_words(ic_lanes)
+        ic_words_c = region_words(ic_lanes_c)
         tx_words = region_words(tx_lanes)
 
         lines.append('/* DMA ping-pong buffers live in generated lane_config.c —')
@@ -7308,7 +7347,7 @@ def gen_block_io(chip_label, chip_nodes):
         lines.append('.section/pm seg_pmco;')
         lines.append('')
         lines.append(f'/* Scatter {num_ic_rx} inter-chip recvs (lane-major packed) */')
-        emit_copy_loop(lines, '_scatter_chip2', num_ic_rx, '_ic_rx_active_buf',
+        emit_copy_loop(lines, '_scatter_chip2', 'C2_IC_RX_N', '_ic_rx_active_buf',
                        '_c2_ic_rx_off', '_c2_ic_rx_stride', '_c2_ic_rx_ptrs',
                        to_dma=False)
         lines.append(f'/* Gather {num_tx} outputs (lane-major full-window) */')
@@ -7320,9 +7359,11 @@ def gen_block_io(chip_label, chip_nodes):
 
     if chip_label == 'chip1':
         lane_info = [('c1_rx_lanes', rx_lanes, 0, 1, 7, rx_words, 'c1_rx'),
-                     ('c1_ic_lanes', ic_lanes, 1, 1, 15, ic_words, 'c1_ic')]
+                     ('c1_ic_lanes', ic_lanes, 1, 1, 15, ic_words, 'c1_ic',
+                      ('DSP4_CUE', ic_lanes_c, ic_words_c))]
     else:
-        lane_info = [('c2_ic_lanes', ic_lanes, 0, 1, 15, ic_words, 'c2_ic'),
+        lane_info = [('c2_ic_lanes', ic_lanes, 0, 1, 15, ic_words, 'c2_ic',
+                      ('DSP4_CUE', ic_lanes_c, ic_words_c)),
                      ('c2_tx_lanes', tx_lanes, 1, 0, sps - 1, tx_words, 'c2_tx')]
     return '\n'.join(lines), lane_info
 
@@ -7346,37 +7387,54 @@ def gen_lane_config_c(chip_label, lane_info):
     out.append(block_size_guard(
         'The lane region_off values below (count * BLOCK) and the\n'
         ' * region_words / DMA ping-pong buffer extents (lane total * BLOCK)'))
-    for name, lanes, dirbit, mcpde, wsize, words, region in lane_info:
-        n = len(lanes)
-        out.append(f'const int {name}_count = {n};')
-        out.append(f'const int {name}_dir = {dirbit};    /* 0 = RX (half A), 1 = TX (half B) */')
-        out.append(f'const int {name}_mcpde = {mcpde};')
-        out.append(f'const int {name}_wsize = {wsize};')
-        mfds = ', '.join(str(ln['mfd']) for ln in lanes)
-        out.append(f'const int {name}_mfd[{n}] = {{ {mfds} }};')
-        out.append(f'const int {name}[{n * 4}] = {{')
-        base = 0
-        for i, ln in enumerate(lanes):
-            comma = ',' if i < n - 1 else ''
-            out.append(f'    {ln["sport"]}, 0x{ln["cs"]:04X}, {ln["count"]}, '
-                       f'{base}{comma}   /* MFD {ln["mfd"]} */')
-            base += ln['count'] * BLOCK
-        out.append('};')
-        out.append('')
-        out.append(f'const int {region}_region_words = {words};')
-        # ONE object holding both halves, so ping and pong are guaranteed
-        # adjacent: pong is always ping + region_words. Two separately
-        # declared arrays are not guaranteed to be laid out next to each
-        # other, and the DMA rings walk from one half to the other with a
-        # 2D autobuffer whose YMOD is exactly that distance -- so the
-        # adjacency has to be a fact, not an observation. dma_config.c
-        # derives REGION_*_PONG from this symbol; there is deliberately no
-        # separate _buf_pong array any more.
-        out.append('#pragma align 32')
-        out.append(f'unsigned int {region}_buf_ping[2 * {words}];'
-                   f'  /* [0..{words}) ping, [{words}..2*{words}) pong */')
-        out.append('')
+    for info in lane_info:
+        name, lanes0, dirbit, mcpde, wsize, words0, region = info[:7]
+        alt = info[7] if len(info) > 7 else None
+        variants = [(None, lanes0, words0)]
+        if alt:
+            variants = [(alt[0], alt[1], alt[2]), ('#else', lanes0, words0)]
+        for guard, lanes, words in variants:
+            if guard == '#else':
+                out.append('#else')
+            elif guard:
+                out.append(f'#if {guard}')
+            _emit_lane_region(out, name, lanes, dirbit, mcpde, wsize, words, region)
+        if alt:
+            out.append('#endif')
+            out.append('')
     return '\n'.join(out)
+
+
+def _emit_lane_region(out, name, lanes, dirbit, mcpde, wsize, words, region):
+    n = len(lanes)
+    out.append(f'const int {name}_count = {n};')
+    out.append(f'const int {name}_dir = {dirbit};    /* 0 = RX (half A), 1 = TX (half B) */')
+    out.append(f'const int {name}_mcpde = {mcpde};')
+    out.append(f'const int {name}_wsize = {wsize};')
+    mfds = ', '.join(str(ln['mfd']) for ln in lanes)
+    out.append(f'const int {name}_mfd[{n}] = {{ {mfds} }};')
+    out.append(f'const int {name}[{n * 4}] = {{')
+    base = 0
+    for i, ln in enumerate(lanes):
+        comma = ',' if i < n - 1 else ''
+        out.append(f'    {ln["sport"]}, 0x{ln["cs"]:04X}, {ln["count"]}, '
+                   f'{base}{comma}   /* MFD {ln["mfd"]} */')
+        base += ln['count'] * BLOCK
+    out.append('};')
+    out.append('')
+    out.append(f'const int {region}_region_words = {words};')
+    # ONE object holding both halves, so ping and pong are guaranteed
+    # adjacent: pong is always ping + region_words. Two separately
+    # declared arrays are not guaranteed to be laid out next to each
+    # other, and the DMA rings walk from one half to the other with a
+    # 2D autobuffer whose YMOD is exactly that distance -- so the
+    # adjacency has to be a fact, not an observation. dma_config.c
+    # derives REGION_*_PONG from this symbol; there is deliberately no
+    # separate _buf_pong array any more.
+    out.append('#pragma align 32')
+    out.append(f'unsigned int {region}_buf_ping[2 * {words}];'
+               f'  /* [0..{words}) ping, [{words}..2*{words}) pong */')
+    out.append('')
 
 
 def _gen_scope_gates_legacy(chip_label, chip_nodes):
@@ -10633,22 +10691,24 @@ def gen_geq_tables(band_counts):
 
 
 # ---------------------------------------------------------------------------
-# THE RTA FILTERBANK (S64, DSP4_RTA) — chip 2, one stereo source
+# THE RTA FILTERBANK (S64, DSP4_RTA) — chip 1 since S65, the cue bus
 # ---------------------------------------------------------------------------
 #
 # 31 x 1/3-octave bands x 3 biquads (tools/dsp/rta_design.py says why three)
 # x 2 channels, a mean-square detector per band with fast/slow/peak-hold
-# ballistics at block rate, 62 published words. Called once per block at the
-# END of chip 2's chain, so every node's own `_blk_` array is final. The
-# source is a POINTER pair, not a node: the graph has no cue bus (S64-1), so
-# the generator names the stand-in pair and the diag registers can repoint it
-# on a TEST_NODES image. Cost does not depend on the source.
+# ballistics at block rate, 62 published words. S64 built it on chip 2 against
+# a stand-in pair; PW 2026-09-16 moved it and the cue bus to chip 1 ("go with
+# chip 1 for cue bus and RTA"). Called once per block at the END of chip 1's
+# chain, after _cue_finish has published this block's cue L/R, so its only
+# source is the cue bus (RtaSrc retired). The source is still a POINTER pair
+# the diag registers can repoint on a TEST_NODES image; cost does not depend
+# on it.
 #
 # Kernel shape, per channel: d[n] = x[n] - x[n-2] once into a float scratch
 # block; then BAND-OUTER / SAMPLE-INNER with every coefficient and state of
 # the band in registers, so the inner loop is pure register arithmetic:
 # 25 instructions a sample a band, no memory touch but the d[] load.
-RTA_SRC_DEFAULT = ('C2_MIX_MAIN_L', 'C2_MIX_MAIN_R')
+RTA_SRC_DEFAULT = ('_buf_C1_CUE_L', '_buf_C1_CUE_R')
 RTA_DIAG_BASE = 0xE0C0
 
 
@@ -10663,7 +10723,7 @@ def gen_rta(src=RTA_SRC_DEFAULT):
     L = []
     A = L.append
     A('/*----------------------------------------------------------------------')
-    A(' * THE RTA FILTERBANK (S64) -- chip 2, stereo, 1/3-octave, 31 bands')
+    A(' * THE RTA FILTERBANK (S64; chip 1 since S65) -- the cue bus, stereo, 1/3-octave, 31 bands')
     A(' *')
     A(' * AUTO-GENERATED by tools/dsp/dsp_codegen.py::gen_rta from')
     A(' * tools/dsp/rta_design.py -- do not edit directly.')
@@ -10675,22 +10735,22 @@ def gen_rta(src=RTA_SRC_DEFAULT):
     A(' * the TEST_MEAS RmsResult law (-20 dBFS pk sine -> -23.01).')
     A(' * Ballistics, one-pole on the block power: mode 0 fast %.0f ms (alpha %.6f),' % (RD.RTA_TAU_FAST_S * 1e3, a_fast))
     A(' * 1 slow %.0f ms (alpha %.6f), 2 peak-hold (fast, held until RTA_RESET).' % (RD.RTA_TAU_SLOW_S * 1e3, a_slow))
-    A(' * Default source %s / %s (stand-in: the graph has no cue bus).' % src)
+    A(' * Source %s / %s: the cue bus (cue.asm, S65), published before this runs.' % src)
     A(' *----------------------------------------------------------------------*/')
     A('#include "dsp_block.h"')
-    A('#if DSP4_RTA && DSP4_BLOCK_KERNELS')
+    A('#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1')
     A('')
     A('#define RTA_BANDS %d' % nb)
     A('')
     A('.section/dm seg_dmda;')
-    A('.extern _blk_%s;' % src[0])
-    A('.extern _blk_%s;' % src[1])
+    A('.extern %s;' % src[0])
+    A('.extern %s;' % src[1])
     A('.global _rta_on;       .var _rta_on = 0;        /* RtaOn: 0 = the kernel returns at once */')
     A('.global _rta_mode;     .var _rta_mode = 0;      /* 0 fast, 1 slow, 2 peak-hold */')
     A('.global _rta_reset;    .var _rta_reset = 0;     /* host sets; consumed next block */')
     A('.global _rta_seq;      .var _rta_seq = 0;       /* blocks processed while on */')
-    A('.global _rta_src_l;    .var _rta_src_l = _blk_%s;' % src[0])
-    A('.global _rta_src_r;    .var _rta_src_r = _blk_%s;' % src[1])
+    A('.global _rta_src_l;    .var _rta_src_l = %s;' % src[0])
+    A('.global _rta_src_r;    .var _rta_src_r = %s;' % src[1])
     A('.global _rta_bands;    .var _rta_bands = RTA_BANDS;')
     A('.global _rta_out_addr; .var _rta_out_addr = _rta_out;')
     A('.var _rta_alpha[3] = 0x%08X, 0x%08X, 0x%08X;   /* %.6f %.6f %.6f */'
@@ -10864,7 +10924,371 @@ def gen_rta(src=RTA_SRC_DEFAULT):
     A('    rts;')
     A('_rta_diag_write.end:')
     A('')
-    A('#endif /* DSP4_RTA && DSP4_BLOCK_KERNELS */')
+    A('#endif /* DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1 */')
+    return '\n'.join(L) + '\n'
+
+
+# ---------------------------------------------------------------------------
+# THE CUE BUS (S65, DSP4_CUE) — chip 1, stereo, delivered to chip 2
+# ---------------------------------------------------------------------------
+#
+# PW 2026-09-16: "go with chip 1 for cue bus and RTA". The cue bus is AUDIO,
+# not cue logic: the sum of every cued source, and when nothing is cued the
+# ASSIGNED source (default main L/R).
+#
+#   strips   Chan[1-32]CueSel. PFL (Sys CueMode 0): the strip's pre-fader
+#            tap (BLK_TAP_PREFDR, post-delay, pre-fader, pre-mute), mono,
+#            unity to both sides. AFL (1) and SIP (2): the strip's post-fader
+#            block times its own pan legs (_fdr_lq/_fdr_rq, the legs the main
+#            bus crosspoints are built from). SIP's muting of everything else
+#            is console logic; on the bus it is AFL.
+#   buses    Main[1-1]CueSel and the proposed Aux[1-12]/Grp[1-4]CueSel: the
+#            chip-1 bus block (main L to L, main R to R; a mono bus to both).
+#            These are the chip-1 sums, BEFORE the chip-2 bus masters.
+#   nothing  Cue[1-1]Src (proposed): 0 main L/R, 1-12 aux n, 13-16 group n,
+#            anything else reads as 0. Copied bit-exact.
+#
+# THE HOOK. A strip's blocks live in the shared pool and are dead when the
+# next strip runs, so the chain carries a four-instruction test after every
+# C1_FDR_nn (where BLK_CHAIN_A is the post-fader block and BLK_TAP_PREFDR the
+# pre-fader tap) and calls _cue_strip only for a cued strip. Sums are float32
+# (a Q4.28 word loses nothing above 2^-24 of itself); _cue_finish runs after
+# the whole chain, adds the cued buses, and either FIXes the sums back to
+# Q4.28 or copies the source. The inter-chip gather that follows the chain
+# sends _buf_C1_CUE_L/R to chip 2 on MIX_2 slots 9/10 (global 41/42) in the
+# same block.
+#
+# THE CELLS. Until the hub lands them, the block is reached on the parameter
+# link at chip-1 SPI CUE_SPI_BASE.. (directly after the generated dispatch
+# table, moving nothing) through spi_handler.asm's out-of-table branch. The
+# RTA's cells and its 62 band meters are in the same block: one raw word each,
+# the same read the METER block at 0x1200 uses.
+CUE_STRIPS = 32
+CUE_BUSES = (['C1_BUS_MAIN_L'] + ['C1_BUS_AUX_%02d' % i for i in range(1, 13)]
+             + ['C1_BUS_GRP_%02d' % i for i in range(1, 5)])
+CUE_REQUIRED = (['C1_FDR_%02d' % i for i in range(1, CUE_STRIPS + 1)]
+                + CUE_BUSES + ['C1_BUS_MAIN_R', 'C2_MON'])
+CUE_IC = (('L', 9, 41), ('R', 10, 42))   # (side, MIX_2 slot, global mix slot)
+CUE_SPI_BASE = 4984                     # 0x1378: chip 1's dispatch table ends at 0x1377
+CUE_MON_SOURCE = 13                     # _mon_source_C2_MON: 0 Main, 1-12 Aux, 13 Cue
+
+
+def cue_spi_layout():
+    """[(offset, cell, symbol-expression or None, writable, guard)] -- the one
+    place the proposed chip-1 addresses are decided."""
+    L = []
+    for i in range(CUE_STRIPS):
+        L.append(('Chan%03dCueSel001' % (i + 1), '_cue_sel + %d' % i, True, None))
+    L.append(('Main001CueSel001', '_cue_bus_sel + 0', True, None))
+    for i in range(12):
+        L.append(('Aux%03dCueSel001' % (i + 1), '_cue_bus_sel + %d' % (1 + i), True, None))
+    for i in range(4):
+        L.append(('Grp%03dCueSel001' % (i + 1), '_cue_bus_sel + %d' % (13 + i), True, None))
+    L.append(('Sys001CueMode001', '_cue_mode', True, None))
+    L.append(('Cue001Src001', '_cue_src', True, None))
+    L.append(('Cue001Active001', '_cue_active', False, None))
+    L.append(('Rta001On001', '_rta_on', True, 'DSP4_RTA'))
+    L.append(('Rta001Mode001', '_rta_mode', True, 'DSP4_RTA'))
+    L.append(('Rta001PeakReset001', '_rta_reset', True, 'DSP4_RTA'))
+    L.append(('(reserved)', None, False, None))
+    for side, base in (('L', 0), ('R', 31)):
+        for b in range(31):
+            L.append(('Rta001Mtr%s%03d' % (side, b + 1), '_rta_out + %d' % (base + b), False, 'DSP4_RTA'))
+    return [(k,) + t for k, t in enumerate(L)]
+
+
+def _dispatch_size_c1(output_dir):
+    import re as _re
+    p = os.path.join(output_dir, 'chip1', 'dsp_params.asm')
+    if not os.path.exists(p):
+        return None
+    m = _re.search(r'_spi_dispatch_c1_size\s*=\s*(\d+)', open(p, encoding='utf-8').read())
+    return int(m.group(1)) if m else None
+
+
+def gen_cue(nodes, output_dir=None):
+    size = _dispatch_size_c1(output_dir) if output_dir else None
+    if size is not None and size > CUE_SPI_BASE:
+        raise SystemExit('chip 1 dispatch table is %d entries and has grown over the cue '
+                         'block at %d (0x%04X): move CUE_SPI_BASE, never the table'
+                         % (size, CUE_SPI_BASE, CUE_SPI_BASE))
+    lay = cue_spi_layout()
+    L = []
+    A = L.append
+    A('/*----------------------------------------------------------------------')
+    A(' * THE CUE BUS (S65) -- chip 1, stereo, sent to chip 2 on MIX_2 slots 9/10')
+    A(' *')
+    A(' * AUTO-GENERATED by tools/dsp/dsp_codegen.py::gen_cue -- do not edit.')
+    A(' * The generator\'s header block says what it sums and why it is shaped')
+    A(' * this way. _buf_C1_CUE_L/R: Q4.28, published by _cue_finish every block.')
+    A(' * SPI cells at chip-1 0x%04X..0x%04X (proposed, S65; not in the contract).'
+      % (CUE_SPI_BASE, CUE_SPI_BASE + len(lay) - 1))
+    A(' *----------------------------------------------------------------------*/')
+    A('#include "dsp_block.h"')
+    A('#if DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1')
+    A('')
+    A('.section/dm seg_dmda;')
+    for i in range(1, CUE_STRIPS + 1):
+        A('.extern _fdr_lq_C1_FDR_%02d; .extern _fdr_rq_C1_FDR_%02d;' % (i, i))
+    for b in CUE_BUSES + ['C1_BUS_MAIN_R']:
+        A('.extern _buf_%s;' % b)
+    A('#if DSP4_RTA')
+    A('.extern _rta_on; .extern _rta_mode; .extern _rta_reset; .extern _rta_out;')
+    A('#endif')
+    A('.global _cue_sel;      .var _cue_sel[%d];       /* Chan[1-%d]CueSel: 0/1 */' % (CUE_STRIPS, CUE_STRIPS))
+    A('.global _cue_bus_sel;  .var _cue_bus_sel[%d];   /* Main, Aux 1-12, Grp 1-4 CueSel */' % len(CUE_BUSES))
+    A('.global _cue_mode;     .var _cue_mode = 0;     /* Sys CueMode: 0 PFL, 1 AFL, 2 SIP (AFL on the bus) */')
+    A('.global _cue_src;      .var _cue_src = 0;      /* Cue Src: 0 main L/R, 1-12 aux, 13-16 grp */')
+    A('.global _cue_active;   .var _cue_active = 0;   /* sources summed last block; 0 = the assigned source */')
+    A('.global _cue_n;        .var _cue_n = 0;        /* strips summed so far this block */')
+    A('/* per strip: &_fdr_lq, &_fdr_rq */')
+    A('.var _cue_legs[%d] =' % (2 * CUE_STRIPS))
+    for i in range(1, CUE_STRIPS + 1):
+        A('    _fdr_lq_C1_FDR_%02d, _fdr_rq_C1_FDR_%02d%s' % (i, i, ';' if i == CUE_STRIPS else ','))
+    A('/* per bus / source index: L block, R block */')
+    A('.global _cue_bus_blk;')
+    A('.var _cue_bus_blk[%d] =' % (2 * len(CUE_BUSES)))
+    for k, b in enumerate(CUE_BUSES):
+        r = 'C1_BUS_MAIN_R' if b == 'C1_BUS_MAIN_L' else b
+        A('    _buf_%s, _buf_%s%s' % (b, r, ';' if k == len(CUE_BUSES) - 1 else ','))
+    A('.global _cue_fl;       .var _cue_fl[DSP4_BLOCK_SIZE];   /* float32 sums */')
+    A('.global _cue_fr;       .var _cue_fr[DSP4_BLOCK_SIZE];')
+    A('.global _buf_C1_CUE_L; .var _buf_C1_CUE_L[DSP4_BLOCK_SIZE];   /* Q4.28, MIX_2 slot 9 */')
+    A('.global _buf_C1_CUE_R; .var _buf_C1_CUE_R[DSP4_BLOCK_SIZE];   /* Q4.28, MIX_2 slot 10 */')
+    A('')
+    A('/* The proposed cell block, offset from CUE_SPI_BASE (0x%04X). */' % CUE_SPI_BASE)
+    A('.var _cue_spi_ptr[CUE_SPI_N] =')
+    for k, cell, sym, wr, guard in lay:
+        end = ';' if k == len(lay) - 1 else ','
+        cmt = '/* 0x%04X %s */' % (CUE_SPI_BASE + k, cell)
+        if guard:
+            A('#if %s' % guard)
+            A('    %s%s  %s' % (sym, end, cmt))
+            A('#else')
+            A('    0%s  %s' % (end, cmt))
+            A('#endif')
+        else:
+            A('    %s%s  %s' % (sym if sym else '0', end, cmt))
+    A('.var _cue_spi_wr[CUE_SPI_N] =')
+    for k, cell, sym, wr, guard in lay:
+        end = ';' if k == len(lay) - 1 else ','
+        A('    %d%s' % (1 if (wr and sym) else 0, end))
+    A('')
+    A('.section/pm seg_pmco;')
+    A('')
+    A('/* One cued strip. In: r1 = its post-fader pool slot, r2 = its pre-fader')
+    A(' * tap slot, r3 = strip index 0..%d. Clobbers r0, r4-r8, i0-i3. */' % (CUE_STRIPS - 1))
+    A('.global _cue_strip;')
+    A('_cue_strip:')
+    A('    l0 = 0; l1 = 0; l2 = 0; l3 = 0;')
+    A('    r4 = dm(_cue_n);')
+    A('    r4 = r4 + 1;')
+    A('    dm(_cue_n) = r4;')
+    A('    i1 = _cue_fl;')
+    A('    i2 = _cue_fr;')
+    A('    r6 = -28;')
+    A('    r4 = dm(_cue_mode);')
+    A('    r4 = pass r4;')
+    A('    if ne jump (pc, .cue_afl);')
+    A('    i0 = r2;                          /* PFL: pre-fader, mono, unity to both */')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .cue_pfl until lce;')
+    A('        r0 = dm(i0, 1);')
+    A('        f0 = float r0 by r6;')
+    A('        f4 = dm(0, i1);')
+    A('        f4 = f4 + f0;')
+    A('        dm(i1, 1) = f4;')
+    A('        f5 = dm(0, i2);')
+    A('        f5 = f5 + f0;')
+    A('.cue_pfl:')
+    A('        dm(i2, 1) = f5;')
+    A('    rts;')
+    A('.cue_afl:')
+    A('    r4 = _cue_legs;                   /* AFL / SIP: post-fader x pan legs */')
+    A('    r5 = r3 + r3;')
+    A('    r4 = r4 + r5;')
+    A('    i3 = r4;')
+    A('    r7 = dm(0, i3);')
+    A('    r8 = dm(1, i3);')
+    A('    i3 = r7;')
+    A('    r7 = dm(0, i3);')
+    A('    i3 = r8;')
+    A('    r8 = dm(0, i3);')
+    A('    f7 = float r7 by r6;')
+    A('    f8 = float r8 by r6;')
+    A('    i0 = r1;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .cue_afl_lp until lce;')
+    A('        r0 = dm(i0, 1);')
+    A('        f0 = float r0 by r6;')
+    A('        f4 = f0 * f7;')
+    A('        f5 = dm(0, i1);')
+    A('        f5 = f5 + f4;')
+    A('        dm(i1, 1) = f5;')
+    A('        f4 = f0 * f8;')
+    A('        f5 = dm(0, i2);')
+    A('        f5 = f5 + f4;')
+    A('.cue_afl_lp:')
+    A('        dm(i2, 1) = f5;')
+    A('    rts;')
+    A('_cue_strip.end:')
+    A('')
+    A('/* Once per block, after the whole chain. Clobbers r0-r9, i0-i5. */')
+    A('.global _cue_finish;')
+    A('_cue_finish:')
+    A('    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0; l5 = 0;')
+    A('    r6 = -28;')
+    A('    r9 = 0;')
+    A('    i3 = _cue_bus_sel;')
+    A('    i4 = _cue_bus_blk;')
+    A('    lcntr = %d, do .cue_bus until lce;' % len(CUE_BUSES))
+    A('        r0 = dm(i3, 1);')
+    A('        r1 = dm(i4, 1);')
+    A('        r2 = dm(i4, 1);')
+    A('        r0 = pass r0;')
+    A('        if eq jump (pc, .cue_bus);')
+    A('        r9 = r9 + 1;')
+    A('        i0 = r1;')
+    A('        i5 = r2;')
+    A('        i1 = _cue_fl;')
+    A('        i2 = _cue_fr;')
+    A('        lcntr = DSP4_BLOCK_SIZE, do .cue_bus_lp until lce;')
+    A('            r7 = dm(i0, 1);')
+    A('            f7 = float r7 by r6;')
+    A('            f4 = dm(0, i1);')
+    A('            f4 = f4 + f7;')
+    A('            dm(i1, 1) = f4;')
+    A('            r8 = dm(i5, 1);')
+    A('            f8 = float r8 by r6;')
+    A('            f5 = dm(0, i2);')
+    A('            f5 = f5 + f8;')
+    A('.cue_bus_lp:')
+    A('            dm(i2, 1) = f5;')
+    A('.cue_bus:')
+    A('        nop;')
+    A('    r0 = dm(_cue_n);')
+    A('    r0 = r0 + r9;')
+    A('    dm(_cue_active) = r0;')
+    A('    r0 = pass r0;')
+    A('    if ne jump (pc, .cue_sum);')
+    A('    r0 = dm(_cue_src);                /* NOTHING CUED: the assigned source */')
+    A('    r1 = 0;')
+    A('    r2 = %d;' % (len(CUE_BUSES) - 1))
+    A('    comp(r0, r2);')
+    A('    if gt r0 = r1;')
+    A('    comp(r0, r1);')
+    A('    if lt r0 = r1;')
+    A('    r0 = r0 + r0;')
+    A('    r1 = _cue_bus_blk;')
+    A('    r1 = r1 + r0;')
+    A('    i3 = r1;')
+    A('    r1 = dm(0, i3);')
+    A('    r2 = dm(1, i3);')
+    A('    i0 = r1;')
+    A('    i5 = r2;')
+    A('    i1 = _buf_C1_CUE_L;')
+    A('    i2 = _buf_C1_CUE_R;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .cue_cp until lce;')
+    A('        r0 = dm(i0, 1);')
+    A('        dm(i1, 1) = r0;')
+    A('        r0 = dm(i5, 1);')
+    A('.cue_cp:')
+    A('        dm(i2, 1) = r0;')
+    A('    rts;')
+    A('.cue_sum:')
+    A('    i0 = _cue_fl;')
+    A('    i5 = _cue_fr;')
+    A('    i1 = _buf_C1_CUE_L;')
+    A('    i2 = _buf_C1_CUE_R;')
+    A('    r6 = 28;')
+    A('    r5 = 0;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .cue_fix until lce;')
+    A('        f0 = dm(0, i0);')
+    A('        r0 = fix f0 by r6;            /* saturating on overflow */')
+    A('        dm(i0, 1) = r5;               /* the sum restarts at +0.0 */')
+    A('        dm(i1, 1) = r0;')
+    A('        f0 = dm(0, i5);')
+    A('        r0 = fix f0 by r6;')
+    A('        dm(i5, 1) = r5;')
+    A('.cue_fix:')
+    A('        dm(i2, 1) = r0;')
+    A('    r0 = 0;')
+    A('    dm(_cue_n) = r0;')
+    A('    rts;')
+    A('_cue_finish.end:')
+    A('')
+    A('/* The parameter link\'s out-of-table branch (chip1/spi_handler.asm).')
+    A(' * Read. In: r2 = SPI address. Out: r4 = the word (0 if unmapped).')
+    A(' * Clobbers r4, r5, i0, m0 -- the diag handlers\' set. */')
+    A('.global _cue_spi_read;')
+    A('_cue_spi_read:')
+    A('    r5 = CUE_SPI_BASE;')
+    A('    r4 = r2 - r5;')
+    A('    r5 = 0;')
+    A('    comp(r4, r5);')
+    A('    if lt jump (pc, .cue_rd_zero);')
+    A('    r5 = CUE_SPI_N;')
+    A('    comp(r4, r5);')
+    A('    if ge jump (pc, .cue_rd_zero);')
+    A('    i0 = _cue_spi_ptr;')
+    A('    m0 = r4;')
+    A('    modify(i0, m0);')
+    A('    r5 = dm(0, i0);')
+    A('    r5 = pass r5;')
+    A('    if eq jump (pc, .cue_rd_zero);')
+    A('    i0 = r5;')
+    A('    r4 = dm(0, i0);')
+    A('    rts;')
+    A('.cue_rd_zero:')
+    A('    r4 = 0;')
+    A('    rts;')
+    A('_cue_spi_read.end:')
+    A('')
+    A('/* Write. In: r2 = SPI address, r1 = value. Out: r4 = 0 taken, 1 refused')
+    A(' * (out of the block, unmapped or read-only). Clobbers r4, r5, i0, m0. */')
+    A('.global _cue_spi_write;')
+    A('_cue_spi_write:')
+    A('    r5 = CUE_SPI_BASE;')
+    A('    r4 = r2 - r5;')
+    A('    r5 = 0;')
+    A('    comp(r4, r5);')
+    A('    if lt jump (pc, .cue_wr_no);')
+    A('    r5 = CUE_SPI_N;')
+    A('    comp(r4, r5);')
+    A('    if ge jump (pc, .cue_wr_no);')
+    A('    i0 = _cue_spi_wr;')
+    A('    m0 = r4;')
+    A('    modify(i0, m0);')
+    A('    r5 = dm(0, i0);')
+    A('    r5 = pass r5;')
+    A('    if eq jump (pc, .cue_wr_no);')
+    A('    i0 = _cue_spi_ptr;')
+    A('    m0 = r4;')
+    A('    modify(i0, m0);')
+    A('    r5 = dm(0, i0);')
+    A('    i0 = r5;')
+    A('    dm(0, i0) = r1;')
+    A('    r4 = 0;')
+    A('    rts;')
+    A('.cue_wr_no:')
+    A('    r4 = 1;')
+    A('    rts;')
+    A('_cue_spi_write.end:')
+    A('')
+    A('#endif /* DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1 */')
+    return '\n'.join(L) + '\n'
+
+
+def gen_cue_rx():
+    L = ['/* cue_rx.asm -- chip 2\'s end of the cue bus (S65): MIX_2 slots 9/10.',
+         ' * AUTO-GENERATED by tools/dsp/dsp_codegen.py::gen_cue_rx -- do not edit.',
+         ' * _scatter_chip2 fills these whole blocks before the chain runs; C2_MON',
+         ' * reads the L one when its source word is %d (Cue). */' % CUE_MON_SOURCE,
+         '#include "dsp_block.h"',
+         '#if DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 2',
+         '.section/dm seg_dmda;']
+    for side, _slot, _g in CUE_IC:
+        L.append('.global _rx_ic_slot_C2_RECV_CUE_%s;' % side)
+        L.append('.var _rx_ic_slot_C2_RECV_CUE_%s[DSP4_BLOCK_SIZE];' % side)
+    L.append('#endif')
     return '\n'.join(L) + '\n'
 
 
@@ -11531,12 +11955,30 @@ def gen_block_header(mtx_ctl=None):
 #define DSP4_TEST_NODES 0
 #endif
 
-/* The chip-2 RTA filterbank (S64, chip2/rta.asm): 31 x 1/3-octave x 3
- * biquads x 2 channels with ballistics, called at the end of chip 2's
- * chain. Off in shipping until PW lands it; the host arms it with RtaOn
- * (the diag register until the contract carries the cell). */
+/* The RTA filterbank (S64, chip1/rta.asm since S65): 31 x 1/3-octave x 3
+ * biquads x 2 channels with ballistics, called at the end of chip 1's
+ * chain on the cue bus. Off in shipping until PW lands it; the host arms it
+ * with RtaOn. */
 #ifndef DSP4_RTA
 #define DSP4_RTA 0
+#endif
+
+/* THE CUE BUS (S65, chip1/cue.asm + chip2/cue_rx.asm): the stereo sum of
+ * every cued strip (PFL pre-fader / AFL post-pan) and bus, or the assigned
+ * source when nothing is cued, sent to chip 2 on MIX_2 slots 9/10 (global
+ * 41/42) where C2_MON reads it as source 13. Its proposed cells sit on
+ * chip 1's parameter link at CUE_SPI_BASE, after the dispatch table. Off in
+ * shipping; with 0 every byte of the image is what it was without it. */
+#ifndef DSP4_CUE
+#define DSP4_CUE 0
+#endif
+#define CUE_SPI_BASE {CUE_SPI_BASE}
+#define CUE_SPI_N    {len(cue_spi_layout())}
+#if DSP4_RTA && !DSP4_CUE
+#error "DSP4_RTA reads the cue bus since S65: build with DSP4_CUE=1"
+#endif
+#if DSP4_CUE && !DSP4_BLOCK_KERNELS
+#error "DSP4_CUE is written for the block-kernel chain (its strip hook hands pool slots)"
 #endif
 
 /* The measurement window, in BLOCKS. {TEST_WIN_BLOCKS} blocks x {BLOCK} samples =
@@ -14505,6 +14947,26 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
             a(f'             * {ln}')
     a('             */')
     for j, inp in enumerate(ins):
+        if node['type'] == 'MONITOR' and j == 0:
+            # THE MONITOR'S SOURCE READ (S65). _mon_source_ has had no
+            # reader since it was generated; with the cue bus built, value
+            # CUE_MON_SOURCE (Cue) reads chip 2's receive of cue L. The
+            # node is mono end to end (MON, MON_DLY, MON_OUT), so it
+            # carries L only; Aux 1-12 are still unread.
+            a('        #if DSP4_CUE')
+            a('        .extern _rx_ic_slot_C2_RECV_CUE_L;')
+            a(f'            r3 = _blk_{inp};')
+            a('            r5 = _rx_ic_slot_C2_RECV_CUE_L;')
+            a(f'            r4 = dm(_mon_source_{nid});')
+            a(f'            r6 = {CUE_MON_SOURCE};')
+            a('            comp(r4, r6);')
+            a('            if eq r3 = r5;')
+            a('        #else')
+            a(f'            i4 = _blk_{inp};')
+            a(f'            r3 = i4;')
+            a('        #endif')
+            a(f'            dm(_bw_s{j}_{nid}) = r3;')
+            continue
         a(f'            i4 = _blk_{inp};')
         a(f'            r3 = i4;')
         a(f'            dm(_bw_s{j}_{nid}) = r3;')
@@ -19003,10 +19465,17 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write('#endif\n')
             else:
                 emit_chain(scalar_seq, scalar_pos, 'sgrun')
-            if chip_label == 'chip2':
-                # S64: the RTA runs after every chip-2 node, so each
-                # `_blk_` array it may be pointed at is this block's.
-                f.write('#if DSP4_RTA && DSP4_BLOCK_KERNELS\n')
+            if chip_label == 'chip1':
+                # S65: the cue bus is finished after every chip-1 node --
+                # every strip has been summed at its fader hook and every
+                # bus block the source table names is this block's -- and
+                # the RTA (moved here from chip 2) reads what it published.
+                # The gather that follows sends it to chip 2 this block.
+                f.write('#if DSP4_CUE && DSP4_BLOCK_KERNELS\n')
+                f.write('.extern _cue_finish;\n')
+                f.write('    call _cue_finish;\n')
+                f.write('#endif\n')
+                f.write('#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS\n')
                 f.write('.extern _rta_process;\n')
                 f.write('    call _rta_process;\n')
                 f.write('#endif\n')
@@ -19060,6 +19529,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         _TEST_INJ_RE = re.compile(r'^C1_IN_(\d+)$')
         _TEST_TAP_RE = re.compile(r'^C1_FDR_(\d+)$')
         _test_hooked = set()
+        _cue_hooked = set()
 
         def _test_hook_lines(indent, nid, pair_slot=None):
             m_i = _TEST_INJ_RE.match(nid)
@@ -19079,11 +19549,29 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             if pair_slot is not None:
                 slot = pair_slot
             _test_hooked.add(fn)
-            return ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
+            hook = ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
                     f'{indent}r0 = {strip};',
                     f'{indent}r1 = {slot};',
                     f'{indent}call {fn};',
                     '#endif']
+            if m_f:
+                # THE CUE HOOK (S65). At this site BLK_CHAIN_A is the
+                # strip's post-fader block and BLK_TAP_PREFDR its pre-fader
+                # tap (the DLY kernel wrote it), and both die when the next
+                # strip runs. Four instructions for a strip nobody cued.
+                if 'CHAIN_A' not in slot:
+                    raise SystemExit(f'{nid}: the cue hook expects the post-fader '
+                                     f'block in a CHAIN_A slot, got {slot!r}')
+                _cue_hooked.add(strip)
+                hook += ['#if DSP4_BLOCK_KERNELS && DSP4_CUE',
+                         f'{indent}r1 = {slot};',
+                         f'{indent}r2 = {slot.replace("CHAIN_A", "TAP_PREFDR")};',
+                         f'{indent}r3 = {strip - 1};',
+                         f'{indent}r0 = dm(_cue_sel + {strip - 1});',
+                         f'{indent}r0 = pass r0;',
+                         f'{indent}if ne call _cue_strip;',
+                         '#endif']
+            return hook
 
         def _tap_lines(indent, nid, pair_slot=None):
             out = blk_out.get(nid)
@@ -19216,6 +19704,12 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                           '#include "blk_pool.h"']
                 _decl += [f'.extern {n};' for n in sorted(_test_hooked)]
                 _decl += ['#endif', '']
+            if _cue_hooked:
+                _decl += ['#if DSP4_BLOCK_KERNELS && DSP4_CUE',
+                          '#include "blk_pool.h"',
+                          '.extern _cue_strip;',
+                          '.extern _cue_sel;',
+                          '#endif', '']
             _anchor = '.section/pm seg_pmco;'
             _i = _out_lines.index(_anchor) + 1
             _out_lines[_i:_i] = _decl
@@ -19358,16 +19852,27 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(gen_afb_tables())
         files_written += 1
 
-    # chip2/rta.asm — the RTA filterbank (S64). Written whenever the graph
-    # has the stand-in source pair; every symbol in it is inside
-    # #if DSP4_RTA, so a default build assembles an empty file.
+    # chip1/rta.asm (S64, moved from chip 2 by S65), chip1/cue.asm and
+    # chip2/cue_rx.asm (S65). Written whenever the graph has the strips and
+    # buses the cue bus reads; every symbol in them is inside #if DSP4_CUE
+    # (and DSP4_RTA), so a default build assembles three empty files.
     _ids = {n['id'] for n in nodes}
-    if all(s_ in _ids for s_ in RTA_SRC_DEFAULT):
+    if all(s_ in _ids for s_ in CUE_REQUIRED):
+        _stale = os.path.join(output_dir, 'chip2', 'rta.asm')
+        if os.path.exists(_stale):
+            os.remove(_stale)
+        os.makedirs(os.path.join(output_dir, 'chip1'), exist_ok=True)
         os.makedirs(os.path.join(output_dir, 'chip2'), exist_ok=True)
-        with atomic_open(os.path.join(output_dir, 'chip2', 'rta.asm'), 'w',
+        with atomic_open(os.path.join(output_dir, 'chip1', 'rta.asm'), 'w',
                   encoding='utf-8') as f:
             f.write(gen_rta())
-        files_written += 1
+        with atomic_open(os.path.join(output_dir, 'chip1', 'cue.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_cue(nodes, output_dir))
+        with atomic_open(os.path.join(output_dir, 'chip2', 'cue_rx.asm'), 'w',
+                  encoding='utf-8') as f:
+            f.write(gen_cue_rx())
+        files_written += 3
 
     # dsp_block.h is NOT fixed-mode-only: it is the block-size contract the
     # whole tree reads, including the C DMA configuration.

@@ -361,6 +361,282 @@
 /* IC TX node tables (41 packed mix-fabric slots over 3 lanes) */
 /* D25: under block kernels these point at the SOURCE bus
  * buffers, and the INTERCHIP_SEND bodies are empty. */
+#if DSP4_CUE
+/* S65: + the cue pair on MIX_2 slots 9/10 (global 41/42) */
+.extern _tx_slot_C1_BUS_MAIN_L_SEND;
+.extern _tx_slot_C1_BUS_MAIN_R_SEND;
+.extern _tx_slot_C1_BUS_SUB_SEND;
+.extern _tx_slot_C1_BUS_GRP_01_SEND;
+.extern _tx_slot_C1_BUS_GRP_02_SEND;
+.extern _tx_slot_C1_BUS_GRP_03_SEND;
+.extern _tx_slot_C1_BUS_GRP_04_SEND;
+.extern _tx_slot_C1_BUS_AUX_01_SEND;
+.extern _tx_slot_C1_BUS_AUX_02_SEND;
+.extern _tx_slot_C1_BUS_AUX_03_SEND;
+.extern _tx_slot_C1_BUS_AUX_04_SEND;
+.extern _tx_slot_C1_BUS_AUX_05_SEND;
+.extern _tx_slot_C1_BUS_AUX_06_SEND;
+.extern _tx_slot_C1_BUS_AUX_07_SEND;
+.extern _tx_slot_C1_BUS_AUX_08_SEND;
+.extern _tx_slot_C1_BUS_AUX_09_SEND;
+.extern _tx_slot_C1_BUS_AUX_10_SEND;
+.extern _tx_slot_C1_BUS_AUX_11_SEND;
+.extern _tx_slot_C1_BUS_AUX_12_SEND;
+.extern _tx_slot_C1_BUS_FX_01_SEND;
+.extern _tx_slot_C1_BUS_FX_02_SEND;
+.extern _tx_slot_C1_BUS_FX_03_SEND;
+.extern _tx_slot_C1_BUS_FX_04_SEND;
+.extern _tx_slot_C1_BUS_FX_05_SEND;
+.extern _tx_slot_C1_BUS_FX_06_SEND;
+.extern _tx_slot_C1_XS_XFER_CODEC_AUX_L;
+.extern _tx_slot_C1_XS_XFER_CODEC_AUX_R;
+.extern _tx_slot_C1_XS_XFER_PI_L;
+.extern _tx_slot_C1_XS_XFER_PI_R;
+.extern _tx_slot_C1_XS_XFER_SNAKE_01;
+.extern _tx_slot_C1_XS_XFER_SNAKE_02;
+.extern _tx_slot_C1_XS_XFER_SNAKE_03;
+.extern _tx_slot_C1_XS_XFER_SNAKE_04;
+.extern _tx_slot_C1_XS_XFER_SNAKE_05;
+.extern _tx_slot_C1_XS_XFER_SNAKE_06;
+.extern _tx_slot_C1_XS_XFER_SNAKE_07;
+.extern _tx_slot_C1_XS_XFER_SNAKE_08;
+.extern _tx_slot_C1_BUS_MTX_01_SEND;
+.extern _tx_slot_C1_BUS_MTX_02_SEND;
+.extern _tx_slot_C1_BUS_MTX_03_SEND;
+.extern _tx_slot_C1_BUS_MTX_04_SEND;
+.extern _tx_slot_C1_CUE_L_SEND;
+.extern _tx_slot_C1_CUE_R_SEND;
+#if DSP4_BLOCK_KERNELS
+.extern _buf_C1_BUS_MAIN_L;
+.extern _buf_C1_BUS_MAIN_R;
+.extern _buf_C1_BUS_SUB;
+.extern _buf_C1_BUS_GRP_01;
+.extern _buf_C1_BUS_GRP_02;
+.extern _buf_C1_BUS_GRP_03;
+.extern _buf_C1_BUS_GRP_04;
+.extern _buf_C1_BUS_AUX_01;
+.extern _buf_C1_BUS_AUX_02;
+.extern _buf_C1_BUS_AUX_03;
+.extern _buf_C1_BUS_AUX_04;
+.extern _buf_C1_BUS_AUX_05;
+.extern _buf_C1_BUS_AUX_06;
+.extern _buf_C1_BUS_AUX_07;
+.extern _buf_C1_BUS_AUX_08;
+.extern _buf_C1_BUS_AUX_09;
+.extern _buf_C1_BUS_AUX_10;
+.extern _buf_C1_BUS_AUX_11;
+.extern _buf_C1_BUS_AUX_12;
+.extern _buf_C1_BUS_FX_01;
+.extern _buf_C1_BUS_FX_02;
+.extern _buf_C1_BUS_FX_03;
+.extern _buf_C1_BUS_FX_04;
+.extern _buf_C1_BUS_FX_05;
+.extern _buf_C1_BUS_FX_06;
+.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_04;
+.extern _buf_C1_XIN_PI_L;
+.extern _buf_C1_XIN_PI_R;
+.extern _buf_C1_XIN_SNK_01;
+.extern _buf_C1_XIN_SNK_02;
+.extern _buf_C1_XIN_SNK_03;
+.extern _buf_C1_XIN_SNK_04;
+.extern _buf_C1_XIN_SNK_05;
+.extern _buf_C1_XIN_SNK_06;
+.extern _buf_C1_XIN_SNK_07;
+.extern _buf_C1_XIN_SNK_08;
+.extern _buf_C1_BUS_MTX_01;
+.extern _buf_C1_BUS_MTX_02;
+.extern _buf_C1_BUS_MTX_03;
+.extern _buf_C1_BUS_MTX_04;
+.extern _buf_C1_CUE_L;
+.extern _buf_C1_CUE_R;
+#endif
+#if DSP4_BLOCK_KERNELS
+.global _c1_ic_tx_off;
+.global _c1_ic_tx_stride;
+#endif
+.var _c1_ic_tx_off[43] =
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    512,
+    513,
+    514,
+    515,
+    516,
+    517,
+    518,
+    519,
+    520,
+    521,
+    522;
+.var _c1_ic_tx_stride[43] =
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11;
+#if DSP4_BLOCK_KERNELS
+.var _c1_ic_tx_ptrs[43] =
+    _buf_C1_BUS_MAIN_L,
+    _buf_C1_BUS_MAIN_R,
+    _buf_C1_BUS_SUB,
+    _buf_C1_BUS_GRP_01,
+    _buf_C1_BUS_GRP_02,
+    _buf_C1_BUS_GRP_03,
+    _buf_C1_BUS_GRP_04,
+    _buf_C1_BUS_AUX_01,
+    _buf_C1_BUS_AUX_02,
+    _buf_C1_BUS_AUX_03,
+    _buf_C1_BUS_AUX_04,
+    _buf_C1_BUS_AUX_05,
+    _buf_C1_BUS_AUX_06,
+    _buf_C1_BUS_AUX_07,
+    _buf_C1_BUS_AUX_08,
+    _buf_C1_BUS_AUX_09,
+    _buf_C1_BUS_AUX_10,
+    _buf_C1_BUS_AUX_11,
+    _buf_C1_BUS_AUX_12,
+    _buf_C1_BUS_FX_01,
+    _buf_C1_BUS_FX_02,
+    _buf_C1_BUS_FX_03,
+    _buf_C1_BUS_FX_04,
+    _buf_C1_BUS_FX_05,
+    _buf_C1_BUS_FX_06,
+    _buf_C1_XIN_CODEC_03,
+    _buf_C1_XIN_CODEC_04,
+    _buf_C1_XIN_PI_L,
+    _buf_C1_XIN_PI_R,
+    _buf_C1_XIN_SNK_01,
+    _buf_C1_XIN_SNK_02,
+    _buf_C1_XIN_SNK_03,
+    _buf_C1_XIN_SNK_04,
+    _buf_C1_XIN_SNK_05,
+    _buf_C1_XIN_SNK_06,
+    _buf_C1_XIN_SNK_07,
+    _buf_C1_XIN_SNK_08,
+    _buf_C1_BUS_MTX_01,
+    _buf_C1_BUS_MTX_02,
+    _buf_C1_BUS_MTX_03,
+    _buf_C1_BUS_MTX_04,
+    _buf_C1_CUE_L,
+    _buf_C1_CUE_R;
+#else
+.var _c1_ic_tx_ptrs[43] =
+    _tx_slot_C1_BUS_MAIN_L_SEND,
+    _tx_slot_C1_BUS_MAIN_R_SEND,
+    _tx_slot_C1_BUS_SUB_SEND,
+    _tx_slot_C1_BUS_GRP_01_SEND,
+    _tx_slot_C1_BUS_GRP_02_SEND,
+    _tx_slot_C1_BUS_GRP_03_SEND,
+    _tx_slot_C1_BUS_GRP_04_SEND,
+    _tx_slot_C1_BUS_AUX_01_SEND,
+    _tx_slot_C1_BUS_AUX_02_SEND,
+    _tx_slot_C1_BUS_AUX_03_SEND,
+    _tx_slot_C1_BUS_AUX_04_SEND,
+    _tx_slot_C1_BUS_AUX_05_SEND,
+    _tx_slot_C1_BUS_AUX_06_SEND,
+    _tx_slot_C1_BUS_AUX_07_SEND,
+    _tx_slot_C1_BUS_AUX_08_SEND,
+    _tx_slot_C1_BUS_AUX_09_SEND,
+    _tx_slot_C1_BUS_AUX_10_SEND,
+    _tx_slot_C1_BUS_AUX_11_SEND,
+    _tx_slot_C1_BUS_AUX_12_SEND,
+    _tx_slot_C1_BUS_FX_01_SEND,
+    _tx_slot_C1_BUS_FX_02_SEND,
+    _tx_slot_C1_BUS_FX_03_SEND,
+    _tx_slot_C1_BUS_FX_04_SEND,
+    _tx_slot_C1_BUS_FX_05_SEND,
+    _tx_slot_C1_BUS_FX_06_SEND,
+    _tx_slot_C1_XS_XFER_CODEC_AUX_L,
+    _tx_slot_C1_XS_XFER_CODEC_AUX_R,
+    _tx_slot_C1_XS_XFER_PI_L,
+    _tx_slot_C1_XS_XFER_PI_R,
+    _tx_slot_C1_XS_XFER_SNAKE_01,
+    _tx_slot_C1_XS_XFER_SNAKE_02,
+    _tx_slot_C1_XS_XFER_SNAKE_03,
+    _tx_slot_C1_XS_XFER_SNAKE_04,
+    _tx_slot_C1_XS_XFER_SNAKE_05,
+    _tx_slot_C1_XS_XFER_SNAKE_06,
+    _tx_slot_C1_XS_XFER_SNAKE_07,
+    _tx_slot_C1_XS_XFER_SNAKE_08,
+    _tx_slot_C1_BUS_MTX_01_SEND,
+    _tx_slot_C1_BUS_MTX_02_SEND,
+    _tx_slot_C1_BUS_MTX_03_SEND,
+    _tx_slot_C1_BUS_MTX_04_SEND,
+    _tx_slot_C1_CUE_L_SEND,
+    _tx_slot_C1_CUE_R_SEND;
+#endif
+
+#define C1_IC_TX_N 43
+#else
 .extern _tx_slot_C1_BUS_MAIN_L_SEND;
 .extern _tx_slot_C1_BUS_MAIN_R_SEND;
 .extern _tx_slot_C1_BUS_SUB_SEND;
@@ -621,6 +897,8 @@
     _tx_slot_C1_BUS_MTX_04_SEND;
 #endif
 
+#define C1_IC_TX_N 41
+#endif
 /* DMA ping-pong buffers live in generated lane_config.c
  * (byte-addressed C world — DMA + descriptors take byte
  * addresses); asm reaches them via the word-converted
@@ -698,7 +976,7 @@ _gather_chip1:
     i1 = _c1_ic_tx_off;
     i2 = _c1_ic_tx_stride;
     i3 = _c1_ic_tx_ptrs;
-    r7 = 41;
+    r7 = C1_IC_TX_N;
     lcntr = r7; do .gather_chip1_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */

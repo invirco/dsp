@@ -177,7 +177,11 @@ _test_osc_inject:
     if eq rts;
     r2 = dm(_osc_chan_C1_TEST_OSC);
     comp(r0, r2);
+    if eq jump (pc, .osc_inj_go_C1_TEST_OSC);
+    r3 = 99;                  /* S65: 99 = EVERY strip, the driven-capacity arm */
+    comp(r2, r3);
     if ne rts;
+.osc_inj_go_C1_TEST_OSC:
     i4 = r1;
     l4 = 0;
     i5 = _osc_blk_q_C1_TEST_OSC;

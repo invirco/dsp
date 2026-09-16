@@ -196,8 +196,9 @@
 #define DIAG_BULK_CTL        0xE0D2  /* W 1 arm, 2 go, 0 cancel; R state   */
 #define DIAG_BULK_LAST       0xE0D9  /* last register of the block         */
 
-/* The chip-2 RTA filterbank (S64, chip2/rta.asm; DSP4_RTA builds only).
- * Diag registers until the contract carries RtaOn / the band cells. */
+/* The RTA filterbank (S64; chip 1 since S65, chip1/rta.asm; DSP4_RTA builds
+ * only). Diag registers on CHIP 1 now; the proposed cells are also on chip
+ * 1's parameter link (cue.asm's block at CUE_SPI_BASE). */
 #define DIAG_RTA_ON          0xE0C0  /* RW 1 = run the filterbank          */
 #define DIAG_RTA_MODE        0xE0C1  /* RW 0 fast 35 ms, 1 slow 125, 2 peak */
 #define DIAG_RTA_RESET       0xE0C2  /* RW write 1: restart the peak hold  */

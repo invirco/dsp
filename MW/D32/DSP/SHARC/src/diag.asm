@@ -900,13 +900,13 @@ _diag_led_params.end:
  * Clobbers r4, r5, i0, m0. PRESERVES r0-r3 — the caller still needs
  * r0 (the request word) for the response echo.
  *----------------------------------------------------------------------*/
-#if DSP4_RTA && DSP4_BLOCK_KERNELS && CHIP_ID == 2
+#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1
 .extern _rta_diag_read;
 .extern _rta_diag_write;
 #endif
 .global _diag_read;
 _diag_read:
-#if DSP4_RTA && DSP4_BLOCK_KERNELS && CHIP_ID == 2
+#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1
     r4 = DIAG_RTA_ON;
     comp(r2, r4);
     if lt jump (pc, .diag_rd_not_rta);
@@ -1068,7 +1068,7 @@ _diag_read.end:
 .extern _proc_cyc_max;
 .global _diag_write;
 _diag_write:
-#if DSP4_RTA && DSP4_BLOCK_KERNELS && CHIP_ID == 2
+#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1
     r4 = DIAG_RTA_ON;
     comp(r2, r4);
     if lt jump (pc, .diag_wr_not_rta);

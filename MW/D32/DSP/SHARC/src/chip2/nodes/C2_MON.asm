@@ -92,8 +92,18 @@ _C2_MON_process:
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
+        #if DSP4_CUE
+        .extern _rx_ic_slot_C2_RECV_CUE_L;
+            r3 = _blk_C2_MAIN_FDR;
+            r5 = _rx_ic_slot_C2_RECV_CUE_L;
+            r4 = dm(_mon_source_C2_MON);
+            r6 = 13;
+            comp(r4, r6);
+            if eq r3 = r5;
+        #else
             i4 = _blk_C2_MAIN_FDR;
             r3 = i4;
+        #endif
             dm(_bw_s0_C2_MON) = r3;
             i4 = _blk_C2_MON;
             r3 = i4;

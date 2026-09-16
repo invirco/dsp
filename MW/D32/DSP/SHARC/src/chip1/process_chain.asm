@@ -469,6 +469,12 @@
 .extern _test_osc_inject;
 #endif
 
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+#include "blk_pool.h"
+.extern _cue_strip;
+.extern _cue_sel;
+#endif
+
 #if DSP4_CHAN_MASK
 .extern _mask_on;
 #endif
@@ -1242,6 +1248,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 0;
+    r0 = dm(_cue_sel + 0);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
 .bqgrunm0_end:
@@ -1291,6 +1305,14 @@ _chip1_process_all:
     r0 = 2;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 1;
+    r0 = dm(_cue_sel + 1);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 15 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 1 < DSP4_STRIPS)
@@ -1509,6 +1531,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 2;
+    r0 = dm(_cue_sel + 2);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
 .bqgrunm3_end:
@@ -1558,6 +1588,14 @@ _chip1_process_all:
     r0 = 4;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 3;
+    r0 = dm(_cue_sel + 3);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 31 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 3 < DSP4_STRIPS)
@@ -1776,6 +1814,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 4;
+    r0 = dm(_cue_sel + 4);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
 .bqgrunm6_end:
@@ -1825,6 +1871,14 @@ _chip1_process_all:
     r0 = 6;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 5;
+    r0 = dm(_cue_sel + 5);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 47 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 5 < DSP4_STRIPS)
@@ -2043,6 +2097,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 6;
+    r0 = dm(_cue_sel + 6);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
 .bqgrunm9_end:
@@ -2092,6 +2154,14 @@ _chip1_process_all:
     r0 = 8;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 7;
+    r0 = dm(_cue_sel + 7);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 63 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 7 < DSP4_STRIPS)
@@ -2310,6 +2380,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 8;
+    r0 = dm(_cue_sel + 8);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
 .bqgrunm12_end:
@@ -2359,6 +2437,14 @@ _chip1_process_all:
     r0 = 10;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 9;
+    r0 = dm(_cue_sel + 9);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 79 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 9 < DSP4_STRIPS)
@@ -2577,6 +2663,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 10;
+    r0 = dm(_cue_sel + 10);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
 .bqgrunm15_end:
@@ -2626,6 +2720,14 @@ _chip1_process_all:
     r0 = 12;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 11;
+    r0 = dm(_cue_sel + 11);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 95 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 11 < DSP4_STRIPS)
@@ -2844,6 +2946,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 12;
+    r0 = dm(_cue_sel + 12);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
 .bqgrunm18_end:
@@ -2893,6 +3003,14 @@ _chip1_process_all:
     r0 = 14;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 13;
+    r0 = dm(_cue_sel + 13);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 111 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 13 < DSP4_STRIPS)
@@ -3111,6 +3229,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 14;
+    r0 = dm(_cue_sel + 14);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
 .bqgrunm21_end:
@@ -3160,6 +3286,14 @@ _chip1_process_all:
     r0 = 16;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 15;
+    r0 = dm(_cue_sel + 15);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 127 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 15 < DSP4_STRIPS)
@@ -3378,6 +3512,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 16;
+    r0 = dm(_cue_sel + 16);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
 .bqgrunm24_end:
@@ -3427,6 +3569,14 @@ _chip1_process_all:
     r0 = 18;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 17;
+    r0 = dm(_cue_sel + 17);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 143 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 17 < DSP4_STRIPS)
@@ -3645,6 +3795,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 18;
+    r0 = dm(_cue_sel + 18);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
 .bqgrunm27_end:
@@ -3694,6 +3852,14 @@ _chip1_process_all:
     r0 = 20;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 19;
+    r0 = dm(_cue_sel + 19);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 159 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 19 < DSP4_STRIPS)
@@ -3912,6 +4078,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 20;
+    r0 = dm(_cue_sel + 20);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
 .bqgrunm30_end:
@@ -3961,6 +4135,14 @@ _chip1_process_all:
     r0 = 22;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 21;
+    r0 = dm(_cue_sel + 21);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 175 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 21 < DSP4_STRIPS)
@@ -4179,6 +4361,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 22;
+    r0 = dm(_cue_sel + 22);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
 .bqgrunm33_end:
@@ -4228,6 +4418,14 @@ _chip1_process_all:
     r0 = 24;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 23;
+    r0 = dm(_cue_sel + 23);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 191 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 23 < DSP4_STRIPS)
@@ -4446,6 +4644,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 24;
+    r0 = dm(_cue_sel + 24);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
 .bqgrunm36_end:
@@ -4495,6 +4701,14 @@ _chip1_process_all:
     r0 = 26;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 25;
+    r0 = dm(_cue_sel + 25);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 207 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 25 < DSP4_STRIPS)
@@ -4713,6 +4927,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 26;
+    r0 = dm(_cue_sel + 26);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
 .bqgrunm39_end:
@@ -4762,6 +4984,14 @@ _chip1_process_all:
     r0 = 28;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 27;
+    r0 = dm(_cue_sel + 27);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 223 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 27 < DSP4_STRIPS)
@@ -4980,6 +5210,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 28;
+    r0 = dm(_cue_sel + 28);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
 .bqgrunm42_end:
@@ -5029,6 +5267,14 @@ _chip1_process_all:
     r0 = 30;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 29;
+    r0 = dm(_cue_sel + 29);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 239 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 29 < DSP4_STRIPS)
@@ -5247,6 +5493,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 30;
+    r0 = dm(_cue_sel + 30);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
 .bqgrunm45_end:
@@ -5296,6 +5550,14 @@ _chip1_process_all:
     r0 = 32;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 31;
+    r0 = dm(_cue_sel + 31);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 255 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
@@ -6402,6 +6664,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 0;
+    r0 = dm(_cue_sel + 0);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
 .psgrunm0_end:
@@ -6451,6 +6721,14 @@ _chip1_process_all:
     r0 = 2;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 1;
+    r0 = dm(_cue_sel + 1);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 17 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 1 < DSP4_STRIPS)
@@ -6661,6 +6939,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 2;
+    r0 = dm(_cue_sel + 2);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
 .psgrunm3_end:
@@ -6710,6 +6996,14 @@ _chip1_process_all:
     r0 = 4;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 3;
+    r0 = dm(_cue_sel + 3);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 35 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 3 < DSP4_STRIPS)
@@ -6920,6 +7214,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 4;
+    r0 = dm(_cue_sel + 4);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
 .psgrunm6_end:
@@ -6969,6 +7271,14 @@ _chip1_process_all:
     r0 = 6;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 5;
+    r0 = dm(_cue_sel + 5);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 53 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 5 < DSP4_STRIPS)
@@ -7179,6 +7489,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 6;
+    r0 = dm(_cue_sel + 6);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
 .psgrunm9_end:
@@ -7228,6 +7546,14 @@ _chip1_process_all:
     r0 = 8;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 7;
+    r0 = dm(_cue_sel + 7);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 71 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 7 < DSP4_STRIPS)
@@ -7438,6 +7764,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 8;
+    r0 = dm(_cue_sel + 8);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
 .psgrunm12_end:
@@ -7487,6 +7821,14 @@ _chip1_process_all:
     r0 = 10;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 9;
+    r0 = dm(_cue_sel + 9);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 89 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 9 < DSP4_STRIPS)
@@ -7697,6 +8039,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 10;
+    r0 = dm(_cue_sel + 10);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
 .psgrunm15_end:
@@ -7746,6 +8096,14 @@ _chip1_process_all:
     r0 = 12;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 11;
+    r0 = dm(_cue_sel + 11);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 107 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 11 < DSP4_STRIPS)
@@ -7956,6 +8314,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 12;
+    r0 = dm(_cue_sel + 12);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
 .psgrunm18_end:
@@ -8005,6 +8371,14 @@ _chip1_process_all:
     r0 = 14;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 13;
+    r0 = dm(_cue_sel + 13);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 125 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 13 < DSP4_STRIPS)
@@ -8215,6 +8589,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 14;
+    r0 = dm(_cue_sel + 14);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
 .psgrunm21_end:
@@ -8264,6 +8646,14 @@ _chip1_process_all:
     r0 = 16;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 15;
+    r0 = dm(_cue_sel + 15);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 143 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 15 < DSP4_STRIPS)
@@ -8474,6 +8864,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 16;
+    r0 = dm(_cue_sel + 16);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
 .psgrunm24_end:
@@ -8523,6 +8921,14 @@ _chip1_process_all:
     r0 = 18;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 17;
+    r0 = dm(_cue_sel + 17);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 161 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 17 < DSP4_STRIPS)
@@ -8733,6 +9139,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 18;
+    r0 = dm(_cue_sel + 18);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
 .psgrunm27_end:
@@ -8782,6 +9196,14 @@ _chip1_process_all:
     r0 = 20;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 19;
+    r0 = dm(_cue_sel + 19);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 179 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 19 < DSP4_STRIPS)
@@ -8992,6 +9414,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 20;
+    r0 = dm(_cue_sel + 20);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
 .psgrunm30_end:
@@ -9041,6 +9471,14 @@ _chip1_process_all:
     r0 = 22;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 21;
+    r0 = dm(_cue_sel + 21);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 197 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 21 < DSP4_STRIPS)
@@ -9251,6 +9689,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 22;
+    r0 = dm(_cue_sel + 22);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
 .psgrunm33_end:
@@ -9300,6 +9746,14 @@ _chip1_process_all:
     r0 = 24;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 23;
+    r0 = dm(_cue_sel + 23);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 215 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 23 < DSP4_STRIPS)
@@ -9510,6 +9964,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 24;
+    r0 = dm(_cue_sel + 24);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
 .psgrunm36_end:
@@ -9559,6 +10021,14 @@ _chip1_process_all:
     r0 = 26;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 25;
+    r0 = dm(_cue_sel + 25);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 233 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 25 < DSP4_STRIPS)
@@ -9769,6 +10239,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 26;
+    r0 = dm(_cue_sel + 26);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
 .psgrunm39_end:
@@ -9818,6 +10296,14 @@ _chip1_process_all:
     r0 = 28;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 27;
+    r0 = dm(_cue_sel + 27);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 251 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 27 < DSP4_STRIPS)
@@ -10028,6 +10514,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 28;
+    r0 = dm(_cue_sel + 28);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
 .psgrunm42_end:
@@ -10077,6 +10571,14 @@ _chip1_process_all:
     r0 = 30;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 29;
+    r0 = dm(_cue_sel + 29);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 269 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 29 < DSP4_STRIPS)
@@ -10287,6 +10789,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 30;
+    r0 = dm(_cue_sel + 30);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if DSP4_CHAN_MASK && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
 .psgrunm45_end:
@@ -10336,6 +10846,14 @@ _chip1_process_all:
     r0 = 32;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 31;
+    r0 = dm(_cue_sel + 31);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 287 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
@@ -11349,6 +11867,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 0;
+    r0 = dm(_cue_sel + 0);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 9 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 0 < DSP4_STRIPS)
     call _C1_RTG_01_process;
@@ -11464,6 +11990,14 @@ _chip1_process_all:
     r0 = 2;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 1;
+    r0 = dm(_cue_sel + 1);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 19 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 1 < DSP4_STRIPS)
@@ -11581,6 +12115,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 2;
+    r0 = dm(_cue_sel + 2);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 29 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 2 < DSP4_STRIPS)
     call _C1_RTG_03_process;
@@ -11696,6 +12238,14 @@ _chip1_process_all:
     r0 = 4;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 3;
+    r0 = dm(_cue_sel + 3);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 39 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 3 < DSP4_STRIPS)
@@ -11813,6 +12363,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 4;
+    r0 = dm(_cue_sel + 4);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 49 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 4 < DSP4_STRIPS)
     call _C1_RTG_05_process;
@@ -11928,6 +12486,14 @@ _chip1_process_all:
     r0 = 6;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 5;
+    r0 = dm(_cue_sel + 5);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 59 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 5 < DSP4_STRIPS)
@@ -12045,6 +12611,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 6;
+    r0 = dm(_cue_sel + 6);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 69 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 6 < DSP4_STRIPS)
     call _C1_RTG_07_process;
@@ -12160,6 +12734,14 @@ _chip1_process_all:
     r0 = 8;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 7;
+    r0 = dm(_cue_sel + 7);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 79 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 7 < DSP4_STRIPS)
@@ -12277,6 +12859,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 8;
+    r0 = dm(_cue_sel + 8);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 89 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 8 < DSP4_STRIPS)
     call _C1_RTG_09_process;
@@ -12392,6 +12982,14 @@ _chip1_process_all:
     r0 = 10;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 9;
+    r0 = dm(_cue_sel + 9);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 99 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 9 < DSP4_STRIPS)
@@ -12509,6 +13107,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 10;
+    r0 = dm(_cue_sel + 10);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 109 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 10 < DSP4_STRIPS)
     call _C1_RTG_11_process;
@@ -12624,6 +13230,14 @@ _chip1_process_all:
     r0 = 12;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 11;
+    r0 = dm(_cue_sel + 11);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 119 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 11 < DSP4_STRIPS)
@@ -12741,6 +13355,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 12;
+    r0 = dm(_cue_sel + 12);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 129 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 12 < DSP4_STRIPS)
     call _C1_RTG_13_process;
@@ -12856,6 +13478,14 @@ _chip1_process_all:
     r0 = 14;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 13;
+    r0 = dm(_cue_sel + 13);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 139 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 13 < DSP4_STRIPS)
@@ -12973,6 +13603,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 14;
+    r0 = dm(_cue_sel + 14);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 149 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 14 < DSP4_STRIPS)
     call _C1_RTG_15_process;
@@ -13088,6 +13726,14 @@ _chip1_process_all:
     r0 = 16;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 15;
+    r0 = dm(_cue_sel + 15);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 159 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 15 < DSP4_STRIPS)
@@ -13205,6 +13851,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 16;
+    r0 = dm(_cue_sel + 16);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 169 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 16 < DSP4_STRIPS)
     call _C1_RTG_17_process;
@@ -13320,6 +13974,14 @@ _chip1_process_all:
     r0 = 18;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 17;
+    r0 = dm(_cue_sel + 17);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 179 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 17 < DSP4_STRIPS)
@@ -13437,6 +14099,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 18;
+    r0 = dm(_cue_sel + 18);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 189 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 18 < DSP4_STRIPS)
     call _C1_RTG_19_process;
@@ -13552,6 +14222,14 @@ _chip1_process_all:
     r0 = 20;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 19;
+    r0 = dm(_cue_sel + 19);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 199 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 19 < DSP4_STRIPS)
@@ -13669,6 +14347,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 20;
+    r0 = dm(_cue_sel + 20);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 209 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 20 < DSP4_STRIPS)
     call _C1_RTG_21_process;
@@ -13784,6 +14470,14 @@ _chip1_process_all:
     r0 = 22;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 21;
+    r0 = dm(_cue_sel + 21);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 219 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 21 < DSP4_STRIPS)
@@ -13901,6 +14595,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 22;
+    r0 = dm(_cue_sel + 22);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 229 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 22 < DSP4_STRIPS)
     call _C1_RTG_23_process;
@@ -14016,6 +14718,14 @@ _chip1_process_all:
     r0 = 24;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 23;
+    r0 = dm(_cue_sel + 23);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 239 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 23 < DSP4_STRIPS)
@@ -14133,6 +14843,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 24;
+    r0 = dm(_cue_sel + 24);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 249 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 24 < DSP4_STRIPS)
     call _C1_RTG_25_process;
@@ -14248,6 +14966,14 @@ _chip1_process_all:
     r0 = 26;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 25;
+    r0 = dm(_cue_sel + 25);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 259 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 25 < DSP4_STRIPS)
@@ -14365,6 +15091,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 26;
+    r0 = dm(_cue_sel + 26);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 269 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 26 < DSP4_STRIPS)
     call _C1_RTG_27_process;
@@ -14480,6 +15214,14 @@ _chip1_process_all:
     r0 = 28;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 27;
+    r0 = dm(_cue_sel + 27);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 279 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 27 < DSP4_STRIPS)
@@ -14597,6 +15339,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 28;
+    r0 = dm(_cue_sel + 28);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 289 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 28 < DSP4_STRIPS)
     call _C1_RTG_29_process;
@@ -14712,6 +15462,14 @@ _chip1_process_all:
     r0 = 30;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 29;
+    r0 = dm(_cue_sel + 29);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 299 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 29 < DSP4_STRIPS)
@@ -14829,6 +15587,14 @@ _chip1_process_all:
     r1 = BLK_CHAIN_A_P1;
     call _test_meas_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A_P1;
+    r2 = BLK_TAP_PREFDR_P1;
+    r3 = 30;
+    r0 = dm(_cue_sel + 30);
+    r0 = pass r0;
+    if ne call _cue_strip;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 309 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 30 < DSP4_STRIPS)
     call _C1_RTG_31_process;
@@ -14944,6 +15710,14 @@ _chip1_process_all:
     r0 = 32;
     r1 = BLK_CHAIN_A;
     call _test_meas_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_CUE
+    r1 = BLK_CHAIN_A;
+    r2 = BLK_TAP_PREFDR;
+    r3 = 31;
+    r0 = dm(_cue_sel + 31);
+    r0 = pass r0;
+    if ne call _cue_strip;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 319 < DSP4_NODE_LIMIT) && (DSP4_STRIPS == 0 || 31 < DSP4_STRIPS)
@@ -15847,6 +16621,14 @@ _chip1_process_all:
 #if (DSP4_NODE_LIMIT == 0 || 440 < DSP4_NODE_LIMIT)
     call _C1_TEST_OSC_process;
 #endif
+#endif
+#if DSP4_CUE && DSP4_BLOCK_KERNELS
+.extern _cue_finish;
+    call _cue_finish;
+#endif
+#if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS
+.extern _rta_process;
+    call _rta_process;
 #endif
     rts;
 _chip1_process_all.end:

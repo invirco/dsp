@@ -1,0 +1,2 @@
+{"ev": "cost", "tag": "d24_s26_base_driven", "budget": 327680, "arms": {"base": {"n": 4337, "min": 187874, "p10": 187900, "median": 188610, "p90": 189218, "max": 190004, "pct": 57.56, "pct_max": 57.98, "overruns": 0, "seconds": 3.0, "active": []}}, "t": 1789582875.183}
+{"ev": "cost", "tag": "d32_s26_base_driven", "budget": 327680, "arms": {"base": {"n": 3003, "min": 228339, "p10": 228341, "median": 228366, "p90": 230110, "max": 230137, "pct": 69.69, "pct_max": 70.23, "overruns": 0, "seconds": 3.0, "active": []}}, "t": 1789582942.092}

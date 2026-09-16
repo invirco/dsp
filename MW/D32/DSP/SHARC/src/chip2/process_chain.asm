@@ -8862,9 +8862,5 @@ _chip2_process_all:
 #endif
 #endif
 #endif
-#if DSP4_RTA && DSP4_BLOCK_KERNELS
-.extern _rta_process;
-    call _rta_process;
-#endif
     rts;
 _chip2_process_all.end:

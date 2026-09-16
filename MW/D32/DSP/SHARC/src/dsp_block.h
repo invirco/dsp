@@ -488,12 +488,30 @@
 #define DSP4_TEST_NODES 0
 #endif
 
-/* The chip-2 RTA filterbank (S64, chip2/rta.asm): 31 x 1/3-octave x 3
- * biquads x 2 channels with ballistics, called at the end of chip 2's
- * chain. Off in shipping until PW lands it; the host arms it with RtaOn
- * (the diag register until the contract carries the cell). */
+/* The RTA filterbank (S64, chip1/rta.asm since S65): 31 x 1/3-octave x 3
+ * biquads x 2 channels with ballistics, called at the end of chip 1's
+ * chain on the cue bus. Off in shipping until PW lands it; the host arms it
+ * with RtaOn. */
 #ifndef DSP4_RTA
 #define DSP4_RTA 0
+#endif
+
+/* THE CUE BUS (S65, chip1/cue.asm + chip2/cue_rx.asm): the stereo sum of
+ * every cued strip (PFL pre-fader / AFL post-pan) and bus, or the assigned
+ * source when nothing is cued, sent to chip 2 on MIX_2 slots 9/10 (global
+ * 41/42) where C2_MON reads it as source 13. Its proposed cells sit on
+ * chip 1's parameter link at CUE_SPI_BASE, after the dispatch table. Off in
+ * shipping; with 0 every byte of the image is what it was without it. */
+#ifndef DSP4_CUE
+#define DSP4_CUE 0
+#endif
+#define CUE_SPI_BASE 4984
+#define CUE_SPI_N    118
+#if DSP4_RTA && !DSP4_CUE
+#error "DSP4_RTA reads the cue bus since S65: build with DSP4_CUE=1"
+#endif
+#if DSP4_CUE && !DSP4_BLOCK_KERNELS
+#error "DSP4_CUE is written for the block-kernel chain (its strip hook hands pool slots)"
 #endif
 
 /* The measurement window, in BLOCKS. 256 blocks x 16 samples =

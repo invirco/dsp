@@ -6,6 +6,97 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CUE BUS AND THE RTA ON CHIP 1: BUILT, PROVEN THROUGH THE PARAMETER LINK, DELIVERED TO CHIP 2; +0.6 % FOR THE BUS, +10.6 % FOR THE RTA; THE D24 FITS AT 70.6 % DRIVEN ON THE s26 LEVERS AND DOES NOT FIT ON TODAY'S SHIPPING CONFIG (121.8 % BEFORE EITHER) (2026-09-16, session 65 — desk + digital loop, MW-D24-2)
+
+**Pairs** (all built from this tree; bench dirs in brackets).
+- **Shipping** (`DSP4_CUE=0 DSP4_RTA=0`): **`36daa238` / `3a9c950d`**, byte for byte S61–S64's, rebuilt twice after the generator change.
+- **`s65`** (`TEST_NODES=1 CUE=1 RTA=1`, shipping.config): chip1 `2d69a32f`, chip2 `a4dd11f4` [`~/s65`]. **`s65base`** (`TEST_NODES=1` only, same tree): `24353e71` / `251ce3b2` [`~/s65base`].
+- **`s65s26`** (the same switches on `shipping.config.s26`): `0ba6cba6` / `29f58878` [`~/s65s26`]; **base** `d90a379b` / `7ef50a94` [`~/s65s26base`].
+- Chip 1 `TEST_NODES` images differ from S62's `57948d77` by the new TEST_OSC channel-99 arm (S65-2).
+
+**Scope.** Digital only. The chain, MIC 5, the analog path, AN_EN and CS_M were not touched by the S65 work. The hub addendum's THD sweep (MIC 5, code 63) ran first on S63's pair and is in `MW/D24/DSP/s63/artefacts.md`. Generator: `dsp_codegen.py::gen_cue` / `gen_cue_rx` / `cue_spi_layout` (new), `gen_rta` moved to chip 1, the inter-chip tables and `lane_config.c` behind `#if DSP4_CUE`, the C2_MON source read, and the TEST_OSC every-strip arm. Hand-written: `chip1/spi_handler.asm` (the out-of-table branch), `diag.asm` (the RTA diag hooks now on chip 1), `diag.h`, `build.sh`, `shipping.config`. Tools `MW/D24/DSP/s65/tools/`, data `MW/D24/DSP/s65/data/`. Proposal `proposals/CONTRACT-PROPOSAL-S65.md`.
+
+**S65-1. The cue bus exists on chip 1, from cells the master already carries plus four it does not.**
+- **Cells found** (`defs/common/cells/mx_master.csv`; the Bible `09-cell-name-registry.md` has only the one-line descriptions):
+  - `Chan[1-64]CueSel` (row 136) and `Main[1-1]CueSel` (225).
+  - `Sys[1-1]CueMode` (339, PFL/AFL/SIP) and `Sys[1-1]Cue[1-64]` (338, a console-state mirror).
+  - `Mon[1-1]InputSel` (235, 2 states, chip-2 `0x06FC`), `Mon[1-1]Level[1-2]`, `Phones[1-4]Src`/`Level`, `Rta[1-1]On`/`Src`.
+- **Missing, PROPOSED not invented:** `Aux[1-12]CueSel`, `Grp[1-4]CueSel`, `Cue[1-1]Src` (the assigned source), `Cue[1-1]Active` (ro). There is no cue/monitor level cell other than `Mon Level` and `Phones Level`.
+- **What it sums.**
+  - PFL: the strip's pre-fader tap (`BLK_TAP_PREFDR`: post-delay, pre-fader, pre-mute), mono, unity to both sides.
+  - AFL: the post-fader block times the strip's own pan legs (`_fdr_lq/_fdr_rq`, the legs the main crosspoints use).
+  - SIP: AFL on the bus.
+  - Bus cues: the chip-1 main L/R, aux and group sums, which come **before** the chip-2 bus masters.
+  - Nothing cued: `Cue Src`, copied bit-exact (0 main L/R default, 1–12 aux, 13–16 group).
+- **How.** A four-instruction test after every `C1_FDR_nn` calls `_cue_strip` only for a cued strip (the pool blocks die when the next strip runs). The float32 sums are FIXed back to Q4.28 in `_cue_finish` after the whole chain, and the RTA reads that output. `fix` overflow saturation is assumed from the core's documented behaviour; nothing here drove the sum past full scale to test it.
+- **To chip 2.** MIX_2 slots **9/10 = global 41/42**. MIX_2 carries snake 4–8 on 0–4 and the matrix buses on 5–8, and marks 9–15 reserved: **room for 7, 2 used.** Under the switch the lane grows 9 → 11 packed words (CS `0x07FF`, region 656 → 688, both chips).
+- **The monitor.** `C2_MON` reads the cue L receive when `Mon001InputSel001` = 13; its source word had no reader before. **What remains:**
+  - The monitor path is mono end to end: MON, MON_DLY and MON_OUT carry one block, and MON_OUT fills one of its two CODEC_OUT_1 slots.
+  - Aux 1–12 as a monitor source still has no reader.
+  - The master's `Mon InputSel` is 2 states and must widen to 14.
+  - `Phones[1-4]` have no DSP nodes.
+- **Also found:** `Pan` on the wire is a float32 0.0–1.0 (`pan_law.asm` × 126), not an index; the first proof run wrote the integer 126 and read "no move" (`data/s65_prove_run1_intpan.jsonl`, a tool error, not firmware). And every strip's pan word boots at 0.0 = hard left.
+
+**S65-2. The price, driven, on the part: the cue bus ≈ +0.4–0.6 %, the RTA +10.5–10.6 % (same as on chip 2), each cued strip ≈ +245 cycles. On the s26 lever configuration the D24 is 70.6 % with every strip cued and the RTA on. On today's shipping.config it is 121.8 % with neither.**
+*Driven, without a CPLD flash.* TEST_OSC gained an S65 arm: channel **99 = every strip**. It replaces each strip's input block with a 1 kHz sine at −6 dBFS pk. `dsp4_driven_setup.py --chip 1 --mode load` opens every assign and send and puts every gate/compressor at −60 dB, On (648 written, 0 failed). The witness is a comp gain reduction of ≈ −39.6 dB on strips 1–3. The injector is in both images, so base vs S65 isolates the cue bus. `_proc_cyc` medians of 6 interleaved rounds × 0.5 s; overruns by delta (`s65_cost.py`, `s65_ladder*.sh`). Budget 327,680.
+
+| configuration / product | base (no cue) | S65: nothing cued, RTA off | RTA on | + strip 6 PFL | + every strip AFL | overruns (worst arm) |
+|---|---:|---:|---:|---:|---:|---:|
+| **s26** D24 (24 strips) | 188,610 = **57.56 %** | 190,632 = 58.18 % (+2,022) | 225,383 = 68.78 % (+34,751) | 225,607 (+224) | 231,256 = **70.57 %** (max 71.01) | **0** |
+| s26 D32 (32) | 228,366 = 69.69 % | 230,205 = 70.25 % (+1,839) | 264,575 = 80.74 % (+34,370) | 264,804 (+229) | 272,395 = **83.13 %** (max 83.73) | 0 |
+| shipping.config D24 | 399,085 = **121.79 %** | 400,459 = 122.21 % (+1,374) | 434,878 = 132.71 % (+34,419) | 435,103 (+225) | 440,766 = 134.51 % | 2,320 / 3 s |
+| shipping.config D32 | 484,788 = 147.95 % | 486,283 = 148.40 % (+1,495) | 520,720 = 158.91 % (+34,437) | 520,928 (+208) | 528,527 = 161.29 % | 3,439 / 3 s |
+
+- **The RTA costs chip 1 what it cost chip 2**: +34.4–34.8 k cycles (S64-3: +34.4 k), product- and configuration-independent.
+- **The cue bus idle** (hooks + finish + source copy + the two gather slots) is +1.4–2.0 k cycles. This is a base image against the S65 image on separate boots, so the boot-to-boot spread is inside the figure. A cued strip costs 224–229 (PFL) and 244–245 each (AFL).
+- **The ≤ 90 % gate.** "Chip 1 near 59 % driven" is the **s26** configuration: the fit table's anchor, with SIMD_DYN, STRIP_FUSED, C2_BQ_GRAPH, GATE_LINTHR, DYN_LUT and SHARED_KERNELS. Measured here it is 57.6 %. **With the cue bus and the RTA the D24 reaches 68.8 % and, every strip cued AFL, 70.6 % (max 71.0 %), 0 overruns: IT FITS.** D32, reported: 83.1 %, 0 overruns.
+- **On `shipping.config` as it stands, chip 1 is already 121.8 % driven with no cue and no RTA** (S39-3's 114.9 % was the same shape). The cue/RTA question does not change that; S42-6's lever decision does.
+- **The cue hook is right on the PAIRED chain too** (s26 = SIMD_DYN): strip 5 (odd, pool1 slots) and strip 6, PFL → L and R −23.02/−23.01, AFL pan L → L −23.01 with R ≤ −163.9 (`data/s65_hookcheck.jsonl`).
+- **Words and code pool** (linker maps):
+
+| | chip 1 code (B) | chip 1 DM (B / words) | chip 2 code (B) | chip 2 DM (B) |
+|---|---:|---:|---:|---:|
+| cue bus | +1,792 | +2,096 / 524 | +18 | +416 |
+| RTA | +972 | +3,008 / 752 | 0 | 0 |
+| **shipping.config pool after both** | **6,390 free** (of 9,154) | 106,620 free | 128,126 free | — |
+| **s26 pool after both** | **72,930 free** | 59,412 free | | |
+
+**S65-3. Proof through the digital loop and the parameter link: every row within 0.1 dB, octave neighbours 40.7–50.9 dB down, the cold side at ≤ −162 dBFS, τ 35.0 / 125.0 ms, peak-hold held and reset, and the bus arrives on chip 2.**
+*Pair `s65` (shipping.config, undriven: chip 1 read 225,168 cycles = 68.7 % with nothing cued and the RTA off; overruns were not tracked during the proof, and the RTA's input is the cue block the same pass produced).* Stimulus TEST_OSC −20 dBFS pk on strip 6 (S56 donor route); expected −23.010. Bands read as the proposed cells `Rta001MtrL/R` through chip 1's parameter link, median of 3 (`s65_prove.py`, `data/s65_prove.jsonl`).
+
+| case | tone | band reads | error | octave down / up | cold side |
+|---|---|---:|---:|---|---:|
+| A strip 6 cued AFL, pan L | 63 Hz | −23.082 | −0.072 | 48.38 / 48.71 | R −359 (0) |
+| A | 1 kHz | −23.001 | +0.009 | 48.72 / 48.58 | R −359 |
+| A | 8 kHz | −23.009 | +0.001 | 50.86 / 40.74 | R −359 |
+| A pan R (Pan 1.0f) | 1 kHz | R −23.011 | −0.001 | 48.69 / 48.57 | L −207 |
+| B strip 6 cued PFL | 1 kHz | L −23.011, R −23.011 | −0.001 | 48.69 / 48.57 | (mono: both) |
+| C nothing cued, Cue Src 0 = main L/R (strip 6 MainOn 1, pan L) | 1 kHz | L −23.011 | −0.001 | 48.69 / 48.57 | R −162.3 |
+| C nothing cued, Cue Src 1 = AUX 1 | 1 kHz | L −23.011, R −23.011 | −0.001 | 48.69 / 48.57 | (mono bus) |
+
+- `Cue001Active001` read 1 in A/B and 0 in C. TEST_MEAS on strip 6 read −23.071 / −23.012 / −23.010 at 63 / 1k / 8k.
+- **Ballistics:** fast −124.1 dB/s = **τ 35.0 ms**, slow −34.7 dB/s = **τ 125.0 ms**. Peak-hold held −23.0 dBFS 1 s after the tone stopped; `Rta001PeakReset001` → −130.7 dBFS and read back 0.
+- **Delivered to chip 2** (`Mon001InputSel001` = 13, 200 single peeks of word 0 per array):
+
+| arm | cue L rx rms / max | cue R rx | `_blk_C2_MON` rms / max |
+|---|---|---|---|
+| strip 6 cued AFL pan L | 0.0805 / 0.0924 | 0 / 0 | 0.0793 / 0.0793 |
+| nothing cued, Src main (silent) | 0 / 0 | 0 / 0 | 0 / 0 |
+| cued again, monitor back on source 0 | — | — | 0 / 0 |
+
+  - The tone's peak is 0.1. Word 0 of a 16-sample block of a 48-sample period takes only three phases, so the rms is not 0.0707; it is non-zero exactly where the cue says, R is exactly 0, and the monitor follows its source word.
+  - **The chip-2 bulk read could not be used.** With S64's checksum bypass for live blocks, three different arrays on three reads returned the SAME 16 words, all broken at sample 10. That is not what any of those arrays holds, so no contiguity claim is made from it. Why the stream repeats is not chased. S64-4's chip-2 bulk-read snapshot used the same bypass and should be re-checked before it is cited.
+- **The meter path and its rate.** The 62 band words are raw one-word reads on chip 1's parameter link, the path the METER read-back block at `0x1200..` uses. The DSP refreshes them 3,000 times a second (`_rta_seq` +1,502 in 0.5 s). Through the bench tool link all 62 took **0.155 s (≈ 6.5 fps)**, with one paced ask per word (a meter word moves every block, so the settle-vote read cannot be used). The CM4 daemon's ring rate is still the hub's number.
+
+**S65-4. Contract proposal S65 (not landed), switches, gates.**
+- `proposals/CONTRACT-PROPOSAL-S65.md` supersedes S64's chip-2 addresses:
+  - `RtaOn` kept; `RtaSrc` retired; `RtaMode` / `RtaPeakReset` / 62 read-only band meters.
+  - Chan/Main CueSel and `Sys CueMode` mapped; `Aux/Grp CueSel`, `Cue Src` and `Cue Active` new; `Mon InputSel` widened to 14 states.
+  - All at chip-1 **`0x1378..0x13ED`**, directly after the 4,984-entry dispatch table, S44 way, no moves. The generator refuses to emit if the table ever grows into the block.
+- **Switches.** `DSP4_CUE` and `DSP4_RTA`, both 0 in `shipping.config`. With them off both images are byte-identical (`36daa238` / `3a9c950d`). `DSP4_RTA=1` without `DSP4_CUE` is a build error.
+- `check-sharc-codegen-drift.sh`: pass (`chip1/cue.asm`, `chip1/rta.asm`, `chip2/cue_rx.asm` generated; `chip2/rta.asm` removed).
+- **Hand-back (19:23 BST).** The s60 pair twice (`fe522a7f` / `c56ed0ab`), `s56_setup.py`, `s60_handback.py`. `s60_found.py after_s65b` vs `found_s65`: every field identical but MIC 5 idle −106.08 → −105.72 dBFS. AN_EN `op pd | hi`, CS_M `op pu | hi`, never written; `matrix-app` inactive as found. `~/s65`, `~/s65base`, `~/s65s26`, `~/s65s26base` hold the pairs and tools; `~/s60`, `~/s62`, `~/s63`, `~/s64` and `~/dspboot` are untouched.
+
 ## THE RTA FROM THE CUE BUS: THE GRAPH HAS NO CUE BUS, TWO BIQUADS A BAND CANNOT MAKE 40 dB, AND THE FILTERBANK IS RIGHT ON THE PART BUT COSTS CHIP 2 10.5 % AND DOES NOT FIT THE D24 (2026-09-16, session 64 — desk + digital loop, MW-D24-2)
 
 **Pairs.**
