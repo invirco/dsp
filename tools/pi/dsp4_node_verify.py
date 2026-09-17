@@ -104,6 +104,7 @@ sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
 import fixed_ref as fr
 from dsp4_conform import (Part, chain_witness, drive_strip, f32, STRIDE,
+                          unity_wire,
                           CAPTURE_REST, GATE_ON, GATE_THR, GATE_ATT,
                           GATE_HOLD, GATE_REL, COMP_ON, COMP_THR,
                           COMP_RATIO, COMP_ATT, COMP_REL, COMP_PAR,
@@ -998,9 +999,11 @@ def run_bqcvt(part, strip, log=print):
             if not ok:
                 log(f'      part  {got}')
                 log(f'      model {want}')
-    # leave the bands where the rest of the run expects them
+    # leave the bands where the rest of the run expects them: pass-through
+    # in the image's own wire form (S67-5), not the direct-form pad above,
+    # which on a DSP4_BQ_FLOAT=1 image is a DC pole-zero cancellation
     for band in range(4):
-        for i, c in enumerate(unity[:5]):
+        for i, c in enumerate(unity_wire(part)):
             part.write(b + EQ_C0 + band * 5 + i, f32(c), 0)
     part.write(b + EQ_SWAP, 1, 0)
     time.sleep(XFADE_SETTLE)

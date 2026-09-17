@@ -64,6 +64,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, '/home/app/dspboot')
 
 import dsp4_scope as S                                       # noqa: E402
+import dsp4_bqwire as BW                                     # noqa: E402
 from dsp4_diag import MAGIC_VALUE                            # noqa: E402
 
 try:
@@ -817,7 +818,18 @@ COMP_ATT, COMP_REL, COMP_PAR = 0x003B, 0x003C, 0x003F
 # swaps coefficient sets on a trigger word.
 HPF_C0, HPF_SWAP, LPF_C0, LPF_SWAP = 0x0004, 0x0009, 0x000A, 0x000F
 EQ_C0, EQ_SWAP = 0x0010, 0x0024
-UNITY_BQ = (1.0, 0.0, 0.0, 0.0, 0.0)
+UNITY_BQ = BW.UNITY        # DIRECT form -- see unity_wire()
+
+
+def unity_wire(part):
+    """The pass-through stage as the running image's wire words (S67-5).
+    Direct (1,0,0,0,0) written into a DSP4_BQ_FLOAT=1 image is NOT a bypass
+    but (1-2z+z^2)/(1-2z+z^2), a double pole at DC held off only by an exact
+    cancellation. The arm is read once per Part and cached."""
+    fa = getattr(part, '_bq_float_arm', None)
+    if fa is None:
+        fa = part._bq_float_arm = BW.float_arm(part.sc)
+    return BW.encode(UNITY_BQ, fa)
 
 
 def wr_checked(part, addr, word, ramp, sym=None, want=None, log=print,
@@ -948,12 +960,13 @@ def drive_strip(part, strip, log=print, skip=()):
     # `_buf_C1_FILT_01`, and the run reported NO inert verdicts at all.
     # Unity sections cost six writes per cascade and make the phase
     # independent of what ran before it.
+    unity = unity_wire(part)
     for base, swap in ((HPF_C0, HPF_SWAP), (LPF_C0, LPF_SWAP)):
-        for i, c in enumerate(UNITY_BQ):
+        for i, c in enumerate(unity):
             part.write(b + base + i, f32(c), 0)
         part.write(b + swap, 1, 0)
     for band in range(4):
-        for i, c in enumerate(UNITY_BQ):
+        for i, c in enumerate(unity):
             part.write(b + EQ_C0 + band * 5 + i, f32(c), 0)
     part.write(b + EQ_SWAP, 1, 0)
     time.sleep(0.3)

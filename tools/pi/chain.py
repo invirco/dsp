@@ -32,6 +32,7 @@ import struct, sys, time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 from dsp4_tubedly_probe import wrv
 
 GAIN      = 0x0000
@@ -53,7 +54,7 @@ FDR_MUTE  = 0x0052
 # rather than looking like an oversight.
 FDR_RESERVED = 0x0053
 
-UNITY_BIQUAD = [1.0, 0.0, 0.0, 0.0, 0.0]      # RBJ b0,b1,b2,a1,a2
+UNITY_BIQUAD = list(BW.UNITY)                  # DIRECT form; written in the image's wire form (S67-5)
 AMP = 0x08000000                               # -6 dBFS in Q4.28
 
 
@@ -64,16 +65,17 @@ def f32(x):
 def configure(sc):
     """Put the whole strip in a known state. Never assume; always set."""
     wrv(sc, GAIN, f32(1.0), ramp_id=1, settle=0.05)
+    unity = BW.encode(UNITY_BIQUAD, BW.float_arm(sc))
 
     for base, sw in ((HPF0, HPF_SW), (LPF0, LPF_SW)):
-        for i, c in enumerate(UNITY_BIQUAD):
+        for i, c in enumerate(unity):
             sc.d.write(base + i, f32(c))
         for _ in range(3):                     # swap triggers are consumed
             sc.d.write(sw, 1)
             time.sleep(S.SETTLE)
 
     for band in range(4):
-        for i, c in enumerate(UNITY_BIQUAD):
+        for i, c in enumerate(unity):
             sc.d.write(EQ0 + band * 5 + i, f32(c))
     for _ in range(3):
         sc.d.write(EQ_SW, 1)

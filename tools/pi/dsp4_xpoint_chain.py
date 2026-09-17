@@ -32,6 +32,7 @@ import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
 import fixed_ref as fr
+import dsp4_bqwire as BW
 from dsp4_tubedly_probe import wrv
 
 GAIN, POLARITY = 0x0000, 0x0001   # _mute_C1_GAIN_01 has no dispatch entry — mute lives on the fader
@@ -48,7 +49,7 @@ FDR_LEVEL, FDR_PAN, FDR_MUTE = 0x0050, 0x0051, 0x0052
 # writes it, and the constant is kept so the gap in the map is named
 # rather than looking like an oversight.
 FDR_RESERVED = 0x0053
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)      # DIRECT form; written in the image's wire form (S67-5)
 AMP = 0x08000000
 
 def f32(x): return struct.unpack('<I', struct.pack('<f', float(x)))[0]
@@ -62,11 +63,12 @@ def rns(acc, sh=28):
 
 def configure(sc):
     wrv(sc, GAIN, f32(1.0), ramp_id=1, settle=0.05)
+    unity = BW.encode(UNITY, BW.float_arm(sc))
     for base, sw in ((HPF0, HPF_SW), (LPF0, LPF_SW)):
-        for i, c in enumerate(UNITY): sc.d.write(base + i, f32(c))
+        for i, c in enumerate(unity): sc.d.write(base + i, f32(c))
         for _ in range(3): sc.d.write(sw, 1); time.sleep(S.SETTLE)
     for band in range(4):
-        for i, c in enumerate(UNITY): sc.d.write(EQ0 + band * 5 + i, f32(c))
+        for i, c in enumerate(unity): sc.d.write(EQ0 + band * 5 + i, f32(c))
     for _ in range(3): sc.d.write(EQ_SW, 1); time.sleep(S.SETTLE)
     for a in (GATE_ON, COMP_ON, TUBE_ON, FDR_MUTE, POLARITY):
         sc.d.write(a, 0)
