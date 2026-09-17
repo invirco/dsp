@@ -13,10 +13,12 @@ clean impulse on the EQ's doorstep with NO matrix routing involved --
 routes are host-written parameters nothing sets at boot, and needing them
 is what stalled the earlier latency attempt.
 
-The EQ takes FLOAT RBJ coefficients on the wire and converts to the
-Q4.28 offset form itself, so tools/dsp/fixed_ref.py::biquad_coeffs_q
-predicts the stored values exactly and the impulse response can be
-checked BIT-EXACTLY rather than to a dB tolerance.
+Coefficients are given and printed in DIRECT form (b0,b1,b2,a1,a2). What
+goes on the wire depends on the running image: under DSP4_BQ_FLOAT=1
+(shipping) the words are the OFFSET encoding, under the fixed arm direct
+RBJ. dsp4_bqwire reads the arm off the part and encodes; writing direct
+form into a float-arm image was a different, unstable filter (S67-5).
+--wire overrides the detection.
 
 Prints one value per line as "idx value"; the comparison against
 fixed_ref happens on the dev box where the normative model lives.
@@ -25,6 +27,7 @@ import argparse, json, struct, sys, time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 GAIN_ADDR = 0x0000          # C1_GAIN_01 gain coeff (float)
 EQ_COEFF0 = 0x0010          # 20 float words
@@ -67,11 +70,12 @@ def rbj_peaking(f0, q, gain_db, fs=48000.0):
     return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0]
 
 
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)
+FLOAT_ARM = None          # set in main() from the part
 
 
 def set_biquad(sc, base, swap, band):
-    for i, c in enumerate(band):
+    for i, c in enumerate(BW.encode(band, FLOAT_ARM)):
         wr_verified(sc, base + i, f32(c))
     for _ in range(3):
         sc.d.write(swap, 1)
@@ -84,8 +88,8 @@ def main():
     ap.add_argument('--amp', default='0x08000000')
     ap.add_argument('--bands', default='peak1k',
                     choices=('unity', 'peak1k', 'four', 'custom'))
-    ap.add_argument('--rbj', help='band 0 as b0,b1,b2,a1,a2 (others unity)')
-    ap.add_argument('--filt', help='FILT instead of EQ: hpf b0,..,a2 / lpf b0,..,a2 '
+    ap.add_argument('--rbj', help='band 0 as DIRECT-form b0,b1,b2,a1,a2 (others unity)')
+    ap.add_argument('--filt', help='FILT instead of EQ: DIRECT-form hpf b0,..,a2 / lpf b0,..,a2 '
                                    'separated by a semicolon')
     ap.add_argument('--pool-inj', type=int, default=None,
                     help='inject at _blk_pool + N*32 (per-block kernels: the\n'
@@ -96,9 +100,14 @@ def main():
                          '(per-block kernels put node outputs in the shared pool)')
     ap.add_argument('--baseline', action='store_true',
                     help='inject nothing: prove the EQ is at rest')
+    ap.add_argument('--wire', default='auto', choices=('auto', 'offset', 'direct'),
+                    help='coefficient wire form; auto reads DSP4_BQ_FLOAT off the part')
     a = ap.parse_args()
 
+    global FLOAT_ARM
     sc = S.Scope(1)
+    FLOAT_ARM = BW.float_arm(sc, a.wire)
+    print('WIRE %s' % ('offset (DSP4_BQ_FLOAT=1)' if FLOAT_ARM else 'direct (DSP4_BQ_FLOAT=0)'))
     inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
           else sc.sym['_rx_slot_C1_IN_01']
     src = sc.sym['_buf_C1_EQ_01']
@@ -141,7 +150,7 @@ def main():
         bands = [rbj_peaking(120.0, 0.7, -8.0), rbj_peaking(1000.0, 1.0, 6.0),
                  rbj_peaking(3500.0, 2.0, -4.0), rbj_peaking(9000.0, 0.9, 5.0)]
 
-    flat = [c for band in bands for c in band]
+    flat = [c for band in bands for c in BW.encode(band, FLOAT_ARM)]
     for i, c in enumerate(flat):
         wr_verified(sc, EQ_COEFF0 + i, f32(c))
     # The swap trigger CANNOT be read back: the node consumes it (clears

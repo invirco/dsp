@@ -17,6 +17,7 @@ import argparse, struct, sys, time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 GAIN = 0x0000
 HPF0, HPF_SW, LPF0, LPF_SW = 0x0004, 0x0009, 0x000A, 0x000F
@@ -25,7 +26,8 @@ GATE_ON = 0x0028
 COMP_ON, COMP_THR, COMP_RAT = 0x0038, 0x0039, 0x003A
 COMP_ATT, COMP_REL, COMP_MAKE, COMP_KNEE = 0x003B, 0x003C, 0x003D, 0x003E
 COMP_PAR = 0x003F
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)    # DIRECT form; encoded for the running image's wire (S67-5)
+FLOAT_ARM = None
 
 
 def f32(x):
@@ -46,7 +48,7 @@ def wrv(sc, addr, val, tries=12):
 
 
 def set_bq(sc, base, swap, band):
-    for i, c in enumerate(band):
+    for i, c in enumerate(BW.encode(band, FLOAT_ARM)):
         wrv(sc, base + i, f32(c))
     for _ in range(3):
         sc.d.write(swap, 1)
@@ -70,9 +72,13 @@ def main():
     ap.add_argument('--pool-inj', type=int, default=None)
     ap.add_argument('--pool-src', type=int, default=None)
     ap.add_argument('--gate-off', action='store_true', default=True)
+    ap.add_argument('--wire', default='auto', choices=('auto', 'offset', 'direct'),
+                    help='biquad wire form for the unity FILT/EQ reset; auto reads DSP4_BQ_FLOAT off the part')
     a = ap.parse_args()
 
+    global FLOAT_ARM
     sc = S.Scope(1)
+    FLOAT_ARM = BW.float_arm(sc, a.wire)
     inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
           else sc.sym['_rx_slot_C1_IN_01']
     src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
@@ -82,7 +88,7 @@ def main():
     set_bq(sc, HPF0, HPF_SW, UNITY)
     set_bq(sc, LPF0, LPF_SW, UNITY)
     for i in range(4):
-        for j, c in enumerate(UNITY):
+        for j, c in enumerate(BW.encode(UNITY, FLOAT_ARM)):
             wrv(sc, EQ0 + i * 5 + j, f32(c))
     for _ in range(3):
         sc.d.write(EQ_SW, 1)

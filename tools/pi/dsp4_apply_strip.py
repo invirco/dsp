@@ -119,7 +119,10 @@ W(c2, 'Aux%03dMute001' % AUX, 0)
 W(c1, 'Chan%03dGain001' % STRIP, f32(1.0), 1)
 W(c1, 'Chan%03dPol001' % STRIP, 0)
 W(c1, 'Chan%03dLevel001' % STRIP, f32(1.0), 4)
-W(c1, 'Chan%03dPan001' % STRIP, f32(0.0), 4)
+# PAN CENTRE IS 0.5. `Pan` is a 0..1 INDEX into the R5 pan table
+# (tools/dsp/pan_table.py: index = round(Pan * 126), 63 = centre), so the
+# 0.0 this line used to write was index 0, HARD LEFT (S67 side note b).
+W(c1, 'Chan%03dPan001' % STRIP, f32(0.5), 4)
 W(c1, 'Chan%03dMute001' % STRIP, 0)
 W(c1, 'Chan%03dMainOn001' % STRIP, 1)
 W(c1, 'Chan%03dAuxPick%03d' % (STRIP, AUX), 3)
@@ -135,7 +138,7 @@ CHECK = [
     (c1, 'Chan%03dGain001' % STRIP,          f32(1.0), 'f'),
     (c1, 'Chan%03dPol001' % STRIP,           0,        'i'),
     (c1, 'Chan%03dLevel001' % STRIP,         f32(1.0), 'f'),
-    (c1, 'Chan%03dPan001' % STRIP,           f32(0.0), 'f'),
+    (c1, 'Chan%03dPan001' % STRIP,           f32(0.5), 'f'),
     (c1, 'Chan%03dMute001' % STRIP,          0,        'i'),
     (c1, 'Chan%03dMainOn001' % STRIP,        1,        'i'),
     (c1, 'Chan%03dAuxOn%03d' % (STRIP, AUX), 1,        'i'),
