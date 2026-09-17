@@ -41,6 +41,7 @@ refuses, rather than reading a pool slot and reporting a number.
 import argparse, struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 try:
     from dsp4_block import BLOCK
 except ImportError:                       # pre-block-kernel image
@@ -53,7 +54,7 @@ GATE_ON = 0x0028
 COMP_ON, COMP_THR, COMP_RAT = 0x0038, 0x0039, 0x003A
 COMP_ATT, COMP_REL, COMP_MAKE, COMP_KNEE = 0x003B, 0x003C, 0x003D, 0x003E
 COMP_PAR = 0x003F
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 
 
 def f32(x):
@@ -115,13 +116,14 @@ def main():
         time.sleep(S.SETTLE)
 
     w(GAIN, f32(1.0))
+    unity = BW.encode(UNITY, BW.float_arm(sc))
     for base, sw in ((HPF0, HPF_SW), (LPF0, LPF_SW)):
-        for i, c in enumerate(UNITY):
+        for i, c in enumerate(unity):
             w(base + i, f32(c))
         for _ in range(3):
             w(sw, 1)
     for band in range(4):
-        for i, c in enumerate(UNITY):
+        for i, c in enumerate(unity):
             w(EQ0 + band * 5 + i, f32(c))
     for _ in range(3):
         w(EQ_SW, 1)

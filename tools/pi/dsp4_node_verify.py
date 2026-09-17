@@ -102,6 +102,7 @@ import time
 sys.path.insert(0, '/home/app/dspboot')
 
 import dsp4_scope as S
+import dsp4_bqwire as BW
 import fixed_ref as fr
 from dsp4_conform import (Part, chain_witness, drive_strip, f32, STRIDE,
                           unity_wire,
@@ -962,8 +963,21 @@ def run_bqcvt(part, strip, log=print):
         if (sym % strip) not in part.sc.sym:
             log(f'  no symbol {sym % strip} — cannot measure')
             return 0, 0
+    # THE VECTORS ARE DIRECT-FORM RBJ AND THE MODEL IS THE FIXED ARM'S
+    # CONVERTER. Under DSP4_BQ_FLOAT=1 the EQ stores the OFFSET-encoded wire
+    # words unchanged and `_bq_fx_convert_N` never sees them, so writing these
+    # vectors there would score a different filter against a converter that
+    # did not run (S67-5). Refuse rather than report a mismatch.
+    fa = getattr(part, '_bq_float_arm', None)
+    if fa is None:
+        fa = part._bq_float_arm = BW.float_arm(part.sc)
+    if fa:
+        log('  DSP4_BQ_FLOAT=1 image: the EQ wire is the offset form and there is '
+            'no host-visible conversion to score — BQCVT runs on a fixed-arm '
+            '(DSP4_BQ_FLOAT=0) build only')
+        return 0, 0
     sets = list(bv.BQCVT)
-    unity = (1.0, 0.0, 0.0, 0.0, 0.0, 'pad')
+    unity = (1.0, 0.0, 0.0, 0.0, 0.0, 'pad')   # direct form: fixed arm only (checked above)
     bad, groups = 0, 0
     for g in range(0, len(sets), 4):
         chunk = (sets[g:g + 4] + [unity] * 4)[:4]

@@ -14,11 +14,12 @@ including none -- would satisfy the check.
 import argparse, struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 HPF0, HPF_SW = 0x0004, 0x0009
 GATE_ON, COMP_ON, TUBE_ON = 0x0028, 0x0038, 0x004C
 DLY_OFFSET = 0x004E
-RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]
+RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 
 
 def f32(x):
@@ -38,7 +39,7 @@ def main():
     inj = sc.sym['_blk_pool'] if a.pool else sc.sym['_rx_slot_C1_IN_01']
     src = (sc.sym['_blk_pool'] + 32) if a.pool else sc.sym['_buf_C1_DLY_01']
 
-    for i, c in enumerate(RESONANT):
+    for i, c in enumerate(BW.encode(RESONANT, BW.float_arm(sc))):
         sc.d.write(HPF0 + i, f32(c))
     for _ in range(3):
         sc.d.write(HPF_SW, 1)

@@ -151,6 +151,10 @@ class Rig(T.Rig):
         """bands: DIRECT-FORM (b0 b1 b2 a1 a2) per band. The wire under DSP4_BQ_FLOAT=1 (shipping and this pair) is
         the OFFSET encoding (b0, b1+2b0, b2-b0, 2+a1, 1-a2) -- tools/dsp/geq_ref.offset_form -- NOT direct form:
         direct RBJ words written raw are a different, here unstable, filter (S67-5)."""
+        # tools/pi/dsp4_bqwire.py's check, inline (this lib is staged flat on the bench): refuse a fixed-arm image
+        cfg = self.rd(0xE0EA)
+        if (cfg & 0xFF000000) != 0xCF000000 or not (cfg >> 12) & 1:
+            raise SystemExit('DIAG_BUILD_CFG 0x%08X is not a DSP4_BQ_FLOAT=1 image: eq_bands writes the offset form' % cfg)
         for b, c in enumerate(bands):
             b0, b1, b2, a1, a2 = c
             for j, v in enumerate((b0, b1 + 2.0 * b0, b2 - b0, 2.0 + a1, 1.0 - a2)):

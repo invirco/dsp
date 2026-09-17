@@ -25,6 +25,7 @@ with the send at 0 the aux bus must read 0, or the test cannot fail.
 import struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 import fixed_ref as fr
 
 GAIN = 0x0000
@@ -33,7 +34,7 @@ FDR_LEVEL, FDR_PAN, FDR_MUTE = 0x0050, 0x0051, 0x0052
 HPF0, HPF_SW, LPF0, LPF_SW = 0x0004, 0x0009, 0x000A, 0x000F
 EQ0, EQ_SW = 0x0010, 0x0024
 AUX_ON_1, AUX_SEND_1, AUX_PICK_1 = 0x005A, 0x0066, 0x0072   # from the map, checked below
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 AMP = 0x08000000
 
 def f32(x): return struct.unpack('<I', struct.pack('<f', float(x)))[0]
@@ -69,11 +70,12 @@ def wr(a, v, rid=0):
 
 # transparent strip
 wr(GAIN, f32(1.0), 1)
+unity = BW.encode(UNITY, BW.float_arm(sc))
 for base, sw in ((HPF0, HPF_SW), (LPF0, LPF_SW)):
-    for i, c in enumerate(UNITY): wr(base + i, f32(c))
+    for i, c in enumerate(unity): wr(base + i, f32(c))
     for _ in range(3): wr(sw, 1)
 for band in range(4):
-    for i, c in enumerate(UNITY): wr(EQ0 + band * 5 + i, f32(c))
+    for i, c in enumerate(unity): wr(EQ0 + band * 5 + i, f32(c))
 for _ in range(3): wr(EQ_SW, 1)
 for a in (GATE_ON, COMP_ON, TUBE_ON, FDR_MUTE): wr(a, 0)
 wr(DLY_OFF, 0)

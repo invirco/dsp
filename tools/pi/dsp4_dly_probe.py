@@ -15,6 +15,7 @@ so they are not checked.
 import argparse, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 DLY_OFFSET = 0x004E          # C1_DLY_01 delay offset, in samples
 HPF0, HPF_SW = 0x0004, 0x0009   # C1_FILT_01 HPF: 5 float words + swap
@@ -30,7 +31,7 @@ def f32(x):
 # sample. With the default unity filters and a step, in[] is constant and
 # out[i] == in[i-offset] holds for any delay at all, including none -- the
 # test would prove nothing.
-RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]
+RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 
 
 def main():
@@ -54,7 +55,7 @@ def main():
     else:
         a_in, a_out = sc.sym['_buf_C1_TUBE_01'], sc.sym['_buf_C1_DLY_01']
 
-    for i, c in enumerate(RESONANT):
+    for i, c in enumerate(BW.encode(RESONANT, BW.float_arm(sc))):
         sc.d.write(HPF0 + i, f32(c))
     for _ in range(3):
         sc.d.write(HPF_SW, 1)

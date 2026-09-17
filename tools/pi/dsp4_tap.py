@@ -13,9 +13,10 @@ was noticed.
 import argparse, struct, sys, time
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 HPF0, HPF_SW = 0x0004, 0x0009
-RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]
+RESONANT = [1.0, -2.0, 1.0, -1.8, 0.81]  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 
 
 def f32(x):
@@ -43,7 +44,7 @@ def main():
     src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
           else sc.sym[a.src]
 
-    for i, c in enumerate(RESONANT):
+    for i, c in enumerate(BW.encode(RESONANT, BW.float_arm(sc))):
         sc.d.write(HPF0 + i, f32(c))
     for _ in range(3):
         sc.d.write(HPF_SW, 1)

@@ -16,13 +16,14 @@ import argparse, struct, sys, time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 GAIN = 0x0000
 HPF0, HPF_SW, LPF0, LPF_SW = 0x0004, 0x0009, 0x000A, 0x000F
 EQ0, EQ_SW = 0x0010, 0x0024
 GATE_ON, COMP_ON = 0x0028, 0x0038
 TUBE_ON, TUBE_SAT, DLY_OFF = 0x004C, 0x004D, 0x004E
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
 
 
 def f32(x):
@@ -64,14 +65,15 @@ def wrv(sc, addr, val, tries=4, ramp_id=0, settle=0.0, polls=12):
 
 def transparent_chain(sc):
     wrv(sc, GAIN, f32(1.0))
+    unity = BW.encode(UNITY, BW.float_arm(sc))
     for base, swap in ((HPF0, HPF_SW), (LPF0, LPF_SW)):
-        for i, c in enumerate(UNITY):
+        for i, c in enumerate(unity):
             wrv(sc, base + i, f32(c))
         for _ in range(3):
             sc.d.write(swap, 1)
             time.sleep(S.SETTLE)
     for i in range(4):
-        for j, c in enumerate(UNITY):
+        for j, c in enumerate(unity):
             wrv(sc, EQ0 + i * 5 + j, f32(c))
     for _ in range(3):
         sc.d.write(EQ_SW, 1)

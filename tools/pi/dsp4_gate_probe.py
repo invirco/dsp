@@ -14,13 +14,15 @@ import argparse, struct, sys, time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 
 GAIN = 0x0000
 HPF0, HPF_SW, LPF0, LPF_SW = 0x0004, 0x0009, 0x000A, 0x000F
 EQ0, EQ_SW = 0x0010, 0x0024
 G_ON, G_THR, G_ATT, G_HOLD, G_REL, G_RNG = (0x0028, 0x0029, 0x002A,
                                             0x002B, 0x002C, 0x002D)
-UNITY = [1.0, 0.0, 0.0, 0.0, 0.0]
+UNITY = list(BW.UNITY)  # direct form, encoded for the image's wire (dsp4_bqwire, S67-5)
+FLOAT_ARM = None
 
 
 def f32(x):
@@ -41,7 +43,7 @@ def wrv(sc, addr, val, tries=12):
 
 
 def set_bq(sc, base, swap, band):
-    for i, c in enumerate(band):
+    for i, c in enumerate(BW.encode(band, FLOAT_ARM)):
         wrv(sc, base + i, f32(c))
     for _ in range(3):
         sc.d.write(swap, 1)
@@ -64,7 +66,9 @@ def main():
                          'node outputs in the shared pool, not _buf_<nid>)')
     a = ap.parse_args()
 
+    global FLOAT_ARM
     sc = S.Scope(1)
+    FLOAT_ARM = BW.float_arm(sc)
     inj = (sc.sym['_blk_pool'] + a.pool_inj * 32) if a.pool_inj is not None \
           else sc.sym['_rx_slot_C1_IN_01']
     src = (sc.sym['_blk_pool'] + a.pool_src * 32) if a.pool_src is not None \
@@ -74,7 +78,7 @@ def main():
     set_bq(sc, HPF0, HPF_SW, UNITY)
     set_bq(sc, LPF0, LPF_SW, UNITY)
     for i in range(4):
-        for j, c in enumerate(UNITY):
+        for j, c in enumerate(BW.encode(UNITY, FLOAT_ARM)):
             wrv(sc, EQ0 + i * 5 + j, f32(c))
     for _ in range(3):
         sc.d.write(EQ_SW, 1)

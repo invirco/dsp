@@ -59,6 +59,7 @@ import time
 sys.path.insert(0, '/home/app/dspboot')
 
 import dsp4_scope as S
+import dsp4_bqwire as BW
 import fixed_ref as fr
 from dsp4_conform import (Part, SPI_ERR_COUNT, bus_capture, f32,
                           drive_strip)
@@ -445,6 +446,12 @@ FAMILIES = {
 # trigger -- base + 5*bands -- which is what makes a written set take
 # effect. Probing the base word alone would poke b0 into a live cascade,
 # which is not what any host does and not what the cell means.
+#
+# THE SETS ARE DIRECT FORM, AND THE WIRE IS NOT ALWAYS. Under
+# DSP4_BQ_FLOAT=1 (shipping since 2026-09-03) the staged words are the
+# OFFSET encoding; write_coeffset encodes through dsp4_bqwire for the arm
+# the part reports (S67-5). Written raw, 'unity' was a DC pole-zero
+# cancellation and 'hpf4k'/'loshelf12' were different filters.
 # ---------------------------------------------------------------------------
 
 def _rbj_unity():
@@ -486,7 +493,10 @@ COEFF_SETS = {
 
 def write_coeffset(part, base, name, bands=1):
     """Write one named RBJ set into every band, then pull the swap trigger."""
-    c = COEFF_SETS[name]
+    fa = getattr(part, '_bq_float_arm', None)
+    if fa is None:
+        fa = part._bq_float_arm = BW.float_arm(part.sc)
+    c = BW.encode(COEFF_SETS[name], fa)
     for band in range(bands):
         for i, v in enumerate(c):
             part.write(base + band * 5 + i, f32(v), 0)
