@@ -54,6 +54,7 @@ import time
 
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S
+import dsp4_bqwire as BW
 from dsp4_block import BLOCK
 from dsp4_tubedly_probe import wrv
 
@@ -69,8 +70,12 @@ GATE_ON, GATE_THR, GATE_ATT, GATE_HOLD, GATE_REL = (
 COMP_ON, COMP_THR, COMP_RATIO, COMP_ATT, COMP_REL = (
     0x0038, 0x0039, 0x003A, 0x003B, 0x003C)
 TUBE_ON = 0x004C
-# FILT and EQ take FLOAT RBJ coefficient words on the wire and convert to
-# the Q4.28 offset form themselves (dsp4_eq_probe.py, review finding D51).
+# FILT and EQ coefficient words: what they MEAN depends on the image. Under
+# DSP4_BQ_FLOAT=1 (shipping since 2026-09-03) the wire is the OFFSET encoding
+# and under the fixed arm direct RBJ (review finding D51 was the fixed arm).
+# load_biquads designs in direct form and dsp4_bqwire encodes for the arm it
+# reads off the part (S67-5). Captures taken before this wrote direct RBJ
+# into float-arm images, i.e. NOT the peaking designs below.
 HPF_COEFF0, HPF_SWAP = 0x0004, 0x0009
 LPF_COEFF0, LPF_SWAP = 0x000A, 0x000F
 EQ_COEFF0, EQ_SWAP = 0x0010, 0x0024
@@ -111,7 +116,7 @@ def rbj_peak(f0, q, gain_db, fs=48000.0):
     return (b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0)
 
 
-def load_biquads(sc, strip, seed):
+def load_biquads(sc, strip, seed, float_arm):
     """Put a real, strip-specific filter in FILT and EQ.
 
     The two strips of a pair get DIFFERENT designs on purpose, for the same
@@ -122,15 +127,16 @@ def load_biquads(sc, strip, seed):
     for base, swap, (f0, q, g) in (
             (HPF_COEFF0, HPF_SWAP, (60.0 + 25.0 * seed, 0.9, 4.0 + seed)),
             (LPF_COEFF0, LPF_SWAP, (7000.0 - 1500.0 * seed, 0.8, -3.0 - seed))):
-        for k, c in enumerate(rbj_peak(f0, q, g)):
+        for k, c in enumerate(BW.encode(rbj_peak(f0, q, g), float_arm)):
             sc.d.write(b + base + k, f32(c))
             time.sleep(S.SETTLE)
         sc.d.write(b + swap, 1)
         time.sleep(S.SETTLE)
     for band in range(4):
         f0 = 200.0 * (band + 1) * (1.0 + 0.3 * seed)
-        for k, c in enumerate(rbj_peak(f0, 1.1 + 0.4 * band, 6.0 - 2.0 * band
-                                       + seed)):
+        for k, c in enumerate(BW.encode(rbj_peak(f0, 1.1 + 0.4 * band,
+                                                 6.0 - 2.0 * band + seed),
+                                        float_arm)):
             sc.d.write(b + EQ_COEFF0 + band * 5 + k, f32(c))
             time.sleep(S.SETTLE)
     sc.d.write(b + EQ_SWAP, 1)
@@ -403,6 +409,15 @@ def compare(a, b):
         print('  WARNING: at least one capture was taken with BYPASS '
               'biquads, which are bit-identical paired or not -- this '
               'comparison says nothing about the paired biquads')
+    # THE BIQUAD WIRE FORM (S67-5). A --bq capture with no 'bq_wire' stamp
+    # predates dsp4_bqwire and wrote DIRECT RBJ words whatever the image; on
+    # a DSP4_BQ_FLOAT=1 image those are different (and possibly unstable)
+    # filters, so it is only comparable with another unstamped capture.
+    if a.get('bq') and b.get('bq') and a.get('bq_wire') != b.get('bq_wire'):
+        print('  WARNING: the captures loaded their biquads in DIFFERENT wire '
+              'forms (%r vs %r; None = before S67-5, direct words written '
+              'regardless of the image) -- they are not the same filters'
+              % (a.get('bq_wire'), b.get('bq_wire')))
     # The same rule applied to the GAIN kernel's rounding. Older captures
     # carry no 'gain' key at all and were taken at unity, so a missing key
     # is treated as 1.0 rather than as unknown.
@@ -467,6 +482,9 @@ def main():
     ap.add_argument('--bq', action='store_true',
                     help='load real FILT and EQ coefficients first -- '
                          'REQUIRED for any verdict about the paired biquads')
+    ap.add_argument('--wire', default='auto', choices=('auto', 'offset', 'direct'),
+                    help='--bq coefficient wire form; auto reads DSP4_BQ_FLOAT '
+                         'off the part (dsp4_bqwire, S67-5)')
     ap.add_argument('--gain', type=float, default=1.0,
                     help='the driven strip\'s GAIN (default 1.0, which is '
                          'EXACT in Q4.28 and therefore blind to the '
@@ -530,13 +548,16 @@ def main():
     partner = args.strip + 1 if args.strip % 2 else args.strip - 1
     configure(sc, args.strip, True, args.gain, args.dly)
     configure(sc, partner, False, 1.0, args.dly)
+    wire = None
     if args.bq:
+        float_arm = BW.float_arm(sc, args.wire)
+        wire = 'offset' if float_arm else 'direct'
         # Both strips, not just the driven one: the pair runs paired only
         # when BOTH are in steady state, and a silent lane still has to be
         # filtered by its own coefficients for the negative control to be
         # able to fail.
-        load_biquads(sc, args.strip, 0)
-        load_biquads(sc, partner, 1)
+        load_biquads(sc, args.strip, 0, float_arm)
+        load_biquads(sc, partner, 1, float_arm)
     # A coefficient swap starts a 576-sample CROSSFADE, and a crossfading
     # pair falls back to the two scalar nodes -- so capturing too early
     # would compare two builds that are BOTH running the scalar path and
@@ -586,7 +607,7 @@ def main():
                'paired_build': '_blk_pool1' in sc.sym,
                'bq_paired_build': any(k.startswith('_BQPFILT_')
                                       for k in sc.sym),
-               'bq': bool(args.bq),
+               'bq': bool(args.bq), 'bq_wire': wire,
                'boot_capture_index': idx, 'settled': bool(args.settle),
                'forced': bool(args.force),
                'inj': inj, 'src': src, 'sha256': digest,

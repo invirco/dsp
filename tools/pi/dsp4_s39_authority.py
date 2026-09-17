@@ -69,7 +69,7 @@ def snapshot(tag):
     return out
 
 # baseline: everything open
-for n, v, r in (('Chan001Gain001', f32(1.0), 1), ('Chan001Pan001', f32(0.0), 4),
+for n, v, r in (('Chan001Gain001', f32(1.0), 1), ('Chan001Pan001', f32(0.5), 4),
                 ('Chan001Mute001', 0, 0), ('Chan001MainOn001', 1, 0),
                 ('Chan001AuxPick001', 3, 0), ('Chan001AuxSend001', f32(1.0), 4),
                 ('Chan001AuxOn001', 1, 0), ('Aux001Mute001', 0, 0),

@@ -49,7 +49,7 @@ for b in range(1, 29):
 
 # ---- 4. NOW open strip 1 only -------------------------------------------
 w(p1, 'Chan001Level001', f32(1.0), 4)    # unity
-w(p1, 'Chan001Pan001',   f32(0.0), 4)    # centre -> equal L and R
+w(p1, 'Chan001Pan001',   f32(0.5), 4)    # centre: Pan is a 0..1 table index, 0.5 = 63 (0.0 is hard LEFT, S67)
 w(p1, 'Chan001Mute001',  0)
 w(p1, 'Chan001MainOn001', 1)
 time.sleep(1.0)

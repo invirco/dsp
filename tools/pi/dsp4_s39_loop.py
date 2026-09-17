@@ -107,7 +107,7 @@ def arm(tag, mute, send_lin, note):
 # SEND move between arms, so nothing else can explain a difference.
 c1.w('Chan001Gain001', f32(1.0), 1)
 c1.w('Chan001Level001', f32(1.0), 4)
-c1.w('Chan001Pan001', f32(0.0), 4)
+c1.w('Chan001Pan001', f32(0.5), 4)   # centre: 0..1 table index (0.0 = hard left, S67)
 c1.w('Chan001AuxPick%03d' % AUX, 3)
 c2.w('Aux%03dLevel001' % AUX, f32(1.0), 4)
 c2.w('Aux%03dMute001' % AUX, 0)
