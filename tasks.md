@@ -1,3 +1,25 @@
+## HUB DISPATCH 2026-09-17 10:48Z — S67 — first real mixer function on the part: strip 5 fader/pan/bus-assign/sum + EQ/dyn, verified on the unit   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S67 — FIRST REAL MIXER FUNCTION ON THE PART (not a bare loop): drive ONE strip through gain → EQ/dynamics → fader → pan → bus-assign → the AUX 1 and MAIN L/R sums, and verify the mix maths on the unit. The D24 rev C unit is freshly powered (MW-D24-2 app@192.168.1.219, matrix-app active, the wire-order app binary ac70de71, AN_EN low, CS_M ip-pd). The input patch is now the corrected netlist order (S58): MIC 5 = J25 = strip 5.
+
+BRING-UP (analog last up, the mandate): boot a DSP pair with the corrected D24_INPUT_PATCH and the full mixer graph (the s60/s61-class pair; state which). Set CS_M `op pu` high (595 readback needs it), load the SAFE chain image (verify 200/200), then raise AN_EN (`pinctrl set 26 op dh`) — stop matrix-app first if it contends for SPI2/the chain, and hand back as you found it. Confirm the loaded rails.
+
+THE TEST: strip 5 (MIC 5). Input source: check J25 — if PW's loop cable is on it, use the DAC→AUX1→J25 loop as the real analog input; if the 150 Ω shunt is on it (silent), drive the strip from the internal TEST_OSC into strip 5's input node and SAY which you used. Then exercise, reading the result on the lanes / MAIN + AUX 1 TX with TEST_MEAS:
+1. FADER law: strip 5 fader at 0 dB, −6, −20, −∞ → the level at MAIN and AUX 1 tracks the fader curve (state the law from the graph; dB error vs ideal).
+2. PAN law (R5, the LCR/constant-power table if built, else the current law — say which): pan hard L / centre / hard R → MAIN L vs R split matches the pan law within 0.1 dB; centre = the −3 dB or −4.5 dB point per the law.
+3. BUS ASSIGN: strip 5 → AUX 1 on/off and → MAIN on/off toggles the presence on each bus cleanly (mute depth of the assign).
+4. SUM: a second strip (strip 6 via its own osc, or the donor) assigned to the same bus → the two sum at the bus with the right gain (two equal signals = +6'ish per the bus law; state it).
+5. EQ/dynamics presence: one band of EQ and the compressor engaged on strip 5 move the level/spectrum as the nodes predict (a spot check, not the full S54 battery).
+Report each as measured-vs-predicted; this is the first proof the STRIP maths (fader/pan/assign/sum), not just the I/O, are right on the part.
+
+findings S67-1..5, tasks.md, commit + push, clean; unit handed back as found (AN_EN state noted, matrix-app restarted if you stopped it). Bounded ≈ 2 h.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-16 19:47Z — S66 — the closed-loop audio acceptance layer generated from defs + the test set (desk)   [status: 🟢 done — (1) FIXTURES GENERATED from defs (inputs.csv + d24-io.csv + product topology + expanded matrix Neutral) by `tools/accept/gen_accept_fixtures.py`: 38 for D24 (24 inputs, 11 outputs, 2 Monitor Out undecidable = no mon->io.out edge, 1 cue/RTA node), each = path cells at Neutral + isolation (other strips off the bus, measured strip assigns off) + the loop stimulus block (donor 6, strip 1 when 6 is under test) + the applicable T1-T8/T4b/A1 rows; manifest with defs commit + table sha256s; deterministic. defs gaps reported, not invented: topology binds no cells (tools/accept/path-cells.csv PROPOSED for defs), no outputs table, Main Level Neutral empty, factory T1 universal mean not in defs (averaged from s55/law.csv). (2) RUNNER `tools/pi/dsp4_accept.py` run/report/plan, stdlib, chirp + FFT + band power + s63 spans, ONE provisional limits file (tools/accept/limits.csv) + units.csv; factory = 8 codes, THD+N min + THD max, EIN full gain, 10 kHz T7; live source NOT exercised (no verified cell-set host command; refuses without ACCEPT_SET_CMD). (3) DRY RUN on S54/S55/S57/S60/S61/S63/S65 data: 187/187 comparisons vs the hand tables within tolerance (MIC 5 chirp gains/response/latency exact vs S61, THD -64.33 vs S63, EIN -127.2/-130.5 dBu, A1 68/2; 15 S55 channels T2/T3/EIN/T5/T8/T1 dev; AUX 1 -84.55 dBu; cue node rows); generated factory table flags J29 T1 code 8 -0.849 dB and J31/J32 EIN -123.2/-125.2 dBu, MIC 5 PASS, others INCOMPLETE (T3 THD-only/T7 MIC 5 only), T6 NO DATA everywhere (no DSP mute measured). TIME: factory 51.5 s/input path (26.5 s battery + 25 s T7 by meter), unit 24.2 min manual (41.7 with cable moves), harness 7.8 + 10.0 min T7 = 17.8 min (same-converter T7 only ~10.9 min); full 5.1 h manual / 4.7 h harness (A1 spans 3.4 h). Doc docs/acceptance-audio-layer.md; findings S66-1..3. Unit untouched]   [model: opus]
 
 model: opus
