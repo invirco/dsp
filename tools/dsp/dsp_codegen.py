@@ -5677,6 +5677,15 @@ TEST_OSC_CODES = 128
 # gen_block_header() reads this name for the macro it emits, and the node
 # bodies below use the macro, so the two cannot drift apart.
 TEST_WIN_BLOCKS = 256
+# THE BUS TAPS (S67): MeasChan / XtalkSrc / XtalkDst numbers above the 32
+# strips that name a chip-1 bus block instead. 33/34 = main L/R, 35..46 =
+# aux 1..12, 47..50 = group 1..4. A number past these names nothing, as 0
+# does. Proposed as a MeasChan description change (CONTRACT-PROPOSAL-S67);
+# no new cell and no address.
+TEST_MEAS_BUS_CODES = dict(
+    [('C1_BUS_MAIN_L', 33), ('C1_BUS_MAIN_R', 34)]
+    + [('C1_BUS_AUX_%02d' % a, 34 + a) for a in range(1, 13)]
+    + [('C1_BUS_GRP_%02d' % g, 46 + g) for g in range(1, 5)])
 # THE CAPTURE ARM'S BUFFER (S56), in SAMPLES, and a whole number of blocks
 # so the copy can never run past the end. 16,384 samples = 341 ms at 48 kHz:
 # 6.8 cycles of 20 Hz, a 2.93 Hz bin. Lives in L2 (seg_delay), where the
@@ -6216,7 +6225,7 @@ def gen_test_meas(node):
     A(" * same reason the oscillator's six are: the SPI dispatch table")
     A(' * names them. The four Result words are READ-ONLY to the host --')
     A(' * this node writes them and the host polls. */')
-    A('.var _meas_chan_%s   = %d;   /* 1..32, 0 = off */'
+    A('.var _meas_chan_%s   = %d;   /* 1..32 strip, 33..50 bus (S67), 0 = off */'
       % (nid, int(float(p.get('meas_chan', '0')))))
     A('.var _meas_rms_%s    = 0.0;   /* ro: total RMS,        dBFS */' % nid)
     A('.var _meas_thd_%s    = 0.0;   /* ro: THD+N vs total,   dB   */' % nid)
@@ -10373,6 +10382,16 @@ def gen_mix_bus_fixed(node):
                     mrf = mrf + r8 * r9 (ssi);
                     r1 = mr0f;
                     r2 = mr1f;
+                    /* ex AFTER the rounding add (S67-6). r3 still held the
+                     * word LOADED above, and the rounding carry changes it
+                     * exactly when the sum is in [-2^27, 0): post-add hi
+                     * is 0, pre-add ex is -1, so (b) fired and the sample
+                     * saturated NEGATIVE -- a -8.0 click at every
+                     * negative-going zero crossing that rounds to 0,
+                     * measured on MAIN L on the part. _acc64_rns28 reads
+                     * mr2f here and never had the defect; the inline copy
+                     * did. */
+                    r3 = mr2f;
                     r1 = lshift r1 by -28;
                     r12 = lshift r2 by 4;
                     r0 = r1 or r12;
@@ -19530,8 +19549,24 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         _TEST_TAP_RE = re.compile(r'^C1_FDR_(\d+)$')
         _test_hooked = set()
         _cue_hooked = set()
+        _bus_tapped = set()
 
         def _test_hook_lines(indent, nid, pair_slot=None):
+            # THE BUS TAPS (S67). The same `_test_meas_tap`, handed a chip-1
+            # MIX_BUS's own block (`_buf_<bus>`, which is NOT a shared pool
+            # slot and so could be read anywhere after the bus node) under a
+            # pseudo-strip number above the 32 strips. MeasChan / XtalkSrc /
+            # XtalkDst and the capture arm then read a bus exactly as they
+            # read a strip, which is what lets fader / pan / assign / sum be
+            # measured where the strip maths ends: at the bus.
+            if nid in TEST_MEAS_BUS_CODES:
+                _bus_tapped.add(nid)
+                _test_hooked.add('_test_meas_tap')
+                return ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
+                        f'{indent}r0 = {TEST_MEAS_BUS_CODES[nid]};',
+                        f'{indent}r1 = _buf_{nid};',
+                        f'{indent}call _test_meas_tap;',
+                        '#endif']
             m_i = _TEST_INJ_RE.match(nid)
             m_f = _TEST_TAP_RE.match(nid)
             if m_i:
@@ -19703,6 +19738,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 _decl += ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
                           '#include "blk_pool.h"']
                 _decl += [f'.extern {n};' for n in sorted(_test_hooked)]
+                _decl += [f'.extern _buf_{n};' for n in sorted(_bus_tapped)]
                 _decl += ['#endif', '']
             if _cue_hooked:
                 _decl += ['#if DSP4_BLOCK_KERNELS && DSP4_CUE',

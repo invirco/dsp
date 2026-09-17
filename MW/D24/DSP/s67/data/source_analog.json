@@ -1,0 +1,17 @@
+{
+ "phase": "source",
+ "mode": "analog",
+ "an_en": "26: op -- pd | hi // GPIO26 = output",
+ "t0": 1789643564.337502,
+ "strip5": {
+  "H_db": 5.576791284290633,
+  "coh_pk_dbfs": -20.423208948138655,
+  "rms": -23.433523178100586,
+  "noise": -104.69492848714192,
+  "H_deg": -145.24186486336365,
+  "spread": 2.2337788620596655e-05
+ },
+ "verdict": "loop cable on J25",
+ "overruns_c1": 0,
+ "an_en_end": "26: op -- pd | hi // GPIO26 = output"
+}

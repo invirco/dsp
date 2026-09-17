@@ -1,0 +1,13 @@
+12:13:45 Main on                    | 5:   0.000 | 33:  -6.021 | 34:  -6.021 | 35:    -inf
+12:13:45    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 16, '_buf_C1_BUS_MAIN_R': 16, '_buf_C1_BUS_AUX_01': 0}
+12:13:47 Main off                   | 5:   0.000 | 33:    -inf | 34:    -inf | 35:    -inf
+12:13:47    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 0, '_buf_C1_BUS_MAIN_R': 0, '_buf_C1_BUS_AUX_01': 0}
+12:13:50 Main on again              | 5:   0.000 | 33:  -6.021 | 34:  -6.021 | 35:    -inf
+12:13:50    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 16, '_buf_C1_BUS_MAIN_R': 16, '_buf_C1_BUS_AUX_01': 0}
+12:13:52 Aux1 on                    | 5:   0.000 | 33:  -6.021 | 34:  -6.021 | 35:   0.000
+12:13:52    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 16, '_buf_C1_BUS_MAIN_R': 16, '_buf_C1_BUS_AUX_01': 16}
+12:13:55 Aux1 off                   | 5:   0.000 | 33:  -6.021 | 34:  -6.021 | 35:    -inf
+12:13:55    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 16, '_buf_C1_BUS_MAIN_R': 16, '_buf_C1_BUS_AUX_01': 0}
+12:13:57 Aux1 on again              | 5:   0.000 | 33:  -6.021 | 34:  -6.021 | 35:   0.000
+12:13:57    nonzero words of 16: {'_buf_C1_BUS_MAIN_L': 16, '_buf_C1_BUS_MAIN_R': 16, '_buf_C1_BUS_AUX_01': 16}
+12:13:57 chip-1 overruns during phase: 0 | AN_EN 26: op -- pd | hi // GPIO26 = output

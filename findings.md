@@ -6,6 +6,70 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE STRIP MATHS IS RIGHT ON THE PART TO 0.0001 dB, AND A BUS DEFECT PUTS −8.0 SPIKES ON EVERY CHIP-1 BUS, 444 PER 16k SAMPLES AT −40 dB FADER; FIXED IN THE GENERATOR (ONE INSTRUCTION) AND PROVEN (2026-09-17, session 67 — bench, MW-D24-2)
+
+**Pairs** (all built from this tree).
+- **`s67`** (`DSP4_TEST_NODES=1` + the new bus taps, before the fix): chip1 `4a784c6a`, chip2 `251ce3b2` [`~/s67u`]. The control, HEAD `TEST_NODES=1` before any S67 change, reproduced `s65base` byte for byte (`24353e71` / `251ce3b2`).
+- **`s67fix`** (the same plus the S67-6 fix): chip1 **`e5fb7b4f`**, chip2 `251ce3b2` [`~/s67`, **left running**]. The S67 data comes from this pair; `MW/D24/DSP/s67/data_unfixed/` holds the same battery on `s67`.
+- **Shipping.** With only the bus taps it was still `36daa238` / `3a9c950d`. **With the S67-6 fix, chip 1 is now `87126eb6` (452,008 B); chip 2 stays `3a9c950d`.** This is the first shipping-image change since S61. It is deliberate, and it is the fix.
+
+**Bring-up.** matrix-app was stopped; AN_EN read `lo` before and after the stop. Pins set per the bench recipe, then CS_M `27 op pu dh`. The pair was booted and configured for D24 twice (`boot.sh`): CHIP_ID 1/2, `TEST_NODES = 1`, the S58 patch (`dsp4_config.py` = dspboot's). The SAFE chain image (24 registers muted, INSTR 0x00) was sent: **VERIFIED 200/200**. Then `pinctrl set 26 op dh`: AN_EN `hi`. **Rails:** there is no voltmeter on the link. The functional witness is that TEST_MEAS on strips 5/6/7/20 read −114.2…−114.8 dBFS RMS with the osc off. That is converter noise through the 80 Hz HPF; a non-converting lane is a DC word, and the HPF would null it. **Input:** the loop cable is on J25. The coherent loop gain donor strip 6 → AUX 1 → J45 → J25 → strip 5 at code 0 read +5.574 dB (+5.577 on the fixed pair; S54 +5.578), so tests 1, 2, 5 and MAIN-assign use the **real analog input**. AUX 1 is the loop's own source, so strip 5 cannot go on AUX 1 with the analog input: it would feed itself. AUX 1 fader, AUX 1 assign, the sum and a second EQ/dyn set use **TEST_OSC injected at strip 5's input node** (osc mode; it replaces the lane).
+
+**Instrument.** All numbers are TEST_MEAS coherent fits against TEST_OSC's own reference (s54lib `H`), at 1 kHz unless stated. They are read at strip 5 post-fader (MeasChan 5) and at the buses themselves, which is new (S67-1). Tools: `MW/D24/DSP/s67/tools/` (`s67lib.py`, `s67_run.py <phase> <mode>`, `s67_report.py`, `s67_click.py`, `s67_eqglitch.py`, `s67_eqprobe.py`). Data: `MW/D24/DSP/s67/data/` (fixed pair) and `data_unfixed/`. Tables: `MW/D24/DSP/s67/report_fixed.md`. Chip-1 `_diag_blk_overrun` was +0 in every phase on both pairs.
+
+**S67-1. TEST_MEAS now reads the chip-1 buses (TEST_NODES builds only, proposal S67).** `MeasChan`/`XtalkSrc`/`XtalkDst` 33/34 = MAIN L/R, 35–46 = AUX 1–12, 47–50 = GRP 1–4 (`dsp_codegen.py` `TEST_MEAS_BUS_CODES`). The chain calls `_test_meas_tap` with `r1 = _buf_C1_BUS_x` right after each bus node. Bus blocks are not pool slots, so there is no copy. The capture arm works on them too. Idle cost is about ten instructions per bus per block. The shipping image did not change (it was `36daa238` before S67-6). `proposals/CONTRACT-PROPOSAL-S67.md` widens the three cells' range from 33 to 51; no address and no new cell.
+
+**S67-2. Fader, pan, assign and sum: measured = predicted, to the fit's resolution.** dB re the 0 dB fader or re strip 5 post-fader:
+
+| test | predicted | analog input (MIC 5 via the loop) | osc input |
+|---|---|---|---|
+| fader 0 / −6 / −20 dB, strip 5 post-fdr + MAIN L + MAIN R (+ AUX 1 osc) | 20·log10(Level): 0 / −6.000 / −20.000 | 0.000 / −6.000 / −20.000 on all three, worst error **< 0.0001 dB** | same on all four |
+| fader −∞ (Level 0) | exact zero | H = 0 exactly on every point | same |
+| back to 0 dB | 0 | 0.000 | 0.000 |
+| absolute MAIN L/R at 0 dB, pan centre | strip − 6.021 | strip +5.577, MAIN −0.444 (Δ −6.021) | 0.000 / −6.0206 |
+| pan hard L / centre / hard R, law 0 and law 1 | L: 0 / −6.021 / −∞; R: −∞ / −6.021 / 0 | **identical to the prediction at all six points, error 0.0000** | — |
+| MainOn 1→0→1 | present / exact zero / present | −0.444 / −∞ (MAIN L/R bus blocks 0 of 16 words non-zero) / −0.444; AUX 1 (donor) untouched | −6.021 / −∞ / −6.021 |
+| AuxOn001 1→0→1 (PostFdr, send 1.0) | 0 / zero / 0 | (not run: feedback) | 0.000 / −∞ (0 of 16 words) / 0.000; MAIN unaffected |
+| sum, OscChan 99, strip 5 alone / 6 alone / 5+6 / 5+(6 at −6 dB) | MAIN L,R −6.021 / −6.021 / 0.000 / −2.492; AUX 1 0 / 0 / +6.021 / +3.529 | — | **exactly as predicted on all 12 points (3 decimals)** |
+
+- **Fader law.** The DSP's law is linear: `Level` is a linear float, and `_fdr_gq` = fix(Level·2^28) with mute folded in. The dB law lives in the cell master (`dB:Off:-50@31:-30@63:-10@127:10`, e.g. −20 dB = code 95) and belongs to the host. The fader is post-EQ/dyn, and the AUX 1 PostFdr send tracks it.
+- **Pan law.** Stated from `tools/dsp/pan_table.py`, measured, with `Sys LcrLaw` at chip-1 0x1366 and `LcrOn` 0. **Under BOTH laws a non-LCR strip is at −6.021 dB at centre, not −3 or −4.5 dB.** Law 0 (hard-LCR) stores the linear (1−p, p) columns. Law 1 (constant power) stores the three-bus legs with the centre folded back at −6 dB. R5 left "what a non-LCR strip reads under law 1" open (pan_table.py: the fold peaks +0.97 dB at p ≈ 0.148). So no stereo −3 dB pan exists on the part today. **Product question for PW:** if stereo strips should pan at −3 dB (or −4.5 dB) centre, that is a third table or a change to law 1's stereo columns, not a bug.
+- **Bus law.** A plain linear sum, 0 dB per input, no bus pad. Two equal coherent strips give +6.021 dB. On MAIN a centre-panned pair lands back at unity (2 × 0.5).
+- **Assign depth.** "Off" is a crosspoint coefficient of exactly 0. The bus block holds 16 of 16 zero words and the fit reads H = 0, so the depth is total, with no residue at any level.
+
+**S67-3. EQ spot check: exact.** Band 1 peaking 1 kHz, +6 dB, Q 1 (RBJ), bands 2–4 unity. Measured at strip 5 and MAIN L, analog and osc:
+
+| f | predicted | measured (strip / MAIN L, both modes) |
+|---|---|---|
+| 1 kHz | +6.000 | +6.0000 / +6.0000 |
+| 2 kHz | +1.866 | +1.8660 / +1.8660 |
+| 250 Hz | +0.423 | +0.4229…+0.4230 |
+
+**S67-4. Compressor spot check: the static curve is exact against the node's own ENVELOPE, and the envelope sits 1.1–1.2 dB under the sine peak.** Settings: thr −20 dBFS, knee 0, ratios 4 and 2; attack/release/makeup left as built (words 0.01 / 0.001 / 1.0). Input peaks −10.0 and −16.0 dBFS (osc), −10.46 and −15.42 dBFS (analog).
+- Predicted from the sine's coherent PEAK: GR −7.500 / −5.000 / −3.000 / −2.000 dB.
+- Measured coherent GR (osc): **−6.634 / −4.422 / −2.134 / −1.422**. Analog: −6.281 / −4.174 / −2.572 / −1.715 at strip 5, MAIN L within 0.03 dB of the strip.
+- `_comp_gain_` (the node's own gain word) reads −6.608 / −4.419 / −2.128 / −1.405. The static curve applied to `_comp_envelope_` (−11.19 / −17.16 dBFS for −10 / −16 dBFS peaks) gives the same numbers.
+- So the gain computer matches its model to ≤ 0.03 dB. The detector is |x| with ballistics that ripple under a 1 kHz sine, so it does not hold the peak. The measured fundamental's GR is within 0.03 dB of the mean gain word.
+- The engaged compressor moves the level at MAIN L exactly as it does at the strip. Not chased: the attack/release words (0.01 / 0.001) are not in ms, although dsp.csv's row says attack 5 ms / release 100 ms. Their units belong to a dynamics session.
+
+**S67-5. The EQ wire is the OFFSET form, and two bench tools still write direct form.** Under `DSP4_BQ_FLOAT=1` (shipping, and every pair since 09-03) the 20 `_eq_coeffs_next_` words are `(b0, b1+2b0, b2−b0, 2+a1, 1−a2)` per band (`geq_ref.offset_form`), not RBJ direct form. The first EQ run wrote direct form. It produced a different, unstable filter: strip 5 fell to −186 dB and MAIN L was pinned at +18.06 dBFS, the Q4.28 ceiling. Kept as `data_unfixed/eqdyn_analog_directform_wrong.json`. **`tools/pi/dsp4_eq_probe.py` and `dsp4_comp_probe.py` still write direct form (and direct "unity" [1,0,0,0,0]), so they are stale.** Direct "unity" happens to be benign as offset words: (1, −2, 1)/(1, −2, 1), a pole-zero cancellation at DC. `s67lib.eq_bands` converts. `EqOn` has no DSP word (MCU-managed): "EQ off" is the offset unity (1, 2, −1, 2, 1).
+
+**S67-6. THE BUS READOUT SATURATES A SUM IN [−2^27, 0) TO −8.0: a full-scale negative spike at negative-going zero crossings, on all 29 chip-1 buses. Root-caused, fixed in the generator, proven on the part.**
+- **Symptom.** In osc mode at 250 Hz with strip 5's EQ at unity, MAIN L read RMS −4.8 dBFS with THD+N ≈ 0 dB, 24 dB above strip 5 × 0.5. It was deterministic and reproducible. A MAIN L capture: **one sample of 0x80000000 (−8.0) every 192 samples**, i.e. every 250 Hz period, at the negative-going zero crossing (…, 220,095, **−2^31**, −220,096, …); the positive crossing read +1. At 1 kHz and 2 kHz no sample happened to land in the window; the +6 dB EQ moved the phase off it at 250 Hz.
+- **On real signal** (`s67_click.py`, analog, osc off, MIC 5 noise on MAIN): at fader −40 dB (Level 0.01), **444 of 16,384 MAIN L samples and 475 of MAIN R were −8.0** (2.7 %). At fader 0 dB: 0, because with the 0.5 pan leg only x = −1 can land in the window.
+- **Consequence.** Any quiet or faded signal on any chip-1 bus carries full-scale negative spikes. The bus feeds chip 2, whose gather saturates Q4.28 → Q1.31, so they reach the outputs at digital full scale. It is in shipping `36daa238` and every image since the inline bus readout.
+- **Cause.** `gen_mix_bus_fixed`'s block kernel (the inlined `_acc64_rns28`) adds the rounding half into MRF, then reads `lo`/`hi` back from MR0F/MR1F. For the saturation sign and test (b) it used `r3`: the `ex` word loaded BEFORE the add. For an accumulator in [−2^27, 0) the rounding carry takes hi −1 → 0 and ex −1 → 0. Test (b) then compared post-add hi (0) against pre-add ex (−1), fired, and saturated to the pre-add sign: −8.0. The shared `_acc64_rns28` reads `mr2f` after the add and never had it. `fixed_ref.mix_sum` gives 0 for these sums, and no harness vector sits in that half-LSB window.
+- **Fix.** `r3 = mr2f;` after the add, one instruction per bus sample. It is in the generator, and all 29 `C1_BUS_*.asm` are regenerated.
+- **Proof on `s67fix`.** Fader −40 dB: **0 of 16,384 on MAIN L and MAIN R** (was 444 / 475). Fader 0 dB: 0. The 250 Hz EQ toggle: MAIN L : strip 5 = −6.021 dB in every window, both EQ states. The whole S67-2..4 battery was re-run on the fixed pair (the tables above): every osc-mode row equals its pre-fix value to 0.001 dB except the one point the defect had corrupted (osc 250 Hz EQ at MAIN L, −10.389 → +0.4229 dB), and the analog rows agree within 0.03 dB (loop drift between runs). Chip 2 is unchanged, as it has no inline bus readout.
+
+**Side notes.**
+- (a) An `AuxSend001` 1.0 write by ramp 4 settles at 0x3F800002, not 0x3F800000 (+2e-6 dB); the send ramp does not snap to its target. Harmless, but a strict read-back verify fails on it (s67lib accepts 1e-5).
+- (b) `dsp4_apply_strip.py` writes `Pan 0.0` "pan centre". Under R5 that is index 0, **hard left**. Every strip that tool set up since R5 is panned left.
+- (c) The fixed pair was booted with AN_EN already high, which is not analog-last. The chain was all muted except MIC 5 at code 0 and no output was driven, but it is noted.
+- (d) `dsp4_inscan.py` still loads `~/dspboot/chip1.sym.json` (the stale-map trap). The `~/s67` copy points at its own map, and under block kernels `_rx_slot_` reads 0 anyway: use TEST_MEAS RMS as the lane witness.
+
+**Hand-back.** TEST_OSC off, MeasChan 5, Xtalk 0/0, LcrLaw 0, strip 5 comp off. Strip 5 and 6 at unity, strip 5 on MAIN, pan idx 63; others muted and unassigned. SAFE chain image VERIFIED 200/200, then **AN_EN `op dl` → `lo`, as found**. matrix-app restarted: active, **MCU boot verified H1S1/H1S3/H1S4 (3/3)**, and it logged "AN_EN STAYS LOW". GPIO 6/7/8/12/22–25/27 are back to the found input/pull states (27 `ip pd | lo`, as found). **Difference from found:** the DSPs were unbooted at power-on and are now running `s67fix` (e5fb7b4f / 251ce3b2). `~/s67u` keeps the pre-fix pair and data.
+
 ## THE ACCEPTANCE LAYER IS GENERATED: 38 FIXTURES FROM DEFS, ONE RUNNER, AND THE RECORDED D24 DATA REPRODUCES THE HAND TABLES 187 OF 187; A FACTORY UNIT IS ≈ 18 MIN ON THE HARNESS, OF WHICH 10 IS CROSSTALK (2026-09-16, session 66 — desk, no unit)
 
 **Scope.** Desk only; the unit was not touched. New: `tools/accept/` (generator, battery, limits, units, step costs, the

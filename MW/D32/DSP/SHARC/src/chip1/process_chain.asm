@@ -467,6 +467,24 @@
 #include "blk_pool.h"
 .extern _test_meas_tap;
 .extern _test_osc_inject;
+.extern _buf_C1_BUS_AUX_01;
+.extern _buf_C1_BUS_AUX_02;
+.extern _buf_C1_BUS_AUX_03;
+.extern _buf_C1_BUS_AUX_04;
+.extern _buf_C1_BUS_AUX_05;
+.extern _buf_C1_BUS_AUX_06;
+.extern _buf_C1_BUS_AUX_07;
+.extern _buf_C1_BUS_AUX_08;
+.extern _buf_C1_BUS_AUX_09;
+.extern _buf_C1_BUS_AUX_10;
+.extern _buf_C1_BUS_AUX_11;
+.extern _buf_C1_BUS_AUX_12;
+.extern _buf_C1_BUS_GRP_01;
+.extern _buf_C1_BUS_GRP_02;
+.extern _buf_C1_BUS_GRP_03;
+.extern _buf_C1_BUS_GRP_04;
+.extern _buf_C1_BUS_MAIN_L;
+.extern _buf_C1_BUS_MAIN_R;
 #endif
 
 #if DSP4_BLOCK_KERNELS && DSP4_CUE
@@ -5989,6 +6007,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_MAIN_L;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 33;
+    r1 = _buf_C1_BUS_MAIN_L;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 306 < DSP4_NODE_LIMIT)
     call _C1_BUS_MAIN_L_SEND_process;
@@ -5999,6 +6022,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_MAIN_R;
     r1 = _buf_C1_BUS_MAIN_R;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 34;
+    r1 = _buf_C1_BUS_MAIN_R;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 308 < DSP4_NODE_LIMIT)
@@ -6022,6 +6050,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 47;
+    r1 = _buf_C1_BUS_GRP_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 312 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_01_SEND_process;
@@ -6032,6 +6065,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_02;
     r1 = _buf_C1_BUS_GRP_02;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 48;
+    r1 = _buf_C1_BUS_GRP_02;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 314 < DSP4_NODE_LIMIT)
@@ -6044,6 +6082,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 49;
+    r1 = _buf_C1_BUS_GRP_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 316 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_03_SEND_process;
@@ -6054,6 +6097,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_04;
     r1 = _buf_C1_BUS_GRP_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 50;
+    r1 = _buf_C1_BUS_GRP_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 318 < DSP4_NODE_LIMIT)
@@ -6071,6 +6119,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_01;
     r1 = _buf_C1_BUS_AUX_01;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 35;
+    r1 = _buf_C1_BUS_AUX_01;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 320 < DSP4_NODE_LIMIT)
@@ -6092,6 +6145,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_02;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 36;
+    r1 = _buf_C1_BUS_AUX_02;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 322 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_02_SEND_process;
@@ -6111,6 +6169,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_03;
     r1 = _buf_C1_BUS_AUX_03;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 37;
+    r1 = _buf_C1_BUS_AUX_03;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 324 < DSP4_NODE_LIMIT)
@@ -6132,6 +6195,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_04;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 38;
+    r1 = _buf_C1_BUS_AUX_04;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 326 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_04_SEND_process;
@@ -6151,6 +6219,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_05;
     r1 = _buf_C1_BUS_AUX_05;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 39;
+    r1 = _buf_C1_BUS_AUX_05;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 328 < DSP4_NODE_LIMIT)
@@ -6172,6 +6245,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_06;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 40;
+    r1 = _buf_C1_BUS_AUX_06;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 330 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_06_SEND_process;
@@ -6191,6 +6269,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_07;
     r1 = _buf_C1_BUS_AUX_07;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 41;
+    r1 = _buf_C1_BUS_AUX_07;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 332 < DSP4_NODE_LIMIT)
@@ -6212,6 +6295,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_08;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 42;
+    r1 = _buf_C1_BUS_AUX_08;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 334 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_08_SEND_process;
@@ -6231,6 +6319,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_09;
     r1 = _buf_C1_BUS_AUX_09;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 43;
+    r1 = _buf_C1_BUS_AUX_09;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 336 < DSP4_NODE_LIMIT)
@@ -6252,6 +6345,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_10;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 44;
+    r1 = _buf_C1_BUS_AUX_10;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 338 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_10_SEND_process;
@@ -6272,6 +6370,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_11;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 45;
+    r1 = _buf_C1_BUS_AUX_11;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 340 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_11_SEND_process;
@@ -6291,6 +6394,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_12;
     r1 = _buf_C1_BUS_AUX_12;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 46;
+    r1 = _buf_C1_BUS_AUX_12;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 342 < DSP4_NODE_LIMIT)
@@ -11285,6 +11393,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_MAIN_L;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 33;
+    r1 = _buf_C1_BUS_MAIN_L;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 338 < DSP4_NODE_LIMIT)
     call _C1_BUS_MAIN_L_SEND_process;
@@ -11295,6 +11408,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_MAIN_R;
     r1 = _buf_C1_BUS_MAIN_R;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 34;
+    r1 = _buf_C1_BUS_MAIN_R;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 340 < DSP4_NODE_LIMIT)
@@ -11318,6 +11436,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 47;
+    r1 = _buf_C1_BUS_GRP_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 344 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_01_SEND_process;
@@ -11328,6 +11451,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_02;
     r1 = _buf_C1_BUS_GRP_02;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 48;
+    r1 = _buf_C1_BUS_GRP_02;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 346 < DSP4_NODE_LIMIT)
@@ -11340,6 +11468,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 49;
+    r1 = _buf_C1_BUS_GRP_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 348 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_03_SEND_process;
@@ -11350,6 +11483,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_04;
     r1 = _buf_C1_BUS_GRP_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 50;
+    r1 = _buf_C1_BUS_GRP_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 350 < DSP4_NODE_LIMIT)
@@ -11367,6 +11505,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_01;
     r1 = _buf_C1_BUS_AUX_01;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 35;
+    r1 = _buf_C1_BUS_AUX_01;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 352 < DSP4_NODE_LIMIT)
@@ -11388,6 +11531,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_02;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 36;
+    r1 = _buf_C1_BUS_AUX_02;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 354 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_02_SEND_process;
@@ -11407,6 +11555,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_03;
     r1 = _buf_C1_BUS_AUX_03;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 37;
+    r1 = _buf_C1_BUS_AUX_03;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 356 < DSP4_NODE_LIMIT)
@@ -11428,6 +11581,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_04;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 38;
+    r1 = _buf_C1_BUS_AUX_04;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 358 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_04_SEND_process;
@@ -11447,6 +11605,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_05;
     r1 = _buf_C1_BUS_AUX_05;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 39;
+    r1 = _buf_C1_BUS_AUX_05;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 360 < DSP4_NODE_LIMIT)
@@ -11468,6 +11631,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_06;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 40;
+    r1 = _buf_C1_BUS_AUX_06;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 362 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_06_SEND_process;
@@ -11487,6 +11655,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_07;
     r1 = _buf_C1_BUS_AUX_07;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 41;
+    r1 = _buf_C1_BUS_AUX_07;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 364 < DSP4_NODE_LIMIT)
@@ -11508,6 +11681,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_08;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 42;
+    r1 = _buf_C1_BUS_AUX_08;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 366 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_08_SEND_process;
@@ -11527,6 +11705,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_09;
     r1 = _buf_C1_BUS_AUX_09;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 43;
+    r1 = _buf_C1_BUS_AUX_09;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 368 < DSP4_NODE_LIMIT)
@@ -11548,6 +11731,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_10;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 44;
+    r1 = _buf_C1_BUS_AUX_10;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 370 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_10_SEND_process;
@@ -11568,6 +11756,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_11;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 45;
+    r1 = _buf_C1_BUS_AUX_11;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 372 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_11_SEND_process;
@@ -11587,6 +11780,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_12;
     r1 = _buf_C1_BUS_AUX_12;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 46;
+    r1 = _buf_C1_BUS_AUX_12;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 374 < DSP4_NODE_LIMIT)
@@ -16149,6 +16347,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_MAIN_L;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 33;
+    r1 = _buf_C1_BUS_MAIN_L;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 370 < DSP4_NODE_LIMIT)
     call _C1_BUS_MAIN_L_SEND_process;
@@ -16159,6 +16362,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_MAIN_R;
     r1 = _buf_C1_BUS_MAIN_R;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 34;
+    r1 = _buf_C1_BUS_MAIN_R;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 372 < DSP4_NODE_LIMIT)
@@ -16182,6 +16390,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 47;
+    r1 = _buf_C1_BUS_GRP_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 376 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_01_SEND_process;
@@ -16192,6 +16405,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_02;
     r1 = _buf_C1_BUS_GRP_02;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 48;
+    r1 = _buf_C1_BUS_GRP_02;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 378 < DSP4_NODE_LIMIT)
@@ -16204,6 +16422,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_GRP_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 49;
+    r1 = _buf_C1_BUS_GRP_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 380 < DSP4_NODE_LIMIT)
     call _C1_BUS_GRP_03_SEND_process;
@@ -16214,6 +16437,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_GRP_04;
     r1 = _buf_C1_BUS_GRP_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 50;
+    r1 = _buf_C1_BUS_GRP_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 382 < DSP4_NODE_LIMIT)
@@ -16231,6 +16459,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_01;
     r1 = _buf_C1_BUS_AUX_01;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 35;
+    r1 = _buf_C1_BUS_AUX_01;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 384 < DSP4_NODE_LIMIT)
@@ -16252,6 +16485,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_02;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 36;
+    r1 = _buf_C1_BUS_AUX_02;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 386 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_02_SEND_process;
@@ -16271,6 +16509,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_03;
     r1 = _buf_C1_BUS_AUX_03;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 37;
+    r1 = _buf_C1_BUS_AUX_03;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 388 < DSP4_NODE_LIMIT)
@@ -16292,6 +16535,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_04;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 38;
+    r1 = _buf_C1_BUS_AUX_04;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 390 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_04_SEND_process;
@@ -16311,6 +16559,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_05;
     r1 = _buf_C1_BUS_AUX_05;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 39;
+    r1 = _buf_C1_BUS_AUX_05;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 392 < DSP4_NODE_LIMIT)
@@ -16332,6 +16585,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_06;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 40;
+    r1 = _buf_C1_BUS_AUX_06;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 394 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_06_SEND_process;
@@ -16351,6 +16609,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_07;
     r1 = _buf_C1_BUS_AUX_07;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 41;
+    r1 = _buf_C1_BUS_AUX_07;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 396 < DSP4_NODE_LIMIT)
@@ -16372,6 +16635,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_08;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 42;
+    r1 = _buf_C1_BUS_AUX_08;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 398 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_08_SEND_process;
@@ -16391,6 +16659,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_09;
     r1 = _buf_C1_BUS_AUX_09;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 43;
+    r1 = _buf_C1_BUS_AUX_09;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 400 < DSP4_NODE_LIMIT)
@@ -16412,6 +16685,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_10;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 44;
+    r1 = _buf_C1_BUS_AUX_10;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 402 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_10_SEND_process;
@@ -16432,6 +16710,11 @@ _chip1_process_all:
     r1 = _buf_C1_BUS_AUX_11;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 45;
+    r1 = _buf_C1_BUS_AUX_11;
+    call _test_meas_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 404 < DSP4_NODE_LIMIT)
     call _C1_BUS_AUX_11_SEND_process;
@@ -16451,6 +16734,11 @@ _chip1_process_all:
     r0 = _buf_C1_BUS_AUX_12;
     r1 = _buf_C1_BUS_AUX_12;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 46;
+    r1 = _buf_C1_BUS_AUX_12;
+    call _test_meas_tap;
 #endif
 #endif
 #if (DSP4_NODE_LIMIT == 0 || 406 < DSP4_NODE_LIMIT)

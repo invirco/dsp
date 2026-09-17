@@ -1,0 +1,21 @@
+{
+ "level": 1.0,
+ "5": {
+  "n": 16384,
+  "peak_word": 5888,
+  "n_minus8": 0,
+  "overruns": 0
+ },
+ "33": {
+  "n": 16384,
+  "peak_word": 2800,
+  "n_minus8": 0,
+  "overruns": 0
+ },
+ "34": {
+  "n": 16384,
+  "peak_word": 2976,
+  "n_minus8": 0,
+  "overruns": 0
+ }
+}

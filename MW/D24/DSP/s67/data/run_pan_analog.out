@@ -1,0 +1,7 @@
+12:13:21 law 0 idx   0  L   -0.000 (pred    0.000)  R     -inf (pred     -inf)
+12:13:23 law 0 idx  63  L   -6.021 (pred   -6.021)  R   -6.021 (pred   -6.021)
+12:13:25 law 0 idx 126  L     -inf (pred     -inf)  R    0.000 (pred    0.000)
+12:13:26 law 1 idx   0  L   -0.000 (pred    0.000)  R     -inf (pred     -inf)
+12:13:28 law 1 idx  63  L   -6.021 (pred   -6.021)  R   -6.021 (pred   -6.021)
+12:13:30 law 1 idx 126  L     -inf (pred     -inf)  R   -0.000 (pred    0.000)
+12:13:30 chip-1 overruns during phase: 0 | AN_EN 26: op -- pd | hi // GPIO26 = output

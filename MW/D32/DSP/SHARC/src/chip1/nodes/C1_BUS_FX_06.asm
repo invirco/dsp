@@ -74,6 +74,16 @@ _C1_BUS_FX_06_process:
         mrf = mrf + r8 * r9 (ssi);
         r1 = mr0f;
         r2 = mr1f;
+        /* ex AFTER the rounding add (S67-6). r3 still held the
+         * word LOADED above, and the rounding carry changes it
+         * exactly when the sum is in [-2^27, 0): post-add hi
+         * is 0, pre-add ex is -1, so (b) fired and the sample
+         * saturated NEGATIVE -- a -8.0 click at every
+         * negative-going zero crossing that rounds to 0,
+         * measured on MAIN L on the part. _acc64_rns28 reads
+         * mr2f here and never had the defect; the inline copy
+         * did. */
+        r3 = mr2f;
         r1 = lshift r1 by -28;
         r12 = lshift r2 by 4;
         r0 = r1 or r12;

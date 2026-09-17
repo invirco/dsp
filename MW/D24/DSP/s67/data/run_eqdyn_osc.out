@@ -1,0 +1,8 @@
+12:14:44 EQ   1000 Hz  pred +6.000  strip +6.000  main L +6.000 dB
+12:14:47 EQ   2000 Hz  pred +1.866  strip +1.866  main L +1.866 dB
+12:14:51 EQ    250 Hz  pred +0.423  strip +0.423  main L +0.423 dB
+12:14:55 COMP in -10.00 dBFS pk ratio 4  pred GR -7.500  strip -6.634  main L -6.634  gain word -6.608  env -11.189
+12:14:58 COMP in -10.00 dBFS pk ratio 2  pred GR -5.000  strip -4.422  main L -4.422  gain word -4.419  env -11.162
+12:15:02 COMP in -16.00 dBFS pk ratio 4  pred GR -3.000  strip -2.134  main L -2.134  gain word -2.128  env -17.162
+12:15:06 COMP in -16.00 dBFS pk ratio 2  pred GR -2.000  strip -1.422  main L -1.422  gain word -1.405  env -17.189
+12:15:06 chip-1 overruns during phase: 0 | AN_EN 26: op -- pd | hi // GPIO26 = output
