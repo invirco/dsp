@@ -1,3 +1,24 @@
+## HUB DISPATCH 2026-09-19 19:07Z — S74 — PW rulings into the D24 build: talkback polarity signed in code (DSP4_TALK_INVERT on), and defs-v2026.09.19.1 consumed (D24 declares rta; RTA rows addressed by the generator)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S74 — TWO PW RULINGS INTO THE D24 BUILD (desk only; the unit is read-only — no boot, no flash, no config, no rails). PW, 2026-09-19 evening: (1) "tb polarity can be signed in code" → `DSP4_TALK_INVERT` becomes ON for the D24 product build; (2) "d24 requires rta" → the D24 def now declares `rta,1` (defs-v2026.09.19.1, the pin in mx26 bumped): consume it with strict drift.
+
+GATES.
+1. `DSP4_TALK_INVERT` default ON for D24 (D32 unchanged unless its def says otherwise — state): the shipping config word moves 0xC2010244 → 0xE2010244 by S72's design (bit 29); update `check_shipping_config.sh`, `cfg_words.py` and every recorded shipping config-word expectation to the new value, and say in `diag.h` that the D24 ships inverted-corrected. Prove from the S70 capture data that the corrected sign lands the talkback in phase (the T5 scan's +181.6° becomes ≈ 0° with the sign applied to the captured lane — computed, not measured on the unit). New shipping pair hashes stated, NOT deployed; chip 2 unchanged except the config word (state).
+2. CONSUME defs-v2026.09.19.1 (`sync-defs.sh`, strict drift): the D24 master now carries the RTA cells (`Rta…` family) because the product declares `rta,1`; the dsp side does NOT build the RTA in this session (that is the S65 defs landing's remaining items: the float meter cell encoding, the Cue prefix, Cue Active — hub + dsp design) — this gate only proves the drift gate passes with the new rows, states exactly which cells appeared (the two `Rta[1-1]On/Src` rows arrive from defs WITHOUT addresses — MxAdd empty — because DSP addresses are the dsp generator's output, the S49 way: assign them by the generator as appended rows at the next free chip-1 words, state them, and propose them back to defs as the contract path requires), and that 0 EXISTING addresses moved (all eight address artefacts compared against HEAD as S71/S72 did; the new rows are appended).
+3. findings S74-1.., tasks.md, commit + push, clean.
+
+Bounded ≈ 45 min. Fully specified: no design decisions; anything that looks like one is a 🔴 note with the question (never a dialog).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-19 18:51Z — S73 — MeasChan 55 for C1_XIN_CODEC_02 (test build only, 0 addresses moved, shipping byte-identical); the mini-jack bench note corrected   [status: 🟢 done — BOTH GATES PASSED. G1: `TEST_MEAS_LANE_CODES` gets MeasChan 55 = `C1_XIN_CODEC_02`, same guard/mechanism as S69's 51–54; regenerate touched exactly `dsp_codegen.py` and `process_chain.asm` (one `.extern` + one five-line hook at each of three call sites). All eight address artefacts byte-identical against `git show HEAD:`; `./check-contract-drift.sh` clean. Shipping pair rebuilt here reproduces S72's recorded hash EXACTLY (chip1 `7d1ab146447a1f9d7c010ce9fa104e56`, chip2 `3a9c950d3551b6c5d7ff58925a47ec81`) — not deployed. Test pair (`DSP4_TEST_NODES=1`), new hashes, not deployed: chip1 `4ea95be16bf6944817ec57cec408504f` (459,424 B), chip2 `251ce3b2eb758aecae22b7550facf789` (309,528 B, same as S67/S69's chip2 — confirms chip 2 untouched); a pre-change control build of the test pair differs from it by exactly +16 bytes on chip 1, one tap call site's worth. CONTRACT-PROPOSAL-S67.md range note updated 33→56 (and back-filled the S69 gap it never got). G2: S71 §6d bench note rewritten — ring now expected on MeasChan 55, not "moves nothing" — and copied verbatim below as a 🔴 bench item. Report: this block + findings S73-1..6, no separate report file (bounded desk task). Findings S73-1..6]   [model: sonnet]
 
 model: sonnet
