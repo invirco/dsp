@@ -196,6 +196,14 @@
 .extern _blk_latch_bufs;
 #endif
 .extern _ic_rx_active_buf, _ic_tx_active_buf;
+#if DSP4_EXTRAM
+/* THE MEMORY POOL (S75). Both entry points exist on both chips whatever
+ * DSP4_POOL_LINES is, so these call sites need no CHIP_ID test.
+ * src/lib/mem_pool.asm. */
+.extern _pool_init;
+.extern _pool_block_end;
+.extern _cfg_extram_off;
+#endif
 .extern _meter_decay_block;
 .extern _mtr_block_tick;
 #if CHIP_ID == 1
@@ -568,6 +576,24 @@ _start:
     r0 = 1;                        /* d24 */
     dm(_product_id) = r0;
     call _product_config_commit;   /* sets _boot_config_received + stage 6 */
+#endif
+#if DSP4_EXTRAM
+    /* THE POOL'S BACKEND DECISION (S75), HERE AND NOWHERE EARLIER.
+     *
+     * _pool_init calls _extram_init, which moves Port A to the xSPI0 mux
+     * function -- and PA_00/01/04/05 are SPI2, the parameter link and the
+     * slave-boot port. Doing that before the configuration has arrived
+     * would take the host's link away before the host had said whether
+     * this card even has a RAM on it. So it runs AFTER the configuration
+     * commits, and r0 carries the product's dsp.extram key: non-zero
+     * forces the L2 backend and the bus is never touched at all.
+     *
+     * On every card that exists today the probe finds nothing and the
+     * backend stays L2 -- which is the whole point of the ruling this
+     * implements. See finding S75-1 for what the board mod must ALSO do
+     * to the parameter link before this is safe to arm. */
+    r0 = dm(_cfg_extram_off);
+    call _pool_init;
 #endif
 
 .wait_boot:
@@ -1084,6 +1110,20 @@ _start:
     call _meter_scan_chip1;
     r0 = 32;
     call _meter_decay_block;
+#if DSP4_EXTRAM
+    /* THE POOL'S STAGING (S75), AFTER the graph and not before it.
+     *
+     * The write-behind sends the block the graph has just produced, and
+     * the read-ahead fills the staging half the graph has just finished
+     * reading -- both of which are only true once the graph has run. It
+     * also means the transfers get the whole of the NEXT block to
+     * complete, which is the two blocks of slack the design depends on.
+     *
+     * It is inside the cycle measurement deliberately: the staging is a
+     * real per-block cost and a budget that excluded it would be the same
+     * class of defect as a capacity figure taken off a different build. */
+    call _pool_block_end;
+#endif
 
     /* cycles = ticks_elapsed * TPERIOD + (tcount_start - tcount_now) */
     r2 = tcount;
@@ -1284,6 +1324,9 @@ _start:
     call _meter_scan_chip2;
     r0 = 18;
     call _meter_decay_block;
+#if DSP4_EXTRAM
+    call _pool_block_end;       /* see the chip-1 site for why it is here */
+#endif
 
     /* cycles = ticks_elapsed * TPERIOD + (tcount_start - tcount_now) */
     r2 = tcount;

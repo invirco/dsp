@@ -529,6 +529,87 @@
     | ((DSP4_SIMD_DYN         & 1) <<  1)                               \
     | ( DSP4_STRIP_FUSED      & 1) )
 
+/* ---- DIAG_BUILD_CFG3 — THE THIRD WORD, BECAUSE CFG2 SAID SO (S75) ---
+ *
+ * The DSP4_TALK_INVERT note above ends: "the signature is down to six bits
+ * and bits 23..0 are full. THE NEXT flag of this kind needs a third word
+ * (DIAG_BUILD_CFG3), not a seventh narrowing." DSP4_EXTRAM is the next flag
+ * of that kind -- it changes what the image CAN do with memory, what it
+ * costs, and (once a RAM answers) what every delay line longer than 20 ms
+ * sounds like -- so this is that word, taken rather than narrowing CFG2
+ * again.
+ *
+ * SIGNATURE 0xC4 in 31..24, distinct from CFG's 0xCF and CFG2's 0xC2/0xC3/
+ * 0xE2 in the low nibble, so a decoder that reads the wrong address says so
+ * instead of decoding nonsense. Bits 23..1 are free and stated as free:
+ * this word starts life almost empty, which is the point of starting one.
+ *
+ *   31..24  0xC4      signature
+ *   23..1   reserved, zero
+ *   0       DSP4_EXTRAM — the external-RAM pool is compiled in
+ *
+ * WHAT THIS BIT DOES NOT SAY. It does not say a RAM was found. The image
+ * probes at boot and falls back; the RESULT of that probe is a runtime
+ * word, DIAG_EXTRAM_STAT, and the two are deliberately separate. An image
+ * with this bit set and DIAG_EXTRAM_STAT reading "absent, fell back" is the
+ * NORMAL state of an unmodified card, not a fault. */
+#ifndef DSP4_EXTRAM
+#define DSP4_EXTRAM 0
+#endif
+#if DSP4_EXTRAM != 0
+#define DIAG_CFG3_EXTRAM 1
+#else
+#define DIAG_CFG3_EXTRAM 0
+#endif
+
+/* A COLLISION, NAMED RATHER THAN LEFT TO BE DISCOVERED (S75-13).
+ * tools/dsp/cfg_words.py carries an EARLIER, UNAPPLIED design for a word of
+ * this name -- S28 gate 3, signature 0xC3, every one of bits 23..0 allocated
+ * to a strip cut, the full shared-kernel mask and six other switches. It has
+ * never been implemented and nothing in the firmware produces it. The two
+ * layouts cannot both be right and neither has a free bit for the other.
+ * They ARE distinguishable, 0xC3 against 0xC4, so a decoder reading the wrong
+ * one rejects it instead of decoding nonsense -- which is the whole reason
+ * these words carry signatures. Which design survives is PW's call; what must
+ * not happen is one landing on top of the other without one. */
+#define DIAG_BUILD_CFG3      0xE0EC  /* R  packed memory configuration */
+#define DIAG_BUILD_CFG3_VALUE ( 0xC4000000                              \
+    | (DIAG_CFG3_EXTRAM & 1) )
+
+/* ---- THE RUNTIME SIDE OF THE POOL (S75) -----------------------------
+ *
+ * DIAG_EXTRAM_STAT is what the image DID, not what it was built with:
+ *
+ *   bit 0      _pool_backend   1 = EXTRAM in force, 0 = L2
+ *   bit 1      _extram_present 1 = a device answered and passed the test
+ *   7..4       _extram_fail    0 none, 1 controller init, 2 STIG timeout,
+ *                              3 ID floated (no device), 4 pattern test,
+ *                              5 forced off by the product configuration
+ *   31..16     DSP4_POOL_LINES for this chip, so the reading says which
+ *              chip's pool it is describing without a second transaction
+ *
+ * ON AN UNMODIFIED REV C CARD THE EXPECTED READING IS 0x00200030 on chip 1
+ * (32 lines, backend L2, not present, fail = 3 "ID floated") and 0x00000030
+ * on chip 2 (no lines). That is the bench check: the probe must fail
+ * CLEANLY and say WHY, and "3" is the answer that means "there is no RAM
+ * here", as distinct from "there is one and it does not work".
+ *
+ * DIAG_EXTRAM_ID0/ID1 are the raw HyperBus register-space reads, published
+ * because the manufacturer/device encoding differs between the two
+ * candidate part families and the bench has to be able to say WHICH part is
+ * fitted, not only that one is. 0xFFFFFFFF is a floated bus.
+ *
+ * DIAG_EXTRAM_XFERS and DIAG_EXTRAM_STALLS are the staging's own witnesses:
+ * transfers issued, and blocks whose staging was skipped because MDMA0 was
+ * still busy. A stall is not an audio fault (the block in hand reads
+ * staging fetched two blocks ago) but a rising count is the bus failing to
+ * keep up, and it is the only instrument that can say so. */
+#define DIAG_EXTRAM_STAT     0xE0ED  /* R  which backend, and why */
+#define DIAG_EXTRAM_ID0      0xE0EE  /* R  HyperBus ID register 0, raw */
+#define DIAG_EXTRAM_ID1      0xE0EF  /* R  HyperBus ID register 1, raw */
+#define DIAG_EXTRAM_XFERS    0xE0F2  /* R  MDMA staging transfers issued */
+#define DIAG_EXTRAM_STALLS   0xE0F3  /* R  blocks whose staging was skipped */
+
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */
 #define DIAG_NOP             0xE0FE  /* W */

@@ -6,6 +6,178 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE DELAY POOL IS CODED FOR HYPERRAM AND RUNS WITHOUT IT: BOTH BACKENDS IN THE TREE, ZERO ADDED LATENCY, THE SHIPPING PAIR BYTE-IDENTICAL, AND TWO HARDWARE QUESTIONS THAT DECIDE WHETHER IT CAN EVER BE ARMED (2026-09-19, session 75 — desk only, no unit touched)
+
+PW ruling 2026-09-19 evening: *"dsp ram is required, but needs to work without
+it until dsp board modified -- code it in place."* Report:
+`MW/D24/DSP/s75/extram-pool.md`. Contract proposal:
+`proposals/CONTRACT-PROPOSAL-S75.md`.
+
+**S75-1 🔴 OCTAL xSPI0 TAKES THE PARAMETER LINK *AND* THE BOOT PORT, AND D8'S
+STATED RESOLUTION DOES NOT WORK — A QUESTION FOR THE HUB.** Datasheet Table 10:
+`PA_00/01/04/05` are SPI2 at mux function 0 and xSPI0 at function 1;
+`PA_06..PA_09` are **SPI0** at function 0 and xSPI0 at function 2. HyperBus
+needs all eight data lanes, so xSPI0 consumes `PA_00..PA_09` (leads 14–27) plus
+the dedicated `xSPI_RWDS` (lead 9) — which matches the mod sheet's "Port A
+leads 14–27, RWDS lead 9, SEL1 = CS#" exactly, now cross-checked against the
+120-lead assignment table. **Both SPI2 and SPI0 die.** Today the Pi's parameter
+link *and* the slave-boot port are SPI2 (`dma_config.c`: PA_00 MISO, PA_01
+MOSI, PA_04 CLK, PA_05 SEL1; `dsp4_busmon.py` agrees at the connector). D8 says
+"the Pi RUNTIME param link moves to SPI0/SPI1" — but **SPI0 *is* xSPI0's
+D4..D7**. The only SPI that survives an octal xSPI0 on this part is **SPI1
+(`PA_10..PA_15`, function 1)**, and `PA_12` is currently the diagnostic LED.
+QUESTION: does the board mod also move the Pi parameter link to SPI1 (giving up
+or moving the LED), and does boot still happen on SPI2 before the firmware
+re-muxes Port A? Without an answer the mod as drawn takes the control link away
+the moment the RAM is enabled. Not decidable in this tree.
+
+**S75-2 🔴 BOTH NAMED PARTS READ AS THE 1.8 V VARIANTS AND THE PROCESSOR HAS NO
+1.8 V I/O — A QUESTION FOR THE HUB.** Datasheet Table 13: `VDD_EXT` is
+3.13–3.47 V, nominal 3.30, with no lower option anywhere on the
+ADSP-21560/61/64/68 — so the RAM must be a 3.0 V HyperRAM, exactly as D8
+concluded in August. The dispatch names `S27KS0642GABHI020` and
+`IS66WVH8M8DBLL-100B1LI`; on the vendors' own family naming `S27KS` is the
+1.8 V Infineon part (`S27KL` is the 3.0 V one) and `IS66WVH` is ISSI's 1.8 V
+part (`IS67WVH` the 3.0 V one). The processor half of this is datasheet-proven;
+the part-family half is from naming convention, because vendor datasheets could
+not be fetched from this machine. Either way the two statements cannot both be
+right. QUESTION: confirm the orderable part numbers, or confirm a level
+translator is in the mod. The design clock is unaffected — the 3.0 V grades are
+the 100 MHz ones.
+
+**S75-3 THE DATASHEET STATES THE xSPI CLOCK CEILING; D8'S "exact 21564 OSPI
+clock ceiling" OPEN ITEM CAN CLOSE.** Table 14, "Clock Operating Conditions":
+`fxSPICLKPROG` max **166.66 MHz with DQS**, 125 MHz without; footnote 5 —
+with the offline PHY training methodology, 125 MHz with DQS and 80 MHz without.
+HyperBus strobes reads with RWDS, which is the DQS case. The RAM, not the DSP,
+is the binding limit at 100 MHz DDR octal = 200 MB/s raw.
+
+**S75-4 THE ADSP-2156x DATASHEET IS PRESENT AND WAS RECORDED AS MISSING.**
+`_mx/_temp/adsp-2156x-docs/adsp-21560-21561-21564-21568.pdf`, Rev. A, February
+2026, 81 pages. It carries the clock table, both port multiplexing tables, the
+120-lead assignment, the supply conditions and the I/O memory map — most of
+what the HRM's missing core chapter could not answer. Every datasheet citation
+in the S75 report comes from it.
+
+**S75-5 🔴 CHIP 1'S CODE POOL HAS 946 BYTES FREE IN THE `DSP4_EXTRAM=1` ARM.**
+The pool costs chip 1 **+7,960 bytes** of program memory: 253,238 → 261,198 of
+262,144, 96.6 % → 99.6 %. It links, but nothing else will fit behind it —
+`DSP4_CUE`, `DSP4_RTA` and `DSP4_TEST_NODES` are all still 0 and all want
+chip-1 code. **Code reclamation is a blocking prerequisite for ever setting
+`DSP4_EXTRAM=1` in `shipping.config`.** Cheap candidates: the dead float-era
+`lib/delay.asm` bodies (gated out of block-kernel builds but still linked) and
+the per-sample DLY body. This is not a defect in the pool; it is the existing
+wall, reached.
+
+**S75-6 THE BACKEND DECISION HAD TO MOVE AHEAD OF THE L2 CLAMP.** Found and
+fixed inside this session. The DLY block kernel clamps the requested offset
+into the *active L2 storage* (960 samples on a channel with no pool slot)
+before anything else. The first cut of the EXTRAM arm decided head-versus-tail
+*after* that clamp — against a number that can never exceed the head — so the
+tail would never have been reached and a host asking for 200 ms would silently
+have got 20, on an image that built, linked, ran and reported EXTRAM in force.
+It now decides on the offset the host actually wrote and jumps the L2 clamp,
+bounding against the full 12,000-sample spec instead. The simulated-part
+harness reproduces the fault if the fix is reverted.
+
+**S75-7 THE STAGING ARMS CHANNEL REGISTERS, NOT DESCRIPTOR LISTS, BECAUSE THIS
+PART CANNOT DO DESCRIPTOR LISTS.** `dma_config.c` records `ERRC = 3` on every
+descriptor-list arm ever tried on this silicon, including a self-referencing
+descriptor built word by word in the probe, and the SPORT rings run in
+autobuffer flow because of it. The obvious implementation of a per-block
+staging queue — a pre-built descriptor chain with two patched fields — is
+therefore unavailable. Recorded so the next person to look at the arming cost
+does not "improve" it straight back into the known-broken path.
+
+**S75-8 CHIP 2'S DELAY LINES ARE PER-SAMPLE NODES AND CANNOT BE STAGED UNTIL
+THEY ARE NOT.** `gen_delay`'s non-pooled branch emits no block kernel, and the
+aux/sub/main/monitor delays and the six FX echo lines all take it. Staging is a
+per-block operation by construction, so `DSP4_POOL_LINES` is 32 on chip 1 and
+**0** on chip 2. Chip 2's lines do not need the RAM for capacity — they already
+carry the full 250 ms in L2 — they need it so their L2 can go to the reverb:
+21 lines out of L2 is 984 KB, which pays for the stereo Freeverb halves
+(+295 KB, deleted 2026-09-08) with ~1 MB still spare. Follow-on, with its own
+byte-identical gate.
+
+**S75-9 `DIAG_BUILD_CFG3` EXISTS AT `0xE0EC`, SIGNATURE `0xC4`, AND IS ITSELF
+GATED.** `diag.h`'s own note (S72, reaffirmed S74) says the next flag of that
+class needs a third word rather than a seventh narrowing of CFG2's six-bit
+signature; `DSP4_EXTRAM` is that flag. CFG3 is behind `#if DSP4_EXTRAM` **only**
+because a `.var` in `diag.asm` is a word of DM and a word of DM would have cost
+the byte-identical proof below. It should become unconditional at the next
+authorised shipping-image change. Until then `0xE0EC` reading 0 means "this
+image has no CFG3, therefore no external-RAM pool" — less informative than it
+will be, not ambiguous. Five runtime words join it: `DIAG_EXTRAM_STAT`
+`0xE0ED`, `ID0/ID1` `0xE0EE/EF`, `XFERS` `0xE0F2`, `STALLS` `0xE0F3`.
+
+**S75-10 THE 2D `YMOD` CONVENTION IS THE ONE PIECE NOTHING ON THIS BENCH CAN
+CHECK.** The read-ahead fetch uses `YMOD = ROW_BYTES − (BLOCK−1)×4`, on the
+reading that `YMOD` is applied after the last element of a row which has
+already taken `XMOD`. An off-by-one fetches a window `BLOCK−1` words adrift —
+audible as a delay right to within a third of a millisecond and wrong. It is
+written at the call site with its reasoning so it is the first thing the bench
+looks at, not the last.
+
+**S75-13 TWO DIFFERENT `DIAG_BUILD_CFG3` DESIGNS NOW EXIST IN THIS REPO AND
+ONLY ONE CAN SURVIVE — FOR THE HUB.** `tools/dsp/cfg_words.py` has carried an
+unapplied design for a third build-config word since S28 gate 3: signature
+`0xC3`, with every one of bits 23..0 allocated to a strip cut, the full
+shared-kernel mask and six other switches. It was never implemented and
+nothing in the firmware produces it. S75 has now implemented a word of that
+name at `0xE0EC` with signature `0xC4` and one bit. **Neither layout has a
+free bit for the other**, so they cannot be merged as they stand. They are at
+least distinguishable — a decoder reading the wrong one rejects the signature
+instead of decoding nonsense, which is exactly the property these words carry
+signatures for — and that is the only thing that makes this survivable rather
+than dangerous. Both files now say so at the point of definition. QUESTION:
+which design lands? What must not happen is either going in on top of the
+other without a decision: an image answering `0xE0EC` with S28's `0xC3` word
+while a host built against S75's reads bit 0 would report "the external RAM
+pool is compiled in" when what it read was `DSP4_DYN_TABLES`.
+
+**S75-14 `check_shipping_config.sh` CHECKS THE NEW FLAG FROM THE START.** S74's
+finding was that this script had never checked `DSP4_TALK_INVERT` — a flag in
+`DIAG_BUILD_CFG2` that was absent from the script's `want2`, so
+`shipping.config` could silently disagree with the bench mirror. `DSP4_EXTRAM`
+is in `want3` and in `dsp4_buildcfg.SHIPPING3` on the day it was added, and the
+script's printed line states plainly that with `DSP4_EXTRAM=0` the part reads
+an unmapped `0x00000000` at `0xE0EC` and **not** `0xC4000000` — so a bench
+operator is not told to expect a word the image does not carry.
+
+**S75-11 THE PROOFS.** (a) Built at the shipping configuration the pair is
+**byte for byte S74c's**: `chip1.ldr 10a413005e0647f5c66476f6a0b4ab60`
+(452,388 B), `chip2.ldr e88a7a4302950d088a6c023c949c916e` (307,980 B) —
+re-verified after `mem_pool.asm`/`extram.asm` moved from `src/lib/` to `src/`,
+and again after `shipping.config` gained the key.
+`./check-sharc-codegen-drift.sh` passes (734 generated, 0 differ).
+(b) `DSP4_EXTRAM=1` assembles and links clean on both chips:
+`52865949b546aa1757c26b6bb73f22ba` (461,052 B) /
+`1198f18ec1759b0ff09ae7346a569f75` (309,132 B), neither deployed.
+(c) Against a simulated HyperRAM that honours block timing
+(`tools/dsp/extram_model.py`), the EXTRAM backend is **bit-exact**:
+`tools/dsp/extram_bitexact.py` 9/9, **420,404 samples compared**, 0 LSB on
+both the head range (where it must equal the L2 backend) and the tail range
+(where it must equal an infinite-precision reference). Two arms exist only to
+stop it passing vacuously — "the L2 backend must NOT match the reference"
+(111,377 mismatches, i.e. the clamp is real) and a corrupted-RAM-word negative
+control. Worst-block bus occupancy at 100 MHz with all 32 lines at 250 ms:
+**0.2233**, harness limit 0.35.
+(d) **Added audio latency: ZERO samples**, because the L2 head window covers
+every offset short enough to matter and the tail is prefetched two blocks
+ahead. L2 cost of the staging: +12,288 B on chip 1, which is the computed
+figure to the byte.
+
+**S75-12 WHAT THE RAM BUYS, READ OFF THE TREE.** Four things the L2 budget
+cut: (1) 250 ms on all 32 channels became 20 ms on all 32 plus eight 250 ms
+slots (−1,062 KB; only eight channels can exceed 20 ms at once); (2) the
+reverb went mono, `_fx_comb_buf_R`/`_fx_allpass_buf_R` deleted 2026-09-08,
+295 KB; (3) the FX echo is clamped to 250 ms where `Fx001DelayTime001`'s law
+says up to 1,000 ms; (4) one main output delay where `dsp-def.md` budgets four.
+**S75's arm restores (1)'s user-visible limit** — any of the 32 channels can
+ask for up to 250 ms simultaneously, the eight-slot tier becoming redundant
+rather than deleted (recovering its 375 KB is a separate authorised change).
+(2), (3) and (4) all live on chip 2 and wait on S75-8.
+
 ## defs-v2026.09.19.3 CONSUMED: THE D24 RTA GATE LANDS CLEAN, ZERO EXISTING ADDRESSES MOVED (2026-09-19, session 74c — desk only, no unit touched)
 
 Third pass at S74's gate 2. The hub landed S74b's proposal byte-for-byte as

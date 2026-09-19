@@ -330,6 +330,36 @@ if [ "$DSP4_TALK_INVERT" != "0" ]; then
     echo "  *** the D24 shipping switch position since S74 (PW 2026-09-19) ***"
 fi
 
+# THE EXTERNAL-RAM DELAY POOL (DSP4_EXTRAM, S75). PW ruling 2026-09-19:
+# "dsp ram is required, but needs to work without it until dsp board
+# modified -- code it in place." One 64 Mbit 3.0 V HyperRAM per ADSP-21564
+# on xSPI0 carries the delay history; the L2 ring stays as the head window
+# and the tail is staged by MDMA in whole blocks (src/lib/mem_pool.asm,
+# src/lib/extram.asm).
+#
+# 0 IS THE SHIPPING VALUE AND IT EMITS NOT ONE BYTE. The rev C board has no
+# RAM and no card has yet been modified, so the whole of the pool and the
+# whole of the xSPI layer are behind this #if -- checked, not asserted, by
+# rebuilding the shipping pair at 0 and comparing the md5 against S74c's.
+#
+# IT IS IN DIAG_BUILD_CFG3, BIT 0. Not CFG2: diag.h says in as many words
+# that the next flag of this class needs a THIRD word rather than a seventh
+# narrowing of CFG2's signature, because at six bits the "a garbage read is
+# not a config word" property that word exists for is as thin as it should
+# ever get. S75 is that next flag, so CFG3 is where it goes.
+#
+# TURNING IT ON DOES NOT TURN THE RAM ON. The image still probes at boot and
+# still falls back to L2 when nothing answers; the flag decides whether the
+# image CAN use a RAM, not whether it does. Which backend it actually chose
+# is a RUNTIME word, DIAG_EXTRAM_STAT.
+DSP4_EXTRAM="${DSP4_EXTRAM:-0}"
+CFLAGS="$CFLAGS -DDSP4_EXTRAM=$DSP4_EXTRAM"
+ASMFLAGS="$ASMFLAGS -DDSP4_EXTRAM=$DSP4_EXTRAM"
+if [ "$DSP4_EXTRAM" != "0" ]; then
+    echo "  *** EXTERNAL RAM POOL: DSP4_EXTRAM=$DSP4_EXTRAM ***"
+    echo "  *** needs a board mod; unmodified cards fall back to L2 at boot ***"
+fi
+
 # BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
 # MEASUREMENT BUILD ONLY -- never in a shipping image, and the default 0
 # emits not one byte, which is checked by rebuilding the shipping pair and

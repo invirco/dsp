@@ -101,10 +101,72 @@
 
         .dkb_io_C1_DLY_28:
             r2 = dm(_dly_read_offset_C1_DLY_28);
+        #if DSP4_EXTRAM
+        .extern _pool_backend;
+        .extern _pool_phase;
+        .extern _pool_line_off;
+        .extern _pool_line_phase;
+        .extern _pool_wstage;
+        .extern _pool_rstage;
+            /* THE CLAMP IS THE BACKEND DECISION, AND IT HAS TO COME FIRST.
+             *
+             * The line below this block clamps the requested offset into
+             * the ACTIVE L2 STORAGE -- 960 samples on a channel with no
+             * pool slot. Deciding head-versus-tail after that clamp would
+             * be deciding it against a number that can never exceed the
+             * head, so the tail would never be reached and a host asking
+             * for 200 ms would silently get 20. The decision is therefore
+             * taken here, on the offset the host actually wrote, and the
+             * EXTRAM arm jumps over the L2 clamp entirely.
+             *
+             * With the backend on L2 -- no RAM found, or a product that
+             * forced it off -- this falls through and the clamp below is
+             * the one that ships. */
+            r13 = 0;                    /* 0 = head, 1 = tail */
+            r14 = dm(_pool_backend);
+            r14 = pass r14;
+            if eq jump (pc, .dkb_l2clamp_C1_DLY_28);
+            r14 = 12000;
+            comp(r2, r14);
+            if lt jump (pc, .dkb_xclamped_C1_DLY_28);
+            r2 = r14 - 1;               /* the FULL spec is the bound now */
+        .dkb_xclamped_C1_DLY_28:
+            r14 = 960;
+            comp(r2, r14);
+            if lt jump (pc, .dkb_ok_C1_DLY_28);
+            r13 = 1;                    /* this block reads the tail */
+            jump (pc, .dkb_ok_C1_DLY_28);
+        .dkb_l2clamp_C1_DLY_28:
+        #endif
+
             comp(r2, r3);
             if lt jump (pc, .dkb_ok_C1_DLY_28);
             r2 = r3 - 1;
         .dkb_ok_C1_DLY_28:
+        #if DSP4_EXTRAM
+            /* publish the offset the kernel will actually use -- AFTER
+             * whichever clamp applied -- so the pool plans the same window
+             * the loop below reads. */
+            i6 = _pool_line_off;
+            m6 = 27;
+            modify(i6, m6);
+            dm(i6, 0) = r2;
+            /* the write-staging cursor: _pool_wstage + (phase*LINES + idx)
+             * * BLOCK. One linear store per sample keeps the external
+             * history fed without a second gather pass over the ring. */
+            r8 = dm(_pool_phase);
+            r9 = DSP4_POOL_LINES;
+            r8 = r8 * r9 (ssi);
+            r9 = 27;
+            r8 = r8 + r9;
+            r9 = DSP4_BLOCK_SIZE;
+            r8 = r8 * r9 (ssi);
+            i6 = _pool_wstage;
+            m6 = r8;
+            modify(i6, m6);
+            l6 = 0;
+        #endif
+
             /* CIRCULAR DAG ADDRESSING (review finding D25).
              *
              * The loop this replaces rebuilt BOTH addresses from the base
@@ -142,10 +204,38 @@
             r6 = r7 + r1;
             i0 = r6;                    /* write cursor */
             m2 = 1;
+        #if DSP4_EXTRAM
+            r13 = pass r13;
+            if eq jump (pc, .dkb_rdl2_C1_DLY_28);
+            /* TAIL: i2 -> _pool_rstage + ((idx*2 + phase) * 2*BLOCK)
+             *              + this line's staged phase. L2 = 0: linear. */
+            r8 = dm(_pool_phase);
+            r9 = 54;
+            r8 = r8 + r9;
+            r9 = 2 * DSP4_BLOCK_SIZE;
+            r8 = r8 * r9 (ssi);
+            i2 = _pool_line_phase;
+            m2 = 27;
+            modify(i2, m2);
+            r9 = dm(i2, 0);
+            r8 = r8 + r9;
+            l2 = 0;
+            i2 = _pool_rstage;
+            m2 = r8;
+            modify(i2, m2);
+            m2 = 1;
+            jump (pc, .dkb_rdok_C1_DLY_28);
+        .dkb_rdl2_C1_DLY_28:
+        #endif
+
             l2 = r3;
             b2 = r7;
             r6 = r7 + r5;
             i2 = r6;                    /* read cursor  */
+        #if DSP4_EXTRAM
+        .dkb_rdok_C1_DLY_28:
+        #endif
+
 
             l3 = 0;
             l4 = 0;
@@ -179,6 +269,9 @@
              * unchanged. */
             lcntr = DSP4_BLOCK_SIZE, do .dkb_wr_C1_DLY_28 until lce;
                 r0 = dm(i3, 1);
+        #if DSP4_EXTRAM
+                dm(i6, 1) = r0;         /* write-behind staging */
+        #endif
             .dkb_wr_C1_DLY_28: dm(i0, m0) = r0;
 
             lcntr = DSP4_BLOCK_HALF, do .dkb_rd_C1_DLY_28 until lce;
@@ -192,6 +285,10 @@
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_C1_DLY_28 until lce;
                 r0 = dm(i3, 1);
                 dm(i0, m0) = r0;        /* write; the DAG wraps it */
+        #if DSP4_EXTRAM
+                dm(i6, 1) = r0;         /* write-behind staging */
+        #endif
+
         #if DSP4_DLY_NOMEM
                 r0 = pass r0;           /* MEASUREMENT ARM: no L2 read */
         #else
@@ -209,6 +306,10 @@
             dm(i1, 0) = r1;
             l0 = 0;
             l2 = 0;
+        #if DSP4_EXTRAM
+            l6 = 0;
+        #endif
+
             rts;
 
 .dkb_slot_0_C1_DLY_28:

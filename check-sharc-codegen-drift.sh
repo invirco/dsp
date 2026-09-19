@@ -78,6 +78,7 @@ chip2/spi_handler.asm
 diag.asm
 diag.h
 dma_config.c
+extram.asm
 ivt.asm
 lib2/lim_simd_fx.asm
 lib/afb_design_fx.asm
@@ -107,6 +108,7 @@ lib/meter.asm
 lib/meter_fx.asm
 lib/xover_design_fx.asm
 main.asm
+mem_pool.asm
 product_config.asm
 scope.asm
 sport_config.c

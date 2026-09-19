@@ -97,6 +97,25 @@ for k, v in want2.items():
         bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING2 says %s'
                    % (k, v, mirror2.get(k)))
 
+# THE THIRD WORD'S MIRROR (S75), checked the same way as want2/mirror2 above
+# -- and for the same reason the check above quotes S74 by name: S74 found
+# DSP4_TALK_INVERT sitting in DIAG_BUILD_CFG2 but never in THIS script's
+# want2, so shipping.config could disagree with dsp4_buildcfg.SHIPPING2 on
+# that one key and nothing here would notice. DIAG_BUILD_CFG3 is one flag
+# old (DSP4_EXTRAM, S75) and gets its own want3 from day one rather than
+# waiting to be the next gap.
+mirror3 = ns['SHIPPING3']
+want3 = {
+    'DSP4_EXTRAM': bdefault('DSP4_EXTRAM', 0),
+}
+for k, v in cfg.items():
+    if k in want3:
+        want3[k] = v
+for k, v in want3.items():
+    if mirror3.get(k) != v:
+        bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING3 says %s'
+                   % (k, v, mirror3.get(k)))
+
 for b in bad:
     print('SHIPPING CONFIG DRIFT: ' + b)
 if bad:
@@ -123,6 +142,22 @@ w2 = (0xC2000000
       | (mirror2['DSP4_SIMD_GRAPH'] << 2)
       | (mirror2['DSP4_SIMD_DYN'] << 1)
       | mirror2['DSP4_STRIP_FUSED'])
-print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X '
-      'and DIAG_BUILD_CFG2 0x%08X' % (w, w2))
+# THE THIRD WORD'S readback (S75). DIAG_BUILD_CFG3's DM cell only exists
+# `#if DSP4_EXTRAM` (diag.asm) -- widening DM for every image just to carry
+# a word that is 0 on every shipping build today would have cost S75 its
+# byte-identical-rebuild proof. So with mirror3['DSP4_EXTRAM'] == 0 (today's
+# shipping value) 0xE0EC is not in the part's dispatch table at all: it
+# reads back the unmapped answer, plain 0 -- NOT 0xC4000000 -- and the line
+# below must say that plainly rather than quote a signed word the part will
+# never return, or a bench operator chasing a "wrong" CFG3 reading would be
+# chasing a phantom.
+if mirror3['DSP4_EXTRAM']:
+    w3 = 0xC4000000 | (mirror3['DSP4_EXTRAM'] & 1)
+    cfg3_msg = 'and DIAG_BUILD_CFG3 0x%08X' % w3
+else:
+    cfg3_msg = ('and DIAG_BUILD_CFG3 UNMAPPED (reads 0x00000000, not '
+                '0xC4000000 -- DSP4_EXTRAM=0 compiles the word out entirely; '
+                'this is the normal reading today, not a fault)')
+print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X, '
+      'DIAG_BUILD_CFG2 0x%08X, %s' % (w, w2, cfg3_msg))
 PY

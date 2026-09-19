@@ -59,6 +59,9 @@
 #include <def21564.h>
 #include "diag.h"
 #include "c_abi.h"
+#if DSP4_EXTRAM
+#include "dsp_block.h"
+#endif
 
 .extern _scope_buf, _scope_src, _scope_inj, _scope_amp;
 .extern _scope_mode, _scope_idx, _scope_arm, _scope_len, _scope_rd, _scope_go;
@@ -167,6 +170,21 @@
  * DIAG_BUILD_CFG had no spare bit and three arms 81,299 cycles/block apart
  * all read the same word (S11-1). See diag.h. */
 .var _diag_build_cfg2 = DIAG_BUILD_CFG2_VALUE;
+/* The THIRD build-config word (S75). CFG2's own note says the next flag of
+ * its class needs a new word rather than another narrowing of its
+ * signature; DSP4_EXTRAM is that flag. See diag.h.
+ *
+ * GATED, AND THAT IS A DELIBERATE LIMITATION WITH A DATE ON IT. A word here
+ * is a word of DM, and a word of DM moves every address behind it -- which
+ * would cost S75 the one proof it most wants to be able to state, that the
+ * L2 arm rebuilds the shipping pair BYTE-IDENTICAL. So until the next
+ * authorised shipping-image change, 0xE0EC reads 0 on a DSP4_EXTRAM=0 image
+ * (the unmapped answer) and that reading means exactly one thing: this
+ * image has no CFG3, therefore no external-RAM pool. It is not ambiguous;
+ * it is simply less informative than it will be. */
+#if DSP4_EXTRAM
+.var _diag_build_cfg3 = DIAG_BUILD_CFG3_VALUE;
+#endif
 
 .global _diag_boot_stage;
 .var _diag_boot_stage = DIAG_STAGE_INIT;
@@ -900,6 +918,17 @@ _diag_led_params.end:
  * Clobbers r4, r5, i0, m0. PRESERVES r0-r3 — the caller still needs
  * r0 (the request word) for the response echo.
  *----------------------------------------------------------------------*/
+#if DSP4_EXTRAM
+.extern _extram_present;
+.extern _extram_fail;
+.extern _extram_id0;
+.extern _extram_id1;
+.extern _extram_xfers;
+.extern _pool_backend;
+#if DSP4_POOL_LINES > 0
+.extern _pool_stalls;
+#endif
+#endif
 #if DSP4_RTA && DSP4_CUE && DSP4_BLOCK_KERNELS && CHIP_ID == 1
 .extern _rta_diag_read;
 .extern _rta_diag_write;
@@ -968,6 +997,26 @@ _diag_read:
     r4 = DIAG_BUILD_CFG2;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg2);
+#if DSP4_EXTRAM
+    r4 = DIAG_BUILD_CFG3;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_build_cfg3);
+    r4 = DIAG_EXTRAM_STAT;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_extram_stat);
+    r4 = DIAG_EXTRAM_ID0;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_extram_id0);
+    r4 = DIAG_EXTRAM_ID1;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_extram_id1);
+    r4 = DIAG_EXTRAM_XFERS;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_extram_xfers);
+    r4 = DIAG_EXTRAM_STALLS;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_extram_stalls);
+#endif
 
     r4 = DIAG_BASE;
     r4 = r2 - r4;                 /* table index */
@@ -1051,6 +1100,50 @@ _diag_read:
 .diag_rd_build_cfg2:
     r4 = dm(_diag_build_cfg2);
     rts;
+
+#if DSP4_EXTRAM
+.diag_rd_build_cfg3:
+    r4 = dm(_diag_build_cfg3);
+    rts;
+
+.diag_rd_extram_stat:
+    /* Assembled from the live words rather than latched at boot: the
+     * backend can in principle be forced back to L2 later, and a latched
+     * copy would then say the opposite of what the audio is doing. */
+    r4 = dm(_pool_backend);
+    r5 = 1;
+    r4 = r4 and r5;
+    r5 = dm(_extram_present);
+    r6 = 1;
+    r5 = r5 and r6;
+    r5 = LSHIFT r5 by 1;
+    r4 = r4 or r5;
+    r5 = dm(_extram_fail);
+    r6 = 0xF;
+    r5 = r5 and r6;
+    r5 = LSHIFT r5 by 4;
+    r4 = r4 or r5;
+    r5 = DSP4_POOL_LINES;
+    r5 = LSHIFT r5 by 16;
+    r4 = r4 or r5;
+    rts;
+.diag_rd_extram_id0:
+    r4 = dm(_extram_id0);
+    rts;
+.diag_rd_extram_id1:
+    r4 = dm(_extram_id1);
+    rts;
+.diag_rd_extram_xfers:
+    r4 = dm(_extram_xfers);
+    rts;
+.diag_rd_extram_stalls:
+#if DSP4_POOL_LINES > 0
+    r4 = dm(_pool_stalls);
+#else
+    r4 = 0;                 /* no pool lines on this chip: nothing stalls */
+#endif
+    rts;
+#endif
 
 .diag_rd_zero:
     r4 = 0;

@@ -42,6 +42,20 @@
 #define CFG_AUX_MASK    0xF002
 #define CFG_OUT_MUX     0xF003
 #define CFG_COMMIT      0xF004
+/* THE PRODUCT'S EXTERNAL-RAM POSITION (S75). Non-zero = this product never
+ * uses the external delay RAM, whatever is fitted; the pool stays on L2 and
+ * the xSPI bus is not touched at all. It is a CONFIG register and not a
+ * build flag because one firmware serves D24 and D32 (D8) and a product
+ * that cannot fit the RAM -- or a card that has not been modified -- must
+ * be able to say so without a second image.
+ *
+ * DEFAULT 0 = "allow". That is safe because allowing is not using: the
+ * image still probes, and on every card that exists today the probe finds
+ * nothing. The contract key that drives it is `dsp.extram` in
+ * products/<p>/<p>.csv -- PROPOSED to defs, not landed (see
+ * proposals/CONTRACT-PROPOSAL-S75.md); until it lands, nothing writes this
+ * register and it holds its default. */
+#define CFG_EXTRAM      0xF005
 #define CFG_PATCH_BASE  0xF010
 
 .section/dm seg_dmda;
@@ -50,6 +64,12 @@
 .var _product_id = 0;             /* 0 = D32 (default), 1 = D24 */
 .global _out_mux;
 .var _out_mux = 0;
+#if DSP4_EXTRAM
+/* 0 = the external-RAM pool may be used if a part answers the probe;
+ * non-zero = forced to the L2 backend. See CFG_EXTRAM above. */
+.global _cfg_extram_off;
+.var _cfg_extram_off = 0;
+#endif
 
 .extern _chan_mask;
 .extern _aux_mask;
@@ -134,6 +154,11 @@ _product_config_write:
     r4 = CFG_COMMIT;
     comp(r2, r4);
     if eq jump (pc, .cfg_commit);
+#if DSP4_EXTRAM
+    r4 = CFG_EXTRAM;
+    comp(r2, r4);
+    if eq jump (pc, .cfg_extram);
+#endif
 
 #if CHIP_ID == 1
     /* Input patch regs: 0xF010 .. 0xF010 + rx_slot_count - 1 */
@@ -166,6 +191,11 @@ _product_config_write:
 .cfg_outmux:
     dm(_out_mux) = r1;
     rts;
+#if DSP4_EXTRAM
+.cfg_extram:
+    dm(_cfg_extram_off) = r1;
+    rts;
+#endif
 
 .cfg_commit:
     jump _product_config_commit;  /* tail call; commit's rts returns to ISR */

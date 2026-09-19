@@ -218,10 +218,12 @@ _DLY_BLK_BODY = """
 
         .dkb_io_{nid}:
             r2 = dm(_dly_read_offset_{nid});
+{extram_clamp}
             comp(r2, r3);
             if lt jump (pc, .dkb_ok_{nid});
             r2 = r3 - 1;
         .dkb_ok_{nid}:
+{extram_pre}
             /* CIRCULAR DAG ADDRESSING (review finding D25).
              *
              * The loop this replaces rebuilt BOTH addresses from the base
@@ -259,10 +261,12 @@ _DLY_BLK_BODY = """
             r6 = r7 + r1;
             i0 = r6;                    /* write cursor */
             m2 = 1;
+{extram_rd}
             l2 = r3;
             b2 = r7;
             r6 = r7 + r5;
             i2 = r6;                    /* read cursor  */
+{extram_rd_end}
 
             l3 = 0;
             l4 = 0;
@@ -296,6 +300,7 @@ _DLY_BLK_BODY = """
              * unchanged. */
             lcntr = DSP4_BLOCK_SIZE, do .dkb_wr_{nid} until lce;
                 r0 = dm(i3, 1);
+{extram_wst}
             .dkb_wr_{nid}: dm(i0, m0) = r0;
 
             lcntr = DSP4_BLOCK_HALF, do .dkb_rd_{nid} until lce;
@@ -309,6 +314,7 @@ _DLY_BLK_BODY = """
             lcntr = DSP4_BLOCK_SIZE, do .dkb_lp_{nid} until lce;
                 r0 = dm(i3, 1);
                 dm(i0, m0) = r0;        /* write; the DAG wraps it */
+{extram_wst_in}
         #if DSP4_DLY_NOMEM
                 r0 = pass r0;           /* MEASUREMENT ARM: no L2 read */
         #else
@@ -326,6 +332,7 @@ _DLY_BLK_BODY = """
             dm(i1, 0) = r1;
             l0 = 0;
             l2 = 0;
+{extram_post}
             rts;
 
 {labels}
@@ -2197,8 +2204,135 @@ def gen_delay(node):
             f'    r3 = dm(_dly_max_{_n});\n'
             f'    jump (pc, .dkb_io_{_n});'
             for slot in range(8)])
+        # ---- THE EXTERNAL-RAM ARM (S75) --------------------------------
+        # Gated on DSP4_EXTRAM at ASSEMBLY time, so with the flag off this
+        # kernel is the one that ships, instruction for instruction. With
+        # the flag on but no RAM detected, _pool_backend is 0 and the same
+        # path runs -- the branch is per BLOCK, not per sample.
+        #
+        # The whole of the difference is WHERE i2 POINTS. The head path
+        # points it into the line's own L2 ring with L set to the ring
+        # length, which is what the DAG wraps against; the tail path points
+        # it into the 2*BLOCK staging window the pool prefetched two blocks
+        # ago, with L = 0 because a staged window is linear and does not
+        # wrap. The sample loop is byte-for-byte the same loop either way.
+        _pi = POOL_INDEX.get(_n)
+        if _pi is not None:
+            _idx, _head = _pi
+            _max = max_samples
+            _ex_clamp = f"""        #if DSP4_EXTRAM
+        .extern _pool_backend;
+        .extern _pool_phase;
+        .extern _pool_line_off;
+        .extern _pool_line_phase;
+        .extern _pool_wstage;
+        .extern _pool_rstage;
+            /* THE CLAMP IS THE BACKEND DECISION, AND IT HAS TO COME FIRST.
+             *
+             * The line below this block clamps the requested offset into
+             * the ACTIVE L2 STORAGE -- 960 samples on a channel with no
+             * pool slot. Deciding head-versus-tail after that clamp would
+             * be deciding it against a number that can never exceed the
+             * head, so the tail would never be reached and a host asking
+             * for 200 ms would silently get 20. The decision is therefore
+             * taken here, on the offset the host actually wrote, and the
+             * EXTRAM arm jumps over the L2 clamp entirely.
+             *
+             * With the backend on L2 -- no RAM found, or a product that
+             * forced it off -- this falls through and the clamp below is
+             * the one that ships. */
+            r13 = 0;                    /* 0 = head, 1 = tail */
+            r14 = dm(_pool_backend);
+            r14 = pass r14;
+            if eq jump (pc, .dkb_l2clamp_{_n});
+            r14 = {_max};
+            comp(r2, r14);
+            if lt jump (pc, .dkb_xclamped_{_n});
+            r2 = r14 - 1;               /* the FULL spec is the bound now */
+        .dkb_xclamped_{_n}:
+            r14 = {_head};
+            comp(r2, r14);
+            if lt jump (pc, .dkb_ok_{_n});
+            r13 = 1;                    /* this block reads the tail */
+            jump (pc, .dkb_ok_{_n});
+        .dkb_l2clamp_{_n}:
+        #endif
+"""
+            _ex_pre = f"""        #if DSP4_EXTRAM
+            /* publish the offset the kernel will actually use -- AFTER
+             * whichever clamp applied -- so the pool plans the same window
+             * the loop below reads. */
+            i6 = _pool_line_off;
+            m6 = {_idx};
+            modify(i6, m6);
+            dm(i6, 0) = r2;
+            /* the write-staging cursor: _pool_wstage + (phase*LINES + idx)
+             * * BLOCK. One linear store per sample keeps the external
+             * history fed without a second gather pass over the ring. */
+            r8 = dm(_pool_phase);
+            r9 = DSP4_POOL_LINES;
+            r8 = r8 * r9 (ssi);
+            r9 = {_idx};
+            r8 = r8 + r9;
+            r9 = DSP4_BLOCK_SIZE;
+            r8 = r8 * r9 (ssi);
+            i6 = _pool_wstage;
+            m6 = r8;
+            modify(i6, m6);
+            l6 = 0;
+        #endif
+"""
+            _ex_rd = f"""        #if DSP4_EXTRAM
+            r13 = pass r13;
+            if eq jump (pc, .dkb_rdl2_{_n});
+            /* TAIL: i2 -> _pool_rstage + ((idx*2 + phase) * 2*BLOCK)
+             *              + this line's staged phase. L2 = 0: linear. */
+            r8 = dm(_pool_phase);
+            r9 = {_idx * 2};
+            r8 = r8 + r9;
+            r9 = 2 * DSP4_BLOCK_SIZE;
+            r8 = r8 * r9 (ssi);
+            i2 = _pool_line_phase;
+            m2 = {_idx};
+            modify(i2, m2);
+            r9 = dm(i2, 0);
+            r8 = r8 + r9;
+            l2 = 0;
+            i2 = _pool_rstage;
+            m2 = r8;
+            modify(i2, m2);
+            m2 = 1;
+            jump (pc, .dkb_rdok_{_n});
+        .dkb_rdl2_{_n}:
+        #endif
+"""
+            _ex_rd_end = f"""        #if DSP4_EXTRAM
+        .dkb_rdok_{_n}:
+        #endif
+"""
+            _ex_wst = """        #if DSP4_EXTRAM
+                dm(i6, 1) = r0;         /* write-behind staging */
+        #endif"""
+            _ex_wst_in = """        #if DSP4_EXTRAM
+                dm(i6, 1) = r0;         /* write-behind staging */
+        #endif
+"""
+            _ex_post = """        #if DSP4_EXTRAM
+            l6 = 0;
+        #endif
+"""
+        else:
+            _ex_clamp = _ex_pre = _ex_rd = _ex_rd_end = ''
+            _ex_wst_in = _ex_post = _ex_wst = ''
         blk_dly_body = _DLY_BLK_BODY.format(nid=_n, sel=_blk_sel,
-                                            labels=_blk_lab)
+                                            labels=_blk_lab,
+                                            extram_clamp=_ex_clamp,
+                                            extram_pre=_ex_pre,
+                                            extram_rd=_ex_rd,
+                                            extram_rd_end=_ex_rd_end,
+                                            extram_wst=_ex_wst,
+                                            extram_wst_in=_ex_wst_in,
+                                            extram_post=_ex_post)
     else:
         blk_dly_body = ''
 
@@ -11472,7 +11606,142 @@ def _mtx_ctl_block(nodes):
     return None if base is None else (base, per)
 
 
-def gen_block_header(mtx_ctl=None):
+# ---------------------------------------------------------------------------
+# THE MEMORY POOL (S75) — the delay lines that can move to external RAM.
+#
+# PW ruling 2026-09-19: "dsp ram is required, but needs to work without it
+# until dsp board modified -- code it in place." src/lib/mem_pool.asm is the
+# pool; this is the part of it that only the graph can know: WHICH buffers are
+# pool lines, in what order, and how long each one's L2 head window is.
+#
+# A POOL LINE IS A CIRCULAR DELAY OF AUDIO SAMPLES WITH A BLOCK-CONSTANT READ
+# OFFSET. That is exactly the DELAY nodes and the FX engines' echo lines. It is
+# NOT the Freeverb comb and allpass buffers: those are read and written in the
+# SAME sample through a feedback path, so no amount of prefetch can stage them,
+# and they do not need it -- six mono engines are 295 kB and the whole reason
+# the reverb went mono was the L2 the delay lines were taking. Moving the delay
+# lines out is what pays the reverb back.
+#
+# The order here is the line index in the external history store and it is
+# read off the graph, never typed: pool_table.asm, mem_pool.asm's tables and
+# tools/dsp/extram_model.py all index the same way.
+# ---------------------------------------------------------------------------
+
+POOL_MAX_MS = 250.0          # the full spec every line gets with the RAM
+POOL_HEAD_MIN = 960          # 20 ms; the shortest L2 head a line may keep
+
+
+def pool_lines(nodes, chip):
+    """[(id, name, head_words, max_words)] for one chip, in line-index order.
+
+    ONLY THE LINES WHOSE KERNEL IS ACTUALLY WIRED TO THE POOL, which is the
+    chip-1 channel delays (C<n>_DLY_<nn>). That is deliberate and it is the
+    S75 scope, not an oversight:
+
+      * The chip-1 channel delays are where the TIERING BITES. They are the
+        lines that carry 20 ms each with eight shared 250 ms slots between
+        thirty-two channels, and lifting that is what the RAM is for.
+      * They are also the only delay lines with a BLOCK KERNEL. Chip 2's
+        aux/sub/main/monitor delays and the FX echo lines are still
+        per-sample nodes (gen_delay's non-pooled branch emits no block
+        kernel for them), and a per-sample node cannot be staged -- staging
+        is a per-block operation by construction. Wiring them means giving
+        them block kernels first, which is its own change with its own
+        byte-identical gate.
+      * They do not need it today in any case: every chip-2 delay line
+        already carries the full 250 ms in L2. What chip 2 gains from the
+        RAM is the L2 those lines occupy, and that gain is claimed by the
+        follow-on, not by this session. See MW/D24/DSP/s75/extram-pool.md.
+    """
+    out = []
+    for n in nodes:
+        if int(n['chip']) != chip:
+            continue
+        if n['type'] != 'DELAY':
+            continue
+        if not re.match(r'^C\d+_DLY_\d+$', n['id']):
+            continue
+        p = n['params']
+        max_ms = float(p.get('max_ms', '250'))
+        local_ms = float(p.get('local_ms', str(max_ms)))
+        if 'pool_slot' not in p or local_ms >= max_ms:
+            continue
+        head = max(POOL_HEAD_MIN, int(local_ms / 1000.0 * 48000))
+        head = (head // BLOCK) * BLOCK
+        out.append((n['id'], '_dly_buf_%s' % n['id'], head,
+                    int(POOL_MAX_MS / 1000.0 * 48000)))
+    return out
+
+
+# node id -> (line index, L2 head length). Populated from the graph by
+# pool_build_index() before a single node is generated, so gen_delay never
+# has to guess an index from a node's NAME -- the index is the graph's
+# ordering and nothing else. Empty until then, which makes a generator run
+# that forgot to build it emit no pool wiring rather than wrong wiring.
+POOL_INDEX = {}
+
+
+def pool_build_index(nodes):
+    POOL_INDEX.clear()
+    for chip in (1, 2):
+        for i, (nid, _nm, head, _m) in enumerate(pool_lines(nodes, chip)):
+            POOL_INDEX[nid] = (i, head)
+    return POOL_INDEX
+
+
+def gen_pool_table(nodes, chip):
+    """chipN/pool_table.asm — the generated half of the memory pool."""
+    lines = pool_lines(nodes, chip)
+    n = len(lines)
+    bases = '\n'.join('.extern %s;' % nm for _i, nm, _h, _m in lines)
+    base_tab = ',\n    '.join(nm for _i, nm, _h, _m in lines) or '0'
+    head_tab = ', '.join(str(h) for _i, _nm, h, _m in lines) or '0'
+    max_tab = ', '.join(str(m) for _i, _nm, _h, m in lines) or '0'
+    detail = '\n'.join(
+        ' *   %2d  %-32s head %6d  max %6d' % (i, nm, h, m)
+        for i, (_id, nm, h, m) in enumerate(lines)) or ' *   (none)'
+    return f"""/*======================================================================
+ * pool_table.asm — chip {chip} memory-pool line registration (S75).
+ * AUTO-GENERATED by tools/dsp/dsp_codegen.py — do not edit directly.
+ *
+ * {n} pool lines on this chip. The index is the line's position in the
+ * external history store hist[slot][line][BLOCK]; see src/lib/mem_pool.asm
+ * for the layout and why it is indexed by block rather than by line.
+ *
+ * line  buffer                             L2 head   full spec
+{detail}
+ *
+ * HEAD vs MAX. The head is the L2 ring the line keeps whatever backend is
+ * in force -- with no RAM it is the WHOLE line and reads clamp into it,
+ * which is the tiering that ships today. With the RAM the head becomes the
+ * recent window and everything older comes from the external store, so the
+ * clamp lifts and every line reaches its full spec.
+ *======================================================================*/
+
+#include "dsp_block.h"
+
+#if DSP4_EXTRAM
+
+{bases}
+
+.section/dm seg_dmda;
+
+.global _pool_head_base;
+.var _pool_head_base[{max(n, 1)}] = {{
+    {base_tab}
+}};
+
+.global _pool_head_len;
+.var _pool_head_len[{max(n, 1)}] = {{ {head_tab} }};
+
+.global _pool_max_len;
+.var _pool_max_len[{max(n, 1)}] = {{ {max_tab} }};
+
+#endif /* DSP4_EXTRAM */
+"""
+
+
+def gen_block_header(mtx_ctl=None, pool_counts=None):
     """dsp_block.h — the block size, as preprocessor macros.
 
     THE contract between the generator and the hand-maintained sources.
@@ -11484,6 +11753,10 @@ def gen_block_header(mtx_ctl=None):
     import fixed_ref
     import math
     _mtr_alpha_q, _mtr_beta_q = fixed_ref.meter_coeffs(BLOCK)
+    _pool_c1, _pool_c2 = pool_counts if pool_counts else (0, 0)
+    _pool_slots = int(POOL_MAX_MS / 1000.0 * SAMPLE_RATE_HZ) // BLOCK
+    _pool_ms = POOL_MAX_MS
+    _pool_c1_kb = _pool_slots * max(_pool_c1, 1) * BLOCK * 4 / 1048576.0
     # The self-test measurement window (S49), stated in the header so the
     # DSP and the CM4-side tools read the same number.
     TEST_WIN_BLOCKS = 256
@@ -11562,6 +11835,37 @@ def gen_block_header(mtx_ctl=None):
 #define DSP4_BLOCK_SHIFT  {BLOCK_SHIFT}
 #define DSP4_BLOCK_F32    {_f32hex(BLOCK)}
 #define DSP4_BLOCK_RATE   {int(BLOCKS_PER_SEC)}
+
+/* THE MEMORY POOL'S GEOMETRY (S75). Emitted here rather than written into
+ * mem_pool.asm because the line count is a property of the GRAPH and the
+ * pool is hand-written: a hand file carrying its own copy of "how many
+ * delay lines this chip has" is exactly the class of defect this header
+ * exists to prevent.
+ *
+ * DSP4_POOL_LINES   lines WIRED to the pool on this chip.
+ * DSP4_POOL_SLOTS   history slots in the external store; SLOTS*BLOCK is
+ *                   the full delay spec in samples ({_pool_ms:.0f} ms).
+ *
+ * CHIP 2 IS {_pool_c2} AND THAT IS THE S75 SCOPE, NOT AN OVERSIGHT. The pool
+ * is wired to the lines whose kernel can be staged and whose spec the
+ * tiering actually cuts, which is chip 1's {_pool_c1} channel delays: 20 ms each
+ * with eight shared 250 ms slots between thirty-two channels. Chip 2's
+ * aux/sub/main/monitor delays already carry the full 250 ms in L2 and are
+ * still PER-SAMPLE nodes, and a per-sample node cannot be staged -- staging
+ * is a per-block operation by construction. What chip 2 gains from the RAM
+ * is the L2 those lines occupy (stereo reverb); claiming it means giving
+ * them block kernels first, which is its own change with its own
+ * byte-identical gate. See MW/D24/DSP/s75/extram-pool.md.
+ *
+ * The external store is SLOTS*LINES*BLOCK words: {_pool_c1_kb:.2f} MB on
+ * chip 1, inside one 64 Mbit (8 MB) part with room for a 1 s spec and for
+ * chip 2's lines when they follow. */
+#if CHIP_ID == 1
+#define DSP4_POOL_LINES   {_pool_c1}
+#else
+#define DSP4_POOL_LINES   {_pool_c2}
+#endif
+#define DSP4_POOL_SLOTS   {_pool_slots}
 
 /* METER coefficients. They live here because they are functions of the
  * BLOCK RATE, not of the meter: the time constants are fixed properties
@@ -18502,6 +18806,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
     chip1_nodes = [n for n in nodes if n['chip'] == '1']
     chip2_nodes = [n for n in nodes if n['chip'] == '2']
 
+    # THE MEMORY POOL'S LINE INDEX (S75), built from the graph before a
+    # single node is generated. gen_delay reads it; nothing derives a line
+    # index from a node's name.
+    pool_build_index(nodes)
+
     files_written = 0
     files_skipped = 0
 
@@ -19943,6 +20252,17 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(gen_mask_gates(chip_label, chip_nodes, mask_keys))
         files_written += 1
 
+        # THE MEMORY POOL'S LINE TABLE (S75). Always written, whatever
+        # DSP4_EXTRAM is set to at BUILD time -- the generator does not read
+        # build flags, and a table that appeared and disappeared with one
+        # would put the codegen drift gate at the mercy of an environment
+        # variable. The file is empty of emitted content unless the flag is
+        # on; see its #if.
+        pool_path = os.path.join(output_dir, chip_label, 'pool_table.asm')
+        with atomic_open(pool_path, 'w', encoding='utf-8') as f:
+            f.write(gen_pool_table(nodes, 1 if chip_label == 'chip1' else 2))
+        files_written += 1
+
     # Fixed mode: the bus accumulators become generated (80-bit triples)
     if FORMAT == 'fixed':
         with atomic_open(os.path.join(output_dir, 'bus_accumulators.asm'), 'w',
@@ -20024,7 +20344,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
     # whole tree reads, including the C DMA configuration.
     with atomic_open(os.path.join(output_dir, 'dsp_block.h'), 'w',
               encoding='utf-8') as f:
-        f.write(gen_block_header(_mtx_ctl_block(nodes)))
+        f.write(gen_block_header(_mtx_ctl_block(nodes),
+                                 (len(pool_lines(nodes, 1)),
+                                  len(pool_lines(nodes, 2)))))
     files_written += 1
 
     # ...and the same number for the BENCH tools, which score a pass rate

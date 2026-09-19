@@ -185,6 +185,33 @@ def words(val):
 # ---------------------------------------------------------------------------
 # THE DESIGN, NOT THE IMPLEMENTATION (S28 gate 3)
 # ---------------------------------------------------------------------------
+# *** READ THIS FIRST: S75 HAS LANDED A DIFFERENT DIAG_BUILD_CFG3. ***
+#
+# On 2026-09-19 session 75 implemented a third build-config word at diag
+# address 0xE0EC carrying ONE bit, DSP4_EXTRAM (the external-RAM delay pool),
+# with signature 0xC4 and bits 23..1 reserved zero. See src/diag.h and
+# proposals/CONTRACT-PROPOSAL-S75.md. It was written because diag.h's own
+# note -- added with DSP4_TALK_INVERT in S72 -- says the next flag of that
+# class needs a third word rather than a seventh narrowing of CFG2's
+# signature, and S75's flag was that next flag.
+#
+# THE TWO LAYOUTS CONFLICT AND CANNOT BOTH BE RIGHT. This block's design has
+# signature 0xC3 and allocates every one of bits 23..0, so there is no free
+# bit in it for DSP4_EXTRAM and no free bit in S75's for these fields. They
+# are distinguishable -- 0xC3 against 0xC4 -- so a decoder reading the wrong
+# one says so rather than decoding nonsense, which is the property these
+# words exist for, and that is the only thing that makes the collision
+# survivable rather than dangerous.
+#
+# WHICH SURVIVES IS THE HUB'S CALL, not this file's. What must NOT happen is
+# either design landing on top of the other without a decision: an image
+# answering 0xE0EC with this block's 0xC3 word while a host built against
+# S75's 0xC4 reads bit 0 would report "the external RAM pool is compiled in"
+# when what it had actually read was DSP4_DYN_TABLES. Finding S75-13.
+#
+# NOTHING BELOW IS APPLIED. design_cfg3() is still not called by words() and
+# still not compared by --check.
+# ---------------------------------------------------------------------------
 # `design_cfg3()` computes the word a THIRD DIAG_BUILD_CFG would carry. It
 # is deliberately NOT called by `words()` and NOT compared by `--check`:
 # nothing in the firmware produces this word yet, and making the host

@@ -95,6 +95,18 @@ NEVER_SHIPPING2 = ('DSP4_SCOPE_BLK_TAP',)
 # shipping image, not an instrument-only switch (S49). It is 0 in
 # shipping.config today, so a 1 still shows up as a difference.
 
+# THE THIRD WORD (S75). DIAG_BUILD_CFG2's own note (diag.h) says the next
+# flag of its class needs a new word rather than a seventh narrowing of a
+# signature already down to six bits and fully allocated below it --
+# DSP4_EXTRAM, the external-RAM delay-pool flag, is that flag, and this is
+# that word. It starts almost empty: bit 0 only, 23..1 reserved zero.
+DIAG_BUILD_CFG3 = 0xE0EC
+SIGNATURE3 = 0xC4000000
+
+FLAGS3 = [
+    (0, 'DSP4_EXTRAM'),
+]
+
 # The shipping configuration, mirrored from MW/D32/DSP/SHARC/shipping.config.
 # Kept here rather than read from the repo because this tool runs on the bench,
 # where the repo is not checked out; check_shipping_config.sh diffs the two.
@@ -141,6 +153,19 @@ SHIPPING2 = {
     'DSP4_TX_EARLY': 2,
     'DSP4_GATHER_FIRST': 1,
     'DSP4_FX_TYPE_DECLARED': 0,
+}
+
+# The mirror of the third word (S75). It carries one flag, DSP4_EXTRAM, and
+# it is 0 today for a hardware reason rather than a pending decision: no
+# DSP4 card in the field has the HyperRAM part fitted, so build.sh and
+# shipping.config both default it off and every shipping image is built
+# that way. It is here, in its own dict, for the same reason DSP4_TALK_INVERT
+# is in SHIPPING2 and not folded into SHIPPING2's diff loop by hand -- S74
+# found that a flag left out of THIS file's mirrors is a flag
+# check_shipping_config.sh cannot catch drifting, and CFG3 must not reopen
+# that gap for itself on its first day.
+SHIPPING3 = {
+    'DSP4_EXTRAM': 0,
 }
 
 
@@ -220,6 +245,53 @@ def describe2(d):
     return lines
 
 
+def decode3(word):
+    """Decode DIAG_BUILD_CFG3, or raise ValueError.
+
+    UNLIKE decode()/decode2(), a raw value of 0 is not reported as a stale
+    or garbage read here -- it is today's NORMAL reading. diag.asm only
+    defines the _diag_build_cfg3 DM cell `#if DSP4_EXTRAM` (S75: a word of
+    DM moves every address behind it, which would have cost the "the L2 arm
+    rebuilds byte-identical" proof), so with DSP4_EXTRAM=0 -- today's
+    shipping value -- 0xE0EC is not in the dispatch table at all and falls
+    through to the unmapped-address default, which reads back plain 0. That
+    reading means exactly one thing: this image has no CFG3, therefore no
+    external-RAM pool. It does NOT mean the word is garbage or the tool is
+    stale, so it decodes cleanly to DSP4_EXTRAM=0 instead of raising.
+    """
+    if word == 0:
+        return {'raw': 0, 'present': False, 'DSP4_EXTRAM': 0}
+    if word is None or (word & 0xFF000000) != SIGNATURE3:
+        raise ValueError('0x%s is not a DIAG_BUILD_CFG3 word (signature 0xC4)'
+                         % ('%08X' % word if word is not None else '????????'))
+    d = {'raw': word, 'present': True}
+    for bit, name in FLAGS3:
+        d[name] = (word >> bit) & 1
+    return d
+
+
+def describe3(d):
+    if not d['present']:
+        return ['raw3 0x%08X — no DIAG_BUILD_CFG3 (unmapped address, reads '
+                '0): NORMAL for a DSP4_EXTRAM=0 image, where the word is '
+                'compiled out entirely, not a fault' % d['raw']]
+    lines = ['raw3 0x%08X' % d['raw']]
+    on = [n for _, n in FLAGS3 if d[n]]
+    off = [n for _, n in FLAGS3 if not d[n]]
+    lines.append('on3:  ' + (', '.join(on) or '-'))
+    lines.append('off3: ' + (', '.join(off) or '-'))
+    return lines
+
+
+def diff_shipping3(d):
+    out = []
+    for k, want in SHIPPING3.items():
+        got = d.get(k)
+        if got != want:
+            out.append('%s = %s, shipping is %s' % (k, got, want))
+    return sorted(set(out))
+
+
 def diff_shipping2(d):
     out = []
     for k, want in SHIPPING2.items():
@@ -278,6 +350,24 @@ def read_word(chip):
     return d.read(DIAG_BUILD_CFG), d.read(DIAG_BUILD_CFG2)
 
 
+def read_word3(chip):
+    """Read DIAG_BUILD_CFG3 alone (S75).
+
+    Kept separate from read_word() rather than folded into a 3-tuple: other
+    tools (dsp4_checkchip.py, dsp4_diag.py) import read_word() and unpack it
+    as `w, w2 = ...` -- this file's contract with them must not change shape
+    just because a third word now exists. Only this file's own CLI uses it.
+    """
+    from dsp4_config import SpiLink
+    from dsp4_diag import DiagLink
+    from dsp4_scope import CS_GPIO, RDY_GPIO, check_chip_id
+    d = DiagLink(SpiLink('0.0', 1_000_000, CS_GPIO[chip],
+                         rdy_gpio=RDY_GPIO[chip]))
+    d.resync()
+    check_chip_id(d.read(0xE001), chip)
+    return d.read(DIAG_BUILD_CFG3)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--chip', type=int, choices=(1, 2), action='append')
@@ -288,12 +378,14 @@ def main():
 
     if args.word:
         w = [int(x, 0) for x in args.word.split(',')]
-        chips = [(None, (w[0], w[1] if len(w) > 1 else None))]
+        chips = [(None, (w[0], w[1] if len(w) > 1 else None,
+                         w[2] if len(w) > 2 else None))]
     else:
-        chips = [(c, read_word(c)) for c in (args.chip or [1, 2])]
+        chips = [(c, read_word(c) + (read_word3(c),))
+                 for c in (args.chip or [1, 2])]
 
     rc = 0
-    for chip, (word, word2) in chips:
+    for chip, (word, word2, word3) in chips:
         tag = '' if chip is None else 'chip %d: ' % chip
         try:
             d = decode(word)
@@ -336,6 +428,31 @@ def main():
         if bad2:
             print('%s  NOT THE SHIPPING KERNEL CONFIGURATION:' % pad)
             for b in bad2:
+                print('%s    %s' % (pad, b))
+            if args.expect_shipping:
+                rc = 4
+
+        # THE THIRD WORD (S75). word3 is None only from a manual --word with
+        # fewer than three values given -- decode3 raises on that exactly as
+        # decode2 raises on a missing word2, and that is reported the same
+        # way. A word3 of plain 0 is NOT an error case (see decode3): it
+        # decodes cleanly and is diffed against SHIPPING3 like any other
+        # word.
+        try:
+            d3 = decode3(word3)
+        except ValueError as e:
+            print('%s  %s' % (pad, e))
+            print('%s  no DIAG_BUILD_CFG3 word given: this image predates '
+                  'S75, or only two words were supplied to --word' % pad)
+            if args.expect_shipping:
+                rc = 4
+            continue
+        for line in describe3(d3):
+            print('%s  %s' % (pad, line))
+        bad3 = diff_shipping3(d3)
+        if bad3:
+            print('%s  NOT THE SHIPPING MEMORY CONFIGURATION:' % pad)
+            for b in bad3:
                 print('%s    %s' % (pad, b))
             if args.expect_shipping:
                 rc = 4

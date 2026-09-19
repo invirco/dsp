@@ -26,6 +26,37 @@
 #define DSP4_BLOCK_F32    0x41800000
 #define DSP4_BLOCK_RATE   3000
 
+/* THE MEMORY POOL'S GEOMETRY (S75). Emitted here rather than written into
+ * mem_pool.asm because the line count is a property of the GRAPH and the
+ * pool is hand-written: a hand file carrying its own copy of "how many
+ * delay lines this chip has" is exactly the class of defect this header
+ * exists to prevent.
+ *
+ * DSP4_POOL_LINES   lines WIRED to the pool on this chip.
+ * DSP4_POOL_SLOTS   history slots in the external store; SLOTS*BLOCK is
+ *                   the full delay spec in samples (250 ms).
+ *
+ * CHIP 2 IS 0 AND THAT IS THE S75 SCOPE, NOT AN OVERSIGHT. The pool
+ * is wired to the lines whose kernel can be staged and whose spec the
+ * tiering actually cuts, which is chip 1's 32 channel delays: 20 ms each
+ * with eight shared 250 ms slots between thirty-two channels. Chip 2's
+ * aux/sub/main/monitor delays already carry the full 250 ms in L2 and are
+ * still PER-SAMPLE nodes, and a per-sample node cannot be staged -- staging
+ * is a per-block operation by construction. What chip 2 gains from the RAM
+ * is the L2 those lines occupy (stereo reverb); claiming it means giving
+ * them block kernels first, which is its own change with its own
+ * byte-identical gate. See MW/D24/DSP/s75/extram-pool.md.
+ *
+ * The external store is SLOTS*LINES*BLOCK words: 1.46 MB on
+ * chip 1, inside one 64 Mbit (8 MB) part with room for a 1 s spec and for
+ * chip 2's lines when they follow. */
+#if CHIP_ID == 1
+#define DSP4_POOL_LINES   32
+#else
+#define DSP4_POOL_LINES   0
+#endif
+#define DSP4_POOL_SLOTS   750
+
 /* METER coefficients. They live here because they are functions of the
  * BLOCK RATE, not of the meter: the time constants are fixed properties
  * (RMS window 300 ms, peak-hold decay
