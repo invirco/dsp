@@ -1,0 +1,130 @@
+{
+ "source": "150r",
+ "t4": [
+  {
+   "code": 0,
+   "mgn_db": -6.0,
+   "loop_db": 8.75683217917054,
+   "rms_dbfs": -106.89717102050781,
+   "noise_dbfs": -106.89717102050781,
+   "noise_dbu": -89.51400319967834,
+   "adc_fs_dbu": 14.373167820829458
+  },
+  {
+   "code": 1,
+   "mgn_db": -3.0,
+   "loop_db": 11.754256083753628,
+   "rms_dbfs": -106.23251342773438,
+   "noise_dbfs": -106.23251342773438,
+   "noise_dbu": -91.84676951148799,
+   "adc_fs_dbu": 11.375743916246371
+  },
+  {
+   "code": 2,
+   "mgn_db": 0.0,
+   "loop_db": 14.773553525948271,
+   "rms_dbfs": -105.80684661865234,
+   "noise_dbfs": -105.80684661865234,
+   "noise_dbu": -94.44040014460062,
+   "adc_fs_dbu": 8.356446474051728
+  },
+  {
+   "code": 3,
+   "mgn_db": 3.0,
+   "loop_db": 17.773132070621138,
+   "rms_dbfs": -104.8795394897461,
+   "noise_dbfs": -104.8795394897461,
+   "noise_dbu": -96.51267156036722,
+   "adc_fs_dbu": 5.356867929378861
+  },
+  {
+   "code": 4,
+   "mgn_db": 6.0,
+   "loop_db": 20.77157096448273,
+   "rms_dbfs": -103.96643829345703,
+   "noise_dbfs": -103.96643829345703,
+   "noise_dbu": -98.59800925793976,
+   "adc_fs_dbu": 2.3584290355172683
+  },
+  {
+   "code": 5,
+   "mgn_db": 9.0,
+   "loop_db": 23.770276404690897,
+   "rms_dbfs": -102.23792266845703,
+   "noise_dbfs": -102.23792266845703,
+   "noise_dbu": -99.86819907314792,
+   "adc_fs_dbu": -0.6402764046908977
+  },
+  {
+   "code": 6,
+   "mgn_db": 12.0,
+   "loop_db": 26.767462418616713,
+   "rms_dbfs": -100.35670471191406,
+   "noise_dbfs": -100.35670471191406,
+   "noise_dbu": -100.98416713053078,
+   "adc_fs_dbu": -3.637462418616714
+  },
+  {
+   "code": 7,
+   "mgn_db": 15.0,
+   "loop_db": 29.768223659522608,
+   "rms_dbfs": -98.23958587646484,
+   "noise_dbfs": -98.23958587646484,
+   "noise_dbu": -101.86780953598745,
+   "adc_fs_dbu": -6.638223659522609
+  },
+  {
+   "code": 8,
+   "mgn_db": 18.0,
+   "loop_db": 32.768445444656244,
+   "rms_dbfs": -95.69477081298828,
+   "noise_dbfs": -95.69477081298828,
+   "noise_dbu": -102.32321625764452,
+   "adc_fs_dbu": -9.638445444656245
+  },
+  {
+   "code": 9,
+   "mgn_db": 21.0,
+   "loop_db": 35.76209327515176,
+   "rms_dbfs": -92.92147827148438,
+   "noise_dbfs": -92.92147827148438,
+   "noise_dbu": -102.54357154663613,
+   "adc_fs_dbu": -12.632093275151764
+  },
+  {
+   "code": 10,
+   "mgn_db": 24.0,
+   "loop_db": 38.75461169581026,
+   "rms_dbfs": -90.4827880859375,
+   "noise_dbfs": -90.4827880859375,
+   "noise_dbu": -103.09739978174775,
+   "adc_fs_dbu": -15.624611695810263
+  },
+  {
+   "code": 11,
+   "mgn_db": 27.0,
+   "loop_db": 41.756839371222654,
+   "rms_dbfs": -87.76557159423828,
+   "noise_dbfs": -87.76557159423828,
+   "noise_dbu": -103.38241096546093,
+   "adc_fs_dbu": -18.626839371222655
+  }
+ ],
+ "t4b": [
+  {
+   "code": 11,
+   "mgn_db": 27.0,
+   "loop_db": 41.756839371222654,
+   "adc_fs_dbu": -18.626839371222655,
+   "fft": "  bulk attempt 1: {'t_arm_s': 0.065, 'go_ack_ms': 0.03, 't_stream_s': 0.094, 'release_ms': 2.1, 'header_at_byte': 0, 'rephase_s': 0.0, 'runs': 1, 'aborts': 0, 'dstat': '0x00006000', 'ms': 96, 't_total_s': 0.214}\n  captured 16384 samples of strip 53 (asked 16384); read in 0.22 s (bulk 10000000 Hz, sum 001454e0/d8b96040); chip-1 overruns during the run +0\ndsp4_fft \u2014 C1_TEST_MEAS capture, strip 53 post-fader\n  16384 samples at 48000 Hz, scale q4.28, 16384-point transform (cmath (stdlib))\n  bin 2.9297 Hz, 7-term Blackman-Harris, tone bands +-8 bins (+-23.4 Hz)\n\n  ** NO TONE IN THIS CAPTURE. The largest band is only 24.1 dB\n  ** above the median bin, so it is noise and not a\n  ** fundamental. THD+N and SNR below are MEANINGLESS -- the\n  ** figure worth reading is `total`, which is the capture's\n  ** RMS level and is valid either way.\n\n  fundamental        64.3005 Hz    -104.49 dBFS  (bin 21)\n  total                                 -87.64 dBFS\n  DC                                   -106.00 dBFS\n  THD+N                                  16.69 dB    = 683.34953 %   (-87.80 dBFS)\n  THD (2..10)                             2.62 dB    = 135.13777 %\n  SNR                                   -16.52 dB\n  noise                                 -87.97 dBFS\n  floor / bin                          -128.62 dBFS\n\n  harmonics\n    h2      128.91 Hz      -4.73 dBc = 57.99824 %    -109.22 dBFS\n    h3      193.36 Hz      -9.57 dBc = 33.23719 %    -114.06 dBFS\n    h4      257.81 Hz      -8.73 dBc = 36.59259 %    -113.22 dBFS\n    h5      322.27 Hz      -6.13 dBc = 49.38074 %    -110.62 dBFS\n    h6      386.72 Hz      -6.67 dBc = 46.39394 %    -111.16 dBFS\n    h7      451.17 Hz      -6.84 dBc = 45.51637 %    -111.33 dBFS\n    h8      515.62 Hz      -4.45 dBc = 59.90446 %    -108.94 dBFS\n    h9      580.08 Hz      -7.66 dBc = 41.42185 %    -112.15 dBFS\n    h10     641.60 Hz     -13.12 dBc = 22.08581 %    -117.61 dBFS\n\n  loudest non-harmonic bins (spurs)\n         32.23 Hz     -12.01 dBc    -116.50 dBFS\n         87.89 Hz     -12.49 dBc    -116.98 dBFS\n        357.42 Hz     -12.61 dBc    -117.10 dBFS\n         29.30 Hz     -12.80 dBc    -117.29 dBFS\n      19734.38 Hz     -13.21 dBc    -117.70 dBFS\n        360.35 Hz     -13.39 dBc    -117.88 dBFS\n\n  noise figures (PW 09-16: 20-20k unweighted AND A-weighted; total = DC-24000 Hz)\n    total, DC-24000 Hz               -87.64 dBFS\n    20-20000 Hz unweighted         -88.30 dBFS  (6820 bins, mean removed)\n    20-20000 Hz A-weighted         -90.40 dBFS\n"
+  },
+  {
+   "code": 0,
+   "mgn_db": -6.0,
+   "loop_db": 8.75683217917054,
+   "adc_fs_dbu": 14.373167820829458,
+   "fft": "  bulk attempt 1: {'t_arm_s': 0.065, 'go_ack_ms': 0.03, 't_stream_s': 0.094, 'release_ms': 2.15, 'header_at_byte': 0, 'rephase_s': 0.0, 'runs': 1, 'aborts': 0, 'dstat': '0x00006000', 'ms': 96, 't_total_s': 0.213}\n  captured 16384 samples of strip 53 (asked 16384); read in 0.22 s (bulk 10000000 Hz, sum fff5e780/595b22c0); chip-1 overruns during the run +0\ndsp4_fft \u2014 C1_TEST_MEAS capture, strip 53 post-fader\n  16384 samples at 48000 Hz, scale q4.28, 16384-point transform (cmath (stdlib))\n  bin 2.9297 Hz, 7-term Blackman-Harris, tone bands +-8 bins (+-23.4 Hz)\n\n  ** NO TONE IN THIS CAPTURE. The largest band is only 21.7 dB\n  ** above the median bin, so it is noise and not a\n  ** fundamental. THD+N and SNR below are MEANINGLESS -- the\n  ** figure worth reading is `total`, which is the capture's\n  ** RMS level and is valid either way.\n\n  fundamental        96.9346 Hz    -126.21 dBFS  (bin 34)\n  total                                -107.02 dBFS\n  DC                                   -123.44 dBFS\n  THD+N                                  19.03 dB    = 894.54081 %   (-107.17 dBFS)\n  THD (2..10)                             3.65 dB    = 152.25538 %\n  SNR                                   -18.90 dB\n  noise                                -107.30 dBFS\n  floor / bin                          -147.89 dBFS\n\n  harmonics\n    h2      193.36 Hz      -2.56 dBc = 74.50752 %    -128.76 dBFS\n    h3      290.04 Hz      -1.95 dBc = 79.88761 %    -128.16 dBFS\n    h4      386.72 Hz     -10.24 dBc = 30.75662 %    -136.45 dBFS\n    h5      483.40 Hz      -6.70 dBc = 46.22734 %    -132.91 dBFS\n    h6      583.01 Hz      -7.00 dBc = 44.65619 %    -133.21 dBFS\n    h7      679.69 Hz     -10.32 dBc = 30.48804 %    -136.52 dBFS\n    h8      776.37 Hz      -6.63 dBc = 46.60408 %    -132.84 dBFS\n    h9      873.05 Hz      -8.23 dBc = 38.75132 %    -134.44 dBFS\n    h10     969.73 Hz      -8.05 dBc = 39.59876 %    -134.25 dBFS\n\n  loudest non-harmonic bins (spurs)\n         55.66 Hz      -9.99 dBc    -136.20 dBFS\n         58.59 Hz     -10.60 dBc    -136.81 dBFS\n      23443.36 Hz     -11.17 dBc    -137.38 dBFS\n      23446.29 Hz     -11.54 dBc    -137.74 dBFS\n       6515.62 Hz     -11.62 dBc    -137.83 dBFS\n       9108.40 Hz     -11.93 dBc    -138.13 dBFS\n\n  noise figures (PW 09-16: 20-20k unweighted AND A-weighted; total = DC-24000 Hz)\n    total, DC-24000 Hz              -107.02 dBFS\n    20-20000 Hz unweighted        -108.02 dBFS  (6820 bins, mean removed)\n    20-20000 Hz A-weighted        -110.26 dBFS\n"
+  }
+ ],
+ "note": "sys.argv[1] did not survive the s52lib/dsp4_scope import, so the run wrote itself as \"loop\"; relabelled by hand. The 150 ohm shunt is the source: the lane floor at MGN +27 dB dropped from -68.559 to -87.526 dBFS when it was fitted, which is how the shunt was detected."
+}

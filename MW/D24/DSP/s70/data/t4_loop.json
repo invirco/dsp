@@ -1,0 +1,129 @@
+{
+ "source": "loop",
+ "t4": [
+  {
+   "code": 0,
+   "mgn_db": -6.0,
+   "loop_db": 8.75683217917054,
+   "rms_dbfs": -100.18470764160156,
+   "noise_dbfs": -100.18470764160156,
+   "noise_dbu": -82.80153982077209,
+   "adc_fs_dbu": 14.373167820829458
+  },
+  {
+   "code": 1,
+   "mgn_db": -3.0,
+   "loop_db": 11.754256083753628,
+   "rms_dbfs": -97.9988021850586,
+   "noise_dbfs": -97.9988021850586,
+   "noise_dbu": -83.61305826881221,
+   "adc_fs_dbu": 11.375743916246371
+  },
+  {
+   "code": 2,
+   "mgn_db": 0.0,
+   "loop_db": 14.773553525948271,
+   "rms_dbfs": -95.21835327148438,
+   "noise_dbfs": -95.21835327148438,
+   "noise_dbu": -83.85190679743265,
+   "adc_fs_dbu": 8.356446474051728
+  },
+  {
+   "code": 3,
+   "mgn_db": 3.0,
+   "loop_db": 17.773132070621138,
+   "rms_dbfs": -92.15850067138672,
+   "noise_dbfs": -92.15850067138672,
+   "noise_dbu": -83.79163274200785,
+   "adc_fs_dbu": 5.356867929378861
+  },
+  {
+   "code": 4,
+   "mgn_db": 6.0,
+   "loop_db": 20.77157096448273,
+   "rms_dbfs": -89.5748291015625,
+   "noise_dbfs": -89.5748291015625,
+   "noise_dbu": -84.20640006604523,
+   "adc_fs_dbu": 2.3584290355172683
+  },
+  {
+   "code": 5,
+   "mgn_db": 9.0,
+   "loop_db": 23.770276404690897,
+   "rms_dbfs": -86.42108154296875,
+   "noise_dbfs": -86.42108154296875,
+   "noise_dbu": -84.05135794765964,
+   "adc_fs_dbu": -0.6402764046908977
+  },
+  {
+   "code": 6,
+   "mgn_db": 12.0,
+   "loop_db": 26.767462418616713,
+   "rms_dbfs": -83.6281967163086,
+   "noise_dbfs": -83.6281967163086,
+   "noise_dbu": -84.25565913492531,
+   "adc_fs_dbu": -3.637462418616714
+  },
+  {
+   "code": 7,
+   "mgn_db": 15.0,
+   "loop_db": 29.768223659522608,
+   "rms_dbfs": -80.19541931152344,
+   "noise_dbfs": -80.19541931152344,
+   "noise_dbu": -83.82364297104604,
+   "adc_fs_dbu": -6.638223659522609
+  },
+  {
+   "code": 8,
+   "mgn_db": 18.0,
+   "loop_db": 32.768445444656244,
+   "rms_dbfs": -77.88629913330078,
+   "noise_dbfs": -77.88629913330078,
+   "noise_dbu": -84.51474457795702,
+   "adc_fs_dbu": -9.638445444656245
+  },
+  {
+   "code": 9,
+   "mgn_db": 21.0,
+   "loop_db": 35.76209327515176,
+   "rms_dbfs": -74.15882873535156,
+   "noise_dbfs": -74.15882873535156,
+   "noise_dbu": -83.78092201050332,
+   "adc_fs_dbu": -12.632093275151764
+  },
+  {
+   "code": 10,
+   "mgn_db": 24.0,
+   "loop_db": 38.75461169581026,
+   "rms_dbfs": -71.57097625732422,
+   "noise_dbfs": -71.57097625732422,
+   "noise_dbu": -84.18558795313447,
+   "adc_fs_dbu": -15.624611695810263
+  },
+  {
+   "code": 11,
+   "mgn_db": 27.0,
+   "loop_db": 41.756839371222654,
+   "rms_dbfs": -68.65617370605469,
+   "noise_dbfs": -68.65617370605469,
+   "noise_dbu": -84.27301307727734,
+   "adc_fs_dbu": -18.626839371222655
+  }
+ ],
+ "t4b": [
+  {
+   "code": 11,
+   "mgn_db": 27.0,
+   "loop_db": 41.756839371222654,
+   "adc_fs_dbu": -18.626839371222655,
+   "fft": "  bulk attempt 1: {'t_arm_s': 0.07, 'go_ack_ms': 0.15, 't_stream_s': 0.094, 'release_ms': 1.52, 'header_at_byte': 0, 'rephase_s': 0.0, 'runs': 1, 'aborts': 0, 'dstat': '0x00006000', 'ms': 96, 't_total_s': 0.218}\n  captured 16384 samples of strip 53 (asked 16384); read in 0.24 s (bulk 10000000 Hz, sum 0147f060/727e5c20); chip-1 overruns during the run +0\ndsp4_fft \u2014 C1_TEST_MEAS capture, strip 53 post-fader\n  16384 samples at 48000 Hz, scale q4.28, 16384-point transform (cmath (stdlib))\n  bin 2.9297 Hz, 7-term Blackman-Harris, tone bands +-8 bins (+-23.4 Hz)\n\n  ** NO TONE IN THIS CAPTURE. The largest band is only 20.2 dB\n  ** above the median bin, so it is noise and not a\n  ** fundamental. THD+N and SNR below are MEANINGLESS -- the\n  ** figure worth reading is `total`, which is the capture's\n  ** RMS level and is valid either way.\n\n  fundamental       136.3211 Hz     -89.51 dBFS  (bin 46)\n  total                                 -68.51 dBFS\n  DC                                    -82.46 dBFS\n  THD+N                                  20.79 dB    = 1094.79335 %   (-68.72 dBFS)\n  THD (2..10)                             5.66 dB    = 191.93552 %\n  SNR                                   -20.65 dB\n  noise                                 -68.86 dBFS\n  floor / bin                          -109.67 dBFS\n\n  harmonics\n    h2      272.46 Hz      -1.29 dBc = 86.17129 %     -90.80 dBFS\n    h3      410.16 Hz      -1.25 dBc = 86.61873 %     -90.76 dBFS\n    h4      544.92 Hz      -3.29 dBc = 68.49746 %     -92.79 dBFS\n    h5      682.62 Hz      -5.81 dBc = 51.20260 %     -95.32 dBFS\n    h6      817.38 Hz      -3.32 dBc = 68.23914 %     -92.83 dBFS\n    h7      955.08 Hz      -4.05 dBc = 62.71585 %     -93.56 dBFS\n    h8     1089.84 Hz      -9.10 dBc = 35.08888 %     -98.60 dBFS\n    h9     1227.54 Hz      -6.58 dBc = 46.85638 %     -96.09 dBFS\n    h10    1362.30 Hz      -5.88 dBc = 50.80093 %     -95.39 dBFS\n\n  loudest non-harmonic bins (spurs)\n         46.88 Hz      -7.01 dBc     -96.52 dBFS\n        202.15 Hz      -7.19 dBc     -96.70 dBFS\n         49.80 Hz      -7.36 dBc     -96.87 dBFS\n         70.31 Hz      -7.39 dBc     -96.90 dBFS\n        752.93 Hz      -7.64 dBc     -97.14 dBFS\n         67.38 Hz      -7.70 dBc     -97.21 dBFS\n\n  noise figures (PW 09-16: 20-20k unweighted AND A-weighted; total = DC-24000 Hz)\n    total, DC-24000 Hz               -68.51 dBFS\n    20-20000 Hz unweighted         -69.31 dBFS  (6820 bins, mean removed)\n    20-20000 Hz A-weighted         -71.65 dBFS\n"
+  },
+  {
+   "code": 0,
+   "mgn_db": -6.0,
+   "loop_db": 8.75683217917054,
+   "adc_fs_dbu": 14.373167820829458,
+   "fft": "  bulk attempt 1: {'t_arm_s': 0.07, 'go_ack_ms': 0.11, 't_stream_s': 0.1, 'release_low_unseen': True, 'release_ms': 50.03, 'header_at_byte': 0, 'rephase_s': 0.0, 'runs': 1, 'aborts': 0, 'dstat': '0x00006000', 'ms': 100, 't_total_s': 0.283}\n  captured 16384 samples of strip 53 (asked 16384); read in 0.29 s (bulk 10000000 Hz, sum ffc1ffa0/17329660); chip-1 overruns during the run +0\ndsp4_fft \u2014 C1_TEST_MEAS capture, strip 53 post-fader\n  16384 samples at 48000 Hz, scale q4.28, 16384-point transform (cmath (stdlib))\n  bin 2.9297 Hz, 7-term Blackman-Harris, tone bands +-8 bins (+-23.4 Hz)\n\n  ** NO TONE IN THIS CAPTURE. The largest band is only 22.0 dB\n  ** above the median bin, so it is noise and not a\n  ** fundamental. THD+N and SNR below are MEANINGLESS -- the\n  ** figure worth reading is `total`, which is the capture's\n  ** RMS level and is valid either way.\n\n  fundamental       362.1205 Hz    -119.74 dBFS  (bin 124)\n  total                                -100.53 dBFS\n  DC                                   -114.88 dBFS\n  THD+N                                  18.99 dB    = 890.27257 %   (-100.75 dBFS)\n  THD (2..10)                             2.19 dB    = 128.73292 %\n  SNR                                   -18.90 dB\n  noise                                -100.84 dBFS\n  floor / bin                          -141.73 dBFS\n\n  harmonics\n    h2      723.63 Hz      -4.11 dBc = 62.26829 %    -123.86 dBFS\n    h3     1086.91 Hz      -9.68 dBc = 32.82795 %    -129.42 dBFS\n    h4     1447.27 Hz     -11.32 dBc = 27.16569 %    -131.06 dBFS\n    h5     1810.55 Hz      -7.18 dBc = 43.74309 %    -126.92 dBFS\n    h6     2173.83 Hz      -8.27 dBc = 38.57082 %    -128.02 dBFS\n    h7     2534.18 Hz      -7.40 dBc = 42.66321 %    -127.14 dBFS\n    h8     2897.46 Hz      -6.14 dBc = 49.32384 %    -125.88 dBFS\n    h9     3257.81 Hz      -6.78 dBc = 45.81247 %    -126.52 dBFS\n    h10    3621.09 Hz      -9.48 dBc = 33.55942 %    -129.22 dBFS\n\n  loudest non-harmonic bins (spurs)\n        272.46 Hz      -9.36 dBc    -129.10 dBFS\n      20554.69 Hz      -9.62 dBc    -129.37 dBFS\n      20551.76 Hz      -9.64 dBc    -129.38 dBFS\n         93.75 Hz      -9.66 dBc    -129.40 dBFS\n         90.82 Hz      -9.72 dBc    -129.46 dBFS\n        269.53 Hz      -9.78 dBc    -129.52 dBFS\n\n  noise figures (PW 09-16: 20-20k unweighted AND A-weighted; total = DC-24000 Hz)\n    total, DC-24000 Hz              -100.53 dBFS\n    20-20000 Hz unweighted        -101.35 dBFS  (6820 bins, mean removed)\n    20-20000 Hz A-weighted        -103.75 dBFS\n"
+  }
+ ]
+}
