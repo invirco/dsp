@@ -83,6 +83,17 @@ want2 = {
     # the same way the other word-2 switches are: build.sh's default, then
     # shipping.config's override.
     'DSP4_TALK_INVERT':       bdefault('DSP4_TALK_INVERT', 0),
+    # S77: the five DIAG_BUILD_CFG2 fields neither this dict nor the bench
+    # mirror carried. Four are 0 and always were; DSP4_SHARED_KERNELS is 15
+    # since S76, and its absence here is why this script announced
+    # 0xE2010244 for an image that reads 0xE2018264 -- while printing
+    # "consistent". See the completeness gate below, which is the part that
+    # stops the next one.
+    'DSP4_DYN_LUT':           bdefault('DSP4_DYN_LUT', 0),
+    'DSP4_GATE_LINTHR':       bdefault('DSP4_GATE_LINTHR', 0),
+    'DSP4_C2_BQ_GRAPH':       bdefault('DSP4_C2_BQ_GRAPH', 0),
+    'DSP4_BQ_SIMD_PIPE':      bdefault('DSP4_BQ_SIMD_PIPE', 0),
+    'DSP4_SHARED_KERNELS':    bdefault('DSP4_SHARED_KERNELS', 0),
 }
 # DSP4_SIMD_STRIPS is derived: build.sh defaults it to 1 whenever
 # DSP4_SIMD_DYN is on. Derived, so computed here rather than read.
@@ -116,6 +127,33 @@ for k, v in want3.items():
         bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING3 says %s'
                    % (k, v, mirror3.get(k)))
 
+# ---- THE COMPLETENESS GATE (S77) ----
+#
+# Everything above compares the keys somebody remembered to list. Three times
+# now a switch has reached DIAG_BUILD_CFG/CFG2 and never reached these dicts
+# -- DSP4_STRIP_FUSED and DSP4_SIMD_DYN (S11-1), DSP4_TALK_INVERT (S74-2),
+# and DSP4_SHARED_KERNELS with DYN_LUT, GATE_LINTHR, C2_BQ_GRAPH and
+# BQ_SIMD_PIPE beside it (S77) -- and each time the check PASSED while the
+# word it announced was wrong, because a key in only one copy was allowed.
+# tools/dsp/cfg_words.py owns the list of fields each word carries, so that
+# list is the denominator here: a field the word carries and these mirrors
+# do not is DRIFT, not an omission.
+import cfg_words
+alias2 = {'DSP4_BLOCK_DECIMATE': 'decimate'}
+for k in cfg_words.WORD1:
+    kk = alias.get(k, k)
+    if kk not in mirror and k not in ('DSP4_GAIN_FLOAT',):
+        bad.append('%s is in DIAG_BUILD_CFG and not in '
+                   'dsp4_buildcfg.SHIPPING' % k)
+for k in cfg_words.WORD2:
+    kk = alias2.get(k, k)
+    if kk not in want2:
+        bad.append('%s is in DIAG_BUILD_CFG2 and not in this script\'s want2'
+                   % k)
+    if kk not in mirror2:
+        bad.append('%s is in DIAG_BUILD_CFG2 and not in '
+                   'dsp4_buildcfg.SHIPPING2' % k)
+
 for b in bad:
     print('SHIPPING CONFIG DRIFT: ' + b)
 if bad:
@@ -131,12 +169,22 @@ w = (0xCF000000
      | (mirror['DSP4_SCOPE_GATE'] << 11) | (mirror['DSP4_CHAN_MASK'] << 10)
      | (mirror['DSP4_BLK_LATCH'] << 9) | (mirror['DSP4_BLOCK_KERNELS'] << 8)
      | mirror['block'])
+# EVERY FIELD, in cfg_words.py's layout. The five added in S77 are the two
+# DSP4_SHARED_KERNELS bits (5 and 15 -- two bits of a four-bit field, S27-3)
+# and DYN_LUT / GATE_LINTHR / C2_BQ_GRAPH / BQ_SIMD_PIPE.
+shk = mirror2['DSP4_SHARED_KERNELS']
 w2 = (0xC2000000
       | ((1 if mirror2['DSP4_TALK_INVERT'] else 0) << 29)
       | ((mirror2['decimate'] & 0xFF) << 16)
+      | (((shk >> 1) & 1) << 15)
+      | ((mirror2['DSP4_BQ_SIMD_PIPE'] & 3) << 13)
+      | (mirror2['DSP4_C2_BQ_GRAPH'] << 12)
+      | (mirror2['DSP4_GATE_LINTHR'] << 11)
+      | (mirror2['DSP4_DYN_LUT'] << 10)
+      | ((mirror2['DSP4_TX_EARLY'] & 3) << 8)
       | (mirror2['DSP4_FX_TYPE_DECLARED'] << 7)
       | (mirror2['DSP4_GATHER_FIRST'] << 6)
-      | ((mirror2['DSP4_TX_EARLY'] & 3) << 8)
+      | ((shk & 1) << 5)
       | ((1 if mirror2['DSP4_SCOPE_BLK_TAP'] else 0) << 4)
       | (mirror2['DSP4_SIMD_STRIPS'] << 3)
       | (mirror2['DSP4_SIMD_GRAPH'] << 2)

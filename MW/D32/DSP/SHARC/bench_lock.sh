@@ -62,8 +62,15 @@ bench_deploy_link_tools() {
     local dir
     dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../tools/pi" 2>/dev/null && pwd)"
     [ -n "$dir" ] || { echo ">>> BENCH DEPLOY: no tools/pi found" >&2; return 0; }
+    # input_patch.json travels with dsp4_config.py (S77). The config tool
+    # reads the patch from a file beside ITSELF, the file has been generated
+    # from defs since S59 and moved at S72 and S74c, and until S77 nothing in
+    # this tree deployed it -- so every bench script was applying whatever
+    # copy /home/app/dspboot happened to hold, or failing outright when it
+    # held none. Same reason the link tools are here.
     scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
            "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
+           "$dir/../../MW/D24/DSP/input_patch.json" \
            "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
       || echo ">>> BENCH DEPLOY: could not refresh the link tools on $BENCH_HOST" >&2
 }

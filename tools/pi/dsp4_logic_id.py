@@ -27,8 +27,41 @@ import sys
 import time
 from collections import Counter
 
-DEV = "hw:dsp4pcm,0"
+# THE PLAYBACK AND CAPTURE DEVICES ARE NOT THE SAME ONE UNDER EVERY OVERLAY
+# (S77). This was `DEV = "hw:dsp4pcm,0"` for both directions, which is right
+# under `dsp4-pcm-duplex` (one device, both directions) and IMPOSSIBLE under
+# `dsp4-pcm-slave`, where device 0 is capture-only and device 1 is playback.
+# The bench stands on the slave overlay, so `aplay -D hw:dsp4pcm,0` failed,
+# the knock was never played, and `loadlogic.sh --id` reported "no reply:
+# nothing in the capture carried the 0xD594 marker" on a CPLD that answers
+# its design ID perfectly -- i.e. the one tool that can identify the
+# bitstream from the part reported the same thing for "wrong bitstream" and
+# "wrong device". Resolved from what ALSA actually exposes, so both overlays
+# work and neither is assumed.
 RATE = 48000
+
+
+def _devices():
+    """(playback, capture) device names for the dsp4pcm card, as it is."""
+    def probe(cmd):
+        try:
+            out = subprocess.run([cmd, "-l"], capture_output=True,
+                                 text=True).stdout
+        except OSError:
+            return None
+        for line in out.splitlines():
+            if "dsp4pcm" in line and "device" in line:
+                # "card 1: dsp4pcm [dsp4pcm], device 1: ..."
+                try:
+                    return "hw:dsp4pcm,%d" % int(
+                        line.split("device", 1)[1].split(":")[0].strip())
+                except (ValueError, IndexError):
+                    continue
+        return None
+    return probe("aplay") or "hw:dsp4pcm,0", probe("arecord") or "hw:dsp4pcm,0"
+
+
+PLAY_DEV, REC_DEV = _devices()
 KNOCK_L = 0xD5D51D1D
 KNOCK_R = 0x2A2AE2E2
 ID_MAGIC = 0xD594
@@ -51,11 +84,11 @@ def knock(seconds=3, knock_frames=2048):
     open("/tmp/dsp4_knock.raw", "wb").write(raw)
 
     rec = subprocess.Popen(
-        ["arecord", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),
+        ["arecord", "-D", REC_DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),
          "-d", str(seconds), "--period-size=1024", "--buffer-size=8192",
          "-t", "raw", "-q", "/tmp/dsp4_knock_cap.raw"], stderr=subprocess.PIPE)
     time.sleep(0.3)
-    subprocess.run(["aplay", "-D", DEV, "-f", "S32_LE", "-c", "2", "-r",
+    subprocess.run(["aplay", "-D", PLAY_DEV, "-f", "S32_LE", "-c", "2", "-r",
                     str(RATE), "--period-size=1024", "--buffer-size=8192",
                     "-t", "raw", "-q", "/tmp/dsp4_knock.raw"],
                    capture_output=True)

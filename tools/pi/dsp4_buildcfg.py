@@ -153,6 +153,23 @@ SHIPPING2 = {
     'DSP4_TX_EARLY': 2,
     'DSP4_GATHER_FIRST': 1,
     'DSP4_FX_TYPE_DECLARED': 0,
+    # THE FIVE CFG2 FIELDS THIS MIRROR DID NOT CARRY (S77). Four of them are
+    # 0 and always have been, so their absence never changed the word; the
+    # fifth is DSP4_SHARED_KERNELS, which S76 landed in shipping.config at 15
+    # and did not mirror here. The consequence was live: `--expect-shipping`
+    # scored the ACTUAL shipping image as a mismatch (expect 0xE2010244, the
+    # part reads 0xE2018264, the two SHARED_KERNELS bits), and
+    # check_shipping_config.sh announced the wrong word while reporting
+    # "consistent" -- because a key present in only ONE of the two copies was
+    # allowed. That is S8-2's shape in the pair of files built to prevent it,
+    # and it is the third time (S11-1, S74-2, this). The hole is closed
+    # structurally in check_shipping_config.sh: every field cfg_words.py
+    # says the word carries must appear here, or the check fails.
+    'DSP4_DYN_LUT': 0,
+    'DSP4_GATE_LINTHR': 0,
+    'DSP4_C2_BQ_GRAPH': 0,
+    'DSP4_BQ_SIMD_PIPE': 0,
+    'DSP4_SHARED_KERNELS': 15,
 }
 
 # The mirror of the third word (S75). It carries one flag, DSP4_EXTRAM, and

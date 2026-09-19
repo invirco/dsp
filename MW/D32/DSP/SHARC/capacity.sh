@@ -221,6 +221,16 @@ scp -q $ROOT/tools/pi/dsp4_capacity.py $ROOT/tools/pi/dsp4_checkchip.py \
        $ROOT/tools/pi/dsp4_boot.py $ROOT/tools/pi/dsp4_buildcfg.py \
        $ROOT/tools/pi/dsp4_c2regime.py $ROOT/tools/pi/dsp4_driven_setup.py \
        $ROOT/tools/pi/gainfix.py /tmp/landed-$PRODUCT.json $BENCH:$STAGE/ || exit 3
+# AND input_patch.json WITH IT (S77). dsp4_config.py loads the input patch
+# from a file sitting NEXT TO ITSELF, and until now not one script in this
+# tree deployed that file: every arm ran on whatever copy happened to be in
+# /home/app/dspboot. On 2026-09-19 there was none at all and the d24 arm
+# would not configure ("no input_patch.json for d24"); worse, the file has
+# been GENERATED from defs since S59 and changed at S72 and again at S74c,
+# so a bench that did have a copy was applying an input patch nobody could
+# name -- the S10-9 trap in a data file instead of a symbol map. The patch
+# is part of the ARM's definition, so it is staged with the arm.
+scp -q $ROOT/MW/D24/DSP/input_patch.json $BENCH:$STAGE/ || exit 3
 scp -q capacity_run.sh drive_audio.sh $BENCH:/home/app/ || exit 3
 
 mkdir -p goldens
