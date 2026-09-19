@@ -301,13 +301,41 @@ One thing in §1 is netlist and not measurement: which of the mini-jack's two co
 lands where. The netlist is unambiguous (tip → IN1P → slot 0, ring → IN2P → slot 1) but
 it has never been seen move.
 
+**Corrected S73** (dsp b0e4c1ee): the S72 dispatch declared the ring's own lane
+(`C1_XIN_CODEC_02`, slot 1) and S73 gave it a `TEST_MEAS` tap, so "ring moves NOTHING"
+below is no longer the expectation — ring should now move MeasChan **55**, not 51/52.
+The four codec-return lanes and their `TEST_MEAS` codes, current as of S73:
+
+| slot | ADC ch | cell | MeasChan | what it should carry |
+|---|---|---|---|---|
+| 0 | ADC1 Lch | `C1_XIN_CODEC_01` | 51 | mini-jack **tip** (aux in L) |
+| 1 | ADC1 Rch | `C1_XIN_CODEC_02` | 55 | mini-jack **ring** (aux in R) |
+| 2 | ADC2 Lch | `C1_XIN_CODEC_03` | 52 | IN3 — not connected on rev C |
+| 3 | ADC2 Rch | `C1_XIN_CODEC_04` | 53 | talkback XLR J1 |
+
 > **Bench note, next unit session.** Put a cable in the mini-jack and drive the tip and
-> the ring separately with a known tone. Watch MeasChan 51 (slot 0) and 52 (slot 2)
-> with `TEST_MEAS`, as S70 did for the XLR. Expect: **tip moves 51 and nothing else;
-> ring moves NOTHING**, because slot 1 has no lane and slot 2 has no pins. A ring that
-> moves 51 means the two are summed somewhere the netlist does not show; a ring that
-> moves 52 means IN3 is connected on this board after all and the rev C netlist is
-> wrong about it. Either result changes §1 and both are worth ten minutes.
+> the ring separately with a known tone. Watch MeasChan 51, 52, 53 and 55 with
+> `TEST_MEAS`, as S70 did for the XLR. Expect: **tip moves 51 and nothing else; ring
+> moves 55 and nothing else**, and **52 and 53 move on NEITHER conductor** (52 has no
+> pins by netlist, IN3 not connected; 53 is the talkback XLR's own ADC channel, a
+> different physical input entirely). What each deviation would mean:
+>
+> - **tip moves 55** (instead of, or as well as, 51): the two mini-jack conductors are
+>   summed or crossed somewhere the netlist does not show — check the analog board
+>   between the jack and IN1P/IN2P before doubting the DSP lane assignment.
+> - **ring moves 51** (instead of, or as well as, 55): same as above, the other
+>   direction — the S72 lane declaration would need re-checking against which physical
+>   pin `C1_XIN_CODEC_02` actually samples.
+> - **either conductor moves 52**: IN3 is connected on this board after all and the rev
+>   C netlist is wrong about it — re-open §1's ADC2 Lch row.
+> - **either conductor moves 53**: the mini-jack and the talkback XLR are coupled on
+>   the analog board (crosstalk, a shared gain stage, or a wiring fault) — this would
+>   be the most surprising result, since 53 is ADC2 Rch and the mini-jack is ADC1.
+> - **neither conductor moves anything**: the regenerated lane/tap did not reach the
+>   part — check the deployed build against S72/S73 before doubting the wiring.
+>
+> Either result changes §1 or flags a build/deploy gap, and the whole pass is worth
+> ten minutes.
 >
 > Watch the level. The mini-jack goes into MIC GAIN AMP 1, and the init image comes up
 > with `04H = 0xBB` — **MGN1L and MGN1R both at +27 dB**. A line-level source there

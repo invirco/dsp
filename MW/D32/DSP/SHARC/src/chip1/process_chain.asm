@@ -488,6 +488,7 @@
 .extern _buf_C1_BUS_MAIN_L;
 .extern _buf_C1_BUS_MAIN_R;
 .extern _buf_C1_XIN_CODEC_01;
+.extern _buf_C1_XIN_CODEC_02;
 .extern _buf_C1_XIN_CODEC_03;
 .extern _buf_C1_XIN_CODEC_04;
 .extern _buf_C1_XIN_MEMS;
@@ -5789,6 +5790,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_CODEC_02;
     r1 = _buf_C1_XIN_CODEC_02;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 55;
+    r1 = _buf_C1_XIN_CODEC_02;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -11211,6 +11217,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_02;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 55;
+    r1 = _buf_C1_XIN_CODEC_02;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -16199,6 +16210,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_CODEC_02;
     r1 = _buf_C1_XIN_CODEC_02;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 55;
+    r1 = _buf_C1_XIN_CODEC_02;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP

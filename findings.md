@@ -6,6 +6,58 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## MEASCHAN 55 FOR THE NEW CODEC LANE, AND THE MINI-JACK BENCH NOTE CORRECTED (2026-09-19, session 73 — desk only, no unit touched)
+
+Hub ruling on S72-8: the lane S72 declared (`C1_XIN_CODEC_02` = `CODEC_RET_2` = SPORT 4
+slot 1, the aux-in right leg) had no `TEST_MEAS_LANE_CODES` entry, so slot 1 could not be
+watched on the part. Fixed here.
+
+**S73-1. `TEST_MEAS_LANE_CODES` gets MeasChan 55 = `C1_XIN_CODEC_02`.** Same mechanism
+as S69's 51/52/53/54: codes only, no new cell, no new address, every emitted line inside
+`#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES`. The regenerate touches exactly two files —
+`tools/dsp/dsp_codegen.py` (the table entry) and `MW/D32/DSP/SHARC/src/chip1/
+process_chain.asm` (one `.extern`, and one five-line hook block after each of the three
+existing `C1_XIN_CODEC_02` call sites, each guarded by the same `#if`). No other file
+changed.
+
+**S73-2. Zero addresses moved, proved against `HEAD`.** All eight address artefacts are
+byte-identical to `git show HEAD:` — `dsp_address_map.md`, `ghost_cells.h`, all four
+`MW/*/MX/_matrix.csv`, both `dsp_params.asm`. `./check-contract-drift.sh` regenerated the
+tree a second time and left it clean (only the two files above modified). Cell names
+unchanged; `input_patch.json` untouched.
+
+**S73-3. Shipping pair reproduces S72's recorded hash exactly.** Built here (not
+deployed): chip1 `7d1ab146447a1f9d7c010ce9fa104e56` (452,388 B), chip2
+`3a9c950d3551b6c5d7ff58925a47ec81` (307,980 B) — the identical pair S72's G5 recorded,
+byte for byte, which is the strongest form of "shipping unchanged" available without the
+unit: the shipping build reads nothing this session added, because the new lines are
+behind `DSP4_TEST_NODES` and shipping.config holds that at 0.
+
+**S73-4. Test pair, new hashes, NOT deployed.** With `DSP4_TEST_NODES=1`: chip1
+`4ea95be16bf6944817ec57cec408504f` (459,424 B), chip2 `251ce3b2eb758aecae22b7550facf789`
+(309,528 B) — chip 2 is the SAME hash S67/S69 recorded for a `DSP4_TEST_NODES=1` build,
+confirming chip 2 carries none of this (or any prior) `TEST_MEAS` instrumentation. Chip 1
+was also built from the pre-change tree for a direct control: `5d30fe99e42e985376bbb91
+f22a5998f` (459,408 B) — the two chip-1 test images differ by exactly **+16 bytes**, one
+`_test_meas_tap` call site's worth (r0 literal, r1 address, call), consistent with the
+process_chain.asm diff in S73-1.
+
+**S73-5. The CONTRACT-PROPOSAL note updated to reflect both S69 and S73**, which S69
+never filed a proposal update for (`proposals/CONTRACT-PROPOSAL-S67.md` still said
+"range 33 → 51" after S69 added lane codes 51–54). Title and table now read 33 → 56,
+`## 3. Numbering` lists all five codec-return codes (51–55) by physical origin, and `##
+2. Why` records the S69/S73 rationale alongside S67's. This is a documentation catch-up,
+not a new landing — the firmware behavior it describes has been live in TEST_NODES
+builds since S69/S73, unchanged by this edit.
+
+**S73-6. The S71 §6d bench note corrected.** It told the next unit session to expect
+"ring moves NOTHING" on the grounds that slot 1 had no lane — true when S71 wrote it,
+false since S72 declared the lane and now false twice over since S73 gave it a tap. The
+note (`MW/D24/DSP/s71/codec-lanes.md` §6d) is rewritten to watch MeasChan 51/52/53/55,
+expect tip → 51 and ring → 55, nothing on 52 or 53, and states what each of five possible
+deviations (tip→55, ring→51, either→52, either→53, neither moves) would mean. Copied
+verbatim into `tasks.md` as a 🔴 bench item below.
+
 ## THE AUX-IN RIGHT LEG GETS ITS LANE, AND THE TALKBACK POLARITY GETS A BIT IN THE WORD THE PART READS BACK (2026-09-19, session 72 — desk only, no unit touched)
 
 Report: `MW/D24/DSP/s72/aux-in-right-leg.md`. Pair built here, **not deployed**: chip1

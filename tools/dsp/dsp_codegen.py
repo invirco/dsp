@@ -5730,6 +5730,10 @@ TEST_MEAS_LANE_CODES = {
     'C1_XIN_CODEC_03': 52,      # CODEC_RET_3 -- slot 2, ADC2 Lch, IN3 = not connected
     'C1_XIN_CODEC_04': 53,      # CODEC_RET_4 -- slot 3, ADC2 Rch, IN4 = talkback XLR J1
     'C1_XIN_MEMS': 54,          # MEMS talkback mic
+    # S73: C1_XIN_CODEC_02 (CODEC_RET_2, declared S72) had no tap at all --
+    # slot 1 could not be watched on the part. 55 is the next free code
+    # after 51-54; same mechanism, same guard, no new cell, no new address.
+    'C1_XIN_CODEC_02': 55,      # CODEC_RET_2 -- slot 1, ADC1 Rch, IN2 = mini-jack ring
 }
 TEST_MEAS_TAP_CODES = dict(TEST_MEAS_BUS_CODES, **TEST_MEAS_LANE_CODES)
 # THE CAPTURE ARM'S BUFFER (S56), in SAMPLES, and a whole number of blocks
