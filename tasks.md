@@ -1,3 +1,23 @@
+## HUB DISPATCH 2026-09-19 19:44Z — S74c — consume defs-v2026.09.19.3 (D24 dsp-unmapped RTA rows landed from S74b's proposal); strict drift; then S75   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S74c — S74's GATE 1, THIRD PASS: consume defs-v2026.09.19.3 (desk only; the unit is read-only — no boot, no flash, no config, no rails). S74b (dsp 01b0dc36) landed the DictReader parse gate in `sync-defs.sh` and proved `.19.2` expands both products whole with every pre-existing DSP address unchanged; it stopped only because `defs/products/d24/dsp-unmapped.csv` lacked the two `Rta001On001`/`Rta001Src001` no-graph-node rows the D24's new `rta,1` needs. The hub has landed your proposal byte-for-byte as defs-v2026.09.19.3 (the mx26 pin bumped).
+
+GATES.
+1. CONSUME defs-v2026.09.19.3 with strict drift: the parse gate passes; `gen_dsp.py --check-proposal` zero errors on D24 and D32; the RTA rows are unmapped by design (no-graph-node) so NO DSP address is assigned to them — state that; all eight address artefacts byte-identical to HEAD for every pre-existing cell; `./check-contract-drift.sh` passed; `defs.lock` advanced to `.19.3`; shipping pairs byte-identical to S74's (md5 both chips).
+2. tasks.md: S74's and S74b's blocks updated to 🟢 with the outcome; findings S74c-1..; commit + push, clean. S75 (the external-RAM memory pool, opus) follows on the next dispatch.
+
+Bounded ≈ 20 min. Fully specified: no design decisions; anything that looks like one is a 🔴 note with the question (never a dialog).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-19 19:31Z — S74b — consume defs-v2026.09.19.2 (expander CSV fix); RTA rows addressed by the generator; a parse gate in sync-defs.sh   [status: 🔴 blocked — GATE 2 PASSED, GATE 1 BLOCKED (not a design question — a missing upstream mirror). **G2**: `sync-defs.sh` gained the DictReader parse gate (every expansion row must parse as one DictReader row with a numeric MxAdd, hard exit, runs under `--update-lock` too); proven FAIL on `defs-v2026.09.19.1` (2297 rows+1 != 2337 lines, non-numeric MxAdd on `Test001SweepOn001`) and PASS on `defs-v2026.09.19.2`. **G1 the fix works**: `.19.2` expands D24/D32 clean under DictReader — 5,002/7,014 rows, every MxAdd numeric, `Test001SweepOn001` at 4874/6931 exactly as predicted, all eight DSP address artefacts byte-identical to HEAD for every pre-existing cell (Table column excluded, S53 rule). **G1 BLOCKED**: D24 declaring `rta,1` adds `Rta001On001`/`Rta001Src001` with no DSP address (both `no-graph-node` in `gen_dsp.py`'s own `_UNMAPPED_REASONS`, unchanged since S25 — RTA control cells have no graph node), and `gen_dsp.py`'s no-fallback check refuses because `defs/products/d24/dsp-unmapped.csv` doesn't carry these two rows yet — blocking D32's backfill too (D32 itself is untouched; it already has both rows from an earlier `rta` landing). Fix is a one-file, two-row, zero-risk mirror of D32's own landed rows: proposed at `proposals/defs/products/d24/dsp-unmapped.csv` (diffed byte-identical to D32's). `main` left exactly as found on the defs side (`.16.5`, same reason as S74: a bare pin bump here would fail `check-contract-drift.sh` for every session after). **QUESTION FOR THE HUB**: land the two rows into `invirco/defs`' `products/d24/dsp-unmapped.csv` (copy from this repo's proposal, the S44/S49 handoff) and tag; a following session then consumes the pin fully — no design decision, just the missing mirror. Findings S74b-1..4]   [model: sonnet]
 
 model: sonnet
