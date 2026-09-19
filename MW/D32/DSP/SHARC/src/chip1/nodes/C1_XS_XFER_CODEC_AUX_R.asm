@@ -17,7 +17,7 @@
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
-.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_02;
 #if DSP4_BLOCK_KERNELS
 .global _tx_slot_C1_XS_XFER_CODEC_AUX_R;
 .var _tx_slot_C1_XS_XFER_CODEC_AUX_R[DSP4_BLOCK_SIZE];
@@ -34,7 +34,7 @@ _C1_XS_XFER_CODEC_AUX_R_process:
      * source bus block into _tx_slot_C1_XS_XFER_CODEC_AUX_R so that
      * _gather_chip1 had a named array to read. The gather walks a
      * pointer table, and gen_block_io now points that table straight
-     * at _buf_C1_XIN_CODEC_03, so the copy was moving a block to
+     * at _buf_C1_XIN_CODEC_02, so the copy was moving a block to
      * hand the same block over. The slot array above is kept
      * declared -- it is the per-sample build's target and it costs a
      * block-kernel image nothing but DM it no longer touches.
@@ -44,7 +44,7 @@ _C1_XS_XFER_CODEC_AUX_R_process:
      * every profile point ever recorded against this graph. */
     rts;
 #else
-    r0 = dm(_buf_C1_XIN_CODEC_03);
+    r0 = dm(_buf_C1_XIN_CODEC_02);
     dm(_tx_slot_C1_XS_XFER_CODEC_AUX_R) = r0;
     rts;
 #endif

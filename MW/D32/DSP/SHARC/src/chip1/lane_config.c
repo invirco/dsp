@@ -29,15 +29,15 @@ const int c1_rx_lanes[32] = {
     1, 0x00FF, 8, 128,   /* MFD 2 */
     2, 0x00FF, 8, 256,   /* MFD 2 */
     3, 0x00FF, 8, 384,   /* MFD 2 */
-    4, 0x000D, 3, 512,   /* MFD 2 */
-    5, 0x00FF, 8, 560,   /* MFD 2 */
-    6, 0x0003, 2, 688,   /* MFD 1 */
-    7, 0x0020, 1, 720   /* MFD 2 */
+    4, 0x000F, 4, 512,   /* MFD 2 */
+    5, 0x00FF, 8, 576,   /* MFD 2 */
+    6, 0x0003, 2, 704,   /* MFD 1 */
+    7, 0x0020, 1, 736   /* MFD 2 */
 };
 
-const int c1_rx_region_words = 736;
+const int c1_rx_region_words = 752;
 #pragma align 32
-unsigned int c1_rx_buf_ping[2 * 736];  /* [0..736) ping, [736..2*736) pong */
+unsigned int c1_rx_buf_ping[2 * 752];  /* [0..752) ping, [752..2*752) pong */
 
 #if DSP4_CUE
 const int c1_ic_lanes_count = 3;

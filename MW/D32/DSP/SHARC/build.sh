@@ -311,13 +311,13 @@ fi
 # IN4 on rev D). With 0 the image is byte-identical to a build without the
 # option.
 #
-# IT IS NOT IN DIAG_BUILD_CFG/CFG2 AND THAT IS A KNOWN GAP (S71-4). Both
-# words are full -- DIAG_BUILD_CFG 23..8 allocated, DIAG_BUILD_CFG2 23..0
-# allocated with the signature already narrowed to seven bits for
-# DSP4_TEST_NODES -- and this flag changes AUDIO, which is exactly the class
-# diag.h says must be readable off the part. Finding a bit for it means
-# narrowing the CFG2 signature again or inventing a third word, which is the
-# hub's call, not this script's.
+# IT IS IN DIAG_BUILD_CFG2, BIT 29 (S72; the gap S71-4 named is closed). The
+# flag changes AUDIO, which is the class diag.h says must be readable off the
+# part, and bits 23..0 of that word were full -- so it took a ZERO bit of the
+# signature, the same move S49 made for DSP4_TEST_NODES at bit 24. With it 0
+# the word is 0xC2010244, exactly what it read before the bit existed; with
+# it 1 the word is 0xE2010244, which every older decoder rejects outright
+# rather than reporting as a shipping image. See the note in src/diag.h.
 DSP4_TALK_INVERT="${DSP4_TALK_INVERT:-0}"
 CFLAGS="$CFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"
 ASMFLAGS="$ASMFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"

@@ -5,7 +5,7 @@
 
 .section/dm seg_dmda;
 
-/* RX node tables (46 packed channels over 8 lanes) */
+/* RX node tables (47 packed channels over 8 lanes) */
 .extern _rx_slot_C1_IN_01;
 .extern _rx_slot_C1_IN_02;
 .extern _rx_slot_C1_IN_03;
@@ -39,6 +39,7 @@
 .extern _rx_slot_C1_IN_31;
 .extern _rx_slot_C1_IN_32;
 .extern _rx_slot_C1_XIN_CODEC_01;
+.extern _rx_slot_C1_XIN_CODEC_02;
 .extern _rx_slot_C1_XIN_CODEC_03;
 .extern _rx_slot_C1_XIN_CODEC_04;
 .extern _rx_slot_C1_XIN_SNK_01;
@@ -56,7 +57,7 @@
 .global _c1_rx_off;
 .global _c1_rx_stride;
 #endif
-.var _c1_rx_off[46] =
+.var _c1_rx_off[47] =
     0,
     1,
     2,
@@ -92,18 +93,19 @@
     512,
     513,
     514,
-    560,
-    561,
-    562,
-    563,
-    564,
-    565,
-    566,
-    567,
-    688,
-    689,
-    720;
-.var _c1_rx_stride[46] =
+    515,
+    576,
+    577,
+    578,
+    579,
+    580,
+    581,
+    582,
+    583,
+    704,
+    705,
+    736;
+.var _c1_rx_stride[47] =
     8,
     8,
     8,
@@ -136,9 +138,10 @@
     8,
     8,
     8,
-    3,
-    3,
-    3,
+    4,
+    4,
+    4,
+    4,
     8,
     8,
     8,
@@ -150,7 +153,7 @@
     2,
     2,
     1;
-.var _c1_rx_slot_ptrs[46] =
+.var _c1_rx_slot_ptrs[47] =
     _rx_slot_C1_IN_01,
     _rx_slot_C1_IN_02,
     _rx_slot_C1_IN_03,
@@ -184,6 +187,7 @@
     _rx_slot_C1_IN_31,
     _rx_slot_C1_IN_32,
     _rx_slot_C1_XIN_CODEC_01,
+    _rx_slot_C1_XIN_CODEC_02,
     _rx_slot_C1_XIN_CODEC_03,
     _rx_slot_C1_XIN_CODEC_04,
     _rx_slot_C1_XIN_SNK_01,
@@ -205,7 +209,7 @@
  * rewriting slot POINTERS; a kernel that reads DMA itself needs
  * the mapping the other way round. Rebuilt by _rx_patch_apply. */
 .global _c1_rx_node_entry;
-.var _c1_rx_node_entry[46] =
+.var _c1_rx_node_entry[47] =
     0,
     1,
     2,
@@ -251,11 +255,12 @@
     42,
     43,
     44,
-    45;
+    45,
+    46;
 #endif
 
 .global _c1_rx_slot_count;
-.var _c1_rx_slot_count = 46;
+.var _c1_rx_slot_count = 47;
 
 /* Boot-time input patch (product config, SPI regs 0xF010+):
  * _rx_patch_regs[i] = table index whose slot var receives
@@ -263,7 +268,7 @@
  * channel interleave is written by the Pi and applied at
  * CONFIG_COMMIT. */
 .global _rx_patch_regs;
-.var _rx_patch_regs[46] =
+.var _rx_patch_regs[47] =
     0,
     1,
     2,
@@ -309,8 +314,9 @@
     42,
     43,
     44,
-    45;
-.var _c1_rx_slot_defaults[46] =
+    45,
+    46;
+.var _c1_rx_slot_defaults[47] =
     _rx_slot_C1_IN_01,
     _rx_slot_C1_IN_02,
     _rx_slot_C1_IN_03,
@@ -344,6 +350,7 @@
     _rx_slot_C1_IN_31,
     _rx_slot_C1_IN_32,
     _rx_slot_C1_XIN_CODEC_01,
+    _rx_slot_C1_XIN_CODEC_02,
     _rx_slot_C1_XIN_CODEC_03,
     _rx_slot_C1_XIN_CODEC_04,
     _rx_slot_C1_XIN_SNK_01,
@@ -433,7 +440,7 @@
 .extern _buf_C1_BUS_FX_05;
 .extern _buf_C1_BUS_FX_06;
 .extern _buf_C1_XIN_CODEC_01;
-.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_02;
 .extern _buf_C1_XIN_PI_L;
 .extern _buf_C1_XIN_PI_R;
 .extern _buf_C1_XIN_SNK_01;
@@ -571,7 +578,7 @@
     _buf_C1_BUS_FX_05,
     _buf_C1_BUS_FX_06,
     _buf_C1_XIN_CODEC_01,
-    _buf_C1_XIN_CODEC_03,
+    _buf_C1_XIN_CODEC_02,
     _buf_C1_XIN_PI_L,
     _buf_C1_XIN_PI_R,
     _buf_C1_XIN_SNK_01,
@@ -705,7 +712,7 @@
 .extern _buf_C1_BUS_FX_05;
 .extern _buf_C1_BUS_FX_06;
 .extern _buf_C1_XIN_CODEC_01;
-.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_02;
 .extern _buf_C1_XIN_PI_L;
 .extern _buf_C1_XIN_PI_R;
 .extern _buf_C1_XIN_SNK_01;
@@ -837,7 +844,7 @@
     _buf_C1_BUS_FX_05,
     _buf_C1_BUS_FX_06,
     _buf_C1_XIN_CODEC_01,
-    _buf_C1_XIN_CODEC_03,
+    _buf_C1_XIN_CODEC_02,
     _buf_C1_XIN_PI_L,
     _buf_C1_XIN_PI_R,
     _buf_C1_XIN_SNK_01,
@@ -909,7 +916,7 @@
 
 .section/pm seg_pmco;
 
-/* Scatter 46 RX channels (lane-major packed) */
+/* Scatter 47 RX channels (lane-major packed) */
 .global _scatter_chip1;
 _scatter_chip1:
 #if DSP4_BLOCK_KERNELS
@@ -920,7 +927,7 @@ _scatter_chip1:
     i1 = _c1_rx_off;
     i2 = _c1_rx_stride;
     i3 = _c1_rx_slot_ptrs;
-    r7 = 46;
+    r7 = 47;
     lcntr = r7; do .scatter_chip1_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */
@@ -951,7 +958,7 @@ _meter_scan_chip1:
     i1 = _meter_peaks;
     m0 = 0;
     m1 = 1;
-    r5 = 46;
+    r5 = 47;
     lcntr = r5; do .meter_scan_chip1_lp until lce;
         r2 = dm(i0, 1);
         i2 = r2;
@@ -1001,8 +1008,8 @@ _gather_chip1.end:
 _rx_patch_apply:
     i0 = _rx_patch_regs;
     i1 = _c1_rx_slot_ptrs;
-    r5 = 46;
-    r6 = 45;          /* clamp bound */
+    r5 = 47;
+    r6 = 46;          /* clamp bound */
 #if DSP4_BLOCK_KERNELS
     r7 = 0;               /* running entry index for the inverse */
 #endif

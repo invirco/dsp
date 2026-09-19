@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Snake Return 7 (INPUT_TDM)
- * Node ID:    C1_XIN_SNK_07
+ * Codec ADC 2 (Aux In R / mini-jack ring) (INPUT_TDM)
+ * Node ID:    C1_XIN_CODEC_02
  * Chip:       1
  * Channels:   1
  * SPI Page:   -1
@@ -14,7 +14,7 @@
 
 /* RampProfile: Instant (default — no ramp) */
 
-/* INPUT_TDM: Read from SPORT5 TDM slot 6 */
+/* INPUT_TDM: Read from SPORT4 TDM slot 1 */
 
 #include "blk_pool.h"
 
@@ -22,19 +22,19 @@
 /* Under block kernels this kernel reads the DMA buffer directly,
  * so the slot var is unreferenced -- kept as a scalar purely so
  * block_io.asm's tables still resolve. */
-.global _rx_slot_C1_XIN_SNK_07;
-.var _rx_slot_C1_XIN_SNK_07;
+.global _rx_slot_C1_XIN_CODEC_02;
+.var _rx_slot_C1_XIN_CODEC_02;
 #if DSP4_BLOCK_KERNELS
-.global _buf_C1_XIN_SNK_07;
-.var _buf_C1_XIN_SNK_07[DSP4_BLOCK_SIZE];
+.global _buf_C1_XIN_CODEC_02;
+.var _buf_C1_XIN_CODEC_02[DSP4_BLOCK_SIZE];
 #else
-.global _buf_C1_XIN_SNK_07;
-.var _buf_C1_XIN_SNK_07;
+.global _buf_C1_XIN_CODEC_02;
+.var _buf_C1_XIN_CODEC_02;
 #endif
 
 .section/pm seg_pmco;
-.global _C1_XIN_SNK_07_process;
-_C1_XIN_SNK_07_process:
+.global _C1_XIN_CODEC_02_process;
+_C1_XIN_CODEC_02_process:
 #if DSP4_BLOCK_KERNELS
     /* per-BLOCK kernel: one call per block, loop inside */
     l0 = 0;
@@ -49,7 +49,7 @@ _C1_XIN_SNK_07_process:
     /* Look the DMA geometry up rather than hardcoding it, so the
      * boot-time input patch still applies. Block rate, not per
      * sample, so it costs nothing measurable. */
-    r3 = 42;
+    r3 = 33;
     m0 = r3;
     i1 = _c1_rx_node_entry;
     modify(i1, m0);
@@ -65,7 +65,7 @@ _C1_XIN_SNK_07_process:
     r3 = r6 + r3;
     i0 = r3;
     m0 = r4;
-    i1 = _buf_C1_XIN_SNK_07;
+    i1 = _buf_C1_XIN_CODEC_02;
 #if DSP4_PROFILE_SIGNAL
     /* Profiling only. The bench has no analog boards and no audio
      * source, so the TDM inputs are silent -- and BOTH dynamics
@@ -112,26 +112,26 @@ _C1_XIN_SNK_07_process:
      * so reading them proves the expensive path ran. */
     r5 = DSP4_BLOCK_SIZE;
     r7 = 0x08000000;              /* +0.5 Q4.28 = -6 dBFS */
-    lcntr = r5; do .in_sig_C1_XIN_SNK_07 until lce;
+    lcntr = r5; do .in_sig_C1_XIN_CODEC_02 until lce;
         r2 = dm(i0, m0);          /* production read, still paid */
         r2 = ashift r2 by -3;     /* production shift, still paid */
         r2 = r7;                  /* DISCARD it -- see above */
         dm(i1, 1) = r2;
-.in_sig_C1_XIN_SNK_07:
+.in_sig_C1_XIN_CODEC_02:
         r7 = -r7;                 /* flip sign, |x| unchanged */
     rts;
 #endif
     r5 = DSP4_BLOCK_SIZE;
-    lcntr = r5; do .in_lp_C1_XIN_SNK_07 until lce;
+    lcntr = r5; do .in_lp_C1_XIN_CODEC_02 until lce;
         r2 = dm(i0, m0);
         r2 = ashift r2 by -3;
         dm(i1, 1) = r2;
-.in_lp_C1_XIN_SNK_07:
+.in_lp_C1_XIN_CODEC_02:
         nop;
     rts;
 #else
-    r0 = dm(_rx_slot_C1_XIN_SNK_07);
-    dm(_buf_C1_XIN_SNK_07) = r0;
+    r0 = dm(_rx_slot_C1_XIN_CODEC_02);
+    dm(_buf_C1_XIN_CODEC_02) = r0;
     rts;
 #endif
-_C1_XIN_SNK_07_process.end:
+_C1_XIN_CODEC_02_process.end:

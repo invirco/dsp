@@ -510,13 +510,24 @@ for ch in range(1, NUM_CH + 1):
 # not move at all. So the talkback XLR is slot 3, not slot 0, and what the
 # graph called "Codec ADC 1 (TB XLR)" carries the mini-jack.
 #
-# SLOT 1 IS NOT RECEIVED, and that is this list's doing rather than a SPORT
-# setting: lane_layout() in dsp_codegen.py derives each lane's cs_mask from
-# the slots of the nodes declared on it, so the three rows below are exactly
-# the 0x000D the part sees. Adding the aux-R lane means adding a
-# `C1_XIN_CODEC_02` row here -- a hub call, not this session's (S71-3).
+# SLOT 1 IS NOW RECEIVED (S72, ruling S71-3 option 1): lane_layout() in
+# dsp_codegen.py derives each lane's cs_mask from the slots of the nodes
+# declared on it, so adding the `C1_XIN_CODEC_02` row below moves cs_mask
+# from 0x000D to 0x000F -- read off the generated artefact, not hand-set.
+# `C1_XIN_CODEC_03` (slot 2, IN3, not connected on rev C) stays declared so
+# the lane map is complete, but feeds nothing: no entry in `xin_consumer`,
+# so `add()` gives it outputs='' below.
+#
+# Scope: this table carries no scope tag, so it is one table for both D24
+# and D32 (one firmware, dsp4-architecture-decisions.md) -- D32 gets the
+# new C1_XIN_CODEC_02 lane too, feeding C2_CODEC_AUX_IN's R leg exactly as
+# D24 does. Harmless: C2_CODEC_AUX_IN is default `on=0` on both products
+# and D32's own analog board (with its own codec, if any) has not landed,
+# so this is still a dead lane on D32 hardware -- the same dead lane
+# C1_XIN_CODEC_03 was, just renumbered to the slot D24 measured.
 superset_c1 = [
     ('C1_XIN_CODEC_01', 'CODEC_RET_1', 'Codec ADC 1 (Aux In L / mini-jack tip)', None),
+    ('C1_XIN_CODEC_02', 'CODEC_RET_2', 'Codec ADC 2 (Aux In R / mini-jack ring)', None),
     ('C1_XIN_CODEC_03', 'CODEC_RET_3', 'Codec ADC 3 (ADC2 L / not connected)', None),
     ('C1_XIN_CODEC_04', 'CODEC_RET_4', 'Codec ADC 4 (TB XLR)', None),
     ('C1_XIN_PI_L', 'PI_PCM_L', 'Pi PCM L', None),
@@ -526,16 +537,13 @@ superset_c1 = [
      for s in range(1, 9)]
 
 # fabric pass-throughs: XFER signal -> source input node
-# The aux-in pair follows the map above: L is slot 0 (mini-jack tip).
-# The R leg has no lane to take -- the ring is slot 1 and slot 1 is not
-# received -- so it stays on slot 2, which is an unconnected converter
-# input and therefore carries the ADC's own floor and nothing else. That
-# is a PLACEHOLDER, not a routing decision (S71-3): what it buys is that
-# the talkback XLR stops arriving on the codec-aux path into MAIN, which
-# is the defect S70-1 found, without inventing a source for aux R.
+# The aux-in pair follows the map above: L is slot 0 (mini-jack tip), R is
+# now slot 1 (mini-jack ring, S72 / S71-3 option 1) via the new
+# `C1_XIN_CODEC_02` lane -- the aux input is stereo, as the netlist always
+# said the hardware is.
 xfer_map = [
     ('XFER_CODEC_AUX_L', 'C1_XIN_CODEC_01', None),
-    ('XFER_CODEC_AUX_R', 'C1_XIN_CODEC_03', None),
+    ('XFER_CODEC_AUX_R', 'C1_XIN_CODEC_02', None),
     ('XFER_PI_L', 'C1_XIN_PI_L', None),
     ('XFER_PI_R', 'C1_XIN_PI_R', None),
 ] + [(f'XFER_SNAKE_{s:02d}', f'C1_XIN_SNK_{s:02d}', 'D32') for s in range(1, 9)]
@@ -548,7 +556,7 @@ for nid, sig, label, scope in superset_c1:
     ip = input_params(sig)
     if scope:
         ip += f';scope={scope}'
-    add(nid, 1, 'INPUT_TDM', label, 1, '', xin_consumer[nid], params=ip)
+    add(nid, 1, 'INPUT_TDM', label, 1, '', xin_consumer.get(nid, ''), params=ip)
 
 # --- TALKBACK ×2 ---
 # TALK_01 = the talkback XLR J1, TALK_02 = the surface MEMS mic.

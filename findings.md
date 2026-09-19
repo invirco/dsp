@@ -6,6 +6,116 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE AUX-IN RIGHT LEG GETS ITS LANE, AND THE TALKBACK POLARITY GETS A BIT IN THE WORD THE PART READS BACK (2026-09-19, session 72 — desk only, no unit touched)
+
+Report: `MW/D24/DSP/s72/aux-in-right-leg.md`. Pair built here, **not deployed**: chip1
+`7d1ab146447a1f9d7c010ce9fa104e56` (452,388 B), chip2
+`3a9c950d3551b6c5d7ff58925a47ec81` (307,980 B) — chip 2 byte-identical to S71's and to
+the shipping chip 2 on record since S67, the whole change being chip 1's (+380 B).
+
+**S72-1. The mini-jack's ring is received, and `XFER_CODEC_AUX_R` reads it.** The hub
+ruled S71-3 option 1. One `superset_c1` row in `tools/dsp/gen_dsp_csv.py` declares
+`C1_XIN_CODEC_02` = `CODEC_RET_2`, SPORT 4 slot 1, "Codec ADC 2 (Aux In R / mini-jack
+ring)", and `XFER_CODEC_AUX_R` moves off the placeholder `C1_XIN_CODEC_03` onto it. The
+aux input is stereo, which is what the netlist always said the hardware is.
+`C1_XIN_CODEC_03` stays declared with its "(ADC2 L / not connected)" label and an empty
+`outputs` column, so the lane map is complete and the not-connected converter input
+reaches no audio path. `cs_mask` went 0x000D → 0x000F on its own: `lane_layout()`
+derives it from the declared nodes, read off the regenerated `lane_config.c`, and no
+SPORT register is set by hand anywhere in the change.
+
+**S72-2. Zero addresses moved, proved against `HEAD` rather than asserted.** All eight
+address artefacts are byte-identical to `git show HEAD:` — `dsp_address_map.md` (5,827
+rows), `ghost_cells.h`, all four `MW/*/MX/_matrix.csv`, both `dsp_params.asm`. SPI
+allocation still ends at chip 1 page 1 addr 4983 and chip 2 page 1 addr 2175; an
+`INPUT_TDM` lane allocates nothing (`spi_page=-1`). Cell names unchanged.
+`./check-contract-drift.sh` passed. Of the 22 files touched by the regenerate, twelve
+are one-line diffs — the `r3 = N` packed-RX index of every node after the insertion
+point — and `process_chain.asm`'s 660 changed lines are eighteen new lines plus
+`DSP4_NODE_LIMIT` guards renumbered by one; `HEAD`'s copy was first confirmed
+self-consistent with its own generator, so none of that churn is pre-existing drift.
+`MW/D24/DSP/input_patch.json` grows 46 → 47 entries with a single `46` appended: the
+permuted XLR entries are indices 0..31 and the new lane lands at 33, inside a stretch
+that was already identity. No XLR moved.
+
+**S72-3. The cost is one more copy kernel, not one load — and the codegen does not
+count cycles, so this was counted off the emitted instructions.** The dispatch expected
+"0 or one load". An `INPUT_TDM` lane is a full block kernel: ~20 setup instructions and
+a 16-iteration loop of four, on the order of **85 chip-1 core cycles per block** at
+block 16, one call per block. Memory is **+49 words of chip-1 DM** (RX region 736 → 752
+for ping and pong, plus the 16-word node buffer and its slot word). Not a capacity
+question against a chip-1 budget in the tens of thousands of cycles, but not zero, and
+it should not go into the record as zero. The codegen's own report moves in exactly
+three places: 441 → 442 chip-1 nodes, 731 → 732 files, scope tap 334 → 335 nodes.
+
+**S72-4. `DSP4_TALK_INVERT` is now readable off the part: `DIAG_BUILD_CFG2` bit 29 —
+and the bit position is the finding.** S71-4's gap is closed the way `diag.h` closed the
+same gap for `DSP4_TEST_NODES` (S49): the flag takes a bit of the signature. **It has to
+be a ZERO bit, and that is not a detail.** Narrowing the signature again at its bottom
+(bits 31..26, flag at 25) would make the SHIPPING word `0xC0…`, which every existing
+decoder rejects, and the INVERTED-TALKBACK word `0xC2…`, which every existing decoder
+**accepts and reports as a shipping image** — the dangerous arm silent, which is the
+exact failure the word exists to prevent. S49 avoided that only because the signature's
+low bit is a 1. So bit 29 instead: signature `0b11 0001` in bits 31..30 and 28..25, six
+bits, not contiguous. Measured off the two linked images at `_diag_build_cfg2`, not
+computed: shipping reads `0xC2010244` — **the same value `HEAD`'s `cfg_words.py`
+predicts**, so no existing record of a config word is invalidated — and the inverted arm
+reads `0xE2010244`, which a decoder masking `0xFE000000` or `0xFF000000` rejects
+outright. `DIAG_BUILD_CFG` is unmoved at `0xCF45FF10`. Landed in `src/diag.h`,
+`tools/pi/dsp4_buildcfg.py` (`SIGMASK2 = 0xDE000000`), `tools/dsp/cfg_words.py` and the
+`build.sh` note that used to say "known gap". Default still 0; PW's ruling is untouched.
+**Written into `diag.h` for the next session: the signature is down to six bits and
+23..0 are full, so the next flag of this class is the third word (`DIAG_BUILD_CFG3`,
+designed in `dsp4-s28-20260911.md` §3), not a seventh narrowing.**
+
+**S72-5. Three bytes separate the two polarity arms, and chip 2 is now one of them.**
+`cmp -l`: chip 1 differs in **two** bytes — `0x4D`→`0xCD`, the sign of the Q4.28 scale
+constant (S71-2's single byte, at a shifted offset), and `0xC2`→`0xE2`, the config word
+— and chip 2 in **one**, the same config word. So the polarity flip still costs zero
+cycles and zero words, and the new diag bit costs zero cycles and zero words too. But
+**chip 2 now differs between the arms where it did not in S71**: the build-config word
+is per-image and both chips carry it. That is correct — an image says what it was built
+with — and the SHIPPING chip 2 does not move.
+
+**S72-6. Proof without the unit: the gather table, not the XFER kernel.** Under
+`DSP4_BLOCK_KERNELS` the XFER node's kernel is an `rts` and `_gather_chip1` walks a
+pointer table, so S71's "disassemble the node" method does not reach this edge. Read off
+the linked image instead: `_c1_ic_tx_ptrs` = `0x9030d`, entry 26 is `XFER_CODEC_AUX_R`,
+and `elfdump -nxs sec_dmda` shows word `0x90327` = `0x95af9` = **`_buf_C1_XIN_CODEC_02`**
+(entry 25 = `0x95ae5` = `_buf_C1_XIN_CODEC_01`, aux L). `_buf_C1_XIN_CODEC_03`'s address
+`0x95b0d` appears **zero** times in that table. S71's fix was re-checked in the same
+image and stands: `C1_TALK_01` loads `0x95b21` = `_buf_C1_XIN_CODEC_04` (slot 3, the
+talkback XLR S70 measured), `C1_TALK_02` loads `_buf_C1_XIN_MEMS`, and the scale
+constant two instructions earlier is `0x4d800000` — positive, i.e. the polarity-OFF
+image. `TEST_MEAS_LANE_CODES` is a dict keyed by node id, so **MeasChan 51/52/53/54 did
+not move**; the S70 capture set stays readable.
+
+**S72-7. `shared/dsp4-logic/slot-map.csv` landed, and it behaved exactly as S71-5
+measured.** Rows `A_I4,0..3` and `MIX_1,9..10` now carry the measured map, with the part
+number corrected — the rows said **AK4916**; the board carries an **AK4619** — and
+`CODEC_RET_2` marked received. Re-running `gen_slot_map.py` moves `source_hash`
+`2c53de21…` → `c4a3ca82…` and the diff against the committed `dsp4_slot_map.vh` is
+**that one comment line and nothing else**: the HDL is identical, no bitstream needed
+rebuilding and none was. `dsp.csv` regenerates **byte-identically** from the new
+`sport_map.json`, so the notes are confirmed not to be build inputs.
+
+**S72-8. 🔴 The new lane cannot be measured on the part, and the S71 §6d bench note is
+now wrong.** `C1_XIN_CODEC_02` has no `TEST_MEAS_LANE_CODES` entry (55 is free), so
+nothing can watch slot 1 directly. Allocating one is a wire-contract allocation — S71
+recorded those four codes as exactly that — and no gate of this dispatch covers it, so
+it was not done: **hub's call**, and cheap when wanted (codes only, no cell, no address,
+all inside `#if DSP4_TEST_NODES`). Meanwhile S71 §6d's owed measurement expects "ring
+moves NOTHING, because slot 1 has no lane", which is no longer true. Replacement bench
+note in the S72 report §6.
+
+**S72-9. 🔴 The CPLD slot-map stamp move needs recording.** The shipping bitstream
+manifest `dsp4_logic.ed70d3214c29.manifest` records `slot_map: sha256:2c53de21…`, which
+no longer matches the committed slot map. The manifest was **deliberately not touched**:
+it records what that bitstream was actually built from, and rewriting it would falsify
+provenance to tidy a stamp. The bitstream is still correct — the HDL never changed.
+Whether the move goes in the contract release note or waits for the next CPLD build to
+re-stamp is the hub's call.
+
 ## THE CODEC-RETURN LANES NAMED FROM THE MEASURED MAP: THE TALKBACK XLR IS SLOT 3, THE GRAPH HAD IT ON SLOT 0, AND THE MINI-JACK'S RIGHT LEG HAS NO LANE AT ALL (2026-09-19, session 71 — desk only, no unit touched)
 
 Report: `MW/D24/DSP/s71/codec-lanes.md`. Pair built here, **not deployed**: chip1

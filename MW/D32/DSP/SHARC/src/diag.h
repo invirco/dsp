@@ -327,8 +327,14 @@
  * loop IS, get their own word. Same rules as the first: one compile-time
  * constant, one transaction, readable at BOOT_STAGE 1.
  *
- *   31..24  0xC2        signature -- distinct from 0xCF, so a host that
- *                       reads the wrong address gets a mismatch, not a decode
+ *   31..30, 28..25  0b11 0001   signature -- distinct from 0xCF, so a host
+ *                       that reads the wrong address gets a mismatch, not a
+ *                       decode. SIX BITS now, with a HOLE at 29: bit 29 is
+ *                       DSP4_TALK_INVERT (S72) and bit 24 is DSP4_TEST_NODES
+ *                       (S49); the two notes below say why each is there and
+ *                       why 29 rather than the next bit down
+ *   29      DSP4_TALK_INVERT      talkback polarity, CHANGES AUDIO
+ *   24      DSP4_TEST_NODES
  *   23..16  DSP4_BLOCK_DECIMATE   1 = every block; anything else is a
  *                                 MEASUREMENT and the audio is wrong
  *   15..10  reserved (0)
@@ -409,6 +415,52 @@
 #define DIAG_CFG2_BLK_TAP 0
 #endif
 
+/* THE TALKBACK POLARITY FLAG, in the word too (S72; the gap S71-4 named).
+ * DSP4_TALK_INVERT changes AUDIO -- it is the sign of the talkback, the one
+ * input on the D24 that arrives inverted by wiring (J1 hot on the AK4619's
+ * IN4N; dsp_block.h carries the netlist and the S70-6 measurement). By the
+ * rule three paragraphs up -- "a switch that changes cost or audio and
+ * cannot be read back is a gap the next session pays for" -- it belongs
+ * here, and it is precisely S12-7's shape: today an image whose talkback is
+ * the other way up reads back identical to one whose is not.
+ *
+ * BIT 29, AND THE REASON IT IS NOT BIT 25. Bits 23..0 are full and 31..25
+ * was the signature, so this costs the signature a bit exactly as S49's did.
+ * But S49 spent the signature's LOW bit and got away with it for a reason
+ * worth copying rather than losing: 0b1100001's low bit is a 1, so with
+ * DSP4_TEST_NODES=0 the word is still 0xC2000000 -- byte-identical to what
+ * an eight-bit-signature decoder expects -- and ONLY the unusual image
+ * (TEST_NODES=1, 0xC3000000) is rejected by a stale tool.
+ *
+ * Narrowing again at bit 25 would invert that, and inverting it is the
+ * whole failure this word exists to prevent: 0b110000 << 26 = 0xC0000000
+ * makes the SHIPPING word 0xC0... (rejected, loud, merely annoying) and the
+ * INVERTED-TALKBACK word 0xC2... -- which every existing decoder accepts and
+ * decodes as a shipping image. The dangerous arm would be the silent one.
+ *
+ * So the flag takes a ZERO bit of the signature instead, bit 29, leaving
+ * 31..30 and 28..25 as 0b11 0001. DSP4_TALK_INVERT=0 reads 0xC2000000, what
+ * it always read; DSP4_TALK_INVERT=1 reads 0xE2000000, which every decoder
+ * masking 0xFE000000 or 0xFF000000 REJECTS outright as "not a
+ * DIAG_BUILD_CFG2 word". Loud on the arm that is wrong, quiet on the arm
+ * that is right, which is the way round S49 chose. The signature is not
+ * contiguous any more; neither is DSP4_SHARED_KERNELS (bits 5 and 15), and
+ * the mask is written down here and in tools/pi/dsp4_buildcfg.py.
+ *
+ * SAID PLAINLY FOR THE NEXT SESSION: the signature is down to six bits and
+ * bits 23..0 are full. THE NEXT flag of this kind needs a third word
+ * (DIAG_BUILD_CFG3), not a seventh narrowing -- at six bits the "a garbage
+ * read is not a config" property this word was invented for is as thin as it
+ * should ever get. */
+#ifndef DSP4_TALK_INVERT
+#define DSP4_TALK_INVERT 0
+#endif
+#if DSP4_TALK_INVERT != 0
+#define DIAG_CFG2_TALK_INVERT 1
+#else
+#define DIAG_CFG2_TALK_INVERT 0
+#endif
+
 /* THE THREE SWITCHES THIS WORD COULD NOT SEE (S12-7, closed S15).
  *
  * DIAG_BUILD_CFG2 exists because DIAG_BUILD_CFG could not tell three
@@ -448,6 +500,7 @@
 #endif
 
 #define DIAG_BUILD_CFG2_VALUE ( 0xC2000000                              \
+    | ((DIAG_CFG2_TALK_INVERT & 1) << 29)                               \
     | ((DIAG_CFG2_TEST_NODES  & 1) << 24)                               \
     | ((DSP4_BLOCK_DECIMATE   & 0xFF) << 16)                            \
     | (((DSP4_SHARED_KERNELS >> 1) & 1) << 15)                          \

@@ -31,10 +31,10 @@ A_I3,4,IN_29,BOTH,
 A_I3,5,IN_30,BOTH,
 A_I3,6,IN_31,BOTH,
 A_I3,7,IN_32,BOTH,
-A_I4,0,CODEC_RET_1,BOTH,AK4916 ADC ch1 (talkback XLR)
-A_I4,1,CODEC_RET_2,BOTH,AK4916 ADC ch2
-A_I4,2,CODEC_RET_3,BOTH,AK4916 ADC ch3 (aux in L)
-A_I4,3,CODEC_RET_4,BOTH,AK4916 ADC ch4 (aux in R)
+A_I4,0,CODEC_RET_1,BOTH,AK4619 ADC1 Lch (aux in L; mini-jack tip) - NETLIST
+A_I4,1,CODEC_RET_2,BOTH,AK4619 ADC1 Rch (aux in R; mini-jack ring) - RECEIVED S72
+A_I4,2,CODEC_RET_3,BOTH,AK4619 ADC2 Lch (IN3) - not connected on rev C; no consumer
+A_I4,3,CODEC_RET_4,BOTH,AK4619 ADC2 Rch (IN4) - talkback XLR J1; inverted at the connector - MEASURED S70
 A_I5,0,SNAKE_RET_01,D32,
 A_I5,1,SNAKE_RET_02,D32,
 A_I5,2,SNAKE_RET_03,D32,
@@ -77,8 +77,8 @@ MIX_1,5,BUS_FX_03,BOTH,
 MIX_1,6,BUS_FX_04,BOTH,
 MIX_1,7,BUS_FX_05,BOTH,
 MIX_1,8,BUS_FX_06,BOTH,global mix slot 24
-MIX_1,9,XFER_CODEC_AUX_L,BOTH,superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)
-MIX_1,10,XFER_CODEC_AUX_R,BOTH,codec aux in R = CODEC_RET_4
+MIX_1,9,XFER_CODEC_AUX_L,BOTH,superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_1)
+MIX_1,10,XFER_CODEC_AUX_R,BOTH,codec aux in R = CODEC_RET_2
 MIX_1,11,XFER_PI_L,BOTH,Pi playback L pass-through
 MIX_1,12,XFER_PI_R,BOTH,Pi playback R pass-through
 MIX_1,13,XFER_SNAKE_01,D32,snake return pass-through

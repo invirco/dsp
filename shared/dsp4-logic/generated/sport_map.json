@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "2c53de21b8c80973a8ea8935b70fbc908f2341561dc28e32600caf8f09572ed8",
+  "source_hash": "c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cdd",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -488,25 +488,25 @@
               "slot": 0,
               "signal": "CODEC_RET_1",
               "scope": "BOTH",
-              "note": "AK4916 ADC ch1 (talkback XLR)"
+              "note": "AK4619 ADC1 Lch (aux in L; mini-jack tip) - NETLIST"
             },
             {
               "slot": 1,
               "signal": "CODEC_RET_2",
               "scope": "BOTH",
-              "note": "AK4916 ADC ch2"
+              "note": "AK4619 ADC1 Rch (aux in R; mini-jack ring) - RECEIVED S72"
             },
             {
               "slot": 2,
               "signal": "CODEC_RET_3",
               "scope": "BOTH",
-              "note": "AK4916 ADC ch3 (aux in L)"
+              "note": "AK4619 ADC2 Lch (IN3) - not connected on rev C; no consumer"
             },
             {
               "slot": 3,
               "signal": "CODEC_RET_4",
               "scope": "BOTH",
-              "note": "AK4916 ADC ch4 (aux in R)"
+              "note": "AK4619 ADC2 Rch (IN4) - talkback XLR J1; inverted at the connector - MEASURED S70"
             }
           ]
         },
@@ -798,13 +798,13 @@
               "slot": 9,
               "signal": "XFER_CODEC_AUX_L",
               "scope": "BOTH",
-              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)"
+              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_1)"
             },
             {
               "slot": 10,
               "signal": "XFER_CODEC_AUX_R",
               "scope": "BOTH",
-              "note": "codec aux in R = CODEC_RET_4"
+              "note": "codec aux in R = CODEC_RET_2"
             },
             {
               "slot": 11,
@@ -1105,13 +1105,13 @@
               "slot": 9,
               "signal": "XFER_CODEC_AUX_L",
               "scope": "BOTH",
-              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_3)"
+              "note": "superset input pass-through chip1->chip2 (codec aux in L = CODEC_RET_1)"
             },
             {
               "slot": 10,
               "signal": "XFER_CODEC_AUX_R",
               "scope": "BOTH",
-              "note": "codec aux in R = CODEC_RET_4"
+              "note": "codec aux in R = CODEC_RET_2"
             },
             {
               "slot": 11,

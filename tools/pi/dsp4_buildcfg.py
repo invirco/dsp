@@ -33,10 +33,15 @@ SIGNATURE = 0xCF000000
 # such, not decoded.
 DIAG_BUILD_CFG2 = 0xE0EB
 SIGNATURE2 = 0xC2000000
-# SEVEN BITS, not eight (S49). Bits 31..25 are the signature and bit 24 is
-# DSP4_TEST_NODES; see the note in diag.h. A tool still masking 0xFF000000
-# rejects a self-test image's word instead of misreading it, which is the
-# right way round.
+# SIX BITS, not eight, and NOT CONTIGUOUS (S49 then S72). Bits 31..30 and
+# 28..25 are the signature (0b11 0001), bit 29 is DSP4_TALK_INVERT and bit 24
+# is DSP4_TEST_NODES; see the notes in diag.h. Both flags were placed so the
+# word a SHIPPING image reads is still 0xC2000000 and only the unusual arm
+# trips an older tool: a decoder masking 0xFF000000 rejects a self-test image
+# (0xC3000000) and one masking 0xFE000000 rejects an inverted-talkback image
+# (0xE2000000), instead of misreading either as shipping. Loud on the arm
+# that is wrong is the right way round.
+SIGMASK2 = 0xDE000000           # 0xFF000000 less bit 29 and bit 24
 CCLK_MHZ = {0: 491.52, 1: 786.432, 2: 983.040, 3: None}
 
 # The switches the word carries, LSB-first after the block size.
@@ -78,6 +83,10 @@ FLAGS2 = [
     # ADDED S49. The self-test nodes change what the chain calls and what
     # chip 1 costs; a switch like that has to be readable off the part.
     (24, 'DSP4_TEST_NODES'),
+    # ADDED S72. The talkback polarity (diag.h's bit 29, taken out of the
+    # signature). It changes AUDIO and nothing else on the part said which
+    # way up the talkback was -- S71-4's gap.
+    (29, 'DSP4_TALK_INVERT'),
 ]
 # DSP4_BLOCK_DECIMATE != 1 means the graph runs on one block in N: the audio
 # is wrong and the cycle count is an instrument's, not the product's.
@@ -121,6 +130,9 @@ SHIPPING2 = {
     'DSP4_SIMD_STRIPS': 0,
     'DSP4_SCOPE_BLK_TAP': 0,
     'DSP4_TEST_NODES': 0,
+    # S72. 0 until PW rules on "sign in the node" vs the rev D board mod
+    # (swap C4/C11 at IN4); shipping.config has it 0.
+    'DSP4_TALK_INVERT': 0,
     # S9-2 Option A, ADOPTED on CHIP 2 by PW 2026-09-09. A MASK:
     # 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX, 3 = both.
     # Costs +16 samples of output latency on the chip that has it, so
@@ -148,9 +160,9 @@ def decode(word):
 
 def decode2(word):
     """Decode DIAG_BUILD_CFG2, or raise ValueError."""
-    if word is None or (word & 0xFE000000) != SIGNATURE2:
+    if word is None or (word & SIGMASK2) != SIGNATURE2:
         raise ValueError('0x%s is not a DIAG_BUILD_CFG2 word '
-                         '(signature 0b1100001 in bits 31..25)'
+                         '(signature 0b11 0001 in bits 31..30, 28..25)'
                          % ('%08X' % word if word is not None else '????????'))
     d = {'raw': word, 'decimate': (word >> 16) & 0xFF,
          # A PER-CHIP MASK, not a flag: 1 = chip 1's inter-chip TX,

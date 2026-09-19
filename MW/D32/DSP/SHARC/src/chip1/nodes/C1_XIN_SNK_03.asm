@@ -49,7 +49,7 @@ _C1_XIN_SNK_03_process:
     /* Look the DMA geometry up rather than hardcoding it, so the
      * boot-time input patch still applies. Block rate, not per
      * sample, so it costs nothing measurable. */
-    r3 = 37;
+    r3 = 38;
     m0 = r3;
     i1 = _c1_rx_node_entry;
     modify(i1, m0);

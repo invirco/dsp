@@ -48,7 +48,10 @@ WORD2 = ['DSP4_STRIP_FUSED', 'DSP4_SIMD_DYN', 'DSP4_SIMD_GRAPH',
          'DSP4_SIMD_STRIPS', 'DSP4_SCOPE_BLK_TAP', 'DSP4_GATHER_FIRST',
          'DSP4_FX_TYPE_DECLARED', 'DSP4_DYN_LUT', 'DSP4_GATE_LINTHR',
          'DSP4_C2_BQ_GRAPH', 'DSP4_TX_EARLY', 'DSP4_BQ_SIMD_PIPE',
-         'DSP4_SHARED_KERNELS', 'DSP4_BLOCK_DECIMATE']
+         'DSP4_SHARED_KERNELS', 'DSP4_BLOCK_DECIMATE',
+         # S72: the talkback polarity, bit 29 -- out of the signature, see
+         # `words()` and the note in src/diag.h.
+         'DSP4_TALK_INVERT']
 
 
 def build_defaults():
@@ -148,8 +151,19 @@ def words(val):
     # than eyeballed: every one of bits 0..31 has an owner. The fix is a
     # THIRD word, designed in MW/D32/DSP/dsp4-s28-20260911.md section 3 and
     # printed by `--design-cfg3`.
+    #
+    # S72 SPENT ONE OF THEM ANYWAY, AND SAYS SO: DSP4_TALK_INVERT is bit 29,
+    # a zero bit of the signature, which is S49's move one bit along (bit 24
+    # / DSP4_TEST_NODES). It was taken from the signature's ZERO side on
+    # purpose -- with the flag off the word is still 0xC2000000, so a stale
+    # decoder keeps reading shipping images correctly and REJECTS only the
+    # inverted-talkback one. Narrowing at 25 instead would have made the
+    # wrong arm the silently-accepted one. The signature is now six bits
+    # (31..30, 28..25); the NEXT flag is the third word, not a seventh
+    # narrowing.
     shk = val['DSP4_SHARED_KERNELS']
     w2 = (0xC2000000
+          | ((1 if val['DSP4_TALK_INVERT'] else 0) << 29)
           | ((val['DSP4_BLOCK_DECIMATE'] & 0xFF) << 16)
           | (((shk >> 1) & 1) << 15)
           | ((val['DSP4_BQ_SIMD_PIPE'] & 3) << 13)
