@@ -127,3 +127,7 @@ tier the work inside the session:
   work does NOT push through it: record the point reached and what was
   found in the dispatch block, mark 🔴 blocked with "needs opus-tier
   dispatch", push, and stop. The hub re-dispatches on the higher tier.
+- **No question dialogs** (mandate, PW 2026-09-19): a dispatched session never
+  opens an interactive question. A question and its options go into the HUB
+  DISPATCH block as a 🔴 note, commit + push, stop; the hub answers by
+  re-dispatch or steer. The question tool is denied in `.claude/settings.json`.
