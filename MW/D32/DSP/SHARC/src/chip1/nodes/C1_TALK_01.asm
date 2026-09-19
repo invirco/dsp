@@ -18,7 +18,7 @@
 /* SPI page=1 addr=4736 */
 
 .section/dm seg_dmda;
-.extern _buf_C1_XIN_CODEC_01;
+.extern _buf_C1_XIN_CODEC_04;
 .global _talk_on_C1_TALK_01;
 .var _talk_on_C1_TALK_01 = 0;
 .global _talk_gain_C1_TALK_01;
@@ -135,11 +135,16 @@ _C1_TALK_01_process:
     dm(_talk_gain_C1_TALK_01) = f1;
 .tk_go_C1_TALK_01:
 
+#if DSP4_TALK_INVERT
+    r2 = 0xCD800000;          /* -(2^28): the Q4.28 scale with
+                               * the polarity flip folded in */
+#else
     r2 = 0x4D800000;
+#endif
     f2 = r2;
     f1 = f1 * f2;
     r1 = fix f1;
-    r0 = dm(_buf_C1_XIN_CODEC_01);
+    r0 = dm(_buf_C1_XIN_CODEC_04);
     mrf = r0 * r1 (ssi);
     call _mrf_rns28;
 

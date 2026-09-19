@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------
- * Codec ADC 3 (Aux In L) (INPUT_TDM)
+ * Codec ADC 3 (ADC2 L / not connected) (INPUT_TDM)
  * Node ID:    C1_XIN_CODEC_03
  * Chip:       1
  * Channels:   1

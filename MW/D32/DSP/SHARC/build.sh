@@ -298,6 +298,34 @@ if [ "$DSP4_TEST_NODES" != "0" ]; then
     echo "  *** TEST_OSC + TEST_MEAS live; 64 per-strip hook sites in the chain ***"
 fi
 
+# THE TALKBACK POLARITY OPTION (DSP4_TALK_INVERT, S71). The D24's talkback
+# XLR J1 lands hot on the AK4619's IN4N and cold on IN4P, so the talkback
+# reaches the DSP inverted (netlist; measured S70-6 T5 at +181.56 deg
+# extrapolated to DC). The part has no polarity bit. With this 1 the TALKBACK
+# node that carries `invert_opt` -- C1_TALK_01, the XLR one; the MEMS
+# instance is not inverted and does not move -- multiplies by the NEGATIVE
+# Q4.28 scale constant it already multiplies by, so the flip costs zero
+# cycles and zero words and the two images differ by one immediate.
+#
+# OFF UNTIL PW RULES between the sign here and a board mod (swap C4/C11 at
+# IN4 on rev D). With 0 the image is byte-identical to a build without the
+# option.
+#
+# IT IS NOT IN DIAG_BUILD_CFG/CFG2 AND THAT IS A KNOWN GAP (S71-4). Both
+# words are full -- DIAG_BUILD_CFG 23..8 allocated, DIAG_BUILD_CFG2 23..0
+# allocated with the signature already narrowed to seven bits for
+# DSP4_TEST_NODES -- and this flag changes AUDIO, which is exactly the class
+# diag.h says must be readable off the part. Finding a bit for it means
+# narrowing the CFG2 signature again or inventing a third word, which is the
+# hub's call, not this script's.
+DSP4_TALK_INVERT="${DSP4_TALK_INVERT:-0}"
+CFLAGS="$CFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"
+ASMFLAGS="$ASMFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"
+if [ "$DSP4_TALK_INVERT" != "0" ]; then
+    echo "  *** TALKBACK POLARITY INVERTED: DSP4_TALK_INVERT=$DSP4_TALK_INVERT ***"
+    echo "  *** NOT a shipping switch position until PW rules (S71-2) ***"
+fi
+
 # BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
 # MEASUREMENT BUILD ONLY -- never in a shipping image, and the default 0
 # emits not one byte, which is checked by rebuilding the shipping pair and

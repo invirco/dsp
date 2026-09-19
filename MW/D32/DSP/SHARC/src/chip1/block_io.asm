@@ -432,8 +432,8 @@
 .extern _buf_C1_BUS_FX_04;
 .extern _buf_C1_BUS_FX_05;
 .extern _buf_C1_BUS_FX_06;
+.extern _buf_C1_XIN_CODEC_01;
 .extern _buf_C1_XIN_CODEC_03;
-.extern _buf_C1_XIN_CODEC_04;
 .extern _buf_C1_XIN_PI_L;
 .extern _buf_C1_XIN_PI_R;
 .extern _buf_C1_XIN_SNK_01;
@@ -570,8 +570,8 @@
     _buf_C1_BUS_FX_04,
     _buf_C1_BUS_FX_05,
     _buf_C1_BUS_FX_06,
+    _buf_C1_XIN_CODEC_01,
     _buf_C1_XIN_CODEC_03,
-    _buf_C1_XIN_CODEC_04,
     _buf_C1_XIN_PI_L,
     _buf_C1_XIN_PI_R,
     _buf_C1_XIN_SNK_01,
@@ -704,8 +704,8 @@
 .extern _buf_C1_BUS_FX_04;
 .extern _buf_C1_BUS_FX_05;
 .extern _buf_C1_BUS_FX_06;
+.extern _buf_C1_XIN_CODEC_01;
 .extern _buf_C1_XIN_CODEC_03;
-.extern _buf_C1_XIN_CODEC_04;
 .extern _buf_C1_XIN_PI_L;
 .extern _buf_C1_XIN_PI_R;
 .extern _buf_C1_XIN_SNK_01;
@@ -836,8 +836,8 @@
     _buf_C1_BUS_FX_04,
     _buf_C1_BUS_FX_05,
     _buf_C1_BUS_FX_06,
+    _buf_C1_XIN_CODEC_01,
     _buf_C1_XIN_CODEC_03,
-    _buf_C1_XIN_CODEC_04,
     _buf_C1_XIN_PI_L,
     _buf_C1_XIN_PI_R,
     _buf_C1_XIN_SNK_01,

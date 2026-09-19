@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------
- * Codec ADC 1 (TB XLR) (INPUT_TDM)
+ * Codec ADC 1 (Aux In L / mini-jack tip) (INPUT_TDM)
  * Node ID:    C1_XIN_CODEC_01
  * Chip:       1
  * Channels:   1

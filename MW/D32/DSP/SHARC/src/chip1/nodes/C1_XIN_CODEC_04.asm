@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------
- * Codec ADC 4 (Aux In R) (INPUT_TDM)
+ * Codec ADC 4 (TB XLR) (INPUT_TDM)
  * Node ID:    C1_XIN_CODEC_04
  * Chip:       1
  * Channels:   1

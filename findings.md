@@ -6,6 +6,97 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CODEC-RETURN LANES NAMED FROM THE MEASURED MAP: THE TALKBACK XLR IS SLOT 3, THE GRAPH HAD IT ON SLOT 0, AND THE MINI-JACK'S RIGHT LEG HAS NO LANE AT ALL (2026-09-19, session 71 — desk only, no unit touched)
+
+Report: `MW/D24/DSP/s71/codec-lanes.md`. Pair built here, **not deployed**: chip1
+`abd2bea9fb0da81722861c52e3b06af8` (452,008 B), chip2
+`3a9c950d3551b6c5d7ff58925a47ec81` (307,980 B) — chip 2 byte-identical to the shipping
+image on record since S67, the whole change being chip 1's.
+
+**The map, and which row is a measurement.** The AK4619's TDM256 slot order is fixed by
+the part (datasheet Table 2 mode 10, Figure 19: ADC1 L, ADC1 R, ADC2 L, ADC2 R) and the
+init image does not re-point anything (`0BH = 0x00`: all four channels differential on
+their own pins). With the netlist (`mx26 docs/d24-analog-paths.csv`) that gives:
+slot 0 = ADC1 Lch = IN1P = mini-jack **tip**, aux in L (NETLIST); slot 1 = ADC1 Rch =
+IN2P = mini-jack **ring**, aux in R (NETLIST, **not received**); slot 2 = ADC2 Lch =
+IN3, **both pins are one-pin nets — not connected on rev C** (NETLIST); slot 3 = ADC2
+Rch = IN4N/IN4P = **talkback XLR J1** (**MEASURED**, S70-1: +41.75 dB loop gain constant
+to 0.003 dB over 40 dB of drive while slots 0 and 2 did not move).
+
+**S71-1. All three codec-return lane labels were wrong, and the error put the talkback
+mic into the main mix.** `C1_XIN_CODEC_01` was labelled "Codec ADC 1 (TB XLR)" and is
+the mini-jack tip; `C1_XIN_CODEC_04` was labelled "Codec ADC 4 (Aux In R)", is the
+talkback XLR, and was wired to `XFER_CODEC_AUX_R` — so the talkback reached
+`C2_CODEC_AUX_IN` and MAIN, while `C1_TALK_01` read a connector that is normally empty.
+The labels came from the codec's ADC CHANNEL numbers read as TDM slot numbers.
+Rewired in `tools/dsp/gen_dsp_csv.py` as a three-way rotation: `C1_TALK_01` ←
+`C1_XIN_CODEC_04`, `XFER_CODEC_AUX_L` ← `C1_XIN_CODEC_01`, `XFER_CODEC_AUX_R` ←
+`C1_XIN_CODEC_03`. `C1_TALK_02` stays on `C1_XIN_MEMS`. **Cell names unchanged** —
+`Talk[1-4]Gain[1-1]` and the rest of the contract did not move.
+
+**Proved on the linked image, not the source.** `elfdump -ns sec_swco_ovf chip1.dxe` at
+`_C1_TALK_01_process`: `0018b2ac  1000 0009 5b05  r0=dm (_buf_C1_XIN_CODEC_04);` — and
+`chip1.sym.json` gives `_buf_C1_XIN_CODEC_04 = 0x95b05` (it used to load `0x95add` =
+`_buf_C1_XIN_CODEC_01`). That lane is `TEST_MEAS` **MeasChan 53**, the code every row of
+the S70 capture set was taken on. The MeasChan codes 51..54 themselves did NOT move —
+they are the wire contract that data was captured against; only their comments changed.
+
+**S71-2. `DSP4_TALK_INVERT`: the polarity branch, in, OFF, and free.** The talkback is
+inverted by wiring — J1 pin 2 (hot) on `IN4N`, pin 3 on `IN4P`; netlist, and S70-6 T5
+measured +181.56° extrapolated to DC — and the AK4619 has no polarity bit. The flag
+picks the other sign of the Q4.28 scale constant the node already multiplies its ramped
+gain by: `r2 = 0x4D800000` becomes `r2 = 0xCD800000`. **`cmp -l` between the two chip-1
+images reports exactly ONE differing byte** (offset 290336, `0x4D` → `0xCD`), same
+452,008 bytes: zero cycles, zero words. Scoped by a node param `invert_opt` that
+`gen_dsp_csv.py` puts on `C1_TALK_01` alone, so the MEMS instance emits no `#if` and
+cannot move when PW rules between the sign here and swapping `C4`/`C11` at IN4 on rev D.
+Wired through `build.sh` and named 0 in `shipping.config` — without that it is a flag
+that silently does nothing, which is the S11-1 trap and did happen once here.
+
+**S71-3. 🔴 The aux-in RIGHT leg has no lane, and this session did not invent one.** The
+mini-jack ring is slot 1; slot 1 is not received. `XFER_CODEC_AUX_R` is therefore parked
+on slot 2, which is IN3, which is not connected — the converter's own floor and nothing
+else. A placeholder, chosen because it stops the talkback reaching MAIN without deciding
+what aux R should be. **Slot 1 is not a SPORT setting**: `lane_layout()` in
+`dsp_codegen.py` ORs each lane's `cs_mask` from the slots of the nodes declared on it
+(`cs |= 1 << slot`), so `0x000D` is simply the three rows in `superset_c1`. Adding a
+`C1_XIN_CODEC_02` row is one line and would make the mask `0x000F`. Question in the S71
+dispatch block for the hub.
+
+**S71-4. `DSP4_TALK_INVERT` cannot be read back off the part, and `diag.h`'s own rule
+says it should be.** "A switch that changes cost or audio and cannot be read back is a
+gap the next session pays for" — and this one changes audio. No bit exists:
+`DIAG_BUILD_CFG` is 31..24 signature / 23..8 allocated / 7..0 `DSP4_BLOCK_SIZE`;
+`DIAG_BUILD_CFG2` has 23..0 allocated (S18 spent the last two) and its signature already
+narrowed from eight bits to seven so S49 could have bit 24. A bit means narrowing that
+signature again — breaking every seven-bit decoder — or a third word. Hub's call; named
+as a gap in `build.sh` beside the flag rather than taken unilaterally.
+
+**S71-5. `shared/dsp4-logic/slot-map.csv` rows `A_I4,0..3` carry the same wrong names
+and were deliberately NOT edited, for a measured reason.** `gen_slot_map.py` hashes the
+two source CSVs into the generated Verilog header, so a COMMENT-ONLY edit moves
+`source_hash` from `sha256:2c53de21…` to `sha256:d778a1ac…`. Tested in a scratch copy:
+the diff against the committed `dsp4_slot_map.vh` is that one line and nothing else. The
+HDL is identical and the bitstream would be, but the stamp reads as a CPLD source
+change. Exact replacement text is in the report §6c for the hub to land with whatever
+re-stamp it wants. The same rows also name the part **AK4916**; the board has an
+**AK4619**.
+
+**Contract: nothing moved, proved rather than asserted.** After
+`./regenerate-dsp-contract.sh`, `git status` lists twelve files and not one is an
+address artefact. `MW/D32/DSP/dsp_address_map.md` byte-identical (5,827 rows); all four
+`MW/*/MX/_matrix.csv` byte-identical; `ghost_cells.h` and both `dsp_params.asm`
+byte-identical. `dsp.csv`: 700 nodes before and after, chip 1 441 / chip 2 259, `c1_alloc`
+still ending at page 1 addr 4983 and chip 2 at page 1 addr 2175 — **0 addresses moved**,
+the only changed columns on the six changed rows being `label`, `inputs`, `outputs` and
+`C1_TALK_01`'s added `invert_opt`. `./check-contract-drift.sh`: "SHARC codegen drift
+check passed (tree == generator output)".
+
+**Owed at the bench.** The mini-jack's tip/ring assignment is netlist and has never been
+seen move. Cable in, drive tip and ring separately, watch MeasChan 51 and 52: expect tip
+to move 51 and ring to move nothing. Mind the level — `04H` comes up `0xBB`, MGN1L/R
+both **+27 dB**, and a line-level source into that will clip. Full note in the report §6d.
+
 ## THE 733-FIELD Table AUDIT WAS ALREADY FIXED BY S53 BEFORE THIS DISPATCH WAS WRITTEN; RE-VERIFIED CLEAN AT defs-v2026.09.16.5, THE SHIPPING IMAGE PROVEN UNMOVED (2026-09-18, session 68 — desk only, no unit touched)
 
 **S68-1. Gates 1 and 4 were closed by S53 (`69c98fb3`, 09:39 09-16), forty-four minutes after the audit this dispatch quotes (09:13 09-16) — the dispatch was written from a stale read of `tasks.md`.** `git log` shows S53's message verbatim: it deleted the `table=` argument from all 86 `add_cell()` call sites and `backfill_matrix()`'s Table-writing branch (`gen_dsp.py:1742` now reads "Table is master-declared and arrives already on the row via the matrix expansion... the generator does not carry a second copy of it (S53)"), and added `check-table-mxdats.py`, wired non-fatal into `check-contract-drift.sh`. Read fresh this session: `grep -n "table="` in `gen_dsp.py` matches nothing but `add_cell`'s own dead default parameter; no call site passes one. No dsp-side line changed in this session — the work here is re-verification at the current pin, not a fix.

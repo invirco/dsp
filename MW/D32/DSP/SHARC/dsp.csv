@@ -351,9 +351,9 @@ C1_MTR_29,1,METER,Ch 29 Meter,1,C1_GAIN_29;C1_FDR_29,,1,4720,taps=post_trim;post
 C1_MTR_30,1,METER,Ch 30 Meter,1,C1_GAIN_30;C1_FDR_30,,1,4724,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_30,
 C1_MTR_31,1,METER,Ch 31 Meter,1,C1_GAIN_31;C1_FDR_31,,1,4728,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_31,
 C1_MTR_32,1,METER,Ch 32 Meter,1,C1_GAIN_32;C1_FDR_32,,1,4732,taps=post_trim;post_fader;gate_gr;comp_gr;comp_gr_src=C1_COMP_32,
-C1_XIN_CODEC_01,1,INPUT_TDM,Codec ADC 1 (TB XLR),1,,C1_TALK_01,-1,-1,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_RET_1,
-C1_XIN_CODEC_03,1,INPUT_TDM,Codec ADC 3 (Aux In L),1,,C1_XS_XFER_CODEC_AUX_L,-1,-1,sport_id=4;slot_start=2;slot_count=1;sport_slots=8;signal=CODEC_RET_3,
-C1_XIN_CODEC_04,1,INPUT_TDM,Codec ADC 4 (Aux In R),1,,C1_XS_XFER_CODEC_AUX_R,-1,-1,sport_id=4;slot_start=3;slot_count=1;sport_slots=8;signal=CODEC_RET_4,
+C1_XIN_CODEC_01,1,INPUT_TDM,Codec ADC 1 (Aux In L / mini-jack tip),1,,C1_XS_XFER_CODEC_AUX_L,-1,-1,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_RET_1,
+C1_XIN_CODEC_03,1,INPUT_TDM,Codec ADC 3 (ADC2 L / not connected),1,,C1_XS_XFER_CODEC_AUX_R,-1,-1,sport_id=4;slot_start=2;slot_count=1;sport_slots=8;signal=CODEC_RET_3,
+C1_XIN_CODEC_04,1,INPUT_TDM,Codec ADC 4 (TB XLR),1,,C1_TALK_01,-1,-1,sport_id=4;slot_start=3;slot_count=1;sport_slots=8;signal=CODEC_RET_4,
 C1_XIN_PI_L,1,INPUT_TDM,Pi PCM L,1,,C1_XS_XFER_PI_L,-1,-1,sport_id=6;slot_start=0;slot_count=1;sport_slots=8;signal=PI_PCM_L,
 C1_XIN_PI_R,1,INPUT_TDM,Pi PCM R,1,,C1_XS_XFER_PI_R,-1,-1,sport_id=6;slot_start=1;slot_count=1;sport_slots=8;signal=PI_PCM_R,
 C1_XIN_MEMS,1,INPUT_TDM,MEMS Talkback Mic,1,,C1_TALK_02,-1,-1,sport_id=7;slot_start=5;slot_count=1;sport_slots=8;signal=MEMS_TB,
@@ -365,7 +365,7 @@ C1_XIN_SNK_05,1,INPUT_TDM,Snake Return 5,1,,C1_XS_XFER_SNAKE_05,-1,-1,sport_id=5
 C1_XIN_SNK_06,1,INPUT_TDM,Snake Return 6,1,,C1_XS_XFER_SNAKE_06,-1,-1,sport_id=5;slot_start=5;slot_count=1;sport_slots=8;signal=SNAKE_RET_06;scope=D32,
 C1_XIN_SNK_07,1,INPUT_TDM,Snake Return 7,1,,C1_XS_XFER_SNAKE_07,-1,-1,sport_id=5;slot_start=6;slot_count=1;sport_slots=8;signal=SNAKE_RET_07;scope=D32,
 C1_XIN_SNK_08,1,INPUT_TDM,Snake Return 8,1,,C1_XS_XFER_SNAKE_08,-1,-1,sport_id=5;slot_start=7;slot_count=1;sport_slots=8;signal=SNAKE_RET_08;scope=D32,
-C1_TALK_01,1,TALKBACK,Talkback 1,1,C1_XIN_CODEC_01,,1,4736,gain_db=0.0;hpf_on=1;route=aux1,GainFast
+C1_TALK_01,1,TALKBACK,Talkback 1,1,C1_XIN_CODEC_04,,1,4736,gain_db=0.0;hpf_on=1;route=aux1;invert_opt=DSP4_TALK_INVERT,GainFast
 C1_TALK_02,1,TALKBACK,Talkback 2,1,C1_XIN_MEMS,,1,4740,gain_db=0.0;hpf_on=1;route=aux1,GainFast
 C1_NOISE,1,NOISE_GEN,Noise Gen,1,,,1,4744,on=0;level_db=-20.0;hpf_on=0,InstantCtl
 C1_BUS_MAIN_L,1,MIX_BUS,Main L Bus,1,C1_RTG_01;C1_RTG_02;C1_RTG_03;C1_RTG_04;C1_RTG_05;C1_RTG_06;C1_RTG_07;C1_RTG_08;C1_RTG_09;C1_RTG_10;C1_RTG_11;C1_RTG_12;C1_RTG_13;C1_RTG_14;C1_RTG_15;C1_RTG_16;C1_RTG_17;C1_RTG_18;C1_RTG_19;C1_RTG_20;C1_RTG_21;C1_RTG_22;C1_RTG_23;C1_RTG_24;C1_RTG_25;C1_RTG_26;C1_RTG_27;C1_RTG_28;C1_RTG_29;C1_RTG_30;C1_RTG_31;C1_RTG_32,C1_BUS_MAIN_L_SEND,1,4748,bus_id=0;source_count=32,
@@ -426,8 +426,8 @@ C1_BUS_MTX_03,1,MIX_BUS,Matrix 3 Bus,1,C1_RTG_01;C1_RTG_02;C1_RTG_03;C1_RTG_04;C
 C1_BUS_MTX_03_SEND,1,INTERCHIP_SEND,Matrix 3 Bus Send,1,C1_BUS_MTX_03,,-1,-1,sport_id=2;slot=7;global_slot=39;sport_slots=16;signal=BUS_MTX_03,
 C1_BUS_MTX_04,1,MIX_BUS,Matrix 4 Bus,1,C1_RTG_01;C1_RTG_02;C1_RTG_03;C1_RTG_04;C1_RTG_05;C1_RTG_06;C1_RTG_07;C1_RTG_08;C1_RTG_09;C1_RTG_10;C1_RTG_11;C1_RTG_12;C1_RTG_13;C1_RTG_14;C1_RTG_15;C1_RTG_16;C1_RTG_17;C1_RTG_18;C1_RTG_19;C1_RTG_20;C1_RTG_21;C1_RTG_22;C1_RTG_23;C1_RTG_24;C1_RTG_25;C1_RTG_26;C1_RTG_27;C1_RTG_28;C1_RTG_29;C1_RTG_30;C1_RTG_31;C1_RTG_32,C1_BUS_MTX_04_SEND,1,4804,bus_id=40;source_count=32,
 C1_BUS_MTX_04_SEND,1,INTERCHIP_SEND,Matrix 4 Bus Send,1,C1_BUS_MTX_04,,-1,-1,sport_id=2;slot=8;global_slot=40;sport_slots=16;signal=BUS_MTX_04,
-C1_XS_XFER_CODEC_AUX_L,1,INTERCHIP_SEND,XFER_CODEC_AUX_L Send,1,C1_XIN_CODEC_03,,-1,-1,sport_id=1;slot=9;global_slot=25;sport_slots=16;signal=XFER_CODEC_AUX_L,
-C1_XS_XFER_CODEC_AUX_R,1,INTERCHIP_SEND,XFER_CODEC_AUX_R Send,1,C1_XIN_CODEC_04,,-1,-1,sport_id=1;slot=10;global_slot=26;sport_slots=16;signal=XFER_CODEC_AUX_R,
+C1_XS_XFER_CODEC_AUX_L,1,INTERCHIP_SEND,XFER_CODEC_AUX_L Send,1,C1_XIN_CODEC_01,,-1,-1,sport_id=1;slot=9;global_slot=25;sport_slots=16;signal=XFER_CODEC_AUX_L,
+C1_XS_XFER_CODEC_AUX_R,1,INTERCHIP_SEND,XFER_CODEC_AUX_R Send,1,C1_XIN_CODEC_03,,-1,-1,sport_id=1;slot=10;global_slot=26;sport_slots=16;signal=XFER_CODEC_AUX_R,
 C1_XS_XFER_PI_L,1,INTERCHIP_SEND,XFER_PI_L Send,1,C1_XIN_PI_L,,-1,-1,sport_id=1;slot=11;global_slot=27;sport_slots=16;signal=XFER_PI_L,
 C1_XS_XFER_PI_R,1,INTERCHIP_SEND,XFER_PI_R Send,1,C1_XIN_PI_R,,-1,-1,sport_id=1;slot=12;global_slot=28;sport_slots=16;signal=XFER_PI_R,
 C1_XS_XFER_SNAKE_01,1,INTERCHIP_SEND,XFER_SNAKE_01 Send,1,C1_XIN_SNK_01,,-1,-1,sport_id=1;slot=13;global_slot=29;sport_slots=16;signal=XFER_SNAKE_01;scope=D32,

@@ -146,7 +146,11 @@ EXTRA_PARAMS = {
     # `mtx_sends` without them rather than guessing an address.
     'ROUTING':        {'fx_on', 'mtx_on', 'mtx_sends', 'mtx_page',
                        'mtx_addr'},
-    'TALKBACK':       {'hpf_on'},
+    # `invert_opt` (S71): the name of a build flag whose 1 negates the
+    # node's input sample. Carried on the talkback XLR instance only --
+    # the inversion is one input's wiring (J1 hot on the codec's IN4N),
+    # not a property of the TALKBACK type.
+    'TALKBACK':       {'hpf_on', 'invert_opt'},
     'TUBE_SAT':       {'on'},
 }
 

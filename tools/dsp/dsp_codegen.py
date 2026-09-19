@@ -5301,6 +5301,17 @@ def gen_aux_input(node):
     """)
 
 
+def _talk_invert_float(node):
+    """The float build's half of `invert_opt` -- see _talk_scale_block.
+    No constant to fold here, so it is one negate under the same flag."""
+    flag = node['params'].get('invert_opt')
+    if not flag:
+        return ''
+    return ('        #if %s\n'
+            '            f1 = -f1;                 /* S71 polarity option */\n'
+            '        #endif' % flag)
+
+
 def gen_talkback(node):
     p = node['params']
     rc = ramp_comment(node['ramp_profile'])
@@ -5351,6 +5362,7 @@ def gen_talkback(node):
             r0 = dm(_buf_{node['inputs_str']});
             /* Apply gain */
             f1 = dm(_talk_gain_{node['id']});
+{_talk_invert_float(node)}
             f0 = f0 * f1;
 
             /* HPF (remove plosives) */
@@ -5693,21 +5705,30 @@ TEST_MEAS_BUS_CODES = dict(
 # the tap can read exactly as it reads a bus.
 #
 # Without these four codes the talkback input CANNOT BE MEASURED AT ALL.
-# `C1_XIN_CODEC_01` feeds only `C1_TALK_01`, whose output is a SCALAR the
+# `C1_XIN_CODEC_04` feeds only `C1_TALK_01`, whose output is a SCALAR the
 # node writes once per block (the one-word-per-block witness shape) and
 # which nothing downstream reads -- the TALKBACK fan-out is the gap
 # dsp-unmapped.csv records against Talk001Dest002/3. So MeasChan 1..32
 # (strips) and 33..50 (buses) both miss the path, and the standard test set
-# has nowhere to stand. Code 51 is the talkback XLR's own ADC lane, which
-# is the right measurement point for an INPUT path anyway: it is the last
-# place the converter's output is still exactly what the converter made.
+# has nowhere to stand. These codes put a tap on the codec's own ADC lanes,
+# which is the right measurement point for an INPUT path anyway: it is the
+# last place the converter's output is still exactly what the converter made.
+#
+# WHICH CODE IS THE TALKBACK: 53. The comments here said 51 and were wrong
+# in the same way the node labels were -- they named the codec's ADC CHANNEL
+# 1 and assumed it was TDM slot 0. S70 settled it by measurement with the
+# AUX 1 -> J1 loop closed: over 40 dB of drive code 53 (slot 3, ADC2 Rch,
+# IN4 = J1) followed the oscillator at +41.75 dB constant to 0.003 dB while
+# 51 and 52 did not move at all. THE CODES THEMSELVES DO NOT CHANGE -- they
+# are the wire contract the S70 capture data was taken against, and moving
+# them would make that data unreadable. Only the names do.
 #
 # Codes only -- no new cell, no new address, and every line they emit is
 # inside `#if DSP4_TEST_NODES`, so the shipping image is unchanged.
 TEST_MEAS_LANE_CODES = {
-    'C1_XIN_CODEC_01': 51,      # CODEC_RET_1 -- talkback XLR J1, AK4619 ADC2 Rch
-    'C1_XIN_CODEC_03': 52,      # CODEC_RET_3 -- aux in L
-    'C1_XIN_CODEC_04': 53,      # CODEC_RET_4 -- aux in R
+    'C1_XIN_CODEC_01': 51,      # CODEC_RET_1 -- slot 0, ADC1 Lch, IN1 = mini-jack tip
+    'C1_XIN_CODEC_03': 52,      # CODEC_RET_3 -- slot 2, ADC2 Lch, IN3 = not connected
+    'C1_XIN_CODEC_04': 53,      # CODEC_RET_4 -- slot 3, ADC2 Rch, IN4 = talkback XLR J1
     'C1_XIN_MEMS': 54,          # MEMS talkback mic
 }
 TEST_MEAS_TAP_CODES = dict(TEST_MEAS_BUS_CODES, **TEST_MEAS_LANE_CODES)
@@ -12008,6 +12029,24 @@ def gen_block_header(mtx_ctl=None):
 #define DSP4_RTA 0
 #endif
 
+/* THE TALKBACK POLARITY OPTION (S71). The D24's talkback XLR J1 has pin 2
+ * (hot) on the AK4619's IN4N and pin 3 (cold) on IN4P, so the talkback
+ * reaches the DSP INVERTED relative to every other input -- read off the
+ * netlist and then measured (S70-6 T5: +181.56 deg extrapolated to DC over
+ * a 21-point unwrapped phase scan). The part has no polarity bit, so the
+ * two ways out are this flag and a board mod (swap C4/C11 at IN4 on rev D).
+ *
+ * With it 1 the TALKBACK node carrying `invert_opt` -- C1_TALK_01, the XLR
+ * one; the MEMS instance is untouched -- multiplies by the NEGATIVE Q4.28
+ * scale constant it already multiplies by, so the flip costs zero cycles
+ * and zero words and the two builds differ by one immediate.
+ *
+ * DEFAULT 0 UNTIL PW RULES. With 0 the image is byte-for-byte what it was
+ * before the option existed. */
+#ifndef DSP4_TALK_INVERT
+#define DSP4_TALK_INVERT 0
+#endif
+
 /* THE CUE BUS (S65, chip1/cue.asm + chip2/cue_rx.asm): the stereo sum of
  * every cued strip (PFL pre-fader / AFL post-pan) and bus, or the assigned
  * source when nothing is cued, sent to chip 2 on MIX_2 slots 9/10 (global
@@ -14489,6 +14528,43 @@ def gen_monitor_fixed(node):
     """)
 
 
+def _talk_scale_block(node):
+    """The Q4.28 scale constant the TALKBACK gain is converted through,
+    and the ONE place a build-time polarity flip can live for free.
+
+    `invert_opt=<FLAG>` on the node (gen_dsp_csv.py puts it on the
+    talkback-XLR instance only) makes the constant selectable: +2^28 with
+    the flag 0, -2^28 with it 1. Both are one `r2 = <imm32>`, so the flip
+    costs ZERO cycles and zero words -- the node already multiplies the
+    ramped float gain by this constant before the FIX, and negating the
+    gain negates the sample.
+
+    WHY IT EXISTS. On the D24 the talkback XLR J1 has pin 2 (hot) on the
+    codec's IN4N and pin 3 (cold) on IN4P, so the talkback arrives
+    inverted relative to every other input (netlist
+    `mx26 docs/d24-analog-paths.md`; measured S70-6 T5, +181.56 deg
+    extrapolated to DC over a 21-point unwrapped scan). The AK4619 has no
+    polarity bit, so the fix is either here or a board mod (swap C4/C11 at
+    IN4 on rev D). DEFAULT OFF: choosing between them is PW's call and the
+    shipping image is byte-for-byte what it was before this option existed.
+
+    A node without the param emits the plain constant, so every other
+    TALKBACK instance -- the MEMS mic, which is NOT inverted -- is
+    untouched, param and all.
+    """
+    flag = node['params'].get('invert_opt')
+    if not flag:
+        return '            r2 = 0x4D800000;'
+    return '\n'.join([
+        f'        #if {flag}',
+        '            r2 = 0xCD800000;          /* -(2^28): the Q4.28 scale with',
+        '                                       * the polarity flip folded in */',
+        '        #else',
+        '            r2 = 0x4D800000;',
+        '        #endif',
+    ])
+
+
 def gen_talkback_fixed(node):
     """Fixed TALKBACK (D5): integer on-gate, float gain ramp + FIX,
     MRF gain, fixed 1-stage HPF (coeffs converted at block rate from
@@ -14497,6 +14573,7 @@ def gen_talkback_fixed(node):
     nid = node['id']
     wireTALK = _bq_wire_var(f'_talk_hpf_coeffs_{nid}', 5)
     inp = node['inputs_str']
+    scale = _talk_scale_block(node)
     return dedent(f"""\
         {rc}
 
@@ -14602,7 +14679,7 @@ def gen_talkback_fixed(node):
             dm(_talk_gain_{nid}) = f1;
         .tk_go_{nid}:
 
-            r2 = 0x4D800000;
+{scale}
             f2 = r2;
             f1 = f1 * f2;
             r1 = fix f1;

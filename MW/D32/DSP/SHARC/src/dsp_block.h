@@ -496,6 +496,24 @@
 #define DSP4_RTA 0
 #endif
 
+/* THE TALKBACK POLARITY OPTION (S71). The D24's talkback XLR J1 has pin 2
+ * (hot) on the AK4619's IN4N and pin 3 (cold) on IN4P, so the talkback
+ * reaches the DSP INVERTED relative to every other input -- read off the
+ * netlist and then measured (S70-6 T5: +181.56 deg extrapolated to DC over
+ * a 21-point unwrapped phase scan). The part has no polarity bit, so the
+ * two ways out are this flag and a board mod (swap C4/C11 at IN4 on rev D).
+ *
+ * With it 1 the TALKBACK node carrying `invert_opt` -- C1_TALK_01, the XLR
+ * one; the MEMS instance is untouched -- multiplies by the NEGATIVE Q4.28
+ * scale constant it already multiplies by, so the flip costs zero cycles
+ * and zero words and the two builds differ by one immediate.
+ *
+ * DEFAULT 0 UNTIL PW RULES. With 0 the image is byte-for-byte what it was
+ * before the option existed. */
+#ifndef DSP4_TALK_INVERT
+#define DSP4_TALK_INVERT 0
+#endif
+
 /* THE CUE BUS (S65, chip1/cue.asm + chip2/cue_rx.asm): the stereo sum of
  * every cued strip (PFL pre-fader / AFL post-pan) and bus, or the assigned
  * source when nothing is cued, sent to chip 2 on MIX_2 slots 9/10 (global

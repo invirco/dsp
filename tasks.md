@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-19 09:05Z — S71 — codec-return lanes named from the measured map; TALKBACK fed from slot 3; polarity as a build option for PW's ruling (desk only)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-19 09:05Z — S71 — codec-return lanes named from the measured map; TALKBACK fed from slot 3; polarity as a build option for PW's ruling (desk only)   [status: 🟢 done — ALL GATES PASSED, ONE 🔴 QUESTION FOR THE HUB (S71-3, below). **The map, with each row marked**: slot 0 = ADC1 Lch = IN1P = mini-jack TIP, aux in L (NETLIST); slot 1 = ADC1 Rch = IN2P = mini-jack RING, aux in R (NETLIST, NOT RECEIVED); slot 2 = ADC2 Lch = IN3, BOTH PINS ARE ONE-PIN NETS — not connected on rev C (NETLIST); slot 3 = ADC2 Rch = IN4N/IN4P = talkback XLR J1 (MEASURED, S70-1). Three independent sources agree: the AK4619's slot order is fixed by the part (datasheet Table 2 mode 10 / Figure 19 SDOUT1: ADC1 L, ADC1 R, ADC2 L, ADC2 R), the init image re-points nothing (`0BH = 0x00`, all four channels differential on their own pins), and the netlist fixes the pins (`P0397` IN1P←minijack TIP, `P0395` IN2P←minijack RING, `P0392/P0393` IN3N/IN3P “net ends here”, `P0001/P0002` analog J1 HOT→IN4N / COLD→IN4P). **S71-1 the rename + rewire**: a three-way rotation in `tools/dsp/gen_dsp_csv.py` — `C1_TALK_01` ← `C1_XIN_CODEC_04`, `XFER_CODEC_AUX_L` ← `C1_XIN_CODEC_01`, `XFER_CODEC_AUX_R` ← `C1_XIN_CODEC_03`; `C1_TALK_02` stays on `C1_XIN_MEMS`, stated. CELL NAMES UNCHANGED. **0 ADDRESSES MOVED, PROVED**: after `./regenerate-dsp-contract.sh` twelve files changed and not one is an address artefact — `dsp_address_map.md` byte-identical (5,827 rows), all four `MW/*/MX/_matrix.csv` byte-identical, `ghost_cells.h` and both `dsp_params.asm` byte-identical; `dsp.csv` still 700 nodes / 441 / 259 with `c1_alloc` ending page 1 addr 4983 and chip 2 page 1 addr 2175, the six changed rows differing only in `label`, `inputs`, `outputs` and `C1_TALK_01`'s added `invert_opt`. `./check-contract-drift.sh` passed (tree == generator output). **S71-2 the polarity branch**: `DSP4_TALK_INVERT`, DEFAULT 0, NOT TURNED ON, scoped by a node param `invert_opt` to `C1_TALK_01` only so the MEMS instance emits no `#if`. It picks the other sign of the Q4.28 scale constant the node already multiplies by — `cmp -l` between the two chip-1 images reports EXACTLY ONE DIFFERING BYTE (offset 290336, 0x4D→0xCD) at the same 452,008 bytes: ZERO cycles, ZERO words. Wired through `build.sh` + `shipping.config` (without that it silently built the OFF image — the S11-1 trap, hit once here). **Proof without the unit**: read off the linked image, not the source — `elfdump -ns sec_swco_ovf chip1.dxe` at `_C1_TALK_01_process` gives `0018b2ac 1000 0009 5b05  r0=dm (_buf_C1_XIN_CODEC_04);`, and `chip1.sym.json` has `_buf_C1_XIN_CODEC_04 = 0x95b05` (it used to load 0x95add = `_buf_C1_XIN_CODEC_01`). That lane is MeasChan 53, the code every row of the S70 capture set was taken on. MeasChan codes 51..54 DID NOT MOVE — only their comments, which were wrong the same way the labels were. **Pair built here, NOT DEPLOYED** (unit untouched, S70 shipping restore stands): chip1 `abd2bea9fb0da81722861c52e3b06af8` 452,008 B, chip2 `3a9c950d3551b6c5d7ff58925a47ec81` 307,980 B — chip 2 byte-identical to the shipping image since S67, the whole change chip 1's. **S71-4** `DSP4_TALK_INVERT` has no `DIAG_BUILD_CFG`/`CFG2` bit and by diag.h's own rule should: both words are full (CFG2's signature already narrowed 8→7 bits for S49), so a bit means narrowing it again or a third word — hub's call, named as a gap in `build.sh`. **S71-5** `shared/dsp4-logic/slot-map.csv` rows A_I4,0..3 carry the same wrong names AND the wrong part (AK4916; the board has an AK4619) and were deliberately NOT edited: `gen_slot_map.py` hashes the source CSVs into the generated Verilog header, so a comment-only edit moves `source_hash` 2c53de21…→d778a1ac… and reads as a CPLD source change (measured in a scratch copy — the .vh diff is that one line and nothing else). Replacement text in the report §6c. Report `MW/D24/DSP/s71/codec-lanes.md` (hand-off §6a defs `diagram-master.csv` io.codecaux/tb, §6b mx26 `d24-tdm-map.csv` row I4 + `d24-signals-index.md` lines 139/219/820, §6c this repo's slot-map, §6d the owed bench note for the mini-jack tip/ring). Findings S71-1..5 in `findings.md`]   [model: opus]
 
 model: opus
 
@@ -13,6 +13,38 @@ GATES.
 6. findings S71-1..n, tasks.md, commit + push, clean.
 
 Bounded ≈ 1.5 h. Fully specified: no design decisions; anything that looks like one is a 🔴 note with the question (never a dialog), not a guess.
+
+🔴 **S71-3 — QUESTION FOR THE HUB: what feeds the aux-in RIGHT leg?**
+
+The mini-jack's ring is codec slot 1 (ADC1 Rch, IN2P) and **slot 1 is not received**.
+Gate 1 ruled that out of scope for this session, which leaves `XFER_CODEC_AUX_R` with no
+correct source. It is parked on `C1_XIN_CODEC_03` (slot 2 = IN3, **not connected on rev
+C**), so aux R currently carries an unconnected converter's floor. That is a PLACEHOLDER,
+chosen because it is the only option that fixes the actual defect — the talkback XLR
+reaching MAIN through the codec-aux path — without deciding anything else. Options:
+
+1. **Receive slot 1.** Add a `C1_XIN_CODEC_02` / `CODEC_RET_2` row to `superset_c1` in
+   `tools/dsp/gen_dsp_csv.py` and point `XFER_CODEC_AUX_R` at it. `lane_layout()` then
+   derives `cs_mask` 0x000F on its own — no SPORT register is set by hand anywhere. Cost:
+   one more INPUT_TDM node on chip 1 (no SPI allocation, so **no address moves**), one
+   more lane word per block in the RX region. This is the only option that makes the aux
+   input actually stereo, and it is what the netlist says the hardware is.
+2. **Mono aux from the tip.** Point both `XFER_CODEC_AUX_L` and `_R` at
+   `C1_XIN_CODEC_01`. No new node; the aux input becomes mono-from-tip and a stereo
+   source loses its right channel silently.
+3. **Leave it on slot 2** (what is committed). Honest — aux R has no source and reads a
+   dead converter lane — but it puts an unconnected input's noise floor into MAIN
+   whenever the codec-aux path is unmuted, exactly as it does today.
+
+Recommendation, stated but not taken: **option 1**. It is one line, it moves no address,
+and it is the only one that matches the board. It needs the hub because it changes the
+received slot set, which is a wire-contract fact `defs` and the LOGIC slot map both
+describe.
+
+Related and also the hub's: `Talk[1-1]Gain[1-1]` now reaches a node that IS in the
+talkback path (S70 recorded that it did not). The S70 combined-law proposal for that
+cell (MGN2R 3 dB steps + VOLAD2R 0.5 dB trim, published −6..+27 dB rather than 0..40)
+is unaffected by anything done here.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;

@@ -492,10 +492,33 @@ for ch in range(1, NUM_CH + 1):
 # all of these at boot (default off/muted). No SPI allocations here, so
 # legacy chip-1 addresses are unaffected.
 
+# THE CODEC RETURN LANES, NAMED FROM THE MEASURED MAP (S71).
+# The first three labels here were a guess and all three were wrong. The
+# AK4619 puts its four ADC channels on SDOUT1 in the fixed TDM256 order
+# ADC1 L, ADC1 R, ADC2 L, ADC2 R (datasheet Table 2 mode 10, Figure 19),
+# the init image leaves 0BH = 0x00 so every channel reads its own
+# differential pin pair with no selector in the way, and the D24 analog
+# netlist then fixes the rest:
+#
+#   slot 0  ADC1 Lch  IN1P/IN1N  mini-jack TIP   aux in L   NETLIST
+#   slot 1  ADC1 Rch  IN2P/IN2N  mini-jack RING  aux in R   NETLIST, NOT RECEIVED
+#   slot 2  ADC2 Lch  IN3P/IN3N  NOT CONNECTED              NETLIST
+#   slot 3  ADC2 Rch  IN4N/IN4P  talkback XLR J1 MEASURED   (S70-1, inverted)
+#
+# S70 closed the AUX 1 -> J1 loop and drove it over 40 dB: slot 3 followed
+# the oscillator at +41.75 dB constant to 0.003 dB while slots 0 and 2 did
+# not move at all. So the talkback XLR is slot 3, not slot 0, and what the
+# graph called "Codec ADC 1 (TB XLR)" carries the mini-jack.
+#
+# SLOT 1 IS NOT RECEIVED, and that is this list's doing rather than a SPORT
+# setting: lane_layout() in dsp_codegen.py derives each lane's cs_mask from
+# the slots of the nodes declared on it, so the three rows below are exactly
+# the 0x000D the part sees. Adding the aux-R lane means adding a
+# `C1_XIN_CODEC_02` row here -- a hub call, not this session's (S71-3).
 superset_c1 = [
-    ('C1_XIN_CODEC_01', 'CODEC_RET_1', 'Codec ADC 1 (TB XLR)', None),
-    ('C1_XIN_CODEC_03', 'CODEC_RET_3', 'Codec ADC 3 (Aux In L)', None),
-    ('C1_XIN_CODEC_04', 'CODEC_RET_4', 'Codec ADC 4 (Aux In R)', None),
+    ('C1_XIN_CODEC_01', 'CODEC_RET_1', 'Codec ADC 1 (Aux In L / mini-jack tip)', None),
+    ('C1_XIN_CODEC_03', 'CODEC_RET_3', 'Codec ADC 3 (ADC2 L / not connected)', None),
+    ('C1_XIN_CODEC_04', 'CODEC_RET_4', 'Codec ADC 4 (TB XLR)', None),
     ('C1_XIN_PI_L', 'PI_PCM_L', 'Pi PCM L', None),
     ('C1_XIN_PI_R', 'PI_PCM_R', 'Pi PCM R', None),
     ('C1_XIN_MEMS', 'MEMS_TB', 'MEMS Talkback Mic', None),
@@ -503,15 +526,22 @@ superset_c1 = [
      for s in range(1, 9)]
 
 # fabric pass-throughs: XFER signal -> source input node
+# The aux-in pair follows the map above: L is slot 0 (mini-jack tip).
+# The R leg has no lane to take -- the ring is slot 1 and slot 1 is not
+# received -- so it stays on slot 2, which is an unconnected converter
+# input and therefore carries the ADC's own floor and nothing else. That
+# is a PLACEHOLDER, not a routing decision (S71-3): what it buys is that
+# the talkback XLR stops arriving on the codec-aux path into MAIN, which
+# is the defect S70-1 found, without inventing a source for aux R.
 xfer_map = [
-    ('XFER_CODEC_AUX_L', 'C1_XIN_CODEC_03', None),
-    ('XFER_CODEC_AUX_R', 'C1_XIN_CODEC_04', None),
+    ('XFER_CODEC_AUX_L', 'C1_XIN_CODEC_01', None),
+    ('XFER_CODEC_AUX_R', 'C1_XIN_CODEC_03', None),
     ('XFER_PI_L', 'C1_XIN_PI_L', None),
     ('XFER_PI_R', 'C1_XIN_PI_R', None),
 ] + [(f'XFER_SNAKE_{s:02d}', f'C1_XIN_SNK_{s:02d}', 'D32') for s in range(1, 9)]
 
 xin_consumer = {src: f'C1_XS_{sig}' for sig, src, _ in xfer_map}
-xin_consumer['C1_XIN_CODEC_01'] = 'C1_TALK_01'
+xin_consumer['C1_XIN_CODEC_04'] = 'C1_TALK_01'
 xin_consumer['C1_XIN_MEMS'] = 'C1_TALK_02'
 
 for nid, sig, label, scope in superset_c1:
@@ -521,15 +551,36 @@ for nid, sig, label, scope in superset_c1:
     add(nid, 1, 'INPUT_TDM', label, 1, '', xin_consumer[nid], params=ip)
 
 # --- TALKBACK ×2 ---
-# Sources wired 2026-07-31 per hardware map: TALK_01 = codec ADC ch1
-# (talkback XLR), TALK_02 = surface MEMS mic.
+# TALK_01 = the talkback XLR J1, TALK_02 = the surface MEMS mic.
+#
+# TALK_01's source was wired to `C1_XIN_CODEC_01` on 2026-07-31 from the
+# hardware map's channel NUMBER, and the number was the codec's ADC
+# channel 1 rather than a TDM slot. S70-1 measured the XLR on slot 3, so
+# it now reads `C1_XIN_CODEC_04` -- the lane the tone actually arrives on.
+# TALK_02 is unchanged: the MEMS mic is its own lane on sport 7 and the
+# graph has always had it right.
+#
+# `invert_opt` (S71): the build flag whose 1 negates this node's input.
+# It is on TALK_01 ONLY, because the inversion it answers is a property of
+# ONE input's wiring -- J1 pin 2 (hot) lands on the codec's IN4N and pin 3
+# on IN4P, so the talkback reaches the DSP upside down (netlist
+# `d24-analog-paths.md` "Talkback and aux"; measured S70-6 T5 at +181.56
+# deg DC-extrapolated). The MEMS mic is not inverted and must not move.
+# Costs nothing: the flag picks the other sign of the Q4.28 scale constant
+# the node already multiplies by, so the image is the same instruction
+# count either way. DEFAULT OFF -- the choice between fixing it here and
+# swapping C4/C11 at IN4 on rev D is PW's, not the generator's.
 p, a = c1_alloc.next(8)
-talk_sources = {1: 'C1_XIN_CODEC_01', 2: 'C1_XIN_MEMS'}
+talk_sources = {1: 'C1_XIN_CODEC_04', 2: 'C1_XIN_MEMS'}
+talk_invert_opt = {1: 'DSP4_TALK_INVERT'}
 for t in [1, 2]:
+    tp = f'gain_db=0.0;hpf_on=1;route=aux1'
+    if t in talk_invert_opt:
+        tp += f';invert_opt={talk_invert_opt[t]}'
     add(f'C1_TALK_{t:02d}', 1, 'TALKBACK', f'Talkback {t}', 1,
         talk_sources[t], '',
         spi_page=p, spi_addr=a + (t-1)*4,
-        params=f'gain_db=0.0;hpf_on=1;route=aux1',
+        params=tp,
         ramp_profile='GainFast')
 
 # --- NOISE GENERATOR ---
