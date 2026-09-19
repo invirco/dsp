@@ -2295,8 +2295,8 @@ Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,2293,pwm,255,
 Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,2294,pwn,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,,,,,,,,-
 Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,2295,pwo,2,,,,,,,,,,,,,,,,,,,,,,-
 Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,2296,pwp,255,,,,,,,,,,,,,,,,,,,,,,-
-Test001SweepOn001,1,1,1,true,false,Start frequency sweep,2297,pwq,2,,,,,,,,,,,,,,,,,,,,,,-
-Test001SweepStep001,1,1,1,true,false,Sweep step count,2298,pwr,255,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepOn001,1,1,1,true,false,"Periodic log sine sweep (chirp) 20Hz-20kHz on OscChan at OscLevel; needs OscOn; 0 = tone, 1 = chirp",2297,pwq,2,,,,,,,,,,,,,,,,,,,,,,-
+Test001SweepStep001,1,1,1,true,false,Chirp period in units of 1024 samples; 0 = 16 (16384 samples = one capture),2298,pwr,255,,,,,,,,,,,,,,,,,,,,,,-
 Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,2299,pws,255,,,,,,,,,,,,,,,,,,,,,,-
 Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,2300,pwt,33,,,,,,,,,,,,,,,,,,,,,,-
 Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,2301,pwu,255,,,,,,,,,,,,,,,,,,,,,,-

@@ -6929,8 +6929,8 @@ Test001OscFreq001,1,1,1,true,false,Oscillator frequency 20Hz-20kHz,6927,ishw,255
 Test001OscLevel001,1,1,1,true,false,Oscillator output level dBFS,6928,isih,61,,,,,,,,,,0=-60/127=0/[Lin],,,,,1,1,4977,0x1371,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 Test001OscOn001,1,1,1,true,false,Precision sine oscillator enable,6929,isii,2,,,,,,,,,,,,,,,1,1,4975,0x136F,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 Test001RmsResult001,1,1,1,true,false,Read-back: RMS level,6930,isij,255,,,,,,,,,,,,,,,1,1,4968,0x1368,,,,-,,Instant,0,0,Linear,Scalar
-Test001SweepOn001,1,1,1,true,false,Start frequency sweep,6931,isik,2,,,,,,,,,,,,,,,1,1,4979,0x1373,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-Test001SweepStep001,1,1,1,true,false,Sweep step count,6932,isil,255,,,,,,,,,,,,,,,1,1,4980,0x1374,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001SweepOn001,1,1,1,true,false,"Periodic log sine sweep (chirp) 20Hz-20kHz on OscChan at OscLevel; needs OscOn; 0 = tone, 1 = chirp",6931,isik,2,,,,,,,,,,,,,,,1,1,4979,0x1373,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Test001SweepStep001,1,1,1,true,false,Chirp period in units of 1024 samples; 0 = 16 (16384 samples = one capture),6932,isil,255,,,,,,,,,,,,,,,1,1,4980,0x1374,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 Test001ThdResult001,1,1,1,true,false,Read-back: THD+N ratio,6933,isim,255,,,,,,,,,,,,,,,1,1,4969,0x1369,,,,-,,Instant,0,0,Linear,Scalar
 Test001XtalkDst001,1,1,1,true,false,Crosstalk destination channel,6934,isin,33,,,,,,,,,,,,,,,1,1,4972,0x136C,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 Test001XtalkResult001,1,1,1,true,false,Read-back: crosstalk level dB,6935,isio,255,,,,,,,,,,,,,,,1,1,4973,0x136D,,,,-,,Instant,0,0,Linear,Scalar

@@ -6,6 +6,70 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## defs-v2026.09.19.3 CONSUMED: THE D24 RTA GATE LANDS CLEAN, ZERO EXISTING ADDRESSES MOVED (2026-09-19, session 74c — desk only, no unit touched)
+
+Third pass at S74's gate 2. The hub landed S74b's proposal byte-for-byte as
+`defs-v2026.09.19.3` (D24's `dsp-unmapped.csv` gains the two `Rta001On001`/
+`Rta001Src001` no-graph-node rows, mirroring D32's). Consumed here in full.
+
+**S74c-1. `defs.lock` advanced to `defs-v2026.09.19.3`
+(`6fd91594315912e856b2e092d9b259f0d02da016`).** `./sync-defs.sh --update-lock`
+expands all four products clean under the DictReader parse gate S74b added:
+D12 2,336 / D16 3,318 / D24 5,002 / D32 7,014 rows, every `MxAdd` numeric.
+D12/D16/D32 reproduce their prior matrix generation ids exactly
+(`de54028f6fe2`/`7938e0d7ffc7`/`e473dd8c42d5` — untouched by the RTA change);
+D24's generation moves to `54c7eafc8811` (the two new rows insert mid-file,
+per S74b-2, and the `Test[1-1]SweepOn[1-1]` description quoting fix from
+`.19.2` lands in D12/D16/D32's description text — content only, not
+addresses).
+
+**S74c-2. `gen_dsp.py --check-proposal`: zero errors on D32 and D24.** The
+graph reproduces the landed `dsp.csv`/`dsp-unmapped.csv` exactly for both
+products.
+
+**S74c-3. The two RTA rows are unmapped by design — no DSP address
+assigned, as expected.** `gen_dsp.py --force`: D32 unchanged at 5,780/5,780
+mapped cells addressed (7,014 cells defined, matches HEAD exactly); D24
+moves to 3,989/3,989 mapped cells addressed out of 5,002 defined (was
+3,989/5,000 — the two new cells add to the *defined* count only, both land
+in `dsp-unmapped.csv` as `no-graph-node`, neither in `dsp.csv`). Checked
+directly, not assumed: a cell-by-cell diff of `MW/D24/MX/_matrix.csv`
+against `git show HEAD:` over every DSP address column (`DspSpi`, `DspPage`,
+`DspAdd`, `DspAddHex`, `RampProfile`) finds 0 diffs for any pre-existing
+cell — the only two added rows are `Rta001On001`/`Rta001Src001`, both with
+every address column blank. Same check on D32: 7,014/7,014 cells match
+HEAD, 0 address-column diffs.
+
+**S74c-4. All eight generated address artefacts byte-identical to HEAD.**
+`ghost_cells.h` (both the DSP tree and `FW/H1S1/Core/{Inc,Src}` copies),
+`mx_dsp_map.h`, `dsp_address_map.md`, and both chips'
+`SHARC/src/chip{1,2}/dsp_params.asm` — `git diff --stat` empty on all seven
+files (the eighth, `dsp.csv`/`dsp-unmapped.csv` itself, is the defs-side
+proposal already confirmed identical to the landed rows in S74b). Only
+`_matrix.csv` (four products, expected — the expansion) and
+`MW/D24/DSP/input_patch.json` (one line, the `"contract"` version string)
+changed in the tree.
+
+**S74c-5. `./check-contract-drift.sh` passes clean, exit 0.** SHARC codegen
+drift: 0 differ, 0 emitted-but-absent (732 files, tree == generator output).
+Matrix contract: D12/D16/D24/D32 `MxAdd` contiguous, compatibility check
+passed against the 376-family D32 allowlist. The 82-row Table/MxDatS
+breakpoint mismatch report is pre-existing (reported for the hub, not fixed
+here, unrelated to RTA — same rows as every prior session's run).
+
+**S74c-6. Shipping pair rebuilt, byte-identical to S74's own recorded
+hashes.** `MW/D32/DSP/SHARC/build.sh clean && ./build.sh` (talkback invert
+still on, per S74): `chip1.ldr` `10a413005e0647f5c66476f6a0b4ab60`
+(452,388 B), `chip2.ldr` `e88a7a4302950d088a6c023c949c916e` (307,980 B) —
+matches S74-8 exactly, byte for byte, confirming the DSP address map and the
+compiled image are unmoved by the RTA defs bump. Not deployed; the unit was
+not touched.
+
+**What is committed:** `defs` (submodule pointer → `.19.3`), `defs.lock`,
+`MW/{D12,D16,D24,D32}/MX/_matrix.csv`, `MW/D24/DSP/input_patch.json`,
+`tasks.md` (S74/S74b blocks closed), this entry. No hand edits to any
+generated file; no DSP address moved for any pre-existing cell.
+
 ## TALKBACK POLARITY SIGNED IN CODE (D24 SHIPPING ON), AND THE RTA DEFS BUMP BLOCKED BY AN UPSTREAM EXPANDER DEFECT (2026-09-19, session 74 — desk only, no unit touched)
 
 Report: `MW/D24/DSP/s74/talkback-invert-and-rta-block.md`. Two PW rulings
