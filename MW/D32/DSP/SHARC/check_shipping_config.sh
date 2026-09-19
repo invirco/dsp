@@ -75,6 +75,14 @@ want2 = {
     'DSP4_TX_EARLY':          bdefault('DSP4_TX_EARLY', 0),
     'DSP4_GATHER_FIRST':      bdefault('DSP4_GATHER_FIRST', 1),
     'DSP4_FX_TYPE_DECLARED':  bdefault('DSP4_FX_TYPE_DECLARED', 0),
+    # S74: DSP4_TALK_INVERT was in DIAG_BUILD_CFG2 (bit 29, S72) but never
+    # in THIS check's want2 -- shipping.config could disagree with the
+    # dsp4_buildcfg.SHIPPING2 mirror on this one key and neither the WORD1
+    # loop above (which only compares against `mirror`, the word-1 dict,
+    # and this key is not in it) nor this dict would have caught it. Closed
+    # the same way the other word-2 switches are: build.sh's default, then
+    # shipping.config's override.
+    'DSP4_TALK_INVERT':       bdefault('DSP4_TALK_INVERT', 0),
 }
 # DSP4_SIMD_STRIPS is derived: build.sh defaults it to 1 whenever
 # DSP4_SIMD_DYN is on. Derived, so computed here rather than read.
@@ -105,6 +113,7 @@ w = (0xCF000000
      | (mirror['DSP4_BLK_LATCH'] << 9) | (mirror['DSP4_BLOCK_KERNELS'] << 8)
      | mirror['block'])
 w2 = (0xC2000000
+      | ((1 if mirror2['DSP4_TALK_INVERT'] else 0) << 29)
       | ((mirror2['decimate'] & 0xFF) << 16)
       | (mirror2['DSP4_FX_TYPE_DECLARED'] << 7)
       | (mirror2['DSP4_GATHER_FIRST'] << 6)

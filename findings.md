@@ -6,6 +6,98 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## TALKBACK POLARITY SIGNED IN CODE (D24 SHIPPING ON), AND THE RTA DEFS BUMP BLOCKED BY AN UPSTREAM EXPANDER DEFECT (2026-09-19, session 74 — desk only, no unit touched)
+
+Report: `MW/D24/DSP/s74/talkback-invert-and-rta-block.md`. Two PW rulings
+dispatched (2026-09-19 evening). Gate 1 (talkback) passed in full. Gate 2
+(RTA defs bump) is BLOCKED — not a design question, a data-corruption defect
+found in `defs/tools/expand_matrix.py`; `main`'s defs pin is unchanged,
+still `defs-v2026.09.16.5`.
+
+**S74-1. `DSP4_TALK_INVERT` is ON for the D24 shipping build.**
+`shipping.config` (this tree's one copy, `DSP4_CHAN_MASK=1` — the D24's)
+now carries `DSP4_TALK_INVERT=1`; `DIAG_BUILD_CFG2` moves **0xC2010244 →
+0xE2010244** (bit 29, S72's design), confirmed to the bit by `cfg_words.py
+--check`.
+
+**S74-2. `check_shipping_config.sh` had a real, silent gap: it never
+checked `DSP4_TALK_INVERT` at all**, since S72 added the flag to
+`DIAG_BUILD_CFG2` but not to this script's `want2` dict, and the WORD1 loop
+that checks every `shipping.config` key against the word-1 `SHIPPING` dict
+skips any word-2-only key. Closed: added to `want2` (build.sh default, then
+`shipping.config` override, same as every other word-2 switch) and to the
+printed word-2 formula. Runs clean, printing `DIAG_BUILD_CFG2 0xE2010244`.
+
+**S74-3. `tools/pi/dsp4_buildcfg.py`'s `SHIPPING2` mirror updated**
+(`DSP4_TALK_INVERT` 0 → 1) so a bench `--expect-shipping` read scores
+against the new default instead of flagging the correct image as wrong.
+
+**S74-4/5/6. `diag.h`, `build.sh` and `dsp_codegen.py`'s stale "OFF UNTIL PW
+RULES" language updated to the ruling** (diag.h's note appended, not
+rewritten — the S72 bit-29-not-bit-25 narrative is unchanged and still
+correct). `dsp_block.h` regenerated per the hard rule (never hand-edit a
+generated file); `./check-sharc-codegen-drift.sh` found exactly the expected
+one-file, comment-only drift beforehand and passes clean (732/732) after.
+
+**S74-7. The T5 phase correction, computed from the S70 capture data, not
+measured on the unit.** S70-6's T5 scan: phase extrapolated to DC =
+**+181.56°**, residual attributed to the fit itself (max 0.19° over 21
+points). A sign flip is an exact 180° shift at every frequency:
+`181.56° − 180° = 1.56°` — the SAME 1.56° S70-6 already called the fit's own
+error, i.e. the corrected sign lands the talkback at the fit's noise floor,
+≈ 0°, exactly the design prediction. Arithmetic only; the unit was not
+touched.
+
+**S74-8. New shipping pair built here, NOT deployed, and it reproduces
+S72's own recorded hashes exactly**: chip1 `10a413005e0647f5c66476f6a0b4ab60`
+(452,388 B), chip2 `e88a7a4302950d088a6c023c949c916e` (307,980 B) — S72's
+"`DSP4_TALK_INVERT=1`" row, byte for byte, because nothing about the node
+code changed, only which arm `shipping.config` now names by default.
+Against a control build (`DSP4_TALK_INVERT=0` override — the previous
+shipping arm, `7d1ab146...`/`3a9c950d...`, also reproduced exactly): **chip 1
+differs at 2 bytes** (the config word's top byte, and the Q4.28 sign S71/S72
+already located), **chip 2 differs at exactly 1 byte — the config word, and
+nothing else.**
+
+**S74-9 🔴 `defs/tools/expand_matrix.py` parses its input with a bare
+`line.split(',')` (no CSV quoting), and `common/cells/mx_master.csv` has
+needed quoting since `defs-v2026.09.16.6` (S60): `Test[1-1]SweepOn[1-1]`'s
+description is properly CSV-quoted in the source and contains a comma.** The
+naive split corrupts field alignment from that row to EOF in every
+product's expansion — `csv.DictReader` (what `gen_dsp.py` and every gate in
+this repo actually use) parses only 6,931 of 7,014 D32 rows and 4,874 of
+~5,000 D24 rows; `wc -l`/`grep`/`sha256sum` (what `sync-defs.sh` uses) see
+nothing wrong, because the physical bytes are intact. Reproduced directly
+from `defs/tools/expand_matrix.py` outside any of this repo's own tooling.
+Present at every tag since `.16.6`, **including the target
+`defs-v2026.09.19.1`**, unrelated to the RTA change, and uncaught until now
+only because no dsp session advanced the defs pin past `.16.5` in between.
+
+**Isolated, not assumed**: a clean worktree at `defs-v2026.09.16.5` (no
+expansion re-run) passes `gen_dsp.py --check-proposal` with zero errors for
+both products; the new D24 expansion's cell list, read as plain text
+(immune to the quoting bug), is identical to the committed `HEAD` matrix
+plus exactly the two expected appended rows, `Rta001On001` /
+`Rta001Src001` — so gate 2's "0 existing addresses moved, 2 new unmapped
+rows" would have been exactly true had the expander not been broken.
+
+**Reverted, not landed.** `gen_dsp.py`'s own fatal check refused to proceed
+on the corrupted comparison, so nothing was backfilled or installed from
+it — but leaving even the submodule pointer + `defs.lock` bumped would break
+`check-contract-drift.sh` for every session after this one, for a reason
+unrelated to RTA. `git -C defs checkout defs-v2026.09.16.5`, expansion
+stages removed, `defs.lock` and `MW/{D12,D16}/MX/_matrix.csv` restored
+(D12/D16 install directly and were already corrupted the same way in the
+working tree — caught before commit). Confirmed clean at HEAD after.
+
+**🔴 S74-10, for the hub.** `defs/tools/expand_matrix.py` needs a real CSV
+reader (`csv.reader`/`csv.writer`) or equivalent quote-awareness — options
+not decided here: fix the expander in `invirco/defs`, or as a stopgap strip
+the comma from the `Test[1-1]SweepOn[1-1]` description (content, not a
+tooling fix — the next comma in a free-text field reintroduces this).
+Blocks the D24 RTA landing and anything else advancing the defs pin past
+`.16.5` until fixed.
+
 ## MEASCHAN 55 FOR THE NEW CODEC LANE, AND THE MINI-JACK BENCH NOTE CORRECTED (2026-09-19, session 73 — desk only, no unit touched)
 
 Hub ruling on S72-8: the lane S72 declared (`C1_XIN_CODEC_02` = `CODEC_RET_2` = SPORT 4

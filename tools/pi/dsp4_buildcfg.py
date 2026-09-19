@@ -130,9 +130,9 @@ SHIPPING2 = {
     'DSP4_SIMD_STRIPS': 0,
     'DSP4_SCOPE_BLK_TAP': 0,
     'DSP4_TEST_NODES': 0,
-    # S72. 0 until PW rules on "sign in the node" vs the rev D board mod
-    # (swap C4/C11 at IN4); shipping.config has it 0.
-    'DSP4_TALK_INVERT': 0,
+    # S74 (PW ruling 2026-09-19 evening: "tb polarity can be signed in
+    # code"). shipping.config has it 1; the D24 ships inverted-corrected.
+    'DSP4_TALK_INVERT': 1,
     # S9-2 Option A, ADOPTED on CHIP 2 by PW 2026-09-09. A MASK:
     # 1 = chip 1's inter-chip TX, 2 = chip 2's converter TX, 3 = both.
     # Costs +16 samples of output latency on the chip that has it, so

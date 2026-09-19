@@ -508,8 +508,11 @@
  * scale constant it already multiplies by, so the flip costs zero cycles
  * and zero words and the two builds differ by one immediate.
  *
- * DEFAULT 0 UNTIL PW RULES. With 0 the image is byte-for-byte what it was
- * before the option existed. */
+ * RULED ON for the D24 shipping build, S74 (PW, 2026-09-19 evening: "tb
+ * polarity can be signed in code"); shipping.config now carries 1. DEFAULT
+ * HERE STAYS 0 -- this is the fallback for a build that defines neither the
+ * macro nor passes -D (build.sh always does); with 0 the image is
+ * byte-for-byte what it was before the option existed. */
 #ifndef DSP4_TALK_INVERT
 #define DSP4_TALK_INVERT 0
 #endif

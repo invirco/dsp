@@ -451,7 +451,18 @@
  * bits 23..0 are full. THE NEXT flag of this kind needs a third word
  * (DIAG_BUILD_CFG3), not a seventh narrowing -- at six bits the "a garbage
  * read is not a config" property this word was invented for is as thin as it
- * should ever get. */
+ * should ever get.
+ *
+ * RULED, S74 (PW, 2026-09-19 evening): "tb polarity can be signed in code."
+ * `shipping.config` carries `DSP4_TALK_INVERT=1` for the D24 build -- the
+ * D24 SHIPS INVERTED-CORRECTED, DIAG_BUILD_CFG2 reading 0xE2010244 rather
+ * than the 0xC2010244 it read before this bit existed. The board mod (swap
+ * C4/C11 at IN4 on rev D) was the other option on the table and was not
+ * taken. This ONE shared shipping build is currently the D24's
+ * (DSP4_CHAN_MASK=1 in shipping.config, S72 G1) -- there is no D32
+ * shipping.config in this tree yet for the flag to default differently
+ * against, so "D32 unchanged" is not proved here, only stated as not yet
+ * contradicted; see the S74 report. */
 #ifndef DSP4_TALK_INVERT
 #define DSP4_TALK_INVERT 0
 #endif

@@ -307,23 +307,27 @@ fi
 # Q4.28 scale constant it already multiplies by, so the flip costs zero
 # cycles and zero words and the two images differ by one immediate.
 #
-# OFF UNTIL PW RULES between the sign here and a board mod (swap C4/C11 at
-# IN4 on rev D). With 0 the image is byte-identical to a build without the
-# option.
+# RULED ON, S74 (PW, 2026-09-19 evening: "tb polarity can be signed in
+# code"), against the alternative of a board mod (swap C4/C11 at IN4 on rev
+# D), which was not taken. shipping.config now carries 1 for the D24 build
+# (this tree's one shipping.config is the D24's, DSP4_CHAN_MASK=1, S72 G1);
+# the default here stays 0 so a bare `./build.sh` with no config file, or a
+# `DSP4_TALK_INVERT=0` override, still builds the OFF image.
 #
 # IT IS IN DIAG_BUILD_CFG2, BIT 29 (S72; the gap S71-4 named is closed). The
 # flag changes AUDIO, which is the class diag.h says must be readable off the
 # part, and bits 23..0 of that word were full -- so it took a ZERO bit of the
 # signature, the same move S49 made for DSP4_TEST_NODES at bit 24. With it 0
-# the word is 0xC2010244, exactly what it read before the bit existed; with
-# it 1 the word is 0xE2010244, which every older decoder rejects outright
-# rather than reporting as a shipping image. See the note in src/diag.h.
+# the word is 0xC2010244, what it read before the bit existed; with it 1 the
+# word is 0xE2010244 -- what the D24 shipping build reads now -- which every
+# older decoder rejects outright rather than reporting as a shipping image.
+# See the note in src/diag.h.
 DSP4_TALK_INVERT="${DSP4_TALK_INVERT:-0}"
 CFLAGS="$CFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"
 ASMFLAGS="$ASMFLAGS -DDSP4_TALK_INVERT=$DSP4_TALK_INVERT"
 if [ "$DSP4_TALK_INVERT" != "0" ]; then
     echo "  *** TALKBACK POLARITY INVERTED: DSP4_TALK_INVERT=$DSP4_TALK_INVERT ***"
-    echo "  *** NOT a shipping switch position until PW rules (S71-2) ***"
+    echo "  *** the D24 shipping switch position since S74 (PW 2026-09-19) ***"
 fi
 
 # BLOCK-AWARE SCOPE WITNESS (DSP4_SCOPE_BLK_TAP, 2026-09-09, findings S9-5).
