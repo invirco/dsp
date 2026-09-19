@@ -1,0 +1,71 @@
+    --- matrix.cs.bak-2026-09-19-pre-s69	2026-08-21 20:22:14.122767009 +0100
+    +++ matrix.cs	2026-09-19 08:33:34.126112410 +0100
+    @@ -73,6 +73,7 @@
+     
+     void TestMessage(void);
+     void StartAK4619(void);
+    +void CodecPoll(void);
+     void TestMicPres(void);
+     void TimeSplice(void);
+     void SpiTx(GPIO_TypeDef *port, uint16_t cs, int numBytes, unsigned char bytePtr[]);
+    @@ -112,6 +113,52 @@
+         }
+     }
+     
+    +/* CODEC REGISTER WRITE FROM THE MATRIX BUS (S69, PW ruling 2026-09-19:
+    + * "use h1s1 to get the test spec, and we'll add a dedicated CS6 wire later").
+    + *
+    + * The AK4619's gain is NOT a 595 code -- it is MGN2R[3:0] in register 05H,
+    + * inside the codec -- so until the CS6 wire exists the only way to reach it
+    + * is H1S1's own SPI master. Two cells that already exist and that the app
+    + * does not use carry the write:
+    + *
+    + *   Sys001Test001 = the register address (05H for the mic gains)
+    + *   Sys001Test002 = the data byte, and writing it is what TRIGGERS the write
+    + *
+    + * so the bus line pair "imjn5\n" + "imjoB2\n" sets 05H := 0xB2, MGN2L +27 dB
+    + * / MGN2R 0 dB. Register 0xFF is not a codec register and means "re-run
+    + * StartAK4619()", a re-init lever that needs no reset of the whole bus.
+    + *
+    + * 0xC3 + 16-bit address + one data byte is the single-register write form
+    + * (datasheet 9.12 Table 27: MSB of the command code is the R/W flag, the
+    + * low seven bits are the access area; 9.13 gives 0xC3 write / 0x43 read).
+    + * The block form StartAK4619() uses is the same command with N data bytes
+    + * and an auto-incrementing address.
+    + *
+    + * CALLED FROM MainLoop, NOT FROM Eol. Eol runs in the UART interrupt and
+    + * SpiTx blocks for up to a second; a codec write must not sit inside the
+    + * bus receive path. The flag is cleared after the write, so a line that
+    + * arrives while the previous write is still in flight is not lost.
+    + *
+    + * hspi1 shares SCK/MOSI copper with the CM4's SPI0 (the two-master wiring
+    + * on rev D; the 2026-08-21 change removed H1S1's PERIODIC writes for this
+    + * reason). Nothing here is periodic: one write per bus line, only when the
+    + * host asks. The HOST is what has to keep its own SPI quiet around it. */
+    +void CodecPoll(void)
+    +{
+    +    if (matrix[pSys001Test002][RXF])
+    +    {
+    +        unsigned char reg = matrix[pSys001Test001][RXD];
+    +        unsigned char val = matrix[pSys001Test002][RXD];
+    +        if (reg == 0xFF) { StartAK4619(); }
+    +        else
+    +        {
+    +            unsigned char w[4] = { 0xC3, 0x00, reg, val };
+    +            SpiTx(GPIOA, CS_C_Pin, 4, w);
+    +        }
+    +        matrix[pSys001Test002][RXF] = 0;
+    +    }
+    +}
+    +
+     void MainInit()
+     {
+         // init matrix bus
+    @@ -156,6 +203,7 @@
+             s_blink1 = s_blink;
+         }
+             Poll();
+    +        CodecPoll();
+             TimeSplice();
+     }
+     

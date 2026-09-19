@@ -485,6 +485,10 @@
 .extern _buf_C1_BUS_GRP_04;
 .extern _buf_C1_BUS_MAIN_L;
 .extern _buf_C1_BUS_MAIN_R;
+.extern _buf_C1_XIN_CODEC_01;
+.extern _buf_C1_XIN_CODEC_03;
+.extern _buf_C1_XIN_CODEC_04;
+.extern _buf_C1_XIN_MEMS;
 #endif
 
 #if DSP4_BLOCK_KERNELS && DSP4_CUE
@@ -5763,6 +5767,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 51;
+    r1 = _buf_C1_XIN_CODEC_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -5778,6 +5787,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 52;
+    r1 = _buf_C1_XIN_CODEC_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -5792,6 +5806,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_CODEC_04;
     r1 = _buf_C1_XIN_CODEC_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 53;
+    r1 = _buf_C1_XIN_CODEC_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -5837,6 +5856,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_MEMS;
     r1 = _buf_C1_XIN_MEMS;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 54;
+    r1 = _buf_C1_XIN_MEMS;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -11149,6 +11173,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 51;
+    r1 = _buf_C1_XIN_CODEC_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -11164,6 +11193,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 52;
+    r1 = _buf_C1_XIN_CODEC_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -11178,6 +11212,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_CODEC_04;
     r1 = _buf_C1_XIN_CODEC_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 53;
+    r1 = _buf_C1_XIN_CODEC_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -11223,6 +11262,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_MEMS;
     r1 = _buf_C1_XIN_MEMS;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 54;
+    r1 = _buf_C1_XIN_MEMS;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -16103,6 +16147,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_01;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 51;
+    r1 = _buf_C1_XIN_CODEC_01;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -16118,6 +16167,11 @@ _chip1_process_all:
     r1 = _buf_C1_XIN_CODEC_03;
     call _scope_tap;
 #endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 52;
+    r1 = _buf_C1_XIN_CODEC_03;
+    call _test_meas_tap;
+#endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -16132,6 +16186,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_CODEC_04;
     r1 = _buf_C1_XIN_CODEC_04;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 53;
+    r1 = _buf_C1_XIN_CODEC_04;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
@@ -16177,6 +16236,11 @@ _chip1_process_all:
     r0 = _buf_C1_XIN_MEMS;
     r1 = _buf_C1_XIN_MEMS;
     call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES
+    r0 = 54;
+    r1 = _buf_C1_XIN_MEMS;
+    call _test_meas_tap;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP

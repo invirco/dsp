@@ -5686,6 +5686,31 @@ TEST_MEAS_BUS_CODES = dict(
     [('C1_BUS_MAIN_L', 33), ('C1_BUS_MAIN_R', 34)]
     + [('C1_BUS_AUX_%02d' % a, 34 + a) for a in range(1, 13)]
     + [('C1_BUS_GRP_%02d' % g, 46 + g) for g in range(1, 5)])
+# THE CONVERTER-RETURN LANES (S69). The same pseudo-strip trick one step
+# further back: a chip-1 INPUT_TDM that is NOT part of a strip declares its
+# own `_buf_<nid>[DSP4_BLOCK_SIZE]` (gen_input_tdm: the pool is for strip
+# inputs only) and fills it from the DMA lane at full rate, so it is a block
+# the tap can read exactly as it reads a bus.
+#
+# Without these four codes the talkback input CANNOT BE MEASURED AT ALL.
+# `C1_XIN_CODEC_01` feeds only `C1_TALK_01`, whose output is a SCALAR the
+# node writes once per block (the one-word-per-block witness shape) and
+# which nothing downstream reads -- the TALKBACK fan-out is the gap
+# dsp-unmapped.csv records against Talk001Dest002/3. So MeasChan 1..32
+# (strips) and 33..50 (buses) both miss the path, and the standard test set
+# has nowhere to stand. Code 51 is the talkback XLR's own ADC lane, which
+# is the right measurement point for an INPUT path anyway: it is the last
+# place the converter's output is still exactly what the converter made.
+#
+# Codes only -- no new cell, no new address, and every line they emit is
+# inside `#if DSP4_TEST_NODES`, so the shipping image is unchanged.
+TEST_MEAS_LANE_CODES = {
+    'C1_XIN_CODEC_01': 51,      # CODEC_RET_1 -- talkback XLR J1, AK4619 ADC2 Rch
+    'C1_XIN_CODEC_03': 52,      # CODEC_RET_3 -- aux in L
+    'C1_XIN_CODEC_04': 53,      # CODEC_RET_4 -- aux in R
+    'C1_XIN_MEMS': 54,          # MEMS talkback mic
+}
+TEST_MEAS_TAP_CODES = dict(TEST_MEAS_BUS_CODES, **TEST_MEAS_LANE_CODES)
 # THE CAPTURE ARM'S BUFFER (S56), in SAMPLES, and a whole number of blocks
 # so the copy can never run past the end. 16,384 samples = 341 ms at 48 kHz:
 # 6.8 cycles of 20 Hz, a 2.93 Hz bin. Lives in L2 (seg_delay), where the
@@ -6225,8 +6250,9 @@ def gen_test_meas(node):
     A(" * same reason the oscillator's six are: the SPI dispatch table")
     A(' * names them. The four Result words are READ-ONLY to the host --')
     A(' * this node writes them and the host polls. */')
-    A('.var _meas_chan_%s   = %d;   /* 1..32 strip, 33..50 bus (S67), 0 = off */'
+    A('.var _meas_chan_%s   = %d;   /* 1..32 strip, 33..50 bus (S67),'
       % (nid, int(float(p.get('meas_chan', '0')))))
+    A('                                 51..54 converter-return lane (S69), 0 = off */')
     A('.var _meas_rms_%s    = 0.0;   /* ro: total RMS,        dBFS */' % nid)
     A('.var _meas_thd_%s    = 0.0;   /* ro: THD+N vs total,   dB   */' % nid)
     A('.var _meas_noise_%s  = 0.0;   /* ro: noise+distortion, dBFS */' % nid)
@@ -19559,11 +19585,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # XtalkDst and the capture arm then read a bus exactly as they
             # read a strip, which is what lets fader / pan / assign / sum be
             # measured where the strip maths ends: at the bus.
-            if nid in TEST_MEAS_BUS_CODES:
+            if nid in TEST_MEAS_TAP_CODES:
                 _bus_tapped.add(nid)
                 _test_hooked.add('_test_meas_tap')
                 return ['#if DSP4_BLOCK_KERNELS && DSP4_TEST_NODES',
-                        f'{indent}r0 = {TEST_MEAS_BUS_CODES[nid]};',
+                        f'{indent}r0 = {TEST_MEAS_TAP_CODES[nid]};',
                         f'{indent}r1 = _buf_{nid};',
                         f'{indent}call _test_meas_tap;',
                         '#endif']

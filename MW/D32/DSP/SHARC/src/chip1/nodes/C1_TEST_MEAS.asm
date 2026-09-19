@@ -25,7 +25,8 @@
  * names them. The four Result words are READ-ONLY to the host --
  * this node writes them and the host polls. */
 .global _meas_chan_C1_TEST_MEAS;
-.var _meas_chan_C1_TEST_MEAS   = 0;   /* 1..32 strip, 33..50 bus (S67), 0 = off */
+.var _meas_chan_C1_TEST_MEAS   = 0;   /* 1..32 strip, 33..50 bus (S67),
+                                 51..54 converter-return lane (S69), 0 = off */
 .global _meas_rms_C1_TEST_MEAS;
 .var _meas_rms_C1_TEST_MEAS    = 0.0;   /* ro: total RMS,        dBFS */
 .global _meas_thd_C1_TEST_MEAS;

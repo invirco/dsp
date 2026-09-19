@@ -1,0 +1,32 @@
+{"ev": "codec_reg", "reg": 9, "val": 0, "t": 1789805224.513}
+{"ev": "codec_reg", "reg": 9, "val": 16, "t": 1789805225.36}
+{"ev": "codec_reg", "reg": 9, "val": 32, "t": 1789805226.252}
+{"ev": "codec_reg", "reg": 9, "val": 40, "t": 1789805227.192}
+{"ev": "codec_reg", "reg": 9, "val": 48, "t": 1789805228.166}
+{"ev": "codec_reg", "reg": 9, "val": 64, "t": 1789805229.102}
+{"ev": "codec_reg", "reg": 9, "val": 48, "t": 1789805229.994}
+{"ev": "codec_reg", "reg": 0, "val": 0, "t": 1789805254.557}
+{"ev": "codec_reg", "reg": 0, "val": 23, "t": 1789805255.41}
+{"ev": "codec_reg", "reg": 0, "val": 55, "t": 1789805256.262}
+{"ev": "codec_reg", "reg": 6, "val": 0, "t": 1789805281.862}
+{"ev": "codec_reg", "reg": 6, "val": 48, "t": 1789805283.303}
+{"ev": "codec_reg", "reg": 7, "val": 0, "t": 1789805283.923}
+{"ev": "codec_reg", "reg": 7, "val": 48, "t": 1789805285.402}
+{"ev": "codec_reg", "reg": 8, "val": 0, "t": 1789805286.021}
+{"ev": "codec_reg", "reg": 8, "val": 48, "t": 1789805287.411}
+{"ev": "codec_reg", "reg": 9, "val": 0, "t": 1789805288.03}
+{"ev": "codec_reg", "reg": 9, "val": 48, "t": 1789805289.658}
+{"ev": "mgn2r", "code": 0, "db": -6.0, "tool": "05H := 0xB0  MGN2L=B (+27 dB)  MGN2R=0 (-6 dB)", "t": 1789805368.003}
+{"ev": "mgn2r", "code": 1, "db": -3.0, "tool": "05H := 0xB1  MGN2L=B (+27 dB)  MGN2R=1 (-3 dB)", "t": 1789805369.492}
+{"ev": "mgn2r", "code": 2, "db": 0.0, "tool": "05H := 0xB2  MGN2L=B (+27 dB)  MGN2R=2 (+0 dB)", "t": 1789805371.026}
+{"ev": "mgn2r", "code": 3, "db": 3.0, "tool": "05H := 0xB3  MGN2L=B (+27 dB)  MGN2R=3 (+3 dB)", "t": 1789805372.587}
+{"ev": "mgn2r", "code": 4, "db": 6.0, "tool": "05H := 0xB4  MGN2L=B (+27 dB)  MGN2R=4 (+6 dB)", "t": 1789805374.229}
+{"ev": "mgn2r", "code": 5, "db": 9.0, "tool": "05H := 0xB5  MGN2L=B (+27 dB)  MGN2R=5 (+9 dB)", "t": 1789805375.81}
+{"ev": "mgn2r", "code": 6, "db": 12.0, "tool": "05H := 0xB6  MGN2L=B (+27 dB)  MGN2R=6 (+12 dB)", "t": 1789805377.344}
+{"ev": "mgn2r", "code": 7, "db": 15.0, "tool": "05H := 0xB7  MGN2L=B (+27 dB)  MGN2R=7 (+15 dB)", "t": 1789805378.912}
+{"ev": "mgn2r", "code": 8, "db": 18.0, "tool": "05H := 0xB8  MGN2L=B (+27 dB)  MGN2R=8 (+18 dB)", "t": 1789805380.551}
+{"ev": "mgn2r", "code": 9, "db": 21.0, "tool": "05H := 0xB9  MGN2L=B (+27 dB)  MGN2R=9 (+21 dB)", "t": 1789805382.037}
+{"ev": "mgn2r", "code": 10, "db": 24.0, "tool": "05H := 0xBA  MGN2L=B (+27 dB)  MGN2R=A (+24 dB)", "t": 1789805383.571}
+{"ev": "mgn2r", "code": 11, "db": 27.0, "tool": "05H := 0xBB  MGN2L=B (+27 dB)  MGN2R=B (+27 dB)", "t": 1789805385.13}
+{"ev": "mgn2r", "code": 11, "db": 27.0, "tool": "05H := 0xBB  MGN2L=B (+27 dB)  MGN2R=B (+27 dB)", "t": 1789805386.774}
+{"ev": "codec_reg", "reg": 255, "val": 0, "t": 1789805422.919}
