@@ -242,6 +242,53 @@ for p in "${PRODUCTS[@]}"; do
   MATRIX_TMP[$P]="$tmp"
   python3 "$DEFS_DIR/tools/expand_matrix.py" \
     "$DEFS_DIR/gen/matrix/$p-mx-master.csv" -o "$tmp" >/dev/null
+
+  # THE PARSE GATE (S74b, from S74-9/S74-10). expand_matrix.py used to read
+  # its input with a bare `line.split(',')`, so a CSV-quoted description
+  # containing a comma (common/cells/mx_master.csv's `Test[1-1]SweepOn[1-1]`,
+  # since defs-v2026.09.16.6) mis-aligned every field from that row on. The
+  # bytes were all still there -- `wc -l`/sha256sum, which is all the checks
+  # above this point use, saw nothing wrong -- but csv.DictReader (what
+  # gen_dsp.py and every gate in this repo actually parses the expansion
+  # with) merged the tail of the file into one ragged field: 6,931/7,014 D32
+  # rows, 4,874/~5,000 D24 rows. This would have passed sync-defs.sh clean
+  # and landed a damaged matrix. The expander now parses and writes real CSV
+  # (defs-v2026.09.19.2), so this reproves it on every run rather than
+  # trusting that upstream never regresses: DictReader must see exactly one
+  # row per non-header line, and every row's MxAdd must be a bare integer --
+  # the two invariants a naive comma split can violate without changing a
+  # single byte count.
+  if ! python3 - "$tmp" <<'PY'
+import csv, sys
+
+path = sys.argv[1]
+with open(path, newline='') as f:
+    line_count = sum(1 for _ in f)
+with open(path, newline='') as f:
+    rows = list(csv.DictReader(f))
+
+fail = False
+if len(rows) + 1 != line_count:
+    print(f"PARSE GATE FAILED: {len(rows)} DictReader rows + 1 header != "
+          f"{line_count} lines -- a field is swallowing a comma or a "
+          f"newline and misaligning every row after it.", file=sys.stderr)
+    fail = True
+
+bad = [r.get('_Cell', '?') for r in rows if not (r.get('MxAdd') or '').strip().isdigit()]
+if bad:
+    print(f"PARSE GATE FAILED: {len(bad)} row(s) have a non-numeric MxAdd "
+          f"(first 5): {bad[:5]}", file=sys.stderr)
+    fail = True
+
+sys.exit(1 if fail else 0)
+PY
+  then
+    echo "ERROR: $p's expansion failed the DictReader parse gate -- the" >&2
+    echo "       expander produced bytes that hash correctly but do not" >&2
+    echo "       parse as real CSV. Nothing was written." >&2
+    exit 1
+  fi
+
   MATRIX_SHA[$P]="$(sha "$tmp")"
   MATRIX_GEN[$P]="$(python3 "$DEFS_DIR/tools/matrix_gen_id.py" "$tmp" \
                      | awk '$1=="base-id"{print $2}')"

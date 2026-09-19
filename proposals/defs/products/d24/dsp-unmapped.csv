@@ -771,6 +771,8 @@ Rec001Level001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP add
 Rec001Play001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Rec001Rec001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Rec001Src001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Rta001On001,no-graph-node,"RTA analyser; no node in the graph. It is a read-only meter family and a NEW NODE CLASS — 31 band-passes plus 31 detectors on one selected source — so it is priced before it is built rather than after. BY CONSTRUCTION against the measured GEQ (the same 31-band cascade, already in this graph): one RTA instance is one GEQ cascade plus a per-band detector, on ONE source instead of per aux. It is not built: the source select below has no ruling behind it, and a meter family that reads the wrong point is worse than none"
+Rta001Src001,no-graph-node,"RTA input source select (main/aux/cue). No node in the graph, and the cell cannot be bound before the analyser exists. The master names three source kinds and not which instances, so the pick list is a product question and is carried, not guessed"
 Sys001AuxOnFdr001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001BtnBright001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001Cue001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected

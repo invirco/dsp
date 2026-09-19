@@ -12175,3 +12175,84 @@ REBOOT and was not taken here.
 `dsp4_dsp_latency.py` now refuses the verdict when the coherent fraction is
 0.0 % on every rep, exits 2, and names the capture-path requirement in the
 message.
+
+## S74b — defs-v2026.09.19.2 consumed with strict drift; a new sync-defs.sh parse gate
+
+**S74b-1. The fixed expander (`defs-v2026.09.19.2`) parses correctly.**
+Checked out and expanded directly: D24 5,002 / D32 7,014 rows under
+`csv.DictReader`, every `MxAdd` numeric on both, `Test001SweepOn001` lands at
+D24 4874 / D32 6931 exactly as S74-9 predicted it would once the expander
+stopped corrupting the row. `gen_dsp.py --check-proposal` on the two
+products' existing (pre-RTA) cell sets reproduces the landed contract with
+zero errors, confirming the fix touches parsing only, per the upstream
+commit message ("no cell, address or master change").
+
+**S74b-2. 0 existing DSP addresses moved; the raw matrix `MxAdd` column is a
+different address space and DOES shift — expected, not a regression.**
+All eight DSP address artefacts (`dsp.csv`/`dsp-unmapped.csv` proposals,
+`gen_dsp.py --propose` output) are byte-identical to `git show HEAD:` for
+every pre-existing cell on both D24 and D32 (Table column excluded per the
+S53 comparison rule). Separately, the bare expansion's own `MxAdd` column
+(the console-facing matrix address `expand_matrix.py` assigns, position-based
+over the master's row order, entirely independent of the DSP SPI address
+`gen_dsp.py` backfills) DOES shift by +2 for every D24 cell after the
+insertion point once the two `Rta` rows land — they insert at master row
+position between `Rec001Src001` and `Grp001CompAtt001` (MxAdd 4082/4083 in
+the new numbering), not at the tail of the file. This is defs' own cell
+ordering, out of this repo's remit, and orthogonal to the "0 addresses
+moved" gate, which is about the DSP SPI map this repo owns.
+
+**S74b-3 🔴, for the hub. Gate 1 cannot fully land this session — not a
+design question, a missing upstream mirror.** D24's declaring `rta,1`
+(`.19.1`) adds `Rta001On001`/`Rta001Src001` to its cell set with no DSP
+address (as expected — both are `no-graph-node` in `gen_dsp.py`'s own
+`_UNMAPPED_REASONS`, unchanged since S25: RTA control cells have no graph
+node backing them, priced not built). `gen_dsp.py`'s no-fallback check
+(`check_proposal()`, which gates ALL of `CONTRACT_PRODUCTS = (d32, d24)`
+together before anything backfills) therefore refuses — correctly — because
+`defs/products/d24/dsp-unmapped.csv` doesn't yet carry these two rows, and
+this blocks D32's backfill too even though D32 is untouched by `.19.1`/
+`.19.2` (D32 already declared `rta,1` earlier and already carries the
+identical two rows). **The fix is a one-file, two-row, zero-risk mirror of
+what's already landed for D32**: `proposals/defs/products/d24/dsp-unmapped.csv`
+now carries `Rta001On001`/`Rta001Src001`, byte-identical to D32's landed
+rows (diffed and confirmed). No dsp.csv change (0 addressed cells added).
+Land this in `invirco/defs` (copy the two rows into
+`products/d24/dsp-unmapped.csv`, the same handoff S44/S49 used), tag it, and
+a following session can consume the pin fully. **`main` is left exactly as
+found on the defs side** (submodule back at `defs-v2026.09.16.5`,
+`defs.lock` and `MW/{D12,D16}/MX/_matrix.csv` unchanged) for the same reason
+S74 gave: landing the pin bump alone would fail `check-contract-drift.sh`
+for every session after this one, for a reason this repo cannot fix from
+its own side.
+
+**S74b-4. `sync-defs.sh` gains the DictReader parse gate.** Right after
+`expand_matrix.py` writes its temp file, before hashing: every non-header
+line must produce exactly one `DictReader` row (`rows + 1 == wc -l`), and
+every row's `MxAdd` must be a bare integer. Hard `exit 1`, unconditional
+(runs under `--update-lock` too — a corrupted expansion must never become
+the new accepted baseline). Proven both ways directly:
+
+```
+$ git -C defs checkout defs-v2026.09.19.1   # pre-fix expander bug, present here too
+$ ./sync-defs.sh
+PARSE GATE FAILED: 2297 DictReader rows + 1 header != 2337 lines -- ...
+PARSE GATE FAILED: 1 row(s) have a non-numeric MxAdd (first 5): ['Test001SweepOn001']
+ERROR: d12's expansion failed the DictReader parse gate -- ...
+
+$ git -C defs checkout defs-v2026.09.19.2   # the fix
+$ ./sync-defs.sh --update-lock
+Updated defs.lock from defs@defs-v2026.09.19.2 (...)
+  D12/D16/D24/D32 all expand cleanly
+```
+
+Confirmed FAIL on `.19.1`, PASS on `.19.2`, exactly the class S74-9/S74-10
+found. `defs` reverted to `.16.5` afterwards per S74b-3; `sync-defs.sh` /
+`gen_dsp.py --check-proposal` / `./check-contract-drift.sh` all confirmed
+clean at HEAD with the new gate in place (0 false positives against the
+current, uncorrupted `.16.5` expansions).
+
+**What is committed:** `sync-defs.sh` (the parse gate) and
+`proposals/defs/products/d24/dsp-unmapped.csv` (+2 rows, the RTA proposal
+for the hub). No defs pin change, no matrix change, no DSP address artefact
+change.
