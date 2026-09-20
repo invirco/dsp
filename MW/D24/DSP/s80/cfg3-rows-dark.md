@@ -198,6 +198,27 @@ exactly once in each boot stream built from this tree, little-endian:
 | `build/chip1.ldr` | `e364c522d3747296c39a2b4a2d912b11` | `0x1c0c4` |
 | `build/chip2.ldr` | `63b40b85a3cd18054ad3639832d78d6a` | `0x20e0c` |
 
+**THE PROOF THAT MATTERS MOST, because it is taken on files that exist
+rather than on an invented arm.** Four named configurations live in this tree
+beside `shipping.config`, and **three of them are indistinguishable in both
+full words**:
+
+| configuration | DIAG_BUILD_CFG | DIAG_BUILD_CFG2 | DIAG_BUILD_CFG3 |
+|---|---|---|---|
+| `shipping.config` | `0xCF45FF10` | `0xE2018264` | **`0xC47C0F26`** |
+| `shipping.config.s20` | `0xCF45FF10` | `0xC2011E4F` | **`0xC47C0024`** |
+| `shipping.config.s21` | `0xCF45FF10` | `0xC2019E6F` | **`0xC47C0324`** |
+| `shipping.config.s26` | `0xCF45FF10` | `0xC2019E6F` | **`0xC47C0F24`** |
+| `shipping.config.s32` | `0xCF45FF10` | `0xC2019E6F` | **`0xC47C0F26`** |
+
+`.s21`, `.s26` and `.s32` all read `0xC2019E6F` — **the same word, for three
+different images**. `.s21` against `.s26` is S27-3, shared-kernel mask 3
+against mask 15, open since S26 and now `0x0324` against `0x0F24`. `.s26`
+against `.s32` is S79's hole, `DSP4_AUXIN_BYPASS` alone, and now `0x0F24`
+against `0x0F26` — one bit, bit 1. **Three configurations that no image could
+tell apart in either full word now answer three different third words**, and
+nothing about `DIAG_BUILD_CFG` or `DIAG_BUILD_CFG2` moved for any of them.
+
 **The negative controls — five, of which the last is on the artifact:**
 
 | control | result |

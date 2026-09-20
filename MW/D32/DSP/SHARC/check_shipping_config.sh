@@ -13,12 +13,42 @@
 # DSP4_GEN_BLOCK (spelt `block` in the word) and the mirror has DERIVED values
 # such as DSP4_BQ_GUARD, which dsp_block.h forces off in a float build. What is
 # not allowed is the same key with two different values.
+#
+# THERE ARE THREE WORDS AS OF S80, and this script checks all three plus the
+# one thing neither the file nor the mirrors own: src/diag.h's literals for
+# DIAG_BUILD_CFG3's instrument bit, which have to agree with the list
+# cfg_words.uncarried() derives. It prints the TRIPLE a shipping image must
+# read back, computed from the bench mirror, and refuses to print it unless
+# cfg_words.py -- computing independently from build.sh and the file -- gets
+# the same three numbers.
+#
+# THIS IS THE HOST HALF. It never touches a part. `tools/pi/dsp4_buildcfg.py
+# --expect-shipping` is the other half and reads the triple off the DSP.
 set -u
 cd "$(dirname "$0")/../../../.."
 python3 - "$@" <<'PY'
 import sys
 sys.path.insert(0, 'tools/dsp')
 import build_config
+
+# THE ARGUMENTS, NAMED RATHER THAN IGNORED (S80). This script took "$@" and
+# looked at none of it, so `check_shipping_config.sh --expect-shipping` --
+# which is how the dispatch that landed DIAG_BUILD_CFG3 spelt it, and a
+# reasonable thing to type -- passed silently and meant nothing. A flag that
+# is accepted and does nothing is worse than one that is refused: it reads
+# like a check that ran. There is exactly one mode here (the HOST half: the
+# file against the mirrors), `--expect-shipping` is accepted as its name
+# because that is what it does, and anything else is refused.
+for _a in sys.argv[1:]:
+    if _a in ('--expect-shipping', '--host'):
+        continue
+    print('check_shipping_config.sh: unknown argument %r.\n'
+          '  This script has one mode: it proves shipping.config and the two\n'
+          '  bench mirrors are one fact, and prints the triple a shipping\n'
+          '  image must read back. `--expect-shipping` is accepted as a name\n'
+          '  for that. To score a PART, run the bench tool:\n'
+          '      tools/pi/dsp4_buildcfg.py --expect-shipping' % _a)
+    sys.exit(2)
 
 # THE FILE, NAMED. This script is about `shipping.config` specifically --
 # it diffs it against the bench mirror -- so it must not follow a
