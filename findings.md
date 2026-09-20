@@ -285,10 +285,15 @@ self-description is worth more than the shorthand, and the image's own config
 word says which it is either way.
 
 **S82-16 🔴 `_comp_envelope` WOULD NOT CORROBORATE AND THE COMPRESSOR VERDICT
-WAS TAKEN ONCE IN FOUR RUNS.** Three of the four family runs this session
-ended COMPRESSOR with `node state unreadable — no verdict for this node`,
-including the control arm, while reading every one of that node's six
-converted parameters successfully in the same pass. `vpeek` returns None for a
+WAS TAKEN ONCE IN FIVE RUNS.** Four of the five family runs this session ended
+COMPRESSOR with `node state unreadable — no verdict for this node` — a
+`BUILD=0` four-family arm, the full fixed-instrument run, the pre-S82 control
+arm, and a `FAMILIES=COMPRESSOR CHIPS=1` arm built and staged for that one
+node — while reading every one of that node's six converted parameters
+successfully in the same pass. The dedicated arm also returned `contract 17 of
+17` and `audio … moved 64/174099163 peak 0x0AF5C27E->0x009537A3 -> LIVE`, so
+the node is running and compressing by about 21 dB while the numeric phase
+declines to score it. `vpeek` returns None for a
 corroborated ZERO unless the zero sentinel agrees, and a fully rested
 compressor envelope is legitimately zero. So the one COMPRESSOR measurement
 this session has (§3.3 of the report) has no A/B beside it, and the bar cannot

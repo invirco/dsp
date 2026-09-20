@@ -427,12 +427,22 @@ S20 settled on one amplitude and got 0.00518 dB; today's run settled on
 `0x0553C1A7` and got 0.02509 dB. A bound on a number chosen that way is a bound
 on the search.
 
-**The COMPRESSOR verdict could not be re-taken on the fixed instrument**: both
-later runs report `node state unreadable — no verdict for this node`, which is
-`vpeek` refusing to corroborate a zero `_comp_envelope_C1_COMP_01` rather than
-a link failure (the same runs read every converted parameter of the same node).
-So the number above stands as the session's one COMPRESSOR measurement. **The
-question for the hub is in §7.**
+**The COMPRESSOR verdict could not be re-taken — FOUR MORE ATTEMPTS, FOUR
+REFUSALS.** A `BUILD=0` four-family arm, the full fixed-instrument run, the
+pre-S82 control arm and finally a `FAMILIES=COMPRESSOR CHIPS=1` arm built and
+staged for the purpose all end the node with `node state unreadable — no
+verdict for this node`. That is `vpeek` declining to corroborate a zero
+`_comp_envelope_C1_COMP_01`, not a link failure: every one of those runs read
+all six of that node's converted parameters `ok` in the same pass, and the
+dedicated arm also reported `contract 17 of 17` and `audio … moved
+64/174099163 peak 0x0AF5C27E->0x009537A3 -> LIVE`, so the compressor is
+plainly running and compressing by about 21 dB.
+
+**So the session has one COMPRESSOR measurement out of five attempts**, and
+that one was taken on the run where the instrument had mis-detected the arm —
+valid for this node for the reason in point 1 above, but with no A/B beside
+it. A contract bound on a number a bar yields once in five tries is the
+substance of §7.2.
 
 ### 3.5 FADER_PAN's two pan legs are the host's wire quantisation, not arithmetic
 
