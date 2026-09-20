@@ -98,10 +98,16 @@ reply: nothing in the capture carried the 0xD594 marker"* — the same defect as
 `bd9c100db7c2` above, on the one artifact where it mattered most, because the
 bench's whole account of what it had measured on rested on a flash log.
 
-PW adopted the S34 fix on 2026-09-20 (S81-Q1). The replacement is
-`dsp4_logic.7a6a4529f29c`, which is now what `loadlogic.sh shipping` names,
-and `loadlogic.sh` refuses to stage ANY artifact whose manifest carries no
-`design_id:` line (S81-Q2, ruled S82).
+PW adopted the S34 fix on 2026-09-20 (S81-Q1). The replacement was
+`dsp4_logic.7a6a4529f29c`, and `loadlogic.sh` refuses to stage ANY artifact
+whose manifest carries no `design_id:` line (S81-Q2, ruled S82).
+
+From S85, `loadlogic.sh shipping` names **`dsp4_logic.d02d83b3cc22`**
+(`32'h83b3cc22`) — the same shipping lane path with the ad[0..2] witness built
+in unconditionally (hub ruling S84-N1). `7a6a4529f29c` is NOT retired: it is
+the artifact every S82-, S83- and S84-era reading was taken on, it is still in
+`bitstream/`, and `./loadlogic.sh shipping-s82` stages it by name. Nothing in
+this folder changes.
 
 | | pof md5 | design_id | converter clock |
 |---|---|---|---|

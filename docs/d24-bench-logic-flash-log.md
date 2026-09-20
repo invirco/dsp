@@ -323,3 +323,24 @@ per flash command.
    guessed; whoever ran them was exercising `a1f6672af6c3` against three
    other pre-converter-clock-fix artifacts before that day's dispatched desk
    work (S34–S37) began.
+
+---
+
+## S85 addendum (2026-09-20 evening)
+
+Six more flashes, all FLASH-OK on attempt 1 with the design ID read back and
+MATCHED before any reading was taken; the table above stops at S84 and this is
+the continuation rather than a rewrite of it.
+
+| artifact | design_id | what it was for |
+|---|---|---|
+| `dsp4_logic_adwit.f2f33d97f578` | `32'h3d97f578` | S85 gate 1 — the two bck8 edges, rails down and rails up |
+| `dsp4_logic_adrt_adwit.43ec02c13e1a` | `32'h02c13e1a` | S85-5 — `ad[0..2]` as a register output |
+| `dsp4_logic_adcdc_adwit.3490d03fcc18` | `32'hd03fcc18` | S85-6 — the mic lanes fed from `cdc_o` |
+| `dsp4_logic_laneid_adwit.12f4fd1cbfc1` | `32'hfd1cbfc1` | S85-7 — every DSPA input pin names itself |
+| `dsp4_logic_driveall.943f27966c28` | `32'h27966c28` | the S82 D24 driven capacity row, re-taken |
+| `dsp4_logic.d02d83b3cc22` | `32'h83b3cc22` | **the adopted shipping label**, left on the part |
+
+`logic_flash.sh`'s default rollback is now `dsp4_logic.d02d83b3cc22.svf` — set
+from this table, after the flash, which is the rule the S84 entry above spells
+out and the reason that line has been stale three times.

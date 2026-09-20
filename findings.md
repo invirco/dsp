@@ -6,6 +6,112 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE LAUNCH PHASE IS NOT THE FAULT, AND THE MIC LANES ARE NOT ON ANY PIN THIS CPLD DRIVES (2026-09-20, session 85)
+
+Hub dispatch `tasks.md` 2026-09-20 13:57Z. S84 left one hypothesis standing —
+the converter launch phase — and one proof unexamined. This session measured
+the first and broke the second.
+Report: `MW/D24/DSP/s85/launch-phase.md`. (S84's findings S84-1..9 are in
+`MW/D24/DSP/s84/mic-lanes.md`; they were never copied here.)
+
+**S85-1 🟢 THE TWO bck8 EDGES RETURN IDENTICAL COUNTS, SO THE LAUNCH PHASE IS
+NOT THE FAULT.** The ad witness now runs six banks — three lanes on
+`bck8_sample` and the same three on `bck8_launch`, counting the same 256 bit
+periods of the same frames, 40.69 ns apart on an 81.38 ns bit period. Rails
+down and rails up alike, the **toggle counts are identical, not close**
+(26/26, 50/50, 48/48) and `ones` differs by at most 2 counts in 256. A lane
+sampled on its own data transition cannot do that: half its bit periods would
+resolve arbitrarily and both statistics would scatter. The data is stable
+across the whole window between the two sampling points, and S84-6's
+hypothesis is disproved by measurement rather than argued away. The knock's
+bit 2 selects the edge and S84's three knock words have it clear, so the S84
+readings are directly comparable without a correction factor.
+
+**S85-3 🟢 S84-4's TOGGLE DOUBLING IS SIGNAL CONTENT, NOT A SAMPLING
+ARTIFACT.** `ad[1]` 26 → 50 and `ad[2]` 26 → 48 when the rails come up,
+`ad[0]` unmoved at 26 — reproduced exactly, and the second bank settles what
+one bank could not: **the doubling appears identically on both edges.** A
+sampling artifact would not. So it is the analog front end reaching converting
+ADCs, measured from inside the CPLD. One new fact narrows `ad[0]`'s
+indifference: its `ones` high-water is 188 in every run while `ad[1]`/`ad[2]`
+both reach 256. The three lanes are three different AK5558s (`ad[0]` = U15,
+mics 1-4/13-16; `ad[1]` = U39, 5-8/17-20; `ad[2]` = U60, 9-12/21-24), so U15
+is converting and framing while its eight channels are not picking up what the
+other two ADCs' are. Still a thing to look at, not a thing to conclude from.
+
+**S85-5/S85-6 🟢 NEITHER A RETIMING REGISTER NOR THE CODEC'S OWN DATA REACHES
+THE MIC BUFFERS.** Two builds, each flashed FLASH-OK on attempt 1 with its
+design ID read back and MATCHED before any reading, each read two-sided in one
+pass with both chips at BOOT_STAGE 7, rails up and the 595 at `0xFC` VERIFIED
+200/200. `_adrt` makes `ad[0..2]` a register output launched on `bck8_launch`
+— the arrangement `driveall` uses and that works — and the witness's launch
+bank counts the very bits that register captures: **the register is loaded
+with live converter data and the DSP reads exact zero out of it.** `_adcdc`
+feeds all three mic lanes from `cdc_o`, the converter lane the DSP reads
+correctly in the same pass: **mic 0 of 32 moving, codec 4 of 4 moving, the
+same bits at the same instant.**
+
+**S85-7 🔴 `driveall` NEVER PROVED WHICH PIN REACHES WHICH SPORT HALF, AND
+FOUR SESSIONS READ IT AS IF IT HAD.** `i_dspa[5:0] = {6{pcm_drive}}` is six
+pins carrying ONE signal, so a receiver reading any of them sees the same bits.
+The test proves the pins reach the DSP; it cannot tell a correct lane mapping
+from a permuted one, nor either from a receiver reading a pin this design
+believes is elsewhere. Its successor `_laneid` gives every DSPA input lane a
+different stream that names its own pin and slot
+(`word[31:16] = {8'hA5, pin, tick, slot}`), and **it proves itself before it
+accuses anything**: in the same pass `XIN_CODEC_01..04` decode to pin 4 slots
+0-3, `XIN_MEMS` to **pin 7 slot 5** (the ADAU7302's 47K strap), and `XIN_PI_L`
+to pin 6 — with its marker one bit later than the others, which is exactly the
+MFD 1 half of `c1_rx_lanes_mfd = {2,2,2,2,2,2,1,2}` against this build's MFD 2
+framing. The instrument reproduces the slot strap and the S78-3 framing
+difference without being told either.
+
+**S85-8 🔴 THE FAULT IS CHIP 1's MIC RX PATH, ON THE DSP SIDE, AND NO LOGIC
+CHANGE CAN FIX IT.** With all eight DSPA input pins carrying distinct,
+identified, non-zero streams, `IN_01` … `IN_32` read `00000000` — no marker,
+nothing from any pin — while six other buffers on the same chip in the same
+image in the same pass decoded their own pin and slot correctly, three
+different pins across six slots. It is not the
+converters, not the analog board, not the clock pair, not the launch phase and
+not the CPLD's lane path in any of the three forms built today. It is SPORT/SRU
+configuration, lane binding or RX DMA for chip 1's sport 0, 1 and 2.
+
+**S85-14 🟢 THE EDGE COMPARISON HAS TO REST ON `toggles`, NOT ON `ones`.**
+The two banks COUNT concurrently but are READ by separate knocks seconds
+apart, so `ones` -- simply what the converter was emitting -- drifts with the
+content between the two readings. The reader's first verdict rule took the
+LAST knock and flagged either statistic moving by more than 4; on the shipping
+re-take that called `ad[0]` a phase difference because `ones` wandered 96-101
+on the sample bank against a flat 96 on the launch bank, while `toggles` was
+26 on both edges in all six knocks. `toggles` is the statistic that MUST move
+if a sampling point sits on a transition -- half those bit periods would
+resolve arbitrarily and the count could not repeat -- so the rule now takes
+the median across knocks, rests the verdict on `toggles`, and reports a large
+`ones` difference as content drift rather than as evidence. No conclusion
+changes; the reasoning behind S85-1 does.
+
+**S85-13 🟢 THE S82 84.34 % D24 DRIVEN ROW HOLDS ON THE ADOPTED LABEL.**
+Re-taken the way S82 took it -- `ARM=s85d24 PRODUCT=d24 ./capacity.sh
+--driven`, no command-line override, on the matching new driveall build
+(`943f27966c28`, design ID read back and MATCHED), both boots, 135,000 blocks
+a row, `build_cfg2 0xE2018E6F` read off the part DURING the measurement, and
+the driven regime proven twice at 48/48 and 28/28 envelopes. **Driven chip 2
+84.35 % against 84.34 %, a delta of +0.01** -- an order of magnitude inside
+the ~0.33-point boot spread S82 documented for that very row. Chip 1 57.62 vs
+57.54; silent rows 43.13/77.54 and 57.50/84.36; **zero missed blocks in all
+twelve chip-rows.** Adopting the label costs nothing measurable, which the
+byte-identical lane path predicted and this now measures.
+
+**S85-11 🟢 `build.sh` HAD THE `CFG_LINE` HOLE ONE LEVEL UP.** `SRC_HASH`
+covers `rtl/*.v`, the qsf, the sdc, the slot-map hash and `CFG_LINE` — but not
+`build.sh`, and `CFG_BITS` is computed BY `build.sh`. Adding a cfg bit for a
+new switch changed what a part answers to the ID knock while leaving its label
+identical: two functionally different bitstreams sharing one label, the exact
+failure the `CFG_LINE` paragraph exists to prevent. Caught on the first
+artifact it affected, before anything was measured on it, and closed by
+putting the computed word into `CFG_LINE` so any future change to the
+derivation renames every artifact it changes.
+
 ## THE THREE ANSWERS LAND, THE LATENCY ROW IS TAKEN, AND THE MIC LANES ARE DARK (2026-09-20, session 83)
 
 Hub dispatch `tasks.md` 2026-09-20 12:18Z. The hub answered S82's three

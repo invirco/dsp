@@ -180,14 +180,20 @@ case "${1:-}" in
   # main + s34-converter-clock + s36-xlogic-park (merge 7eabfa5f, S37)
   maincap)      SVF=dsp4_logic_maincap.33b6eb00a4e8.svf ;;
   pisel)        SVF=dsp4_logic_pisel.983656926e3e.svf ;;
-  driveall)     SVF=dsp4_logic_driveall.c49f4128a083.svf ;;
+  driveall)     SVF=dsp4_logic_driveall.943f27966c28.svf ;;
+  driveall-pre85) SVF=dsp4_logic_driveall.c49f4128a083.svf ;;
   driveall-pre78) SVF=dsp4_logic_driveall.14df62d98a4d.svf ;;
   driveall-base)  SVF=dsp4_logic_driveall.1ee6b5056fb7.svf ;;
   # the base every bar on record was taken on, kept until they are re-taken
   maincap-s36)  SVF=dsp4_logic_maincap.d903ae1ac4a9.svf ;;
   pisel-s36)    SVF=dsp4_logic_pisel.2c1355bbc69b.svf ;;
   driveall-s36) SVF=dsp4_logic_driveall.907492a607bd.svf ;;
-  shipping)     SVF=dsp4_logic.7a6a4529f29c.svf ;;
+  # S85: shipping adopts the label that carries the ad[0..2] witness in every
+  # configuration (hub ruling S84-N1). The DRIVEN lane path is unchanged --
+  # i_dspa[0..2] are still the same wire they were -- and the S82 84.34 % D24
+  # driven row was re-taken on the matching driveall build to prove it.
+  shipping)     SVF=dsp4_logic.d02d83b3cc22.svf ;;
+  shipping-s82) SVF=dsp4_logic.7a6a4529f29c.svf ;;
   # RETIRED S82, and named here only so the refusal is a sentence rather
   # than a usage line. See bitstream/retired/README.md.
   shipping-pre-s34|a1f6672af6c3)

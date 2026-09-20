@@ -1,0 +1,58 @@
+artifact: dsp4_logic_laneid_adwit.12f4fd1cbfc1.{pof,svf}
+SHIPPING: NO — 2 non-shipping switch(es) set:
+  - lane_id: every DSPA input lane carries a word naming its own pin and slot
+  - ad_witness: ones/toggles/frames on ad[0..2], both bck8 edges, third knock
+  Everything not listed is the shipping path, and the sim gate
+  below ran on it.
+built: 2026-09-20T14:32:03Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0 ad_witness=1 ad_retime=0 ad_from_cdc=0 lane_id=1 cfg_bits=16'h0240
+design_id: 32'hfd1cbfc1
+cfg_bits: 16'h0240
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:
+  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}
+  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}
+  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;
+  the frame counter MUST advance between two knocks or the witness
+  is dead and its zeros mean nothing (S81)
+ad_witness: play {L=0xAD075E2<b>, R=~L} and record, 128 frames.
+  The knock's low three bits are the selector:
+    <b>[1:0]  lane 0, 1 or 2   (lane 3 is NOT a knock: no
+               converter on AD3, it falls through to audio)
+    <b>[2]    0 = counted on bck8_sample (bck8 rising, the edge
+               the DSP samples the lane on -- S84's only bank)
+               1 = counted on bck8_launch (bck8 falling), added
+               at S85 to measure the converter launch phase
+  So <b> = 0,1,2 are S84's three knocks unchanged, and 4,5,6 are
+  the same three lanes on the other edge. Six banks, all counting
+  the same pass at once; one knock answers about one of them.
+  L = {3'b0, bck_ratio_ok, edge, lane[1:0], ad_ones_last[8:0],
+       7'b0, ad_ones_max[8:0]}
+  R = {0xAD07, ad_toggles_last[8:0], frame_counter[15:9]}
+  Counts are per 48 kHz frame over 256 TDM8 bit periods.
+  bck_ratio_ok is 1 while every conv_fs frame since power-up has
+  held exactly 256 bck8 periods -- the generator's own ratio, not
+  arrival at any pin.
+  The frame counter is fs8 = conv_fs, which this part GENERATES:
+  it witnesses that the clock generator runs, NOT that the clock
+  arrives at the AK5558 pins. It MUST advance between two knocks
+  or the witness is dead and its zeros mean nothing (S81/S84).
+logic_elements: 866 / 1,270 ( 68 % )
+registers: 669 / 1,270 ( 53 % )
+pins: 69 / 114 ( 61 % )
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cdd
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 67.76 MHz
+built_from: S85, mid-session, with AD_WITNESS=1 still a switch.
+  RECORDED because this artifact does NOT rebuild from HEAD and the only thing
+  that would otherwise say why is "HEAD at the time". Later in the same session
+  the ad[0..2] witness became unconditional (hub ruling S84-N1) and the
+  AD_WITNESS switch was removed, so the same RTL now labels differently. The
+  FUNCTION is reproducible at HEAD from this artifact's other switch alone --
+  the witness is in every build now -- and what changes is the label, not the
+  lane path or the counters. The readings taken on this bitstream are in
+  MW/D24/DSP/s85/launch-phase.md against the design ID above, which the part
+  answered and MATCHED before any of them was taken.

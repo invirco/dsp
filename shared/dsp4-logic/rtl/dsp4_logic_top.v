@@ -264,12 +264,14 @@ module dsp4_logic_top (
     // land on a DNP header, so the witness rides the one path off this part
     // that needs no hands -- the CM4 PCM knock, a third word pair.
     //
-    // ONE LANE PER KNOCK. Three lanes x (ones, toggles, max) plus the frame
-    // counter does not fit in 64 bits at a precision worth having, and the
-    // cdc witness's numbers are the right ones. So the knock's low two bits
-    // SELECT the lane and the reply is the cdc reply's exact shape, with the
-    // lane echoed back in the spare bits of the left word as a transcription
-    // guard. Three knocks, three readings, same resolution as cdc_o.
+    // ONE LANE PER KNOCK, AND FROM S85 ONE EDGE PER KNOCK. Three lanes x
+    // (ones, toggles, max) plus the frame counter does not fit in 64 bits at
+    // a precision worth having, and the cdc witness's numbers are the right
+    // ones. So the knock's low bits SELECT what is answered about -- bits
+    // 1:0 the lane, bit 2 the sampling edge (S85) -- and the reply is the cdc
+    // reply's exact shape, with both selectors echoed back in the spare bits
+    // of the left word as a transcription guard. Six knocks, six readings,
+    // same resolution as cdc_o, all six banks counting the same pass.
     //
     // WHAT THE NUMBERS SEPARATE, exactly as for cdc_o:
     //   ones 0,   toggles 0    the lane is at exact digital zero
@@ -294,17 +296,100 @@ module dsp4_logic_top (
     // the zeros as a measurement if they do not.
     localparam [15:0] AD_MAGIC = 16'hAD07;
 
-`ifdef DSP4_AD_WITNESS
-    // Per lane: the frame accumulator, the last complete frame, and the
-    // high-water mark of `ones` since power-up so a single burst between two
-    // knocks is not averaged away by a quiet frame.
-    reg [2:0]  ad_q;
-    reg [8:0]  ad_ones_c  [0:2];
-    reg [8:0]  ad_tog_c   [0:2];
-    reg [8:0]  ad_ones_l  [0:2];
-    reg [8:0]  ad_tog_l   [0:2];
-    reg [8:0]  ad_ones_max[0:2];
+    // BUILT IN EVERY CONFIGURATION, SHIPPING INCLUDED (hub ruling S84-N1).
+    // The argument is the cdc_o witness's: an instrument that only exists in a
+    // special build is an instrument nobody has when they need it, and every
+    // session from S71 to S85 has had to flash something before it could ask
+    // the one question that mattered. The knock costs nothing at runtime -- it
+    // is a specific 64-bit word pair on the CM4 link that cannot occur in
+    // audio, and the counters are read-only.
+    //
+    // IT IS NOT FREE IN AREA, AND THE NUMBER IS THE POINT OF SAYING SO:
+    // measured on this part, shipping without it fits in 521 of 1,270 LEs
+    // (41 %) at Fmax 68.56 MHz and with it in 882 (69 %) at 67.44 MHz. That is
+    // +361 LEs, 28 points of the device, for six banks of counters. The S84
+    // form -- three lanes, one edge -- was +174. Both clear the 49.152 MHz
+    // sysclk by a wide margin, so this is an area decision and not a timing
+    // one, and it is recorded in the S85 report as a 🟡 for the hub rather
+    // than taken quietly here.
+    //
+    // TWO EDGES, NOT ONE (S85). S84 counted ad[0..2] on `bck8_sample` alone,
+    // on the argument that this is the edge the DSP samples the lane on and
+    // that the two witnesses are comparable only if they count the same
+    // thing. Both halves of that are still true and the sample-edge bank
+    // below is unchanged. What S84-6 then found is that the argument has a
+    // hole in it: `driveall` proves pin -> SPORT -> RX DMA -> slot map ->
+    // buffer good, but under `driveall` the lane is LAUNCHED by this part's
+    // own `bck8_launch` and is a register output half a bit period wide of
+    // the DSP's sampling edge by construction. The AK5558 lanes are not.
+    // They are launched by three converters off `conv_bck`, which leaves
+    // U3.142, crosses a net with five 33R taps, clocks the converter, and
+    // comes back on `ad[n]` -- and then crosses THIS part combinationally
+    // (`i_dspa[n] = ad[n]`, no register anywhere in it) to the DSP's pin.
+    // Every nanosecond of that round trip eats the DSP's setup window, and
+    // nothing in this design has ever measured it.
+    //
+    // So the witness now runs TWO banks of the same counters on the same
+    // three lanes, one strobed on `bck8_sample` (cnt[1:0] == 2'b00, the
+    // sysclk tick at which bck8 rises) and one on `bck8_launch` (cnt[1:0]
+    // == 2'b10, the tick at which it falls). They are half a bit period --
+    // 40.69 ns at 12.288 MHz -- apart, and they are both running at once on
+    // the same data, so the comparison is between two readings of ONE pass
+    // and not between two runs.
+    //
+    // WHAT THE PAIR SEPARATES, which is the whole reason for the second bank:
+    //   both banks agree, both carry data   the lane is stable across at
+    //                                       least half a bit period and the
+    //                                       CPLD is sampling it correctly;
+    //                                       the loss is further downstream
+    //   the banks DISAGREE                  the data transitions between the
+    //                                       two edges, so one of them is
+    //                                       inside the converter's launch
+    //                                       shadow: the phase is the fault
+    //                                       and the fix is in this file
+    //   one bank static, the other moving   the same thing, at its extreme
+    //
+    // A disagreement is not proof on its own that `bck8_sample` is the WRONG
+    // edge -- two edges 40.69 ns apart on a 81.38 ns bit period will always
+    // straddle one transition per bit period somewhere -- but the SIZE of
+    // the disagreement locates the transition, and `ones` differing by ~half
+    // the toggle count is what a transition sitting on one of the two edges
+    // looks like.
+    //
+    // ONE KNOCK STILL ANSWERS ABOUT ONE THING. The knock's low three bits
+    // now select {edge, lane}: bit 2 chooses the bank (0 = bck8_sample,
+    // 1 = bck8_launch) and bits 1:0 the lane, exactly as before. S84's three
+    // knock words have bit 2 clear, so they still ask what they asked then
+    // and the S84 readings remain comparable to these without a correction.
+    // Both selectors are echoed in the reply and checked by the reader --
+    // S84-9 is the reason: the lane echo caught a real transcription error
+    // on its first run, and an edge echo costs one bit of a word that has
+    // four to spare.
+    //
+    // Bank index is {edge, lane}: 0..2 = sample edge, 3..5 = launch edge.
+    localparam AD_BANKS = 6;
+
+    reg [5:0]  ad_q;                              // last sample, per bank
+    reg [8:0]  ad_ones_c  [0:AD_BANKS-1];
+    reg [8:0]  ad_tog_c   [0:AD_BANKS-1];
+    reg [8:0]  ad_ones_l  [0:AD_BANKS-1];
+    reg [8:0]  ad_tog_l   [0:AD_BANKS-1];
+    reg [8:0]  ad_ones_max[0:AD_BANKS-1];
     reg [15:0] ad_frames;                  // free-running, fs8 (= conv_fs)
+
+    // THE CLOCK-GENERATOR RATIO CHECK (S85). The dispatch asks for the
+    // conv_bck/conv_fs edges "as the CPLD sees them", and the honest answer
+    // is still S84's: this part DRIVES both pins and no MAX V can see the far
+    // end of a net it drives, so nothing here witnesses arrival at U6/U7/U8.
+    // What it can witness, and what it costs about a dozen LEs to witness, is
+    // that its own generator holds the ratio: exactly 256 bck8 periods in
+    // every conv_fs frame. A divider that had lost a count, or a frame
+    // boundary landing on a bck8 edge, would show here and nowhere else, and
+    // it is the one failure that would make every `ones` number below a lie
+    // about a different-length frame. Sticky, so a single bad frame since
+    // power-up is still visible at the next knock.
+    reg [8:0] ad_bck_c;
+    reg       ad_bck_bad;
 
     integer i;
     // Power-up state stated rather than inherited -- the same argument as
@@ -312,29 +397,40 @@ module dsp4_logic_top (
     // saying so keeps simulation and silicon in agreement and keeps an
     // unwritten counter from propagating X into the capture word.
     initial begin
-        ad_q = 3'd0;
+        ad_q = 6'd0;
         ad_frames = 16'd0;
-        for (i = 0; i < 3; i = i + 1) begin
+        ad_bck_c = 9'd0;
+        ad_bck_bad = 1'b0;
+        for (i = 0; i < AD_BANKS; i = i + 1) begin
             ad_ones_c[i]   = 9'd0; ad_tog_c[i]    = 9'd0;
             ad_ones_l[i]   = 9'd0; ad_tog_l[i]    = 9'd0;
             ad_ones_max[i] = 9'd0;
         end
     end
 
-    // Sampled on bck8_sample -- the same edge the DSP samples the lane on, so
-    // the count is of the bit periods the DSP itself sees and not of a phase
-    // nothing reads. Identical to the cdc_o arm, deliberately: the two
-    // witnesses are comparable only if they count the same thing.
+    // `bck8_sample` (cnt[1:0] == 2'b00) and `bck8_launch` (cnt[1:0] == 2'b10)
+    // are mutually exclusive by construction, and `cdc_frame_end`
+    // (frame_pos == 1023, so cnt[1:0] == 2'b11) coincides with neither -- so
+    // unlike the cdc bank above, no count is ever lost to the frame clear
+    // here and `ones` is out of a true 256.
     always @(posedge sysclk) begin
         if (bck8_sample) begin
-            ad_q <= ad[2:0];
             for (i = 0; i < 3; i = i + 1) begin
+                ad_q[i] <= ad[i];
                 if (ad[i])            ad_ones_c[i] <= ad_ones_c[i] + 9'd1;
                 if (ad[i] != ad_q[i]) ad_tog_c[i]  <= ad_tog_c[i]  + 9'd1;
             end
+            ad_bck_c <= ad_bck_c + 9'd1;
+        end
+        if (bck8_launch) begin
+            for (i = 0; i < 3; i = i + 1) begin
+                ad_q[3+i] <= ad[i];
+                if (ad[i])              ad_ones_c[3+i] <= ad_ones_c[3+i] + 9'd1;
+                if (ad[i] != ad_q[3+i]) ad_tog_c[3+i]  <= ad_tog_c[3+i]  + 9'd1;
+            end
         end
         if (cdc_frame_end) begin
-            for (i = 0; i < 3; i = i + 1) begin
+            for (i = 0; i < AD_BANKS; i = i + 1) begin
                 ad_ones_l[i] <= ad_ones_c[i];
                 ad_tog_l[i]  <= ad_tog_c[i];
                 if (ad_ones_c[i] > ad_ones_max[i])
@@ -343,21 +439,23 @@ module dsp4_logic_top (
                 ad_tog_c[i]  <= 9'd0;
             end
             ad_frames <= ad_frames + 16'd1;
+            if (ad_bck_c != 9'd256) ad_bck_bad <= 1'b1;
+            ad_bck_c <= 9'd0;
         end
     end
 
-    wire [1:0]  ad_sel;                    // driven by the reframer's knock
-    wire [31:0] ad_wit_l = {5'd0, ad_sel, ad_ones_l[ad_sel],
-                            7'd0, ad_ones_max[ad_sel]};
-    wire [31:0] ad_wit_r = {AD_MAGIC, ad_tog_l[ad_sel], ad_frames[15:9]};
-`else
-    // Not built: the reply words are zero, which carries no AD_MAGIC, so the
-    // reader reports "no reply / the witness is not in this bitstream" and
-    // never reports the zeros as a silent lane.
-    wire [1:0]  ad_sel;
-    wire [31:0] ad_wit_l = 32'd0;
-    wire [31:0] ad_wit_r = 32'd0;
-`endif
+    wire [1:0] ad_sel;                     // lane, driven by the knock
+    wire       ad_edge;                    // bank,  driven by the knock
+    wire [2:0] ad_bank = ad_edge ? (3'd3 + {1'b0, ad_sel}) : {1'b0, ad_sel};
+
+    //   L = {3'b0, bck_ratio_ok, edge, lane[1:0], ones_last[8:0],
+    //        7'b0, ones_max[8:0]}
+    // The lane still sits at [26:25] and ones/max still sit where S84 put
+    // them, so an S84-era reader decodes an S85 reply correctly for the
+    // sample-edge banks it knows how to ask for.
+    wire [31:0] ad_wit_l = {3'd0, ~ad_bck_bad, ad_edge, ad_sel,
+                            ad_ones_l[ad_bank], 7'd0, ad_ones_max[ad_bank]};
+    wire [31:0] ad_wit_r = {AD_MAGIC, ad_tog_l[ad_bank], ad_frames[15:9]};
 
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
@@ -421,7 +519,8 @@ module dsp4_logic_top (
         .cdc_wit_r   (cdc_wit_r),
         .ad_wit_l    (ad_wit_l),
         .ad_wit_r    (ad_wit_r),
-        .ad_sel      (ad_sel)
+        .ad_sel      (ad_sel),
+        .ad_edge     (ad_edge)
     );
 
     // ---- Input-lane sources (fixed per product) ----
@@ -496,14 +595,193 @@ module dsp4_logic_top (
     assign i_dspa[6]   = pcm_tdm;
     assign i_dspa[7]   = o_dspb[7];
 `else
+`ifdef DSP4_LANE_ID
+    // ---- NON-SHIPPING DIAGNOSTIC: EVERY DSPA INPUT LANE NAMES ITSELF (S85) ----
+    //
+    // The successor to `driveall`, built because `driveall` answers a
+    // different question than four sessions have been reading it as. It puts
+    // ONE signal on six pins, so every chip-1 input buffer carries it and the
+    // run says "the lanes are good" -- but a receiver reading any of those six
+    // pins sees the same bits, so the test cannot tell a correct lane mapping
+    // from a permuted one, and cannot tell either from a receiver reading a
+    // pin this design believes is elsewhere. S85 put live converter data on
+    // i_dspa[0..2] three different ways -- as a wire, as a registered copy,
+    // and as the codec lane the DSP reads correctly in the same pass -- and
+    // all thirty-two mic buffers read exact digital zero every time. So the
+    // question is no longer "do the pins carry data" but "WHICH PIN does each
+    // buffer read", and nothing in the record answers it.
+    //
+    // Here every lane carries a DIFFERENT stream, and each stream names its
+    // own pin and its own slot in its top sixteen bits:
+    //
+    //     word[31:16] = {8'hA5, lane[3:0], tick, slot[2:0]}    word[15:0] = 0
+    //
+    // so a buffer fed from pin 3 slot 5 reads 0xA53500000 / 0xA53D0000 and
+    // says so. `tick` flips every 48 kHz frame for one reason: a constant
+    // reads as `distinct 1` in the lane scan, which is the scan's word for
+    // DEAD, and an instrument that reports itself dead when it is working is
+    // the S80-19 mistake. With the tick the lane both MOVES and names itself.
+    //
+    // FRAMED FOR MFD 2, which is what seven of chip 1's eight RX halves use
+    // (lane_config.c c1_rx_lanes_mfd = {2,2,2,2,2,2,1,2}); the +2-MFD form is
+    // the reframer's `drive_period`, and at MFD 2 that is the frame position
+    // itself. Lane 6 is the MFD 1 half and will read its own code shifted one
+    // bit -- 0x4A6...  rather than 0xA56... -- which is still unmistakable,
+    // and the shift is itself the S78-3 signature confirming the framing.
+    //
+    // It drives NOTHING but the eight DSPA input pins. No DAC lane, no NET
+    // lane, no codec, no panel; the converters keep their clock pair and are
+    // simply not listened to for the duration.
+    wire [7:0] lid_period = frame_pos[9:2];      // MFD 2 framing
+    wire [2:0] lid_slot   = lid_period[7:5];
+    wire [4:0] lid_bix    = 5'd31 - lid_period[4:0];
+
+    reg lid_tick;
+    initial lid_tick = 1'b0;
+    always @(posedge sysclk)
+        if (cdc_frame_end)
+            lid_tick <= ~lid_tick;
+
+    function lid_bit;
+        input [3:0] lane;
+        input       tick;
+        input [2:0] slot;
+        input [4:0] bix;
+        reg [15:0] w;
+        begin
+            w = {8'hA5, lane, tick, slot};
+            lid_bit = (bix >= 5'd16) ? w[bix - 5'd16] : 1'b0;
+        end
+    endfunction
+
+    reg [7:0] lid_q;
+    integer L;
+    initial lid_q = 8'd0;
+    always @(posedge sysclk)
+        if (bck8_launch)
+            for (L = 0; L < 8; L = L + 1)
+                lid_q[L] <= lid_bit(L[3:0], lid_tick, lid_slot, lid_bix);
+
+    assign i_dspa = lid_q;
+`elsif DSP4_AD_FROM_CDC
+    // ---- NON-SHIPPING DIAGNOSTIC: THE MIC LANES FED FROM THE CODEC (S85) ----
+    //
+    // THE HOLE IN driveall's PROOF, which four sessions have leaned on.
+    // `driveall` sets `i_dspa[5:0] = {6{pcm_drive}}` -- six lanes, ONE signal.
+    // Every chip-1 input buffer then carries the stimulus, and that has been
+    // read ever since as "pin -> SPORT -> RX DMA -> slot map -> buffer is
+    // good for lanes 0..5". It is not that. With all six pins carrying
+    // identical bits, a receiver reading ANY of them sees the same stream, so
+    // the test cannot tell a correct lane mapping from a permuted one, and it
+    // cannot tell either from a receiver that is reading a pin this design
+    // believes is somewhere else entirely. It proves the pins reach the DSP.
+    // It does not prove WHICH pin reaches which SPORT half.
+    //
+    // That hole is now the only place left for the fault to be. S84 and S85
+    // between them have taken everything else off the table: the converters
+    // are converting (ad[0..2] carry data at U3's pins, both rail states),
+    // the launch phase is not it (S85-1: the two bck8 edges return identical
+    // counts), the combinational crossing is not it (S85-5: the lanes read
+    // exact zero with a retiming register holding live data), the mux is not
+    // it (net_sel is 4'b1000 in both arms), and the slot map is byte-identical
+    // across every bitstream this bench has carried.
+    //
+    // So substitute a KNOWN-GOOD SOURCE instead of a known-good sink. cdc_o is
+    // a converter lane on the same Analog board, off the same conv_bck/conv_fs
+    // pair, crossing this part the same combinational way -- and the DSP reads
+    // it correctly today, four of four codec buffers moving in the same pass
+    // in which all thirty-two mic buffers read zero. Feed it to the three mic
+    // lanes and the answer is binary:
+    //
+    //   the mic buffers CARRY the codec's data   the pins, the SPORT halves,
+    //                                            the DMA and the slot map for
+    //                                            lanes 0-2 are all good, and
+    //                                            the difference is at the
+    //                                            ad[] pins of this part
+    //   the mic buffers stay at EXACT ZERO       nothing the CPLD drives onto
+    //                                            i_dspa[0..2] reaches those
+    //                                            buffers, driveall's proof was
+    //                                            the artifact above, and the
+    //                                            fault is the lane mapping on
+    //                                            the DSP side
+    //
+    // All three are fed from the same source deliberately: three lanes reading
+    // one identical stream is the reading that cannot be explained by any
+    // per-lane accident.
+    assign i_dspa[0] = cdc_o;
+    assign i_dspa[1] = cdc_o;
+    assign i_dspa[2] = cdc_o;
+`elsif DSP4_AD_RETIME
+    // ---- THE CONVERTER LANES, RE-TIMED (S85) ----
+    //
+    // The three AK5558 lanes stop being a wire through this part and become a
+    // register in it. What that changes, and why it is the one thing left to
+    // change, needs the whole path said out loud:
+    //
+    //   the DAC/NET lanes         launched by THIS part on bck8_launch, a
+    //   and everything driveall   register output, half a bit period of
+    //   drives                    setup to the receiver's sampling edge by
+    //                             construction. This is the arrangement the
+    //                             slot map's own convention describes, and
+    //                             the one that works.
+    //
+    //   ad[0..2] (shipping)       launched by three AK5558s off conv_bck,
+    //                             which leaves U3.142, crosses a five-33R-tap
+    //                             star, is re-buffered on the Analog board
+    //                             (U97/U98) and clocks the converter; the
+    //                             data comes back over the FPC to ad[n] and
+    //                             then crosses U3 COMBINATIONALLY to the
+    //                             DSP's pin. Every nanosecond of that round
+    //                             trip, plus this part's own pin-to-pin
+    //                             delay, is subtracted from the DSP's 40.69
+    //                             ns setup window, and nothing in this design
+    //                             has ever constrained or measured it -- the
+    //                             sdc has no set_input_delay on ad[] at all.
+    //
+    // The register closes that gap by making the converter lanes exactly the
+    // arrangement the DAC lanes already use: capture the pin on bck8_launch,
+    // where the S85 witness measured the data sitting stable on BOTH edges
+    // (so this capture has most of a bit period of margin on each side), and
+    // hand the DSP a register output with the full half period of setup.
+    //
+    // IT COSTS EXACTLY ONE BCK PERIOD OF LATENCY AND THAT IS NOT FREE.
+    // The DSP samples this register at the bck8 rising edge that follows the
+    // bck8_launch which loaded it, so it reads the bit the converter launched
+    // ONE period earlier than the un-retimed wire would have delivered. There
+    // is no sysclk edge between the converter's data becoming valid and the
+    // DSP's sampling edge with margin worth having on both sides -- that is
+    // the whole problem -- so a retime here cannot be free, and pretending
+    // otherwise would just move the off-by-one somewhere it is harder to see.
+    // It is compensated on the DSP side by the per-lane frame delay these
+    // lanes already carry (lane_config.c `c1_rx_lanes_mfd`, which S78-3 shows
+    // is already non-uniform across chip 1's eight RX halves), NOT here:
+    // conv_fs is shared with the codec and the DACs and moving it to fix
+    // three lanes would break five.
+    reg [2:0] ad_rt;
+    initial   ad_rt = 3'd0;
+    always @(posedge sysclk)
+        if (bck8_launch)
+            ad_rt <= ad[2:0];
+
+    assign i_dspa[0] = net_sel[0] ? ni[0] : ad_rt[0];
+    assign i_dspa[1] = net_sel[1] ? ni[1] : ad_rt[1];
+    assign i_dspa[2] = net_sel[2] ? ni[2] : ad_rt[2];
+`else
     assign i_dspa[0] = net_sel[0] ? ni[0] : ad[0];
     assign i_dspa[1] = net_sel[1] ? ni[1] : ad[1];
     assign i_dspa[2] = net_sel[2] ? ni[2] : ad[2];
+`endif
+`ifndef DSP4_LANE_ID
+    // The five lanes none of the S85 diagnostics touch. LANE_ID is the
+    // exception and drives the whole bus itself, which is the point of it.
+    // AD3 carries no converter on the D24 -- net_sel routes it from the NET
+    // lane -- so it is not retimed and stays as it was.
     assign i_dspa[3] = net_sel[3] ? ni[3] : ad[3];
     assign i_dspa[4] = cdc_o;
     assign i_dspa[5] = strap_d32 ? snake_in : 1'b0;
     assign i_dspa[6] = pcm_tdm;
     assign i_dspa[7] = mems;
+`endif
 `endif
 
     // ---- DSPB output routing (slot map B_O0..B_O7) ----

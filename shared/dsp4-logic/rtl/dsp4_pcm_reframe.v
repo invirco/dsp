@@ -142,7 +142,10 @@ module dsp4_pcm_reframe #(
     // unchanged.
     input  wire [31:0] ad_wit_l,
     input  wire [31:0] ad_wit_r,
-    output wire [1:0]  ad_sel
+    output wire [1:0]  ad_sel,
+    // S85: which of the two counter banks the reply is about --
+    // 0 = sampled on bck8_sample, 1 = sampled on bck8_launch.
+    output wire        ad_edge
 );
 
     // ---- PCM clock generation: BCK = sysclk/16, LRCLK = frame ----
@@ -333,15 +336,30 @@ module dsp4_pcm_reframe #(
     // false trigger and touching nothing DSP-facing, no DAC lane, no NET
     // lane and no panel.
     //
-    // THE LOW TWO BITS SELECT THE LANE, which is the only difference from
-    // the two knocks above. Three converter lanes at the cdc witness's
-    // precision are 3 x (9 + 9 + 9) bits plus a frame counter and do not fit
-    // in a 64-bit reply, and a reply at lower precision would not separate
-    // "stuck high" from "carrying data" -- which is the whole question. So
-    // the reader knocks three times and the part answers about one lane each
-    // time. Lane 3 is not witnessed (AD3 carries no converter on the D24, and
-    // `net_sel` routes it from the NET lane), so the pattern with both bits
-    // set is not a knock at all and falls through to audio.
+    // THE LOW THREE BITS SELECT WHAT IS ANSWERED ABOUT, which is the only
+    // difference from the two knocks above. Three converter lanes at the cdc
+    // witness's precision are 3 x (9 + 9 + 9) bits plus a frame counter and
+    // do not fit in a 64-bit reply, and a reply at lower precision would not
+    // separate "stuck high" from "carrying data" -- which is the whole
+    // question. S85 doubles the banks again by adding the second sampling
+    // edge, so there are six readings and still 64 bits to hand them back in.
+    // So the reader knocks once per reading and the part answers about one
+    // (lane, edge) each time:
+    //
+    //   bits [1:0]  lane 0, 1 or 2
+    //   bit  [2]    0 = counted on bck8_sample, 1 = counted on bck8_launch
+    //
+    // Lane 3 is not witnessed (AD3 carries no converter on the D24, and
+    // `net_sel` routes it from the NET lane), so a pattern with both lane
+    // bits set is not a knock at all and falls through to audio -- on either
+    // edge, which keeps the negative control intact for both banks.
+    //
+    // S84's THREE KNOCK WORDS STILL MEAN WHAT THEY MEANT. KNOCK3_BASE has
+    // bit 2 clear, so 0xAD075E20|lane still selects the bck8_sample bank and
+    // the S84 readings are directly comparable with the S85 ones. That is
+    // why the edge went in bit 2 rather than anywhere tidier: a diagnostic
+    // whose old readings need a correction factor is a diagnostic nobody
+    // trusts a week later.
     //
     // Collision with the other two knocks is impossible by construction:
     // KNOCK3_BASE differs from KNOCK_L in 18 bits and from KNOCK2_L in 16,
@@ -353,9 +371,10 @@ module dsp4_pcm_reframe #(
     localparam [31:0] KNOCK3_BASE = 32'hAD07_5E20;   // low 2 bits = lane
 
     wire [1:0] knock3_lane = pw_flat[1:0];
+    wire       knock3_edge = pw_flat[2];
     wire knock3_hit = pi_sample
                       && (pi_word_pos == (PCM_DATA_DELAY[5:0] + 6'd1))
-                      && (pw_flat[31:2]  == KNOCK3_BASE[31:2])
+                      && (pw_flat[31:3]  == KNOCK3_BASE[31:3])
                       && (pw_flat[63:32] == ~pw_flat[31:0])
                       && (knock3_lane != 2'd3);
 
@@ -364,19 +383,23 @@ module dsp4_pcm_reframe #(
     // tb_pcm_capture.
     reg [7:0] ad_count;
     reg [1:0] ad_lane;
+    reg       ad_edge_q;
     initial   ad_count = 8'd0;
     initial   ad_lane  = 2'd0;
+    initial   ad_edge_q = 1'b0;
     wire ad_reply = (ad_count != 8'd0);
     always @(posedge sysclk) begin
         if (knock3_hit) begin
-            ad_count <= 8'd128;
-            ad_lane  <= knock3_lane;
+            ad_count  <= 8'd128;
+            ad_lane   <= knock3_lane;
+            ad_edge_q <= knock3_edge;
         end else if (cap_snap && ad_reply)
             ad_count <= ad_count - 8'd1;
     end
     // Held for the whole reply window, so the witness words the top module
     // presents are stable across all 128 frames of one reading.
-    assign ad_sel = ad_lane;
+    assign ad_sel  = ad_lane;
+    assign ad_edge = ad_edge_q;
 
     // ---- FRAME-LOCKED SNAPSHOT -- this is not decoration ----
     //

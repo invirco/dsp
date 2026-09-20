@@ -15,10 +15,11 @@
 #                      live unit; this is how you find out whether the
 #                      interlock is currently satisfiable.
 #   --rollback <svf>   what goes back if the flash does not take.
-#                      Default dsp4_logic.7a6a4529f29c.svf — the bitstream
-#                      the bench lives on. S82 made it the shipping label and
-#                      S84 left it on the part (design ID read back
-#                      32'h4529f29c / cfg_bits 0x0010).
+#                      Default dsp4_logic.d02d83b3cc22.svf — the bitstream
+#                      the bench lives on. S85 made it the shipping label and
+#                      left it on the part (design ID read back
+#                      32'h83b3cc22 / cfg_bits 0x0010); before it, S82's
+#                      dsp4_logic.7a6a4529f29c held the line from S82 to S85.
 #                      A default rollback that is not what is on the part is
 #                      not a rollback, it is a second unannounced flash, so
 #                      this line moves with the bench and is part of the
@@ -33,6 +34,10 @@
 #                      S84, which is the long one: the part stopped carrying
 #                      s41 at 2026-09-19T21:47:06Z and this line still named
 #                      it a day later, through every S77-S83 flash.
+#                      Set to 7a6a4529f29c at S84 and to d02d83b3cc22 at S85,
+#                      each time from the log AFTER the last flash of the
+#                      session -- which is the only order that cannot leave it
+#                      naming something the part has stopped carrying.
 #                      Set it AFTER the flash, FROM THE FLASH LOG — which is
 #                      now a table, `docs/d24-bench-logic-flash-log.md`, so
 #                      "what is on the part" costs a glance rather than a
@@ -96,7 +101,7 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BENCH="${BENCH:-app@192.168.1.219}"
 BITDIR="${BITDIR:-$HERE/../../shared/dsp4-logic/bitstream}"
-ROLLBACK="dsp4_logic.7a6a4529f29c.svf"
+ROLLBACK="dsp4_logic.d02d83b3cc22.svf"
 DRYRUN=0; STOPAPP=0; RESTART=1; WAIVER=""; SELFTEST=""
 ARG=""
 

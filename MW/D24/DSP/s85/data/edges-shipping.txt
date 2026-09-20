@@ -1,0 +1,59 @@
+cdc_o (the CONTROL: the codec lane S83/S84 measured live)
+  cdc_o  knock 1: ones  48 [9..86]  max  96  toggles  24 [14..34]  frame_ctr  42  (2175 reply frames)
+  cdc_o  knock 2: ones  48 [12..85]  max  96  toggles  24 [8..34]  frame_ctr  85  (2175 reply frames)
+  cdc_o  knock 3: ones  48 [10..84]  max  96  toggles  24 [12..36]  frame_ctr   2  (2175 reply frames)
+    -> CARRYING DATA -- 48 of 256 bit periods high, 24 transitions, in the last frame
+
+ad[0]/sample   (knock L=0xAD075E20 R=0x52F8A1DF)
+  ad[0]/sample knock 1: ones 100 [15..182]  max 185  toggles  26 [14..40]  frame_ctr  45  (2175 reply frames)
+  ad[0]/sample knock 2: ones  96 [16..181]  max 186  toggles  26 [14..42]  frame_ctr  91  (2175 reply frames)
+  ad[0]/sample knock 3: ones 101 [15..180]  max 186  toggles  26 [14..40]  frame_ctr   6  (2175 reply frames)
+    -> CARRYING DATA -- 101 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[0]/launch   (knock L=0xAD075E24 R=0x52F8A1DB)
+  ad[0]/launch knock 1: ones  96 [14..181]  max 186  toggles  26 [10..40]  frame_ctr  52  (2175 reply frames)
+  ad[0]/launch knock 2: ones  96 [13..185]  max 186  toggles  26 [14..38]  frame_ctr  94  (2175 reply frames)
+  ad[0]/launch knock 3: ones  96 [12..180]  max 186  toggles  26 [12..36]  frame_ctr  14  (2175 reply frames)
+    -> CARRYING DATA -- 96 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[1]/sample   (knock L=0xAD075E21 R=0x52F8A1DE)
+  ad[1]/sample knock 1: ones  95 [34..158]  max 256  toggles  50 [32..66]  frame_ctr  56  (2175 reply frames)
+  ad[1]/sample knock 2: ones  96 [30..162]  max 256  toggles  48 [30..64]  frame_ctr 104  (2175 reply frames)
+  ad[1]/sample knock 3: ones  96 [35..158]  max 256  toggles  50 [30..68]  frame_ctr  18  (2175 reply frames)
+    -> CARRYING DATA -- 96 of 256 bit periods high, 50 transitions, in the last frame
+
+ad[1]/launch   (knock L=0xAD075E25 R=0x52F8A1DA)
+  ad[1]/launch knock 1: ones  96 [26..165]  max 256  toggles  48 [34..68]  frame_ctr  64  (2175 reply frames)
+  ad[1]/launch knock 2: ones  96 [33..159]  max 256  toggles  50 [32..68]  frame_ctr 106  (2175 reply frames)
+  ad[1]/launch knock 3: ones  95 [24..161]  max 256  toggles  50 [30..64]  frame_ctr  25  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 50 transitions, in the last frame
+
+ad[2]/sample   (knock L=0xAD075E22 R=0x52F8A1DD)
+  ad[2]/sample knock 1: ones  95 [35..153]  max 256  toggles  50 [32..64]  frame_ctr  67  (2175 reply frames)
+  ad[2]/sample knock 2: ones  96 [33..161]  max 256  toggles  48 [32..64]  frame_ctr 114  (2175 reply frames)
+  ad[2]/sample knock 3: ones  95 [32..158]  max 256  toggles  48 [34..66]  frame_ctr  29  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 48 transitions, in the last frame
+
+ad[2]/launch   (knock L=0xAD075E26 R=0x52F8A1D9)
+  ad[2]/launch knock 1: ones  97 [25..162]  max 256  toggles  50 [34..68]  frame_ctr  76  (2175 reply frames)
+  ad[2]/launch knock 2: ones  97 [34..158]  max 256  toggles  50 [32..64]  frame_ctr 118  (2175 reply frames)
+  ad[2]/launch knock 3: ones  95 [35..157]  max 256  toggles  48 [28..66]  frame_ctr  38  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 48 transitions, in the last frame
+
+   cdc_o: frame counter advanced 42 -> 85 -> 2 -- the witness is live.
+   ad[0]/sample: frame counter advanced 45 -> 91 -> 6 -- the witness is live.
+   ad[0]/launch: frame counter advanced 52 -> 94 -> 14 -- the witness is live.
+   ad[1]/sample: frame counter advanced 56 -> 104 -> 18 -- the witness is live.
+   ad[1]/launch: frame counter advanced 64 -> 106 -> 25 -- the witness is live.
+   ad[2]/sample: frame counter advanced 67 -> 114 -> 29 -- the witness is live.
+   ad[2]/launch: frame counter advanced 76 -> 118 -> 38 -- the witness is live.
+
+THE EDGE COMPARISON -- both banks counted the same pass, 40.69 ns apart
+  ad[0]  sample: ones 101 toggles  26 max 186 | launch: ones  96 toggles  26 max 186 | delta ones -5 toggles +0
+  ad[1]  sample: ones  96 toggles  50 max 256 | launch: ones  95 toggles  50 max 256 | delta ones -1 toggles +0
+  ad[2]  sample: ones  95 toggles  48 max 256 | launch: ones  95 toggles  48 max 256 | delta ones +0 toggles +0
+
+VERDICT ON THE PHASE: lane(s) ad[0] READ DIFFERENTLY on the two edges.
+  Both banks saw the same 256 bit periods of the same frames. A lane whose count depends on WHEN in the bit period it is sampled is a lane whose data is not stable across the window the DSP samples in -- the converter's launch phase, plus the round trip out and back, has moved the data edge onto one of these two sampling points. That is a LOGIC fix: capture the lane on the edge it is valid on and re-launch it to the DSP.
+
+VERDICT: ad lanes are MOVING. The lanes are alive at the CPLD and the zero the DSP reads is downstream of this part -- slot map, SPORT, DMA or graph.

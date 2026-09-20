@@ -1,0 +1,61 @@
+artifact: dsp4_logic.d02d83b3cc22.{pof,svf}
+SHIPPING: yes
+built: 2026-09-20T14:47:02Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0 ad_retime=0 ad_from_cdc=0 lane_id=0 cfg_bits=16'h0010
+design_id: 32'h83b3cc22
+cfg_bits: 16'h0010
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:
+  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}
+  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}
+  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;
+  the frame counter MUST advance between two knocks or the witness
+  is dead and its zeros mean nothing (S81)
+ad_witness: play {L=0xAD075E2<b>, R=~L} and record, 128 frames.
+  The knock's low three bits are the selector:
+    <b>[1:0]  lane 0, 1 or 2   (lane 3 is NOT a knock: no
+               converter on AD3, it falls through to audio)
+    <b>[2]    0 = counted on bck8_sample (bck8 rising, the edge
+               the DSP samples the lane on -- S84's only bank)
+               1 = counted on bck8_launch (bck8 falling), added
+               at S85 to measure the converter launch phase
+  So <b> = 0,1,2 are S84's three knocks unchanged, and 4,5,6 are
+  the same three lanes on the other edge. Six banks, all counting
+  the same pass at once; one knock answers about one of them.
+  L = {3'b0, bck_ratio_ok, edge, lane[1:0], ad_ones_last[8:0],
+       7'b0, ad_ones_max[8:0]}
+  R = {0xAD07, ad_toggles_last[8:0], frame_counter[15:9]}
+  Counts are per 48 kHz frame over 256 TDM8 bit periods.
+  bck_ratio_ok is 1 while every conv_fs frame since power-up has
+  held exactly 256 bck8 periods -- the generator's own ratio, not
+  arrival at any pin.
+  The frame counter is fs8 = conv_fs, which this part GENERATES:
+  it witnesses that the clock generator runs, NOT that the clock
+  arrives at the AK5558 pins. It MUST advance between two knocks
+  or the witness is dead and its zeros mean nothing (S81/S84).
+logic_elements: 882 / 1,270 ( 69 % )
+registers: 662 / 1,270 ( 52 % )
+pins: 69 / 114 ( 61 % )
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cdd
+sim_gate: SKIPPED
+device: 5M1270ZT144C4
+fmax: 66.58 MHz
+adopted: SHIPPING from S85 (hub ruling S84-N1). The label moved from
+  7a6a4529f29c because the ad[0..2] witness is now built into every
+  configuration, and because S85 put CFG_BITS into the hash (S85-11).
+  THE SHIPPING LANE PATH IS UNCHANGED: i_dspa[0..2] are the same
+  `net_sel[n] ? ni[n] : ad[n]` wire they have always been -- the S85
+  retiming and codec-substitution arms are switches and are OFF here --
+  and the S82 84.34 % D24 driven capacity row was re-taken on the
+  matching driveall build (943f27966c28) to prove nothing moved.
+  Area cost of the witness, measured back to back on this tree:
+  521/1270 LE (41 %) without it at Fmax 68.56 MHz, 882/1270 (69 %) with
+  it at 67.44 MHz. Both clear the 49.152 MHz sysclk with wide margin.
+  Reproducibility, checked this session: two builds of this label differ
+  in ONE line of the .svf -- the `!Device #1: ... <date>` comment the
+  converter stamps -- and are byte-identical everywhere else. The
+  programmed content is reproducible; the file md5 is not, so identity
+  rests on the design ID read off the part, which is what the standing
+  read-back rule already uses.

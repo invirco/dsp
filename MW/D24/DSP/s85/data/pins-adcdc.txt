@@ -1,0 +1,52 @@
+cdc_o (the CONTROL: the codec lane S83/S84 measured live)
+  cdc_o  knock 1: ones  49 [11..85]  max  96  toggles  24 [12..36]  frame_ctr  57  (2175 reply frames)
+  cdc_o  knock 2: ones  47 [11..85]  max  96  toggles  24 [12..40]  frame_ctr 101  (2175 reply frames)
+    -> CARRYING DATA -- 47 of 256 bit periods high, 24 transitions, in the last frame
+
+ad[0]/sample   (knock L=0xAD075E20 R=0x52F8A1DF)
+  ad[0]/sample knock 1: ones  98 [13..184]  max 186  toggles  26 [12..38]  frame_ctr  21  (2175 reply frames)
+  ad[0]/sample knock 2: ones  95 [11..178]  max 186  toggles  26 [14..38]  frame_ctr  64  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[0]/launch   (knock L=0xAD075E24 R=0x52F8A1DB)
+  ad[0]/launch knock 1: ones  96 [10..181]  max 186  toggles  26 [14..38]  frame_ctr 110  (2175 reply frames)
+  ad[0]/launch knock 2: ones  97 [10..181]  max 186  toggles  26 [12..42]  frame_ctr  24  (2175 reply frames)
+    -> CARRYING DATA -- 97 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[1]/sample   (knock L=0xAD075E21 R=0x52F8A1DE)
+  ad[1]/sample knock 1: ones  96 [33..158]  max 256  toggles  50 [34..64]  frame_ctr  73  (2175 reply frames)
+  ad[1]/sample knock 2: ones  96 [32..159]  max 256  toggles  50 [34..68]  frame_ctr 116  (2175 reply frames)
+    -> CARRYING DATA -- 96 of 256 bit periods high, 50 transitions, in the last frame
+
+ad[1]/launch   (knock L=0xAD075E25 R=0x52F8A1DA)
+  ad[1]/launch knock 1: ones  97 [37..164]  max 256  toggles  50 [32..66]  frame_ctr  34  (2175 reply frames)
+  ad[1]/launch knock 2: ones  97 [31..161]  max 256  toggles  50 [30..68]  frame_ctr  77  (2175 reply frames)
+    -> CARRYING DATA -- 97 of 256 bit periods high, 50 transitions, in the last frame
+
+ad[2]/sample   (knock L=0xAD075E22 R=0x52F8A1DD)
+  ad[2]/sample knock 1: ones  98 [35..158]  max 256  toggles  48 [32..66]  frame_ctr 125  (2175 reply frames)
+  ad[2]/sample knock 2: ones  95 [31..160]  max 256  toggles  48 [30..68]  frame_ctr  39  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 48 transitions, in the last frame
+
+ad[2]/launch   (knock L=0xAD075E26 R=0x52F8A1D9)
+  ad[2]/launch knock 1: ones  89 [29..161]  max 256  toggles  48 [34..64]  frame_ctr  87  (2175 reply frames)
+  ad[2]/launch knock 2: ones  97 [39..162]  max 256  toggles  48 [30..66]  frame_ctr   1  (2175 reply frames)
+    -> CARRYING DATA -- 97 of 256 bit periods high, 48 transitions, in the last frame
+
+   cdc_o: frame counter advanced 57 -> 101 -- the witness is live.
+   ad[0]/sample: frame counter advanced 21 -> 64 -- the witness is live.
+   ad[0]/launch: frame counter advanced 110 -> 24 -- the witness is live.
+   ad[1]/sample: frame counter advanced 73 -> 116 -- the witness is live.
+   ad[1]/launch: frame counter advanced 34 -> 77 -- the witness is live.
+   ad[2]/sample: frame counter advanced 125 -> 39 -- the witness is live.
+   ad[2]/launch: frame counter advanced 87 -> 1 -- the witness is live.
+
+THE EDGE COMPARISON -- both banks counted the same pass, 40.69 ns apart
+  ad[0]  sample: ones  95 toggles  26 max 186 | launch: ones  97 toggles  26 max 186 | delta ones +2 toggles +0
+  ad[1]  sample: ones  96 toggles  50 max 256 | launch: ones  97 toggles  50 max 256 | delta ones +1 toggles +0
+  ad[2]  sample: ones  95 toggles  48 max 256 | launch: ones  97 toggles  48 max 256 | delta ones +2 toggles +0
+
+VERDICT ON THE PHASE: lane(s) ad[0], ad[1], ad[2] read the SAME on both edges (within 4 counts of 256).
+  The data is stable across at least the 40.69 ns between them, so neither sampling point is sitting on a data transition and the phase at the CPLD is not the fault. What that does NOT clear is the path from this part's ad pin to the DSP's own sampling edge: `i_dspa[n] = ad[n]` is combinational, so the DSP samples the converter's data through U3's pin-to-pin delay on top of the round trip, and nothing here witnesses that.
+
+VERDICT: ad lanes are MOVING. The lanes are alive at the CPLD and the zero the DSP reads is downstream of this part -- slot map, SPORT, DMA or graph.
