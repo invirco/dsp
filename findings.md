@@ -6,6 +6,125 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE THIRD BUILD-CONFIG WORD IS FULL AND LANDED, SO THREE CONFIGURATIONS THAT READ BACK ONE WORD NOW READ BACK THREE — AND FOUR OF THE SIX THINGS A PROBE-FREE CONVERTER DIAGNOSIS WAS TOLD TO READ DO NOT EXIST TO BE READ (2026-09-20, session 80)
+
+Hub dispatch `tasks.md` 2026-09-20 06:02Z, ruling S75-13. Report:
+`MW/D24/DSP/s80/cfg3-rows-dark.md`.
+
+**S80-1 🟢 `DIAG_BUILD_CFG3` CARRIES THE SWITCHES THE TWO FULL WORDS CANNOT,
+AND THE PROOF IS ON FILES THAT ALREADY EXISTED.** S75's address (`0xE0EC`),
+signature (`0xC4`) and bit 0 (`DSP4_EXTRAM`) stand — the hub's ruling, and a
+landed signature is not renegotiable. Bits 23..1 were free and now carry the
+instrument bit (23), `DSP4_RTG_FABRIC`/`GAIN_SIMD`/`DLY_SPLIT`/`C2_XPAIR`/
+`DYN_INLINE`/`DYN_TABLES` (22..16), **the whole eight-class
+`DSP4_SHARED_KERNELS` mask** (15..8), two free bits stated as free (7..6),
+`DSP4_SPI_PARTIAL_FIX2`/`DSP4_RTA`/`DSP4_CUE` (5..3), the `MTX_GATE`
+capability (2) and `DSP4_AUXIN_BYPASS` (1). The shipping triple is
+**`0xCF45FF10` / `0xE2018264` / `0xC47C0F26`**. `DIAG_BUILD_CFG2` is NOT
+re-laid out, so its value does not move for any image and every decoder of it
+keeps working. The measurement that makes this a result rather than a design:
+`shipping.config.s21`, `.s26` and `.s32` **all read `0xC2019E6F`** — three
+different images, one word — and they now read `0xC47C0324`, `0xC47C0F24` and
+`0xC47C0F26`. `.s21` against `.s26` is **S27-3 closed** (shared-kernel mask 3
+against mask 15, open since S26); `.s26` against `.s32` is **S79's park-gate
+hole closed**, one bit. Negative control on the artifact: a full
+`DSP4_PATTERN=1` build — a switch no word carries a field for — puts
+`0xC4FC0F26` in both boot streams and `0xC47C0F26` in neither.
+
+**S80-2 🟡 `DIAG_BUILD_CFG2` HAS CARRIED `DSP4_TEST_NODES` SINCE S49 AND THE
+REPO-SIDE COMPUTATION OF THAT WORD NEVER KNEW.** `src/diag.h` sets bit 24 from
+`DIAG_CFG2_TEST_NODES` and `tools/pi/dsp4_buildcfg.py` has decoded it since
+S49; `cfg_words.WORD2` did not list it and `check_shipping_config.sh`'s
+`want2` did not either, so `cfg_words.words()` computed a CFG2 **`0x01000000`
+short** for any `DSP4_TEST_NODES=1` arm. Nothing had failed, because the
+switch is 0 in `shipping.config` and nobody had scored a self-test arm with
+this tool — and that is the one arm a tool like this exists to score. Found by
+pointing the S77 completeness gate at a third word. Fixed in both.
+
+**S80-3 🟡 `build_defaults()` SILENTLY DROPPED EVERY SWITCH WHOSE `build.sh`
+DEFAULT REFERENCES ANOTHER SWITCH.** `${KEY:-$OTHER}` and
+`${KEY:-${OTHER:-N}}` matched no pattern it read, so `DSP4_NODE_LIMIT2` and
+`DSP4_DYN_SELFTEST` were absent from its dict. Survivable while nothing asked
+about them; fatal for an instrument bit that must know the shipping value of
+every switch no word carries, because a switch whose default the function
+cannot read is a switch the bit is **silently blind to** — S12-7's shape
+inside the tool built to close it. Both resolve now, through the chain.
+
+**S80-4 🟡 `build.sh` DEFINED FOUR SWITCHES FOR THE COMPILER AND NOT THE
+ASSEMBLER.** `DSP4_DMA_AUTOBUF`, `DSP4_FCWM`, `DSP4_PATTERN`, `DSP4_RX0_L2` —
+the only four of its ninety-six missing from `ASMFLAGS`. No assembly source
+reads any of them, so nothing was wrong until the instrument bit needed to see
+them: an undefined identifier evaluates to 0 in a preprocessor `#if`, so a
+`DSP4_PATTERN=1` build would have stamped itself *"this is the product"*.
+
+**S80-5 🟢 THE MIRROR THIS CHANGE ADDS IS PROVED, NOT TRUSTED.** The
+instrument bit has to be computed at assembly time from literals, because the
+cell that carries the word is assembled and not compiled — so `src/diag.h`
+carries the list of fifty-six switches and their shipping values, which is a
+default in two places and therefore S8-2 waiting to happen.
+`check_shipping_config.sh` now derives the same list and the same values from
+`build.sh` and `shipping.config` and fails in **both directions and on the
+values**; derives `want3` from `cfg_words.WORD3` instead of listing it; runs
+the completeness gate the other way round too (a field the bench decoder
+reads that `cfg_words.py` does not declare is drift); and **cross-checks the
+two independent computations of the triple**, which is the check that would
+have caught S77's `0xE2010244` without a part on a bench.
+
+**S80-6 🔴 NO HOST ON THIS BENCH CAN READ AN AK4619 REGISTER, AND THAT IS WHY
+S79-Q1's FIRST QUESTION CANNOT BE ANSWERED WITHOUT AN H1S1 FIRMWARE CHANGE.**
+H1S1's codec path is write-only in both halves: `CodecPoll()` only ever
+assembles the AK4619's `0xC3` **write** command, with no read arm and no cell
+to return a byte in, and `SpiTx()` never reads MISO at all. "Read a register
+`StartAK4619` wrote and compare" is a firmware change (a read command plus one
+matrix cell), not a bench technique.
+
+**S80-7 🔴 THE LOGIC CPLD HAS NO HOST INTERFACE, SO THERE ARE NO CLOCK OR
+FRAME COUNTERS TO READ AND NO PLACE TO PUT ONE.** `dsp4_logic_top.v`'s ports
+are clocks, the eight DSPA input lines, the eight DSPB output lines, the
+converter and NET lanes, the PCM link, one LED and four TEST pins — *"There is
+NO reset input: MAX V registers power up cleared"*. A counter on `CDC_O` is an
+HDL change plus a way out, and the only ways out are those four pins or a DSPA
+lane.
+
+**S80-8 🟡 NOTHING ON A D24 REPORTS A RAIL.** `S_TEST` returns three MCU
+identity lines (`H1S1 DSP`, `H1S4 SW Left`, `H1S3 SW Right`) and MH1's idle
+heartbeat, twice identically; and the only power-shaped cells among the D24
+contract's 5,002 are the 24 `Chan[n]Phantom001` **writes**. There is no rail
+telemetry to diff against S70's boot, so that item of S79-Q1 has no
+instrument either.
+
+**S80-9 🟢 THE 595 CHAIN IS READABLE AND IT IS RULED OUT: THERE IS NO
+CONVERTER RESET OR POWER BIT IN IT.** `s55_chain.send()` shifts 25 bytes twice
+and pass 2's MISO is the image that was in the chain, so it reads as well as
+writes. The byte is `{gain[5:0] << 2 | phantom << 1 | mute}` and `!RST_C` is a
+direct STM32 GPIO pulsed in `MainInit()`, not a chain bit. No 595 state can be
+making the converters dark.
+
+**S80-10 🔴 `codec4619.py --reset` LEAVES EVERY MIC PREAMP UNMUTED AT MAXIMUM
+GAIN, AND THE DOCSTRING THAT SAID OTHERWISE PUT IT IN S79's HANDBACK RECORD.**
+`MainInit()` ends with `TestMicPres()`, whose only live image is
+`micGainFull` = `0xFC` x 24, which decodes as **gain 63, phantom off, mute
+OFF**. The tool's docstring said `--reset` *"CLEARS THE 595 CHAIN"* and S79
+recorded the chain left *"as MainInit leaves it ... benign (gain 0, phantom
+off)"* on the strength of it. The SAFE image is `0x01` x 24 + `0x00` — gain 0,
+phantom off, **MUTED** — and `0x00`, which "clears" implied, is unmuted at
+gain 0. Phantom is off so nothing is at risk of damage, but the unit has been
+at full mic gain since S79's handback and any EIN or noise figure taken on
+this bench now is taken at full gain. Docstring corrected. **The state is
+inferred from the H1S1 source and deliberately NOT verified on the part**,
+because verifying it shifts the chain and shifting the chain drives CS_M,
+which this dispatch's standing handback says to leave untouched.
+
+**S80-11 🟡 THE MEMS-AGAINST-CODEC IDLE-LEVEL ARGUMENT CANNOT BE SHARPENED,
+AND THE OBVIOUS SHARPENING IS UNAVAILABLE.** S79's inference — two different
+stuck levels, so the SPORT is sampling real pins — is sound but cannot be
+pushed to "the codec is driving": the lanes are different nets on different
+boards (`tdm-lines.csv`: `A_I4`/`CDC_O` against `A_I7`/`MEMS`). The same-wire
+version, the codec's four populated TDM slots against the four unpopulated
+ones, is not available either: chip 1 receives that line as **stride 4, not
+8** (`src/chip1/block_io.asm`, `_c1_rx_off` 512..515), so the unpopulated
+slots are not in the RX buffer.
+
 ## THE DELAY POOL IS CODED FOR HYPERRAM AND RUNS WITHOUT IT: BOTH BACKENDS IN THE TREE, ZERO ADDED LATENCY, THE SHIPPING PAIR BYTE-IDENTICAL, AND TWO HARDWARE QUESTIONS THAT DECIDE WHETHER IT CAN EVER BE ARMED (2026-09-19, session 75 — desk only, no unit touched)
 
 PW ruling 2026-09-19 evening: *"dsp ram is required, but needs to work without
