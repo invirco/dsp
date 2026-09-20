@@ -75,9 +75,15 @@ re-signing question, not a new bound.
 |---|---|---|---|
 | `DSP4_DYN_LUT` | **≤ 0.0950 dB** | worst-case gain error of the baked level→gain table over the whole documented COMPRESSOR/LIMITER parameter sweep, at the shipped K = 4 | `tools/dsp/dyn_lut_design.py --sweep` |
 | `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** | shift in the GATE's effective threshold from comparing in the linear domain instead of log2 | `tools/dsp/dyn_state_bound.py` §6 |
-| `COMPRESSOR` numeric | **≤ 0.00518 dB** | one verdict of `famverify`'s twenty moves numerically against `fixed_ref`; this is how far | `famverify.sh` → `dsp4_node_verify.py::numeric_phase` |
+| `COMPRESSOR` numeric | **≤ 0.00518 dB** | one `famverify` verdict moves numerically against `fixed_ref`; this is how far | `famverify.sh` → `dsp4_node_verify.py::numeric_phase` |
 
 Three things the table's right-hand column is doing deliberately.
+
+**The ruling says "one verdict of twenty" and the bar now carries
+TWENTY-SEVEN families.** The claim is unaffected — exactly one family moves
+numerically and the rest are bit-exact or not applicable — but the count in the
+wording is stale, and a contract term that names a denominator should name the
+right one.
 
 **The bound is quoted against the tool that computes it, not against a
 constant.** `dyn_lut_design.py` derives 0.0950 dB from the table design and the

@@ -358,7 +358,7 @@ question, not a new bound.**
 |---|---|---|
 | `DSP4_DYN_LUT` | **≤ 0.0950 dB** | the COMPRESSOR's and LIMITER's static curve is a baked per-node table, so the gain computer is an index plus an interpolation rather than the log2/exp2 polynomials. Worst case over the whole documented parameter sweep at the shipped K = 4. |
 | `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** for `GateThr ≥ −60 dB`; **≤ 0.00035 dB** below it | the GATE's threshold is compared in the linear domain, so no `_log2q_fx` runs per sample. Below −60 dB the linear word is tens of Q4.28 LSBs and one LSB of quantisation already exceeds the tighter bar; worst over 801 points is +0.000320 dB at −79.9 dB. |
-| COMPRESSOR numeric | **≤ 0.00518 dB** | the consequence of the two above at the node bar: one of `famverify`'s twenty verdicts moves numerically against `fixed_ref`, and this is how far. Every other family, and every other converted parameter of this one, stays bit-exact. |
+| COMPRESSOR numeric | **≤ 0.00518 dB** | the consequence of the two above at the node bar: one `famverify` verdict moves numerically against `fixed_ref`, and this is how far. Every other family, and every other converted parameter of this one, stays bit-exact. (PW's ruling says "one of twenty"; the bar carries **27** families as of S82, so the count in the wording is stale even though the claim is not.) |
 
 **None of these numbers is stored as a literal in a model.** `DSP4_DYN_LUT`'s
 is produced by `tools/dsp/dyn_lut_design.py --sweep` from the table design;
