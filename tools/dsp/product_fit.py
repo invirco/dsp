@@ -168,15 +168,49 @@ SCOPE_NAME = {0: 'D32', 1: 'D24'}
 #
 # Each entry is (chip-1 avg %, chip-2 avg %). `worst` carries the
 # S21-6-corrected worst block of the same rows.
+# ---------------------------------------------------------------------------
+# S82: THE D24 ROWS ARE ON THE SIGNED CONFIGURATION AND THE OTHERS ARE NOT.
+# ---------------------------------------------------------------------------
+# PW signed DSP4_SIMD_DYN + DSP4_STRIP_FUSED + DSP4_DYN_LUT + DSP4_GATE_LINTHR
+# on 2026-09-20. S82 re-measured the D24 on it, two boots, regime proven on
+# both (48 of 48 chip-1 envelopes, 28 of 32 -- 28 of 28 -- on chip 2), and the
+# driven row went from 123.57/127.50 with 21.5 % of blocks missed to
+# 57.54/84.34 with NONE. D16, D32 and D12 have NOT been re-measured on it.
+#
+# SO THE TABLE NOW MIXES TWO CONFIGURATIONS AND SAYS SO, rather than either
+# pretending it does not or throwing away the one product that has been
+# measured. S81 5.1 is the precedent and the warning: the FX-engine correction
+# term was retired precisely because it mixed an S80 C row with a stale S27 D
+# row "from a different session and a different bitstream". The same caution
+# applies here with more force, because the configuration difference is worth
+# 43 points of chip 2 on the row that decides whether a product fits.
+#
+# WHAT THAT MEANS FOR A READER: the D24 rows are the product, on the
+# configuration that ships. Every other product's row is the PRE-S82
+# configuration and is an upper bound on what it will read once re-measured --
+# the signing only ever removed cycles. The cross-product interpolation that
+# `predict()` builds from these anchors is therefore NOT like-for-like until
+# D16/D32/D12 are re-taken, and `source` says which configuration each row
+# came from.
+MEASURED_PRE_S82_SUPERSEDED = {
+    # The D24 rows this file carried until S82, on DIAG_BUILD_CFG2 0xE2018264
+    # (S80's arms, the pre-signing shipping configuration). Kept so the
+    # improvement the signing bought stays auditable from this file.
+    'A_silent_default': {'d24': (56.04, 88.33)},
+    'B_silent_load':    {'d24': (80.71, 98.28)},
+    'C_driven_load':    {'d24': (123.57, 127.50)},
+}
 MEASURED = {
     # row key: {product: (chip1_avg, chip2_avg)}
+    # d24: S82, the SIGNED configuration, DIAG_BUILD_CFG2 0xE2018E6F.
+    # d12/d16/d32: S80, the PRE-S82 configuration, 0xE2018264.
     'A_silent_default': {'d12': (32.44, 71.07), 'd16': (40.32, 79.47),
-                          'd24': (56.04, 88.33), 'd32': (72.05, 105.62)},
+                          'd24': (43.22, 77.41), 'd32': (72.05, 105.62)},
     'B_silent_load':    {'d12': (43.67, 76.03), 'd16': (55.88, 87.73),
-                          'd24': (80.71, 98.28), 'd32': (106.70, 118.90)},
+                          'd24': (57.50, 84.27), 'd32': (106.70, 118.90)},
     'D_driven_fxoff':   {'d24': (59.91, 64.38), 'd32': (79.02, 80.67)},
     'C_driven_load':    {'d16': (84.59, 113.00),
-                          'd24': (123.57, 127.50), 'd32': (164.32, 151.57)},
+                          'd24': (57.54, 84.34), 'd32': (164.32, 151.57)},
 }
 MEASURED_WORST = {
     'A_silent_default': {'d12': (32.54, 71.33), 'd16': (40.49, 79.78),
@@ -277,6 +311,11 @@ LEAD_WORST = {
     ('d32', 'D_driven_fxoff'):      (79.51, 75.88),
     ('d32', 'C_driven_load'):       (79.50, 96.00),
 }
+# S82: which products' measured rows are on the SIGNED configuration. Every
+# other product's row is the pre-signing one and is an UPPER BOUND on what it
+# will read once re-measured, because the signing only ever removed cycles.
+SIGNED_CONFIG_ROWS = {'d24'}
+
 # ZERO missed blocks on every row of every product of candidate B (S33).
 LEAD_OVR = {}
 
@@ -910,6 +949,20 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
                     src = 'measured'
                     if p in ra['products']:
                         src += f" (anchor, {ra['session']} {ra['date']})"
+                    # S82: THE D24 IS ON THE SIGNED CONFIGURATION AND THE
+                    # OTHERS ARE NOT, so the row says which it is and the
+                    # anchor label -- which still names the session the FIT
+                    # was built from -- stops being read as the session the
+                    # NUMBER came from. Without this the D24 rows read
+                    # "ANCHOR (S80) — control, passes by construction" while
+                    # carrying S82 measurements and a 44-point residual,
+                    # which is the S28 mislabelling one column to the left.
+                    if p in SIGNED_CONFIG_ROWS:
+                        src += ' [S82 SIGNED CONFIG 0xE2018E6F; the'
+                        src += ' construction is anchored on the PRE-S82'
+                        src += ' rows, so the residual is the signing]'
+                    else:
+                        src += ' [pre-S82 config 0xE2018264 — upper bound]'
                 elif p in MEASURED[row]:
                     c1, c2 = MEASURED[row][p]
                     w1, w2 = MEASURED_WORST[row][p]

@@ -26,28 +26,7 @@
   "and without the park gate -- so D12 has no quotable driven number yet. Its",
   "figures are in the S80 report for the record, not here. Finding S80-16.",
   "",
-  "There is no D row (driven, FX off): capacity.sh --driven takes three rows.",
-  "",
-  "S82 (2026-09-20): THE D24 ROWS ABOVE ARE THE SIGNED CONFIGURATION and the",
-  "other products' are NOT. PW signed DSP4_SIMD_DYN + DSP4_STRIP_FUSED +",
-  "DSP4_DYN_LUT + DSP4_GATE_LINTHR; the D24 was re-measured on it as arm",
-  "`s82d24` (ARM=s82d24 PRODUCT=d24 ./capacity.sh --driven, no override, on",
-  "loadlogic.sh driveall), two boots, pair chip1 e3e25a79 / chip2 41a6b913,",
-  "DIAG_BUILD_CFG2 0xE2018E6F read off the part on every row, and the driven",
-  "regime PROVEN on both boots (48 of 48 chip-1 envelopes, 28 of 28 chip-2).",
-  "",
-  "The driven row went from 123.57 / 127.50 with 54,729 missed blocks to",
-  "57.54 / 84.34 with ZERO. The pre-S82 D24 rows are archived beside this file",
-  "as fit-measured-preS82-d24.json.",
-  "",
-  "d12 / d16 / d32 are still S80's, on DIAG_BUILD_CFG2 0xE2018264. They are an",
-  "UPPER BOUND on what they will read once re-measured -- the signing only ever",
-  "removed cycles -- and the cross-product interpolation product_fit.py builds",
-  "from these anchors is NOT like-for-like until they are re-taken.",
-  "",
-  "The worst-block column for the D24 rows is the post-reset latch. Chip 1's",
-  "silent-loaded row latched 357.32 % raw (the S21-6 tick artifact) and is",
-  "carried at its average rather than as a false worst."
+  "There is no D row (driven, FX off): capacity.sh --driven takes three rows."
  ],
  "d12": {
   "A_silent_default": {
@@ -116,38 +95,38 @@
  "d24": {
   "A_silent_default": {
    "1": [
-    43.22,
-    43.34,
+    56.04,
+    56.22,
     0
    ],
    "2": [
-    77.41,
-    77.83,
+    88.33,
+    88.57,
     0
    ]
   },
   "B_silent_load": {
    "1": [
-    57.5,
-    57.5,
+    80.71,
+    80.94,
     0
    ],
    "2": [
-    84.27,
-    84.73,
+    98.28,
+    98.5,
     0
    ]
   },
   "C_driven_load": {
    "1": [
-    57.54,
-    58.14,
-    0
+    123.57,
+    124.1,
+    25713
    ],
    "2": [
-    84.34,
-    84.91,
-    0
+    127.5,
+    128.02,
+    29016
    ]
   }
  },
