@@ -34,18 +34,44 @@
 # layer below where it was looking. The regime proof CAUGHT it (NOT PROVEN on
 # every row) -- what nobody had was a reason.
 #
-# So the amplitude is a quarter of full scale (-12 dBFS at the CM4, -6 dBFS
-# at the part after the shift), which leaves a bit of headroom against the
-# shift instead of standing on the edge of it, and is the level
-# `dsp4_dyn_witness.py` already predicts its compressor reading from. Every
-# dynamics node in the driven configuration sits at a -60 dB threshold, so
-# 18 dB of stimulus either way does not change which BRANCH the graph is on
-# -- which is what the row measures -- but it does change the compressor's
-# gain-reduction arithmetic, so rows below and above this change are not
-# interchangeable to the cycle. Where the shift comes from is NOT explained
-# here: it is present on both driveall bases (14df62d98a4d and the pre-S34
-# 907492a607bd) and absent from the CPLD-internal pisel loop, which returns
-# `in << 0` (S77 finding).
+# WHERE THE SHIFT CAME FROM, AND WHY THE AMPLITUDE NOW DEPENDS ON WHICH
+# BITSTREAM IS ON THE PART (S78).
+#
+# It was never the CM4 link. Both sides of that are I2S and they agree, which
+# the design-ID knock had already proved by matching a 64-bit magic word
+# through the same de-framer. It was per-lane MFD: `DSP4_DRIVE_ALL` broadcast
+# the Pi lane's framing onto EVERY DSPA input lane, and chip 1's RX halves do
+# not share one frame delay --
+#
+#     src/chip1/lane_config.c:  c1_rx_lanes_mfd[8] = { 2,2,2,2,2,2,1,2 };
+#
+# -- lane 6 (A_I6, PI_PCM) is MFD 1 because LOGIC frames it, the other seven
+# are MFD 2 because a pin-strapped AKM converter does (src/sport_config.c,
+# S42-1). An MFD 2 half reads an MFD 1 transmitter one bit LEFT, which is
+# S39-4's law with the sign reversed. Measured on the part 2026-09-20, one
+# boot, four words, five lanes at once: lane 6 bit-exact, lanes 4 and 7
+# exactly x2. No converter lane in a SHIPPING build is affected -- DRIVE_ALL
+# is the only thing that ever puts a LOGIC-framed stream on a converter half.
+#
+# The fix is in the bitstream (shared/dsp4-logic, DRIVE_MFD), so THE LEVEL AT
+# THE PART IS A PROPERTY OF THE BITSTREAM:
+#
+#   loadlogic.sh driveall        c49f4128a083   bit-exact  -> LANE_SHIFT=0
+#   loadlogic.sh driveall-pre78  14df62d98a4d   MFD 2 << 1 -> LANE_SHIFT=1
+#
+# The two defaults are kept in step by construction: `loadlogic.sh driveall`
+# names the fixed artifact and LANE_SHIFT defaults to 0, so the only way to
+# get the old behaviour is to ask for it in BOTH places. AMP is derived from
+# PART_DBFS -- the level the PART sees, which is the only level a row should
+# ever quote -- and the derivation is printed with every stream.
+#
+# Every capacity row from S19 through S78's bisect was taken at -6 dBFS AT THE
+# PART, and that is the default here, so rows across the fix stay comparable.
+# Every dynamics node in the driven configuration sits at a -60 dB threshold,
+# so 18 dB either way does not change which BRANCH the graph is on -- which is
+# what the row measures -- but it does change the compressor's gain-reduction
+# arithmetic, so a row must say what level it had. S77-9 measured the
+# sensitivity: 6 dB is worth a tenth of a point.
 #
 # IT IS GENERATED, NOT PLAYED FROM A FILE, so the stream has NO GAP. A
 # looped `aplay file` restarts every pass, and a restart is tens of
@@ -75,8 +101,38 @@
 set -u
 DEV="${DEV:-hw:CARD=dsp4pcm,DEV=1}"
 FREQ="${FREQ:-400}"
-# Peak sample value. A quarter of full scale: see the note above.
-AMP="${AMP:-536870912}"
+# The peak the PART sees. 0x40000000 is a quarter of full scale, -6.02 dBFS,
+# and is the EXACT word every driven row from S19 through S78's bisect was
+# taken at -- exact, because a dB figure rounds to a different integer and an
+# old row would then not be reproducible to the bit. PART_DBFS overrides it
+# for a deliberate level sweep. LANE_SHIFT says what the bitstream does to it
+# on the way; see the note above.
+PART_PEAK="${PART_PEAK:-1073741824}"
+LANE_SHIFT="${LANE_SHIFT:-0}"
+case "$LANE_SHIFT" in
+  0|1) ;;
+  *) echo "drive_audio: LANE_SHIFT must be 0 (driveall) or 1 (driveall-pre78)" >&2
+     exit 2 ;;
+esac
+# AMP is what the CM4 PLAYS. The part sees it shifted left by LANE_SHIFT, so
+# the played value is the target shifted right by the same amount. An explicit
+# AMP still wins, and is reported against the target rather than silently
+# replacing it.
+AMP_DERIVED=$(PART_PEAK="$PART_PEAK" PART_DBFS="${PART_DBFS:-}" \
+              LANE_SHIFT="$LANE_SHIFT" python3 -c "
+import math, os, sys
+sh = int(os.environ['LANE_SHIFT'])
+d = os.environ.get('PART_DBFS', '')
+peak = int(round((1 << 31) * 10.0 ** (float(d) / 20.0))) if d else int(os.environ['PART_PEAK'])
+if not 1 <= peak < (1 << 31):
+    sys.exit('peak %d at the part is not a 32-bit sample' % peak)
+v = peak >> sh
+if v < 1:
+    sys.exit('peak %d with LANE_SHIFT %d underflows to silence' % (peak, sh))
+sys.stderr.write('%.2f\\n' % (20.0 * math.log10(peak / float(1 << 31))))
+print(v)" 2>/tmp/dsp4_drive_dbfs) || { echo "drive_audio: $AMP_DERIVED" >&2; exit 2; }
+PART_DBFS_SHOWN="$(cat /tmp/dsp4_drive_dbfs 2>/dev/null)"
+AMP="${AMP:-$AMP_DERIVED}"
 PIDF=/tmp/dsp4_drive.pid
 GEN=/tmp/dsp4_drive_gen.py
 PROBE=/tmp/dsp4_drive_probe_$AMP.wav
@@ -134,7 +190,7 @@ start)
     if ! pgrep -f "aplay -q -D $DEV -f S32_LE" >/dev/null; then
         echo "drive_audio: stream died"; sed 's/^/  /' /tmp/dsp4_drive.log; exit 3
     fi
-    echo "drive_audio: streaming ${FREQ} Hz square, peak $AMP, on $DEV (pid $(cat $PIDF))"
+    echo "drive_audio: streaming ${FREQ} Hz square, peak $AMP played," "LANE_SHIFT=$LANE_SHIFT -> peak $PART_PEAK = ${PART_DBFS_SHOWN} dBFS AT THE PART" "(derived $AMP_DERIVED), on $DEV (pid $(cat $PIDF))"
     ;;
 stop)
     [ -f "$PIDF" ] && { kill "$(cat $PIDF)" 2>/dev/null; rm -f "$PIDF"; }

@@ -12492,3 +12492,180 @@ current, uncorrupted `.16.5` expansions).
 `proposals/defs/products/d24/dsp-unmapped.csv` (+2 rows, the RTA proposal
 for the hub). No defs pin change, no matrix change, no DSP address artefact
 change.
+
+## S78 — chip 2's ten points bisected, the one-bit shift run to ground, and the driven stimulus made bit-exact
+
+**S78-1. 🔴 CHIP 2's TEN POINTS ARE S22 AND S23, AND BOTH LANDED ON
+2026-09-10 — THE SAME DAY AS THE ROWS THEY ARE MEASURED AGAINST.** Eight driven
+D24 arms, two boots each, both ends reproducing their references (`s78b74c`
+byte-identical to S77's `s77shk0` and reading within 300/500 cycles of it;
+`s78b19` reading chip 2 within **13 cycles** of `cap-s19blk` across nine days).
+**S22's matrix mixer costs chip 2 +9,583 cycles/block (+2.92 pts) and S23's aux
+mix buses + FX returns cost +25,161 (+7.68 pts); the two together are +10.60 of
+the +10.69 measured end to end.** Everything else in the range — S24, S32, S42,
+S65, S66…S74c — costs chip 2 **+0.09 points**, a twentieth of the instrument's
+own chip-2 spread. Chip 1 over the same range: S22 +1.81, S23 +0.98, S32 +0.43,
+rest ≤0.16, total +3.30 against S77's +3.60…+3.71. **The record's phrase "nine
+days of graph growth since 2026-09-10" is wrong in its premise: the growth
+happened within hours of the 2026-09-10 rows and the eight days after are
+flat.** The one soft edge is the split between S22 and S23 — `s78b22`'s chip-2
+boots differ by 6,729 cycles (2.05 pts) where every other arm's agree to a few
+hundred — so S22 is +2.9 ±1 and S23 is +7.7 ∓1; the sum is firm.
+
+**S78-2. 🔴 THE DISPATCH'S TWO NAMED SUSPECTS CHANGE NOT ONE CHIP-2
+INSTRUCTION.** S71 (`b361bdb0`, the codec-return lanes) touches only
+`chip1/block_io.asm`, `chip1/nodes/C1_TALK_01.asm`, `C1_XIN_CODEC_01/03/04.asm`
+and `C1_XS_XFER_CODEC_AUX_L/R.asm` — all chip 1 — plus the `DSP4_TALK_INVERT`
+macro in `dsp_block.h`. S74 (`bc22a1cc`) touches no `chip2/` file at all; chip
+2's image differs from the arm before it by the config stamp, which is S77's
+"two stamp bytes". Both were ruled out **from the generator output before
+anything was booted**, and the rows then confirmed it. Two arms (`s78b21`,
+`s78b32`) were not booted at all because their images are byte-identical on both
+chips to the arm before them — a stronger claim than a measurement.
+
+**S78-3. 🔴 THE ONE-BIT LEFT SHIFT IS PER-LANE MFD, NOT JUSTIFICATION, AND IT IS
+THE INSTRUMENT'S ALONE.** Both sides of the CM4 link are I2S and agree
+(`pi/dsp4-pcm-slave.dts:62` `format = "i2s"`; `rtl/dsp4_pcm_reframe.v:55`
+`PCM_DATA_DELAY = 1`), and the design-ID knock had already proved the de-framer
+exact by matching a 64-bit magic word through it. What `DSP4_DRIVE_ALL` did was
+broadcast **one** framing onto lanes that do not share one frame delay:
+`c1_rx_lanes_mfd[8] = { 2,2,2,2,2,2,1,2 }` (`chip1/lane_config.c:26`) — lane 6
+is MFD 1 because LOGIC frames it, the other seven are MFD 2 because a
+pin-strapped AKM converter does (`sport_config.c:21-37`, S42-1). MFD one too low
+reads `>> 1` (S39-4, measured); one too high reads `<< 1`. **Measured: one boot,
+one bitstream, four words, five lanes at once — lane 6 bit-exact on both slots
+and every word, lanes 4 and 7 exactly ×2 on every word.** No converter lane in a
+shipping build is affected; `DRIVE_ALL` is the only thing that ever puts a
+LOGIC-framed stream on a converter half.
+
+**S78-4. THE STIMULUS IS NOW BIT-EXACT ON EVERY LANE, PROVED A/B ON THE PART,
+AND THE SIM GATE CAN SEE THE DEFECT.** `rtl/dsp4_pcm_reframe.v` gains
+`DRIVE_MFD` (default 2) and launches the broadcast copy one BCK later;
+`rtl/dsp4_logic_top.v` leaves lane 6 on `tdm_out`, which is already right for
+it, so all eight lanes are exact rather than seven, and lane 6 keeps its
+stimulus (its `cs_mask` is `0x0003` and `tdm_out` carries exactly those two
+slots). A/B on the part, one change apart: `1ee6b5056fb7` reads **0 exact /
+12 ×2**, `c49f4128a083` reads **12 exact / 0 ×2**. Cost: **+16 logic elements,
+no pin change**, timing met at 66.19 MHz. `sim/model_tdm_rx.v` had ONE
+hard-wired MFD — every testbench instantiated an MFD 1 receiver, which is why a
+transmitter aimed at MFD 1 and received by an MFD 2 half read PASS in
+simulation and arrived one bit left on the part. Parameterising it forced out a
+second model defect: resetting the bit counter at every FS is only correct at
+MFD 1, because a TDM8 frame is 256 BCK and the wire is continuous, so at MFD 2
+the tail of slot 7 arrives after the next FS. `sim/tb_pcm_drive.v` now carries
+the defect as a negative control — a second reframer at `DRIVE_MFD(1)` read by
+an MFD 2 half, which must come out `(word << 1)`. **S77-3 fails the suite if it
+returns.**
+
+**S78-5. 🔴 THE NO-HANDS LOOP MEASUREMENT COULD NOT BE TAKEN: THE ANALOG RAILS
+ARE DOWN AND THIS SESSION IS NOT AUTHORISED TO RAISE THEM.** `GPIO 26 (AN_EN)`
+reads `op pd | lo` before and after stopping `matrix-app`, and was left there.
+The AUX 1 → talkback loop was run exactly as S70 ran it, on S70's own image
+(`chip1 a8dc45eb` / `chip2 251ce3b2`): **the DSP half is perfect** — the route
+asserts and proves and the AUX 1 bus tracks the oscillator to `0.000 dB` at five
+levels from −80 to −40 dBFS — and **all three received codec lanes read
+`-336.124 dBFS`, exact digital zero, at every level including oscillator off.**
+S70 read `-75.9 / -98.9 / -68.4` on the same three lanes with the oscillator off
+and the rails UP. S70's dispatch said "AN_EN raise authorised in-spec"; S78's
+does not. See S78-Q1.
+
+**S78-6. 🔴 MATRIX BUSES 3 AND 4 CANNOT BE ROUTED INTO ON EITHER PRODUCT, AND A
+D24 RUNS FOUR AUX MIXES FOR WHICH NO CELL EXISTS.** `Chan001MatrixOn/Send` stops
+at `002` in `defs/products/d24/dsp.csv` **and** in `defs/products/d32/dsp.csv`,
+while D32's master declares `Matrix003/004 Level+Mute+Name` and D24's declares
+neither. So on D32 two matrix buses have an output level, a mute and a name and
+nothing that can feed them; on D24 the same two chains have no cell at either
+end. Separately, D24 declares `Chan001AuxOn/Send001..008` — eight aux buses —
+and the firmware builds twelve `C2_MIX_AUX_*`, so **four run every block on
+every D24 for something no cell can turn on**. That is the S23 bypass class
+exactly. Both are questions for defs, not for the firmware: S78-Q2.
+
+**S78-7. 🔴 `DSP4_AUXIN_BYPASS` IS OFF IN THE CONFIGURATION THAT SHIPS, AND HAS
+NEVER BEEN IN IT.** `build.sh:258` defaults it to 0; `shipping.config.s32:319`
+set it to 1; the committed `shipping.config` has no such line, and
+`git log -S AUXIN_BYPASS -- shipping.config` returns nothing at all. S32 built
+and measured the lever and it was never switched on for the shipping arm. See
+S78-Q3.
+
+**S78-8. `dsp4_logic_id.py` DID NOT ANSWER TONIGHT ON THE SAME OVERLAY S77
+REPORTED IT WORKING ON.** Two invocations, immediately after a clean
+`FLASH OK on attempt 1`: "no reply: nothing in the capture carried the 0xD594
+marker." S77-4 recorded the tool fixed and quoted `design_id 0x62d98a4d` read
+off this part, on this `dsp4-pcm-slave` overlay, which the standing bench note
+says makes the tool useless. **So the one command that identifies a bitstream
+from the part is not dependable.** Identity in this session rests on the named
+SVF, its md5, the JTAG IDCODE either side — and, better, on behaviour: a part on
+which all eight DSPA lanes carry the CM4's playback is running `drive_all`, and
+the A/B in §3.3 identifies which `drive_all` it is by what the MFD-2 lanes read.
+
+**S78-9. THE CAPACITY INSTRUMENT REPRODUCES ACROSS SESSIONS AND ACROSS NINE
+DAYS.** `s78b74c` against S77's `s77shk0`, byte-identical images: 401,460 /
+401,631 against 401,759 / 401,471 on chip 1 and 425,440 / 425,801 against
+425,326 / 425,296 on chip 2. `s78b19` against `cap-s19blk` of 2026-09-10:
+chip 2 390,725 against 390,712. **After three sessions of repairs the bar is
+stable to a few hundred cycles**, which is what makes a step of +9,583 or
++25,161 an attribution rather than a guess.
+
+### 🔴 For the hub
+
+**S78-Q1 — the no-hands loop needs AN_EN, and this dispatch does not authorise
+raising it.** The gate asked for the AUX 1 → talkback loop to be played and
+read with no hands, on the ground that the loop is "cabled and live". It is
+cabled, and it is live on the DSP side — the AUX 1 bus tracks the oscillator to
+0.000 dB at five levels — but `GPIO 26` reads `lo`, all three codec return
+lanes read exact digital zero, and the converters are not converting. S70 took
+this measurement with an explicit "AN_EN raise authorised in-spec" in its
+dispatch; the standing bench rule is that a dispatched session never writes
+AN_EN. Options:
+
+1. **Authorise the raise in a re-dispatch** (`sudo pinctrl set 26 op dh`, 150 ms,
+   measure, `op dl` before handback, exactly as S70 did). ~20 minutes of bench
+   time; everything else is staged and the S69/S70 tooling is on the card.
+2. **Have the hub or PW raise it** and leave it up for a window a dispatched
+   session can measure inside.
+3. **Treat §1 and §2 as sufficient** — the shift is located to `DRIVE_ALL` by
+   source and by measurement, and no converter lane can see it — and close
+   S77-Q1 without the analog check. **This does NOT close the other question the
+   loop would have answered**: S70's 6.16 dB between the AK4619's own full scale
+   and the ADC full scale it derived at J1 is still attributed to an unmeasured
+   loss between J1 and the codec pins, and six decibels is also what one bit is
+   worth. Tonight's work makes the MFD class of fault impossible there (the
+   codec lane is MFD 2 like every other converter lane) but does not measure the
+   loss.
+
+**Recommendation: option 1.** It is cheap, it is the only one that retires the
+6.16 dB, and a mic input that is 6 dB hot is not a thing to leave attributed.
+
+**S78-Q2 — two defs questions the bisect turned up, both about cells that do not
+exist.** (a) `Chan001MatrixOn/Send` stops at `002` on **both** products while
+D32's master declares four matrix buses and D24's declares two — so matrix 3 and
+4 are output-only on D32 and absent at both ends on D24, and the firmware builds
+four of each matrix node on both. Is that a real product limit (two matrix sends
+per channel) or missing rows? (b) D24 declares eight aux buses and the firmware
+builds twelve `C2_MIX_AUX_*`, so four run for nothing on every D24. Both are
+`defs` changes if they are changes at all; this repo is a consumer and has
+invented nothing.
+
+**S78-Q3 — `DSP4_AUXIN_BYPASS` has never been in `shipping.config`.** S32 built
+the lever, measured it, and it went into `shipping.config.s32` and no further;
+`build.sh` defaults it to 0 and `git log -S` over the shipping file returns
+nothing. Is that deliberate, or did the S32 landing simply not carry through to
+the configuration that ships? It is points sitting switched off.
+
+**S78-Q4 — the S28/S29 rows are due for re-taking and were not done tonight.**
+`cap-s28-{d12,d16,d16oldprover,d24,d32}`, `cap-s29ctl-d32`, `cap-s29ns-d32` —
+seven arms — were taken with the full-scale square on the pre-fix bitstream, so
+on every MFD-2 lane they were driven at 2 LSB and are silence rows wearing a
+driven label. The instrument is now fixed and the recipe is one line per arm
+(`ARM=… PRODUCT=… ./capacity.sh --driven` on `loadlogic.sh driveall`). The
+night went on the bisect; this is a short session of its own, and the D12/D16
+arms will need their own products staged.
+
+**S78-Q5 — what to do with the ten points, now that they are attributed.** S22
+and S23 are both architecture rather than options: the matrix mixer and the aux
+mix buses are product-defined functions and they have to exist. What is
+available is the bypass class in §5 — four `C2_MIX_AUX_*` and six matrix-chain
+instances that no cell on a D24 can reach, plus the runtime all-off case — and
+it is the same lever S32 built and S78-Q3 says was never switched on. **None of
+it is worth designing until Q2 and Q3 are answered**, because both change what
+"runs for nothing" means.

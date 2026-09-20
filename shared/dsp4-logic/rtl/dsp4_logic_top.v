@@ -249,7 +249,23 @@ module dsp4_logic_top (
     // NOTHING else changes: same clkgen, same reframer, same DSPB output
     // routing, same pinout. Never set for a shipping build; build.sh
     // labels the artifact dsp4_logic_driveall.<hash>.
-    assign i_dspa = {8{pcm_drive}};
+    //
+    // LANE 6 IS NOT DRIVEN FROM THE BROADCAST COPY, AND THAT IS S78-4.
+    // chip 1's RX halves carry two different frame delays (lane_config.c:
+    // c1_rx_lanes_mfd = { 2,2,2,2,2,2,1,2 }), so ONE framing cannot be
+    // bit-exact on all eight. `pcm_drive` is framed for the seven MFD 2
+    // halves; lane 6 is the MFD 1 one and already has a correctly framed
+    // stream of its own in `pcm_tdm`, which is what the shipping build
+    // gives it. Its cs_mask is 0x0003 -- only slots 0/1 are received, and
+    // they are exactly what `pcm_tdm` carries -- so the stimulus still
+    // reaches C1_XIN_PI_L/R and nothing is lost by not broadcasting there.
+    //
+    // Before this, lane 6 took the broadcast copy like the rest and read
+    // bit-exact while the other seven read (word << 1): S77-3, located by
+    // measurement in S78-3.
+    assign i_dspa[5:0] = {6{pcm_drive}};
+    assign i_dspa[6]   = pcm_tdm;
+    assign i_dspa[7]   = pcm_drive;
 `elsif DSP4_LOOPBACK
     // ---- NON-SHIPPING BRING-UP BUILD: fabric feedback loop ----
     //

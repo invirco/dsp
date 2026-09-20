@@ -59,10 +59,29 @@ module tb_pcm_drive;
         .bck(pcm_clk), .ws(pcm_fs),
         .left(pi_left), .right(pi_right), .sd(pcm_dout)
     );
-    // The lane every DSPA input sees in the DRIVE_ALL build ...
-    model_tdm_rx #(.SLOTS(8)) u_rx_drv (.bck(bck8), .fs(fs8), .d(tdm_drive));
-    // ... and the product tap beside it, as the control.
-    model_tdm_rx #(.SLOTS(8)) u_rx_prd (.bck(bck8), .fs(fs8), .d(tdm_out));
+    // The lane every DSPA input sees in the DRIVE_ALL build, WITH THE
+    // FRAME DELAY THOSE HALVES ACTUALLY HAVE. `dsp4_logic_top` drives
+    // lanes 0-5 and 7 from `tdm_drive`, and chip1/lane_config.c has all
+    // seven of them at MFD 2 (only lane 6, which keeps `tdm_out`, is
+    // MFD 1). Instantiating this receiver at MFD 1 -- which is what this
+    // file did until S78 -- is why the suite passed on a transmitter that
+    // arrived one bit left on the part (S77-3).
+    wire tdm_drive_old;
+    model_tdm_rx #(.SLOTS(8), .MFD(2)) u_rx_drv (.bck(bck8), .fs(fs8), .d(tdm_drive));
+    // THE NEGATIVE CONTROL, AND THE RECORD OF THE DEFECT. A second
+    // reframer carrying the PRE-S78 drive framing (DRIVE_MFD 1), read by
+    // the MFD 2 half it would really land on. It must come out one bit
+    // LEFT -- which is S77-3 reproduced in simulation, the thing this
+    // suite could not see while model_tdm_rx had one hard-wired MFD.
+    dsp4_pcm_reframe #(.PCM_DATA_DELAY(1), .DRIVE_MFD(1)) u_pcm_old (
+        .sysclk(sysclk), .frame_pos(frame_pos),
+        .pcm_clk(), .pcm_fs(), .pcm_dout(pcm_dout), .pcm_din(),
+        .bck8_launch(bck8_launch), .bck8_sample(bck8_sample),
+        .tdm_in(1'b0), .tdm_out(), .tdm_drive(tdm_drive_old)
+    );
+    model_tdm_rx #(.SLOTS(8), .MFD(2)) u_rx_old (.bck(bck8), .fs(fs8), .d(tdm_drive_old));
+    // ... and the product tap beside it, as the control. Lane 6 is MFD 1.
+    model_tdm_rx #(.SLOTS(8), .MFD(1)) u_rx_prd (.bck(bck8), .fs(fs8), .d(tdm_out));
 
     // power-up-cleared state (no reset on U3)
     initial begin
@@ -78,6 +97,13 @@ module tb_pcm_drive;
         u_pcm.cap_flat  = 256'd0;
         u_pcm.tdm_out   = 1'b0;
         u_pcm.tdm_drive = 1'b0;
+        u_pcm_old.pcm_clk   = 1'b0;
+        u_pcm_old.pcm_fs    = 1'b0;
+        u_pcm_old.shift     = 32'd0;
+        u_pcm_old.pw_flat   = 256'd0;
+        u_pcm_old.cap_flat  = 256'd0;
+        u_pcm_old.tdm_out   = 1'b0;
+        u_pcm_old.tdm_drive = 1'b0;
     end
 
     integer errors = 0;
@@ -97,6 +123,8 @@ module tb_pcm_drive;
         input [31:0] l;
         input [31:0] r;
         integer i;
+        reg [31:0] w_this;
+        reg [31:0] w_next;
         begin
             pi_left  = l;
             pi_right = r;
@@ -109,6 +137,17 @@ module tb_pcm_drive;
             expect32(u_rx_prd.mem[1], r, "product tap: slot 1 (PI_PCM_R)");
             for (i = 2; i < 8; i = i + 1)
                 expect32(u_rx_prd.mem[i], 32'd0, "product tap: unused slot not silent");
+            // NEGATIVE CONTROL. The same wire read by an MFD 1 half must
+            // come out one bit LEFT, with the next slot's MSB pulled into
+            // the LSB -- the exact arithmetic measured on the part in
+            // S77-3 and located in S78-3. Slot 7 is skipped: its successor
+            // is the next frame's slot 0.
+            for (i = 0; i < 7; i = i + 1) begin
+                w_this = (i % 2) ? r : l;
+                w_next = (i % 2) ? l : r;
+                expect32(u_rx_old.mem[i], {w_this[30:0], w_next[31]},
+                         "pre-S78 drive framing on an MFD 2 half is not (word << 1)");
+            end
         end
     endtask
 

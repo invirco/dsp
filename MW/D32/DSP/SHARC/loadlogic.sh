@@ -28,7 +28,7 @@
 #
 #   ./loadlogic.sh maincap        33b6eb00a4e8, the transmit-stamp capture
 #   ./loadlogic.sh pisel          983656926e3e, the CPLD-only loop reference
-#   ./loadlogic.sh driveall       14df62d98a4d, the DRIVEN-CAPACITY stimulus
+#   ./loadlogic.sh driveall       c49f4128a083, the DRIVEN-CAPACITY stimulus
 #                                 (S19: every DSPA input lane carries the
 #                                 Pi's playback, so the graph can be
 #                                 measured under load for zero DSP cycles)
@@ -37,6 +37,32 @@
 #
 #   ATTEMPTS=5 ./loadlogic.sh shipping    how many tries before giving up
 #
+# `driveall` MOVED AGAIN AT S78, AND THE AMPLITUDE MOVED WITH IT.
+#
+# Until 2026-09-20 `driveall` named `14df62d98a4d`, which broadcast the Pi
+# lane's framing onto EVERY DSPA input lane. chip 1's RX halves do not share
+# one frame delay (`src/chip1/lane_config.c`: c1_rx_lanes_mfd =
+# { 2,2,2,2,2,2,1,2 }), so the seven MFD-2 halves read that stimulus ONE BIT
+# LEFT and only lane 6 read it exactly -- S77-3, located by measurement in
+# S78-3. A full-scale square therefore wrapped to 2 LSB and every driven row
+# taken before S77 was a silence row on 46 of chip 1's 48 input kernels.
+#
+#   driveall         c49f4128a083  the FIXED stimulus: bit-exact on every
+#                                  lane. Drive it at the amplitude you mean.
+#   driveall-pre78   14df62d98a4d  what every driven capacity row up to and
+#                                  including S78's bisect was taken on. Keep
+#                                  it to reproduce an old row; its stimulus
+#                                  is 6 dB hot on every converter lane and
+#                                  `drive_audio.sh` must be told so.
+#   driveall-base    1ee6b5056fb7  `main` immediately before the S78 fix, as
+#                                  the one-change control for c49f4128a083.
+#                                  (14df62d98a4d is NOT rebuildable from
+#                                  main -- the slot-map hash moved at S72.)
+#
+# A ROW TAKEN ON ONE OF THESE IS NOT COMPARABLE WITH A ROW TAKEN ON ANOTHER
+# AT THE SAME `AMP`. See drive_audio.sh, which refuses to guess which is on
+# the part.
+
 # THE THREE INSTRUMENTS MOVED BASE AT S37, AND NO BAR TAKEN ON THEM TRANSFERS
 # UNTIL IT IS RE-TAKEN ONCE.
 #
@@ -112,14 +138,16 @@ case "${1:-}" in
   # main + s34-converter-clock + s36-xlogic-park (merge 7eabfa5f, S37)
   maincap)      SVF=dsp4_logic_maincap.33b6eb00a4e8.svf ;;
   pisel)        SVF=dsp4_logic_pisel.983656926e3e.svf ;;
-  driveall)     SVF=dsp4_logic_driveall.14df62d98a4d.svf ;;
+  driveall)     SVF=dsp4_logic_driveall.c49f4128a083.svf ;;
+  driveall-pre78) SVF=dsp4_logic_driveall.14df62d98a4d.svf ;;
+  driveall-base)  SVF=dsp4_logic_driveall.1ee6b5056fb7.svf ;;
   # the base every bar on record was taken on, kept until they are re-taken
   maincap-s36)  SVF=dsp4_logic_maincap.d903ae1ac4a9.svf ;;
   pisel-s36)    SVF=dsp4_logic_pisel.2c1355bbc69b.svf ;;
   driveall-s36) SVF=dsp4_logic_driveall.907492a607bd.svf ;;
   shipping)     SVF=dsp4_logic.a1f6672af6c3.svf ;;
   --id)     ssh $BENCH "cd /home/app/dspboot && python3 dsp4_logic_id.py"; exit $? ;;
-  *) echo "usage: $0 maincap|pisel|driveall|maincap-s36|pisel-s36|driveall-s36|shipping|--id" >&2
+  *) echo "usage: $0 maincap|pisel|driveall|driveall-pre78|driveall-base|maincap-s36|pisel-s36|driveall-s36|shipping|--id" >&2
      echo "       (something NEW on the part goes through tools/pi/logic_flash.sh)" >&2
      exit 2 ;;
 esac
