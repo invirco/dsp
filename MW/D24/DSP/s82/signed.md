@@ -478,7 +478,57 @@ listed in §7.
 
 ## 4. Gate 3 — the D24 driven row
 
-*(filled below)*
+### 4.1 THE D24 FITS DRIVEN ON THE SIGNED CONFIGURATION
+
+The instrument is unchanged from S79/S80: the `driveall` bitstream
+(`c49f4128a083`, design ID `0x4128a083` read back off the part after the
+flash) broadcasting the CM4's 400 Hz full-scale square onto every DSPA input
+lane, so the stimulus costs the DSP nothing; three rows on one boot;
+`--driven`; 45 s dwell; `DIAG_BLK_OVERRUN` the arbiter. The arm is
+`ARM=s82d24 PRODUCT=d24 ./capacity.sh --driven` with **no override on the
+command line** — the configuration is the file.
+
+**The image is the shipping pair, rebuilt byte-identically inside the arm**:
+`capacity.sh` built `chip1.ldr e3e25a79 chip2.ldr 41a6b913`, which is the pair
+built at the top of this session from the same `shipping.config`. And every
+row carries `cfg2 0xE2018E6F` read off the part *during the measurement*, so
+the number and the configuration are the same reading.
+
+Mean of BOTH boots, six rows per chip, 135,000 blocks per row:
+
+| row | chip 1 | chip 2 | missed blocks | pre-S82 (S80) |
+|---|--:|--:|---|---|
+| A — silent, default | **43.22 %** | **77.41 %** | **0 / 0** | 56.04 / 88.33 |
+| B — silent, loaded | **57.50 %** | **84.27 %** | **0 / 0** | 80.71 / 98.28 |
+| **C — DRIVEN, six FX live** | **57.54 %** | **84.34 %** | **0 / 0** | 123.57 / **127.50**, 21.5 % missed |
+
+**The regime is proven on BOTH boots, not asserted**: `DRIVEN REGIME: 48 of 48
+dynamics envelopes live on chip 1` and `28 of 28 on chip 2`, twice. That is
+the check that separates a driven row from the silence-row-wearing-a-driven-
+label that voided every S28 row (S78-Q4), and it passed completely.
+
+**S80's headline was "on the fixed instrument, not one product in the range
+fits driven", with the D24 27.5 points over on chip 2 and missing one block in
+five. The signed configuration puts that row at 84.50 % with not one block
+missed** — 43 points off chip 2 and 66 off chip 1, on the same instrument, the
+same bitstream generation and the same stimulus.
+
+**The signal is free**, which is the other half of the claim: driven minus
+silent-loaded is **+0.03 points on chip 1 and +0.18 on chip 2**. On the
+shipping default S19/S20 measured that column at +42.5 and +29.3. The
+above-threshold path costs what the LUT says it costs.
+
+**The worst-block column is the weak one and is not quoted as a margin.** Most
+rows latched a raw worst block at 342–377 % of budget before the reset — the
+S21-6 tick artifact S80 recorded — and one post-reset figure survived it
+(chip 1's silent-loaded row, 357.32 %), so the worst column is not a
+measurement here. The honest margin statement is the AVERAGE together with
+**zero missed blocks in all twelve chip-rows**, 135,000 blocks each.
+
+**Reproducibility**: boot 1's driven chip-2 row read 84.50 % against the
+two-boot mean of 84.34 %, a spread of about a third of a point, inside the
+documented instrument floor.
+
 
 ---
 
