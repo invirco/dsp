@@ -315,12 +315,12 @@ bit). D24, both chips, 64 cells per family.
 |---|--:|---|---|---|
 | ANTI_FB | 160 | 20/20 | LIVE | — |
 | AUX_INPUT | 8 | 2/2 | NO_STIMULUS_PATH | — |
-| **COMPRESSOR** | 544 | 17/17 | LIVE | **see §3.3** |
+| **COMPRESSOR** | 544 | 17/17 | LIVE | **see §3.4** |
 | CROSSOVER | 8 | 8/8 | LIVE | — |
 | DCA | 16 | 2/2 | NO_PROBE | — |
 | DELAY | 34 | 1/1 | LIVE | — |
 | EQ_BIQUAD | 625 | 14/14 | LIVE | NOT_APPLICABLE (float arm; `bqeverify.sh float` is its bar) |
-| **FADER_PAN** | 122 | 3/3 | LIVE | **FAILED — see §3.4** |
+| **FADER_PAN** | 122 | 3/3 | LIVE | **FAILED — see §3.5** |
 | FX_ENGINE | 114 | 16/16 | LIVE | — |
 | FX_RETURN | 0 | 2/2 | LIVE | — |
 | GAIN | 96 | 2/2 | LIVE | — |
@@ -341,11 +341,58 @@ bit). D24, both chips, 64 cells per family.
 | TEST_OSC | 8 | 0/0 | — | — |
 | TUBE_SAT | 48 | 2/2 | LIVE | **BIT_EXACT** |
 
-**Every contract count is complete — 197 of 197 rw cells answer at their landed
+**Every contract count is complete — 207 of 207 rw cells answer at their landed
 address across the twenty-seven families — and every family with a stimulus
 path is LIVE.** Nothing in the signed configuration made a node inert.
 
-### 3.3 🔴 THE COMPRESSOR BOUND IS EXCEEDED, AND THE BOUND IS THE WRONG SHAPE
+### 3.3 The conformance harness: PASS, and with FOUR FEWER FAILURES than the baseline
+
+`./conform.sh` on the signed pair (`e3e25a79` / `41a6b913` — the shipping pair
+itself, since `conform.sh` builds plain `./build.sh`). It could not run at all
+until the parser fault in §S82-13 was fixed.
+
+```
+chip 1 all 4984/4984 addresses, healthy=True
+chip 2 all 2176/2176 addresses, healthy=True
+presence: ECHO 6420 / UNMAPPED 400 / CLEARED 121 / HOST_MANAGED 60 / ERROR 24 / SKIPPED_METER 135
+declared-unit checks: 22 pass, 12 fail
+negative control wrong-unit: FAILED as required (4 of 4)
+VERDICT: PASS
+```
+
+**Every address in both dispatch tables was walked and the part was healthy at
+exit on both chips.** Against the standing baseline — *"18 declared-unit checks
+pass and the 16 that fail are the named D41 known mismatches"*
+(`goldens/conformance-20260830-s6.md`, and `dsp4-capacity-decision-20260902.md`
+records the same 18/16) — the signed configuration is **22 pass / 12 fail**:
+four fewer failures, none new.
+
+The twelve that fail are the four dynamics time-constant cells at three values
+each — `ChanGateAtt`, `ChanGateRel`, `ChanCompAtt`, `ChanCompRel` — which is
+the D41 ms-versus-samples class by name, the same one
+`dsp4_node_verify.py`'s own comment calls "the standing ms-vs-samples
+KNOWN_MISMATCH". `ChanGateRng`, `ChanCompPar`, `ChanGateHold`, `ChanDelay`,
+`ChanPol` and `ChanMute` all pass, `ChanCompPar` exact at 0/25/50/100 %.
+
+**One weakness in this run, recorded rather than smoothed.** The inert-class
+sweep sampled nothing:
+
+```
+driven window: _buf_C1_BUS_MAIN_L is silent; falling back to _buf_C1_FDR_01, the strip output.
+positive control (GAIN): 0 of 32 bus words moved (1 moved on their own over the same wait)
+positive control (CompThr): 0 of 32 bus words moved
+inert: 0 classes sampled of 0 candidate addresses (bus window)
+```
+
+So the presence walk, the declared-unit checks and both negative controls are
+the bar this session took; **the inert-address half of the harness contributed
+nothing**, because its window was silent and its own positive controls did not
+move. That is not a verdict about the signed configuration — it is the harness
+telling the truth about a window it could not drive — but a `VERDICT: PASS`
+that includes a phase which sampled zero addresses should be read with that
+line beside it.
+
+### 3.4 🔴 THE COMPRESSOR BOUND IS EXCEEDED, AND THE BOUND IS THE WRONG SHAPE
 
 The measurement, on the signed pair, all six converted parameters `ok`:
 
@@ -387,7 +434,7 @@ a link failure (the same runs read every converted parameter of the same node).
 So the number above stands as the session's one COMPRESSOR measurement. **The
 question for the hub is in §7.**
 
-### 3.4 FADER_PAN's two pan legs are the host's wire quantisation, not arithmetic
+### 3.5 FADER_PAN's two pan legs are the host's wire quantisation, not arithmetic
 
 ```
 cvt fdr LEFT pan leg (linear law; D42 open)   183217856 /   183341408  <-- MISMATCH
@@ -409,13 +456,13 @@ same period. **Not chased further here** — it is a bar/contract-interaction
 question, it is recorded with the arithmetic that identifies it, and it is
 listed in §7.
 
-### 3.5 The three bounds, as re-measured today
+### 3.6 The three bounds, as re-measured today
 
 | bound | accepted | measured on today's tree | verdict |
 |---|---|---|---|
 | `DSP4_DYN_LUT` | ≤ 0.0950 dB | **0.0950 dB** (81 sets, `--sweep`) | **inside, no margin** |
 | `DSP4_GATE_LINTHR` | ≤ 0.0002 dB | **+0.000122 dB** for `GateThr ≥ −60 dB`; +0.000320 dB worst at −79.9 dB | **inside above −60 dB; outside below it, by the format** |
-| COMPRESSOR numeric | ≤ 0.00518 dB | **0.02509 dB** | **OUTSIDE — STOP, §3.3** |
+| COMPRESSOR numeric | ≤ 0.00518 dB | **0.02509 dB** | **OUTSIDE — STOP, §3.4** |
 
 ---
 
@@ -595,7 +642,7 @@ See §3.1.
 
 ### 7.4 🟡 S82-Q3 — FADER_PAN's pan legs, and a bar that drives an off-grid value
 
-§3.4 and finding S82-14: the part's pan is `20/63` to 1.1e-8 and the model uses
+§3.5 and finding S82-14: the part's pan is `20/63` to 1.1e-8 and the model uses
 `0.317`. Proved independent of the signing by a control arm. It is a
 bar/contract-interaction question — which side quantises, and whether
 `_fdr_setup` should drive a value on the wire's own grid — and it is one the

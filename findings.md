@@ -168,6 +168,40 @@ IT.** `dyn_lut_design.py --sweep`: worst over 81 parameter sets **0.0950 dB**
 ruling. It passes, with essentially no margin: a future change to the table's
 K, its chunking or the documented parameter range has almost no room.
 
+**S82-18 🟢 THE CONFORMANCE HARNESS PASSES ON THE SIGNED CONFIGURATION WITH
+FOUR FEWER DECLARED-UNIT FAILURES THAN THE BASELINE.** `./conform.sh` walked
+every address in both dispatch tables — chip 1 4984/4984, chip 2 2176/2176,
+`healthy=True` at exit on both — for `ECHO 6420 / UNMAPPED 400 / CLEARED 121 /
+HOST_MANAGED 60 / ERROR 24 / SKIPPED_METER 135`, **22 declared-unit checks
+pass and 12 fail**, the wrong-unit negative control fired 4 of 4, `VERDICT:
+PASS`. The standing baseline is *"18 declared-unit checks pass and the 16 that
+fail are the named D41 known mismatches"*
+(`goldens/conformance-20260830-s6.md`, repeated in
+`dsp4-capacity-decision-20260902.md`). The twelve failures are the four
+dynamics time-constant cells at three values each — `ChanGateAtt`,
+`ChanGateRel`, `ChanCompAtt`, `ChanCompRel` — which is the D41 ms-versus-
+samples class by name. **None is new and four are gone.**
+
+**S82-19 🟡 AND THE INERT HALF OF THAT HARNESS SAMPLED NOTHING, INSIDE A
+`VERDICT: PASS`.** In the same run:
+
+```
+driven window: _buf_C1_BUS_MAIN_L is silent; falling back to _buf_C1_FDR_01
+positive control (GAIN):    0 of 32 bus words moved
+positive control (CompThr): 0 of 32 bus words moved
+inert: 0 classes sampled of 0 candidate addresses (bus window)
+```
+
+Its own two positive controls did not move and it sampled zero of zero
+candidate addresses, and the run still reports PASS — the verdict is carried
+entirely by the presence walk, the declared-unit checks and the two negative
+controls that did fire. That is not wrong (nothing claims an inert result that
+was not taken) but it is the S12-7 shape one level up: a phase that contributes
+nothing is indistinguishable, in the verdict line, from a phase that passed.
+**The inert phase should fail the run, or mark it INCOMPLETE, when its own
+positive control does not move** — the same rule `dsp4_inscan.py` now applies
+to `FRAME_COUNT` and `dsp4_cdc_witness.py` to its frame counter.
+
 **S82-17 🟡 THE LATENCY BAR REFUSED, CORRECTLY, AND THE REFUSAL IS THE RESULT
 WORTH RECORDING.** `latency.sh` on the signed pair with the SHIPPING bitstream
 on the part returned `coherent fraction 0.0%` on all forty reps across two

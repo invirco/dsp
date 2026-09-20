@@ -1,0 +1,202 @@
+=== boot state ===
+  MAGIC          0xD5B40001
+  CHIP_ID        1   (DSPA/U6)
+  BOOT_STAGE     7   running
+  FRAME_COUNT    55630
+  SPI_ERR_COUNT  0
+  RESP_DROP      0
+  MAGIC          0xD5B40001
+  CHIP_ID        2   (DSPB/U5)
+  BOOT_STAGE     7   running
+  FRAME_COUNT    54955
+  SPI_ERR_COUNT  0
+  RESP_DROP      0
+
+=== GATE 1 ON THE PART: the signed triple, both chips ===
+-- chip 1
+chip 1: raw 0xCF45FF10
+        BLOCK 16
+        CCLK 983.040 MHz
+        BLOCK_MASK 7
+        on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+        off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+        budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+          == the shipping configuration
+          raw2 0xE2018E6F
+          DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+          DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+            ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+          on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TALK_INVERT
+          off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+          raw3 0xC47C0F26
+          DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+          DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+          DSP4_DYN_INLINE 2
+          on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+          off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+   exit=0
+-- chip 2
+chip 2: raw 0xCF45FF10
+        BLOCK 16
+        CCLK 983.040 MHz
+        BLOCK_MASK 7
+        on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+        off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+        budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+          == the shipping configuration
+          raw2 0xE2018E6F
+          DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+          DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+            ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+          on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TALK_INVERT
+          off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+          raw3 0xC47C0F26
+          DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+          DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+          DSP4_DYN_INLINE 2
+          on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+          off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+   exit=0
+
+=== GATE 1 NEGATIVE CONTROL: the part scored against the OLD triple ===
+  (0xCF45FF10/0xE2018264/0xC47C0F26 -- what a pre-S82 image reads.)
+budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+  == the shipping configuration
+  raw2 0xE2018264
+  DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+  DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+    ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+  on2:  DSP4_SIMD_GRAPH, DSP4_GATHER_FIRST, DSP4_TALK_INVERT
+  off2: DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_STRIPS, DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+  NOT THE SHIPPING KERNEL CONFIGURATION:
+    DSP4_DYN_LUT = 0, shipping is 1
+    DSP4_GATE_LINTHR = 0, shipping is 1
+    DSP4_SIMD_DYN = 0, shipping is 1
+    DSP4_SIMD_STRIPS = 0, shipping is 1
+    DSP4_STRIP_FUSED = 0, shipping is 1
+  raw3 0xC47C0F26
+  DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+  DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+  DSP4_DYN_INLINE 2
+  on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+  off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+  exit=0
+
+=== GATE 0: the input lanes, RAILS DOWN (AN_EN lo) ===
+26: op -- pd | lo // GPIO26 = output
+  IN_08              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_09              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_10              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_11              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_12              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_13              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_14              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_15              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_16              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_17              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_18              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_19              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_20              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_21              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_22              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_23              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_24              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_25              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_26              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_27              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_28              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_29              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_30              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_31              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_32              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_01       STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_CODEC_02       STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_03       STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_04       STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_MEMS           STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_PI_L           STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_PI_R           STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_01         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_02         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_03         STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_04         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_05         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_06         STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_07         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_08         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+
+chip1: MOVING 0 / STATIC 47 / UNREADABLE 0   (controls passed, so these mean what they say)
+
+EVERY LANE IS STATIC. With the sample loop proven turning, that is
+a real reading and not an instrument fault — but check WHICH LOGIC
+BITSTREAM IS FLASHED before concluding anything about converters:
+`dsp4_logic.a1f6672af6c3`, the one the bench has lived on, predates
+the S34 converter-clock fix and drives no BCK/FS to the converters
+at all, so every lane reads exactly this (S81).
+  python3 dsp4_logic_id.py
+
+=== GATE 0: the input lanes, RAILS UP (AN_EN hi, this gate only) ===
+26: op -- pd | hi // GPIO26 = output
+  IN_08              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_09              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_10              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_11              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_12              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_13              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_14              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_15              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_16              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_17              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_18              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_19              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_20              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_21              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_22              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_23              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_24              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_25              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_26              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_27              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_28              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_29              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_30              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_31              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  IN_32              STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_01       STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_CODEC_02       STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_03       STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_CODEC_04       STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_MEMS           STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_PI_L           STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_PI_R           STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_01         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_02         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_03         STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_04         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_05         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_06         STATIC  1 distinct in 12 reads   e.g. 0x3F800000 0x3F800000 0x3F800000 0x3F800000
+  XIN_SNK_07         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+  XIN_SNK_08         STATIC  1 distinct in 12 reads   e.g. 0x00000000 0x00000000 0x00000000 0x00000000
+
+chip1: MOVING 0 / STATIC 47 / UNREADABLE 0   (controls passed, so these mean what they say)
+
+EVERY LANE IS STATIC. With the sample loop proven turning, that is
+a real reading and not an instrument fault — but check WHICH LOGIC
+BITSTREAM IS FLASHED before concluding anything about converters:
+`dsp4_logic.a1f6672af6c3`, the one the bench has lived on, predates
+the S34 converter-clock fix and drives no BCK/FS to the converters
+at all, so every lane reads exactly this (S81).
+  python3 dsp4_logic_id.py
+-- the four codec return lanes and the four AK5558 lanes, word for word
+_buf_C1_XIN_CODEC_01     00008240 00008040 00005ca0 ffffb560 00007c80 fffeecc0 ffffd480 fffee2e0
+_buf_C1_XIN_CODEC_02     0000b580 ffffeb40 ffffda40 fffeb620 ffffa1a0 00002100 0000fc00 000056e0
+_buf_C1_XIN_CODEC_03     ffffff60 fffff720 000006a0 fffffd60 00001320 ffffe200 00000100 ffffffe0
+_buf_C1_XIN_CODEC_04     ffffff80 fffffb80 ffffcdc0 00008280 00001380 ffffdfa0 00003a80 fffff0c0
+_buf_C1_IN_01            00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+_buf_C1_IN_02            00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+_buf_C1_IN_09            00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+_buf_C1_IN_17            00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+_buf_C1_XIN_MEMS         ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff
+
+=== GATE 0: rails back down, READ BACK ===
+26: op -- pd | lo // GPIO26 = output

@@ -1,0 +1,90 @@
+>>> BENCH LOCKED: ./famverify.sh is waiting for the card (/tmp/dsp4-bench.lock).
+>>> held by: pid=1431400 script=./conform.sh host=Peters-MBP started=2026-09-20T10:52:40Z
+>>> BENCH LOCKED: ./famverify.sh acquired the card, proceeding.
+  image: chip1.ldr 810a7c51 chip2.ldr 481ccaa1  (shipping float configuration)
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+landed contract: d24  pin defs-v2026.09.19.3  sha256 220a14eca190  3989 cells
+
+== cross-check: transcribed constants vs the landed contract ==
+  cross-check: 25 of 25 transcribed constants agree with the landed contract
+
+== chip 1 ==
+  chip 1 build_cfg 0xCF45FF10
+  chip 1 ready, healthy=True
+
+== numeric (chip 1) ==
+  zero sentinel: _scope_len = 1024
+--- numeric: COMPRESSOR (COMP)
+--- COMP: the makeup second rounding and the parallel blend (D28)
+  build arm: DIAG_BUILD_CFG2 0xE201827C — GATE_LINTHR=0 DYN_LUT=0, block 16
+  cvt comp makeup -> Q4.28                                    367756576 /    367756576  ok
+  cvt comp parallel blend (D40: PERCENT on the wire)         2147483647 /   2147483647  ok
+  cvt comp threshold -> Q6.25 log2                           -167198112 /   -167198112  ok
+  cvt comp slope (1 - 1/ratio) -> Q0.31                      1610612736 /   1610612736  ok
+  cvt comp half-knee (hard knee: zero)                                0 /            0  ok
+  cvt comp k2 (hard knee: zero)                                       0 /            0  ok
+  node state unreadable — no verdict for this node
+--- numeric: GATE (GATE)
+--- GATE: the hold/range/smoother ladder (D30)
+  cvt gate range floor (D39: dB on the wire)                    2684355 /      2684355  ok
+  cvt gate threshold -> Q6.25 log2                           -222930816 /   -222930816  ok
+  cvt gate attack alpha -> Q0.31                              107374184 /    107374184  ok
+  node state unreadable — no verdict for this node
+--- numeric: FADER_PAN (FDR)
+--- FDR: the pan law and the level coefficient (D31)
+  cvt fdr level coefficient                                    99321120 /     99321120  ok
+  cvt fdr LEFT pan leg (linear law; D42 open)                 183217856 /    183341408  <-- MISMATCH
+  cvt fdr RIGHT pan leg                                        85217608 /     85094040  <-- MISMATCH
+  2 converted parameter(s) do NOT match the model — the sample path below would be measuring the wrong coefficients, so it is not run for this node
+--- numeric: TUBE_SAT (TUBE)
+--- TUBE: the three chained roundings, PLUGIN-CLASS (D29)
+  cvt tube saturation cell (unit UNDECLARED, D65)          0.8587999939918518 -> Q4.28 230532368
+  step     amp 0x1A6F2E93  model 64 of 64 bit-exact   negative control differs in 64 of 64 (predicted 64)
+  impulse  amp 0x1A6F2E93  model 64 of 64 bit-exact   negative control differs in 1 of 64 (predicted 1)
+--- numeric: BQCVT SKIPPED — this image is the FLOAT cascade; its bit-exact bar is bqeverify.sh float against bq_float_ref
+
+== audio ==
+  audio: COMPRESSOR   _buf_C1_COMP_01          floor 64/147 moved 64/104421942 peak 0x06BD8E64->0x0084342E -> LIVE
+  audio: GATE         _buf_C1_GATE_01          floor 0/0 moved 64/82225841 peak 0x04FB268C->0x00147BDB -> LIVE
+  audio: FADER_PAN    _buf_C1_FDR_01           floor 0/0 moved 64/53653345 peak 0x04439481->0x0110E520 -> LIVE
+  audio: TUBE_SAT     _buf_C1_TUBE_01          floor 0/0 moved 64/66457054 peak 0x04439481->0x0839A25F -> LIVE
+
+== contract ==
+- COMPRESSOR (C1_COMP_01, 544 cells)
+  contract: 17 of 17 rw cells on C1_COMP_01 answer at their landed address
+- GATE (C1_GATE_01, 336 cells)
+  contract: 12 of 12 rw cells on C1_GATE_01 answer at their landed address
+- FADER_PAN (C1_FDR_01, 122 cells)
+  contract: 3 of 3 rw cells on C1_FDR_01 answer at their landed address
+- TUBE_SAT (C1_TUBE_01, 48 cells)
+  contract: 2 of 2 rw cells on C1_TUBE_01 answer at their landed address
+
+wrote famverify-20260920-1152.json
+
+== summary ==
+ANTI_FB      cells   160  contract   0/0    audio -                numeric -           
+AUX_INPUT    cells     8  contract   0/0    audio -                numeric -           
+COMPRESSOR   cells   544  contract  17/17   audio LIVE             numeric NO_STIMULUS 
+CROSSOVER    cells     8  contract   0/0    audio -                numeric -           
+DCA          cells    16  contract   0/0    audio -                numeric -           
+DELAY        cells    34  contract   0/0    audio -                numeric -           
+EQ_BIQUAD    cells   625  contract   0/0    audio -                numeric -           
+FADER_PAN    cells   122  contract   3/3    audio LIVE             numeric FAILED      
+FX_ENGINE    cells   114  contract   0/0    audio -                numeric -           
+GAIN         cells    96  contract   0/0    audio -                numeric -           
+GATE         cells   336  contract  12/12   audio LIVE             numeric NO_STIMULUS 
+GEQ          cells   403  contract   0/0    audio -                numeric -           
+HPF_LPF      cells    72  contract   0/0    audio -                numeric -           
+LIMITER      cells    48  contract   0/0    audio -                numeric -           
+METER        cells   118  contract   0/0    audio -                numeric -           
+MIX_BUS      cells    96  contract   0/0    audio -                numeric -           
+MONITOR      cells     3  contract   0/0    audio -                numeric -           
+NOISE_GEN    cells     3  contract   0/0    audio -                numeric -           
+OUTPUT_TDM   cells     8  contract   0/0    audio -                numeric -           
+ROUTING      cells  1104  contract   0/0    audio -                numeric -           
+TALKBACK     cells     8  contract   0/0    audio -                numeric -           
+TEST_MEAS    cells     7  contract   0/0    audio -                numeric -           
+TEST_OSC     cells     8  contract   0/0    audio -                numeric -           
+TUBE_SAT     cells    48  contract   2/2    audio LIVE             numeric BIT_EXACT   
+  report: goldens/famverify-20260920-1152.json
+CTL rc=0
