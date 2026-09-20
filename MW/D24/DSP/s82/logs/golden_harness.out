@@ -1,0 +1,226 @@
+  biquad f0=20 g=-12 q=0.5: mag err 0.01069 dB
+  biquad f0=20 g=-12 q=1.0: mag err 0.01210 dB
+  biquad f0=20 g=-12 q=4.0: mag err 0.06056 dB
+  biquad f0=20 g=-3 q=0.5: mag err 0.00375 dB
+  biquad f0=20 g=-3 q=1.0: mag err 0.01291 dB
+  biquad f0=20 g=-3 q=4.0: mag err 0.03906 dB
+  biquad f0=20 g=6 q=0.5: mag err 0.00279 dB
+  biquad f0=20 g=6 q=1.0: mag err 0.00686 dB
+  biquad f0=20 g=6 q=4.0: mag err 0.01517 dB
+  biquad f0=20 g=12 q=0.5: mag err 0.00460 dB
+  biquad f0=20 g=12 q=1.0: mag err 0.00722 dB
+  biquad f0=20 g=12 q=4.0: mag err 0.00654 dB
+  biquad f0=100 g=-12 q=0.5: mag err 0.00047 dB
+  biquad f0=100 g=-12 q=1.0: mag err 0.00052 dB
+  biquad f0=100 g=-12 q=4.0: mag err 0.00265 dB
+  biquad f0=100 g=-3 q=0.5: mag err 0.00025 dB
+  biquad f0=100 g=-3 q=1.0: mag err 0.00061 dB
+  biquad f0=100 g=-3 q=4.0: mag err 0.00348 dB
+  biquad f0=100 g=6 q=0.5: mag err 0.00064 dB
+  biquad f0=100 g=6 q=1.0: mag err 0.00054 dB
+  biquad f0=100 g=6 q=4.0: mag err 0.00255 dB
+  biquad f0=100 g=12 q=0.5: mag err 0.00027 dB
+  biquad f0=100 g=12 q=1.0: mag err 0.00053 dB
+  biquad f0=100 g=12 q=4.0: mag err 0.00119 dB
+  biquad f0=1000 g=-12 q=0.5: mag err 0.00001 dB
+  biquad f0=1000 g=-12 q=1.0: mag err 0.00001 dB
+  biquad f0=1000 g=-12 q=4.0: mag err 0.00005 dB
+  biquad f0=1000 g=-3 q=0.5: mag err 0.00000 dB
+  biquad f0=1000 g=-3 q=1.0: mag err 0.00001 dB
+  biquad f0=1000 g=-3 q=4.0: mag err 0.00004 dB
+  biquad f0=1000 g=6 q=0.5: mag err 0.00000 dB
+  biquad f0=1000 g=6 q=1.0: mag err 0.00001 dB
+  biquad f0=1000 g=6 q=4.0: mag err 0.00005 dB
+  biquad f0=1000 g=12 q=0.5: mag err 0.00000 dB
+  biquad f0=1000 g=12 q=1.0: mag err 0.00001 dB
+  biquad f0=1000 g=12 q=4.0: mag err 0.00004 dB
+  biquad f0=10000 g=-12 q=0.5: mag err 0.00000 dB
+  biquad f0=10000 g=-12 q=1.0: mag err 0.00000 dB
+  biquad f0=10000 g=-12 q=4.0: mag err 0.00000 dB
+  biquad f0=10000 g=-3 q=0.5: mag err 0.00000 dB
+  biquad f0=10000 g=-3 q=1.0: mag err 0.00000 dB
+  biquad f0=10000 g=-3 q=4.0: mag err 0.00000 dB
+  biquad f0=10000 g=6 q=0.5: mag err 0.00000 dB
+  biquad f0=10000 g=6 q=1.0: mag err 0.00000 dB
+  biquad f0=10000 g=6 q=4.0: mag err 0.00057 dB
+  biquad f0=10000 g=12 q=0.5: mag err 0.00000 dB
+  biquad f0=10000 g=12 q=1.0: mag err 0.00052 dB
+  biquad f0=10000 g=12 q=4.0: mag err 0.00072 dB
+  biquad f0=20000 g=-12 q=0.5: mag err 0.00000 dB
+  biquad f0=20000 g=-12 q=1.0: mag err 0.00001 dB
+  biquad f0=20000 g=-12 q=4.0: mag err 0.00003 dB
+  biquad f0=20000 g=-3 q=0.5: mag err 0.00000 dB
+  biquad f0=20000 g=-3 q=1.0: mag err 0.00000 dB
+  biquad f0=20000 g=-3 q=4.0: mag err 0.00002 dB
+  biquad f0=20000 g=6 q=0.5: mag err 0.00000 dB
+  biquad f0=20000 g=6 q=1.0: mag err 0.00000 dB
+  biquad f0=20000 g=6 q=4.0: mag err 0.00235 dB
+  biquad f0=20000 g=12 q=0.5: mag err 0.00000 dB
+  biquad f0=20000 g=12 q=1.0: mag err 0.00000 dB
+  biquad f0=20000 g=12 q=4.0: mag err 0.00157 dB
+  comp thr=-20 r=4 knee=0: worst 0.00007 dB
+  comp thr=-40 r=2 knee=0: worst 0.00007 dB
+  comp thr=-10 r=10 knee=0: worst 0.00008 dB
+  comp thr=-30 r=1.5 knee=0: worst 0.00008 dB
+  comp thr=-20 r=4 knee=6: worst 0.00008 dB
+  comp thr=-30 r=8 knee=12: worst 0.00008 dB
+  knee boundary thr=-20 r=4 knee=6: worst 0.00002 dB
+  knee boundary thr=-30 r=8 knee=12: worst 0.00003 dB
+  mix one x unity                            model   2147483647  pre-fix   2147483647  same    
+  mix one x -8.0                             model  -2147483648  pre-fix  -2147483648  same    
+  mix 32 x 0.5 = 16.0                        model   2147483647  pre-fix   2147483647  same    
+  mix one x 7.999 = 64.0                     model   2147483647  pre-fix   2147483647  same    
+  mix two x 64.0 = 127.99, just UNDER        model   2147483647  pre-fix   2147483647  same    
+  mix 127 x 1.0 = 127.0, UNDER by one        model   2147483647  pre-fix   2147483647  same    
+  mix 128 x 1.0 = 128.0, exactly AT          model   2147483647  pre-fix  -2147483648  DIFFERS 
+  mix 129 x 1.0 = 129.0, ACROSS by one       model   2147483647  pre-fix  -2147483648  DIFFERS 
+  mix 128 x -1.0 = -128.0, AT, negative      model  -2147483648  pre-fix  -2147483648  same    
+  mix 129 x -1.0, ACROSS, negative           model  -2147483648  pre-fix   2147483647  DIFFERS 
+  mix three x 64.0, ACROSS                   model   2147483647  pre-fix  -2147483648  DIFFERS 
+  mix three x -64.0, ACROSS negative         model  -2147483648  pre-fix   2147483647  DIFFERS 
+  mix 32 coherent at full scale              model   2147483647  pre-fix          -32  DIFFERS 
+  mix 32 x 64.0, 16x over                    model   2147483647  pre-fix         -512  DIFFERS 
+  mix +3 then -3 x 64.0, excursion cancels   model          -24  pre-fix          -24  same    
+  blend 0/-FS a=0.0017           model  -2143755378  pre-fix   2143755378  DIFFERS
+  blend +FS/-FS a=0.0017         model  -2140027108  pre-fix  -2147483648  DIFFERS
+  blend -FS/+FS a=0.0017         model   2140027107  pre-fix   2147483647  DIFFERS
+  blend +FS/-FS+1 a=0.0017       model  -2140027107  pre-fix  -2147483647  DIFFERS
+  blend 0/-FS a=0.2500           model  -1610612736  pre-fix   1610612736  DIFFERS
+  blend +FS/-FS a=0.2500         model  -1073741824  pre-fix  -2147483648  DIFFERS
+  blend -FS/+FS a=0.2500         model   1073741823  pre-fix   2147483647  DIFFERS
+  blend +FS/-FS+1 a=0.2500       model  -1073741823  pre-fix  -2147483647  DIFFERS
+  blend 0/-FS a=0.5000           model  -1073741824  pre-fix   1073741824  DIFFERS
+  blend +FS/-FS a=0.5000         model            0  pre-fix  -2147483648  DIFFERS
+  blend -FS/+FS a=0.5000         model            0  pre-fix  -2147483648  DIFFERS
+  blend +FS/-FS+1 a=0.5000       model            0  pre-fix  -2147483648  DIFFERS
+  blend 0/-FS a=0.7500           model   -536870912  pre-fix    536870912  DIFFERS
+  blend +FS/-FS a=0.7500         model   1073741823  pre-fix   2147483647  DIFFERS
+  blend -FS/+FS a=0.7500         model  -1073741824  pre-fix  -2147483648  DIFFERS
+  blend +FS/-FS+1 a=0.7500       model   1073741824  pre-fix  -2147483648  DIFFERS
+  blend 0/-FS a=0.9965           model     -7456512  pre-fix      7456512  DIFFERS
+  blend +FS/-FS a=0.9965         model   2132570623  pre-fix   2147483647  DIFFERS
+  blend -FS/+FS a=0.9965         model  -2132570624  pre-fix  -2147483648  DIFFERS
+  blend +FS/-FS+1 a=0.9965       model   2132570623  pre-fix   2147483647  DIFFERS
+  blend 0/-FS a=0.9983           model     -3728256  pre-fix      3728256  DIFFERS
+  blend +FS/-FS a=0.9983         model   2140027135  pre-fix   2147483647  DIFFERS
+  blend -FS/+FS a=0.9983         model  -2140027136  pre-fix  -2147483648  DIFFERS
+  blend +FS/-FS+1 a=0.9983       model   2140027135  pre-fix   2147483647  DIFFERS
+  comp wet 100% (the D59 default)                       67108864
+  comp wet 0% (the D59 defect)                         134217728
+  comp wet 50%                                         100663296
+  comp unity gain, unity makeup                        134217728
+  comp +FS through unity                              2147483647
+  comp -FS through unity                             -2147483648
+  comp silence                                                 0
+  comp +FS x 0.5 x 4.0, intermediate rounds           2147483647
+  comp -FS x 0.5 x 4.0                               -2147483648
+  comp 1.0 x 0.5 x 4.0 = 2.0                           536870912
+  comp three LSB: both roundings visible                       8
+  comp one LSB x 0.5 -> rounds to 1, x4 -> 4                   4
+  comp one LSB x 0.5, no makeup                                1
+  comp minus one LSB: rounding is toward +inf                  0
+  comp minus three LSB                                        -4
+  comp +FS x 4.0 makeup: wet saturates                2147483647
+  comp -FS x 4.0 makeup: wet saturates low           -2147483648
+  comp +FS crushed to ~0, fully wet                            9
+  comp -FS crushed to ~0, fully wet                           -9
+  comp -FS with gain 0: |wet-dry| = 2^31                       1
+  comp the same, fully dry: par masks it             -2147483648
+  comp +FS with gain 0                                         1
+  comp the same, one LSB of blend                     2147483647
+  gate open from closed                                     end gain   268435456 target   268435456 hold      64
+  gate open, hold, close                                    end gain      268437 target      268436 hold    -316
+  gate hold RE-ARMED before it expires                      end gain   268435456 target   268435456 hold       4
+  gate hold = 0: closes the sample the level drops          end gain      268437 target      268436 hold    -252
+  gate range 0 dB: the floor IS unity, the gate cannot attenuate end gain   268435430 target   268435429 hold    -188
+  gate range 60 dB: the deepest the protocol can ask for    end gain      268437 target      268436 hold    -372
+  gate at the threshold: level sits ON the compare          end gain   268355495 target   268435456 hold      64
+  gate full-scale negative: |I32_MIN| is I32_MIN            end gain      268437 target      268436 hold    -132
+  gate silence only: the counter runs negative and stays there end gain    74589868 target      268436 hold    -256
+  tube silence, fully saturated                                        0
+  tube sat 0: the identity                                      67108864
+  tube -12 dBFS, sat 1.0                                       130023424
+  tube -6 dBFS, sat 1.0                                        234881024
+  tube -6 dBFS, sat 0.5                                        184549376
+  tube -6 dBFS negative                                       -234881024
+  tube exactly 1.0: 1 - x^2 is exactly zero                    268435456
+  tube exactly -1.0                                           -268435456
+  tube past unity: the curve turns over                       -100663296
+  tube x = 2: gain factor is -2, the output flips sign       -1073741824
+  tube x^2 at the Q4.28 ceiling (7.999)                      -2147483648
+  tube x^2 SATURATES                                         -2147483648
+  tube +FS: x^2 saturates, the last MAC saturates            -2147483648
+  tube -FS                                                    2147483647
+  tube one LSB                                                         2
+  tube minus one LSB                                                  -2
+  tube the largest sat the conversion is DEFINED for           939524048
+  tube x 1.3246, sat 0.8588: the middle round, +1 LSB          125149284
+  tube x -1.2938, sat 0.4712: -1 LSB                          -237029181
+  tube x 7.1592, sat 0.2474: +2 LSB                          -1407008249
+  tube x 4.4773, sat 0.3274                                  -1552730289
+  tube x -5.5864, sat 0.1931                                   527886080
+  tube x -0.8697, sat 1.5432                                  -321214460
+  bqcvt: worst float32-vs-float64 gap 57 LSB at peaking 20000/12/0.1
+test                                                              value      limit  unit   result
+biquad magnitude error (worst incl. 20 Hz)                     0.060560     0.0700  dB     PASS
+biquad magnitude error (f0 >= 50 Hz)                           0.003479     0.0100  dB     PASS
+biquad residual vs float64 (RMS)                            -132.579053  -120.0000  dBFS   PASS
+gain error vs exact rounding                                   0.000000     1.0000  LSB    PASS
+128-way mix summing vs exact                                   0.000000     0.0000  LSB    PASS
+log2 dB error (-60..+18 dB)                                    0.000099     0.0010  dB     PASS
+exp2 dB error (-72..+18 dB)                                    0.000048     0.0010  dB     PASS
+compressor static curve error                                  0.000084     0.0500  dB     PASS
+soft-knee boundary error (over=+/-half_knee)                   0.000033     0.0500  dB     PASS
+envelope tau error (10 ms attack)                              0.208333     2.0000  %      PASS
+mix_sum vs unbounded exact, boundary vectors                   0.000000     0.0000  LSB    PASS
+boundary vectors the PRE-FIX 64-bit sum gets wrong             7.000000     1.0000  vectors  PASS
+pre-fix mix failures match the predicted set exactly           0.000000     0.0000  vectors  PASS
+blend stays within [min,max] of its operands                   0.000000     0.0000  LSB    PASS
+boundary vectors the PRE-FIX 32-bit difference gets wrong     24.000000     1.0000  vectors  PASS
+pre-fix blend failures match the predicted set exactly         0.000000     0.0000  vectors  PASS
+comp blend at par=0 returns dry exactly                        0.000000     0.0000  LSB    PASS
+comp blend at par=100% returns wet                             1.000000     1.0000  LSB    PASS
+comp wet path vs float64                                       0.125000     2.0000  LSB    PASS
+comp vectors whose wet-dry leaves int32                        3.000000     3.0000  vectors  PASS
+comp second rounding: negative control fires                   4.000000     1.0000  vectors  PASS
+comp second rounding: control fires on exactly the predicted set     0.000000     0.0000  vectors  PASS
+gate ladder transitions visited                                4.000000     4.0000  transitions  PASS
+gate smoother overshoots unity                                 0.000000     0.0000  LSB    PASS
+gate smoother undershoots the floor                            0.000000     0.0000  LSB    PASS
+gate range floor vs float64                                    0.000018     0.0010  dB     PASS
+gate hold ladder: negative control fires                       4.000000     1.0000  vectors  PASS
+gate hold ladder: control fires on exactly the predicted set     0.000000     0.0000  vectors  PASS
+fdr pan legs sum to unity (LINEAR law, D42 open)               0.000000     0.0000  LSB    PASS
+fdr mute forces the coefficient to zero                        0.000000     0.0000  LSB    PASS
+fdr centre-pan leg (linear law; constant-power = -3.01)        0.000000     0.0010  dB     PASS
+fdr sample path vs exact rounding                              0.000000     1.0000  LSB    PASS
+fdr squared gain: negative control fires                      10.000000     1.0000  vectors  PASS
+fdr squared gain: control fires on exactly the predicted set     0.000000     0.0000  vectors  PASS
+fdr squared-gain control is exact at unity level (why it shipped)     0.000000     0.0000  vectors  PASS
+fdr vectors that separate round from truncate                  2.000000     1.0000  vectors  PASS
+fdr level 8.0 is refused, not invented (D64)                   1.000000     1.0000  refusals  PASS
+tube at sat=0 is the identity                                  0.000000     0.0000  LSB    PASS
+tube bypassed is the identity (the BASE strip path)            0.000000     0.0000  LSB    PASS
+tube odd symmetry                                              0.000000     1.0000  LSB    PASS
+tube vs float64 (|x| <= 1.0)                                   0.928706     3.0000  LSB    PASS
+tube middle rounding: negative control fires                   6.000000     1.0000  vectors  PASS
+tube middle rounding: control fires on exactly the predicted set     0.000000     0.0000  vectors  PASS
+tdm out(in(w)) recovers w to its top 29 bits                   0.000000     0.0000  LSB    PASS
+tdm input bias vs round-to-nearest (truncation, by design)     0.000000     1.0000  LSB    PASS
+tdm output saturates to full scale by the source sign          0.000000     0.0000  LSB    PASS
+tdm output saturation: negative control fires                  6.000000     1.0000  vectors  PASS
+tdm output saturation: control fires on exactly the predicted set     0.000000     0.0000  vectors  PASS
+float32 conversion vs the float64 definition                  57.000000    64.0000  LSB    PASS
+halved n1 headroom used (2^31 = saturation)                    0.501955     1.0000  of full  PASS
+bqcvt b1 site: negative control fires                         11.000000     1.0000  vectors  PASS
+bqcvt b1 site: control fires on exactly the predicted set      0.000000     0.0000  vectors  PASS
+bqcvt b1 control PASSES the b1 = 0 vectors                     0.000000     0.0000  vectors  PASS
+meter alpha_q in dsp_block.h matches the model                 0.000000     0.0000  LSB    PASS
+meter beta_q in dsp_block.h matches the model                  0.000000     0.0000  LSB    PASS
+meter RMS vs float64 (-6 dBFS sine)                            0.000046     0.0500  dB     PASS
+meter peak vs float64 (-6 dBFS sine)                           0.000096     0.0500  dB     PASS
+meter peak decay tau vs its specification                      0.025006     2.0000  %      PASS
+meter peak clamps at the Q8.24 ceiling                         0.000000     0.0000  LSB    PASS
+
+59/59 passed
+EXIT:0

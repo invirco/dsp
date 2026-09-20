@@ -1,12 +1,33 @@
 {
- "contract": "defs-v2026.09.16.5",
- "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+ "contract": "defs-v2026.09.19.3",
+ "defs_commit": "6fd91594315912e856b2e092d9b259f0d02da016",
+ "dsp": {
+  "build_cfg": [
+   "0xCF45FF10",
+   "0xE2018E6F",
+   "0xC47C0F26"
+  ],
+  "numeric_bounds_db": {
+   "comp_numeric_max_db": 0.00518,
+   "dyn_lut_max_db": 0.095,
+   "gate_linthr_lowthr_max_db": 0.00035,
+   "gate_linthr_max_db": 0.0002
+  },
+  "numeric_bounds_from": "tools/accept/limits.csv",
+  "proposal": "proposals/CONTRACT-PROPOSAL-S82.md",
+  "shipping_config": "MW/D32/DSP/SHARC/shipping.config",
+  "signed": {
+   "DSP4_DYN_LUT": 1,
+   "DSP4_GATE_LINTHR": 1,
+   "DSP4_SIMD_DYN": 1,
+   "DSP4_STRIP_FUSED": 1
+  }
+ },
  "findings": [
   "the factory T1 reference (per-code mean stage gain) is not in defs: common/tables/mic-gain-law.csv carries only its target codes (no 8/16/32); averaged here from MW/D24/DSP/s55/law.csv",
   "topology node aux.comp has no cell binding (no cells on D24)",
   "the D24 topology has no edge mon -> io.out (only mon -> phones, gated off): the Monitor Out path cannot be generated",
-  "outputs have no defs table like inputs.csv: the output XLR ref (AUX 1 = J45, known only from S42/S48) and its DAC slot are not declared, so output fixtures carry the panel label only",
-  "the D24 topology gates rta off (d24.csv has no rta key) while S65 builds it on chip 1 behind DSP4_RTA: the node fixture is emitted as status=proposal"
+  "outputs have no defs table like inputs.csv: the output XLR ref (AUX 1 = J45, known only from S42/S48) and its DAC slot are not declared, so output fixtures carry the panel label only"
  ],
  "fixtures": [
   {
@@ -800,8 +821,8 @@
   "binding": "000ed8268b052898592210088244575805747fbe3597a86cdc49174404a8b315",
   "inputs": "ea0bb6ec0e611fc6bbbcb1cbc5acda44ee4fac5414849eb19a8959a9be1c7207",
   "io": "a761196b25637d4d0624f065758ed019e70acee85e6703f90c00e3a148ab8ab6",
-  "matrix": "b7bf64491f60a7cfcf183ca867766fc4bfcf19b656f29ffc8e55ead0b52b7c24",
-  "topology": "03f132383537951f653e93e27f9981879e1b7172e3040344a26cea8d54e67469",
+  "matrix": "2d23a404e767c5169f59a0fdeb2c2b95b1dddce5a11312ff39d129a89422de7b",
+  "topology": "529b8f99796a091bcffbd3ba8bb5e4c0312622bf4011b67d7f7ecb645a881b11",
   "universal": "3bb50228f1baa5c2594d35189dd293a30166cdc8c6931e50e31a142a132e4351"
  },
  "loop": {

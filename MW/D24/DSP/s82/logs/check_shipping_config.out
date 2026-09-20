@@ -1,0 +1,5 @@
+shipping config: consistent; the part must read DIAG_BUILD_CFG 0xCF45FF10, DIAG_BUILD_CFG2 0xE2018E6F, DIAG_BUILD_CFG3 0xC47C0F26
+  on the bench:  dsp4_buildcfg.py --expect-shipping        # reads all three off the part
+  by hand:       dsp4_buildcfg.py --expect-shipping --word 0xCF45FF10,0xE2018E6F,0xC47C0F26
+  a part answering 0x00000000 at 0xE0EC is a PRE-S80 image: it has no DIAG_BUILD_CFG3 cell at all
+EXIT:0

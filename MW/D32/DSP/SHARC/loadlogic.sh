@@ -32,8 +32,32 @@
 #                                 (S19: every DSPA input lane carries the
 #                                 Pi's playback, so the graph can be
 #                                 measured under load for zero DSP cycles)
-#   ./loadlogic.sh shipping       a1f6672af6c3, THE STATE THE BENCH LIVES IN
+#   ./loadlogic.sh shipping       7a6a4529f29c, THE STATE THE BENCH LIVES IN
 #   ./loadlogic.sh --id           what is on it now
+#
+# `shipping` MOVED AT S82, AND EVERY CONVERTER READING TAKEN BEFORE IT IS VOID.
+#
+# Until 2026-09-20 this label named `a1f6672af6c3`, built 2026-08-21 at commit
+# `a4ee3d1f` -- an ANCESTOR of `ded71079`, the S34 converter-clock fix. On that
+# bitstream U3 pins 142/141 are INPUTS, so nothing drives the converter bit
+# clock or frame sync at all and no converter on the card can work. S81
+# measured the consequence as an A/B on the part: same pair, same firmware,
+# same symbol map, half an hour apart, only the bitstream changed -- all four
+# `_buf_C1_XIN_CODEC_0*` read exact digital zero on `a1f6672af6c3` and carry
+# moving converter noise on this tree's. PW adopted the fix on 2026-09-20.
+#
+# `a1f6672af6c3` is RETIRED to bitstream/retired/ and is not flashable from
+# here. It is also the one artifact on the shelf that cannot say what it is:
+# it predates the design-ID stamp, so `dsp4_logic_id.py` answers "no reply"
+# and its identity rests on a flash log. Hence the gate below.
+#
+# NO DESIGN ID, NO FLASH (S81-Q2, ruled S82). Every name in the case
+# statement resolves to an artifact whose manifest carries a `design_id:`
+# line, and this script CHECKS that before it copies anything to the bench.
+# The one deliberate exception in this tree is `s37_shipping_step0`, whose
+# manifest says design_id NONE and says why (it does not fit at that size);
+# it goes on the part through tools/pi/logic_flash.sh, not this script, and
+# that is now a property of the tool rather than a convention.
 #
 #   ATTEMPTS=5 ./loadlogic.sh shipping    how many tries before giving up
 #
@@ -133,6 +157,24 @@
 # every time -- in the CANONICAL sequence (S8-3), not the a0-everything line
 # the bench's own restore_bench.sh still carries.
 set -u
+cd "$(dirname "$0")"
+# THE FLASH TAKES THE BENCH LOCK (S82). This script stops `matrix-app`,
+# reprograms the CPLD and hands the GPIOs back -- which is the most
+# disruptive thing anything in this tree does to the card -- and it was the
+# one bench driver that took no lock at all. A `loadlogic.sh driveall` landing
+# in the middle of a `capacity.sh` run reconfigures the instrument under the
+# measurement and hands back pins the run is using, and nothing stopped it.
+# (S81-4.2 closed this class for seven drivers; this one was not in that list
+# because it does not build an image.)
+#
+# `--id` takes it too: it plays a knock through the CM4's PCM link and
+# `arecord`s the reply, which a concurrent audio arm would corrupt in both
+# directions.
+#
+# Nothing in the tree INVOKES this script -- every reference is a comment
+# telling a human to run it -- so there is no caller that could already hold
+# the lock and deadlock behind this.
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 case "${1:-}" in
   # main + s34-converter-clock + s36-xlogic-park (merge 7eabfa5f, S37)
@@ -145,13 +187,55 @@ case "${1:-}" in
   maincap-s36)  SVF=dsp4_logic_maincap.d903ae1ac4a9.svf ;;
   pisel-s36)    SVF=dsp4_logic_pisel.2c1355bbc69b.svf ;;
   driveall-s36) SVF=dsp4_logic_driveall.907492a607bd.svf ;;
-  shipping)     SVF=dsp4_logic.a1f6672af6c3.svf ;;
+  shipping)     SVF=dsp4_logic.7a6a4529f29c.svf ;;
+  # RETIRED S82, and named here only so the refusal is a sentence rather
+  # than a usage line. See bitstream/retired/README.md.
+  shipping-pre-s34|a1f6672af6c3)
+     echo "$0: dsp4_logic.a1f6672af6c3 is RETIRED (S82)." >&2
+     echo "  It is the PRE-S34 bitstream: U3.142/U3.141 are inputs, so the" >&2
+     echo "  converter bit clock and frame sync are undriven and no converter" >&2
+     echo "  on the card can work. PW adopted the fix 2026-09-20; the" >&2
+     echo "  shipping label now names dsp4_logic.7a6a4529f29c." >&2
+     echo "  The artifact is kept at bitstream/retired/ so old records" >&2
+     echo "  resolve. It is not flashed again." >&2
+     exit 2 ;;
   --id)     ssh $BENCH "cd /home/app/dspboot && python3 dsp4_logic_id.py"; exit $? ;;
   *) echo "usage: $0 maincap|pisel|driveall|driveall-pre78|driveall-base|maincap-s36|pisel-s36|driveall-s36|shipping|--id" >&2
      echo "       (something NEW on the part goes through tools/pi/logic_flash.sh)" >&2
      exit 2 ;;
 esac
 SRC=../../../../shared/dsp4-logic/bitstream/$SVF
+
+# ---- NO DESIGN ID, NO FLASH (S81-Q2, ruled S82) ----
+#
+# `a1f6672af6c3` was on this bench for a month under the name "shipping" and
+# could not be asked what it was: it predates the design-ID stamp, so
+# `dsp4_logic_id.py` answers "no reply: nothing in the capture carried the
+# 0xD594 marker" and the only evidence of which bitstream was on the part was
+# a flash log. Ten sessions then diagnosed a converter fault that was the
+# bitstream. A bitstream that cannot identify itself is never flashed again.
+#
+# The check is on the MANIFEST beside the artifact, not on a list of names
+# kept here -- a list is a second copy of a fact and would go stale the first
+# time somebody added a bitstream. A manifest whose `design_id:` line reads
+# anything but a 32-bit hex literal (the step-0 image says "NONE — AND THAT
+# IS NOT FIXABLE AT THIS SIZE") does not pass either.
+MAN="${SRC%.svf}.manifest"
+if [ ! -f "$MAN" ]; then
+    echo "$0: no manifest beside $SVF -- refusing to flash an artifact that" >&2
+    echo "  cannot say what it is. Expected $MAN" >&2
+    exit 4
+fi
+DESIGN_ID="$(sed -n "s/^design_id: *32'h\([0-9a-fA-F]\{8\}\) *$/\1/p" "$MAN" | head -1)"
+if [ -z "$DESIGN_ID" ]; then
+    echo "$0: $SVF has NO DESIGN ID in its manifest and will not be flashed." >&2
+    echo "  (S81-Q2, ruled S82: a bitstream that cannot report its own" >&2
+    echo "  identity leaves the bench unable to say what it measured on.)" >&2
+    sed -n 's/^design_id:/  manifest says design_id:/p' "$MAN" >&2
+    exit 4
+fi
+echo "== $SVF design_id 0x$DESIGN_ID (ask the part with: $0 --id)"
+
 if ! ssh $BENCH "test -f /home/app/$SVF"; then
     [ -f "$SRC" ] || { echo "no $SVF here or on the bench" >&2; exit 2; }
     echo "== staging $SVF ($(md5sum "$SRC" | cut -c1-8))"

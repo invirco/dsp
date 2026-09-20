@@ -18,14 +18,14 @@
  ],
  "fixture": "d24-out-aux08",
  "generated_from": {
-  "contract": "defs-v2026.09.16.5",
-  "defs_commit": "10d2f672cd57bde140e5ee6d44e0c865206f0c1e",
+  "contract": "defs-v2026.09.19.3",
+  "defs_commit": "6fd91594315912e856b2e092d9b259f0d02da016",
   "loop": {
    "donor_strip": 6,
    "loop_aux": 1,
    "ref_input": "MIC 5"
   },
-  "matrix_gen": "39836144a9ba"
+  "matrix_gen": "54c7eafc8811"
  },
  "path": {
   "connector": "XLR",

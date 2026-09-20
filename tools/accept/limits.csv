@@ -22,3 +22,13 @@ a1_pump_max_ms,50.0,ms,PW S63: no DC pump longer than this (silent)
 node_level_tol_db,0.1,dB,S65-3 acceptance: every band/row within 0.1 dB of the expected level
 node_octave_min_db,40.0,dB,S65-3: octave neighbours at least 40 dB down (40.7 measured worst)
 node_cold_max_dbfs,-120.0,dBFS,S65-3: the uncued/cold side at or below this
+# ---- THE SIGNED DSP CONFIGURATION'S THREE NUMERIC BOUNDS (S82) ----
+# PW signed DSP4_SIMD_DYN + DSP4_STRIP_FUSED + DSP4_DYN_LUT + DSP4_GATE_LINTHR on 2026-09-20 and accepted three
+# numeric deviations with it. They are CONTRACT TERMS: a re-measurement outside one is a STOP and a re-signing
+# question, not a new bound. Each is PRODUCED by a named tool rather than remembered -- see the source column and
+# proposals/CONTRACT-PROPOSAL-S82.md. They are limits on the FIRMWARE's arithmetic, not on a path's audio, so no
+# battery row reads them; the manifest carries them beside the configuration triple they belong to.
+dyn_lut_max_db,0.0950,dB,PW 2026-09-20 (0.1 dB ruling 2026-09-09): DSP4_DYN_LUT worst-case gain error over the whole documented sweep at K=4 -- tools/dsp/dyn_lut_design.py --sweep
+gate_linthr_max_db,0.0002,dB,PW 2026-09-20: DSP4_GATE_LINTHR effective-threshold shift for GateThr at or above -60 dB -- tools/dsp/dyn_state_bound.py section 6
+gate_linthr_lowthr_max_db,0.00035,dB,S82: the same shift BELOW -60 dB where the linear word is tens of Q4.28 LSBs and one LSB already exceeds the bar (worst +0.000320 dB at -79.9 dB over 801 points)
+comp_numeric_max_db,0.00518,dB,PW 2026-09-20: the one famverify verdict of twenty that moves numerically -- famverify.sh, dsp4_node_verify.py numeric_phase

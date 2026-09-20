@@ -224,6 +224,52 @@ for _bit, k in ns['FLAGS3']:
         bad.append('dsp4_buildcfg.FLAGS3 decodes %s, which cfg_words.py does '
                    'not say DIAG_BUILD_CFG3 carries' % k)
 
+# ---- EVERY WORD FIELD MUST BE NAMED IN shipping.config (S82) ----
+#
+# THE FIFTH TIME, AND THE FIRST TIME IT IS A RULE RATHER THAN A PATCH.
+# S8-2/S9-1 (block, block kernels, core clock), S11-1 (STRIP_FUSED /
+# SIMD_DYN), S76 (SHARED_KERNELS) and S79 (AUXIN_BYPASS) are one fault with
+# four dates on it: a switch that decides what ships reached the image
+# through build.sh's default while shipping.config -- the file whose entire
+# job is to be the one place the shipping configuration is written down --
+# said nothing about it. Every previous fix named the one switch that had
+# just been found.
+#
+# The checks above are not this check. They prove the FILE and the MIRRORS
+# agree, and they agree perfectly about a switch neither of them names,
+# because both sides fall through to the same build.sh default. What that
+# cannot survive is build.sh's default MOVING: the image changes, the word
+# changes, and every copy of the configuration still agrees with every
+# other. So: a field a config word carries is a field the shipping image is
+# identified by, and it must be NAMED here.
+#
+# The exemptions are the values NO configuration can set, and each is named
+# rather than pattern-matched, because an exemption list that grows by
+# regex is how the hole reopens. DSP4_BQ_GUARD is forced to 0 by
+# src/dsp_block.h under DSP4_BQ_FLOAT (cfg_words.resolve says so in its
+# provenance), so a line setting it would not describe the image.
+_UNSETTABLE = {'DSP4_BQ_GUARD'}
+_named = set(cfg)
+for k in sorted((set(cfg_words.WORD1) | set(cfg_words.WORD2)
+                 | set(cfg_words.WORD3)) - _named - _UNSETTABLE):
+    bad.append('%s is carried by a config word and is NOT NAMED in '
+               'shipping.config: the shipping image takes it from build.sh\'s '
+               'default, which is findings S8-2 / S11-1 / S76 / S79 and is '
+               'the fault this file exists for' % k)
+# ...and the exemption list itself is checked, in both directions: a key
+# exempted here that a word does not carry, or that a configuration CAN
+# set, is an exemption nobody will revisit.
+for k in sorted(_UNSETTABLE):
+    if k in _named:
+        bad.append('%s is in check_shipping_config.sh\'s _UNSETTABLE list and '
+                   'shipping.config names it anyway -- one of the two is '
+                   'wrong' % k)
+    prov = cfg_words.resolve('MW/D32/DSP/SHARC/shipping.config')[1].get(k, '')
+    if not prov.startswith('derived'):
+        bad.append('%s is exempted from the naming rule as unsettable, but '
+                   'cfg_words.py resolves it from %r -- it is settable and '
+                   'must be named in shipping.config' % (k, prov))
+
 # ---- THE INSTRUMENT BIT'S LIST, IN BOTH PLACES (S80) ----
 #
 # DIAG_BUILD_CFG3 bit 23 is the truth value of "any switch NO word carries a

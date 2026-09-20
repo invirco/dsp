@@ -1,0 +1,8 @@
+THE FULL PARAMETER SWEEP at K = 4 (337 words/node).
+
+  comp     worst over 75 sets: 0.0950 dB  ({'thr': -60.0, 'ratio': 100.0, 'knee': 0.0} at -60.0 dBFS)  PASS
+  limiter  worst over  6 sets: 0.0604 dB  ({'thr': -3.0} at -3.0 dBFS)  PASS
+
+  worst over 81 parameter sets: 0.0950 dB  (comp {'thr': -60.0, 'ratio': 100.0, 'knee': 0.0} at -60.0 dBFS)
+  the bar is 0.1 dB: PASS
+EXIT:0

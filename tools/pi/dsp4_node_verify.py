@@ -287,6 +287,37 @@ CFG2_SIG = 0xC2000000
 CFG2_GATE_LINTHR = 1 << 11
 CFG2_DYN_LUT = 1 << 10
 
+# THE SIGNATURE IS SIX BITS, NOT EIGHT, AND THIS TOOL MASKED EIGHT (S82-5).
+#
+# DIAG_BUILD_CFG2's top byte is NOT all signature: bit 29 is
+# DSP4_TALK_INVERT (S72) and bit 24 is DSP4_TEST_NODES (S49), both placed
+# there deliberately so an unusual arm trips an old decoder loudly instead of
+# reading as shipping. `dsp4_buildcfg.py` has carried SIGMASK2 = 0xDE000000
+# for exactly that reason since S72. This tool kept masking 0xFF000000, so
+# from S74 -- when DSP4_TALK_INVERT started SHIPPING and the word became
+# 0xE2...  -- read_arm() has rejected every shipping image as "not a
+# DIAG_BUILD_CFG2 word" and fallen back to "assume the log-domain gate
+# threshold".
+#
+# IT WAS LATENT UNTIL S82 AND THEN IT WAS NOT. The fallback happened to be
+# right while DSP4_GATE_LINTHR and DSP4_DYN_LUT were both 0 in
+# shipping.config. PW signed them both to 1 on 2026-09-20, and the first
+# famverify run on the signed pair scored GATE numeric FAILED with the part
+# holding 2,684,355 and the model predicting -222,930,816 -- which is, to the
+# digit, the S16-4 failure the comment above this block says this code exists
+# to prevent, reappearing through the signature mask instead of through the
+# missing read.
+#
+# The mask is IMPORTED rather than repeated: two copies of a signature is how
+# this happened. The literal is the fallback for a card with no
+# dsp4_buildcfg.py beside this file, and it is named in the message when used.
+try:
+    from dsp4_buildcfg import SIGMASK2 as CFG2_SIGMASK
+    CFG2_SIGMASK_FROM = 'dsp4_buildcfg.SIGMASK2'
+except ImportError:                                   # pragma: no cover
+    CFG2_SIGMASK = 0xDE000000
+    CFG2_SIGMASK_FROM = 'this file (dsp4_buildcfg.py not importable)'
+
 # `block` is DIAG_BUILD_CFG's low byte -- DSP4_GEN_BLOCK, which the image
 # was generated at. The block-rate arm (GATE) needs it to subsample its
 # model, and reading it off the part is the difference between a bar that
@@ -308,9 +339,11 @@ def read_arm(part, log=print):
         log('  build arm UNREAD (%s) — assuming the log-domain gate '
             'threshold, which is every image before S15' % exc)
         return ARM
-    if (w & 0xFF000000) != CFG2_SIG:
-        log('  0x%08X is not a DIAG_BUILD_CFG2 word — assuming the '
-            'log-domain gate threshold' % w)
+    if (w & CFG2_SIGMASK) != CFG2_SIG:
+        log('  0x%08X is not a DIAG_BUILD_CFG2 word under mask 0x%08X (%s) '
+            '— assuming the log-domain gate threshold. EVERY NUMERIC VERDICT '
+            'BELOW THAT DEPENDS ON THE ARM IS THEREFORE THE TOOL\'S GUESS, '
+            'NOT A MEASUREMENT.' % (w, CFG2_SIGMASK, CFG2_SIGMASK_FROM))
         return ARM
     ARM['gate_linthr'] = bool(w & CFG2_GATE_LINTHR)
     ARM['dyn_lut'] = bool(w & CFG2_DYN_LUT)

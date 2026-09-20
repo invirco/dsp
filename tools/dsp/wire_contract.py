@@ -100,7 +100,31 @@ def parse_dispatch(chip):
             raise SystemExit(f'{path}: no initialiser for {varname}')
         n = int(m.group(1))
         body = text[m.end():]
-        end = body.index(';')
+        # THE TERMINATING `;` IS THE ONE OUTSIDE A COMMENT (S82-13).
+        #
+        # This was `body.index(';')`, which is right until a generated
+        # comment contains a semicolon -- and one does:
+        #
+        #   _meas_seq_C1_TEST_MEAS,  /* 0x136E: ... (no cell; bench read-back) */
+        #
+        # The initialiser was then cut in the middle of that comment, the
+        # truncated line matched no dispatch form, and the WHOLE conformance
+        # harness exited 2 with "cannot parse dispatch line". The file is
+        # generated and the comment is legitimate assembler; the parser was
+        # the thing that was wrong.
+        end, i = None, 0
+        while i < len(body):
+            if body.startswith('/*', i):
+                j = body.find('*/', i + 2)
+                i = len(body) if j < 0 else j + 2
+                continue
+            if body[i] == ';':
+                end = i
+                break
+            i += 1
+        if end is None:
+            raise SystemExit(f'{path}: {varname} initialiser is never '
+                             f'terminated outside a comment')
         vals = []
         for line in body[:end].splitlines():
             line = line.strip()

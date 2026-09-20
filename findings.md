@@ -6,6 +6,263 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE SIGNED CONFIGURATION SHIPS, ON THE FIXED BITSTREAM (2026-09-20, session 82)
+
+Hub dispatch `tasks.md` 2026-09-20 10:19Z. PW adopted the S34 converter-clock
+fix (S81-Q1) and signed the SIMD pairing configuration the same morning.
+Report: `MW/D24/DSP/s82/signed.md`. Contract note:
+`proposals/CONTRACT-PROPOSAL-S82.md`.
+
+**S82-1 🟢 THE SHIPPING LOGIC IS `dsp4_logic.7a6a4529f29c` AND THE PART SAYS SO
+— WHERE THE ARTIFACT IT REPLACES SAID NOTHING.** Flashed, FLASH OK on attempt
+1, IDCODE `0x020a30dd` both sides. Twenty minutes before the flash, on
+`a1f6672af6c3`, `loadlogic.sh --id` answered *"no reply: nothing in the
+capture carried the 0xD594 marker"*; after it, `design_id: 32'h4529f29c
+cfg_bits: 16'h0010 SHIPPING`. Two readings on one card through one capture
+path, which is the negative control S81-Q2 could only argue for from build
+dates. The artifact rebuilds byte-identically from HEAD (POF md5
+`7dc0976d7b13d98b4a37795d1eeaf49e`; the SVF differs only in the `!Device #1:`
+wall-clock comment line `build.sh`'s header names), Fmax 67.25 MHz, sim gate
+PASS on five testbenches.
+
+**S82-2 🟢 NO DESIGN ID, NO FLASH — AND THE RULE IS ON THE MANIFEST, NOT ON A
+LIST OF NAMES.** `loadlogic.sh` extracts `design_id: 32'hXXXXXXXX` from the
+manifest beside the artifact and refuses to stage anything without one. Proved
+discriminating on three manifests: `7a6a4529f29c` → `4529f29c`;
+`retired/a1f6672af6c3` → nothing; `s37_shipping_step0.c62c024714f2` → nothing
+(its manifest says "NONE — AND THAT IS NOT FIXABLE AT THIS SIZE"). The step-0
+image is the tree's one deliberate exception and goes on the part through
+`tools/pi/logic_flash.sh`, so the exception is now a property of which tool is
+used rather than of a convention. `a1f6672af6c3` is retired to
+`bitstream/retired/` with its own README section; the name still resolves in
+`loadlogic.sh`, to a refusal that says why.
+
+**S82-3 🟢 `driveall` ALWAYS HAD THE CONVERTER CLOCK, FROM THE SOURCE.**
+`ded71079` is an ancestor of HEAD and the two assignments it landed —
+`assign conv_bck = bck8; assign conv_fs = fs8;` at
+`rtl/dsp4_logic_top.v:446-447` — sit AFTER the single `ifdef DSP4_DRIVE_ALL`
+block (lines 314-389) and are unconditional. `dsp4_logic_driveall.c49f4128a083`
+was built 2026-09-20T01:08:20Z, nine days after the fix landed. So every driven
+capacity row taken on it was taken WITH the converter clock, while every
+converter observation was taken WITHOUT it — S81-Q2's two meanings of
+"shipping", now stated from the RTL rather than inferred.
+
+**S82-4 🟢 THE CODEC RETURN LANES ARE LIVE IN EVERY CONDITION, AND THE AK5558
+LANES ARE EXACT ZERO IN EVERY CONDITION — SO THE SAFE IMAGE IS NOT THE ZERO.**
+Signed pair, D24, ten peeks per lane. All four `_buf_C1_XIN_CODEC_0*` return
+10 distinct words of 10, rails down and rails up. Every AK5558 lane read —
+`_buf_C1_IN_01 / _02 / _05 / _09 / _17`, one on each of the three converters —
+returns `00000000` ten times out of ten in five conditions:
+rails down with the 595 chain SAFE, rails up with it SAFE, and rails up with
+the chain written to `0xFC` — gain 63, phantom off, **unmuted** — verified
+200/200 on the part. A muted preamp still delivers converter noise; an exact
+digital zero is no conversion. **The MIC 5 EIN row is therefore still owed and
+still refused, and S81-Q3 is untouched by the converter-clock fix**, which is
+what S81 §3.6 predicted: nothing in this tree has ever written an AK5558 a
+register image. `_buf_C1_XIN_MEMS` remains stuck at `0xFFFFFFFF` (S79).
+
+**S82-5 🔴 `dsp4_inscan.py` SCORED THE SIGNED PAIR THROUGH THE WRONG SYMBOL MAP
+AND PRINTED A TIDY TABLE.** It reported `MOVING 0 / STATIC 47`, both controls
+passed, on the same boot where a direct peek of the same lanes showed every
+codec return moving. `load_syms()` searched `/home/app/dspboot` BEFORE the
+working directory; the signed pair was staged at `/home/app/ship_s82` and
+`~/dspboot` held the S78-restore pair's map. Three of the forty-seven lanes
+read `0x3F800000`, which is `1.0f` and not a sample at all — the only visible
+sign, and not one the summary mentions. This is the failure the tool's own
+docstring warns about, committed by its own search order, ONE SESSION after
+S81 rewrote it to stop being void. **Fixed**: the working directory first,
+`~/dspboot` second, and the absolute path of the map it used is printed. Every
+staged arm in this tree runs from its own directory, so the old order was
+backwards for every case that matters.
+
+**S82-6 🔴 `dsp4_node_verify.py` MASKED EIGHT BITS OF A SIX-BIT SIGNATURE, SO
+SINCE S74 IT HAS REJECTED EVERY SHIPPING IMAGE AND GUESSED THE GATE ARM.**
+`read_arm()` tested `(w & 0xFF000000) != 0xC2000000`. DIAG_BUILD_CFG2's bit 29
+is `DSP4_TALK_INVERT` (S72) and bit 24 is `DSP4_TEST_NODES` (S49), both placed
+outside the signature on purpose; `dsp4_buildcfg.py` has masked `0xDE000000`
+for that reason since S72. `DSP4_TALK_INVERT` started shipping at S74, so from
+that day the tool printed *"0x… is not a DIAG_BUILD_CFG2 word — assuming the
+log-domain gate threshold"* on every shipping image.
+
+**It was latent for exactly as long as it could be.** The fallback happened to
+be right while `DSP4_GATE_LINTHR` and `DSP4_DYN_LUT` were both 0. PW signed
+them to 1 on 2026-09-20, and the first famverify run on the signed pair scored
+**GATE numeric FAILED** with the part holding `2,684,355` and the model
+predicting `-222,930,816` — which is, to the digit, the S16-4 failure the
+comment block above that code says it exists to prevent, reappearing through
+the signature mask instead of through the missing read. With the mask
+corrected the same image on the same boot reads `build arm: DIAG_BUILD_CFG2
+0xE2018E7F — GATE_LINTHR=1 DYN_LUT=1, block 16` and all three of GATE's
+converted parameters come out `ok`. **The mask is now IMPORTED from
+`dsp4_buildcfg.py`** rather than repeated, because two copies of a signature is
+how this happened, and the fallback literal names itself in the message when
+it is used.
+
+**S82-7 🟢 `shipping.config` NAMES EVERY SWITCH A CONFIG WORD CARRIES, AND
+`check_shipping_config.sh` NOW ENFORCES THAT AS A RULE.** Fourteen switches
+were reaching the shipping image through a `build.sh` default —
+`DSP4_GAIN_FLOAT`, `DSP4_GAIN_SIMD`, `DSP4_GATHER_FIRST`,
+`DSP4_BLOCK_DECIMATE`, `DSP4_BQ_SIMD_PIPE`, `DSP4_C2_XPAIR`, `DSP4_DLY_SPLIT`,
+`DSP4_DYN_INLINE`, `DSP4_RTG_FABRIC`, `DSP4_FX_TYPE_DECLARED`,
+`DSP4_SCOPE_BLK_TAP`, `DSP4_SIMD_GRAPH`, `DSP4_SIMD_STRIPS`,
+`DSP4_DYN_TABLES`. **None of their values changed**: the triple moves by the
+five signed bits and nothing else, which is the proof that this was a naming
+change and not a configuration change.
+
+This is one fault with five dates on it — S8-2/S9-1, S11-1, S76, S79 — and the
+first time the fix generalises instead of naming the one switch that had just
+been found. The existing completeness gates prove the FILE and the MIRRORS
+agree, and they agree perfectly about a switch neither names, because both
+fall through to the same default; what that cannot survive is the default
+moving. The one exemption is `DSP4_BQ_GUARD`, which no configuration can set,
+and the exemption list is checked in both directions. Proved not vacuous:
+deleting `DSP4_RTG_FABRIC=1` produces `SHIPPING CONFIG DRIFT: … is carried by
+a config word and is NOT NAMED in shipping.config`.
+
+**S82-8 🟢 THE SIGNED TRIPLE IS `0xCF45FF10` / `0xE2018E6F` / `0xC47C0F26`, AND
+ONLY THE SECOND WORD MOVES.** `0xE2018264 ^ 0xE2018E6F = 0x00000C0B` — bits 0
+`DSP4_STRIP_FUSED`, 1 `DSP4_SIMD_DYN`, 3 `DSP4_SIMD_STRIPS`, 10
+`DSP4_DYN_LUT`, 11 `DSP4_GATE_LINTHR`. Words 1 and 3 not moving is a check and
+not a coincidence: none of the four signed switches lives in either. Read off
+BOTH chips of the signed pair; the same tool given the OLD triple refuses the
+same part in the same run and names all five bits. The signed pair is
+`chip1.ldr e3e25a79c4619d1a44305258f99fac7d` / `chip2.ldr
+41a6b913e5f77bac698e136abd9aac65`.
+
+**S82-9 🔴 THE COMMITTED D24 ACCEPTANCE FIXTURES WERE STALE AGAINST
+`defs.lock`, AND NOTHING CHECKED THEM.** All 38 fixtures and the manifest
+carried `contract: defs-v2026.09.16.5` / `defs_commit 10d2f672…` /
+`matrix_gen 39836144a9ba` while `defs.lock` has pinned `defs-v2026.09.19.3` /
+`6fd91594…` / `54c7eafc8811`. Regeneration changes **provenance only** — no
+fixture body, no limit, no measured number moves, and `dryrun_compare.py` still
+reports `187 of 187 comparisons agree within tolerance` — so the staleness cost
+nothing this time. It is recorded because the acceptance set is the artifact a
+factory would run, it names the contract it was generated from, and for an
+unknown number of days it named the wrong one with nothing in the tree to say
+so. `check-contract-drift.sh` regenerates the matrices and the DSP artifacts;
+it does not regenerate the acceptance fixtures.
+
+**S82-10 🟢 THE ACCEPTANCE MANIFEST NOW CARRIES THE CONFIGURATION AND THE
+BOUNDS.** `MW/D24/DSP/accept/manifest.json` gains a `dsp` block: the
+`DIAG_BUILD_CFG` triple (computed by `cfg_words.py` from `build.sh` and
+`shipping.config`, not typed), the four signed switches, and the three numeric
+bounds read from `tools/accept/limits.csv`. A fixture set is generated from
+the CONTRACT and scored against a FIRMWARE IMAGE, and until now the artifact
+said nothing about which image. Both halves are read rather than written down,
+and an unavailable half puts an error string in the manifest instead of a
+stale guess.
+
+**S82-11 🟡 `GATE_LINTHR`'s ACCEPTED BOUND IS EXCEEDED AT THE BOTTOM OF ITS
+RANGE, AND THE CONTRACT TERM SHOULD SAY SO.** The full 801-point sweep finds
+19 points over 0.0002 dB, **all** at thresholds at or below −77.1 dB, worst
++0.000320 dB at −79.9 dB, where the linear word is tens of Q4.28 LSBs and one
+LSB of quantisation already exceeds the bar. Over any threshold at or above
+−60 dB the worst shift is +0.000122 dB. Proposed as ≤ 0.0002 dB for
+`GateThr ≥ −60 dB` and ≤ 0.00035 dB below it, and carried that way in
+`limits.csv` and the contract note. A bound that is quietly exceeded at the
+edge of its range is the shape this project calls a defect in the instrument.
+
+**S82-12 🟡 `DSP4_DYN_LUT` PASSES ITS BOUND BY 0.005 dB AND THE HUB SHOULD KNOW
+IT.** `dyn_lut_design.py --sweep`: worst over 81 parameter sets **0.0950 dB**
+(comp `thr −60.0 ratio 100.0 knee 0.0` at −60.0 dBFS) against PW's 0.1 dB
+ruling. It passes, with essentially no margin: a future change to the table's
+K, its chunking or the documented parameter range has almost no room.
+
+**S82-17 🟡 THE LATENCY BAR REFUSED, CORRECTLY, AND THE REFUSAL IS THE RESULT
+WORTH RECORDING.** `latency.sh` on the signed pair with the SHIPPING bitstream
+on the part returned `coherent fraction 0.0%` on all forty reps across two
+boots and printed
+
+```
+NO VERDICT: the coherent fraction is 0.0% on every rep -- nothing in the
+capture correlates with the stimulus, so the offset is the best of a flat
+field and is NOT a latency. Check the capture path (the through-DSP arm needs
+the _maincap bitstream AND a duplex PCM overlay) before re-running.
+```
+
+The offset it would have reported — 14779 samples, spread 0 over twenty reps —
+is exactly the shape that reads like a confident measurement: perfectly
+repeatable, zero spread, and meaningless. **The instrument says so itself**,
+which is the behaviour S80-19 asked for and the opposite of what
+`dsp4_inscan.py` did in S82-5. The through-DSP latency contract (82 samples at
+block 16) is re-taken on `loadlogic.sh maincap`; the run above is recorded
+because a session that saw `offset 14779, spread 0` and did not read the next
+line would have moved the contract number.
+
+**Also recorded from that run: `chip 1 not ready after 8 attempts: BOOT_STAGE
+below 6` on BOTH boots**, with the same signed pair that reached
+`BOOT_STAGE 7` under `s82.sh` minutes earlier. `latency.sh` stages to its own
+directory (`/home/app/cap_s82lat`) and boots from there; whether the
+difference is the staging set or the boot loop is not settled here, and the
+reps ran anyway — which is its own small defect, since a bar that proceeds
+with a chip below `BOOT_STAGE 6` is measuring something it has not verified is
+running.
+
+**S82-13 🔴 `wire_contract.py` CUT THE SPI DISPATCH TABLE IN HALF AT A SEMICOLON
+INSIDE A COMMENT, AND THE WHOLE CONFORMANCE HARNESS EXITED 2.** `conform.sh`
+failed before it reached the part with
+
+```
+src/chip1/dsp_params.asm: cannot parse dispatch line
+'_meas_seq_C1_TEST_MEAS,    /* 0x136E: C1_TEST_MEAS window serial (no cell'
+```
+
+`entries()` found the end of a `.var name[N] = …;` initialiser with
+`body.index(';')`. Line 6851 of the GENERATED `dsp_params.asm` reads
+`/* 0x136E: C1_TEST_MEAS window serial (no cell; bench read-back) */` — the
+semicolon is inside the comment, the initialiser was cut in the middle of it,
+and the truncated fragment matched no dispatch form. The file is correct
+assembler and the comment is the generator's; the parser was the thing that
+was wrong. **Fixed**: the terminator is now the first `;` found outside a
+`/* */`, and an initialiser that is never terminated outside a comment is an
+error with its own message. Chip 1 parses 4,984 dispatch entries and chip 2
+2,176; `0x136E` resolves to `_meas_seq_C1_TEST_MEAS` with its comment intact.
+
+**S82-14 🟢 FADER_PAN's NUMERIC FAILURE IS NOT THE SIGNING, PROVED BY A CONTROL
+ARM ON THE PART.** The same four families were re-run with
+`DSP4_SIMD_DYN=0 DSP4_STRIP_FUSED=0 DSP4_DYN_LUT=0 DSP4_GATE_LINTHR=0` — a
+different image, reading back `0xE201827C` (`GATE_LINTHR=0 DYN_LUT=0`) — and
+the two pan legs mismatch by **exactly the same words**: part `183217856` /
+`85217608` against model `183341408` / `85094040`. The part's right leg is
+`20/63` to 1.1e-8 and the model used `0.317` verbatim, so the bar drives a cell
+the wire quantises onto a 63-step grid and compares against an unquantised
+model: −0.00586 dB on the left leg, +0.01260 dB on the right. Pre-existing,
+independent of the pairing, and new since S20 (where this family was
+`BIT_EXACT` and carried 118 cells against today's 122). Recorded with the
+arithmetic that identifies it; not chased further.
+
+The same control arm is the two-sided proof that S82-6's fix works: on the
+signed image the tool reads `GATE_LINTHR=1` and compares the gate threshold in
+the LINEAR domain (`2684355 / 2684355 ok`); on the control image it reads
+`GATE_LINTHR=0` and compares it in the LOG domain (`-222930816 / -222930816
+ok`). Same tool, same node, opposite arms, both `ok`.
+
+**S82-15 🟡 NAMING A DERIVED SWITCH BREAKS ITS DERIVATION FOR OVERRIDE ARMS.**
+`DSP4_SIMD_STRIPS` followed `DSP4_SIMD_DYN` through `build.sh`'s
+`DSP4_SIMD_STRIPS_DEFAULT`. S82 names it in `shipping.config` — which is what
+the dispatch required and what makes the shipping image self-describing — and
+the file now wins over the derivation. The consequence showed up in this
+session's own control arm: `DSP4_SIMD_DYN=0 ./famverify.sh` produced an image
+with `SIMD_STRIPS` still 1 (`0xE201827C`, bit 3 set). It changed no conclusion
+here, but **a control arm that means "the pairing off" must now set both
+switches**, and any recipe in the tree that sets only `DSP4_SIMD_DYN=0` is
+building something it does not name. Not reverted: the shipping image's
+self-description is worth more than the shorthand, and the image's own config
+word says which it is either way.
+
+**S82-16 🔴 `_comp_envelope` WOULD NOT CORROBORATE AND THE COMPRESSOR VERDICT
+WAS TAKEN ONCE IN FOUR RUNS.** Three of the four family runs this session
+ended COMPRESSOR with `node state unreadable — no verdict for this node`,
+including the control arm, while reading every one of that node's six
+converted parameters successfully in the same pass. `vpeek` returns None for a
+corroborated ZERO unless the zero sentinel agrees, and a fully rested
+compressor envelope is legitimately zero. So the one COMPRESSOR measurement
+this session has (§3.3 of the report) has no A/B beside it, and the bar cannot
+currently be relied on to produce that verdict on demand. This is the same
+class as S82-5 and S82-6: an instrument that declines rather than lies, but
+declines silently enough that three runs in a row can be read as "the bar was
+run".
+
 ## THE CODEC ANSWERS, CDC_O IS CARRYING DATA, AND THE CONVERTERS ARE NOT DARK — THE BITSTREAM FLASHED ON THE BENCH IS (2026-09-20, session 81)
 
 Hub dispatch `tasks.md` 2026-09-20 09:23Z, answering S80's six questions.

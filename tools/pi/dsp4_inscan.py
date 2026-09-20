@@ -48,6 +48,7 @@ against a 2.5 ms drive period. The default here is 13.7 ms for that reason.
     python3 dsp4_inscan.py 1 16          16 reads per lane
 """
 import json
+import os
 import sys
 import time
 
@@ -65,15 +66,32 @@ def load_syms(chip):
     """The symbol map for the image that is actually booted.
 
     A map from a different build peeks plausible ZEROS rather than raising,
-    so it is worth saying where this one came from in the output."""
-    for path in ('/home/app/dspboot/chip%d.sym.json' % chip,
-                 './chip%d.sym.json' % chip):
+    so it is worth saying where this one came from in the output.
+
+    THE WORKING DIRECTORY COMES FIRST, AND THAT IS THE WHOLE POINT (S82-4).
+    This list used to read ~/dspboot before `.`, which is backwards for the
+    only case that matters: a STAGED arm runs from its own directory
+    (/home/app/ship_s82, cap_*, conf_*, geq_*...) and ~/dspboot holds
+    whatever the last measurement run left behind. S82 booted the signed
+    pair in /home/app/ship_s82 and this tool silently scored it through the
+    S78-restore pair's map -- forty-seven lanes reported STATIC, three of
+    them at 0x3F800000, which is 1.0f and not a sample at all, while a peek
+    of the SAME lanes through the staged map showed every codec return
+    moving. That is exactly the failure the docstring above warns about,
+    committed by the tool's own search order.
+
+    ~/dspboot stays in the list, second, because an unstaged run from that
+    directory is `.` anyway and a run from somewhere else with no local map
+    is better served by the deploy than by an exception.
+    """
+    for path in ('./chip%d.sym.json' % chip,
+                 '/home/app/dspboot/chip%d.sym.json' % chip):
         try:
-            return json.load(open(path)), path
+            return json.load(open(path)), os.path.abspath(path)
         except (IOError, OSError):
             continue
-    raise SystemExit('dsp4_inscan: no chip%d.sym.json in /home/app/dspboot '
-                     'or the working directory' % chip)
+    raise SystemExit('dsp4_inscan: no chip%d.sym.json in the working '
+                     'directory or /home/app/dspboot' % chip)
 
 
 sym, sym_path = load_syms(CHIP)
@@ -211,10 +229,17 @@ print('chip%d: MOVING %d / STATIC %d / UNREADABLE %d   '
 if moving == 0:
     print()
     print('EVERY LANE IS STATIC. With the sample loop proven turning, that is')
-    print('a real reading and not an instrument fault — but check WHICH LOGIC')
-    print('BITSTREAM IS FLASHED before concluding anything about converters:')
-    print('`dsp4_logic.a1f6672af6c3`, the one the bench has lived on, predates')
-    print('the S34 converter-clock fix and drives no BCK/FS to the converters')
-    print('at all, so every lane reads exactly this (S81).')
-    print('  python3 dsp4_logic_id.py')
+    print('a real reading about THESE ADDRESSES — check two things before')
+    print('concluding anything about converters (S82).')
+    print()
+    print('1. THE SYMBOL MAP ABOVE. A map from another build peeks plausible')
+    print('   zeros and this tool cannot tell. If the map is not the booted')
+    print("   image's, every verdict here is about the wrong addresses.")
+    print('2. WHICH LOGIC BITSTREAM IS FLASHED:')
+    print('     python3 dsp4_logic_id.py')
+    print('   A pre-S34 bitstream drives no BCK/FS to the converters at all,')
+    print('   so every lane reads exactly this (S81). The shipping artifact')
+    print("   is dsp4_logic.7a6a4529f29c, design_id 0x4529f29c; anything that")
+    print('   answers "no reply" is older than the design-ID stamp and is')
+    print('   not a bitstream this bench flashes any more.')
 sys.exit(0)

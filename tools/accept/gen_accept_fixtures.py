@@ -262,6 +262,51 @@ def tests_for(kind, battery, universal=None):
     return out
 
 
+def dsp_context():
+    """The DSP configuration a fixture set is valid for, and its numeric bounds.
+
+    S82. An acceptance fixture is generated from the CONTRACT; what it will be
+    scored against on a part is a firmware image, and the two have never been
+    tied together in the artifact. PW signed a configuration whose audio
+    differs from the unsigned one by a stated amount (DSP4_DYN_LUT and
+    DSP4_GATE_LINTHR, 0.03934 dB worst bus word), so a fixture set that does
+    not say which configuration it expects is a set that cannot be re-run
+    later and compared.
+
+    Both halves are READ, not typed: the triple comes from cfg_words.py, which
+    computes it from build.sh and shipping.config, and the bounds come from
+    limits.csv, which is the one place PW tunes them. If either is
+    unavailable the manifest says so rather than carrying a stale guess --
+    an absent key is a visible hole, a remembered number is not.
+    """
+    out = {}
+    try:
+        sys.path.insert(0, os.path.join(ROOT, 'tools', 'dsp'))
+        import cfg_words
+        val, _ = cfg_words.resolve(os.path.join(
+            ROOT, 'MW', 'D32', 'DSP', 'SHARC', 'shipping.config'))
+        t = cfg_words.triple(val)
+        out['shipping_config'] = 'MW/D32/DSP/SHARC/shipping.config'
+        out['build_cfg'] = ['0x%08X' % w for w in t]
+        out['signed'] = {k: val[k] for k in (
+            'DSP4_SIMD_DYN', 'DSP4_STRIP_FUSED', 'DSP4_DYN_LUT',
+            'DSP4_GATE_LINTHR') if k in val}
+    except Exception as e:                      # noqa: BLE001 -- reported, not raised
+        out['build_cfg_error'] = '%s: %s' % (type(e).__name__, e)
+    bounds, path = {}, os.path.join(ROOT, 'tools', 'accept', 'limits.csv')
+    try:
+        for r in rows_csv(path):
+            if r['key'] in ('dyn_lut_max_db', 'gate_linthr_max_db',
+                            'gate_linthr_lowthr_max_db', 'comp_numeric_max_db'):
+                bounds[r['key']] = float(r['value'])
+    except Exception as e:                      # noqa: BLE001
+        bounds = {'error': '%s: %s' % (type(e).__name__, e)}
+    out['numeric_bounds_db'] = bounds
+    out['numeric_bounds_from'] = 'tools/accept/limits.csv'
+    out['proposal'] = 'proposals/CONTRACT-PROPOSAL-S82.md'
+    return out
+
+
 def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument('--product', default='d24')
@@ -492,6 +537,7 @@ def main(argv):
            'inputs_sha256': {k: sha(v) for k, v in sorted(src.items())},
            'defs_commit': lock.get('DEFS_COMMIT'), 'contract': lock.get('CONTRACT_VERSION'),
            'loop': {'donor_strip': donor, 'loop_aux': a.loop_aux, 'ref_input': a.ref_input},
+           'dsp': dsp_context(),
            'fixtures': manifest, 'findings': list(B.findings.values())}
     with open(os.path.join(out, 'manifest.json'), 'w') as f:
         json.dump(man, f, indent=1, sort_keys=True)

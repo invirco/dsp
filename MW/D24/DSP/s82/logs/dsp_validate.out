@@ -1,0 +1,8 @@
+Validated 701 nodes in dsp.csv
+
+  4 process-order note(s) (repaired by the generator, not errors):
+  chip 2: C2_MIX_MAIN_L (row 181) reads C2_USB_IN (row 208), which appears later — the generator moves C2_USB_IN ahead of it
+  chip 2: C2_MIX_MAIN_L (row 181) reads C2_BT_IN (row 209), which appears later — the generator moves C2_BT_IN ahead of it
+  chip 2: C2_MIX_MAIN_R (row 182) reads C2_USB_IN (row 208), which appears later — the generator moves C2_USB_IN ahead of it
+  chip 2: C2_MIX_MAIN_R (row 182) reads C2_BT_IN (row 209), which appears later — the generator moves C2_BT_IN ahead of it
+  OK — no errors

@@ -8,7 +8,7 @@
 # is tested is what is shipped.
 #
 #   ./logic_flash.sh 138dba7274d6                 the isolated converter fix
-#   ./logic_flash.sh dsp4_logic.a1f6672af6c3.svf  by name
+#   ./logic_flash.sh dsp4_logic.7a6a4529f29c.svf  by name (the shipping one)
 #   ./logic_flash.sh ../../shared/dsp4-logic/bitstream/x.svf   by path
 #
 #   --dry-run          every gate and every read, no openocd write. Safe on a

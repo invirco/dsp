@@ -53,8 +53,40 @@ commit in a clean tree and got the same label and a byte-identical pof.
 | retired `bd9c100db7c2` | `9f0d2bcbf1fa2e31ef6529335fb461ae` | none — predates the stamp |
 | stamped `2c1355bbc69b` | `621599e288c7cc6f9ba200a4bb0f506b` | `32'h55bbc69b` |
 
+## `dsp4_logic.a1f6672af6c3` — retired S82, because it does not clock the converters and cannot say what it is
+
+**THE ARTIFACT THE BENCH LIVED ON FOR A MONTH UNDER THE NAME "shipping".**
+Built 2026-08-21 at commit `a4ee3d1f`, which `git merge-base --is-ancestor`
+puts BEFORE `ded71079` — the S34 converter-clock fix of 2026-09-11, whose own
+RTL comment reads *"THESE WERE INPUTS, AND THAT IS WHY NO CONVERTER CAN
+WORK"*. On this bitstream U3 pins 142/141 (board nets C1 and L0) are INPUTS,
+so nothing drives the converter bit clock or frame sync at all and no
+converter on the card can work.
+
+**Measured, not deduced (S81 §3.4).** Same DSP pair, same firmware, same
+symbol map, same reads, half an hour apart, only the bitstream changed: on
+`a1f6672af6c3` all four `_buf_C1_XIN_CODEC_0*` read exact digital zero; on the
+post-fix artifact all four carry moving converter noise that grows with AN_EN
+high. Ten sessions between S71 and S81 diagnosed a hardware fault that was
+this file.
+
+It also predates the design-ID stamp, so `dsp4_logic_id.py` answers *"no
+reply: nothing in the capture carried the 0xD594 marker"* — the same defect as
+`bd9c100db7c2` above, on the one artifact where it mattered most, because the
+bench's whole account of what it had measured on rested on a flash log.
+
+PW adopted the S34 fix on 2026-09-20 (S81-Q1). The replacement is
+`dsp4_logic.7a6a4529f29c`, which is now what `loadlogic.sh shipping` names,
+and `loadlogic.sh` refuses to stage ANY artifact whose manifest carries no
+`design_id:` line (S81-Q2, ruled S82).
+
+| | pof md5 | design_id | converter clock |
+|---|---|---|---|
+| retired `a1f6672af6c3` | `f08f3b525ff0fe2f7957a96d958842e6` | none — predates the stamp | **NOT DRIVEN** |
+| shipping `7a6a4529f29c` | `7dc0976d7b13d98b4a37795d1eeaf49e` | `32'h4529f29c` | driven (S34) |
+
 ---
 
-Both are the precise failure `shared/dsp4-logic/build.sh`'s own comment block
-was written about, and both were still live in the tool the bench used every
-day until S37.
+All three are the precise failure `shared/dsp4-logic/build.sh`'s own comment
+block was written about, and each was still live in the tool the bench used
+every day until the session that retired it.

@@ -161,17 +161,23 @@ SHIPPING = {
     'DSP4_PROFILE_SIGNAL': 0,
 }
 
-# The same mirror for the second word. DSP4_SIMD_GRAPH and DSP4_SIMD_STRIPS
-# are DERIVED in build.sh -- SIMD_GRAPH defaults on and SIMD_STRIPS follows
-# DSP4_SIMD_DYN -- so what a shipping image reads for them is whatever the
-# kernels flag makes them, and they are listed at the value the current
-# shipping.config produces rather than as independent choices.
+# The same mirror for the second word.
+#
+# S82: THE SIGNED PAIRING CONFIGURATION. PW signed DSP4_SIMD_DYN +
+# DSP4_STRIP_FUSED + DSP4_DYN_LUT + DSP4_GATE_LINTHR on 2026-09-20, and
+# shipping.config now names every field of every word rather than letting
+# build.sh's defaults carry four of them -- so DSP4_SIMD_GRAPH and
+# DSP4_SIMD_STRIPS are no longer "whatever the kernels flag makes them",
+# they are stated there and mirrored here. This word is the only one of the
+# three that moves: 0xE2018264 -> 0xE2018E6F, five bits (0, 1, 3, 10, 11),
+# which is exactly the four signed switches plus the DSP4_SIMD_STRIPS that
+# DSP4_SIMD_DYN brings with it.
 SHIPPING2 = {
     'decimate': 1,
-    'DSP4_STRIP_FUSED': 0,
-    'DSP4_SIMD_DYN': 0,
+    'DSP4_STRIP_FUSED': 1,
+    'DSP4_SIMD_DYN': 1,
     'DSP4_SIMD_GRAPH': 1,
-    'DSP4_SIMD_STRIPS': 0,
+    'DSP4_SIMD_STRIPS': 1,
     'DSP4_SCOPE_BLK_TAP': 0,
     'DSP4_TEST_NODES': 0,
     # S74 (PW ruling 2026-09-19 evening: "tb polarity can be signed in
@@ -197,8 +203,16 @@ SHIPPING2 = {
     # and it is the third time (S11-1, S74-2, this). The hole is closed
     # structurally in check_shipping_config.sh: every field cfg_words.py
     # says the word carries must appear here, or the check fails.
-    'DSP4_DYN_LUT': 0,
-    'DSP4_GATE_LINTHR': 0,
+    # SIGNED S82, and the two declared numeric deviations of the whole
+    # configuration: DYN_LUT <= 0.0950 dB and GATE_LINTHR <= 0.0002 dB.
+    # S20-6 isolated them -- with these two off and everything else in the
+    # signed configuration on, the bus capture is the 2026-08-30 golden
+    # BIT FOR BIT; with them on, 235 of 256 words move and the worst is
+    # 0.03934 dB.
+    'DSP4_DYN_LUT': 1,
+    'DSP4_GATE_LINTHR': 1,
+    # NOT signed and not moved: PW has not ruled on chip 2's paired aux and
+    # main biquads, and DSP4_DYN_TABLES is incompatible with the pairing.
     'DSP4_C2_BQ_GRAPH': 0,
     'DSP4_BQ_SIMD_PIPE': 0,
     'DSP4_SHARED_KERNELS': 15,

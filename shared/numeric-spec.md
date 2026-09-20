@@ -346,6 +346,38 @@ names the halved form.
   same attack/release frame-count semantics as today (cell tables
   unchanged).
 
+### Three DECLARED deviations from the above (PW, 2026-09-20, S82)
+
+The 0.001 dB target above is what the polynomial path delivers. The shipping
+configuration PW signed on 2026-09-20 replaces two pieces of that path, and
+each replacement is a stated deviation with a bound, not a regression to be
+chased. **A measurement outside one of these is a STOP and a re-signing
+question, not a new bound.**
+
+| switch | bound | what deviates |
+|---|---|---|
+| `DSP4_DYN_LUT` | **≤ 0.0950 dB** | the COMPRESSOR's and LIMITER's static curve is a baked per-node table, so the gain computer is an index plus an interpolation rather than the log2/exp2 polynomials. Worst case over the whole documented parameter sweep at the shipped K = 4. |
+| `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** for `GateThr ≥ −60 dB`; **≤ 0.00035 dB** below it | the GATE's threshold is compared in the linear domain, so no `_log2q_fx` runs per sample. Below −60 dB the linear word is tens of Q4.28 LSBs and one LSB of quantisation already exceeds the tighter bar; worst over 801 points is +0.000320 dB at −79.9 dB. |
+| COMPRESSOR numeric | **≤ 0.00518 dB** | the consequence of the two above at the node bar: one of `famverify`'s twenty verdicts moves numerically against `fixed_ref`, and this is how far. Every other family, and every other converted parameter of this one, stays bit-exact. |
+
+**None of these numbers is stored as a literal in a model.** `DSP4_DYN_LUT`'s
+is produced by `tools/dsp/dyn_lut_design.py --sweep` from the table design;
+`DSP4_GATE_LINTHR`'s by `tools/dsp/dyn_state_bound.py` §6, which carries the
+bar as `LINTHR_BAR` and reports every point that exceeds it; the COMPRESSOR
+figure is a bench measurement. `tools/accept/limits.csv` carries all three for
+the acceptance runner, and `MW/D24/DSP/accept/manifest.json` records them
+beside the `DIAG_BUILD_CFG` triple of the configuration they belong to, so a
+fixture set can never be re-run against a different configuration without
+saying so. See `proposals/CONTRACT-PROPOSAL-S82.md`.
+
+**What the deviations do NOT touch, measured rather than argued.** With these
+two switches off and the rest of the signed configuration on, `busgold.sh`
+reproduces the 2026-08-30 bus golden bit for bit (0 of 256 words); with them
+on, 235 of 256 words differ at a worst 0.03934 dB, and not one word is zero in
+one capture and non-zero in the other. So `DSP4_STRIP_FUSED`, `DSP4_SIMD_DYN`,
+the chip-2 pairing and `DSP4_TX_EARLY=2` change not one bus word between them
+(S20-6), and the whole audible content of the signing is the two rows above.
+
 ## Parameter boundary (contract preservation)
 
 - The SPI wire continues to carry float32 words (spi_handler protocol
