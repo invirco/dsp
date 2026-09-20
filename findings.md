@@ -115,6 +115,21 @@ inferred from the H1S1 source and deliberately NOT verified on the part**,
 because verifying it shifts the chain and shifting the chain drives CS_M,
 which this dispatch's standing handback says to leave untouched.
 
+**S80-12 🟡 `dsp4_buildcfg.py` WAS NOT ONE OF THE TOOLS THE BENCH LOCK
+DEPLOYS, WHICH IS D74's FAULT A THIRD TIME.** `bench_lock.sh`'s own comment
+explains the shape: D74 fixed the link tools and not one bar script deployed
+either file, so a fix could be in the repo, green on the bench by hand, and
+absent from every bar that matters; S77 found the same for
+`input_patch.json`. `dsp4_buildcfg.py` is the third, and it is the **only
+thing on the bench that decodes what the image on the part was built with** —
+`--expect-shipping` is what scores a part against `shipping.config`. It
+becomes acute the moment `DIAG_BUILD_CFG3` has fields: a pre-S80 copy reading
+`0xC47C0F26` **passes its own signature check**, decodes bit 0 alone, ignores
+the instrument bit, the park gate, the matrix gate and the whole shared-kernel
+mask, and prints *"== the shipping configuration"* having read almost none of
+it. A stale decoder that says PASS is worse than one that raises. It travels
+with the lock now.
+
 **S80-11 🟡 THE MEMS-AGAINST-CODEC IDLE-LEVEL ARGUMENT CANNOT BE SHARPENED,
 AND THE OBVIOUS SHARPENING IS UNAVAILABLE.** S79's inference — two different
 stuck levels, so the SPORT is sampling real pins — is sound but cannot be
