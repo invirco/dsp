@@ -6,6 +6,147 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE MIC LANES WERE NEVER DARK: `_buf_C1_IN_nn` IS A SYMBOL NO BLOCK-KERNEL BUILD WRITES (2026-09-20, session 86)
+
+Hub dispatch `tasks.md` 2026-09-20 15:05Z. Dispatched to bisect chip 1's
+receive path between the S54–S58 firmware and HEAD. No bisect was run and none
+was runnable: the receive path is not broken.
+Report: `MW/D24/DSP/s86/rx-path.md`.
+
+**S86-1 🔴 `_buf_C1_IN_01..32` IS NOT A BUFFER IN ANY BUILD THAT SHIPS, AND
+NOTHING WRITES IT.** Under `DSP4_BLOCK_KERNELS` — every shipping and every
+TEST_NODES pair — a node whose output feeds the next node of its own strip writes the shared
+block pool: `_C1_IN_16_process` reads the RX DMA word and stores it to
+`BLK_CHAIN_A`, and `_buf_C1_IN_16` is declared beside it as a single word that
+survives only as linkage and as the identity token `_scope_tap` /
+`_scope_inject_blk` compare `r0` against. Of chip 1's 442 nodes, 44 own a real
+`_buf_<nid>[DSP4_BLOCK_SIZE]` — the 15 `XIN_*` lanes and the 29 buses — and
+398 do not. **So "four codec buffers move and thirty-two mic buffers read
+exact digital zero, in the same pass, on the same bitstream" is not a fact
+about pins. It is the difference between a buffer and a linkage scalar.** The
+warning was already in the tree three times (`dsp4_s39_chain.py`,
+`dsp4_s48_audio.py`, `dsp4_node_verify.py`); the lane scanners never had it,
+and S81's rewrite of `dsp4_inscan.py` moved the scan off one dead symbol
+(`_rx_slot_C1_IN_nn`, correctly identified) onto another.
+
+**S86-2 🟢 EVERY D24 MIC LANE CARRIES SAMPLES, READ OUT OF THE RX DMA REGION.**
+`_rx_active_buf + off + k*stride`, geometry and node names taken off the part,
+on the shipping bitstream `d02d83b3cc22` (design ID read back and MATCHED),
+both chips BOOT_STAGE 7. Rails down: 24 of 24 mic entries carry the
+converters' dither, 12–15 distinct words in 16 reads, RMS −112.6 to −119.9
+dBFS — while `_buf_C1_IN_01` and `_buf_C1_IN_16` sat at exact zero in the same
+pass as controls. Pin 3's eight entries (the D32's fourth AK5558), the eight
+snake lanes and the MEMS lane read a constant `0xFFFFFFFF` and the two Pi
+lanes a constant 0, which is correct for a card with nothing on those pins.
+
+**S86-3 🟢 SIXTEEN LANES ANSWER THE ANALOG RAILS BY 30–50 dB.** Rails up, 595
+unmuted at gain 63 (VERIFIED 200/200), same boot: `ad[1]`'s eight entries go
+to −69.3…−83.3 dBFS and `ad[2]`'s to −64.6…−83.4, while `ad[0]`'s eight stay
+at the dither floor. That is live preamp noise arriving through the AK5558s
+and read from the DSP's own DMA region — the measurement ten sessions were
+looking for.
+
+**S86-4 🟢 ALL 47 RX ENTRIES DECODE THEIR OWN PIN AND SLOT, SPORT 0/1/2/3
+INCLUDED.** On the `_laneid` bitstream (`12f4fd1cbfc1`, design ID
+`32'hfd1cbfc1` read back) every entry carries `0xA5<pin><tick><slot>` naming
+exactly the pin and TDM slot the generated lane table assigns it, at bit
+offset 0 — with the two Pi lanes one bit out, reproducing
+`c1_rx_lanes_mfd[6] = 1` against an MFD-2 build without being told. This
+closes S85-7's hole in `driveall`'s proof: the hole was real and the binding
+through it is correct.
+
+**S86-5 🔴 S85-8 IS VOID, AND SO IS THE SAME CLAUSE IN S81-8, S82, S83 AND
+S84.** "The fault is chip 1's RX path for sport 0/1/2" is disproved on the
+same unit, the same firmware and the same bitstream. Those sessions'
+measurements stand; the inference drawn from `_buf_C1_IN_*` does not. The RX
+plumbing is also untouched since the S54–S58 reference: `sru_config.c`,
+`sport_config.c` and `dma_config.c` have an EMPTY diff across
+`aac62831..HEAD`, and `chip1/lane_config.c` does not touch lanes 0–3.
+
+**S86-6 🟡 THE BENCH UNIT'S DEAD ANALOG SECTION IS EIGHT CHANNELS, NOT FOUR,
+AND IT IS `ad[0]`.** All 24 channels surveyed at gain codes 63 and 0, register
+under test alone open, TEST_MEAS on its own strip, rails up: U39's eight rise
+32.5–36.9 dB and U60's eight rise 31.8–40.4 dB, while **U15's eight — panel
+mics 1–4 and 13–16, XLRs J15–J22, preamps U17–U31 — rise −0.21 to +0.08 dB**
+and sit at −116.0…−116.2 dBFS at both codes. That is S48's "MIC 1–4 section
+the bench state records as DEAD" at "−114…−118 dBFS, what an unpopulated front
+end reads", and S55's "J15–J22 … have no rails today: not tested" — a known
+section whose EXTENT was not established, because S48 could only name four of
+it while reading twelve lanes. It also closes S85-3: `ad[0]`'s indifference to
+the rails is the dead section's converter converting with nothing in front of
+it, and its `ones` high-water of 188 against 256 said so. 🔴 S86-N1 asks the
+hub to correct the count wherever the bench state is written down — the
+depopulated-section guard `dsp4_s42_align.py` has been owed since S48 has to
+be sized to eight.
+Separately, J15 (strip 1) reads exact digital zero through TEST_MEAS at both
+codes while its RX lane carries dither — recorded, not diagnosed.
+
+**S86-7 🔴 THE EIN ROW IS OWED ON A FIXTURE, AND THE NUMBER IS WHAT SAYS SO.**
+The S54 loop check reads −142.81 dBFS where the loop cable gives −14.42, so
+the cable is off. MIC 5 (J25, strip 5) then reads NoiseResult −77.31 dBFS at
+code 63 → **EIN −109.89 dBu**, 17.3 dB above S55's −127.2 dBu at 150 Ω, with
+an rms spread of 4.59 dB against 0.28–0.80 dB on every other row of the
+session. Both are what an unterminated input does. The row needs 150 Ω across
+J25 pins 2–3; what is recorded is the open-input noise row, labelled as such.
+The talkback T1/T3 re-take is owed on the same cable. The dispatch's second
+witness, MIC 14 (J18), is in the dead section (S86-6) and cannot be one: a
+second EIN witness has to come from the sixteen channels that work.
+
+**S86-8 🟢 THE INSTRUMENT IS FIXED AT THE POINT OF FAILURE.**
+`tools/pi/dsp4_rxscan.py` is new and reads the DMA region, resolving geometry
+and the patched node names off the part and carrying `_buf_C<chip>_IN_01` as a
+must-not-move control so the trap is demonstrated on every run.
+`dsp4_inscan.py` now scans `_buf_C<chip>_XIN_*` only — the buffers that exist
+— and reads `_buf_C<chip>_IN_01` as a second dead-symbol control with the
+pointer to the right tool. `dsp_codegen.py` makes every generated strip-input
+node open its block-kernel arm with "`_buf_<nid>` IS NOT A BUFFER IN THIS
+BUILD" and the one line that says what to read instead; comment only, so the
+emitted code and data are unchanged and **the signed configuration's triple
+does not move**.
+
+**S86-10 🟢 THE GENERATOR CHANGE IS PROVABLY IMAGE-NEUTRAL, AND THE SIGNED
+TRIPLE DOES NOT MOVE.** Built twice from the same tree with `./build.sh all`
+on `shipping.config`, once before the change and the regeneration and once
+after: `chip1.ldr e3e25a79…` / `chip2.ldr 41a6b913…` both times, and both
+equal the image the S86 capacity arm built and ran. `regenerate-dsp-contract.sh`
+clean at defs-v2026.09.19.3; `check-contract-drift.sh` leaves nothing but the
+32 comment-only node files; `defs.lock` unmoved, so no contract note is due.
+The audio bar is three for three against S82: golden harness 59/59,
+`dsp_validate` OK with 701 nodes and the same 4 process-order notes, dry-run
+187 of 187 (0 DIFF, 0 MISSING).
+
+**S86-11 🟢 84.34 % HOLDS: THE S82 D24 DRIVEN ROW RE-TAKES AT 84.47 %.**
+`ARM=s86d24 PRODUCT=d24 ./capacity.sh --driven`, both boots, 135,049–135,054
+blocks a row, `build_cfg2 0xE2018E6F` read off the part during the
+measurement, regime proved on both boots (48/48 chip 1, 28/28 chip 2). Rows
+(two-boot means of `_proc_cyc`, the field S82 quotes): A 43.13/77.50, B
+57.61/84.41, **C driven 57.55/84.47 (+0.02 / +0.12)**, zero missed blocks in
+all twelve chip-rows. The boot spread is stated, not averaged away: chip 2's
+row C read 84.20 and 84.73, a 0.53-point spread against the ~0.33 S82
+documented — both boots bracket 84.34, and the three means on record now span
+0.13 points (84.34, 84.35, 84.47). The dispatch's premise for the gate does
+not apply: the mic lanes always carried data (rows A/B the converters'
+dither, row C `driveall`'s broadcast), so nothing about the cycle count
+changed tonight except what is known about it.
+
+**S86-12 🔴 `logic_flash.sh` TOOK NO BENCH LOCK — THE ONE TOOL THAT
+REPROGRAMS THE CPLD.** S80-12 gave seven bench drivers the lock and S82 gave
+it to `loadlogic.sh`; the script that actually writes the bitstream and stops
+`matrix-app` had none, so an arm landing on the card mid-flash was the S10
+contention failure with a flash in the middle of it. Fixed the same way
+`loadlogic.sh` does it, with `--self-test` exempt because it drives no bench;
+nothing in the tree invokes the script so no caller can deadlock behind it;
+proved with `--dry-run`. `dsp4_rxscan.py` joins the link-tool deploy in
+`bench_lock.sh` for the same reason the other six are there.
+
+**S86-9 🟡 MIC 5's NODE IS `C1_IN_05`, NOT `C1_IN_16`.** S82–S85 record
+"MIC 5's own `_buf_C1_IN_16`". Under the landed S58 input patch J25 is strip 5,
+node `C1_IN_05`, RX entry 15, DSPA pin 1 TDM slot 7 — what `d24_inputs.py`
+says, what `_rx_patch_regs` says on the part, what S54's `MIC5_STRIP` has
+always used, and what S86-6's gain response confirms physically. `C1_IN_16` is
+the identity mapping of that DMA position, i.e. the pre-S58 answer.
+
+
 ## THE LAUNCH PHASE IS NOT THE FAULT, AND THE MIC LANES ARE NOT ON ANY PIN THIS CPLD DRIVES (2026-09-20, session 85)
 
 Hub dispatch `tasks.md` 2026-09-20 13:57Z. S84 left one hypothesis standing —
@@ -111,6 +252,54 @@ failure the `CFG_LINE` paragraph exists to prevent. Caught on the first
 artifact it affected, before anything was measured on it, and closed by
 putting the computed word into `CFG_LINE` so any future change to the
 derivation renames every artifact it changes.
+
+## THE MIC ADC LANES ARE NOT DARK — ad[0..2] CARRY DATA AT THE CPLD WHILE THE DSP READS ZERO (2026-09-20, session 84)
+
+Hub dispatch `tasks.md` 2026-09-20 12:2xZ. Copied here at hub ruling S85-N3 —
+these findings lived only in `MW/D24/DSP/s84/mic-lanes.md`, which is not where
+a reader searching this file for S84-4 would look.
+Report: `MW/D24/DSP/s84/mic-lanes.md`.
+
+*Read with S86-1: every S84 statement about `_buf_C1_IN_*` reading zero is a
+statement about a symbol nothing writes. S84-1, S84-3, S84-4 and S84-7..9 are
+unaffected; S84-2's "there is no bisect to run" is right for a reason S84 did
+not have, and S84-5/S84-6 are void.*
+
+* **S84-1 🟢** "Pre-S34" is not the discriminator for the converter clock: the
+  step-0 lineage does not contain `ded71079` and drives the pair anyway, with
+  the same two assignments HEAD carries. Two lineages drive it, one artifact
+  does not, and nothing may be inferred from a build date.
+* **S84-2 🔴** 32 of 32 AK5558 mic lanes read exact digital zero on
+  `s41_mhrx_pullup_off` — the bitstream the flash log puts under S54–S58 —
+  with all four codec lanes live in the same pass. Three bitstreams, one
+  answer: there is no bisect to run. *(S86-1: the reading is of the dead
+  symbol; the conclusion that there is no bitstream bisect to run stands.)*
+* **S84-3 🟢** All three `ad[0..2]` lanes are CARRYING DATA at the CPLD: ~95 of
+  256 bit periods high, 26–50 transitions per frame, high-water 186–188, with
+  the `cdc_o` control arm answering data and every frame counter advancing.
+* **S84-4 🟢** `ad[1]` and `ad[2]` roughly double their toggle count when the
+  rails come up and the chain is unmuted; `ad[0]` does not move. Recorded, not
+  yet diagnosed. *(Diagnosed at S86-6: U15's eight channels pass no signal.)*
+* **S84-5 🔴 VOID (S86-1)** Pins moving and buffers at exact zero in one pass
+  on one bitstream, both controls satisfied; "the break is between the CPLD's
+  `ad[0..2]` input pins and the graph buffers". The buffers read were linkage
+  scalars and there is no break.
+* **S84-6 🔴 VOID (S85-1, S86-4)** The launch-phase hypothesis. Disproved by
+  measurement at S85-1, and the binding it doubted is proved correct at S86-4.
+* **S84-7 🟢** The shipping build's label moves to `0cc6f94444b2` at HEAD as an
+  unavoidable side effect of touching `rtl/`. The artifact on the part is
+  unaffected and now records `built_from: a1536bc6`, verified.
+* **S84-8 🟢** `logic_flash.sh`'s default rollback was stale for the third time
+  in its history — naming `s41_mhrx_pullup_off` a day after the part stopped
+  carrying it. Fixed, and the flash log it says to set it from is now a table
+  rather than 2.2 million lines.
+* **S84-9 🟢** The witness's lane echo earned its bits on its first run: the
+  reader extracted the lane from bits [25:24] instead of [26:25], which is
+  `{lane[0], ones_last[8]}` and therefore reads correctly for lane 0 and
+  wrongly for lanes 1 and 2. It reported a mismatch and refused to print
+  numbers rather than reporting lane 0's data three times. The testbench
+  stand-in had the same wrong layout, which is why sim passed — fixed to the
+  real layout, so the class is caught in sim from here.
 
 ## THE THREE ANSWERS LAND, THE LATENCY ROW IS TAKEN, AND THE MIC LANES ARE DARK (2026-09-20, session 83)
 

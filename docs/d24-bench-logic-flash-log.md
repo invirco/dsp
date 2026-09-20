@@ -344,3 +344,21 @@ the continuation rather than a rewrite of it.
 `logic_flash.sh`'s default rollback is now `dsp4_logic.d02d83b3cc22.svf` — set
 from this table, after the flash, which is the rule the S84 entry above spells
 out and the reason that line has been stale three times.
+
+---
+
+## S86 (2026-09-20 evening/night)
+
+All FLASH-OK on attempt 1 with the design ID read back and MATCHED both before
+the reading it was flashed for and after the restore.
+
+| # | artifact | design_id | what it was for |
+|---|---|---|---|
+| 1 | `dsp4_logic_laneid_adwit.12f4fd1cbfc1` | `32'hfd1cbfc1` | S86-4 — every RX DMA entry decodes its own pin and slot |
+| 2 | `dsp4_logic.d02d83b3cc22` | `32'h83b3cc22` | shipping restored for the EIN rows and the survey |
+| 3 | `dsp4_logic_driveall.943f27966c28` | `32'h27966c28` | the S82 D24 driven capacity row |
+| 4 | `dsp4_logic.d02d83b3cc22` | `32'h83b3cc22` | **shipping restored, and what the part is left carrying** |
+
+`logic_flash.sh`'s default rollback stays `dsp4_logic.d02d83b3cc22.svf` — set
+from this table, after the last flash, which is the rule the S84 entry spells
+out.

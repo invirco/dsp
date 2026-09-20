@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""dsp4_inscan.py <chip> [reps] — do the TDM input lanes carry anything?
+"""dsp4_inscan.py <chip> [reps] — do the XIN return lanes carry anything?
+
+For the MIC/TDM input lanes use `dsp4_rxscan.py` — see point 1 below.
 
 *** REWRITTEN 2026-09-20 (S81, hub ruling Q6). THE PREVIOUS VERSION WAS VOID
 ON EVERY BUILD THAT SHIPS, AND IT ANSWERED ANYWAY. ***
@@ -16,21 +18,37 @@ An instrument that answers static zero on a build where it cannot work is
 worse than no instrument, because it is believed. So this version does three
 things the old one did not:
 
-1. READS THE BLOCK SYMBOLS -- `_buf_C<chip>_IN_*` and `_buf_C<chip>_XIN_*`,
-   which the block kernels actually write -- and REFUSES to run at all if it
-   cannot find them, instead of skipping silently and reporting on nothing.
+1. READS THE BLOCK SYMBOLS THAT ARE REALLY WRITTEN -- `_buf_C<chip>_XIN_*`
+   -- and REFUSES to run at all if it cannot find them, instead of skipping
+   silently and reporting on nothing.
+
+   *** CORRECTED 2026-09-20 (S86). S81 PUT `_buf_C<chip>_IN_*` IN THIS LIST
+   TOO, AND THOSE ARE DEAD AS WELL. *** A node whose output feeds the next
+   node of its own strip writes the shared BLOCK POOL, not `_buf_<nid>`:
+   `_C1_IN_16_process` reads the RX DMA buffer straight into `BLK_CHAIN_A`
+   and its own header says so. Only the nodes that are NOT chain heads --
+   the `XIN_*` lanes and the buses -- own a real `_buf_<nid>[BLOCK]`. So the
+   rewrite swapped one symbol nothing writes for another, and the scan then
+   printed "the codec lanes move and the mic lanes are exact digital zero"
+   on a card whose mic lanes were healthy. Five sessions diagnosed that as a
+   converter, bitstream, launch-phase and SPORT receive fault in turn.
+   **THE MIC LANES ARE NOT SCANNED HERE ANY MORE. Use `dsp4_rxscan.py`,**
+   which reads the RX DMA region itself and cannot be fooled this way.
 
 2. RUNS A MUST-MOVE CONTROL FIRST. FRAME_COUNT (0xE004) is incremented by the
    block ISR. If it does not advance across the scan, the sample loop is not
    turning, every lane is STATIC for a reason that has nothing to do with the
    lanes, and no per-lane verdict is printed at all.
 
-3. RUNS A MUST-NOT-MOVE CONTROL, through the same peek path, on
-   `_rx_slot_C<chip>_IN_01` -- the very symbol that voided the old tool. It
-   must read constant. If a symbol nothing writes comes back varying, the
-   peek path itself is returning garbage and MOVING means nothing either.
+3. RUNS TWO MUST-NOT-MOVE CONTROLS, through the same peek path, on
+   `_rx_slot_C<chip>_IN_01` -- the symbol that voided the pre-S81 tool -- and
+   on `_buf_C<chip>_IN_01`, the one that voided the S81 rewrite. Both must
+   read constant. If a symbol nothing writes comes back varying, the peek
+   path itself is returning garbage and MOVING means nothing either; and
+   carrying the second one here means the trap is demonstrated on every run
+   rather than described in a comment.
 
-Only with both controls satisfied is a per-lane verdict worth printing, and
+Only with every control satisfied is a per-lane verdict worth printing, and
 the tool says which direction each control came out.
 
 WHAT "MOVING" MEANS. A lane fed by a clocked converter varies sample to
@@ -141,18 +159,20 @@ def sample(addr, reps=REPS):
 
 
 def lane_names(chip):
-    """Every block input buffer on this image, in a readable order."""
-    pre = '_buf_C%d_' % chip
-    names = [k for k in sym
-             if k.startswith(pre) and ('_IN_' in k or k.startswith(pre + 'XIN'))]
-    return sorted(names)
+    """Every block input buffer on this image that is actually written.
+
+    `_buf_C<chip>_XIN_*` only. The `_buf_C<chip>_IN_*` scalars are pool-
+    resident node linkage and no block kernel writes them (S86); they are
+    read below as a CONTROL and never as a lane."""
+    pre = '_buf_C%d_XIN' % chip
+    return sorted(k for k in sym if k.startswith(pre))
 
 
 names = lane_names(CHIP)
 print('symbol map: %s' % sym_path)
 if not names:
     legacy = [k for k in sym if k.startswith('_rx_slot_C%d_IN' % CHIP)]
-    print('dsp4_inscan: NO `_buf_C%d_*IN*` SYMBOLS IN THIS MAP.' % CHIP)
+    print('dsp4_inscan: NO `_buf_C%d_XIN*` SYMBOLS IN THIS MAP.' % CHIP)
     if legacy:
         print('  %d legacy `_rx_slot_C%d_IN*` symbols are present, and those '
               'are' % (len(legacy), CHIP))
@@ -170,6 +190,10 @@ fc0 = diag.read(FRAME_COUNT)
 # ---- control 2: a symbol nothing writes must read constant ----
 dead_name = '_rx_slot_C%d_IN_01' % CHIP
 dead_vals = sample(sym[dead_name], 4) if dead_name in sym else None
+# The symbol the S81 rewrite scanned as a lane. It is read here so that every
+# run of this tool re-demonstrates that it carries nothing (S86).
+dead2_name = '_buf_C%d_IN_01' % CHIP
+dead2_vals = sample(sym[dead2_name], 4) if dead2_name in sym else None
 
 rows = []
 for name in names:
@@ -202,6 +226,19 @@ else:
           'garbage,' % (dead_name, ' '.join('0x%08X' % v for v in dead_vals)))
     print('                 so MOVING below cannot be trusted either.')
     raise SystemExit(2)
+if dead2_vals is None:
+    print('  MUST-NOT-MOVE: %s absent from the map — control not run'
+          % dead2_name)
+elif len(set(dead2_vals)) == 1:
+    print('  MUST-NOT-MOVE: %s constant at 0x%08X over %d reads — the mic'
+          % (dead2_name, dead2_vals[0], len(dead2_vals)))
+    print('                 lanes are NOT scanned through these symbols;')
+    print('                 `python3 dsp4_rxscan.py` reads the DMA region')
+    print('                 and is the instrument for that question (S86).')
+else:
+    print('  MUST-NOT-MOVE: %s VARIED (%s) — the peek path is returning '
+          'garbage.' % (dead2_name, ' '.join('0x%08X' % v for v in dead2_vals)))
+    raise SystemExit(2)
 
 print()
 moving = static = unread = 0
@@ -232,6 +269,8 @@ if moving == 0:
     print('a real reading about THESE ADDRESSES — check two things before')
     print('concluding anything about converters (S82).')
     print()
+    print('0. THIS TOOL SCANS THE XIN LANES ONLY. The mic lanes live in the')
+    print('   RX DMA region and are read by `python3 dsp4_rxscan.py` (S86).')
     print('1. THE SYMBOL MAP ABOVE. A map from another build peeks plausible')
     print('   zeros and this tool cannot tell. If the map is not the booted')
     print("   image's, every verdict here is about the wrong addresses.")
@@ -239,7 +278,8 @@ if moving == 0:
     print('     python3 dsp4_logic_id.py')
     print('   A pre-S34 bitstream drives no BCK/FS to the converters at all,')
     print('   so every lane reads exactly this (S81). The shipping artifact')
-    print("   is dsp4_logic.7a6a4529f29c, design_id 0x4529f29c; anything that")
+    print("   is dsp4_logic.d02d83b3cc22, design_id 0x83b3cc22 (S85);")
+    print('   anything that')
     print('   answers "no reply" is older than the design-ID stamp and is')
     print('   not a bitstream this bench flashes any more.')
 sys.exit(0)

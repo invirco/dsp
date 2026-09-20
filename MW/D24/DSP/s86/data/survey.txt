@@ -1,0 +1,33 @@
+# s86_survey.py — all 24 D24 preamps, TEST_MEAS NoiseResult, one 595 image per
+# reading (register under test alone open, phantom off, INSTR byte 0x00),
+# TEST_NODES pair /home/app/s83tn, shipping bitstream d02d83b3cc22, rails up,
+# loop cable OFF and no fixture across any XLR. 6 windows a reading.
+xlr   mic  preamp ADC   ad   strip code 63 dBFS  code 0  dBFS   rise dB
+J15   1    U17    U15   0    1         -336.12      -336.12      0.00
+J16   13   U19    U15   0    13        -116.17      -116.09     -0.08
+J17   2    U21    U15   0    2         -116.06      -116.14      0.08
+J18   14   U23    U15   0    14        -116.05      -116.11      0.06
+J19   3    U25    U15   0    3         -116.15      -116.05     -0.10
+J20   15   U27    U15   0    15        -116.04      -115.83     -0.21
+J21   4    U29    U15   0    4         -116.03      -116.10      0.06
+J22   16   U31    U15   0    16        -116.15      -116.09     -0.05
+J25   5    U41    U39   1    5          -77.47      -114.22     36.76
+J26   17   U43    U39   1    17         -81.37      -114.09     32.73
+J27   6    U45    U39   1    6          -78.71      -113.87     35.16
+J28   18   U47    U39   1    18         -80.63      -113.94     33.32
+J29   7    U49    U39   1    7          -80.53      -114.25     33.73
+J30   19   U51    U39   1    19         -81.91      -114.42     32.51
+J31   8    U53    U39   1    8          -77.96      -114.08     36.12
+J32   20   U55    U39   1    20         -75.22      -112.12     36.90
+J35   9    U62    U60   2    9          -80.20      -113.92     33.73
+J36   21   U64    U60   2    21         -81.85      -113.65     31.80
+J37   10   U66    U60   2    10         -80.17      -113.69     33.53
+J38   22   U68    U60   2    22         -81.48      -113.59     32.12
+J39   11   U70    U60   2    11         -79.35      -112.89     33.54
+J40   23   U72    U60   2    23         -82.03      -114.38     32.36
+J41   12   U74    U60   2    12         -73.28      -113.68     40.40
+J42   24   U76    U60   2    24         -80.97      -113.85     32.88
+
+U15 (ad[0], 8 channels): code 63 noise -336.12..-116.03 dBFS, gain rise -0.21..0.08 dB, median rise 0.00
+U39 (ad[1], 8 channels): code 63 noise -81.91..-75.22 dBFS, gain rise 32.51..36.90 dB, median rise 35.16
+U60 (ad[2], 8 channels): code 63 noise -82.03..-73.28 dBFS, gain rise 31.80..40.40 dB, median rise 33.53

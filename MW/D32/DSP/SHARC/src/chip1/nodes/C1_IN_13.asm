@@ -25,6 +25,15 @@
 .global _rx_slot_C1_IN_13;
 .var _rx_slot_C1_IN_13;
 #if DSP4_BLOCK_KERNELS
+/* *** `_buf_C1_IN_13` IS NOT A BUFFER IN THIS BUILD. ***
+ * The kernel below writes BLK_CHAIN_A_P1. Nothing writes this scalar;
+ * it exists so block_io.asm's tables and the _scope_tap identity
+ * token resolve. A host peek of it returns 0x00000000 whatever the
+ * lane is doing -- it is not a reading of this channel and never
+ * was (S86; five sessions were lost to it). To ask whether this
+ * lane carries samples, read the RX DMA region:
+ *     python3 tools/pi/dsp4_rxscan.py --symdir <the booted map>
+ */
 .global _buf_C1_IN_13;
 .var _buf_C1_IN_13;
 #else

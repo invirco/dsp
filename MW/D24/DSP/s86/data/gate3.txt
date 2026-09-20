@@ -1,0 +1,25 @@
+targets:
+  J25  panel MIC 5   preamp U41   ADC U39  ad[1] slot 7  rx entry 15  -> strip 5
+  J18  panel MIC 14  preamp U23   ADC U15  ad[0] slot 4  rx entry 4   -> strip 14
+
+=== fixture check: is the S54 loop cable still on J25? ===
+  coherent peak -142.81 dBFS, RmsResult -114.32 dBFS   (S54 with the loop: -14.42)
+  VERDICT: no tone arrives — the loop is off, the source is whatever is fitted
+
+=== J25 (panel MIC 5) strip 5, code 63 ===
+  RmsResult -77.31 dBFS   NoiseResult -77.31 dBFS   spread 4.59 dB
+  EIN = -77.31 + 3.01 + 23.13 - 58.717 = -109.89 dBu at the input
+
+=== J25 (panel MIC 5) strip 5, code 0 ===
+  RmsResult -114.36 dBFS   NoiseResult -114.36 dBFS   spread 0.80 dB
+  EIN = -114.36 + 3.01 + 23.13 - 5.578 = -93.80 dBu at the input
+
+=== J18 (panel MIC 14) strip 14, code 63 ===
+  RmsResult -116.05 dBFS   NoiseResult -116.05 dBFS   spread 0.28 dB
+  no loop gain of its own on record — on MIC 5's G_loop that would read -148.62 dBu, BORROWED, not a measurement
+
+=== J18 (panel MIC 14) strip 14, code 0 ===
+  RmsResult -116.10 dBFS   NoiseResult -116.10 dBFS   spread 0.45 dB
+  no loop gain of its own on record — on MIC 5's G_loop that would read -95.54 dBu, BORROWED, not a measurement
+
+wrote /home/app/s86/s86_gate3.json

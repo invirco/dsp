@@ -157,6 +157,30 @@ SVF=$(basename "$SRC")
 MD5=$(md5sum "$SRC" | cut -d' ' -f1)
 MANIFEST="${SRC%.svf}.manifest"
 
+# ---- THE BENCH LOCK (S86) -------------------------------------------------
+#
+# S80-12 put the lock into seven bench drivers and `loadlogic.sh` took it at
+# S82 -- and THIS script, the one that actually reprograms the CPLD and stops
+# matrix-app, never took one. A capacity arm or a measurement bar landing on
+# the card while a bitstream is being written is the S10 contention failure
+# with a flash in the middle of it. Same two lines loadlogic.sh uses, and the
+# same reasoning about deadlock applies: nothing in this tree INVOKES this
+# script -- every reference to it is a comment or a usage line telling a human
+# to run it -- so there is no caller that could already hold the lock. A
+# --self-test run drives no bench and takes no lock.
+if [ -z "${SELFTEST:-}" ]; then
+  _LF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -r "$_LF_DIR/../../MW/D32/DSP/SHARC/bench_lock.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$_LF_DIR/../../MW/D32/DSP/SHARC/bench_lock.sh"
+    bench_lock_acquire "$0"
+  else
+    echo "   !! bench_lock.sh not found beside the SHARC tree — proceeding" >&2
+    echo "      WITHOUT the bench lock. Make sure nothing else is driving" >&2
+    echo "      the card." >&2
+  fi
+fi
+
 echo "== logic_flash: $SVF"
 echo "   desk copy  : $SRC"
 echo "   desk md5   : $MD5"

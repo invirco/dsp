@@ -1,0 +1,59 @@
+symbol map: /home/app/s83tn/chip1.sym.json (6452 symbols)  tag=ship-rails-up
+
+  control MUST MOVE      FRAME_COUNT +5945  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01    16 reads, 1 distinct, value 0x00000000  [ok]
+  control MUST NOT MOVE  _buf_C1_IN_01        16 reads, 1 distinct, value 0x00000000  [ok]
+  control MUST NOT MOVE  _buf_C1_IN_16        16 reads, 1 distinct, value 0x00000000  [ok]
+
+node         entry  off  pin  slot  read distinct  rms dBFS   pk dBFS  first words
+IN_04            0    0    0     0    16       12   -117.46   -113.37  00000100 fffff300 00000700
+IN_16            1    1    0     1    16       13   -118.39   -112.45  00000300 fffff200 00000600
+IN_03            2    2    0     2    16       15   -114.50   -109.23  00001b00 00000000 fffff200
+IN_15            3    3    0     3    16       14   -115.00   -105.41  fffffb00 00000500 00000d00
+IN_14            4    4    0     4    16       13   -115.28   -110.17  fffff400 00000200 00001000
+IN_02            5    5    0     5    16       13   -115.63   -110.17  00000200 fffff600 00001a00
+IN_13            6    6    0     6    16       14   -115.26   -111.63  fffff100 ffffea00 00000600
+IN_01            7    7    0     7    16       12   -121.09   -113.86  fffff300 fffffb00 00000000
+IN_08            8  128    1     0    16       16    -71.08    -65.01  fffdcb00 fffc9f00 00074600
+IN_20            9  129    1     1    16       16    -69.33    -61.55  0001f700 00074000 fff61900
+IN_07           10  130    1     2    16       16    -74.82    -68.50  fff9e400 fff82c00 fffbf300
+IN_19           11  131    1     3    16       16    -83.03    -75.20  0000a100 fffe1400 ffff3e00
+IN_18           12  132    1     4    16       16    -83.32    -75.66  fffefa00 00005400 fffa9a00
+IN_06           13  133    1     5    16       16    -77.06    -70.28  fff9fc00 00055000 fff5f600
+IN_17           14  134    1     6    16       16    -81.94    -75.94  00037500 0000a400 00001d00
+IN_05           15  135    1     7    16       16    -73.64    -67.07  fffc4700 00056400 fff3ac00
+IN_12           16  256    2     0    16       16    -64.55    -57.92  00024300 0013ae00 00122300
+IN_24           17  257    2     1    16       16    -81.62    -74.62  fffdc400 00004400 fffda700
+IN_11           18  258    2     2    16       16    -77.34    -69.12  00001100 fff82a00 0000a200
+IN_23           19  259    2     3    16       16    -83.43    -77.58  00015000 00015200 ffffb700
+IN_22           20  260    2     4    16       16    -83.09    -75.99  00016d00 00000700 fffe2c00
+IN_10           21  261    2     5    16       16    -76.61    -71.01  fffdaa00 fff94a00 fffc9000
+IN_21           22  262    2     6    16       16    -82.50    -75.57  00004e00 00007200 00009a00
+IN_09           23  263    2     7    16       16    -73.94    -69.50  fff7f300 00048a00 fff85900
+IN_25           24  384    3     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_26           25  385    3     1    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_27           26  386    3     2    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_28           27  387    3     3    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_29           28  388    3     4    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_30           29  389    3     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_31           30  390    3     6    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+IN_32           31  391    3     7    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_CODEC_01    32  512    4     0    16       15    -76.58    -69.76  00028c00 fff55800 0000f100
+XIN_CODEC_02    33  513    4     1    16       16    -78.28    -74.07  00028000 ffff0500 0004f200
+XIN_CODEC_03    34  514    4     2    16       16    -98.68    -94.18  ffffe400 00005400 ffff9b00
+XIN_CODEC_04    35  515    4     3    16       16    -86.34    -77.43  ffff9000 0001ac00 00026100
+XIN_SNK_01      36  576    5     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_02      37  577    5     1    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_03      38  578    5     2    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_04      39  579    5     3    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_05      40  580    5     4    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_06      41  581    5     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_07      42  582    5     6    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_SNK_08      43  583    5     7    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+XIN_PI_L        44  704    6     0    16        1   -336.00   -336.00  00000000 00000000 00000000
+XIN_PI_R        45  705    6     1    16        1   -336.00   -336.00  00000000 00000000 00000000
+XIN_MEMS        46  736    7     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff
+
+MIC  lanes (entries 0..31): 24 of 32 CARRYING SAMPLES
+XIN  lanes (entries 32..46): 4 of 15 CARRYING SAMPLES
+wrote /home/app/s86/rx-ship-up.json

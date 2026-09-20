@@ -1064,6 +1064,29 @@ def gen_input_tdm(node):
     blk_out_decl = ('.var _buf_' + node['id'] + ';') if _strip_in \
                    else ('.var _buf_' + node['id'] + '[DSP4_BLOCK_SIZE];')
 
+    # THE SCALAR IS NOT A BUFFER, AND THE GENERATED FILE HAS TO SAY SO (S86).
+    #
+    # For a strip input the block kernel writes BLK_CHAIN_A and NOTHING ever
+    # writes `_buf_<nid>`: it survives as linkage and as the identity token
+    # `_scope_tap` / `_scope_inject_blk` compare r0 against. It is still in
+    # the symbol map, one word, in a zero-initialised section -- so a host
+    # peek of it answers 0x00000000 on a perfectly healthy lane, every time,
+    # in every rail state, on every bitstream. Five sessions (S81-8, S82-S85)
+    # read exactly that and diagnosed a converter fault, a bitstream fault, a
+    # capture-phase fault and a SPORT receive fault in turn. The lane is read
+    # from the RX DMA region: `tools/pi/dsp4_rxscan.py`.
+    blk_out_note = ("""
+        /* *** `_buf_{nid}` IS NOT A BUFFER IN THIS BUILD. ***
+         * The kernel below writes BLK_CHAIN_A. Nothing writes this scalar;
+         * it exists so block_io.asm's tables and the _scope_tap identity
+         * token resolve. A host peek of it returns 0x00000000 whatever the
+         * lane is doing -- it is not a reading of this channel and never
+         * was (S86; five sessions were lost to it). To ask whether this
+         * lane carries samples, read the RX DMA region:
+         *     python3 tools/pi/dsp4_rxscan.py --symdir <the booted map>
+         */""").format(nid=node['id']) \
+        if _strip_in else ''
+
     p = node['params']
     return dedent(f"""\
         {ramp_comment(node['ramp_profile'])}
@@ -1077,7 +1100,7 @@ def gen_input_tdm(node):
          * so the slot var is unreferenced -- kept as a scalar purely so
          * block_io.asm's tables still resolve. */
         .var _rx_slot_{node['id']};
-        #if DSP4_BLOCK_KERNELS
+        #if DSP4_BLOCK_KERNELS{blk_out_note}
         {blk_out_decl}
         #else
         .var _buf_{node['id']};

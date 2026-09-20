@@ -1,0 +1,6 @@
+build_cfg2 read off the part during the measurement: 0xE2018E6F
+
+row  chip 1 (S85 / S82)       chip 2 (S85 / S82)       missed blocks
+A    43.13 / 43.22  (-0.09, 2 boots) 77.50 / 77.41  (+0.09, 2 boots) 0 / 0
+B    57.61 / 57.50  (+0.11, 2 boots) 84.41 / 84.27  (+0.14, 2 boots) 0 / 0
+C    57.55 / 57.54  (+0.02, 2 boots) 84.47 / 84.34  (+0.12, 2 boots) 0 / 0

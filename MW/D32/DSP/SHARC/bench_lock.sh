@@ -104,11 +104,17 @@ bench_deploy_link_tools() {
     # here too. A bar that scp'd pan_table.py into its own stage
     # directory still died on `ModuleNotFoundError` (measured
     # 2026-09-20), because the importer was never in that directory.
+    # dsp4_rxscan.py joins at S86, and it is the same class a sixth time from
+    # the other end: the tool that answers "does this TDM lane carry samples"
+    # has to be the one on the card, because the two that were there before it
+    # both read a symbol nothing writes and both answered anyway. It is
+    # deployed beside dsp4_inscan.py, which now points at it.
     scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
            "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
            "$dir/dsp4_buildcfg.py" \
            "$dir/dsp4_cclk.py" "$dir/dsp4_blk30.py" \
            "$dir/dsp4_inscan.py" "$dir/dsp4_logic_id.py" \
+           "$dir/dsp4_rxscan.py" \
            "$dir/../../MW/D24/DSP/input_patch.json" \
            "$dir/../dsp/pan_table.py" \
            "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
