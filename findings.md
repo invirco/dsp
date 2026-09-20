@@ -115,6 +115,108 @@ inferred from the H1S1 source and deliberately NOT verified on the part**,
 because verifying it shifts the chain and shifting the chain drives CS_M,
 which this dispatch's standing handback says to leave untouched.
 
+**S80-13 🔴 ON THE FIXED INSTRUMENT NOT ONE PRODUCT IN THE RANGE FITS DRIVEN,
+AND THE S28 ROWS THAT SAID OTHERWISE WERE SILENCE ROWS.** Driven/loaded, chip 2:
+D16 **113.00 %** of budget (11.49 % of blocks missed), D24 **127.50 %**
+(21.49 %), D32 151.57 % with chip 1 at **164.32 %** (39.03 %). Against S28 that
+is **+39.98 / +42.86 / +50.75 points**, and it is what S78-Q4 predicted: every
+S28 driven row was taken on the pre-fix `driveall` bitstream, where the MFD-2
+lanes carried the stimulus one bit right-shifted and therefore at 2 LSB, so the
+dynamics never left their cheap branch. S18 had already priced that difference
+at ~20 points of chip 2 at D32, so a forty-point correction is the documented
+size of the error rather than a surprise. **The new rows are corroborated by
+S79 to a fifth of a point** — S79 read the D24 chip-2 driven row at
+127.69 / 127.37 %, S80 reads 127.49 / 127.50 % on a different build of a
+different tree. Every product fits **silent, loaded** (worst 98.28 % on a D24's
+chip 2, zero missed) **except D32**, which is at 105.62 % on chip 2 at its own
+boot configuration before anything is opened. Rows in
+`MW/D32/DSP/fit-measured.json`; S28's kept, marked SILENCE, beside it.
+
+**S80-14 🔴 THE D16/D12 SINGLE-CHIP QUESTION GETS A NO, AND NOT A MARGINAL
+ONE.** PW 2026-09-11: *"D16 and D12 run on ONE 21564 each."* A D16's chip 2
+**alone** is 113.00 % of budget driven and 87.73 % silent/loaded, on two chips;
+there is no version of folding chip 1's 84.59 % onto the same part. Margin at 32
+is **−64.3 points** on chip 1 of a two-chip D32. Nothing here contradicts the
+2026-08-24 measured ceiling of ten channels a chip. S80-Q3 asks whether the
+question moves to the FPGA engine or gets restated against a smaller defined
+graph rather than the superset image every product boots.
+
+**S80-15 🟢 THE PARK GATE IS WORTH 1.5–1.9 POINTS OF CHIP 2 ON A D16 OR D12,
+WHICH IS LESS THAN A D24's AND THAT IS CORRECT.** `DSP4_AUXIN_BYPASS=1` against
+`=0`, same tree, one build switch: D16 **−1.81 / −1.68 / −1.77** points on rows
+A / B / C, D12 **−1.55 / −1.67 / −1.75**, with chip 1 — the noise witness, since
+the two images differ on chip 2 only — spanning **−0.09…+0.14 on five of the six
+comparisons and +1.09 on the sixth**, which is D12's driven row, where the `b0`
+arm's two boots read chip 1 at 65.31 then 63.32. The lever gates **twelve** chip-2
+`AUX_INPUT` nodes and twelve is twelve whatever the product is — the smaller
+products have the same ones minus the eight snake returns already scope-gated
+off below D32, which is why D32 gains most (4.9–5.7). **S79-Q3's "a D16 skips 18
+instances and a D12 skips 20" is the OTHER lever** — the product-driven bypass,
+`CFG_MTX_MASK` and `C2_MIX_AUX_nn` — which is not a build switch by design (D8)
+and is therefore active in *both* arms of every pair here. Pricing it on D16/D12
+needs a pre-S79 reference image as its control and is still owed.
+
+**S80-16 🟡 D12's CHIP-2 DRIVEN REGIME REACHES 22 OF 24 ENVELOPES AND NO MORE**,
+on both boots of both D12 arms, identically with and without the park gate. So
+D12 has **no quotable driven number**, and its row is deliberately absent from
+`fit-measured.json` (it falls back to the construction and says so). Two
+envelopes that never engage under this stimulus is specific and reproducible and
+is worth chasing on its own.
+
+**S80-17 🟡 S28's "DEAR LAST SEGMENT" IS GONE AND THE RANGE'S COST IS NOW LINEAR
+IN ITS SIZE.** Silent/default per-segment slopes over D12→D16→D24→D32: chip 1
+**+1.97 / +1.96 / +2.00** points per strip, chip 2 **+4.20 / +4.43 / +4.32** per
+aux bus — flat, against S28's chip-2 +2.32 / +2.39 / **+3.29**. S28 attributed
+that step to D32's scope class, and the S29 re-take measures the scope class at
+**−0.41 points of chip 1** on the driven row, i.e. almost nothing; its chip-2
+figure (+0.71) is inside its own noise — `s29ns`'s two boots read 153.31 and
+151.47, a 1.84-point spread within one arm — and is not quoted as a result. The mechanism is not isolated here and is not asserted; what is
+measured is that the step is not there to explain.
+
+**S80-18 🟢 THE DELIBERATE REPEAT REPRODUCES TO 0.65 POINTS ON CHIP 1 AND 0.14
+ON CHIP 2, AND THE WORST-BLOCK COLUMN IS THE ONE NOT TO TRUST.**
+`s80s28d32` and `s80s29ctl` are the same configuration run as two independent
+arms — separate builds, staging and boots. Driven/loaded **average** % of budget
+over the four boots: chip 1 163.99 / 164.64 / 164.11 / 164.15 (span 0.65), chip 2
+151.56 / 151.58 / 151.70 / 151.65 (span **0.14**). Both are at or inside the
+floor S79 (±0.27) and S28 (±0.30) used, so re-running an identical configuration
+as a fresh arm reproduces it cleanly. **Eleven of this session's forty-two rows
+latched a worst block at three to four hundred per cent of budget** — the S21-6
+tick artifact, the timer ISR landing between the `tcount` and `_diag_ticks` reads
+that close a pass — so the worst-block column is where the instrument is weak,
+and no corrected figure is quoted as a measurement in the S80 report. Also
+observed and not explained: D16's driven row misses 0 blocks on one boot and
+15,510 (11.49 %) on the other at the same 113.00 % of budget — a row above
+budget that misses nothing is internally inconsistent, so trust the avg % and
+not the missed-block count there; and chip 1's load-config write reports 0–6
+FAILED per boot on D24/D32 and 0 on D16/D12, non-deterministically.
+
+**S80-19 🔴 `dsp4_inscan.py` ANSWERS "DO THE TDM LANES MOVE" WITH A NUMBER IT
+CANNOT KNOW, ON EVERY BUILD THAT SHIPS.** It peeks the `_rx_slot_C1_IN_nn`
+scalars, and under `DSP4_BLOCK_KERNELS` those are **dead symbols** — the node
+source says so where they are declared: *"Under block kernels this kernel reads
+the DMA buffer directly, so the slot var is unreferenced — kept as a scalar
+purely so block_io.asm's tables still resolve."* So it reports STATIC zero
+whether the lanes are alive or dead, and it read MOVING 0 / STATIC 32 in this
+session on a stimulus the `_buf_` arrays show at full amplitude. **The standing
+bench recipe (item 18) recommends it for exactly the question it cannot
+answer**, and S79 quoted it as part of the case that the converters are dark —
+that part of S79-2's case is void, though its conclusion stands on other
+grounds. Wants a rewrite onto the block symbols or removal from the recipe.
+
+**S80-20 🟢 THE FAULT BEHIND S79-Q1 IS UPSTREAM OF THE CPLD, BISECTED WITHOUT A
+PROBE.** Under `driveall` the CPLD assigns `i_dspa[5:0] = {6{pcm_drive}}`, so
+the codec return lane carries the CM4's playback where the shipping bitstream
+has a bare `assign i_dspa[4] = cdc_o`. All four codec slots read MOVING between
+`0x08000000` and `0xF8000000` — **±0.5 in Q4.28, i.e. −6.02 dBFS, exactly the
+documented stimulus amplitude** (`0x40000000 >> 3`, the input kernel's shift),
+so not merely alive but bit-correct. The SHARC's I4 pin, its SPORT, its RX DMA,
+the slot mapping and the graph's input buffers are therefore all good, and the
+probe list narrows to the `cdc_o` net, the J41/J42 flat-flex, the codec and its
+clock. Separately, the AN_EN null **reproduces on the S80 image** (four codec
+buffers, 40 reads each, exact zero with GPIO 26 `lo` and again `hi`), which
+rules the build out as a factor and says the state is stable, not intermittent.
+
 **S80-12 🟡 `dsp4_buildcfg.py` WAS NOT ONE OF THE TOOLS THE BENCH LOCK
 DEPLOYS, WHICH IS D74's FAULT A THIRD TIME.** `bench_lock.sh`'s own comment
 explains the shape: D74 fixed the link tools and not one bar script deployed

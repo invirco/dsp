@@ -1,50 +1,55 @@
 {
+ "_NOTE": [
+  "S80's DRIVEN ROWS, on the FIXED instrument. These replace S28's, which are",
+  "kept in MW/D32/DSP/fit-measured-s28-SILENCE.json: every S28 driven row was",
+  "taken on the pre-fix driveall bitstream, where chip 1's MFD-2 receive halves",
+  "read the stimulus one bit right-shifted (S77-3, located S78-3), so on those",
+  "lanes they were driven at 2 LSB and are silence rows wearing a driven label.",
+  "",
+  "ONE IMAGE, CONFIG WORDS ONLY. All four product rows below were measured on",
+  "the SAME pair -- chip1 e364c522d3747296c39a2b4a2d912b11, chip2",
+  "63b40b85a3cd18054ad3639832d78d6a, which is the shipping build of the S80",
+  "tree, byte-identical across d12/d16/d24/d32. Decision D3/D8 holding.",
+  "",
+  "Arms: s80d12b1, s80d16b1, s80s28d24, s80s28d32, each",
+  "`ARM=... PRODUCT=... DSP4_AUXIN_BYPASS=1 ./capacity.sh --driven` on",
+  "`loadlogic.sh driveall`, REPS=2, 45 s dwell, 983.01-983.08 MHz measured on",
+  "every row, block 16. DSP4_AUXIN_BYPASS=1 is the shipping position (S79).",
+  "",
+  "Each entry is [avg % of budget, worst-block % of budget, missed blocks].",
+  "avg is the mean of the two boots. worst is a boot whose worst-block latch",
+  "needed no S21-6 tick correction, so no corrected figure is quoted as a",
+  "measurement.",
+  "",
+  "d12's C row is DELIBERATELY ABSENT. The driven regime did not prove on",
+  "chip 2 on either boot of either D12 arm -- 22 of 24 envelopes engaged, with",
+  "and without the park gate -- so D12 has no quotable driven number yet. Its",
+  "figures are in the S80 report for the record, not here. Finding S80-16.",
+  "",
+  "There is no D row (driven, FX off): capacity.sh --driven takes three rows."
+ ],
  "d12": {
   "A_silent_default": {
    "1": [
-    29.73,
-    29.73,
+    32.44,
+    32.54,
     0
    ],
    "2": [
-    53.64,
-    53.66,
+    71.07,
+    71.33,
     0
    ]
   },
   "B_silent_load": {
    "1": [
-    33.14,
-    33.2,
+    43.67,
+    43.98,
     0
    ],
    "2": [
-    66.75,
-    66.72,
-    0
-   ]
-  },
-  "C_driven_load": {
-   "1": [
-    33.26,
-    33.42,
-    0
-   ],
-   "2": [
-    66.59,
-    66.91,
-    0
-   ]
-  },
-  "D_driven_fxoff": {
-   "1": [
-    33.11,
-    33.34,
-    0
-   ],
-   "2": [
-    53.36,
-    53.68,
+    76.03,
+    76.33,
     0
    ]
   }
@@ -52,150 +57,114 @@
  "d16": {
   "A_silent_default": {
    "1": [
-    36.8,
-    36.98,
+    40.32,
+    40.49,
     0
    ],
    "2": [
-    58.28,
-    58.36,
+    79.47,
+    79.78,
     0
    ]
   },
   "B_silent_load": {
    "1": [
-    41.72,
-    41.69,
+    55.88,
+    56.12,
     0
    ],
    "2": [
-    73.08,
-    73.25,
+    87.73,
+    88.08,
     0
    ]
   },
   "C_driven_load": {
    "1": [
-    41.69,
-    41.91,
+    84.59,
+    84.95,
     0
    ],
    "2": [
-    73.02,
-    73.18,
-    0
-   ]
-  },
-  "D_driven_fxoff": {
-   "1": [
-    41.55,
-    41.92,
-    0
-   ],
-   "2": [
-    59.98,
-    60.0,
-    0
+    113.0,
+    113.46,
+    15510
    ]
   }
  },
  "d24": {
   "A_silent_default": {
    "1": [
-    50.71,
-    50.72,
+    56.04,
+    56.22,
     0
    ],
    "2": [
-    63.06,
-    63.23,
+    88.33,
+    88.57,
     0
    ]
   },
   "B_silent_load": {
    "1": [
-    59.92,
-    60.03,
+    80.71,
+    80.94,
     0
    ],
    "2": [
-    84.46,
-    84.55,
+    98.28,
+    98.5,
     0
    ]
   },
   "C_driven_load": {
    "1": [
-    60.05,
-    60.45,
-    0
+    123.57,
+    124.1,
+    25713
    ],
    "2": [
-    84.64,
-    84.75,
-    0
-   ]
-  },
-  "D_driven_fxoff": {
-   "1": [
-    60.05,
-    60.31,
-    0
-   ],
-   "2": [
-    64.28,
-    64.64,
-    0
+    127.5,
+    128.02,
+    29016
    ]
   }
  },
  "d32": {
   "A_silent_default": {
    "1": [
-    65.29,
-    65.51,
+    72.05,
+    72.39,
     0
    ],
    "2": [
-    76.2,
-    76.24,
-    0
+    105.62,
+    106.04,
+    7228
    ]
   },
   "B_silent_load": {
    "1": [
-    79.31,
-    79.25,
-    0
+    106.7,
+    107.19,
+    8527
    ],
    "2": [
-    100.93,
-    101.05,
-    1914
+    118.9,
+    119.25,
+    21382
    ]
   },
   "C_driven_load": {
    "1": [
-    79.16,
-    79.34,
-    0
+    164.32,
+    164.7,
+    52704
    ],
    "2": [
-    100.82,
-    101.19,
-    1943
-   ]
-  },
-  "D_driven_fxoff": {
-   "1": [
-    79.25,
-    79.63,
-    0
-   ],
-   "2": [
-    80.58,
-    80.58,
-    0
+    151.57,
+    152.39,
+    45959
    ]
   }
  }

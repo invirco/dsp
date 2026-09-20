@@ -662,11 +662,22 @@ def print_unmasked(products, sizes):
 
 
 def load_measured(path):
-    """S28's own driven rows: {product: {row: {'1': [avg, worst, ovr, n],
-    '2': [...]}}}, as the session's capacity JSONs summarise to."""
+    """The measured driven rows: {product: {row: {'1': [avg, worst, ovr, n],
+    '2': [...]}}}, as a session's capacity JSONs summarise to.
+
+    KEYS BEGINNING `_` ARE DROPPED, so the file can carry its own provenance.
+    Until S80 it could not: `score_measured` sorts the products with
+    `int(p[1:])` and any non-product key raised ValueError, so the one thing
+    that says WHICH arms these rows came from had to live outside the file
+    holding them. That is how S28's measured rows came to be uncommitted and
+    later reconstructed from the table they had produced (the note at the head
+    of this module). A data file that cannot state its own provenance gets
+    separated from it.
+    """
     if not path:
         return {}
-    return json.load(open(path))
+    return {k: v for k, v in json.load(open(path)).items()
+            if not k.startswith('_')}
 
 
 def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
