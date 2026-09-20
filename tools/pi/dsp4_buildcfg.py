@@ -313,6 +313,23 @@ def diff_shipping2(d):
     out = []
     for k, want in SHIPPING2.items():
         got = d.get(k)
+        # DSP4_SHARED_KERNELS IS TWO BITS OF FOUR IN THIS WORD (S27-3), so the
+        # decoded value can never be 15 however the image was built: mask 15
+        # reads back as 3, mask 7 as 3, mask 12 as 0. Comparing the decoded
+        # value against the mirror's 15 therefore reported EVERY shipping
+        # image as "NOT THE SHIPPING KERNEL CONFIGURATION", which is how S77
+        # found this — on the shipping pair, at the end of a bench session,
+        # with the part reading the correct word. Only the two bits the word
+        # actually carries can be compared, and what the other two are is a
+        # question for the image md5 until DIAG_BUILD_CFG3 lands (S75-13).
+        if k == 'DSP4_SHARED_KERNELS':
+            if got is not None and (got & 3) != (want & 3):
+                out.append('%s = %s in the two bits this word carries, '
+                           'shipping is %s (%s in those two bits); the other '
+                           'two bits are not in CFG2 at all (S27-3) — '
+                           'identify the arm by its image md5'
+                           % (k, got, want, want & 3))
+            continue
         if got != want:
             out.append('%s = %s, shipping is %s' % (k, got, want))
     for k in NEVER_SHIPPING2:

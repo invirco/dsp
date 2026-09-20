@@ -140,12 +140,14 @@ done
 # `shipping.config.s20` image is the S11-1 shape one level down.
 if [ "${BUILD:-1}" = "1" ]; then
     echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
-         " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  scope=${SCOPE_ID:-product default}  overrides:${OVR:- none}"
+         " config=$(basename "${SHIPPING_CONFIG:-shipping.config}")  scope=${SCOPE_ID:-product default}" \
+         " stimulus peak=${AMP:-drive_audio default}  overrides:${OVR:- none}"
 else
     echo "=== capacity arm '$ARM'  product=$PRODUCT  block=${BLOCK:-tree}" \
          " BUILD=0: the arm is the STAGED IMAGE, identified by the md5 below," \
          " not by a configuration file this run did not read." \
-         "  scope=${SCOPE_ID:-product default}  overrides:${OVR:- none}"
+         "  scope=${SCOPE_ID:-product default}" \
+         "  stimulus peak=${AMP:-drive_audio default}  overrides:${OVR:- none}"
 fi
 
 if [ "${BUILD:-1}" = "1" ]; then
@@ -248,6 +250,7 @@ for r in $(seq 1 "$REPS"); do
     ssh $BENCH "STAGE='$STAGE' PRODUCT=$PRODUCT DWELL=$DWELL DRIVEN=$DRIVEN \
                 SCOPE_ID='${SCOPE_ID:-}' \
                 SETUP_MODE='${SETUP_MODE:-load}' FXTYPE='${FXTYPE:-3}' \
+                AMP='${AMP:-}' \
                 FXTYPES='${FXTYPES:-}' USELEVELS='${USELEVELS:-}' \
                 PREFIX=cap-$ARM-$PRODUCT-r$r \
                 OUT=cap-$ARM-$PRODUCT-r$r.json bash /home/app/capacity_run.sh" || exit 4

@@ -166,7 +166,11 @@ PYEOF
           --json "$P-B-sil-load.json" || exit 5
 
   echo "--- stimulus on"
-  bash /home/app/drive_audio.sh start || exit 6
+  # AMP travels with the arm (S77): the stimulus LEVEL at the part is part
+  # of a driven row's definition, not a constant, and the one-bit shift on
+  # the lane path means the level a script asks for and the level the part
+  # sees are two different numbers.
+  AMP="${AMP:-}" bash /home/app/drive_audio.sh start || exit 6
   sleep 3
   RQ=""
   case "$MODE" in
