@@ -28,8 +28,22 @@ The matrix bus is MH1's, not ours: lines are newline-terminated (the app's
 `serialPort1.WriteLine`), address nibbles are the letters 'h'..'w' = 0..F and data nibbles
 '0'..'9','A'..'F'. `--run` sends S_RUN first, which is what MH1 needs after it has been
 left in its flash dispatcher; `--reset` sends S_RESET twice first and RE-RUNS H1S1's
-MainInit -- which pulses RST_C, re-loads the codec init image AND CLEARS THE 595 CHAIN,
-so anything that cares about the mic-pre image must restore it afterwards.
+MainInit -- which pulses RST_C, re-loads the codec init image AND REWRITES THE 595
+MIC-PRE CHAIN.
+
+*** CORRECTED 2026-09-20 (S80). THIS USED TO SAY MainInit "CLEARS THE 595 CHAIN", AND
+IT IS WRONG IN THE UNSAFE DIRECTION. *** MainInit() ends with TestMicPres(), and the
+only image TestMicPres() still sends is `micGainFull` -- 24 bytes of 0xFC. The chain
+byte is {gain[5:0] << 2 | phantom << 1 | mute} (MW/D24/DSP/s55/tools/s55_chain.py
+::byte), so 0xFC is gain 63, phantom OFF, mute OFF: `--reset` leaves every mic preamp
+UNMUTED AT MAXIMUM GAIN, not cleared. The SAFE image is 0x01 x 24 + 0x00 (gain 0,
+phantom off, MUTED), which is what MW/D24/DSP/s70/tools/s70_handback.py writes, and
+0x00 -- which this note's "clears" implied -- would be unmuted at gain 0.
+
+So anything that cares about the mic-pre image must restore it afterwards, and
+"afterwards" means writing the SAFE image, not assuming a reset produced one. Writing
+it drives CS_M (GPIO 27) and CS_M must be put back to `ip pu` after (it gates the U2
+MISO buffer; a CS_M left low looks exactly like a DSP link phase fault).
 
   codec4619.py --reg 05 --val B2            reg 05H := 0xB2 (MGN2L +27 dB, MGN2R 0 dB)
   codec4619.py --mgn2r 5                    MGN2R code 5 only, MGN2L left at its current value
