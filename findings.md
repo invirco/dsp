@@ -51,8 +51,10 @@ converter observation was taken WITHOUT it — S81-Q2's two meanings of
 LANES ARE EXACT ZERO IN EVERY CONDITION — SO THE SAFE IMAGE IS NOT THE ZERO.**
 Signed pair, D24, ten peeks per lane. All four `_buf_C1_XIN_CODEC_0*` return
 10 distinct words of 10, rails down and rails up. Every AK5558 lane read —
-`_buf_C1_IN_01 / _02 / _05 / _09 / _17`, one on each of the three converters —
-returns `00000000` ten times out of ten in five conditions:
+`_buf_C1_IN_01 / _02 / _05 / _09 / _17`, one on each of the three converters,
+**and `_buf_C1_IN_16`, which is MIC 5's own** (J25 → U39/AD 1 → AIN 8 → slot 7
+→ packed rx 15, resolved with `d24_inputs.py`; `C1_IN_05` is MIC 14, not
+MIC 5) — returns `00000000` ten times out of ten in five conditions:
 rails down with the 595 chain SAFE, rails up with it SAFE, and rails up with
 the chain written to `0xFC` — gain 63, phantom off, **unmuted** — verified
 200/200 on the part. A muted preamp still delivers converter noise; an exact
@@ -286,14 +288,32 @@ block 16) is re-taken on `loadlogic.sh maincap`; the run above is recorded
 because a session that saw `offset 14779, spread 0` and did not read the next
 line would have moved the contract number.
 
-**Also recorded from that run: `chip 1 not ready after 8 attempts: BOOT_STAGE
-below 6` on BOTH boots**, with the same signed pair that reached
-`BOOT_STAGE 7` under `s82.sh` minutes earlier. `latency.sh` stages to its own
-directory (`/home/app/cap_s82lat`) and boots from there; whether the
-difference is the staging set or the boot loop is not settled here, and the
-reps ran anyway — which is its own small defect, since a bar that proceeds
-with a chip below `BOOT_STAGE 6` is measuring something it has not verified is
-running.
+**RE-RUN ON `maincap`, AND IT IS NOT THE BITSTREAM.** The contract row was
+re-taken with `loadlogic.sh maincap` on the part (`design_id 32'heb00a4e8
+cfg_bits 16'h0004 pi_maincap`, read back) and came out identically: `offset
+14779, spread 0, coherent 0.0 %` on every rep, `NO VERDICT`. The duplex PCM
+overlay the message also names IS present and correct — `dtoverlay=dsp4-pcm-
+slave` in `/boot/firmware/config.txt`, playback `hw:dsp4pcm,1` and capture
+`hw:dsp4pcm,0` both enumerated.
+
+**The cause is the boot, and it is reproducible.** Both latency runs, four
+boots in total, reported `chip 1 not ready after 8 attempts: BOOT_STAGE below
+6` — and then took twenty reps anyway. A chip below BOOT_STAGE 6 is not
+running the graph, so there is nothing in the path to correlate with the
+stimulus, and 0.0 % coherence is the correct reading of an unbooted part. The
+SAME pair (`e3e25a79` / `41a6b913`) reaches `BOOT_STAGE 7` under `s82.sh` and
+under `capacity.sh` in this session, so the fault is in `latency.sh`'s own
+arm — it stages to `/home/app/cap_s82lat` and boots from there — and not in
+the image, the bitstream or the overlay.
+
+**So the 82-sample contract row is OWED, not moved**, and the next session's
+first step is `latency.sh`'s boot rather than the measurement.
+
+**And the bar should not have taken the reps.** Proceeding past its own
+readiness gate is what turned a boot failure into forty reps of a
+confident-looking `spread 0` number; the refusal at the end is what saved it.
+The gate should be fatal, the way `dsp4_inscan.py`'s FRAME_COUNT control now
+is.
 
 **S82-13 🔴 `wire_contract.py` CUT THE SPI DISPATCH TABLE IN HALF AT A SEMICOLON
 INSIDE A COMMENT, AND THE WHOLE CONFORMANCE HARNESS EXITED 2.** `conform.sh`

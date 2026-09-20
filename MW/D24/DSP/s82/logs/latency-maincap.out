@@ -1,0 +1,66 @@
+>>> BENCH LOCKED: ./latency.sh is waiting for the card (/tmp/dsp4-bench.lock).
+>>> held by: pid=1561533 script=./latency.sh host=Peters-MBP started=2026-09-20T11:56:31Z
+>>> BENCH LOCKED: ./latency.sh acquired the card, proceeding.
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+--- boot 1 ---
+  boot: chip1 stage=5 chip2 stage=5
+  gainfix: 1 strip(s) at 0x3F800000
+  chip 1 not ready after 8 attempts: BOOT_STAGE below 6
+6
+rep  0: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  1: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  2: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  3: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  4: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  5: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  6: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  7: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  8: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  9: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 10: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 11: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 12: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 13: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 14: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 15: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 16: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 17: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 18: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 19: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+
+arm: 20 reps
+  offset  min 14779  median 14779  max 14779  spread 0
+  coherent fraction  min 0.0%  max 0.0%
+  worst margin over the runner-up: xinf
+  NO VERDICT: the coherent fraction is 0.0%% on every rep -- nothing in the capture correlates with the stimulus, so the offset is the best of a flat field and is NOT a latency. Check the capture path (the through-DSP arm needs the _maincap bitstream AND a duplex PCM overlay) before re-running.
+--- boot 2 ---
+  boot: chip1 stage=5 chip2 stage=5
+  gainfix: 1 strip(s) at 0x3F800000
+  chip 1 not ready after 8 attempts: BOOT_STAGE below 6
+rep  0: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  1: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  2: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  3: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  4: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  5: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  6: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  7: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  8: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep  9: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 10: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 11: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 12: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 13: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 14: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 15: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 16: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 17: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 18: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+rep 19: offset  14779  coherent   0.0%  runner-up   0.0%  margin xinf  peak width 400
+
+arm: 20 reps
+  offset  min 14779  median 14779  max 14779  spread 0
+  coherent fraction  min 0.0%  max 0.0%
+  worst margin over the runner-up: xinf
+  NO VERDICT: the coherent fraction is 0.0%% on every rep -- nothing in the capture correlates with the stimulus, so the offset is the best of a flat field and is NOT a latency. Check the capture path (the through-DSP arm needs the _maincap bitstream AND a duplex PCM overlay) before re-running.
+LATENCY2 rc=2

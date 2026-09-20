@@ -148,6 +148,7 @@ the same at `CHIP_ID 2`. Ten peeks per lane, through the **staged** symbol map
 | `_buf_C1_IN_01` (AK5558) | 1 distinct, `00000000` | 1, `00000000` | **1, `00000000`** |
 | `_buf_C1_IN_02` | 1, `00000000` | 1, `00000000` | **1, `00000000`** |
 | `_buf_C1_IN_05` (MIC 14) | 1, `00000000` | 1, `00000000` | **1, `00000000`** |
+| `_buf_C1_IN_16` (**MIC 5**) | — | — | **1, `00000000`** |
 | `_buf_C1_IN_09` | 1, `00000000` | 1, `00000000` | **1, `00000000`** |
 | `_buf_C1_IN_17` | 1, `00000000` | 1, `00000000` | **1, `00000000`** |
 | `_buf_C1_XIN_MEMS` | 1, `ffffffff` | 1, `ffffffff` | — |
@@ -160,8 +161,14 @@ DSP image, and the A side can no longer be flashed.**
 **The MIC 5 EIN row is refused, and now for a measured reason.** The dispatch's
 own test was "if the SAFE image (inputs shunted) is the zero, say so". It is
 not. The 595 chain was written to `0xFC` — gain 63, phantom off, **unmuted** —
-verified 200/200 on the part, and every AK5558 lane read still returns exact
-digital zero. A muted preamp still delivers
+verified 200/200 on the part, and **MIC 5's OWN lane still returns exact
+digital zero** — `_buf_C1_IN_16`, resolved with `d24_inputs.py` rather than
+guessed (MIC 5 is J25 → U39/AD 1 → AIN 8 → slot 7 → packed rx 15 →
+`C1_IN_16`; `C1_IN_05`, which an earlier pass of this table read, is rx 4 =
+J18 = MIC 14). Ten reads, one distinct value, `00000000`, with
+`_buf_C1_XIN_CODEC_01` in the SAME pass returning ten distinct words of
+converter noise — so the link, the peek path and the graph are all working
+while that lane reads zero. A muted preamp still delivers
 converter noise; an exact digital zero is no conversion. So that gate stops
 with the reading, exactly as the dispatch permits, and **S81-Q3 stands
 untouched by the converter-clock fix** — which is what §3.6 of S81 predicted,
@@ -569,6 +576,44 @@ configuration the 24-channel row was already 27.5 points over — but headroom
 above the product's own channel count is not something this session
 demonstrated.
 
+### 4.3 🔴 THE 82-SAMPLE LATENCY CONTRACT IS OWED, AND THE REASON IS A BOOT
+
+`latency.sh` was run twice — once on the shipping bitstream, once on
+`maincap` — and returned `NO VERDICT` both times:
+
+```
+offset  min 14779  median 14779  max 14779  spread 0
+coherent fraction  min 0.0%  max 0.0%
+NO VERDICT: the coherent fraction is 0.0% on every rep -- nothing in the capture
+correlates with the stimulus, so the offset is the best of a flat field and is
+NOT a latency.
+```
+
+**Neither of the two things the message suggests is the cause.** The
+`maincap` bitstream was flashed and read back off the part (`design_id
+32'heb00a4e8 cfg_bits 16'h0004 pi_maincap`), and the duplex PCM overlay is
+present and correct — `dtoverlay=dsp4-pcm-slave`, playback `hw:dsp4pcm,1`,
+capture `hw:dsp4pcm,0`, both enumerated.
+
+**The cause is that the DSP was not running.** All four boots across the two
+runs reported `chip 1 not ready after 8 attempts: BOOT_STAGE below 6`, and the
+bar took its twenty reps anyway. A chip below BOOT_STAGE 6 is not turning the
+graph, so nothing is in the path to correlate with and 0.0 % coherence is the
+correct reading of an unbooted part. **The same pair boots to BOOT_STAGE 7
+under `s82.sh` and under `capacity.sh` in this session** — twelve capacity
+rows were taken on it — so the fault is in `latency.sh`'s own arm, which
+stages to `/home/app/cap_s82lat` and boots from there.
+
+**So the contract number is not moved and not confirmed: it stands at 82
+samples at block 16 on S29's measurement, and the re-take is owed.** The next
+session's first step is `latency.sh`'s boot, not the measurement.
+
+**The instrument gets partial credit.** It refused rather than reporting
+`offset 14779, spread 0` as a latency, which is exactly the S80-19 discipline
+and the opposite of what `dsp4_inscan.py` did in §1.6. But it should not have
+reached the reps at all: proceeding past its own readiness gate is what turned
+a boot failure into forty confident-looking rows.
+
 
 ---
 
@@ -679,6 +724,33 @@ it touches anything, and prints the two lines that score the part afterwards.
 
 **S82 did not deploy.** `~/dspboot/chip{1,2}.ldr` and `~/dspboot/ldr/manifest.txt`
 are as they were.
+
+---
+
+## 6.1 The unit, as it was left
+
+1. **LOGIC**: `dsp4_logic.7a6a4529f29c`, the shipping bitstream, FLASH OK on
+   attempt 1, IDCODE `0x020a30dd` both sides, and **asked**: `design_id:
+   32'h4529f29c cfg_bits: 16'h0010 SHIPPING`. Five flashes this session, all
+   first-attempt: shipping → driveall → shipping → maincap → shipping.
+2. **DSP pair**: the AS-FOUND `84c79513…` / `bb2a7c6e…` from
+   `/home/app/s78restore`, booted and configured for D24 twice. Both chips
+   `MAGIC 0xD5B40001`, `BOOT_STAGE 7 running`, `SPI_ERR_COUNT 0`,
+   `RESP_DROP 0`. **The signed pair is STAGED, not deployed.**
+3. **595 chain**: SAFE image `0x01`×24, **VERIFIED 200/200**, written AFTER
+   the last DSP boot per S70-7.
+4. **`GPIO 26` (AN_EN)**: `op dl | lo`, read back.
+5. **`GPIO 27` (CS_M)**: `ip pu | hi`, read back. Driven only for the
+   authorised chain writes and restored after each.
+6. **`~/dspboot`**: the candidate directory `candidate-s82/` added; the
+   standing `chip{1,2}.ldr` are the shared scratch slot's, as every
+   measurement session leaves them; **`~/dspboot/ldr/manifest.txt` untouched
+   — it does not exist and this session did not create it.**
+7. **`matrix-app`** active, **3 of 3 MCUs verified** on the third restart.
+   The sequence was 0, 1, 3 — the standing app defect (mx26 B13), and the
+   0-of-3 case S70 recorded. Nothing was flashed or changed between restarts.
+8. **The H1S1 firmware and its Dropbox copy were NOT touched** this session,
+   so S81-Q4's hash check has nothing to compare that moved.
 
 ---
 
