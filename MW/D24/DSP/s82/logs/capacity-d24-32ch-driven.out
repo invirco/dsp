@@ -1,0 +1,159 @@
+=== capacity arm 's82d24m32'  product=d24  block=tree  config=shipping.config  scope=product default  stimulus peak=drive_audio default  overrides: DSP4_CHAN_MASK=0
+  image: chip1.ldr a118cec8  chip2.ldr cf8afa84
+    chip1.ldr: 424364 bytes
+    chip2.ldr: 365484 bytes
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+  driven ladder: LOGIC must be dsp4_logic_driveall  (./loadlogic.sh driveall); restore with ./loadlogic.sh shipping
+--- boot 1 ---
+    chip 1: PRODUCT_ID (scope class) = 1
+    chip 2: PRODUCT_ID (scope class) = 1
+    product defines 6 FX engine(s) (from landed-d24.json)
+--- row A: silent, default config
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.05 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327684 cycles/block
+        CCLK decoded 983040000  MEASURED 983054148 (tick 1000.014 /s, TPERIOD 983040)
+        _proc_cyc       179848  54.88%
+        _proc_cyc_max  1161962  354.6%   <-- the block the budget has to cover
+          ONE DIAG TICK TOO BIG (S21-6): 179848  54.88% once TPERIOD=983040 is subtracted, which is within half a point of this row's own average, and the arbiter counted ZERO missed blocks. The tick ISR landed between the `tcount` and `_diag_ticks` reads that close the pass; the fix is four instructions in main.asm and is not made here.
+          (raw latch, before the reset: 305624  93.27%)
+        _proc_passes    224457
+        135052 blocks in 45.0 s (2999.9/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.03 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327675 cycles/block
+        CCLK decoded 983040000  MEASURED 983025748 (tick 999.986 /s, TPERIOD 983040)
+        _proc_cyc       302719  92.38%
+        _proc_cyc_max   303189  92.53%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1285569  392.33%)
+        _proc_passes    410371
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r1-A-sil-default.json
+--- load config
+    chip 1: chip 1 load: 744 written, 0 FAILED, 2 families absent, 7 s
+    chip 2: chip 2 load: 177 written, 0 FAILED, 5 families absent, 2 s
+--- row B: silent, load config
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.05 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327683 cycles/block
+        CCLK decoded 983040000  MEASURED 983051040 (tick 1000.011 /s, TPERIOD 983040)
+        _proc_cyc       226132  69.01%
+        _proc_cyc_max   227055  69.29%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1161962  354.6%)
+        _proc_passes    642882
+        135053 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.02 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327674 cycles/block
+        CCLK decoded 983040000  MEASURED 983022844 (tick 999.983 /s, TPERIOD 983040)
+        _proc_cyc       324982  99.18%
+        _proc_cyc_max   326173  99.54%   <-- the block the budget has to cover
+          (raw latch, before the reset: 338325  103.25%)
+        _proc_passes    828792
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r1-B-sil-load.json
+--- stimulus on
+drive_audio: streaming 400 Hz square, peak 1073741824 played, LANE_SHIFT=0 -> peak 1073741824 = -6.02 dBFS AT THE PART (derived 1073741824), on hw:CARD=dsp4pcm,DEV=1 (pid 58787)
+  DRIVEN REGIME: 56 of 64 dynamics envelopes live on chip 1
+  DRIVEN REGIME: 28 of 32 dynamics envelopes live on chip 2
+    REGIME NOT PROVEN (chip1 rc=1 chip2 rc=1) -- row C is taken
+    anyway and is labelled, because a partial regime is a
+    measurement of a partial regime and not nothing; see the logs.
+--- row C: DRIVEN
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.05 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327683 cycles/block
+        CCLK decoded 983040000  MEASURED 983050199 (tick 1000.01 /s, TPERIOD 983040)
+        _proc_cyc       225883  68.93%
+        _proc_cyc_max   227700  69.49%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1208441  368.78%)
+        _proc_passes   1061583
+        135054 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.02 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327674 cycles/block
+        CCLK decoded 983040000  MEASURED 983024601 (tick 999.984 /s, TPERIOD 983040)
+        _proc_cyc       324982  99.18%
+        _proc_cyc_max   326461  99.63%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1308638  399.37%)
+        _proc_passes   1247494
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r1-C-driven.json
+--- boot 2 ---
+    chip 1: PRODUCT_ID (scope class) = 1
+    chip 2: PRODUCT_ID (scope class) = 1
+    product defines 6 FX engine(s) (from landed-d24.json)
+--- row A: silent, default config
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.06 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327685 cycles/block
+        CCLK decoded 983040000  MEASURED 983056584 (tick 1000.017 /s, TPERIOD 983040)
+        _proc_cyc       179020  54.63%
+        _proc_cyc_max   179941  54.91%   <-- the block the budget has to cover
+          (raw latch, before the reset: 305636  93.27%)
+        _proc_passes    224524
+        135054 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.03 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327675 cycles/block
+        CCLK decoded 983040000  MEASURED 983026410 (tick 999.986 /s, TPERIOD 983040)
+        _proc_cyc       302382  92.28%
+        _proc_cyc_max   303497  92.62%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1284829  392.1%)
+        _proc_passes    410437
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r2-A-sil-default.json
+--- load config
+    chip 1: chip 1 load: 744 written, 0 FAILED, 2 families absent, 7 s
+    chip 2: chip 2 load: 177 written, 0 FAILED, 5 families absent, 2 s
+--- row B: silent, load config
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.05 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327683 cycles/block
+        CCLK decoded 983040000  MEASURED 983049428 (tick 1000.01 /s, TPERIOD 983040)
+        _proc_cyc       225783  68.9%
+        _proc_cyc_max  1208181  368.7%   <-- the block the budget has to cover
+          ONE DIAG TICK TOO BIG (S21-6): 225783  68.9% once TPERIOD=983040 is subtracted, which is within half a point of this row's own average, and the arbiter counted ZERO missed blocks. The tick ISR landed between the `tcount` and `_diag_ticks` reads that close the pass; the fix is four instructions in main.asm and is not made here.
+          (raw latch, before the reset: 236402  72.14%)
+        _proc_passes    642979
+        135054 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.03 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327675 cycles/block
+        CCLK decoded 983040000  MEASURED 983026443 (tick 999.986 /s, TPERIOD 983040)
+        _proc_cyc       324980  99.18%
+        _proc_cyc_max   325688  99.39%   <-- the block the budget has to cover
+          (raw latch, before the reset: 340913  104.04%)
+        _proc_passes    828886
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r2-B-sil-load.json
+--- stimulus on
+drive_audio: streaming 400 Hz square, peak 1073741824 played, LANE_SHIFT=0 -> peak 1073741824 = -6.02 dBFS AT THE PART (derived 1073741824), on hw:CARD=dsp4pcm,DEV=1 (pid 58992)
+  DRIVEN REGIME: 56 of 64 dynamics envelopes live on chip 1
+  DRIVEN REGIME: 28 of 32 dynamics envelopes live on chip 2
+    REGIME NOT PROVEN (chip1 rc=1 chip2 rc=1) -- row C is taken
+    anyway and is labelled, because a partial regime is a
+    measurement of a partial regime and not nothing; see the logs.
+--- row C: DRIVEN
+chip 1  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.05 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327683 cycles/block
+        CCLK decoded 983040000  MEASURED 983049670 (tick 1000.01 /s, TPERIOD 983040)
+        _proc_cyc       227686  69.48%
+        _proc_cyc_max   228093  69.61%   <-- the block the budget has to cover
+          (raw latch, before the reset: 1208374  368.76%)
+        _proc_passes   1061681
+        135054 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+chip 2  build_cfg 0xCF45FB10  block 16  kernels 1  CCLK 983.02 MHz (measured)
+        cfg2 0xE2018E6F  decimate None  fused None  simd_dyn None  tx_early None  gather_first None
+        CGU0_CTL 0x00005000  CGU0_DIV 0x451442C1  budget 327674 cycles/block
+        CCLK decoded 983040000  MEASURED 983023671 (tick 999.983 /s, TPERIOD 983040)
+        _proc_cyc       326180  99.54%
+        _proc_cyc_max  1308658  399.38%   <-- the block the budget has to cover
+          ONE DIAG TICK TOO BIG (S21-6): 326180  99.54% once TPERIOD=983040 is subtracted, which is within half a point of this row's own average, and the arbiter counted ZERO missed blocks. The tick ISR landed between the `tcount` and `_diag_ticks` reads that close the pass; the fix is four instructions in main.asm and is not made here.
+          (raw latch, before the reset: 326590  99.67%)
+        _proc_passes   1247591
+        135049 blocks in 45.0 s (3000.0/s), OVERRUN 0 (0.0%)
+wrote cap-s82d24m32-d24-r2-C-driven.json
+  reports: goldens/cap-s82d24m32-d24-r*.json
+CAP32 rc=0

@@ -529,6 +529,46 @@ measurement here. The honest margin statement is the AVERAGE together with
 two-boot mean of 84.34 %, a spread of about a third of a point, inside the
 documented instrument floor.
 
+### 4.2 At 32 channels it still fits — by 0.64 points, and on a PARTIAL regime
+
+`ARM=s82d24m32 PRODUCT=d24 DSP4_CHAN_MASK=0 ./capacity.sh --driven`: the same
+product and the same file, with the channel/aux masks switched off so all 32
+strips run. A genuinely different image — `chip1.ldr a118cec8 / chip2.ldr
+cf8afa84`, about 2 KB smaller — and **it says so in its own config word**:
+`build_cfg 0xCF45FB10`, bit 10 (`DSP4_CHAN_MASK`) clear against the shipping
+`0xCF45FF10`. An arm built to differ declares that it differs, which is what
+the word is for.
+
+| row | chip 1 | chip 2 | missed | 24-channel product |
+|---|--:|--:|---|---|
+| A — silent, default | 54.76 % | 92.33 % | 0 / 0 | 43.22 / 77.41 |
+| B — silent, loaded | 68.96 % | 99.18 % | 0 / 0 | 57.50 / 84.27 |
+| C — driven | 69.21 % | **99.36 %** | **0 / 0** | 57.54 / 84.34 |
+
+**It fits, with 0.64 points of chip 2 and not one missed block in 270,000.**
+Eight more channels cost about **15 points of chip 2** and 11.7 of chip 1.
+
+**This row is NOT a headroom claim, for two stated reasons.**
+
+1. **The regime is PARTIAL and the tool says so**: `DRIVEN REGIME: 56 of 64
+   dynamics envelopes live on chip 1`, `28 of 32 on chip 2`, `REGIME NOT
+   PROVEN (chip1 rc=1 chip2 rc=1) — row C is taken`, on **both** boots. Four
+   strips per chip see no stimulus, because a D24's input patch maps 24
+   channels and the strips above that have no lane for `driveall` to drive.
+   The true fully-driven 32-channel figure is therefore **at or above** 99.36 %
+   and this row cannot say by how much. The tool's own words: a partial regime
+   is "a measurement of a partial regime and not nothing".
+2. **0.64 points is inside the instrument's own spread.** The D24 rows
+   reproduce to about a third of a point boot to boot; a margin twice that is
+   not a margin anyone should plan against.
+
+**So the honest reading of the minimum-plus-headroom line is that 24 channels
+has 15.7 points of chip-2 margin and 32 has none worth quoting.** The signed
+configuration is what makes 32 channels reachable at all — on the pre-S82
+configuration the 24-channel row was already 27.5 points over — but headroom
+above the product's own channel count is not something this session
+demonstrated.
+
 
 ---
 

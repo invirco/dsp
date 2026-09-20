@@ -202,6 +202,69 @@ nothing is indistinguishable, in the verdict line, from a phase that passed.
 positive control does not move** — the same rule `dsp4_inscan.py` now applies
 to `FRAME_COUNT` and `dsp4_cdc_witness.py` to its frame counter.
 
+**S82-20 🟢 THE D24 FITS DRIVEN ON THE SIGNED CONFIGURATION, AND S80'S HEADLINE
+IS REVERSED FOR THE PRODUCT PW RULED IS THE FOCUS.** `ARM=s82d24 PRODUCT=d24
+./capacity.sh --driven`, no override on the command line, on `loadlogic.sh
+driveall`. Mean of both boots, 135,000 blocks per row:
+
+| row | chip 1 | chip 2 | missed | pre-S82 (S80) |
+|---|--:|--:|---|---|
+| A silent, default | 43.22 % | 77.41 % | 0 / 0 | 56.04 / 88.33 |
+| B silent, loaded | 57.50 % | 84.27 % | 0 / 0 | 80.71 / 98.28 |
+| **C DRIVEN, six FX live** | **57.54 %** | **84.34 %** | **0 / 0** | 123.57 / **127.50**, 21.5 % missed |
+
+S80 measured this row 27.5 points over budget on chip 2, missing one block in
+five, and concluded that *"on the fixed instrument, not one product in the
+range fits driven"*. **43 points come off chip 2 and 66 off chip 1** on the
+same instrument, the same bitstream generation and the same stimulus, and not
+one block is missed in any of the twelve chip-rows.
+
+**Three things make this a measurement rather than a claim.** The image is the
+shipping pair rebuilt byte-identically inside the arm (`e3e25a79` /
+`41a6b913`, the pair built at the top of the session from the same file).
+Every row carries `cfg2 0xE2018E6F` read off the part DURING the measurement,
+so the number and the configuration are one reading. And the regime is proven
+on BOTH boots — `48 of 48 dynamics envelopes live on chip 1`, `28 of 28 on
+chip 2`, twice — which is the check that separates a driven row from the
+silence row wearing a driven label that voided every S28 row (S78-Q4).
+
+**The signal is free**: driven minus silent-loaded is +0.03 points on chip 1
+and +0.07 on chip 2. On the shipping default S19/S20 measured that column at
++42.5 and +29.3.
+
+**The worst-block column is still not a margin.** Most rows latched a raw
+worst block at 342–377 % of budget before the reset (the S21-6 tick artifact)
+and one post-reset figure survived it at 357.32 %, so the honest statement is
+the average plus zero missed blocks, not a worst-case headroom figure.
+
+**S82-21 🟡 AT 32 CHANNELS THE D24 FIRMWARE FITS DRIVEN BY 0.64 POINTS, ON A
+PARTIAL REGIME — WHICH IS NOT A HEADROOM CLAIM.**
+`ARM=s82d24m32 PRODUCT=d24 DSP4_CHAN_MASK=0 ./capacity.sh --driven`, both
+boots. The image is genuinely different (`a118cec8` / `cf8afa84`) and **says
+so in its own word**: `build_cfg 0xCF45FB10`, bit 10 clear against the
+shipping `0xCF45FF10`.
+
+| row | chip 1 | chip 2 | missed | 24 ch |
+|---|--:|--:|---|---|
+| A silent, default | 54.76 % | 92.33 % | 0 / 0 | 43.22 / 77.41 |
+| B silent, loaded | 68.96 % | 99.18 % | 0 / 0 | 57.50 / 84.27 |
+| C driven | 69.21 % | **99.36 %** | **0 / 0** | 57.54 / 84.34 |
+
+Eight more channels cost about 15 points of chip 2 and 11.7 of chip 1, and
+not one block is missed in 270,000. **But the row is not a margin**, twice
+over: the regime is PARTIAL on both boots (`56 of 64` envelopes live on
+chip 1, `28 of 32` on chip 2, `REGIME NOT PROVEN … row C is taken`) because a
+D24's input patch maps 24 channels and the strips above that have no lane for
+`driveall` to drive — so the true fully-driven figure is at or above 99.36 %
+and this arm cannot say by how much; and 0.64 points is about twice the
+instrument's own boot-to-boot spread.
+
+**The useful statement is the comparison**: the product's own 24 channels have
+15.7 points of chip-2 margin on the signed configuration, and 32 channels have
+none worth planning against. The signing is what makes 32 reachable at all —
+the pre-S82 configuration was 27.5 points over at 24 — but headroom above the
+product's channel count is not something this session demonstrated.
+
 **S82-17 🟡 THE LATENCY BAR REFUSED, CORRECTLY, AND THE REFUSAL IS THE RESULT
 WORTH RECORDING.** `latency.sh` on the signed pair with the SHIPPING bitstream
 on the part returned `coherent fraction 0.0%` on all forty reps across two
