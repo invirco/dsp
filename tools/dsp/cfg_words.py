@@ -83,8 +83,13 @@ def resolve(path=None):
     # tool that scored the FILE while the part carries an override would be
     # the S11-1 gap in a new place, so the override is honoured here AND
     # named in the provenance.
+    # DSP4_AUXIN_BYPASS is in NEITHER word and is resolved anyway, so
+    # `unrepresented()` below can say so. A switch this tool does not read
+    # is a switch it cannot warn about -- which is how it came to ship at
+    # build.sh's default for nine days (S78-Q3).
     for k in set(WORD1) | set(WORD2) | {'DSP4_GEN_BLOCK', 'DSP4_BLOCK_MASK',
-                                       'DSP4_CCLK_TARGET'}:
+                                       'DSP4_CCLK_TARGET',
+                                       'DSP4_AUXIN_BYPASS'}:
         if os.environ.get(k, '') != '':
             val[k], prov[k] = int(os.environ[k], 0), 'ENVIRONMENT override'
         elif k in cfg:
@@ -294,6 +299,19 @@ def unrepresented(val):
     the instrument rather than a footnote.
     """
     out = []
+    # S79: the off-aux park gate ships (shipping.config), and NEITHER word
+    # can say so. Both are full -- src/diag.h says so at the point of
+    # definition, which is why S75 designed a third word that is still
+    # unlanded (S75-13) -- so the park-gate image and the pre-S79 one read
+    # back the same 0xE2018264 and a check that passed on one would pass on
+    # the other. Named here rather than left to a reader's memory.
+    if val.get('DSP4_AUXIN_BYPASS'):
+        out.append('DSP4_AUXIN_BYPASS=%d — NOT in DIAG_BUILD_CFG or '
+                   'DIAG_BUILD_CFG2; an image with the chip-2 off-aux park '
+                   'gate on reads back the same two words as one without it '
+                   '(S12-7\'s shape, S79). Identify the arm by its image '
+                   'md5 until DIAG_BUILD_CFG3 lands (S75-13).'
+                   % val['DSP4_AUXIN_BYPASS'])
     shk = val['DSP4_SHARED_KERNELS']
     if shk & ~3:
         out.append('DSP4_SHARED_KERNELS=%d — bits 2 (GATE) and 3 (FILT) are '

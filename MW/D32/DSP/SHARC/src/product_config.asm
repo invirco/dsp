@@ -42,6 +42,14 @@
 #define CFG_AUX_MASK    0xF002
 #define CFG_OUT_MUX     0xF003
 #define CFG_COMMIT      0xF004
+/* THE PRODUCT'S MATRIX BUS COUNT (S79). One bit per matrix bus; a bus whose
+ * bit is 0 has its whole chain -- RECV_MTX, MTX_FDR, MTX_OUT -- skipped at
+ * block level and its TX slot zeroed once, exactly as a masked aux is. A
+ * CONFIG register and not a build flag for the same reason CFG_AUX_MASK is
+ * one: ONE firmware boots every product (S28/D8), so what a product cannot
+ * reach has to be said at boot, not at build. See sport_init.asm for what
+ * the bit means and MW/D24/DSP/s79/bypass.md for what it is worth. */
+#define CFG_MTX_MASK    0xF006
 /* THE PRODUCT'S EXTERNAL-RAM POSITION (S75). Non-zero = this product never
  * uses the external delay RAM, whatever is fitted; the pool stays on L2 and
  * the xSPI bus is not touched at all. It is a CONFIG register and not a
@@ -73,6 +81,9 @@
 
 .extern _chan_mask;
 .extern _aux_mask;
+#if DSP4_CHAN_MASK
+.extern _mtx_mask;
+#endif
 /* THE WORDS THE PROCESS CHAIN ACTUALLY READS (2026-09-09).
  *
  * `_chan_mask` and `_aux_mask` above are the STAGED words: the host may
@@ -104,6 +115,8 @@
 .var _chan_mask_live = 0xFFFFFFFF;
 .global _aux_mask_live;
 .var _aux_mask_live = 0x0FFF;
+.global _mtx_mask_live;
+.var _mtx_mask_live = 0x000F;
 #endif
 .extern _boot_config_received;
 .extern _diag_boot_stage;
@@ -148,6 +161,11 @@ _product_config_write:
     r4 = CFG_AUX_MASK;
     comp(r2, r4);
     if eq jump (pc, .cfg_aux);
+#if DSP4_CHAN_MASK
+    r4 = CFG_MTX_MASK;
+    comp(r2, r4);
+    if eq jump (pc, .cfg_mtx);
+#endif
     r4 = CFG_OUT_MUX;
     comp(r2, r4);
     if eq jump (pc, .cfg_outmux);
@@ -188,6 +206,11 @@ _product_config_write:
 .cfg_aux:
     dm(_aux_mask) = r1;
     rts;
+#if DSP4_CHAN_MASK
+.cfg_mtx:
+    dm(_mtx_mask) = r1;
+    rts;
+#endif
 .cfg_outmux:
     dm(_out_mux) = r1;
     rts;

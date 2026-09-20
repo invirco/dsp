@@ -15,12 +15,13 @@ that table and it is a script, not a judgement:
 
   2. THE NODE CENSUS comes from the superset graph and the product's
      CONFIG WORDS. There is one firmware (decision D3) and exactly
-     THREE words select a product inside it: `CFG_PRODUCT_ID` (the
-     product-SCOPE gate), `CFG_CHAN_MASK` and `CFG_AUX_MASK`. So "the
-     D16 graph" is not a different graph — it is the same 698 nodes
-     with a different set of them gated off, and this file resolves the
-     gates with the SAME rules the generator emits them with
-     (`dsp_codegen.STRIP_NODE_RE`, `STRIP_MTR_RE`, `aux_owner`, and the
+     FOUR words select a product inside it: `CFG_PRODUCT_ID` (the
+     product-SCOPE gate), `CFG_CHAN_MASK`, `CFG_AUX_MASK` and — since
+     S79 — `CFG_MTX_MASK`. So "the D16 graph" is not a different graph
+     — it is the same 698 nodes with a different set of them gated off,
+     and this file resolves the gates with the SAME rules the generator
+     emits them with (`dsp_codegen.STRIP_NODE_RE`, `STRIP_MTR_RE`,
+     `aux_owner`, `mtx_owner`, and the
      `scope=` param the chain's scope runs are built from) rather than
      a second opinion about which node belongs to which strip.
 
@@ -33,10 +34,14 @@ that table and it is a script, not a judgement:
 
 WHAT THE PREDICTION CANNOT SEE, stated here because a table that hides
 it is worse than no table. The config words gate STRIPS, AUX BUSES and
-the two SCOPE classes, and nothing else. A D12 defines two groups, four
-FX engines, no matrix and no centre cluster; the firmware runs four
-groups, six FX engines and four matrix buses whatever is booted,
-because no word says otherwise.
+the two SCOPE classes, the MATRIX buses since S79, and nothing else. A
+D12 defines two groups, four FX engines, no matrix and no centre
+cluster; the firmware runs four groups and six FX engines whatever is
+booted, because no word says otherwise. THE MATRIX SENTENCE USED TO BE
+IN THAT LIST AND IS NOT ANY MORE: CFG_MTX_MASK (0xF006) is the fourth
+word, a D12 and a D16 boot with it at 0 and all four matrix chains --
+twelve node instances -- are skipped at block level, and a D24 boots
+with 0x3 and skips six.
 Those nodes are on their cheap branch — nothing feeds them, the
 product's cells do not exist to open them — but they are CALLED, and the
 difference between "called on the cheap branch" and "not called" is
@@ -76,7 +81,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
 sys.path.insert(0, SCRIPT_DIR)
 
 from dsp_codegen import (STRIP_NODE_RE, STRIP_MTR_RE, aux_owner,   # noqa: E402
-                         BLOCK, SAMPLE_RATE_HZ)
+                         mtx_owner, BLOCK, SAMPLE_RATE_HZ)
 
 GRAPH_CSV = os.path.join(REPO_ROOT, 'MW', 'D32', 'DSP', 'SHARC', 'dsp.csv')
 PROPOSAL_ROOT = os.path.join(REPO_ROOT, 'proposals', 'defs', 'products')
@@ -294,6 +299,27 @@ def product_def(product):
     return out
 
 
+# The firmware carries four matrix chains: C2_RECV_MTX/_MTX_FDR/_MTX_OUT_01..04.
+MTX_CHAINS = 4
+
+
+def matrix_bus_cells(product):
+    """How many distinct `Matrix0NN` buses `defs/products/<p>/dsp.csv`
+    addresses. Reachability is a CELL question, so it is answered from the
+    cells and not from a size key."""
+    path = os.path.join(DEFS_PRODUCTS, product, 'dsp.csv')
+    if not os.path.isfile(path):
+        raise SystemExit(f'product_fit: {path} is missing — this product has '
+                         f'no landed dsp.csv in the defs submodule. '
+                         f'(No fallback.)')
+    seen = set()
+    for line in open(path, encoding='utf-8'):
+        m = re.match(r'^Matrix(\d+)', line)
+        if m:
+            seen.add(int(m.group(1)))
+    return len(seen)
+
+
 def matrix_cells(product):
     path = os.path.join(REPO_ROOT, 'MW', product.upper(), 'MX', '_matrix.csv')
     if not os.path.isfile(path):
@@ -332,8 +358,14 @@ def scope_of(node):
 
 
 def mask_owner(node):
-    """('chan', n) | ('aux', n) | None — the SAME rule the generator's chain
-    emitter uses to decide which gate a node sits behind."""
+    """('chan', n) | ('aux', n) | ('mtx', n) | None — the SAME rule the
+    generator's chain emitter uses to decide which gate a node sits behind.
+
+    The third key arrived at S79 with CFG_MTX_MASK, and with it the twelve
+    `C2_MIX_AUX_nn` the aux rule had never matched. Both are imported from
+    `dsp_codegen` rather than restated here, for the reason the module
+    docstring gives: a second opinion about which node belongs to which
+    gate is how a scoreboard comes to disagree with the firmware."""
     nid = node['id']
     m = STRIP_NODE_RE.match(nid) or STRIP_MTR_RE.match(nid)
     if m:
@@ -342,12 +374,19 @@ def mask_owner(node):
     a = aux_owner(label, nid)
     if a is not None:
         return ('aux', a)
+    x = mtx_owner(label, nid)
+    if x is not None:
+        return ('mtx', x)
     return None
 
 
-def census(nodes, nch, naux, scope_id):
+def census(nodes, nch, naux, scope_id, nmtx=None):
     """Per (chip, type): how many nodes the image carries, how many this
-    product's three config words leave RUNNING, and how many they gate off."""
+    product's FOUR config words leave RUNNING, and how many they gate off.
+
+    `nmtx` is CFG_MTX_MASK's population count (S79). It defaults to None,
+    which means "this caller has not been taught about the fourth word" and
+    is scored as the pre-S79 firmware behaved: every matrix chain runs."""
     out = {}
     for n in nodes:
         key = (n['chip'], n['type'])
@@ -367,8 +406,11 @@ def census(nodes, nch, naux, scope_id):
         if own is None:
             rec['run'] += 1
             continue
+        if own[0] == 'mtx' and nmtx is None:
+            rec['run'] += 1
+            continue
         rec['gateable'] += 1
-        limit = nch if own[0] == 'chan' else naux
+        limit = {'chan': nch, 'aux': naux, 'mtx': nmtx}[own[0]]
         if own[1] <= limit:
             rec['run'] += 1
         else:
@@ -459,6 +501,15 @@ def collect(products):
             'mtx': int(d.get('mtx', 0)), 'dca': int(d.get('dca', 0)),
             'chan_mask': (1 << nch) - 1, 'aux_mask': (1 << naux) - 1,
             'product_id': SCOPE_ID[p],
+            # CFG_MTX_MASK (S79). The firmware builds FOUR matrix chains, so
+            # the mask is what the product's own cells reach, capped at four.
+            # Both defs sources agree once capped: the `mtx` key above
+            # (d24 2, d16/d12 absent) and the Matrix0NN cells in
+            # `defs/products/<p>/dsp.csv` (d32 four, d24 two, d16/d12 none).
+            # They agree for every product EXCEPT in what D32's key claims:
+            # it says twelve, and four are built and four addressed. That is
+            # recorded, not resolved -- see S79-9 and S78-Q2, both PW's.
+            'mtx_run': min(matrix_bus_cells(p), MTX_CHAINS),
         }
         defined = matrix_cells(p)
         addressed = proposal_rows(p)
@@ -471,7 +522,8 @@ def collect(products):
             'chip1': sum(1 for r in addressed if r['DspSpi'] == '1'),
             'chip2': sum(1 for r in addressed if r['DspSpi'] == '2'),
         }
-        cens[p] = census(nodes, nch, naux, SCOPE_ID[p])
+        cens[p] = census(nodes, nch, naux, SCOPE_ID[p],
+                         nmtx=sizes[p]['mtx_run'])
     return nodes, sizes, cells, cens
 
 
@@ -503,11 +555,21 @@ def print_table(products, sizes, cells, cens, pred, pred_worst):
         ('aux buses (aux)',    lambda p: sizes[p]['aux']),
         ('groups defined',     lambda p: sizes[p]['grp']),
         ('FX engines defined', lambda p: sizes[p]['fx']),
-        ('matrix outs defined', lambda p: min(sizes[p]['mtx'], 4)),
+        # THE SIZE KEY AND THE CELLS DISAGREE ON ONE PRODUCT. `min(.., 4)`
+        # was here before S79 because the D32 def's `mtx` key says TWELVE
+        # and the firmware builds four; `mtx_run` counts the Matrix0NN
+        # buses the product's own dsp.csv addresses, which is four on D32,
+        # two on D24 and none on D16/D12 -- the reachability question
+        # CFG_MTX_MASK is the answer to. Both rows are printed so the
+        # disagreement is on the table rather than inside a min() (S79-9).
+        ('matrix buses in the def', lambda p: sizes[p]['mtx']),
+        ('matrix outs defined', lambda p: sizes[p]['mtx_run']),
         ('CFG_PRODUCT_ID',     lambda p: f'{sizes[p]["product_id"]} '
                                           f'({SCOPE_NAME[sizes[p]["product_id"]]})'),
         ('CFG_CHAN_MASK',      lambda p: f'0x{sizes[p]["chan_mask"]:08X}'),
         ('CFG_AUX_MASK',       lambda p: f'0x{sizes[p]["aux_mask"]:08X}'),
+        ('CFG_MTX_MASK',       lambda p: '0x%08X'
+                                         % ((1 << sizes[p]['mtx_run']) - 1)),
         ('cells defined',      lambda p: cells[p]['defined']),
         ('cells addressed',    lambda p: cells[p]['addressed']),
         ('  ... on chip 1',    lambda p: cells[p]['chip1']),
@@ -555,7 +617,7 @@ def print_table(products, sizes, cells, cens, pred, pred_worst):
 
 def print_census(products, sizes, cens):
     print()
-    print('NODE CENSUS — the superset graph, and what each product\'s two '
+    print('NODE CENSUS — the superset graph, and what each product\'s four '
           'config words leave running')
     types = sorted({t for p in products for (_, t) in cens[p]})
     for chip in ('1', '2'):
@@ -656,12 +718,27 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
         "that decides D32's fit. Supersedes S32's four @s32-lead rows.",
         'See MW/D32/DSP/dsp4-s33-20260911.md and window-candidate.md §5.',
         '',
+        'THE FOURTH WORD ARRIVED AFTER EVERY MEASURED ROW BELOW WAS TAKEN',
+        '(S79). CFG_MTX_MASK gates the matrix chains and C2_MIX_AUX_nn',
+        'joined the aux gate, so nodes_run / nodes_gated_off in every row',
+        'are TODAY\'s census while the percentages are the S27/S28/S32',
+        'measurements of a firmware that called all of them: 10 more node',
+        'instances on a D24, 18 on a D16, 20 on a D12, none on a D32.',
+        'The D12 and D16 rows are therefore PESSIMISTIC by an unmeasured',
+        'margin and the D32 rows are not. S79\'s own driven rows are in',
+        'MW/D24/DSP/s79/bypass.md and are deliberately NOT merged here:',
+        'they were taken on the S78-fixed driveall bitstream and a row',
+        'taken on one stimulus is not comparable with a row taken on',
+        'another (see loadlogic.sh). Re-taking S28/S29 on the fixed',
+        'instrument is what makes them mergeable; it is S78-Q4 and it is',
+        'still due.',
+        '',
         'NOT IN THIS TABLE, and why — a fit table that lists four of the',
         "range's nine product folders without saying so is a table that",
         'looks complete and is not:',
     ] + [f'  {p.upper()}: {why}' for p, why in EXCLUDED.items()] + ['']
     cols = ['product', 'row', 'source', 'ch', 'aux', 'fx', 'product_id',
-            'chan_mask', 'aux_mask',
+            'chan_mask', 'aux_mask', 'mtx_mask',
             'cells_defined', 'cells_addressed', 'cells_unmapped',
             'nodes_run', 'nodes_gated_off',
             'chip1_built_pct', 'chip1_avg_pct', 'chip1_worst_pct',
@@ -701,6 +778,7 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
                     'chip2_built_pct': f'{bb2:.2f}',
                     'chan_mask': f'0x{sizes[p]["chan_mask"]:08X}',
                     'aux_mask': f'0x{sizes[p]["aux_mask"]:08X}',
+                    'mtx_mask': '0x%08X' % ((1 << sizes[p]['mtx_run']) - 1),
                     'cells_defined': cells[p]['defined'],
                     'cells_addressed': cells[p]['addressed'],
                     'cells_unmapped': cells[p]['unmapped'],
@@ -734,6 +812,7 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
                 'chip2_built_pct': f'{bb2:.2f}',
                 'chan_mask': f'0x{sizes[p]["chan_mask"]:08X}',
                 'aux_mask': f'0x{sizes[p]["aux_mask"]:08X}',
+                'mtx_mask': '0x%08X' % ((1 << sizes[p]['mtx_run']) - 1),
                 'cells_defined': cells[p]['defined'],
                 'cells_addressed': cells[p]['addressed'],
                 'cells_unmapped': cells[p]['unmapped'],

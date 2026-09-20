@@ -208,4 +208,17 @@ else:
                 'this is the normal reading today, not a fault)')
 print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X, '
       'DIAG_BUILD_CFG2 0x%08X, %s' % (w, w2, cfg3_msg))
+# ...AND WHAT A PASS HERE DOES NOT COVER (S79). `consistent` means the
+# mirrors agree with the file, which is worth exactly what the two words
+# carry -- and `cfg_words.unrepresented()` is the list of settings two
+# images can disagree on while reading back the same pair. Printing it on
+# every pass is the same discipline as S77-11's completeness gate: a check
+# that is silent about its own blind spot reads as a check that has none.
+# The list is a property of the CONFIGURATION, not of these mirrors, so it
+# is resolved from the file the same way the words are -- `mirror2` is the
+# bench tool's own dict and carries only what a word carries, which is
+# exactly the set this list is about.
+_val, _ = cfg_words.resolve('MW/D32/DSP/SHARC/shipping.config')
+for _line in cfg_words.unrepresented(_val):
+    print('  NOT IN EITHER WORD: ' + _line)
 PY

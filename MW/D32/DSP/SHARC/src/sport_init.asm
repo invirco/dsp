@@ -96,6 +96,30 @@
 .var _chan_mask = 0xFFFFFFFF;     /* D32 default: all 32 channels active */
 .global _aux_mask;
 .var _aux_mask = 0x0FFF;          /* D32 default: 12 aux buses active */
+/* THE MATRIX MASK (S79). One bit per matrix bus, 1 = the booted product
+ * has cells that reach it. A D24 declares Matrix001/002 Level+Mute and
+ * NOTHING for 003/004 -- no output cell, no send cell, no name -- so two
+ * of the four matrix chains on a D24 are six node instances no host can
+ * address and no audio can enter, running on every block. D32 declares
+ * Matrix001..004 Level+Mute+Name, so on a D32 all four are reachable and
+ * the mask is all ones: the two buses D32 cannot ROUTE into are a defs
+ * question (S78-Q2, PW's) and not this word's business -- this word only
+ * ever asks "can a cell on the booted product reach it".
+ *
+ * DEFAULT ALL ONES, like the other two, so a part between reset and the
+ * host's first commit -- and chip 2 on the profile bench, which need not
+ * be configured at all -- runs the whole graph. */
+/* Inside the guard, unlike the two above, because `DSP4_CHAN_MASK=0 is the
+ * byte-for-byte control` is a claim chip2/mask_gates.asm makes in its own
+ * header and this word would have broken it: a control build carried the
+ * .var, the extern and the CFG_MTX_MASK arm of the dispatch, and the pair
+ * stopped rebuilding to the pre-S79 md5. Measured, not assumed --
+ * 0f086822/a4806ebf against 9af75d1c/bef20e28 before this guard went on. */
+#include "dsp_block.h"
+#if DSP4_CHAN_MASK
+.global _mtx_mask;
+.var _mtx_mask = 0x000F;          /* D32 default: 4 matrix buses active */
+#endif
 
 /* Block-ready flag: set by DMA ISR, cleared by main loop after processing */
 .global _block_ready;

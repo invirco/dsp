@@ -65,75 +65,76 @@
 .global _mask_on;
 .var _mask_on[61] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 /* ...and what each group is a function of: the mask word (0 =
- * channel, 1 = aux) and the bits of it that keep the group
- * alive. A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER
+ * channel, 1 = aux, 2 = matrix) and the bits of it that keep
+ * the group alive.
+ * A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER
  * is live -- the paired kernels are one instruction stream over
  * two strips and there is no runtime way to half-issue them.
  * The masked half of a live pair contributes nothing anyway:
  * its ROUTING node has a gate group of its own and its
  * crosspoint column is zeroed below. */
 .var _mask_grp_word[61] =
-    0,    /* strip 1+2 */
-    0,    /* strip 1 */
-    0,    /* strip 2 */
-    0,    /* strip 3+4 */
-    0,    /* strip 3 */
-    0,    /* strip 4 */
-    0,    /* strip 5+6 */
-    0,    /* strip 5 */
-    0,    /* strip 6 */
-    0,    /* strip 7+8 */
-    0,    /* strip 7 */
-    0,    /* strip 8 */
-    0,    /* strip 9+10 */
-    0,    /* strip 9 */
-    0,    /* strip 10 */
-    0,    /* strip 11+12 */
-    0,    /* strip 11 */
-    0,    /* strip 12 */
-    0,    /* strip 13+14 */
-    0,    /* strip 13 */
-    0,    /* strip 14 */
-    0,    /* strip 15+16 */
-    0,    /* strip 15 */
-    0,    /* strip 16 */
-    0,    /* strip 17+18 */
-    0,    /* strip 17 */
-    0,    /* strip 18 */
-    0,    /* strip 19+20 */
-    0,    /* strip 19 */
-    0,    /* strip 20 */
-    0,    /* strip 21+22 */
-    0,    /* strip 21 */
-    0,    /* strip 22 */
-    0,    /* strip 23+24 */
-    0,    /* strip 23 */
-    0,    /* strip 24 */
-    0,    /* strip 25+26 */
-    0,    /* strip 25 */
-    0,    /* strip 26 */
-    0,    /* strip 27+28 */
-    0,    /* strip 27 */
-    0,    /* strip 28 */
-    0,    /* strip 29+30 */
-    0,    /* strip 29 */
-    0,    /* strip 30 */
-    0,    /* strip 31+32 */
-    0,    /* strip 31 */
-    0,    /* strip 32 */
-    0,    /* strip 1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17+18+19+20+21+22+23+24+25+26+27+28+29+30+31+32 */
-    1,    /* aux  1 */
-    1,    /* aux  2 */
-    1,    /* aux  3 */
-    1,    /* aux  4 */
-    1,    /* aux  5 */
-    1,    /* aux  6 */
-    1,    /* aux  7 */
-    1,    /* aux  8 */
-    1,    /* aux  9 */
-    1,    /* aux  10 */
-    1,    /* aux  11 */
-    1;    /* aux  12 */
+    0,    /* strip  1+2 */
+    0,    /* strip  1 */
+    0,    /* strip  2 */
+    0,    /* strip  3+4 */
+    0,    /* strip  3 */
+    0,    /* strip  4 */
+    0,    /* strip  5+6 */
+    0,    /* strip  5 */
+    0,    /* strip  6 */
+    0,    /* strip  7+8 */
+    0,    /* strip  7 */
+    0,    /* strip  8 */
+    0,    /* strip  9+10 */
+    0,    /* strip  9 */
+    0,    /* strip  10 */
+    0,    /* strip  11+12 */
+    0,    /* strip  11 */
+    0,    /* strip  12 */
+    0,    /* strip  13+14 */
+    0,    /* strip  13 */
+    0,    /* strip  14 */
+    0,    /* strip  15+16 */
+    0,    /* strip  15 */
+    0,    /* strip  16 */
+    0,    /* strip  17+18 */
+    0,    /* strip  17 */
+    0,    /* strip  18 */
+    0,    /* strip  19+20 */
+    0,    /* strip  19 */
+    0,    /* strip  20 */
+    0,    /* strip  21+22 */
+    0,    /* strip  21 */
+    0,    /* strip  22 */
+    0,    /* strip  23+24 */
+    0,    /* strip  23 */
+    0,    /* strip  24 */
+    0,    /* strip  25+26 */
+    0,    /* strip  25 */
+    0,    /* strip  26 */
+    0,    /* strip  27+28 */
+    0,    /* strip  27 */
+    0,    /* strip  28 */
+    0,    /* strip  29+30 */
+    0,    /* strip  29 */
+    0,    /* strip  30 */
+    0,    /* strip  31+32 */
+    0,    /* strip  31 */
+    0,    /* strip  32 */
+    0,    /* strip  1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17+18+19+20+21+22+23+24+25+26+27+28+29+30+31+32 */
+    1,    /* aux    1 */
+    1,    /* aux    2 */
+    1,    /* aux    3 */
+    1,    /* aux    4 */
+    1,    /* aux    5 */
+    1,    /* aux    6 */
+    1,    /* aux    7 */
+    1,    /* aux    8 */
+    1,    /* aux    9 */
+    1,    /* aux    10 */
+    1,    /* aux    11 */
+    1;    /* aux    12 */
 .var _mask_grp_bits[61] =
     0x00000003,
     0x00000001,
@@ -278,8 +279,10 @@
 
 .extern _chan_mask;
 .extern _aux_mask;
+.extern _mtx_mask;
 .extern _chan_mask_live;
 .extern _aux_mask_live;
+.extern _mtx_mask_live;
 #if DSP4_BLOCK_KERNELS && DSP4_RTG_FABRIC
 .extern _xpc;
 .extern _xp_dirty;
@@ -294,6 +297,8 @@ _mask_apply:
     dm(_chan_mask_live) = r0;
     r1 = dm(_aux_mask);
     dm(_aux_mask_live) = r1;
+    r3 = dm(_mtx_mask);
+    dm(_mtx_mask_live) = r3;
     l0 = 0;
     l1 = 0;
     l2 = 0;
@@ -302,12 +307,15 @@ _mask_apply:
     i0 = _mask_grp_word;
     i1 = _mask_grp_bits;
     i2 = _mask_on;
+    r7 = 2;                   /* the matrix word's index */
     lcntr = 61, do .mg_c1_grp until lce;
-        r4 = dm(i0, 1);       /* 0 = chan, 1 = aux    */
+        r4 = dm(i0, 1);       /* 0 chan, 1 aux, 2 mtx */
         r5 = dm(i1, 1);       /* the group's bits     */
         r6 = r0;              /* assume the chan word */
         r4 = pass r4;
         if ne r6 = r1;        /* ...no, the aux word  */
+        r4 = r4 - r7;         /* ...unless it is 2:   */
+        if eq r6 = r3;        /*    the matrix word   */
         r6 = r6 and r5;
     .mg_c1_grp:
         dm(i2, 1) = r6;       /* non-zero = run       */

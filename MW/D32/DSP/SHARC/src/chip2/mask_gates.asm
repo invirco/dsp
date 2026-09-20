@@ -63,35 +63,40 @@
  * profile bench, which is configured but need not be -- runs the
  * whole graph. */
 .global _mask_on;
-.var _mask_on[18] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
+.var _mask_on[22] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1;
 /* ...and what each group is a function of: the mask word (0 =
- * channel, 1 = aux) and the bits of it that keep the group
- * alive. A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER
+ * channel, 1 = aux, 2 = matrix) and the bits of it that keep
+ * the group alive.
+ * A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER
  * is live -- the paired kernels are one instruction stream over
  * two strips and there is no runtime way to half-issue them.
  * The masked half of a live pair contributes nothing anyway:
  * its ROUTING node has a gate group of its own and its
  * crosspoint column is zeroed below. */
-.var _mask_grp_word[18] =
-    1,    /* aux  1 */
-    1,    /* aux  2 */
-    1,    /* aux  3 */
-    1,    /* aux  4 */
-    1,    /* aux  5 */
-    1,    /* aux  6 */
-    1,    /* aux  7 */
-    1,    /* aux  8 */
-    1,    /* aux  9 */
-    1,    /* aux  10 */
-    1,    /* aux  11 */
-    1,    /* aux  12 */
-    1,    /* aux  1+2 */
-    1,    /* aux  3+4 */
-    1,    /* aux  5+6 */
-    1,    /* aux  7+8 */
-    1,    /* aux  9+10 */
-    1;    /* aux  11+12 */
-.var _mask_grp_bits[18] =
+.var _mask_grp_word[22] =
+    1,    /* aux    1 */
+    1,    /* aux    2 */
+    1,    /* aux    3 */
+    1,    /* aux    4 */
+    1,    /* aux    5 */
+    1,    /* aux    6 */
+    1,    /* aux    7 */
+    1,    /* aux    8 */
+    1,    /* aux    9 */
+    1,    /* aux    10 */
+    1,    /* aux    11 */
+    1,    /* aux    12 */
+    1,    /* aux    1+2 */
+    1,    /* aux    3+4 */
+    1,    /* aux    5+6 */
+    1,    /* aux    7+8 */
+    1,    /* aux    9+10 */
+    1,    /* aux    11+12 */
+    2,    /* matrix 1 */
+    2,    /* matrix 2 */
+    2,    /* matrix 3 */
+    2;    /* matrix 4 */
+.var _mask_grp_bits[22] =
     0x00000001,
     0x00000002,
     0x00000004,
@@ -109,7 +114,11 @@
     0x00000030,
     0x000000C0,
     0x00000300,
-    0x00000C00;
+    0x00000C00,
+    0x00000001,
+    0x00000002,
+    0x00000004,
+    0x00000008;
 
 /* Every buffer a masked aux would otherwise leave stale, and
  * the aux bit that keeps it live. */
@@ -152,12 +161,31 @@
     0x00000400,   /* aux 11 */
     0x00000800;   /* aux 12 */
 
+/* The same, for a masked MATRIX bus: a physical TX slot the DMA
+ * clocks out whether or not the chain that fills it ran. */
+.extern _tx_out_slot_C2_MTX_OUT_01;
+.extern _tx_out_slot_C2_MTX_OUT_02;
+.extern _tx_out_slot_C2_MTX_OUT_03;
+.extern _tx_out_slot_C2_MTX_OUT_04;
+.var _mask_zero_mtx_ptrs[4] =
+    _tx_out_slot_C2_MTX_OUT_01,
+    _tx_out_slot_C2_MTX_OUT_02,
+    _tx_out_slot_C2_MTX_OUT_03,
+    _tx_out_slot_C2_MTX_OUT_04;
+.var _mask_zero_mtx_bits[4] =
+    0x00000001,   /* matrix 1 */
+    0x00000002,   /* matrix 2 */
+    0x00000004,   /* matrix 3 */
+    0x00000008;   /* matrix 4 */
+
 .section/pm seg_pmco;
 
 .extern _chan_mask;
 .extern _aux_mask;
+.extern _mtx_mask;
 .extern _chan_mask_live;
 .extern _aux_mask_live;
+.extern _mtx_mask_live;
 
 /* _mask_apply — latch, resolve, silence. Called from
  * _product_config_commit; runs once, so it is written for size and
@@ -168,6 +196,8 @@ _mask_apply:
     dm(_chan_mask_live) = r0;
     r1 = dm(_aux_mask);
     dm(_aux_mask_live) = r1;
+    r3 = dm(_mtx_mask);
+    dm(_mtx_mask_live) = r3;
     l0 = 0;
     l1 = 0;
     l2 = 0;
@@ -176,12 +206,15 @@ _mask_apply:
     i0 = _mask_grp_word;
     i1 = _mask_grp_bits;
     i2 = _mask_on;
-    lcntr = 18, do .mg_c2_grp until lce;
-        r4 = dm(i0, 1);       /* 0 = chan, 1 = aux    */
+    r7 = 2;                   /* the matrix word's index */
+    lcntr = 22, do .mg_c2_grp until lce;
+        r4 = dm(i0, 1);       /* 0 chan, 1 aux, 2 mtx */
         r5 = dm(i1, 1);       /* the group's bits     */
         r6 = r0;              /* assume the chan word */
         r4 = pass r4;
         if ne r6 = r1;        /* ...no, the aux word  */
+        r4 = r4 - r7;         /* ...unless it is 2:   */
+        if eq r6 = r3;        /*    the matrix word   */
         r6 = r6 and r5;
     .mg_c2_grp:
         dm(i2, 1) = r6;       /* non-zero = run       */
@@ -204,6 +237,26 @@ _mask_apply:
     .mg_c2_az_next:
         nop;
     .mg_c2_az:
+        nop;
+    /* the same for a masked matrix bus's TX slot */
+    i0 = _mask_zero_mtx_ptrs;
+    i1 = _mask_zero_mtx_bits;
+    lcntr = 4, do .mg_c2_mz until lce;
+        r4 = dm(i0, 1);       /* the buffer           */
+        r5 = dm(i1, 1);       /* its matrix's bit     */
+        r5 = r3 and r5;
+        if ne jump (pc, .mg_c2_mz_next);
+        i2 = r4;
+#if DSP4_BLOCK_KERNELS
+        lcntr = DSP4_BLOCK_SIZE, do .mg_c2_mz_in until lce;
+        .mg_c2_mz_in:
+            dm(i2, 1) = r2;
+#else
+        dm(i2, 0) = r2;
+#endif
+    .mg_c2_mz_next:
+        nop;
+    .mg_c2_mz:
         nop;
     rts;
 _mask_apply.end:

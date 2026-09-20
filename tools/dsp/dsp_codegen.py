@@ -7701,8 +7701,37 @@ def _gen_scope_gates_legacy(chip_label, chip_nodes):
 
 AUX_OWNER_RE = {
     'chip1': re.compile(r'^C1_BUS_AUX_(\d+)(?:_SEND)?$'),
-    'chip2': re.compile(r'^C2_(?:RECV_AUX|MTR_AUX|AUX_[A-Z0-9]+)_(\d+)$'),
+    # MIX_AUX JOINED THIS LIST IN S79 AND IS THE REASON A D24 RAN FOUR AUX
+    # MIXERS NOTHING COULD REACH. `C2_MIX_AUX_nn` is the sum that FEEDS aux
+    # bus nn -- its fixed feed is `_buf_C2_RECV_AUX_nn` and its only reader
+    # is `C2_AUX_FDR_nn`, both of which this same rule already put behind
+    # aux nn's gate -- so leaving it out did not make it safe, it made it
+    # UNCONDITIONAL: twelve mixers on every product, on every block, while
+    # the D24 product config has masked auxes 9..12 off since S28
+    # (`dsp4_config.py` CFG_AUX_MASK = 0x000000FF). S78 §5.1 counted the
+    # four and S78-Q2 asked whether they were worth gating; this is that
+    # gate, and it needs no new word, no new cell and no new def row --
+    # the mask the host already sends is the product statement.
+    'chip2': re.compile(r'^C2_(?:RECV_AUX|MTR_AUX|MIX_AUX|AUX_[A-Z0-9]+)_(\d+)$'),
 }
+
+
+MTX_OWNER_RE = {
+    'chip1': None,
+    # THE MATRIX CHAINS (S79). `C2_RECV_MTX_nn` / `C2_MTX_FDR_nn` /
+    # `C2_MTX_OUT_nn` are the whole of matrix bus nn on chip 2 -- receive,
+    # fader, output slot -- and nothing else reads any of them. Anchored
+    # the same way the aux rule is, so a future `C2_MTX_SOMETHING_GLOBAL`
+    # cannot be swept into a per-bus gate by accident.
+    'chip2': re.compile(r'^C2_(?:RECV_MTX|MTX_[A-Z0-9]+)_(\d+)$'),
+}
+
+
+def mtx_owner(chip_label, nid):
+    """The matrix bus a node belongs to, or None."""
+    rx = MTX_OWNER_RE.get(chip_label)
+    m = rx.match(nid) if rx else None
+    return int(m.group(1)) if m else None
 
 
 def aux_owner(chip_label, nid):
@@ -7774,8 +7803,36 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
         a = aux_owner(chip_label, n['id'])
         if a is None or n['type'] not in ZERO_OF:
             continue
+        # WHAT HAS TO BE ZEROED IS WHAT SOMETHING OUTSIDE THE GATE READS.
+        # `_tx_out_slot_C2_AUX_OUT_nn` is read by the DMA, which does not
+        # know the gate exists, so it must be silenced. Chip 2's MIX_BUS
+        # output is read by exactly one thing -- `C2_AUX_FDR_nn`, which
+        # this same aux bit gates -- so a stale block is never looked at,
+        # and zeroing it would be wrong in two ways at once: it buys
+        # nothing, and `_buf_C2_MIX_AUX_nn` is a SCALAR in every build
+        # (the chip-2 block wrapper puts the block in `_blk_`), so the
+        # loop's DSP4_BLOCK_SIZE-word write would run off the end of it
+        # into whatever the linker placed next. Chip 1's MIX_BUS is not
+        # the same shape -- its `_buf_C1_BUS_AUX_nn` IS the block array,
+        # and the gather reads it from outside the gate -- so it stays.
+        if chip_label == 'chip2' and n['type'] == 'MIX_BUS':
+            continue
         aux_zero.append((a, ZERO_OF[n['type']] + n['id']))
     aux_zero.sort()
+    # THE MATRIX MASK'S OWN ZERO LIST (S79). `_tx_out_slot_C2_MTX_OUT_nn`
+    # is a physical TX slot read by the DMA, which knows nothing about the
+    # gate, so a skipped matrix chain has to leave silence behind rather
+    # than its last block -- the same rule, and the same buffer shape, as
+    # `_tx_out_slot_C2_AUX_OUT_nn`. RECV_MTX and MTX_FDR publish only to
+    # each other and to MTX_OUT, all three behind this one bit, so they
+    # need nothing.
+    mtx_zero = []                       # (matrix index, symbol)
+    for n in chip_nodes:
+        x = mtx_owner(chip_label, n['id'])
+        if x is None or n['type'] not in ZERO_OF:
+            continue
+        mtx_zero.append((x, ZERO_OF[n['type']] + n['id']))
+    mtx_zero.sort()
     strips_here = sorted({int(m.group(3)) for n in chip_nodes
                           for m in [STRIP_NODE_RE.match(n['id'])] if m})
 
@@ -7812,19 +7869,22 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
         A(f'.global _mask_on;')
         A(f'.var _mask_on[{nk}] = ' + ', '.join('1' for _ in range(nk)) + ';')
         A('/* ...and what each group is a function of: the mask word (0 =')
-        A(' * channel, 1 = aux) and the bits of it that keep the group')
-        A(' * alive. A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER')
+        A(' * channel, 1 = aux, 2 = matrix) and the bits of it that keep')
+        A(' * the group alive.')
+        A(' * A PAIR OF STRIPS CARRIES BOTH BITS and runs if EITHER')
         A(' * is live -- the paired kernels are one instruction stream over')
         A(' * two strips and there is no runtime way to half-issue them.')
         A(' * The masked half of a live pair contributes nothing anyway:')
         A(' * its ROUTING node has a gate group of its own and its')
         A(' * crosspoint column is zeroed below. */')
+        _WORD_OF = {'chan': 0, 'aux': 1, 'mtx': 2}
+        _NAME_OF = {'chan': 'strip', 'aux': 'aux', 'mtx': 'matrix'}
         A(f'.var _mask_grp_word[{nk}] =')
         for i, k in enumerate(keys):
-            A('    %d%s    /* %-4s %s */'
-              % (0 if k[0] == 'chan' else 1,
+            A('    %d%s    /* %-6s %s */'
+              % (_WORD_OF[k[0]],
                  ',' if i < nk - 1 else ';',
-                 'strip' if k[0] == 'chan' else 'aux',
+                 _NAME_OF[k[0]],
                  '+'.join(str(x) for x in k[1:])))
         A(f'.var _mask_grp_bits[{nk}] =')
         for i, k in enumerate(keys):
@@ -7845,13 +7905,28 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
         for i, (_a, sym) in enumerate(aux_zero):
             A('    0x%08X%s   /* aux %d */'
               % (1 << (_a - 1), ',' if i < len(aux_zero) - 1 else ';', _a))
+    if mtx_zero:
+        A('')
+        A('/* The same, for a masked MATRIX bus: a physical TX slot the DMA')
+        A(' * clocks out whether or not the chain that fills it ran. */')
+        for _x, sym in mtx_zero:
+            A(f'.extern {sym};')
+        A(f'.var _mask_zero_mtx_ptrs[{len(mtx_zero)}] =')
+        for i, (_x, sym) in enumerate(mtx_zero):
+            A('    %s%s' % (sym, ',' if i < len(mtx_zero) - 1 else ';'))
+        A(f'.var _mask_zero_mtx_bits[{len(mtx_zero)}] =')
+        for i, (_x, sym) in enumerate(mtx_zero):
+            A('    0x%08X%s   /* matrix %d */'
+              % (1 << (_x - 1), ',' if i < len(mtx_zero) - 1 else ';', _x))
     A('')
     A('.section/pm seg_pmco;')
     A('')
     A('.extern _chan_mask;')
     A('.extern _aux_mask;')
+    A('.extern _mtx_mask;')
     A('.extern _chan_mask_live;')
     A('.extern _aux_mask_live;')
+    A('.extern _mtx_mask_live;')
     if is_c1 and strips_here:
         A('#if DSP4_BLOCK_KERNELS && DSP4_RTG_FABRIC')
         A('.extern _xpc;')
@@ -7867,6 +7942,8 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
     A('    dm(_chan_mask_live) = r0;')
     A('    r1 = dm(_aux_mask);')
     A('    dm(_aux_mask_live) = r1;')
+    A('    r3 = dm(_mtx_mask);')
+    A('    dm(_mtx_mask_live) = r3;')
     A('    l0 = 0;')
     A('    l1 = 0;')
     A('    l2 = 0;')
@@ -7876,12 +7953,18 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
         A('    i0 = _mask_grp_word;')
         A('    i1 = _mask_grp_bits;')
         A('    i2 = _mask_on;')
+        # THE THREE-WAY SELECT IS BRANCH-FREE, and the 2 lives in a
+        # register because the SHARC's type-2 compute takes no immediate
+        # (`r4 = r4 - 2` assembles as a semantic error, not as a load).
+        A('    r7 = 2;                   /* the matrix word\'s index */')
         A(f'    lcntr = {nk}, do .mg_{pref}_grp until lce;')
-        A('        r4 = dm(i0, 1);       /* 0 = chan, 1 = aux    */')
+        A('        r4 = dm(i0, 1);       /* 0 chan, 1 aux, 2 mtx */')
         A('        r5 = dm(i1, 1);       /* the group\'s bits     */')
         A('        r6 = r0;              /* assume the chan word */')
         A('        r4 = pass r4;')
         A('        if ne r6 = r1;        /* ...no, the aux word  */')
+        A('        r4 = r4 - r7;         /* ...unless it is 2:   */')
+        A('        if eq r6 = r3;        /*    the matrix word   */')
         A('        r6 = r6 and r5;')
         A('    .mg_%s_grp:' % pref)
         A('        dm(i2, 1) = r6;       /* non-zero = run       */')
@@ -7905,6 +7988,27 @@ def gen_mask_gates(chip_label, chip_nodes, mask_keys):
         A(f'    .mg_{pref}_az_next:')
         A('        nop;')
         A(f'    .mg_{pref}_az:')
+        A('        nop;')
+    if mtx_zero:
+        A('    /* the same for a masked matrix bus\'s TX slot */')
+        A('    i0 = _mask_zero_mtx_ptrs;')
+        A('    i1 = _mask_zero_mtx_bits;')
+        A(f'    lcntr = {len(mtx_zero)}, do .mg_{pref}_mz until lce;')
+        A('        r4 = dm(i0, 1);       /* the buffer           */')
+        A('        r5 = dm(i1, 1);       /* its matrix\'s bit     */')
+        A('        r5 = r3 and r5;')
+        A(f'        if ne jump (pc, .mg_{pref}_mz_next);')
+        A('        i2 = r4;')
+        A('#if DSP4_BLOCK_KERNELS')
+        A(f'        lcntr = DSP4_BLOCK_SIZE, do .mg_{pref}_mz_in until lce;')
+        A(f'        .mg_{pref}_mz_in:')
+        A('            dm(i2, 1) = r2;')
+        A('#else')
+        A('        dm(i2, 0) = r2;')
+        A('#endif')
+        A(f'    .mg_{pref}_mz_next:')
+        A('        nop;')
+        A(f'    .mg_{pref}_mz:')
         A('        nop;')
     if is_c1 and strips_here:
         A('#if DSP4_BLOCK_KERNELS && DSP4_RTG_FABRIC')
@@ -19232,6 +19336,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 a = aux_owner(chip_label, nid)
                 if a is not None:
                     return ('aux', a)
+                x = mtx_owner(chip_label, nid)
+                if x is not None:
+                    return ('mtx', x)
                 return None
 
             # WHICH ENTRIES MUST BE GATED EXACTLY, AND WHICH MAY BE
@@ -19265,7 +19372,14 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 m = strip_re.match(ent[1])
                 if m:
                     return m.group(2) in _EXACT_CLS
-                return aux_owner(chip_label, ent[1]) is not None
+                # An aux or matrix node is gated on its OWN index. Merging
+                # it with a neighbour would key the gate on the UNION of
+                # the two buses -- and since these nodes come in runs of
+                # one bus each, a merged gate over twelve aux mixers or
+                # four matrix chains is live whenever ANY of them is, which
+                # is to say it saves nothing at all.
+                return (aux_owner(chip_label, ent[1]) is not None
+                        or mtx_owner(chip_label, ent[1]) is not None)
 
             def _mask_meter_only(seq, idx_lo, idx_hi):
                 """A run of nothing but standalone METER entries. Under
@@ -19378,7 +19492,8 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     if idx not in mruns:
                         return
                     _end, _key, _rn = mruns[idx]
-                    _what = ('strip' if _key[0] == 'chan' else 'aux') + \
+                    _what = {'chan': 'strip', 'aux': 'aux',
+                             'mtx': 'matrix'}[_key[0]] + \
                         ' ' + '+'.join(str(i) for i in _key[1:])
                     _k = mask_keys.setdefault(_key, len(mask_keys))
                     f.write(_mif(idx))

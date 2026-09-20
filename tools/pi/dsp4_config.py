@@ -43,6 +43,7 @@ import sys
 CFG_PRODUCT_ID = 0xF000
 CFG_CHAN_MASK = 0xF001
 CFG_AUX_MASK = 0xF002
+CFG_MTX_MASK = 0xF006
 CFG_OUT_MUX = 0xF003
 CFG_COMMIT = 0xF004
 CFG_PATCH_BASE = 0xF010
@@ -110,11 +111,25 @@ if D24_INPUT_PATCH is None:
 # Aux001..Aux012. D24 was being sent 0x0FFF -- twelve -- which was
 # harmless while nothing read it and would have run four aux chains the
 # product does not have the moment something did.
+#
+# THE MATRIX MASK IS THE SAME STATEMENT, ONE BUS FAMILY ALONG (S79). Every
+# value below is `grep -o '^Matrix[0-9]*' defs/products/<p>/dsp.csv | sort
+# -u`, and nothing else: d32 declares Matrix001..004, d24 declares
+# Matrix001/002 and d16 and d12 declare NONE. Until S79 all four matrix
+# chains -- RECV_MTX, MTX_FDR, MTX_OUT -- ran on every product on every
+# block, so a D24 carried two and a D16 carried four that no cell on the
+# booted product could address. What this word must NOT be read as: a
+# statement about what can be ROUTED INTO a matrix bus. Both D24 and D32
+# stop at `Chan001MatrixOn/Send002`, so on a D32 buses 3 and 4 have an
+# output level, a mute and a name and no channel send -- that is S78-Q2,
+# it is PW's and defs', and it is deliberately NOT decided here: a bus
+# with an output cell is reachable, so D32 gets all four.
 PRODUCT_CONFIG = {
     'd32': {
         CFG_PRODUCT_ID: 0,
         CFG_CHAN_MASK: 0xFFFFFFFF,   # 32 strips
         CFG_AUX_MASK: 0x00000FFF,    # 12 aux buses
+        CFG_MTX_MASK: 0x0000000F,    # 4 matrix buses (Matrix001..004)
         CFG_OUT_MUX: 1,          # B_O2 = snake (stored; gather TBD)
         # identity input patch — no patch writes needed
     },
@@ -122,6 +137,7 @@ PRODUCT_CONFIG = {
         CFG_PRODUCT_ID: 1,
         CFG_CHAN_MASK: 0x00FFFFFF,   # 24 strips; 25-32 NET-only
         CFG_AUX_MASK: 0x000000FF,    # 8 aux buses
+        CFG_MTX_MASK: 0x00000003,    # 2 matrix buses (Matrix001/002)
         CFG_OUT_MUX: 0,          # B_O2 = codec
         'input_patch': D24_INPUT_PATCH,   # chip 1 only
     },
@@ -144,12 +160,14 @@ PRODUCT_CONFIG = {
         CFG_PRODUCT_ID: 1,       # the D24 scope class: monitor out, no snake
         CFG_CHAN_MASK: 0x0000FFFF,   # 16 strips
         CFG_AUX_MASK: 0x0000003F,    # 6 aux buses
+        CFG_MTX_MASK: 0x00000000,    # no Matrix cells at all
         CFG_OUT_MUX: 0,          # B_O2 = codec
     },
     'd12': {
         CFG_PRODUCT_ID: 1,
         CFG_CHAN_MASK: 0x00000FFF,   # 12 strips
         CFG_AUX_MASK: 0x0000000F,    # 4 aux buses
+        CFG_MTX_MASK: 0x00000000,    # no Matrix cells at all
         CFG_OUT_MUX: 0,
     },
 }
@@ -169,7 +187,8 @@ def transactions(product, chip, scope_id=None):
     gates it, and one config word different.
     """
     cfg = PRODUCT_CONFIG[product]
-    for addr in (CFG_PRODUCT_ID, CFG_CHAN_MASK, CFG_AUX_MASK, CFG_OUT_MUX):
+    for addr in (CFG_PRODUCT_ID, CFG_CHAN_MASK, CFG_AUX_MASK, CFG_MTX_MASK,
+                 CFG_OUT_MUX):
         v = cfg[addr]
         if addr == CFG_PRODUCT_ID and scope_id is not None:
             v = scope_id
