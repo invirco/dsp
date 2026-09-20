@@ -20,6 +20,7 @@
 #   DSP4_PROFILE_SIGNAL=0 ... same sweep as the silence control
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 # THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
 # staged pair -- it is whatever the last measurement run left there, and this
@@ -58,6 +59,10 @@ m=re.search(r\"proc_passes' address='(0x[0-9a-fA-F]+)'\",s); print(m.group(1) if
   python3 ../../../../tools/dsp/map_syms.py build/chip1.map.xml > /tmp/chip1.sym.json
   scp -q build/chip1.ldr build/chip2.ldr /tmp/chip1.sym.json ../../../../tools/pi/dsp4_block.py $BENCH:$STAGE/
   scp -q ../../../../tools/pi/dsp4_audio_verdict.py $BENCH:$STAGE/audio_verdict.py
+  # dsp4_dyn_witness.py is the pass/fail witness sigstrips_run.sh:56 invokes
+  # -- a scorer whose staleness silently changes a verdict is the S80-12
+  # risk exactly, so it travels with the other staged tools.
+  scp -q ../../../../tools/pi/dsp4_dyn_witness.py $BENCH:$STAGE/
   # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
   # with every run, so a bench cannot be left on a stale dsp4_boot.py that
   # still hands GPIO 6/24 to a0. Path is script-relative, not $ROOT: not

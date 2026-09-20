@@ -6,6 +6,7 @@
 # a dead card is what made a running graph look hung.
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 # THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a
 # staged pair -- it is whatever the last measurement run left there, and this

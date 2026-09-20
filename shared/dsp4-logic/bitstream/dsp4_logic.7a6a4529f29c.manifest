@@ -1,0 +1,19 @@
+artifact: dsp4_logic.7a6a4529f29c.{pof,svf}
+SHIPPING: yes
+built: 2026-09-20T09:50:54Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0
+design_id: 32'h4529f29c
+cfg_bits: 16'h0010
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:
+  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}
+  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}
+  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;
+  the frame counter MUST advance between two knocks or the witness
+  is dead and its zeros mean nothing (S81)
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cdd
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 67.25 MHz

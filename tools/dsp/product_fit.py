@@ -134,28 +134,69 @@ SCOPE_NAME = {0: 'D32', 1: 'D24'}
 # ---------------------------------------------------------------------------
 # The measured anchors
 # ---------------------------------------------------------------------------
-# S27 §2.1/§2.2, `MW/D32/DSP/dsp4-s27-20260910.md`. ONE image
-# (`shipping.config.s26`, chip1 `6396187c` / chip2 `9222c2ee`, staged as
-# `s26_*`), `DSP_LANDED_DIR=proposals/defs/products`, `driveall` LOGIC with
-# the CM4 playing, block 16, 983.04 MHz measured every row, REPS=2 and the
-# mean of the two boots quoted. The regime was PROVED on every driven row:
-# 64/64 chip-1 dynamics envelopes live, 32/32 chip-2 (28/28 at D24), 6/6
-# engines at Type 3 with 6/6 comb lines carrying signal.
+# RE-ANCHORED at hub ruling S81-Q1(a), 2026-09-20 (dispatch "S81 — hub
+# answers to S80"; question and options at
+# `MW/D24/DSP/s80/cfg3-rows-dark.md` §7). The construction was a two-point
+# (D24, D32) interpolation of S27's driven anchors
+# (`MW/D32/DSP/dsp4-s27-20260910.md` §2.1/§2.2); against S80's rows on the
+# fixed instrument (CFG3 landed, the pre-fix MFD-2 bit-shift closed) those
+# anchors were out by +43 to +85 points (S80 report §5, §7; reproduced
+# below by `score_measured`). Ruling: re-anchor A and B on S80's silent
+# rows across all four products; predict C from D16/D24/D32 only, since
+# D12's driven regime never proved (22 of 24 chip-2 envelopes, both boots
+# of both arms — S80 report §4.2, §4.4) and is NOT a measurement of D12;
+# every rewritten prediction carries its anchor session/date (`ROW_ANCHOR`,
+# `is_extrapolated`, and the `source` column `write_csv` emits).
+#
+# A_silent_default / B_silent_load: S80 report §4.2, all four products,
+# `MW/D32/DSP/fit-measured.json`. Arms `s80d12b1`/`s80d16b1`/`s80s28d24`/
+# `s80s28d32`, ONE byte-identical pair (chip1 `e364c522…`, chip2
+# `63b40b85…`), `DSP4_AUXIN_BYPASS=1` (shipping), REPS=2, 45 s dwell,
+# 983.01-983.08 MHz, block 16.
+#
+# C_driven_load: same session, same arms, D16/D24/D32 only — D12's row is
+# DELIBERATELY ABSENT from `fit-measured.json` (see its own `_NOTE`) and
+# is excluded here too; D12's construction is therefore an EXTRAPOLATION,
+# flagged by `is_extrapolated()`, not an interpolation.
+#
+# D_driven_fxoff: UNCHANGED, still S27, still D24/D32 only, and STALE.
+# `capacity.sh --driven` takes three rows, not four
+# (`fit-measured.json`'s own `_NOTE`: "There is no D row (driven, FX
+# off)"), so S80 supplies nothing to re-anchor it with. It is printed
+# with its stale S27 date so a reader can tell it apart from the rows
+# S80 touched.
 #
 # Each entry is (chip-1 avg %, chip-2 avg %). `worst` carries the
 # S21-6-corrected worst block of the same rows.
 MEASURED = {
     # row key: {product: (chip1_avg, chip2_avg)}
-    'A_silent_default': {'d24': (50.72, 63.02), 'd32': (65.38, 76.09)},
-    'B_silent_load':    {'d24': (59.97, 84.64), 'd32': (79.07, 100.88)},
+    'A_silent_default': {'d12': (32.44, 71.07), 'd16': (40.32, 79.47),
+                          'd24': (56.04, 88.33), 'd32': (72.05, 105.62)},
+    'B_silent_load':    {'d12': (43.67, 76.03), 'd16': (55.88, 87.73),
+                          'd24': (80.71, 98.28), 'd32': (106.70, 118.90)},
     'D_driven_fxoff':   {'d24': (59.91, 64.38), 'd32': (79.02, 80.67)},
-    'C_driven_load':    {'d24': (59.82, 84.37), 'd32': (79.16, 100.81)},
+    'C_driven_load':    {'d16': (84.59, 113.00),
+                          'd24': (123.57, 127.50), 'd32': (164.32, 151.57)},
 }
 MEASURED_WORST = {
-    'A_silent_default': {'d24': (50.97, 63.37), 'd32': (65.46, 76.38)},
-    'B_silent_load':    {'d24': (60.12, 84.81), 'd32': (79.26, 101.14)},
+    'A_silent_default': {'d12': (32.54, 71.33), 'd16': (40.49, 79.78),
+                          'd24': (56.22, 88.57), 'd32': (72.39, 106.04)},
+    'B_silent_load':    {'d12': (43.98, 76.33), 'd16': (56.12, 88.08),
+                          'd24': (80.94, 98.50), 'd32': (107.19, 119.25)},
     'D_driven_fxoff':   {'d24': (60.27, 64.61), 'd32': (79.78, 81.00)},
-    'C_driven_load':    {'d24': (60.18, 84.73), 'd32': (79.50, 101.14)},
+    'C_driven_load':    {'d16': (84.95, 113.46),
+                          'd24': (124.10, 128.02), 'd32': (164.70, 152.39)},
+}
+
+# S27's original A/B/C anchors, SUPERSEDED, kept only so the delta this
+# ruling reproduces (S80 report: "+43 points (D24) and +51 to +85 (D32)")
+# stays auditable without digging up dsp4-s27-20260910.md. Not read by any
+# code path below — `git log`/dsp4-s27-20260910.md §2.1/§2.2 remain the
+# citable source, this is a convenience copy.
+MEASURED_S27_SUPERSEDED = {
+    'A_silent_default': {'d24': (50.72, 63.02), 'd32': (65.38, 76.09)},
+    'B_silent_load':    {'d24': (59.97, 84.64), 'd32': (79.07, 100.88)},
+    'C_driven_load':    {'d24': (59.82, 84.37), 'd32': (79.16, 100.81)},
 }
 ROW_LABEL = {
     'A_silent_default': 'silent, the config the product boots with',
@@ -258,8 +299,20 @@ for _p in ('d12', 'd16', 'd24', 'd32'):
                                                        'D_driven_fxoff')
                                   else ''))
 
-# The two products the anchors were measured on, low then high.
-ANCHOR_LO, ANCHOR_HI = 'd24', 'd32'
+# Per-row anchor set, re-derived at S81-Q1(a) (see "The measured anchors"
+# above). Replaces the old fixed `ANCHOR_LO, ANCHOR_HI = 'd24', 'd32'` pair
+# — every row now names its own anchor products, and A/B/C carry a
+# different set than the still-stale D.
+ROW_ANCHOR = {
+    'A_silent_default': {'products': ('d12', 'd16', 'd24', 'd32'),
+                         'session': 'S80', 'date': '2026-09-20'},
+    'B_silent_load':    {'products': ('d12', 'd16', 'd24', 'd32'),
+                         'session': 'S80', 'date': '2026-09-20'},
+    'C_driven_load':    {'products': ('d16', 'd24', 'd32'),
+                         'session': 'S80', 'date': '2026-09-20'},
+    'D_driven_fxoff':   {'products': ('d24', 'd32'),
+                         'session': 'S27', 'date': '2026-09-10'},
+}
 
 # The measured code pool and DM, S26/S27. ONE firmware: these are the same
 # bytes on every product in the range, because every product boots the same
@@ -430,24 +483,71 @@ def line(lo_x, lo_y, hi_x, hi_y):
     return slope, lo_y - slope * lo_x
 
 
-# Rows whose chip-2 figure includes the PLUGIN LOAD — every FX engine the
-# product defines, live at Type 3. Both anchors define six, so a product
-# that defines four is two engines lighter on these rows and on no other.
+def lsq_line(points):
+    """slope, intercept of the least-squares line through 2+ (x, y) points.
+
+    Generalises `line()` to `ROW_ANCHOR` sets of more than two products
+    (S81-Q1(a): A/B anchor on four, C on three). With exactly two points
+    this reduces algebraically to `line()`'s exact interpolation -- it is
+    not a different model for the rows that still have two anchors (D),
+    only for the rows that now have more.
+    """
+    n = len(points)
+    if n < 2:
+        raise SystemExit('product_fit: fewer than two anchor points for '
+                         'this row -- there is no line to fit.')
+    sx = sum(x for x, _ in points)
+    sy = sum(y for _, y in points)
+    sxx = sum(x * x for x, _ in points)
+    sxy = sum(x * y for x, y in points)
+    denom = n * sxx - sx * sx
+    if denom == 0:
+        raise SystemExit('product_fit: the anchor products all have the '
+                         'same size on this axis -- there is no line '
+                         'through them.')
+    slope = (n * sxy - sx * sy) / denom
+    intercept = (sy - slope * sx) / n
+    return slope, intercept
+
+
+def is_extrapolated(row, product, sizes):
+    """True if `product` sits outside the (ch, aux) range `ROW_ANCHOR[row]`
+    was fit on -- the construction is EXTRAPOLATING past its own data, not
+    interpolating inside it. D12's `C_driven_load` is the one case in this
+    table (S81-Q1(a): D12 has no quotable driven row, S80 report §4.2/§4.4,
+    so it is excluded from C's anchor set and its C prediction is the line
+    read below the smallest product actually on it)."""
+    anchors = ROW_ANCHOR[row]['products']
+    if product in anchors:
+        return False
+    chs = [sizes[a]['ch'] for a in anchors]
+    auxs = [sizes[a]['aux'] for a in anchors]
+    return not (min(chs) <= sizes[product]['ch'] <= max(chs)
+                and min(auxs) <= sizes[product]['aux'] <= max(auxs))
+
+
+# RETIRED at S81-Q1(a), 2026-09-20 -- kept for the record, NOT called by
+# `predict()` below. It existed to attribute a loaded row's chip-2 cost to
+# live FX engines because the old two anchors (D24, D32) both defined all
+# six and the construction could show the effect no other way. Calling it
+# now would mix S80's `C_driven_load` anchors with `D_driven_fxoff`'s
+# untouched S27 ones -- a different session, and for C specifically the
+# very bitstream bug S80 was taken to fix (S80 report §4.3: every S28/S27
+# driven row ran the MFD-2 stimulus at 2 LSB). It is also no longer needed:
+# every row's new anchor set spans real FX-engine counts directly on
+# MEASURED data (D12/D16 define four engines, D24/D32 six), so the per-aux
+# fit already carries whatever the engine count costs. See `predict()`.
 FX_LOADED_ROWS = ('B_silent_load', 'C_driven_load')
 FX_ANCHOR_ENGINES = 6
 
 
-def fx_slope(table):
-    """Points of chip 2 per live reverb engine, from the anchors alone.
-
-    The loaded row minus the FX-off row, over the six engines both anchors
-    carry. It is a per-ENGINE figure and the product defs name an engine
-    count, so it belongs in the construction -- and it was NOT in the first
-    cut of this table (S28-3), which predicted every product's loaded rows
-    as if it had six.
-    """
+def _fx_slope_RETIRED(table):
+    """Points of chip 2 per live reverb engine, from the D24/D32 anchors
+    alone. RETIRED — see the comment above. Left only so the S27-era
+    number (`+3.344` pts/engine, still printed in old reports) can be
+    reproduced by hand if it is ever needed again."""
     vals = []
-    for p in (ANCHOR_LO, ANCHOR_HI):
+    for p in ('d24', 'd32'):
         c = table['C_driven_load'][p][1]
         d = table['D_driven_fxoff'][p][1]
         vals.append((c - d) / FX_ANCHOR_ENGINES)
@@ -455,37 +555,53 @@ def fx_slope(table):
 
 
 def predict(sizes, table):
-    """{row: {product: (chip1, chip2)}} by interpolation on the anchors.
+    """{row: {product: (chip1, chip2)}} by least-squares fit on each row's
+    OWN anchor set (`ROW_ANCHOR`), re-derived at S81-Q1(a) from S80's
+    measured rows (S80 report §7, hub ruling 2026-09-20).
 
     chip 1 is taken as a function of the CHANNEL count and chip 2 of the
     AUX count: chip 1 carries the 32 channel strips and chip 2 carries the
     twelve aux chains, and those are the two things the config words move.
-    The two anchors move both together, so the split between them is an
-    ATTRIBUTION, not a measurement -- see "what the prediction cannot see".
+    The anchors move both together, so the split between them is an
+    ATTRIBUTION, not a measurement -- see "what the prediction cannot see"
+    at the top of this module.
 
-    Chip 2's LOADED rows get a third term: the product's own FX engine
-    count against the six both anchors carry, at the per-engine slope the
-    anchors themselves give. Chip 1 gets no such term because the FX load
-    costs chip 1 nothing -- the anchors put C minus D at -0.09 and +0.14
-    points, which is the instrument's own resolution.
+    A_silent_default and B_silent_load fit all four products S80 measured
+    silent. C_driven_load fits D16/D24/D32 only -- D12's driven row never
+    proved (S80 report §4.2/§4.4) and is excluded from the fit; D12's own
+    C prediction is therefore an EXTRAPOLATION below the smallest anchor,
+    and `is_extrapolated()`/`write_csv` mark it so rather than passing it
+    off as an interpolation. D_driven_fxoff keeps its original two S27
+    anchors (D24, D32) -- S80 took three rows, not four, so there is
+    nothing to re-anchor it with; it is printed with its S27 date so a
+    reader can tell it apart from the rows this ruling touched.
+
+    With exactly two anchor products (D_driven_fxoff, and any row where a
+    caller narrows `ROW_ANCHOR`) the fit is `line()`'s exact interpolation.
+    With three or four it is `lsq_line()`'s least-squares line, which is
+    NOT exact at any single anchor -- the residual at an anchor is itself
+    useful (it is the S81-Q1 sanity check: the S80 report's flat
+    per-segment slopes, §4.5, predict small residuals, and `score_measured`
+    below shows whether they are).
+
+    THE FX-ENGINE CORRECTION TERM IS GONE. See the comment above
+    `_fx_slope_RETIRED`: it would mix a S80 C-row anchor with a stale S27
+    D-row one, and it is no longer needed because every anchor set below
+    now spans real FX-engine counts on real measured data.
     """
-    kfx = fx_slope(table)
     out = {}
     for row, per_product in table.items():
-        lo, hi = per_product[ANCHOR_LO], per_product[ANCHOR_HI]
-        k1, b1 = line(sizes[ANCHOR_LO]['ch'], lo[0],
-                      sizes[ANCHOR_HI]['ch'], hi[0])
-        k2, b2 = line(sizes[ANCHOR_LO]['aux'], lo[1],
-                      sizes[ANCHOR_HI]['aux'], hi[1])
-        loaded = row in FX_LOADED_ROWS
+        ra = ROW_ANCHOR[row]['products']
+        anchor_products = [p for p in ra if p in per_product]
+        pts1 = [(sizes[p]['ch'], per_product[p][0]) for p in anchor_products]
+        pts2 = [(sizes[p]['aux'], per_product[p][1]) for p in anchor_products]
+        k1, b1 = lsq_line(pts1)
+        k2, b2 = lsq_line(pts2)
         out[row] = {'slope': (k1, k2), 'intercept': (b1, b2),
-                    'kfx': kfx if loaded else 0.0, 'p': {}}
+                    'kfx': 0.0, 'anchor_products': tuple(anchor_products),
+                    'p': {}}
         for p, s in sizes.items():
-            c2 = b2 + k2 * s['aux']
-            if loaded:
-                c2 += kfx * (min(s['fx'], FX_ANCHOR_ENGINES)
-                             - FX_ANCHOR_ENGINES)
-            out[row]['p'][p] = (b1 + k1 * s['ch'], c2)
+            out[row]['p'][p] = (b1 + k1 * s['ch'], b2 + k2 * s['aux'])
     return out
 
 
@@ -538,8 +654,12 @@ def print_table(products, sizes, cells, cens, pred, pred_worst):
           f'({total_nodes} nodes, one firmware, decision D3)')
     print(f'  budget: {budget_cycles():,.0f} cycles/block at block {BLOCK}, '
           f'983.04 MHz')
-    print(f'  anchors: {ANCHOR_LO} and {ANCHOR_HI}, measured driven on one '
-          f'image (S27)')
+    print('  anchors, re-anchored S81-Q1(a) 2026-09-20:')
+    for row in ROW_ORDER:
+        ra = ROW_ANCHOR[row]
+        stale = ('  — STALE, no S80 data' if ra['session'] != 'S80' else '')
+        print(f'    {row}: ' + ', '.join(p.upper() for p in ra['products'])
+              + f" ({ra['session']}, {ra['date']}){stale}")
     print(f'  code pool: chip 1 {CODE_USED_C1:,} of {CODE_POOL_BYTES:,} bytes '
           f'({100.0 * CODE_USED_C1 / CODE_POOL_BYTES:.1f} %), chip 2 '
           f'{CODE_USED_C2:,} — THE SAME ON EVERY PRODUCT BELOW.')
@@ -696,11 +816,22 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
         'defs/tools/expand_matrix.py and intersected with the graph by',
         'MW/D32/DSP/gen_dsp.py --propose.',
         '',
-        'chip{1,2}_built_pct is the CONSTRUCTION (S28 gate 1): a two-point',
-        'interpolation of the driven rows measured on d24 and d32, chip 1',
-        'against the channel count, chip 2 against the aux count plus the',
-        "product's own FX engine count. chip{1,2}_avg_pct and _worst_pct are",
-        'MEASURED where source says so. `fits` is against the WORST BLOCK.',
+        'chip{1,2}_built_pct is the CONSTRUCTION: chip 1 fit against the',
+        'channel count, chip 2 against the aux count, on EACH ROW\'S OWN',
+        'anchor set (`ROW_ANCHOR` in product_fit.py). RE-ANCHORED at hub',
+        'ruling S81-Q1(a), 2026-09-20 (MW/D24/DSP/s80/cfg3-rows-dark.md §7):',
+        'rows A and B now fit ALL FOUR products\' S80 silent rows; row C',
+        'fits D16/D24/D32 only (D12\'s driven regime never proved, S80',
+        'report §4.2/§4.4, so D12\'s C is an EXTRAPOLATION below the',
+        'smallest anchor, flagged in `source`); row D (driven, FX off) has',
+        'no S80 measurement at all and keeps its original S27 anchors',
+        '(d24/d32, 2026-09-10) -- STALE, and `source` says so. The old',
+        'FX-engine correction term is retired (see `_fx_slope_RETIRED` in',
+        'product_fit.py): every re-anchored row now spans real FX-engine',
+        'counts on real measured data, so a separate term would double it.',
+        '`source` on every row names which session/date it was built or',
+        'measured against. chip{1,2}_avg_pct and _worst_pct are MEASURED',
+        'where source says so. `fits` is against the WORST BLOCK.',
         '',
         'row A silent/default | B silent/load | D driven, FX off |',
         'C driven, the product\'s FX load. C is the row a product ships',
@@ -729,20 +860,19 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
         "that decides D32's fit. Supersedes S32's four @s32-lead rows.",
         'See MW/D32/DSP/dsp4-s33-20260911.md and window-candidate.md §5.',
         '',
-        'THE FOURTH WORD ARRIVED AFTER EVERY MEASURED ROW BELOW WAS TAKEN',
-        '(S79). CFG_MTX_MASK gates the matrix chains and C2_MIX_AUX_nn',
-        'joined the aux gate, so nodes_run / nodes_gated_off in every row',
-        'are TODAY\'s census while the percentages are the S27/S28/S32',
-        'measurements of a firmware that called all of them: 10 more node',
-        'instances on a D24, 18 on a D16, 20 on a D12, none on a D32.',
-        'The D12 and D16 rows are therefore PESSIMISTIC by an unmeasured',
-        'margin and the D32 rows are not. S79\'s own driven rows are in',
-        'MW/D24/DSP/s79/bypass.md and are deliberately NOT merged here:',
-        'they were taken on the S78-fixed driveall bitstream and a row',
-        'taken on one stimulus is not comparable with a row taken on',
-        'another (see loadlogic.sh). Re-taking S28/S29 on the fixed',
-        'instrument is what makes them mergeable; it is S78-Q4 and it is',
-        'still due.',
+        'THE FOURTH WORD (S79, CFG_MTX_MASK) POSTDATES SOME ROWS AND NOT',
+        'OTHERS, and that line moved at S81-Q1(a): rows A/B/C are S80',
+        '(2026-09-20), taken AFTER S79 landed CFG_MTX_MASK, so their',
+        'nodes_run / nodes_gated_off match the percentages they sit beside.',
+        'Row D (driven, FX off) is still S27 (2026-09-10, pre-S79) and IS',
+        'pessimistic by the unmeasured margin the old note described: 10',
+        'more node instances on a D24, 18 on a D16, 20 on a D12, none on a',
+        'D32, all called but on their cheap branch. The @s32-lead rows',
+        'below are S32 (2026-09-11), also pre-S79, same caveat. S79\'s own',
+        'driven rows are in MW/D24/DSP/s79/bypass.md and are deliberately',
+        'NOT merged here: they were taken on the S78-fixed driveall',
+        'bitstream and a row taken on one stimulus is not comparable with',
+        'a row taken on another (see loadlogic.sh).',
         '',
         'NOT IN THIS TABLE, and why — a fit table that lists four of the',
         "range's nine product folders without saying so is a table that",
@@ -765,7 +895,12 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
             for row in ROW_ORDER:
                 c1, c2 = pred[row]['p'][p]
                 w1, w2 = pred_worst[row]['p'][p]
-                src = 'construction'
+                ra = ROW_ANCHOR[row]
+                stale = ' STALE' if ra['session'] != 'S80' else ''
+                extrap = (', EXTRAPOLATED' if is_extrapolated(row, p, sizes)
+                          else '')
+                src = (f"construction ({ra['session']} anchors "
+                       f"{ra['date']}{stale}{extrap})")
                 ovr = ''
                 if p in measured and row in measured[p]:
                     m = measured[p][row]
@@ -773,10 +908,12 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
                     c2, w2 = m['2'][0], m['2'][1]
                     ovr = m['1'][2] + m['2'][2]
                     src = 'measured'
+                    if p in ra['products']:
+                        src += f" (anchor, {ra['session']} {ra['date']})"
                 elif p in MEASURED[row]:
                     c1, c2 = MEASURED[row][p]
                     w1, w2 = MEASURED_WORST[row][p]
-                    src = 'measured (S27 anchor)'
+                    src = f"measured (anchor, {ra['session']} {ra['date']}{stale})"
                 n = cens[p]
                 bb1, bb2 = pred[row]['p'][p]
                 w.writerow({
@@ -841,20 +978,24 @@ def write_csv(path, products, sizes, cells, cens, pred, pred_worst,
 
 
 def score_measured(got, pred, pred_worst):
-    """Gate 2: the delta between construction and measurement, per product.
+    """Gate 2: the delta between construction and measurement, per row.
 
-    For the ANCHORS this is a control, not a test: the construction IS their
-    measurement, so a non-zero delta there is the instrument disagreeing with
-    itself across sessions and is the scale every other delta is read
-    against.
+    For an ANCHOR (a product `ROW_ANCHOR[row]` names) this is a control,
+    not a test: the construction is FIT ON this row's own measurement, so
+    a non-zero delta there is the fit disagreeing with the data it was
+    built from. Before S81-Q1(a) the D24/D32 anchors were S27 numbers
+    scored against S80 measurements — two different sessions — which is
+    why they failed as controls (S80 report §5/§7, +43 to +85 points).
+    Re-anchored, an anchor row's delta is small by construction (near
+    zero with two anchors, a small least-squares residual with three or
+    four) — which is WEAKER evidence than a control that passes on data
+    it was not fit on. Said here, not just implied by a small number.
     """
     print()
     print('CONSTRUCTION vs MEASUREMENT  (delta = measured - built)')
     print(f'{"product":8}{"row":20}{"c1 built":>10}{"c1 meas":>9}{"Δ":>8}'
-          f'{"c2 built":>11}{"c2 meas":>9}{"Δ":>8}  ovr')
+          f'{"c2 built":>11}{"c2 meas":>9}{"Δ":>8}  ovr  anchor?')
     for p in sorted(got, key=lambda q: int(q[1:])):
-        anchor = ' (ANCHOR — this is a control)' if p in (ANCHOR_LO,
-                                                          ANCHOR_HI) else ''
         for row in ROW_ORDER:
             if row not in got[p]:
                 continue
@@ -862,10 +1003,11 @@ def score_measured(got, pred, pred_worst):
             m = got[p][row]
             m1, m2 = m['1'][0], m['2'][0]
             ovr = m['1'][2] + m['2'][2]
+            ra = ROW_ANCHOR[row]
+            tag = (f"ANCHOR ({ra['session']} {ra['date']}) — control, "
+                   f"passes by construction" if p in ra['products'] else '')
             print(f'{p:8}{row:20}{b1:>10.2f}{m1:>9.2f}{m1 - b1:>+8.2f}'
-                  f'{b2:>11.2f}{m2:>9.2f}{m2 - b2:>+8.2f}  {ovr}')
-        if anchor:
-            print(f'{"":8}{anchor}')
+                  f'{b2:>11.2f}{m2:>9.2f}{m2 - b2:>+8.2f}  {ovr!s:<4} {tag}')
 
 
 def print_segments(got, sizes):
@@ -933,10 +1075,12 @@ def main():
 
     products = [p.strip() for p in a.products.split(',') if p.strip()]
     nodes, sizes, cells, cens = collect(products)
-    for anchor in (ANCHOR_LO, ANCHOR_HI):
-        if anchor not in sizes:
-            _, sizes_all, _, _ = collect(sorted(set(products) | {anchor}))
-            sizes.update({anchor: sizes_all[anchor]})
+    all_anchors = sorted({p for ra in ROW_ANCHOR.values()
+                          for p in ra['products']})
+    missing = [p for p in all_anchors if p not in sizes]
+    if missing:
+        _, sizes_all, _, _ = collect(sorted(set(products) | set(missing)))
+        sizes.update({p: sizes_all[p] for p in missing})
     pred = predict(sizes, MEASURED)
     pred_worst = predict(sizes, MEASURED_WORST)
 

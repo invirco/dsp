@@ -32,6 +32,7 @@
 #   FUSED=1 ./ctlgate.sh      same question on the fused kernels
 set -u
 cd "$(dirname "$0")"
+source ./bench_lock.sh; bench_lock_acquire "$0"
 BENCH=app@192.168.1.219
 ROOT=../../../..
 # THE SHARED SCRATCH SLOT, NAMED (S16-9). ~/dspboot/chip{1,2}.ldr is not a

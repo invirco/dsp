@@ -157,6 +157,93 @@ module dsp4_logic_top (
     assign fsi  = {fs8, fs16, fs8, fs16,
                    fs16, fs8, fs16, fs8};
 
+    // ---- CDC_O WITNESS (S81) ----
+    //
+    // The converters have been dark since S71 and S80 bisected the fault to
+    // UPSTREAM OF THIS CPLD: under `driveall` every slot of i_dspa[4] carries
+    // the stimulus at exactly -6.02 dBFS, so the SHARC pin, SPORT, RX DMA,
+    // slot map and graph buffers are good end to end, and on the shipping
+    // bitstream the same lane reads exact digital zero. What nobody could say
+    // without a scope on the converter board was whether `cdc_o` -- the
+    // codec's own data return, the one thing on the far side of the bisect
+    // this part can actually SEE -- carries anything at all.
+    //
+    // WHAT THIS CAN AND CANNOT WITNESS, stated because the dispatch asked for
+    // "BCLK/FS present at the codec": conv_bck and conv_fs are OUTPUTS of
+    // this CPLD. It knows it is generating them; it cannot know they arrive
+    // at the codec's pins, and nothing in a MAX V can. What it can witness is
+    // the consequence -- a codec that is clocked and converting drives cdc_o,
+    // a codec that is not leaves it static -- and that is the measurement
+    // below. A static lane does NOT by itself distinguish "no clock" from "no
+    // conversion"; taken with the SPI read arm (S81 gate 2), which has the
+    // codec answering its own register image with RSTN set, it narrows to the
+    // clock/frame pair or the analog rails.
+    //
+    // Three statistics per 48 kHz frame, which is what separates the cases a
+    // single "is it zero" bit would fuse together:
+    //   ones     bit periods in the frame with cdc_o high -- 0 is exact
+    //            digital silence, 256 is stuck high, anything between is data
+    //   toggles  transitions in the frame -- a stuck lane has none whatever
+    //            its level, so this separates "tied off" from "carrying zero
+    //            samples in a live frame"
+    //   max      high-water mark of `ones` since power-up, so a single burst
+    //            of activity between two knocks is not averaged away
+    //
+    // Plus a free-running frame counter, which is the INSTRUMENT'S OWN
+    // negative control: if two knocks a few tens of milliseconds apart return
+    // the same counter, the witness is dead and its zeros mean nothing. The
+    // S80 lesson is that an instrument answering static zero on a build where
+    // it cannot work is worse than no instrument, and a counter that must
+    // move is the cheapest guard against being that.
+    localparam [15:0] CDC_MAGIC = 16'hCD04;
+
+    reg        cdc_o_q;
+    reg [8:0]  cdc_ones_c, cdc_tog_c;      // this frame; 0..256 needs 9 bits
+    reg [8:0]  cdc_ones_l, cdc_tog_l;      // the last COMPLETE frame
+    reg [8:0]  cdc_ones_max;               // high-water since power-up
+    reg [15:0] cdc_frames;                 // free-running, 48 kHz
+
+    // Power-up state stated rather than inherited -- see the note beside
+    // cdc_count in dsp4_pcm_reframe.v. MAX V comes up cleared; saying so
+    // keeps simulation and silicon in agreement and keeps an unwritten
+    // counter from propagating X into the capture word.
+    initial begin
+        cdc_o_q = 1'b0;
+        cdc_ones_c = 9'd0; cdc_tog_c = 9'd0;
+        cdc_ones_l = 9'd0; cdc_tog_l = 9'd0;
+        cdc_ones_max = 9'd0;
+        cdc_frames = 16'd0;
+    end
+
+    // cdc_o is sampled on the same edge the DSP samples the lane on, so the
+    // count is of the bit periods the DSP itself sees and not of a phase
+    // nothing reads. If bck8_sample and the frame boundary land on the same
+    // sysclk the clear below wins and one sample of 256 is dropped; that is
+    // a 0.4 % error on a number whose whole job is zero-versus-not-zero.
+    wire cdc_frame_end = (frame_pos == 10'd1023);
+
+    always @(posedge sysclk) begin
+        if (bck8_sample) begin
+            cdc_o_q <= cdc_o;
+            if (cdc_o)             cdc_ones_c <= cdc_ones_c + 9'd1;
+            if (cdc_o != cdc_o_q) cdc_tog_c  <= cdc_tog_c  + 9'd1;
+        end
+        if (cdc_frame_end) begin
+            cdc_ones_l   <= cdc_ones_c;
+            cdc_tog_l    <= cdc_tog_c;
+            if (cdc_ones_c > cdc_ones_max) cdc_ones_max <= cdc_ones_c;
+            cdc_ones_c   <= 9'd0;
+            cdc_tog_c    <= 9'd0;
+            cdc_frames   <= cdc_frames + 16'd1;
+        end
+    end
+
+    // The two words the knock hands back. cdc_frames[15:9] advances every
+    // 10.7 ms, so any two knocks more than that apart MUST differ -- a fast
+    // bit would alias and prove nothing.
+    wire [31:0] cdc_wit_l = {7'd0, cdc_ones_l, 7'd0, cdc_ones_max};
+    wire [31:0] cdc_wit_r = {CDC_MAGIC, cdc_tog_l, cdc_frames[15:9]};
+
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
     // The broadcast copy of the Pi stream (all eight TDM8 slots), used
@@ -214,7 +301,9 @@ module dsp4_logic_top (
         .tdm_in      (o_dspb[3]),
 `endif
         .tdm_out     (pcm_tdm),
-        .tdm_drive   (pcm_drive)
+        .tdm_drive   (pcm_drive),
+        .cdc_wit_l   (cdc_wit_l),
+        .cdc_wit_r   (cdc_wit_r)
     );
 
     // ---- Input-lane sources (fixed per product) ----

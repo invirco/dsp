@@ -1,0 +1,146 @@
+--- /home/peter/build-h1s1/Core/Inc/matrix.cs.bak-2026-09-20-pre-s81	2026-09-19 08:33:34.126112410 +0100
++++ /home/peter/build-h1s1/Core/Inc/matrix.cs	2026-09-20 10:40:26.326792163 +0100
+@@ -56,6 +56,17 @@
+                            0x00, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00 };
+ char ak4619SpiMode[4] = { 0xDE, 0xAD, 0xDA, 0x7A };
++/* The READ command code (S81). The datasheet pairing recorded at S69 is
++   9.12 Table 27 / 9.13: the command code's MSB is the R/W flag and the low
++   seven bits are the access area, so the write code 0xC3 has the read code
++   0x43 -- SAME seven low bits, MSB cleared. The S80-Q5 note proposing 0xC1
++   does not fit that rule in either direction (0xC1 still has the write MSB
++   set, and 0x41 is a different access area), so 0x43 is the default here.
++   It is a VARIABLE and not a literal precisely because the two candidates
++   disagree: bus cell Sys001Test001 := 0xFD sets it, so the bench can settle
++   the question by measurement instead of by reading, with no reflash. */
++unsigned char codecReadCmd = 0x43;
++unsigned char codecReadGuard = 0;
+ char ak4619[24] = { //0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00, 
+                     0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00,
+                     0xBB, 0xBB, 0x30, 0x30, 0x30, 0x30, 0x00, 
+@@ -77,6 +88,7 @@
+ void TestMicPres(void);
+ void TimeSplice(void);
+ void SpiTx(GPIO_TypeDef *port, uint16_t cs, int numBytes, unsigned char bytePtr[]);
++void SpiTxRx(GPIO_TypeDef *port, uint16_t cs, int numBytes, unsigned char txPtr[], unsigned char rxPtr[]);
+ void DspTx(GPIO_TypeDef* port, uint16_t cs, int address, int numBytes, unsigned char bytePtr[]);
+ 
+ // function
+@@ -143,6 +155,60 @@
+  * on rev D; the 2026-08-21 change removed H1S1's PERIODIC writes for this
+  * reason). Nothing here is periodic: one write per bus line, only when the
+  * host asks. The HOST is what has to keep its own SPI quiet around it. */
++/* THE READ ARM (S81, hub ruling 2026-09-20 Q5a). Until this the codec path
++ * was write-only in both halves -- no read command and no return cell -- so
++ * "does the AK4619 answer on SPI at all" needed a scope on the converter
++ * board. It is now one bus exchange.
++ *
++ * Two more sentinels join 0xFF in the ADDRESS cell, and neither is an
++ * AK4619 register (the map ends at 14H):
++ *
++ *   Sys001Test001 := 0xFE   READ. The DATA cell then carries the register
++ *                           number, and writing it triggers the read. The
++ *                           contents come back on Sys001Test001.
++ *   Sys001Test001 := 0xFB   RETURN THE GUARD BYTE of the last read, on
++ *                           Sys001Test001. Writing the data cell triggers
++ *                           it; the value written is not used.
++ *   Sys001Test001 := 0xFD   SET THE READ COMMAND CODE from the data cell.
++ *                           No SPI traffic; see codecReadCmd above.
++ *
++ * so "imjnFE\n" + "imjo05\n" reads 05H, and "imjnFD\n" + "imjoC1\n" first
++ * would make the next read use 0xC1 instead.
++ *
++ * TWO BYTES MATTER PER READ, and they are fetched one at a time:
++ *
++ *   rx[3]  the register's contents, the answer itself
++ *   rx[1]  the byte the part drove while the master was still clocking out
++ *          the ADDRESS -- the NEGATIVE CONTROL, held in codecReadGuard and
++ *          fetched with 0xFB. If MISO were echoing the master's own MOSI
++ *          (the U2-buffer fault) the data byte would come back as the
++ *          register NUMBER; the guard says which of the two shapes a part
++ *          that answers with the command code here is in.
++ *
++ * *** THE REPLY GOES ON THE ADDRESS CELL AND NEVER ON THE DATA CELL, AND
++ * THAT IS THE WHOLE DESIGN. *** The first S81 build answered on BOTH cells
++ * and it FREE-RAN on the part: the matrix bus is multi-drop, so H1S1 hears
++ * its own reply come back, Eol() stored it in the DATA cell, RXF went up,
++ * and CodecPoll read the register whose number was the previous answer --
++ * 00H returning 0x37, then 37H returning 0x00, alternating, a burst of
++ * unasked SPI on the copper the CM4 boots the SHARCs over. It terminated
++ * only by accident, when the echoed guard poisoned the address cell into
++ * the write branch, which transmits nothing.
++ *
++ * The rule that prevents it is structural rather than careful: the TRIGGER
++ * is RXF on the DATA cell, so nothing this firmware transmits may ever land
++ * there. An echo onto the ADDRESS cell is inert -- it changes a sentinel
++ * that the host rewrites before every request and that triggers nothing by
++ * itself.
++ *
++ * Poll() emits no data nibbles for a TXD of 0x00, so a returned zero is the
++ * address alone -- "imjn\n" -- which is still distinct from no reply, and a
++ * reply at all is the proof the arm ran (nothing else in this firmware ever
++ * flags this cell for transmit).
++ *
++ * Full duplex needs SpiTxRx(): SpiTx() is HAL_SPI_Transmit and discards
++ * MISO. hspi1 is already SPI_DIRECTION_2LINES with PA6 as SPI1_MISO, so
++ * this needs no re-init and changes nothing about the write path. */
+ void CodecPoll(void)
+ {
+     if (matrix[pSys001Test002][RXF])
+@@ -150,6 +216,22 @@
+         unsigned char reg = matrix[pSys001Test001][RXD];
+         unsigned char val = matrix[pSys001Test002][RXD];
+         if (reg == 0xFF) { StartAK4619(); }
++        else if (reg == 0xFD) { codecReadCmd = val; }
++        else if (reg == 0xFB)
++        {
++            matrix[pSys001Test001][TXD] = codecReadGuard;
++            matrix[pSys001Test001][TXF] = 1;
++        }
++        else if (reg == 0xFE)
++        {
++            unsigned char w[4] = { 0x00, 0x00, 0x00, 0x00 };
++            unsigned char r[4] = { 0x00, 0x00, 0x00, 0x00 };
++            w[0] = codecReadCmd; w[2] = val;
++            SpiTxRx(GPIOA, CS_C_Pin, 4, w, r);
++            codecReadGuard = r[1];
++            matrix[pSys001Test001][TXD] = r[3];
++            matrix[pSys001Test001][TXF] = 1;
++        }
+         else
+         {
+             unsigned char w[4] = { 0xC3, 0x00, reg, val };
+@@ -366,6 +448,33 @@
+     HAL_GPIO_WritePin(port, cs, GPIO_PIN_SET);
+ }
+ 
++/* SpiTx with MISO kept (S81). Deliberately a SEPARATE function rather than
++   a flag on SpiTx: SpiTx has three other callers -- StartAK4619 twice and
++   TestMicPres once -- and the 595 mic-pre chain shares this SPI with the
++   codec, so the write path must stay byte-identical and provably untouched
++   in the disassembly. Same CS discipline, same 1 s timeout. */
++void SpiTxRx(GPIO_TypeDef *port, uint16_t cs, int numBytes,
++		unsigned char txPtr[], unsigned char rxPtr[]) {
++
++	int i = 0;
++    uint8_t txBuffer[numBytes];
++    uint8_t rxBuffer[numBytes];
++	for (i = 0; i < numBytes; i++)
++	{
++	    txBuffer[i] = txPtr[i];
++	    rxBuffer[i] = 0;
++	}
++
++    HAL_GPIO_WritePin(port, cs, GPIO_PIN_RESET);
++    HAL_SPI_TransmitReceive(&hspi1, txBuffer, rxBuffer, numBytes, 1000);
++    HAL_GPIO_WritePin(port, cs, GPIO_PIN_SET);
++
++	for (i = 0; i < numBytes; i++)
++	{
++	    rxPtr[i] = rxBuffer[i];
++	}
++}
++
+ void DspTx(GPIO_TypeDef* port, uint16_t cs, int address, int numBytes, unsigned char bytePtr[])
+ {
+     int i = 0;

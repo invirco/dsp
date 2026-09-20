@@ -33,6 +33,14 @@ module tb_pcm_capture;
     localparam [31:0] KNOCK_L      = 32'hD5D5_1D1D;
     localparam [31:0] KNOCK_R      = ~KNOCK_L;
     localparam [15:0] ID_MAGIC     = 16'hD594;
+    localparam [31:0] KNOCK2_L     = 32'hCD04_32B4;
+    localparam [31:0] KNOCK2_R     = ~KNOCK2_L;
+    localparam [15:0] CDC_MAGIC    = 16'hCD04;
+    // Witness words the S81 knock must hand back VERBATIM. They are fed in
+    // from here rather than computed, so this checks the knock path alone;
+    // whether dsp4_logic_top counts cdc_o correctly is tb_logic_top's job.
+    localparam [31:0] TB_CDC_L     = 32'h0055_00AA;
+    localparam [31:0] TB_CDC_R     = {CDC_MAGIC, 16'h1234};
 
     // With the period decode corrected and CAP_EXTRA_DELAY back at 0, the
     // capture link is plain Philips I2S and the CM4 model is the ordinary
@@ -122,7 +130,8 @@ module tb_pcm_capture;
         .sysclk(sysclk), .frame_pos(frame_pos),
         .pcm_clk(c_clk), .pcm_fs(c_fs), .pcm_dout(c_dout), .pcm_din(c_din),
         .bck8_launch(bck8_launch), .bck8_sample(bck8_sample),
-        .tdm_in(tdm_line), .tdm_out(c_tdm_out)
+        .tdm_in(tdm_line), .tdm_out(c_tdm_out),
+        .cdc_wit_l(TB_CDC_L), .cdc_wit_r(TB_CDC_R)
     );
     model_pi_i2s_tx u_c_tx (.bck(c_clk), .ws(c_fs),
                             .left(pi_left), .right(pi_right), .sd(c_dout));
@@ -261,6 +270,40 @@ module tb_pcm_capture;
             knock_errors = knock_errors + 1;
         end else begin
             $display("  knock reply expired back to audio (%08x / %08x)", c_l, c_r);
+        end
+
+        // --- 4: the CDC_O witness knock (S81) ---
+        // A DIFFERENT word pair must fetch a DIFFERENT pair of words, and
+        // the audio path must come back afterwards. Both halves matter: a
+        // knock that answered whatever the last knock answered would be an
+        // instrument that cannot report a change, which is the only thing
+        // this one exists to do.
+        pi_left  = KNOCK2_L;
+        pi_right = KNOCK2_R;
+        #(1024.0 * 2.0 * SYS_HALF * 6);
+        pi_left  = 32'h0000_0000;
+        pi_right = 32'h0000_0000;
+        #(1024.0 * 2.0 * SYS_HALF * 4);
+
+        if (c_l !== TB_CDC_L) begin
+            $display("  KNOCK2: witness L read %08x, expected %08x", c_l, TB_CDC_L);
+            knock_errors = knock_errors + 1;
+        end
+        if (c_r !== TB_CDC_R) begin
+            $display("  KNOCK2: witness R read %08x, expected %08x", c_r, TB_CDC_R);
+            knock_errors = knock_errors + 1;
+        end
+        if (c_r[31:16] === ID_MAGIC) begin
+            $display("  KNOCK2: answered with the ID magic, not the CDC magic");
+            knock_errors = knock_errors + 1;
+        end
+
+        #(1024.0 * 2.0 * SYS_HALF * 140);
+        if (c_l === TB_CDC_L && c_r === TB_CDC_R) begin
+            $display("  KNOCK2: reply never expired");
+            knock_errors = knock_errors + 1;
+        end else begin
+            $display("  knock2 answered and expired back to audio");
         end
 
         if (errors == 0 && knock_errors == 0)

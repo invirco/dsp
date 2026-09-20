@@ -49,8 +49,37 @@ MISO buffer; a CS_M left low looks exactly like a DSP link phase fault).
   codec4619.py --mgn2r 5                    MGN2R code 5 only, MGN2L left at its current value
   codec4619.py --reinit                     re-run StartAK4619() on the part
   codec4619.py --test                       S_TEST: print the MCUs' test lines
+  codec4619.py --read 05                    READ 05H back off the part (S81)
+  codec4619.py --read-all                   read 00H..14H and decode what is THERE
+  codec4619.py --read 05 --read-cmd C1      same, with S80-Q5's proposed command code
+
+THE READ ARM (S81). Until 2026-09-20 this path was write-only in both halves, so
+"does the AK4619 answer on SPI at all" could only be settled with a scope on the
+converter board. H1S1 now carries three more sentinels in the ADDRESS cell -- 0xFE
+= read the register named by the data cell, 0xFB = hand back that read's GUARD
+byte, 0xFD = set the read command code -- and every reply comes back on
+Sys001Test001, the ADDRESS cell, never on the data cell.
+
+That asymmetry is not tidiness. The matrix bus is multi-drop and H1S1 hears its
+own replies: the first S81 build answered on the DATA cell, whose RXF is what
+triggers the arm, so each reply re-armed it and the part FREE-RAN -- 00H answering
+0x37, then 37H answering 0x00, alternating, a burst of unasked SPI on the copper
+the CM4 boots the SHARCs over. The guard is therefore fetched, not pushed.
+
+The guard is the byte MISO carried while the master was still clocking the address
+out, and it is a negative control rather than decoration. The AK4619 returns the
+command code there as a matter of course, so the guard ALONE does not separate a
+live codec from a MISO echoing the master's own MOSI -- the DATA byte does: under
+an echo the "contents" would be the register NUMBER. `--read` prints both and says
+which case it is.
+
+The command code is 0x43 by DATASHEET (9.12 Table 27 / 9.13: the write code 0xC3
+with the R/W MSB cleared, the same low seven bits). S80-Q5 proposed 0xC1, which
+fits that rule in neither direction. Rather than pick by reading, the code byte is
+a VARIABLE in the firmware and `--read-cmd` sets it, so the part settles it.
 """
 import argparse
+import re
 import os
 import sys
 import termios
@@ -83,6 +112,82 @@ def cell_line(addr, data):
     return (s + '\n').encode()
 
 
+def cell_prefix(addr):
+    """The address characters H1S1's Poll() puts in front of a reply for `addr`.
+
+    Poll() emits a nibble only if the address still has bits at or below it
+    (`MATRIX[TXptr] & 0xf000`, `& 0xff00`, ...), so a cell whose address has
+    leading zero nibbles answers with fewer characters than cell_line() sends.
+    Both of this tool's cells are 0x15xx and so spell all four, but the rule is
+    coded rather than assumed because the next cell added may not."""
+    s = ''
+    for sh, mask in ((12, 0xF000), (8, 0xFF00), (4, 0xFFF0), (0, 0xFFFF)):
+        if addr & mask:
+            s += AX[(addr >> sh) & 0xF]
+    return s
+
+
+def parse_reply(raw, addr):
+    """The LAST reply for `addr` in `raw`, or None if the cell did not answer.
+
+    Data nibbles are emitted conditionally too -- `if (TXD & 0xf0)` then
+    `if (TXD & 0xff)` -- so a byte of 0x00 arrives as the bare address and 0x05
+    as one character, not two. An address with no digits after it is therefore
+    a real answer of ZERO, which is exactly the reading this path exists to
+    distinguish from silence, and it must not be parsed as a malformed line.
+
+    THE LINE IS NOT SCANNED WITH startswith. MH1 emits a '.'/':' heartbeat into the
+    same stream whenever it is idle, and it is not newline-aligned with the cell
+    traffic, so a real reply arrives as `.:imjo40` far more often than as a clean
+    line of its own. The match is bounded on both sides instead: the character
+    before it must not be an address or data nibble (nothing can be part of a
+    longer token), and the digits must be followed by something that is not a data
+    nibble.
+
+    THE MATCH MUST BE TERMINATED, and that is not pedantry -- it is the difference
+    between a register that holds zero and one that was still arriving. A reply of
+    0x00 is the bare address, so a buffer caught mid-line at "...imjo" looks
+    EXACTLY like a completed zero; a caller that polls until both cells have
+    answered would then stop one character early and record 0x00 for whatever was
+    about to be "18". The first S81 sweep read 02H, 08H and 0EH as 0x00 that way,
+    three registers whose real contents are 0x10, 0x30 and 0x18. So the lookahead
+    demands a character that EXISTS and is not a data nibble."""
+    want, out = cell_prefix(addr), None
+    text = raw.decode('ascii', 'replace')
+    pat = re.compile('(?<![%s%s])%s([%s]{0,2})(?=[^%s])'
+                     % (AX, DX, want, DX, DX))
+    for m in pat.finditer(text):
+        tail = m.group(1)
+        out = int(tail, 16) if tail else 0
+    return out
+
+
+def verdict(reg, val, guard, cmd):
+    """What one (value, guard) pair is evidence OF.
+
+    *** CORRECTED ON THE PART, 2026-09-20 (S81). *** The first version of this
+    read `guard == cmd` as the U2-buffer fault -- MISO echoing the master's own
+    MOSI -- and printed that against all 21 registers of an image that plainly
+    WAS the codec's own. The AK4619 returns the command code in that byte as a
+    matter of course, so the guard alone does not separate the two cases; it is
+    the DATA byte that does.
+
+    The echo hypothesis is a specific, falsifiable prediction: if MISO carried
+    the master's MOSI one byte late, then rx[3] would be tx[2], which is the
+    REGISTER NUMBER. So `val == reg` is the echo signature and `val != reg` is
+    the part answering with something the master never sent. Nine registers of
+    the init image differ from their own address, which is what makes this
+    decidable at all -- and a read of 01H returning 0xAC, or 14H returning 0x0A,
+    is an echo of nothing."""
+    if val is None or guard is None:
+        return 'NO REPLY -- the arm did not answer'
+    if guard not in (0x00, cmd):
+        return 'guard 0x%02X is neither 0x00 nor the command code' % guard
+    if val == reg and reg not in (0x00,):
+        return 'INCONCLUSIVE -- value equals the register number (echo signature)'
+    return 'ANSWERED'
+
+
 class Bus:
     """The MX bus over /dev/serial0, 115200 8N1, opened raw.
 
@@ -92,6 +197,7 @@ class Bus:
     by what the line CONTAINS, never by whether anything arrived."""
 
     def __init__(self, port=PORT):
+        self.last_raw = b""
         self.fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
         a = termios.tcgetattr(self.fd)
         a[4] = a[5] = termios.B115200
@@ -142,6 +248,55 @@ class Bus:
         afterwards: SpiTx blocks in H1S1's main loop and shares copper with CM4 SPI0."""
         self.send(cell_line(SYS001TEST001, reg), 0.05)
         self.send(cell_line(SYS001TEST002, val), settle)
+
+    def read_reg(self, reg, settle=0.25, cmd=None):
+        """Read one AK4619 register (S81). Returns (value, guard, raw).
+
+        The arm is H1S1's `CodecPoll()` sentinel 0xFE in the ADDRESS cell: the DATA
+        cell then carries the register number and writing it triggers a full-duplex
+        4-byte exchange {cmd, 0x00, reg, 0x00}. The part answers on TWO cells:
+
+            Sys001Test002  rx[3]  the register contents -- the answer
+            Sys001Test001  rx[1]  what MISO carried while the master was still
+                                  clocking the ADDRESS out -- the negative control
+
+        BOTH COME BACK ON THE ADDRESS CELL, one request each, and that asymmetry
+        is deliberate. The matrix bus is multi-drop: H1S1 hears its own replies.
+        The first S81 firmware answered on the DATA cell, whose RXF is the trigger,
+        so every reply re-armed the arm and the part free-ran -- 00H answering 0x37,
+        then 37H answering 0x00, alternating, unasked SPI on the copper the CM4
+        boots the SHARCs over. Nothing this firmware transmits may land on the
+        trigger cell, so the guard is FETCHED (sentinel 0xFB) rather than pushed.
+
+        A returned 0x00 is the address alone on the wire ("imjn\\n"), because H1S1's
+        Poll() emits no data nibbles for a zero TXD. That is still distinct from no
+        reply at all, and `None` is what this returns for no reply."""
+        if cmd is not None:
+            self.send(cell_line(SYS001TEST001, 0xFD), 0.05)
+            self.send(cell_line(SYS001TEST002, cmd), 0.08)
+        val = self._request(0xFE, reg, settle)
+        guard = self._request(0xFB, 0x00, settle)
+        return val, guard, self.last_raw
+
+    def _request(self, sentinel, arg, settle):
+        """One sentinel + trigger pair, waiting for the ADDRESS cell to answer.
+
+        Do not read a fixed window. H1S1 transmits only when MH1 raises S3, at
+        MH1's polling rate and not ours, so a fixed window catches the reply or
+        misses it depending on where in MH1's cycle the trigger landed -- and a
+        reply that misses its window turns up inside the NEXT request's, where it
+        reads as a plausible value for the wrong register. That aliasing is what
+        put 00H's 0x37 against 02H, 03H and 0BH in the first S81 sweep."""
+        termios.tcflush(self.fd, termios.TCIFLUSH)
+        self.send(cell_line(SYS001TEST001, sentinel), 0.05)
+        self.send(cell_line(SYS001TEST002, arg))
+        raw, t0 = b'', time.time()
+        while time.time() - t0 < settle:
+            raw += self.read(0.05)
+            if parse_reply(raw, SYS001TEST001) is not None:
+                break
+        self.last_raw = raw
+        return parse_reply(raw, SYS001TEST001)
 
 
 def decode(image=None):
@@ -230,6 +385,13 @@ def main():
     ap.add_argument('--reset', action='store_true',
                     help='send S_RESET first -- RE-INITS EVERY MCU and clears the 595 chain')
     ap.add_argument('--test', action='store_true', help='send S_TEST and print the replies')
+    ap.add_argument('--read', metavar='REG',
+                    help='READ one register, hex (S81 arm); prints value + guard byte')
+    ap.add_argument('--read-all', action='store_true',
+                    help='read 00H..14H and decode the image the part actually holds')
+    ap.add_argument('--read-cmd', metavar='HEX',
+                    help='override the read command code for this run (default 0x43; '
+                         'S80-Q5 proposed 0xC1 -- this is how to settle it on the part)')
     ap.add_argument('--decode', action='store_true', help='decode the init image and exit')
     ap.add_argument('--settle', type=float, default=0.06,
                     help='seconds to hold the bus quiet after the write (default 0.06)')
@@ -248,6 +410,25 @@ def main():
             print('S_RUN   ->', b.run())
         if a.test:
             print('S_TEST  ->', b.test())
+
+        rcmd = int(a.read_cmd, 16) if a.read_cmd else None
+        if a.read is not None or a.read_all:
+            regs = range(0x00, 0x15) if a.read_all else [int(a.read, 16)]
+            vals, first = [], True
+            for r in regs:
+                v, g, raw = b.read_reg(r, a.settle if a.settle > 0.2 else 0.25,
+                                       cmd=rcmd if first else None)
+                first = False
+                vals.append(v)
+                print('%02XH -> %s   guard %s   %s'
+                      % (r,
+                         'no reply' if v is None else '0x%02X' % v,
+                         'no reply' if g is None else '0x%02X' % g,
+                         verdict(r, v, g, rcmd if rcmd is not None else 0x43)))
+            if a.read_all and all(v is not None for v in vals):
+                print()
+                print(decode(vals))
+            return 0
 
         if a.reinit:
             b.write_reg(0xFF, 0x00, a.settle)
@@ -271,7 +452,8 @@ def main():
             print('%02XH := 0x%02X' % (reg, val))
         else:
             if not (a.test or a.run or a.reset):
-                ap.error('give --reg/--val, --mgn2r/--mgn2l, --reinit, --test or --decode')
+                ap.error('give --reg/--val, --read/--read-all, --mgn2r/--mgn2l, '
+                         '--reinit, --test or --decode')
             return 0
 
         b.write_reg(reg, val, a.settle)

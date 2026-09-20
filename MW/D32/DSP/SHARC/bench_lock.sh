@@ -79,9 +79,27 @@ bench_deploy_link_tools() {
     # shared-kernel mask, and reports "== the shipping configuration" while
     # having read almost none of it. A stale decoder that says PASS is worse
     # than one that raises.
+    # dsp4_cclk.py, dsp4_blk30.py, dsp4_inscan.py and dsp4_logic_id.py join
+    # at S80-12, the same fault a fourth time, found by auditing the class
+    # rather than waiting for the next symptom. dsp4_cclk.py is the
+    # MAGIC-bracketed clock read the bench recipe names as the SAFE
+    # replacement for dsp4_diag.py --rate, which is unguarded and measured
+    # -10509.64 MHz on a starved chip -- so the one tool the recipe trusts
+    # instead of an ungoverned read was itself unmanaged. dsp4_blk30.py is
+    # the block bar; its own contract refuses to score unless dsp4_block.py
+    # is staged beside it, i.e. it assumes a deploy discipline that does not
+    # exist for itself. dsp4_inscan.py was rewritten this session onto live
+    # symbols, and a rewrite that nothing deploys would sit unrefreshed on
+    # the card. dsp4_logic_id.py is the only tool that can say which
+    # bitstream is on the part. Verified on the card today: the first three
+    # are ABSENT from /home/app/dspboot/, and the logic_id copy that IS
+    # there is 2b379c11... dated 2026-09-09 against the repo's 280f7ab4...
+    # -- stale, a live instance of exactly this defect.
     scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
            "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
            "$dir/dsp4_buildcfg.py" \
+           "$dir/dsp4_cclk.py" "$dir/dsp4_blk30.py" \
+           "$dir/dsp4_inscan.py" "$dir/dsp4_logic_id.py" \
            "$dir/../../MW/D24/DSP/input_patch.json" \
            "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
       || echo ">>> BENCH DEPLOY: could not refresh the link tools on $BENCH_HOST" >&2

@@ -6,6 +6,176 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CODEC ANSWERS, CDC_O IS CARRYING DATA, AND THE CONVERTERS ARE NOT DARK — THE BITSTREAM FLASHED ON THE BENCH IS (2026-09-20, session 81)
+
+Hub dispatch `tasks.md` 2026-09-20 09:23Z, answering S80's six questions.
+Report: `MW/D24/DSP/s81/witnesses.md`.
+
+**S81-1 🔴 `dsp4_logic.a1f6672af6c3` — WHAT EVERY SESSION CALLS "SHIPPING" AND
+"THE STATE THE BENCH LIVES IN" — PREDATES THE S34 CONVERTER-CLOCK FIX, AND
+THAT IS WHY THE CONVERTERS ARE DARK.** Measured as an A/B on the part: same
+DSP pair, same firmware, same symbol map, same `dsp4_scope.py` reads, half an
+hour apart, only the LOGIC bitstream changed. On `a1f6672af6c3` all four
+`_buf_C1_XIN_CODEC_0*` read exact digital zero. On a bitstream built from the
+current tree (`7a6a4529f29c`) all four carry moving converter noise, and the
+excursions grow with AN_EN high. Confirmed independently by the rewritten
+`dsp4_inscan.py`: `MOVING 0 / STATIC 47` against `MOVING 4 / STATIC 43`, the
+four moving lanes being exactly the codec returns. The mechanism is in git:
+`a1f6672af6c3` was added at `a4ee3d1f` (2026-08-21), which
+`git merge-base --is-ancestor` puts BEFORE `ded71079` (2026-09-11), the S34
+fix — whose RTL comment reads *"THESE WERE INPUTS, AND THAT IS WHY NO
+CONVERTER CAN WORK … as inputs the converters and all three option slots get
+no bit clock and no frame sync at all"*, and whose commit message reads *"NOT
+MERGED, NOT FLASHED. PW decides."* **Ten sessions have diagnosed a hardware
+fault that is a pending decision.** Caveat stated rather than buried: the two
+bitstreams also differ in slot-map generation, so the A/B has two variables;
+S81-3 is what separates them, because a slot-map change cannot make a codec
+start transmitting.
+
+**S81-2 🟢 THE AK4619 ANSWERS ON SPI, AND THE READ ARM THAT ASKED IT IS
+H1S1's.** `CodecPoll()` gains sentinels `0xFE` (read), `0xFB` (fetch the guard
+byte) and `0xFD` (set the read command code) plus a full-duplex `SpiTxRx()`.
+All 21 registers `StartAK4619()` writes read back the init image exactly
+(`37 AC 10 00 BB BB 30 30 30 30 00 00 00 00 18 18 18 18 04 05 0A`); four
+registers it does not write (15H, 16H, 1FH, 7FH) read `0x00`; and a
+write-then-read control tracks (`05H := 0x35` reads `0x35`, `:= 0xBB` reads
+`0xBB`). 00H = `0x37` is the codec reporting itself powered with RSTN set.
+Verified in the DISASSEMBLY per the 2026-08-21 rule: `SpiTx` callers 4 → 4
+(the write path byte-identical), `SpiTxRx` 0 → 1, `DspTx` still 0, no `bl` in
+`TimeSplice`, only `CodecPoll` changed, only `SpiTxRx` and
+`HAL_SPI_TransmitReceive` added. Flashed `OK: H1S1` first try, no MH1 SWD
+reset needed; 3 of 3 MCUs verify.
+
+**S81-3 🟢 A FRAME WITNESS ON `CDC_O` IN THE LOGIC, AND IT RIDES THE KNOCK
+RATHER THAN A PROBE.** The TEST pins land on a DNP header, so the witness
+reuses the one no-hands path off a MAX V that already exists — the design-ID
+knock on the CM4 PCM link (S5-9) — as a SECOND word pair,
+`{L = 0xCD0432B4, R = 0x32FBCD4B}`, answering with per-frame `cdc_o` ones,
+toggles and a high-water mark, plus a free-running frame counter that is the
+instrument's own liveness control. **A-B-A on the codec's own power register:**
+codec up, ones 48 [9..86] / toggles 24; `00H := 0x00`, ones **0** / toggles
+**0** with the frame counter still advancing; codec up again, ones 48 /
+toggles 24. So the activity is the codec's, not a floating pin — and a codec
+can only frame a TDM stream if BICK and LRCK are arriving, which is the half
+of the question the CPLD cannot answer by looking at its own outputs.
+
+**S81-4 🔴 THE FIRST BUILD OF THE READ ARM FREE-RAN ON THE PART, BECAUSE THE
+MATRIX BUS IS MULTI-DROP AND H1S1 HEARS ITS OWN REPLIES.** It answered on
+`Sys001Test002`, whose RXF is the arm's trigger, so each reply re-armed it:
+00H answers `0x37`, the echo made it read register `0x37`, which answers
+`0x00`, and it ping-ponged — unasked SPI bursts on the copper the CM4 boots
+the SHARCs over, which is exactly the hazard the 2026-08-21 change removed
+H1S1's periodic writes for. It terminated only by accident, when the echoed
+guard poisoned the address cell into the write branch (which transmits
+nothing); the spurious writes went to register `0x43`, not an AK4619 register,
+and the image was re-inited and re-read afterwards. **The rule is structural:
+nothing this firmware transmits may land on the trigger cell.** Every reply
+now returns on the ADDRESS cell and the guard is fetched, not pushed.
+
+**S81-5 🔴 S80-Q5's PROPOSED READ COMMAND `0xC1` IS WRONG, AND FOLLOWING IT
+WOULD HAVE PRODUCED THE OPPOSITE ANSWER.** The datasheet pairing recorded in
+S69's own source comment (9.12 Table 27 / 9.13) is that the command code's MSB
+is the R/W flag, so the write code `0xC3` has read code `0x43` — same seven
+low bits, MSB cleared. `0xC1` keeps the WRITE flag set. Settled on the part
+rather than by argument, because the command byte was built as a firmware
+VARIABLE: with `0xC1` the AK4619 hands back **the register number** (01H →
+`0x01`, 05H → `0x05`), the master's own address byte clocked straight through.
+A read of 00H under `0xC1` would have returned `0x00` and the session would
+have reported "the codec does not answer on SPI".
+
+**S81-6 🟢 S80-10 CONFIRMED ON THE PART: THE MIC PREAMPS WERE AT GAIN 63.**
+The 595 chain's pass-1 MISO read `FC`×24 + `00` — twenty-four identical
+`0xFC` = gain 63, phantom off, mute off, which is exactly `TestMicPres()`'s
+only live image and not latched SPI traffic. Every noise figure taken on this
+bench since S79's `--reset` was taken at full mic gain. SAFE image
+(`0x01`×24 + `0x00`) written, `VERIFIED 200/200`, CS_M returned to `ip pu`.
+
+**S81-7 🟢 S70-7's CHAIN RULE MEASURED A SECOND TIME.** At handback, after
+this session's DSP boots, the chain read back `00 E0 FE 00 …` — byte for byte
+S70's pattern, three `0xFE` bytes decoding as **unmuted, phantom ON, gain
+63**. The S48-7 mechanism is still live and "assert the chain after the last
+DSP boot, never before it" is load-bearing. With CS_M parked `ip pu` there is
+no rising edge, so a later `matrix-app` restart shifts traffic through the
+chain without latching it.
+
+**S81-8 🔴 THE AK5558 LANES ARE STILL DARK WITH THE CLOCK PRESENT AND THE
+RAILS UP, AND NOTHING IN THIS TREE EVER CONFIGURES THEM.** `_buf_C1_IN_01/02/
+09/17` read exact digital zero on the post-S34 bitstream with AN_EN high, on
+the same run where the codec lanes moved. The ADCs share conv_bck/conv_fs with
+the codec, so the clock fix alone does not account for them. `StartAK4619()`
+writes the AK4619 only; no AK5558 register image exists anywhere in this repo.
+This is a different question from S81-1 and is not answered by it. It is also
+why the gate-1 EIN check could not be taken: MIC 5 runs into an AK5558.
+
+**S81-9 🔴 S69's H1S1 HUNKS NEVER REACHED THE CANONICAL DROPBOX COPY.** S69's
+dispatch said the hub would apply them to `_mx/MW/D24/FW/H1S1/Core/Inc/
+matrix.cs` and that "both copies must end identical"; today it was still the
+2026-08-21 file, four weeks behind the firmware actually flashed. S81 synced
+it with S69's and S81's changes together (md5 `f2fceaeb…` both sides, prior
+copy kept beside it). Nothing checks these two against each other.
+
+**S81-10 🟢 `dsp4_inscan.py` REWRITTEN ONTO THE BLOCK SYMBOLS, WITH BOTH
+CONTROLS PROVEN ON THE PART.** It reads `_buf_C<chip>_IN_*` / `_XIN_*`,
+refuses to run if they are absent instead of skipping silently, and gates
+every verdict behind a MUST-MOVE control (`FRAME_COUNT` advancing — otherwise
+the sample loop is not turning and every STATIC is meaningless) and a
+MUST-NOT-MOVE control (`_rx_slot_C1_IN_01`, the symbol that voided the old
+tool, through the same peek path). The two-sided control the dispatch asked
+for came out of S81-1's A/B: same tool, same image, same symbols, STATIC on
+one bitstream and MOVING on the other. Also fixed: `0xFFFFFFFF` is both the
+link's "I don't know" and a stuck lane, and discarding it is why
+`_buf_C1_XIN_MEMS` read UNREADABLE from a healthy link — it is now resolved by
+the MAGIC brackets. Peek interval 13.7 ms, not a round number, because S80's
+20 ms pass was exactly 60 blocks and aliased `CODEC_04` into a false STATIC.
+
+**S81-11 🔴 S80-12's CLASS, AUDITED AND CLOSED — AND IT WAS BIGGER THAN ONE
+TOOL. SEVEN BENCH DRIVERS TOOK NO BENCH LOCK AT ALL.** `bisect.sh`,
+`callcal.sh`, `ctlgate.sh`, `dcapar.sh`, `mtrverify.sh`, `sigstrips.sh` and
+`strips.sh` build, scp and ssh onto the card without sourcing `bench_lock.sh`,
+so they got neither the exclusive card lock — the session-10 contention defect
+the lock exists to prevent — nor the link-tool refresh, while their own
+`_run.sh` called straight into `dsp4_config.py`/`dsp4_diag.py`/`dsp4_scope.py`.
+All seven now acquire it. Four tools joined the deploy on card-side evidence:
+`dsp4_cclk.py`, `dsp4_blk30.py` and `dsp4_inscan.py` were **absent** from
+`/home/app/dspboot`, and `dsp4_logic_id.py` — the only tool that can say which
+bitstream is on the part — was **stale** (`2b379c11…` 2026-09-09 against the
+repo's `280f7ab4…`), a live instance of exactly S80-12. `sigstrips.sh` also
+staged four tools into its arm directory but not `dsp4_dyn_witness.py`, the
+witness its verdict is scored on.
+
+**S81-12 🟡 TWO MORE OF THE SAME CLASS, REPORTED NOT FIXED.** `profile.sh`
+scp's and invokes `profile_run.sh`, which has no history under that path in
+this repo at all — an orphan copy dated 2026-08-23 sits on the card, so it has
+been running an un-diffable hand-copy. And `chain_run.sh` would read a missing
+`chain.py` as a clean run: its guard checks only `dsp4_checkchip.py`, and the
+`python3: can't open file …` error matches none of its retry patterns, so the
+loop falls through, echoes the OS error as the strip's report, and exits 0.
+**Latent, not live** — the card happens to hold a matching copy in the
+directory the script `cd`s to.
+
+**S81-13 🟢 `product_fit.py` RE-ANCHORED ON S80's ROWS PER RULING Q1(a).**
+Rows A and B re-anchored on the measured silent rows across all four products;
+row C fitted from D16/D24/D32 only, with D12's C produced by extrapolation and
+LABELLED as such rather than invented from its unproven driven reading; row D
+untouched and still carrying its S27 anchor, because S80 took no D row. Every
+construction and anchor row names its session and date. Sanity check passes:
+the pre-fix deltas reproduce S80's stated figures (D24 C chip 2 **+43.13**,
+D32 C chip 1 **+85.16**), and every anchor-row residual is now ≤ 1.06 points
+against up to +85 before. The FX-engine correction term is retired rather than
+carried — it required mixing a new S80 C row with the stale S27 D row from a
+different session and bitstream. **The two rows marked *(ANCHOR — this is a
+control)* now pass BY CONSTRUCTION**, and the tool says so itself: a control
+that passes because the fit was built on the same data is weaker evidence than
+one that passes independently.
+
+**S81-14 🔴 NOT RUN: S79-Q3's D16/D12 INSTANCE-SKIP CONTROL ARM AND D12's
+REGIME.** Both are bench capacity arms — S80 spent most of a session on eight
+of them — and this session's bench time went to gates 1-4, of which gate 3
+became S81-1 and the A/B that confirms it. They are unblocked and fully
+specified (`ARM=… PRODUCT=… ./capacity.sh --driven` on `loadlogic.sh
+driveall`), and the bench lock now deploys the tools those arms cite, which it
+did not when S80 ran them.
+
 ## THE THIRD BUILD-CONFIG WORD IS FULL AND LANDED, SO THREE CONFIGURATIONS THAT READ BACK ONE WORD NOW READ BACK THREE — AND FOUR OF THE SIX THINGS A PROBE-FREE CONVERTER DIAGNOSIS WAS TOLD TO READ DO NOT EXIST TO BE READ (2026-09-20, session 80)
 
 Hub dispatch `tasks.md` 2026-09-20 06:02Z, ruling S75-13. Report:

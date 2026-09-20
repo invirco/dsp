@@ -156,6 +156,12 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
     echo "cfg_bits: $CFG_BITS"
     echo "id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and"
     echo "  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames"
+    echo "cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:"
+    echo "  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}"
+    echo "  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}"
+    echo "  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;"
+    echo "  the frame counter MUST advance between two knocks or the witness"
+    echo "  is dead and its zeros mean nothing (S81)"
     echo "pi_link: $([ "${PI_TDM8:-0}" = "1" ] \
           && echo "2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots" \
           || echo "2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only")"

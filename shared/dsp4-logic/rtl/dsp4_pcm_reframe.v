@@ -124,7 +124,15 @@ module dsp4_pcm_reframe #(
     // from this in the DRIVE_ALL build, so one stereo stream played by the
     // CM4 reaches all 46 of chip 1's input kernels and the DSP pays
     // nothing for the stimulus. Unused (and pruned) in every other build.
-    output reg         tdm_drive
+    output reg         tdm_drive,
+    // CDC_O WITNESS (S81), handed back by the second knock. Made inputs
+    // rather than computed here because cdc_o and the TDM8 sample strobe
+    // live in dsp4_logic_top: this module never sees the converter lane.
+    // Defaulted so the existing testbenches elaborate unchanged -- an
+    // unconnected witness reads back as zero, which the reader reports as
+    // "the witness is not wired", never as "the lane is silent".
+    input  wire [31:0] cdc_wit_l,
+    input  wire [31:0] cdc_wit_r
 );
 
     // ---- PCM clock generation: BCK = sysclk/16, LRCLK = frame ----
@@ -266,6 +274,47 @@ module dsp4_pcm_reframe #(
             id_count <= id_count - 8'd1;
     end
 
+    // ---- SECOND KNOCK: the CDC_O witness (S81) ----
+    //
+    // Same mechanism, same shipping-safety argument, a different word pair:
+    // a specific 64 bits whose right half is the exact inverse of its left,
+    // costing 128 Pi frames (2.7 ms) of the CM4's own return stream on a
+    // false trigger and touching nothing DSP-facing. It is built in every
+    // configuration for the reason the ID knock is: the question "is the
+    // codec's return lane carrying anything" must be answerable on whatever
+    // bitstream is actually flashed, and an instrument that only exists in
+    // a special build is an instrument nobody has when they need it.
+    //
+    // The two knocks cannot collide -- KNOCK2_L differs from KNOCK_L in 20
+    // bits -- and if both windows were somehow open the ID reply wins below,
+    // which is the safe way round: the reader checks the magic in the right
+    // channel and an ID reply simply does not carry CDC_MAGIC.
+    localparam [31:0] KNOCK2_L = 32'hCD04_32B4;
+    localparam [31:0] KNOCK2_R = ~KNOCK2_L;     // 32'h32FB_CD4B
+
+    wire knock2_hit = pi_sample
+                      && (pi_word_pos == (PCM_DATA_DELAY[5:0] + 6'd1))
+                      && (pw_flat[31:0]  == KNOCK2_L)
+                      && (pw_flat[63:32] == KNOCK2_R);
+
+    // Power-up state stated, not inherited. MAX V macrocells come up
+    // CLEARED, which is why this design carries no reset at all -- but an
+    // unstated `reg` is X in simulation until something writes it, and an X
+    // here does not stay local: `cdc_reply ? cdc_wit : cap_src` turns the
+    // WHOLE capture word X, and tb_pcm_capture fails with every recorded
+    // pair reading xxxxxxxx. The existing id_count survives only because the
+    // testbench knocks early enough to write it. An `initial` says what the
+    // silicon already does and makes the simulation agree with it.
+    reg [7:0] cdc_count;
+    initial   cdc_count = 8'd0;
+    wire cdc_reply = (cdc_count != 8'd0);
+    always @(posedge sysclk) begin
+        if (knock2_hit)
+            cdc_count <= 8'd128;
+        else if (cap_snap && cdc_reply)
+            cdc_count <= cdc_count - 8'd1;
+    end
+
     // ---- FRAME-LOCKED SNAPSHOT -- this is not decoration ----
     //
     // cap_flat is rewritten slot by slot as the DSP frame arrives: slot s
@@ -305,8 +354,10 @@ module dsp4_pcm_reframe #(
     reg [31:0] cap_hold_l, cap_hold_r;
     always @(posedge sysclk) begin
         if (cap_snap) begin
-            cap_hold_l <= id_reply ? DESIGN_ID : cap_src_l;
-            cap_hold_r <= id_reply ? {ID_MAGIC, CFG_BITS} : cap_src_r;
+            cap_hold_l <= id_reply  ? DESIGN_ID
+                        : cdc_reply ? cdc_wit_l : cap_src_l;
+            cap_hold_r <= id_reply  ? {ID_MAGIC, CFG_BITS}
+                        : cdc_reply ? cdc_wit_r : cap_src_r;
         end
     end
 

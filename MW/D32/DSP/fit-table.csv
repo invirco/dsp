@@ -10,11 +10,22 @@
 # defs/tools/expand_matrix.py and intersected with the graph by
 # MW/D32/DSP/gen_dsp.py --propose.
 #
-# chip{1,2}_built_pct is the CONSTRUCTION (S28 gate 1): a two-point
-# interpolation of the driven rows measured on d24 and d32, chip 1
-# against the channel count, chip 2 against the aux count plus the
-# product's own FX engine count. chip{1,2}_avg_pct and _worst_pct are
-# MEASURED where source says so. `fits` is against the WORST BLOCK.
+# chip{1,2}_built_pct is the CONSTRUCTION: chip 1 fit against the
+# channel count, chip 2 against the aux count, on EACH ROW'S OWN
+# anchor set (`ROW_ANCHOR` in product_fit.py). RE-ANCHORED at hub
+# ruling S81-Q1(a), 2026-09-20 (MW/D24/DSP/s80/cfg3-rows-dark.md §7):
+# rows A and B now fit ALL FOUR products' S80 silent rows; row C
+# fits D16/D24/D32 only (D12's driven regime never proved, S80
+# report §4.2/§4.4, so D12's C is an EXTRAPOLATION below the
+# smallest anchor, flagged in `source`); row D (driven, FX off) has
+# no S80 measurement at all and keeps its original S27 anchors
+# (d24/d32, 2026-09-10) -- STALE, and `source` says so. The old
+# FX-engine correction term is retired (see `_fx_slope_RETIRED` in
+# product_fit.py): every re-anchored row now spans real FX-engine
+# counts on real measured data, so a separate term would double it.
+# `source` on every row names which session/date it was built or
+# measured against. chip{1,2}_avg_pct and _worst_pct are MEASURED
+# where source says so. `fits` is against the WORST BLOCK.
 #
 # row A silent/default | B silent/load | D driven, FX off |
 # C driven, the product's FX load. C is the row a product ships
@@ -43,20 +54,19 @@
 # that decides D32's fit. Supersedes S32's four @s32-lead rows.
 # See MW/D32/DSP/dsp4-s33-20260911.md and window-candidate.md §5.
 #
-# THE FOURTH WORD ARRIVED AFTER EVERY MEASURED ROW BELOW WAS TAKEN
-# (S79). CFG_MTX_MASK gates the matrix chains and C2_MIX_AUX_nn
-# joined the aux gate, so nodes_run / nodes_gated_off in every row
-# are TODAY's census while the percentages are the S27/S28/S32
-# measurements of a firmware that called all of them: 10 more node
-# instances on a D24, 18 on a D16, 20 on a D12, none on a D32.
-# The D12 and D16 rows are therefore PESSIMISTIC by an unmeasured
-# margin and the D32 rows are not. S79's own driven rows are in
-# MW/D24/DSP/s79/bypass.md and are deliberately NOT merged here:
-# they were taken on the S78-fixed driveall bitstream and a row
-# taken on one stimulus is not comparable with a row taken on
-# another (see loadlogic.sh). Re-taking S28/S29 on the fixed
-# instrument is what makes them mergeable; it is S78-Q4 and it is
-# still due.
+# THE FOURTH WORD (S79, CFG_MTX_MASK) POSTDATES SOME ROWS AND NOT
+# OTHERS, and that line moved at S81-Q1(a): rows A/B/C are S80
+# (2026-09-20), taken AFTER S79 landed CFG_MTX_MASK, so their
+# nodes_run / nodes_gated_off match the percentages they sit beside.
+# Row D (driven, FX off) is still S27 (2026-09-10, pre-S79) and IS
+# pessimistic by the unmeasured margin the old note described: 10
+# more node instances on a D24, 18 on a D16, 20 on a D12, none on a
+# D32, all called but on their cheap branch. The @s32-lead rows
+# below are S32 (2026-09-11), also pre-S79, same caveat. S79's own
+# driven rows are in MW/D24/DSP/s79/bypass.md and are deliberately
+# NOT merged here: they were taken on the S78-fixed driveall
+# bitstream and a row taken on one stimulus is not comparable with
+# a row taken on another (see loadlogic.sh).
 #
 # NOT IN THIS TABLE, and why — a fit table that lists four of the
 # range's nine product folders without saying so is a table that
@@ -68,35 +78,35 @@
 #   D128: above the platform line, as d64: 128 channels, 32 aux, LCR main. FPGA engine (see fpga/), not DSP4.
 #
 product,row,source,ch,aux,fx,product_id,chan_mask,aux_mask,mtx_mask,cells_defined,cells_addressed,cells_unmapped,nodes_run,nodes_gated_off,chip1_built_pct,chip1_avg_pct,chip1_worst_pct,chip2_built_pct,chip2_avg_pct,chip2_worst_pct,fits,note
-d12,A_silent_default,measured,12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,28.73,32.44,32.54,49.95,71.07,71.33,yes,"silent, the config the product boots with"
-d12,B_silent_load,measured,12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.32,43.67,43.98,61.71,76.03,76.33,yes,"silent, every assign/send open, dynamics at -60 dB"
-d12,D_driven_fxoff,construction,12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.24,31.24,31.01,48.09,48.09,48.22,yes,"driven, the FX engines OFF  (plain)"
-d12,C_driven_load,construction,12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,30.81,30.81,31.20,61.24,61.24,61.61,yes,"driven, every FX engine live at Type 3  (the load)"
-d16,A_silent_default,measured,16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,36.06,40.32,40.49,56.48,79.47,79.78,yes,"silent, the config the product boots with"
-d16,B_silent_load,measured,16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.87,55.88,56.12,69.83,87.73,88.08,yes,"silent, every assign/send open, dynamics at -60 dB"
-d16,D_driven_fxoff,construction,16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.80,40.80,40.76,56.23,56.23,56.41,yes,"driven, the FX engines OFF  (plain)"
-d16,C_driven_load,measured,16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.48,84.59,84.95,69.46,113.00,113.46,NO,"driven, every FX engine live at Type 3  (the load); 15510 missed blocks"
-d24,A_silent_default,measured,24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,50.72,56.04,56.22,63.02,88.33,88.57,yes,"silent, the config the product boots with"
-d24,B_silent_load,measured,24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.97,80.71,80.94,84.64,98.28,98.50,yes,"silent, every assign/send open, dynamics at -60 dB"
-d24,D_driven_fxoff,measured (S27 anchor),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.91,59.91,60.27,64.38,64.38,64.61,yes,"driven, the FX engines OFF  (plain)"
-d24,C_driven_load,measured,24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.82,123.57,124.10,84.37,127.50,128.02,NO,"driven, every FX engine live at Type 3  (the load); 54729 missed blocks"
-d32,A_silent_default,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,65.38,72.05,72.39,76.09,105.62,106.04,NO,"silent, the config the product boots with; 7228 missed blocks"
-d32,B_silent_load,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.07,106.70,107.19,100.88,118.90,119.25,NO,"silent, every assign/send open, dynamics at -60 dB; 29909 missed blocks"
-d32,D_driven_fxoff,measured (S27 anchor),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.02,79.02,79.78,80.67,80.67,81.00,yes,"driven, the FX engines OFF  (plain)"
-d32,C_driven_load,measured,32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.16,164.32,164.70,100.81,151.57,152.39,NO,"driven, every FX engine live at Type 3  (the load); 98663 missed blocks"
-d12,A_silent_default@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,28.73,29.84,30.03,49.95,51.88,52.22,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d12,B_silent_load@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.32,33.12,33.37,61.71,64.97,65.22,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d12,C_driven_load@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,30.81,33.28,33.40,61.24,64.93,64.93,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
-d12,D_driven_fxoff@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.24,33.17,33.37,48.09,51.83,51.93,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
-d16,A_silent_default@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,36.06,36.92,37.15,56.48,56.62,56.73,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d16,B_silent_load@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.87,41.64,41.72,69.83,71.37,71.60,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d16,C_driven_load@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.48,41.70,41.70,69.46,71.35,71.45,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
-d16,D_driven_fxoff@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.80,41.61,41.94,56.23,58.10,58.39,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
-d24,A_silent_default@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,50.72,50.96,51.06,63.02,61.41,61.69,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d24,B_silent_load@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.97,59.96,60.16,84.64,82.82,82.97,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
-d24,C_driven_load@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.82,60.15,60.27,84.37,82.81,82.98,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d12,A_silent_default,"measured (anchor, S80 2026-09-20)",12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,32.40,32.44,32.54,70.97,71.07,71.33,yes,"silent, the config the product boots with"
+d12,B_silent_load,"measured (anchor, S80 2026-09-20)",12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,43.39,43.67,43.98,76.59,76.03,76.33,yes,"silent, every assign/send open, dynamics at -60 dB"
+d12,D_driven_fxoff,"construction (S27 anchors 2026-09-10 STALE, EXTRAPOLATED)",12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.25,31.25,31.01,48.09,48.09,48.22,yes,"driven, the FX engines OFF  (plain)"
+d12,C_driven_load,"construction (S80 anchors 2026-09-20, EXTRAPOLATED)",12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,64.36,64.36,64.77,100.96,100.96,101.28,NO,"driven, every FX engine live at Type 3  (the load)"
+d16,A_silent_default,"measured (anchor, S80 2026-09-20)",16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.32,40.32,40.49,79.63,79.47,79.78,yes,"silent, the config the product boots with"
+d16,B_silent_load,"measured (anchor, S80 2026-09-20)",16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,55.99,55.88,56.12,87.24,87.73,88.08,yes,"silent, every assign/send open, dynamics at -60 dB"
+d16,D_driven_fxoff,"construction (S27 anchors 2026-09-10 STALE, EXTRAPOLATED)",16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.80,40.80,40.76,56.24,56.24,56.42,yes,"driven, the FX engines OFF  (plain)"
+d16,C_driven_load,"measured (anchor, S80 2026-09-20)",16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,84.30,84.59,84.95,113.70,113.00,113.46,NO,"driven, every FX engine live at Type 3  (the load); 15510 missed blocks"
+d24,A_silent_default,"measured (anchor, S80 2026-09-20)",24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,56.15,56.04,56.22,88.29,88.33,88.57,yes,"silent, the config the product boots with"
+d24,B_silent_load,"measured (anchor, S80 2026-09-20)",24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,81.19,80.71,80.94,97.90,98.28,98.50,yes,"silent, every assign/send open, dynamics at -60 dB"
+d24,D_driven_fxoff,"measured (anchor, S27 2026-09-10 STALE)",24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.91,59.91,60.27,64.38,64.38,64.61,yes,"driven, the FX engines OFF  (plain)"
+d24,C_driven_load,"measured (anchor, S80 2026-09-20)",24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,124.16,123.57,124.10,126.44,127.50,128.02,NO,"driven, every FX engine live at Type 3  (the load); 54729 missed blocks"
+d32,A_silent_default,"measured (anchor, S80 2026-09-20)",32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,71.98,72.05,72.39,105.60,105.62,106.04,NO,"silent, the config the product boots with; 7228 missed blocks"
+d32,B_silent_load,"measured (anchor, S80 2026-09-20)",32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,106.39,106.70,107.19,119.21,118.90,119.25,NO,"silent, every assign/send open, dynamics at -60 dB; 29909 missed blocks"
+d32,D_driven_fxoff,"measured (anchor, S27 2026-09-10 STALE)",32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.02,79.02,79.78,80.67,80.67,81.00,yes,"driven, the FX engines OFF  (plain)"
+d32,C_driven_load,"measured (anchor, S80 2026-09-20)",32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,164.03,164.32,164.70,151.92,151.57,152.39,NO,"driven, every FX engine live at Type 3  (the load); 98663 missed blocks"
+d12,A_silent_default@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,32.40,29.84,30.03,70.97,51.88,52.22,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d12,B_silent_load@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,43.39,33.12,33.37,76.59,64.97,65.22,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d12,C_driven_load@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,64.36,33.28,33.40,100.96,64.93,64.93,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d12,D_driven_fxoff@s32,measured (s32),12,4,4,1,0x00000FFF,0x0000000F,0x00000000,2336,1792,544,341,360,31.25,33.17,33.37,48.09,51.83,51.93,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d16,A_silent_default@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.32,36.92,37.15,79.63,56.62,56.73,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d16,B_silent_load@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,55.99,41.64,41.72,87.24,71.37,71.60,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d16,C_driven_load@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,84.30,41.70,41.70,113.70,71.35,71.45,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d16,D_driven_fxoff@s32,measured (s32),16,6,4,1,0x0000FFFF,0x0000003F,0x00000000,3318,2586,732,409,292,40.80,41.61,41.94,56.24,58.10,58.39,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d24,A_silent_default@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,56.15,50.96,51.06,88.29,61.41,61.69,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d24,B_silent_load@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,81.19,59.96,60.16,97.90,82.82,82.97,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue"
+d24,C_driven_load@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,124.16,60.15,60.27,126.44,82.81,82.98,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
 d24,D_driven_fxoff@s32,measured (s32),24,8,6,1,0x00FFFFFF,0x000000FF,0x00000003,5002,3989,1013,527,174,59.91,60.02,60.27,64.38,62.77,62.87,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): FOUR switched-off AUX_INPUT nodes not called (the snake eight are scope-gated off below D32); chip 2 -1.5 to -1.8 pts, headroom not a rescue  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
-d32,A_silent_default@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,65.38,65.44,65.68,76.09,70.96,71.29,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits"
-d32,B_silent_load@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.07,79.15,79.34,100.88,95.84,95.97,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits"
-d32,C_driven_load@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.16,79.28,79.50,100.81,95.59,96.00,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
+d32,A_silent_default@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,71.98,65.44,65.68,105.60,70.96,71.29,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits"
+d32,B_silent_load@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,106.39,79.15,79.34,119.21,95.84,95.97,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits"
+d32,C_driven_load@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,164.03,79.28,79.50,151.92,95.59,96.00,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
 d32,D_driven_fxoff@s32,measured (s32),32,12,6,0,0xFFFFFFFF,0x00000FFF,0x0000000F,7014,5780,1234,699,2,79.02,79.18,79.51,80.67,75.55,75.88,yes,"window candidate B (DSP4_AUXIN_BYPASS=1): the twelve switched-off chip-2 AUX_INPUT nodes not called; chip 2 -4.96/-5.35 pts, worst-use rung 95.69 % with ZERO missed (candidate A 100.86 %, 1900 of 270096) -- the twelfth aux fits  [PARTIAL REGIME: the driveall bitstream could not be loaded - the CPLD was not reflashed - so this row ran 0 of 64 chip-1 and 27 of 32 chip-2 envelopes, IDENTICALLY IN BOTH ARMS. Rows A and B are stimulus-stopped and are the comparable ones.]"
