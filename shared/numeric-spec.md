@@ -358,13 +358,32 @@ question, not a new bound.**
 |---|---|---|
 | `DSP4_DYN_LUT` | **≤ 0.0950 dB** | the COMPRESSOR's and LIMITER's static curve is a baked per-node table, so the gain computer is an index plus an interpolation rather than the log2/exp2 polynomials. Worst case over the whole documented parameter sweep at the shipped K = 4. |
 | `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** for `GateThr ≥ −60 dB`; **≤ 0.00035 dB** below it | the GATE's threshold is compared in the linear domain, so no `_log2q_fx` runs per sample. Below −60 dB the linear word is tens of Q4.28 LSBs and one LSB of quantisation already exceeds the tighter bar; worst over 801 points is +0.000320 dB at −79.9 dB. |
-| COMPRESSOR numeric | **≤ 0.00518 dB** | the consequence of the two above at the node bar: one `famverify` verdict moves numerically against `fixed_ref`, and this is how far. Every other family, and every other converted parameter of this one, stays bit-exact. (PW's ruling says "one of twenty"; the bar carries **27** families as of S82, so the count in the wording is stale even though the claim is not.) |
+| COMPRESSOR numeric | **≤ 0.0950 dB** — the `DSP4_DYN_LUT` DESIGN bound (hub ruling, 2026-09-20, S83-Q1) | the consequence of the two above at the node bar: one `famverify` verdict moves numerically against `fixed_ref`. The TERM is the design bound, not the bench figure, for three reasons the S82 run established: `famverify`'s numeric arm reads `ARM['dyn_lut']` and never uses it, so what it measures is the LUT against the polynomial it replaces — that is `DSP4_DYN_LUT`'s own deviation and its bound is 0.0950 dB; the 0.00518 dB it was carried at was S20's MEASUREMENT promoted to a limit; and the figure depends on an amplitude the bar SEARCHES for at run time, so it is not a fixed quantity a re-run can be held to. Every other family, and every other converted parameter of this one, stays bit-exact. (PW's ruling says "one of twenty"; the bar carries **27** families as of S82, so the count in the wording is stale even though the claim is not.) |
+
+**THE COMPRESSOR'S BENCH FIGURE IS A WITNESS, NOT A LIMIT** (hub, 2026-09-20).
+`famverify`'s COMPRESSOR verdict is recorded beside the bound with its
+measured value and with how reliably it was obtained, and a re-measurement
+that moves within the design bound is a new witness rather than a stop. The
+witness as it stands: **0.02509 dB**, measured 2026-09-20 on the signed pair
+(`DIAG_BUILD_CFG 0xCF45FF10`), **one verdict in five attempts** — the other
+four ended without one. That instability was itself a defect and is fixed:
+the bar's state reader voted on `_comp_envelope_`/`_gate_envelope_`, words
+the part rewrites every sample, so it could only agree by accident and did
+so once (S83-1). It now waits for the state to be still and says how long it
+took.
+
+**THE GATE'S LOW-THRESHOLD BOUND IS ONE Q4.28 LSB** (hub, 2026-09-20,
+S83-Q2), not a second tuned number: below `GateThr = −60 dB` the linear
+threshold word is tens of LSBs and the quantisation of one LSB already
+exceeds the tighter bar, so the bound below −60 dB IS the LSB — 0.00035 dB —
+and `tools/accept/limits.csv` states it as such.
 
 **None of these numbers is stored as a literal in a model.** `DSP4_DYN_LUT`'s
-is produced by `tools/dsp/dyn_lut_design.py --sweep` from the table design;
+is produced by `tools/dsp/dyn_lut_design.py --sweep` from the table design,
+and it is now also the COMPRESSOR term;
 `DSP4_GATE_LINTHR`'s by `tools/dsp/dyn_state_bound.py` §6, which carries the
 bar as `LINTHR_BAR` and reports every point that exceeds it; the COMPRESSOR
-figure is a bench measurement. `tools/accept/limits.csv` carries all three for
+witness is a bench measurement. `tools/accept/limits.csv` carries all three for
 the acceptance runner, and `MW/D24/DSP/accept/manifest.json` records them
 beside the `DIAG_BUILD_CFG` triple of the configuration they belong to, so a
 fixture set can never be re-run against a different configuration without
@@ -449,8 +468,24 @@ reference of any kind until review findings D26-D34 were closed.
   the node's own MAC and the legs are ROUTING's crosspoint coefficients;
   folding the level into the legs as well is the 2026-08-23 defect, and
   it is exact at unity level, which is why it shipped.
+  **`Pan` IS AN INDEX AND THE WIRE'S GRID IS THE CONTRACT** (hub ruling,
+  2026-09-20, S83-Q3). Under `DSP4_PAN_TABLE`, the shipping default, the
+  cell has **127 positions**: the kernel computes `fix(pan * 126.0)` in
+  float32 — `fix` rounds to nearest, ties to even, and there is no
+  `+0.5` — clamps to `0..126` and reads the resident table
+  (`chip1/pan_law.asm`, `tools/dsp/pan_table.py`), which under law 0
+  holds the linear law word for word. A host float between two positions
+  therefore LANDS ON ONE, and the legs the node publishes are that
+  position's. The model quantises the same way (`fixed_ref.fdr_pan_legs`,
+  which calls `pan_table` rather than carrying a copy of the law) and a
+  bar that drives this cell drives a value that IS a position
+  (`fixed_ref.fdr_pan_grid`). Measured 2026-09-20 with `Pan = 0.317`, a
+  value 0.06 of a step off position 40: the part read `86/126` and
+  `40/126` exactly and the unquantised model called it a mismatch — the
+  reading was right and the model was wrong.
   [REVIEW: the masters document a constant-power law. Linear is what is
-  implemented and what this specifies; review finding D42 is PW's.]
+  implemented and what this specifies; review finding D42 is PW's. The
+  table makes the swap a `Sys[1-1]LcrLaw[1-1]` write, not a rebuild.]
 - **TUBE_SAT**, plugin-class (PW ruling 2026-08-30):
   `y = rns28(x * (1 + rns28(sat * (1 - rns28(x*x)))))` — **three
   chained roundings**, each saturating, with the two ALU adds wrapping.

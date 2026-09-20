@@ -56,7 +56,8 @@ echo "  image: chip1.ldr $(md5sum $D/chip1.ldr | cut -c1-8)  chip2.ldr $(md5sum 
 python3 $ROOT/tools/dsp/cfg_words.py "$CONFIG" | tail -2
 
 ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-    ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+    ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" $BENCH:$STAGE/ || exit 3
 scp -q $ROOT/tools/pi/dsp4_buildcfg.py $ROOT/tools/pi/dsp4_boot.py \
        $ROOT/tools/pi/dsp4_checkchip.py $ROOT/tools/pi/gainfix.py $BENCH:$STAGE/ || exit 3

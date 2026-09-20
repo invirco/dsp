@@ -16,6 +16,26 @@ BENCH=app@192.168.1.219
 ARM="${ARM:-lat}"
 STAGE="${STAGE:-/home/app/cap_$ARM}"
 D="${WORK:-/tmp/dspcap}/$ARM"
+# THE STAGED ARM NEEDS `input_patch.json`, AND UNTIL S83 IT NEVER GOT ONE.
+#
+# `dsp4_config.py` reads the input patch from a file beside ITSELF and
+# `sys.exit`s at IMPORT if it is not there (dsp4_config.py:96-100). In a
+# staged directory the tool is a symlink into ~/dspboot but `__file__` is
+# the LINK, so the lookup lands in $STAGE and finds nothing -- while
+# latency_run.sh sends the config tool's whole output to /dev/null. The
+# chips therefore booted and were NEVER CONFIGURED: both sat at
+# BOOT_STAGE 5, the bar took its twenty reps anyway, and the 0.0 %
+# coherent fraction it reported was a correct reading of an unconfigured
+# part (S82 4.3, root-caused S83-2 by reproducing the exit in
+# /home/app/cap_s82lat by hand). `s82.sh` links the file and reaches
+# stage 7 on the same pair, which is the whole of the difference.
+#
+# Linked OUTSIDE the BUILD guard, because `BUILD=0 STAGE=...` -- the
+# documented way to re-measure a staged pair -- is exactly the arm that
+# skipped the staging block and so could never have had it.
+ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
+    ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 if [ "${BUILD:-1}" = "1" ]; then
   DSP_SRC_DIR="${DSP_SRC_DIR:-$PWD/src}" DSP_BUILD_DIR="$D" ./build.sh all > "$D.log" 2>&1
   if [ "$(grep -ciE '\[Error|Build FAILED' "$D.log")" -ne 0 ]; then
@@ -23,8 +43,6 @@ if [ "${BUILD:-1}" = "1" ]; then
   echo "  image: chip1.ldr $(md5sum $D/chip1.ldr|cut -c1-8)  chip2.ldr $(md5sum $D/chip2.ldr|cut -c1-8)"
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
   python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
-  ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
   scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" $BENCH:$STAGE/ || exit 3
 fi
 python3 $ROOT/tools/dsp/landed_map.py --product "${PRODUCT:-d24}" \

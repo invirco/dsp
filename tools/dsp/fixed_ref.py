@@ -938,6 +938,44 @@ def fdr_coeffs(level, pan, mute=0):
     return gq, lq, rq
 
 
+def fdr_pan_legs(pan, law=0, lcr_on=0):
+    """The L/R pan legs the RUNNING node publishes, Q4.28.
+
+    NOT `fdr_coeffs`'s lq/rq, and the difference is the whole of finding
+    S82-Q3. `fdr_coeffs` models the PRE-R5 arithmetic -- `fix((1-pan) *
+    2^28)` straight off the host's float -- and under `DSP4_PAN_TABLE`,
+    which is the shipping default (dsp_block.h:148-151), that is no
+    longer what the part does. `Pan` is an INDEX: the kernel computes
+    `fix(pan * 126.0)` in float32, clamps it to 0..126 and READS THE
+    TABLE (chip1/pan_law.asm). So the wire has its own grid, 1/126 wide,
+    and a host float between two positions lands on one of them.
+
+    Measured on the part 2026-09-20 with `Pan = 0.317`: the node read
+    lq/rq = 183217856 / 85217608, which is 86/126 and 40/126 exactly,
+    while `fdr_coeffs` predicted 183341408 / 85094040. PW's S83 ruling:
+    the wire's own grid is the contract and the MODEL was wrong, so the
+    quantisation belongs here.
+
+    The law itself is not duplicated. `tools/dsp/pan_table.py` is the
+    single place the numbers come from -- the generator emits the
+    resident tables from it and this reads the same function -- and the
+    import is local so that the ten bars which stage `fixed_ref.py` for
+    unrelated arithmetic do not all acquire a new dependency at import
+    time. A bar that calls THIS must stage `pan_table.py` beside it.
+    """
+    import pan_table as ptab
+    l, _c, r = ptab.read_legs(law, ptab.pan_to_index(pan), lcr_on)
+    return l, r
+
+
+def fdr_pan_grid(idx):
+    """The float32 `Pan` that lands exactly on table index `idx` -- what
+    a setup arm drives so that the cell is ON the wire's own grid and no
+    verdict depends on which side of a 1/126 step a round went."""
+    import pan_table as ptab
+    return ptab.pan_of(idx)
+
+
 def fdr_apply(x, gq):
     """The whole sample path: one MAC, one round-and-saturate."""
     return sat32(rns(x * gq, QS))

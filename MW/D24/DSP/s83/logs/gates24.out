@@ -1,0 +1,258 @@
+== the TEST_NODES arm: chip1.ldr 90daae5b442a7a0eae31e2f4133529fb chip2.ldr 2483d61ce889e1794846350b1443ffb5
+    DIAG_BUILD_CFG  must read 0xCF45FF10
+    DIAG_BUILD_CFG2 must read 0xE3018E6F
+    DIAG_BUILD_CFG3 must read 0xC47C0F26
+=== AN_EN and CS_M as found ===
+26: op -- pd | lo // GPIO26 = output
+27: ip    pu | hi // GPIO27 = input
+  boot: chip1 stage=7 chip2 stage=7
+
+=== the arm's own triple, both chips ===
+  raw3 0xC47C0F26
+  DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+  DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+  DSP4_DYN_INLINE 2
+  on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+  off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+  raw3 0xC47C0F26
+  DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+  DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+  DSP4_DYN_INLINE 2
+  on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+  off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+  gainfix: strip 1 is 0x00000000, rewriting GAIN = 1
+  gainfix: strip 1 repaired on attempt 1
+  gainfix: 1 strip(s) at 0x3F800000
+
+=== the rails UP (authorised for gates 2 and 4 only) ===
+26: op -- pd | hi // GPIO26 = output
+
+=== GATE 2 — MIC 5's lane: the 595 chain unmuted at gain 63, then the tone ===
+oscillator ceiling -14.89 dBFS (derived, S79)
+AUX 1 bus carries the tone: -43.017 dBFS at oscillator -40.0
+symbol map: /home/app/s83tn/chip1.sym.json  (6452 symbols)
+  control MUST MOVE      FRAME_COUNT +59383  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01 -> 1 distinct  [ok]
+
+lane               read distinct           min           max   peak dBFS  verdict
+IN_01                24        1             0             0    -336.000  STATIC ZERO
+IN_02                24        1             0             0    -336.000  STATIC ZERO
+IN_03                24        1             0             0    -336.000  STATIC ZERO
+IN_04                24        1             0             0    -336.000  STATIC ZERO
+IN_05                24        1             0             0    -336.000  STATIC ZERO
+IN_06                24        1             0             0    -336.000  STATIC ZERO
+IN_07                24        1             0             0    -336.000  STATIC ZERO
+IN_08                24        1             0             0    -336.000  STATIC ZERO
+IN_09                24        1             0             0    -336.000  STATIC ZERO
+IN_10                24        1             0             0    -336.000  STATIC ZERO
+IN_11                24        1             0             0    -336.000  STATIC ZERO
+IN_12                24        1             0             0    -336.000  STATIC ZERO
+IN_13                24        1             0             0    -336.000  STATIC ZERO
+IN_14                24        1             0             0    -336.000  STATIC ZERO
+IN_15                24        1             0             0    -336.000  STATIC ZERO
+IN_16                24        1             0             0    -336.000  STATIC ZERO
+IN_17                24        1             0             0    -336.000  STATIC ZERO
+IN_18                24        1             0             0    -336.000  STATIC ZERO
+IN_19                24        1             0             0    -336.000  STATIC ZERO
+IN_20                24        1             0             0    -336.000  STATIC ZERO
+IN_21                24        1             0             0    -336.000  STATIC ZERO
+IN_22                24        1             0             0    -336.000  STATIC ZERO
+IN_23                24        1             0             0    -336.000  STATIC ZERO
+IN_24                24        1             0             0    -336.000  STATIC ZERO
+IN_25                24        1             0             0    -336.000  STATIC ZERO
+IN_26                24        1             0             0    -336.000  STATIC ZERO
+IN_27                24        1             0             0    -336.000  STATIC ZERO
+IN_28                24        1             0             0    -336.000  STATIC ZERO
+IN_29                24        1             0             0    -336.000  STATIC ZERO
+IN_30                24        1             0             0    -336.000  STATIC ZERO
+IN_31                24        1             0             0    -336.000  STATIC ZERO
+IN_32                24        1             0             0    -336.000  STATIC ZERO
+XIN_CODEC_01         24       24        -71296         72384     -71.384  MOVING
+XIN_CODEC_02         24       24        -67040         79200     -70.602  MOVING
+XIN_CODEC_03         24       24         -4896          5568     -93.663  MOVING
+XIN_CODEC_04         24       24        -23520         20032     -81.148  MOVING
+XIN_MEMS             24        1            -1            -1    -168.577  STATIC 0xFFFFFFFF
+XIN_PI_L             24        1             0             0    -336.000  STATIC ZERO
+XIN_PI_R             24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_01           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_02           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_03           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_04           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_05           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_06           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_07           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_08           24        1             0             0    -336.000  STATIC ZERO
+
+wrote /home/app/s83/lanes-off.json
+symbol map: /home/app/s83tn/chip1.sym.json  (6452 symbols)
+  control MUST MOVE      FRAME_COUNT +59336  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01 -> 1 distinct  [ok]
+
+lane               read distinct           min           max   peak dBFS  verdict
+IN_01                24        1             0             0    -336.000  STATIC ZERO
+IN_02                24        1             0             0    -336.000  STATIC ZERO
+IN_03                24        1             0             0    -336.000  STATIC ZERO
+IN_04                24        1             0             0    -336.000  STATIC ZERO
+IN_05                24        1             0             0    -336.000  STATIC ZERO
+IN_06                24        1             0             0    -336.000  STATIC ZERO
+IN_07                24        1             0             0    -336.000  STATIC ZERO
+IN_08                24        1             0             0    -336.000  STATIC ZERO
+IN_09                24        1             0             0    -336.000  STATIC ZERO
+IN_10                24        1             0             0    -336.000  STATIC ZERO
+IN_11                24        1             0             0    -336.000  STATIC ZERO
+IN_12                24        1             0             0    -336.000  STATIC ZERO
+IN_13                24        1             0             0    -336.000  STATIC ZERO
+IN_14                24        1             0             0    -336.000  STATIC ZERO
+IN_15                24        1             0             0    -336.000  STATIC ZERO
+IN_16                24        1             0             0    -336.000  STATIC ZERO
+IN_17                24        1             0             0    -336.000  STATIC ZERO
+IN_18                24        1             0             0    -336.000  STATIC ZERO
+IN_19                24        1             0             0    -336.000  STATIC ZERO
+IN_20                24        1             0             0    -336.000  STATIC ZERO
+IN_21                24        1             0             0    -336.000  STATIC ZERO
+IN_22                24        1             0             0    -336.000  STATIC ZERO
+IN_23                24        1             0             0    -336.000  STATIC ZERO
+IN_24                24        1             0             0    -336.000  STATIC ZERO
+IN_25                24        1             0             0    -336.000  STATIC ZERO
+IN_26                24        1             0             0    -336.000  STATIC ZERO
+IN_27                24        1             0             0    -336.000  STATIC ZERO
+IN_28                24        1             0             0    -336.000  STATIC ZERO
+IN_29                24        1             0             0    -336.000  STATIC ZERO
+IN_30                24        1             0             0    -336.000  STATIC ZERO
+IN_31                24        1             0             0    -336.000  STATIC ZERO
+IN_32                24        1             0             0    -336.000  STATIC ZERO
+XIN_CODEC_01         24       24       -112864         57184     -67.526  MOVING
+XIN_CODEC_02         24       24        -73280         56896     -71.277  MOVING
+XIN_CODEC_03         24       23         -4160          6752     -91.988  MOVING
+XIN_CODEC_04         24       24        -19680         24096     -80.938  MOVING
+XIN_MEMS             24        1            -1            -1    -168.577  STATIC 0xFFFFFFFF
+XIN_PI_L             24        1             0             0    -336.000  STATIC ZERO
+XIN_PI_R             24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_01           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_02           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_03           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_04           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_05           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_06           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_07           24        1             0             0    -336.000  STATIC ZERO
+XIN_SNK_08           24        1             0             0    -336.000  STATIC ZERO
+
+wrote /home/app/s83/lanes-on.json
+
+lane                       tone OFF               tone ON                verdict
+_buf_C1_IN_01              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_02              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_03              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_04              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_05              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_06              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_07              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_08              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_09              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_10              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_11              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_12              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_13              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_14              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_15              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_16              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_17              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_18              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_19              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_20              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_21              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_22              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_23              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_24              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_25              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_26              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_27              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_28              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_29              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_30              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_31              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_32              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_CODEC_01       24 distinct, peak -71.4 dBFS 24 distinct, peak -67.5 dBFS moving, no rise
+_buf_C1_XIN_CODEC_02       24 distinct, peak -70.6 dBFS 24 distinct, peak -71.3 dBFS moving, no rise
+_buf_C1_XIN_CODEC_03       24 distinct, peak -93.7 dBFS 23 distinct, peak -92.0 dBFS moving, no rise
+_buf_C1_XIN_CODEC_04       24 distinct, peak -81.1 dBFS 24 distinct, peak -80.9 dBFS moving, no rise
+_buf_C1_XIN_MEMS           1 distinct, peak -168.6 dBFS 1 distinct, peak -168.6 dBFS dark
+_buf_C1_XIN_PI_L           1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_PI_R           1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_01         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_02         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_03         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_04         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_05         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_06         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_07         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_08         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+
+NO LANE CARRIES THE TONE. The AUX 1 bus does (above), so the stimulus reaches the DAC and the loop is broken downstream of it: either the cable is not in J25 or the AK5558s are not converting. This run does not choose between those.
+
+wrote /home/app/s83/gate2.json
+
+=== GATE 4 — the talkback loop, T1 then T3 ===
+AUX 1 bus proof: -43.008 dBFS
+gate 1 fixed oscillator level -48.25 dBFS
+GATE 1  +27 -> 0 dB: RmsResult   -87.418 ->  -105.734 = 18.316 dB;  fit  -65.515 ->  -91.073 = 25.558 dB  [FAIL]
+
+code  MGN dB   osc dBFS   lane dBFS   loop dB    step    THD+N dB    noise dBFS
+   0    -6.0     -48.25    -106.716   -89.473    ----       0.01    -106.710
+   1    -3.0     -48.25    -106.252   -97.835  -8.361       0.00    -106.250
+   2    +0.0     -48.25    -105.489   -86.881  +10.954      -0.00    -105.490
+   3    +3.0     -48.25    -104.584   -91.706  -4.824       0.00    -104.581
+   4    +6.0     -48.25    -103.911   -86.879  +4.826       0.00    -103.910
+   5    +9.0     -48.25    -102.220   -74.257  +12.622       0.01    -102.208
+   6   +12.0     -48.25    -100.672   -79.459  -5.202       0.00    -100.668
+   7   +15.0     -48.25     -98.127   -80.448  -0.990       0.01     -98.121
+   8   +18.0     -48.25     -95.765   -76.397  +4.051       0.00     -95.761
+   9   +21.0     -48.25     -93.171   -77.046  -0.649       0.00     -93.168
+  10   +24.0     -48.25     -90.570   -73.880  +3.166       0.00     -90.566
+  11   +27.0     -48.25     -87.765   -67.825  +6.055      -0.00     -87.767
+
+T1  code  MGN dB   osc dBFS   lane dBFS  peak dBFS   loop dB    dev     step    THD+N dB   ADC FS dBu
+       0    -6.0     -15.25    -106.618   -103.608  -122.077  +0.000    ----      -0.00     +145.21
+       1    -3.0     -18.25    -106.448   -103.438  -113.773  +5.305  +8.305      -0.00     +136.90
+       2    +0.0     -21.25    -105.578   -102.568  -120.978  -4.900  -7.205       0.01     +144.11
+       3    +3.0     -24.25    -105.029   -102.019  -111.327  +1.750  +9.651       0.01     +134.46
+       4    +6.0     -27.25    -103.829   -100.819  -104.471  +5.606  +6.856       0.00     +127.60
+       5    +9.0     -30.25    -102.314    -99.304  -107.214  -0.136  -2.743       0.00     +130.34
+       6   +12.0     -33.25    -100.526    -97.516   -95.950  +8.128  +11.264       0.00     +119.08
+       7   +15.0     -36.25     -98.334    -95.324   -96.739  +4.338  -0.790       0.00     +119.87
+       8   +18.0     -39.25     -95.831    -92.821   -93.127  +4.951  +3.613       0.00     +116.26
+       9   +21.0     -42.25     -93.100    -90.090   -80.693  +14.385  +12.434      -0.00     +103.82
+      10   +24.0     -45.25     -90.392    -87.382   -82.721  +9.357  -2.028       0.00     +105.85
+      11   +27.0     -48.25     -87.662    -84.652   -72.648  +16.429  +10.072       0.00      +95.78
+
+level independence at MGN 0 dB (code 2), three drives:
+   osc  -21.25 dBFS -> lane  -105.773 dBFS, loop -112.1046 dB
+   osc  -31.25 dBFS -> lane  -105.609 dBFS, loop -106.3810 dB
+   osc  -41.25 dBFS -> lane  -105.676 dBFS, loop -94.6614 dB
+   spread 17.4433 dB  [over 0.05 dB]
+
+ADC2 Rch digital volume (09H), expected exact, at MGN 0 dB:
+     +6.0 dB (code 0x24): measured   +3.141 dB, error  -2.859 dB
+     -6.0 dB (code 0x3C): measured   -2.991 dB, error  +3.009 dB
+    -20.0 dB (code 0x58): measured  -16.444 dB, error  +3.556 dB
+   restored 0.0 dB:   -1.503 dB from reference
+written /home/app/s70/data/g1_t1.json
+
+KNEE: the same oscillator ladder at three codes
+
+code  MGN dB   osc dBFS   XLR dBu   lane dBFS   loop dB   dev from small-signal   THD+N dB      %
+   0    -6.0      -45.0    -21.87    -106.629   -88.397              +0.000        0.00  100.0252
+   0    -6.0      -40.0    -16.87    -106.386  -101.129             -12.732        0.00  100.0518
+   0    -6.0      -35.0    -11.87    -106.933  -118.781             -30.384        0.00  100.0056
+   0    -6.0      -30.0     -6.87    -106.717  -115.237             -26.840        0.00  100.0478
+   0    -6.0      -27.0     -3.87    -106.619  -106.982             -18.584       -0.00   99.9981
+   0    -6.0      -24.0     -0.87    -106.676  -121.041             -32.644        0.01  100.1024
+   0    -6.0      -21.0     +2.13    -106.490  -119.320             -30.923        0.00  100.0571
+   0    -6.0      -19.0     +4.13    -106.562  -110.677             -22.280        0.01  100.1134
+   0    -6.0      -17.0     +6.13    -106.588  -122.079             -33.682        0.00  100.0112
+   0    -6.0      -15.0     +8.13    -106.763  -128.967             -40.570        0.01  100.0634
+oscillator -13.00 dBFS is above the -14.89 dBFS cap: with no pad between J1 and the codec pins (S79) that level puts 10.13 dBu across J1, and the AK4619 reaches full scale at 8.24 dBu
+
+=== rails DOWN ===
+26: op -- pd | lo // GPIO26 = output
+EXIT=0

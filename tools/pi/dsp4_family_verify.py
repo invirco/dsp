@@ -848,9 +848,20 @@ def numeric_phase(part, fams, strip, n, bq_arm='float', log=print):
         except (IOError, SystemExit) as exc:
             out[fam] = {'verdict': 'ERROR', 'error': str(exc)}
             continue
+        # NO_STIMULUS AND NO_VERDICT ARE DIFFERENT ANSWERS (S83).
+        # `run_node` returns (0, 0, 0) both when a stimulus separated
+        # nothing and when it never got to run a stimulus at all, and
+        # scoring the second as NO_STIMULUS is how four S82 runs recorded
+        # COMPRESSOR as "no stimulus moved it" while the real reading was
+        # that its envelope had not stopped moving long enough to read.
+        # The instrument now says which.
+        note = getattr(NV, 'LAST_NOTE', '')
         out[fam] = {'node': name, 'verdicts_against': bad, 'stimuli': meas,
                     'verdict': ('BIT_EXACT' if meas and not bad else
-                                'FAILED' if bad else 'NO_STIMULUS')}
+                                'FAILED' if bad else
+                                'NO_VERDICT' if note else 'NO_STIMULUS')}
+        if note and not meas and not bad:
+            out[fam]['reason'] = note
     if ('EQ_BIQUAD' in fams or 'HPF_LPF' in fams) and bq_arm != 'float':
         log('--- numeric: BQCVT (the biquad coefficient conversion)')
         try:
@@ -1050,6 +1061,19 @@ def main():
                  (e.get('audio') or {}).get('verdict', '-'),
                  (e.get('numeric') or {}).get('verdict', '-'),
                  (e.get('meter') or {}).get('verdict', '')))
+
+    # A RUN THAT MEASURED NOTHING EXITS NON-ZERO (S83). This printed the
+    # whole 27-family table as dashes, wrote a golden JSON and returned 0
+    # when both chips were below BOOT_STAGE 6 -- a report shaped exactly
+    # like a clean one, from a part that was not running. The same shape
+    # let latency.sh take twenty reps off an unbooted pair (S83-2).
+    notready = [c for c, e in report['chips'].items() if not e.get('ready')]
+    if notready:
+        print('\nfamverify: NO MEASUREMENT — chip(s) %s did not reach '
+              'BOOT_STAGE 6, so every verdict above is NOT_MEASURED. Fix '
+              'the boot, not the bar.'
+              % ', '.join(str(c) for c in sorted(notready)))
+        return 4
     return 0
 
 

@@ -54,7 +54,8 @@ OUT="${OUT:-famverify-$(date +%Y%m%d-%H%M).json}"
 # copied, so there is one working set and a staged run cannot drift from it.
 if [ "$STAGE" != "/home/app/dspboot" ]; then
   ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 fi
 
 # THE BLOCK-AWARE WITNESS IS PART OF THIS BAR (S11-5, 2026-09-09).
@@ -116,6 +117,7 @@ BLOCKPY="${DSP_SRC_DIR:-$PWD/src}/dsp4_block.py"
 scp -q $ROOT/tools/pi/dsp4_family_verify.py $ROOT/tools/pi/dsp4_node_verify.py \
     $ROOT/tools/pi/dsp4_conform.py "$BLOCKPY" \
     $ROOT/tools/dsp/fixed_ref.py $ROOT/tools/dsp/boundary_vectors.py \
+    $ROOT/tools/dsp/pan_table.py \
     /tmp/landed-$PRODUCT.json \
     $BENCH:$STAGE/ || exit 3
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go

@@ -39,7 +39,8 @@ for MASK in ${MASK:-0 1}; do
     python3 $ROOT/tools/dsp/map_syms.py "$D/chip1.map.xml" > "$D/chip1.sym.json"
     python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
     ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
     scp -q "$D/chip1.ldr" "$D/chip2.ldr" "$D/chip1.sym.json" "$D/chip2.sym.json" $BENCH:$STAGE/ || exit 3
     python3 $ROOT/tools/dsp/landed_map.py --product d24 --json /tmp/landed-d24.json || exit 3
     scp -q $ROOT/tools/pi/dsp4_shk_perstrip.py $ROOT/tools/pi/dsp4_checkchip.py \

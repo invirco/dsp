@@ -52,7 +52,8 @@ STAGE="${STAGE:-/home/app/dspboot}"
 # staged run cannot drift from it.
 if [ "$STAGE" != "/home/app/dspboot" ]; then
   ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 fi
 for L in "$@"; do
   DSP4_BISECT=0 DSP4_BLOCK_KERNELS=1 DSP4_PROFILE_SIGNAL=$SIG \

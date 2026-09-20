@@ -40,7 +40,8 @@ OUT="${OUT:-fxverify-$(date +%Y%m%d-%H%M).json}"
 # copied, so there is one working set and a staged run cannot drift from it.
 if [ "$STAGE" != "/home/app/dspboot" ]; then
   ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 fi
 
 # THE BLOCK-AWARE WITNESS IS PART OF THIS BAR (S12-8, 2026-09-09).

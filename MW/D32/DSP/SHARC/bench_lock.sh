@@ -95,12 +95,22 @@ bench_deploy_link_tools() {
     # are ABSENT from /home/app/dspboot/, and the logic_id copy that IS
     # there is 2b379c11... dated 2026-09-09 against the repo's 280f7ab4...
     # -- stale, a live instance of exactly this defect.
+    # pan_table.py joins at S83, and it is the input_patch.json shape a
+    # second time rather than a new one. `fixed_ref.py` now models the pan
+    # legs through the law table (PW's S83-Q3 ruling: the wire's grid is
+    # the contract) and imports `pan_table` to do it -- but every staged
+    # arm's `fixed_ref.py` resolves through a symlink into ~/dspboot, so
+    # the copy that runs is THIS one, and a module it imports has to be
+    # here too. A bar that scp'd pan_table.py into its own stage
+    # directory still died on `ModuleNotFoundError` (measured
+    # 2026-09-20), because the importer was never in that directory.
     scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
            "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
            "$dir/dsp4_buildcfg.py" \
            "$dir/dsp4_cclk.py" "$dir/dsp4_blk30.py" \
            "$dir/dsp4_inscan.py" "$dir/dsp4_logic_id.py" \
            "$dir/../../MW/D24/DSP/input_patch.json" \
+           "$dir/../dsp/pan_table.py" \
            "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
       || echo ">>> BENCH DEPLOY: could not refresh the link tools on $BENCH_HOST" >&2
 }

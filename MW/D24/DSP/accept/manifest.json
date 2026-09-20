@@ -8,12 +8,15 @@
    "0xC47C0F26"
   ],
   "numeric_bounds_db": {
-   "comp_numeric_max_db": 0.00518,
+   "comp_numeric_max_db": 0.095,
    "dyn_lut_max_db": 0.095,
    "gate_linthr_lowthr_max_db": 0.00035,
    "gate_linthr_max_db": 0.0002
   },
   "numeric_bounds_from": "tools/accept/limits.csv",
+  "numeric_witnesses_db": {
+   "comp_numeric_witness_db": 0.02509
+  },
   "proposal": "proposals/CONTRACT-PROPOSAL-S82.md",
   "shipping_config": "MW/D32/DSP/SHARC/shipping.config",
   "signed": {

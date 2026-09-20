@@ -74,7 +74,8 @@ STAGE="${STAGE:-/home/app/dspboot}"
 # staged run cannot drift from it.
 if [ "$STAGE" != "/home/app/dspboot" ]; then
   ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+      ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 fi
 ROOT=../../../..
 
@@ -107,6 +108,7 @@ fi
 scp -q $ROOT/tools/pi/dsp4_node_verify.py $ROOT/tools/pi/dsp4_conform.py \
     $ROOT/tools/pi/dsp4_block.py \
     $ROOT/tools/dsp/fixed_ref.py $ROOT/tools/dsp/boundary_vectors.py \
+    $ROOT/tools/dsp/pan_table.py \
     $BENCH:$STAGE/ || exit 3
 # BENCH PROCEDURE (S8-3): the boot tool and the chip-identity gate go
 # with every run, so a bench cannot be left on a stale dsp4_boot.py that

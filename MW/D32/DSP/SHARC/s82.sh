@@ -25,7 +25,8 @@ BENCH=app@192.168.1.219
 mkdir -p "$WORK"
 
 ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-    ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+    ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
 
 if [ "$BUILD" = "1" ]; then
   ./build.sh all > "$WORK/build.log" 2>&1 || { echo "BUILD FAILED, see $WORK/build.log"; exit 1; }

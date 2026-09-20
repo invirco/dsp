@@ -1,0 +1,171 @@
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+landed contract: d24  pin defs-v2026.09.19.3  sha256 220a14eca190  3989 cells
+
+== cross-check: transcribed constants vs the landed contract ==
+  cross-check: 25 of 25 transcribed constants agree with the landed contract
+
+== chip 1 ==
+  chip 1 build_cfg 0xCF45FF10
+  chip 1 ready, healthy=True
+
+== numeric (chip 1) ==
+  zero sentinel: _scope_len = 1024
+--- numeric: COMPRESSOR (COMP)
+--- COMP: the makeup second rounding and the parallel blend (D28)
+  build arm: DIAG_BUILD_CFG2 0xE2018E7F — GATE_LINTHR=1 DYN_LUT=1, block 16
+  cvt comp makeup -> Q4.28                                    367756576 /    367756576  ok
+  cvt comp parallel blend (D40: PERCENT on the wire)         2147483647 /   2147483647  ok
+  cvt comp threshold -> Q6.25 log2                           -167198112 /   -167198112  ok
+  cvt comp slope (1 - 1/ratio) -> Q0.31                      1610612736 /   1610612736  ok
+  cvt comp half-knee (hard knee: zero)                                0 /            0  ok
+  cvt comp k2 (hard knee: zero)                                       0 /            0  ok
+  state settled 0.5 s after the capture (it was still moving when the capture ended)
+  state at rest: [558]
+  step amp 0x0D3A17B5: repeat capture DIFFERS in 12 of 64 words — not at rest, trying another amplitude
+  step amp 0x0553C1A7: repeat capture DIFFERS in 62 of 64 words — not at rest, trying another amplitude
+  step amp 0x08000000: repeat capture DIFFERS in 56 of 64 words — not at rest, trying another amplitude
+  step: no amplitude produced a usable capture
+  impulse amp 0x0D3A17B5: repeat capture DIFFERS in 1 of 64 words — not at rest, trying another amplitude
+  impulse: no amplitude produced a usable capture
+--- numeric: FADER_PAN (FDR)
+--- FDR: the pan law and the level coefficient (D31)
+  cvt fdr level coefficient                                    99321120 /     99321120  ok
+  cvt fdr LEFT pan leg (table index 40; D42 open)             183217856 /    183217856  ok
+  cvt fdr RIGHT pan leg (table index 40)                       85217608 /     85217608  ok
+  step     amp 0x02741F14  model 64 of 64 bit-exact   negative control differs in 64 of 64 (predicted 64)
+  impulse  amp 0x02741F14  model 64 of 64 bit-exact   negative control differs in 1 of 64 (predicted 1)
+--- numeric: GATE (GATE)
+--- GATE: the hold/range/smoother ladder (D30)
+  cvt gate range floor (D39: dB on the wire)                    2684355 /      2684355  ok
+  cvt gate threshold -> Q4.28 LINEAR (GATE_LINTHR)              2684355 /      2684355  ok
+  cvt gate attack alpha -> Q0.31                              107374184 /    107374184  ok
+  state at rest: [116, 2684356, 2684355]
+  BLOCK-RATE ARM: _gate_gain_C1_GATE_01 is one word per block (block 16); the output capture is 64 blocks and the input capture is 1024 samples of the scope's 1024-word buffer
+  phase profile (bit-exact words per phase, scoring phase 15 = end of block): 0:61 1:61 2:61 3:61 4:61 5:61 6:62 7:62 8:62 9:62 10:62 11:62 12:62 13:62 14:62 15:64
+  impulse  amp 0x0D3A17B5  model 64 of 64 bit-exact   negative control differs in 2 of 64 (predicted 2)
+  NO amplitude in the search separates this node from its negative control on this stimulus — the run will say so rather than report a pass
+  step: no amplitude produced a usable capture
+--- numeric: TUBE_SAT (TUBE)
+--- TUBE: the three chained roundings, PLUGIN-CLASS (D29)
+  cvt tube saturation cell (unit UNDECLARED, D65)          0.8587999939918518 -> Q4.28 230532368
+  step     amp 0x1A6F2E93  model 64 of 64 bit-exact   negative control differs in 64 of 64 (predicted 64)
+  impulse  amp 0x1A6F2E93  model 64 of 64 bit-exact   negative control differs in 1 of 64 (predicted 1)
+--- numeric: BQCVT SKIPPED — this image is the FLOAT cascade; its bit-exact bar is bqeverify.sh float against bq_float_ref
+
+== audio ==
+  audio: COMPRESSOR   _buf_C1_COMP_01          floor 64/147 moved 64/104418622 peak 0x06BD8E64->0x00844126 -> LIVE
+  audio: DELAY        _buf_C1_DLY_01           floor 0/0 moved 46/9679024 peak 0x0093B0B4->0x0093B0B4 -> LIVE
+  audio: EQ_BIQUAD    _buf_C1_EQ_01            floor 0/0 moved 64/82347216 peak 0x08000000->0x086D9360 -> LIVE
+  audio: FADER_PAN    _buf_C1_FDR_01           floor 0/0 moved 64/53667955 peak 0x0443E09A->0x0110F827 -> LIVE
+  audio: GAIN         _buf_C1_GAIN_01          floor 0/0 moved 64/402653184 peak 0x08000000->0x20000000 -> LIVE
+  audio: GATE         _buf_C1_GATE_01          floor 0/0 moved 64/82225841 peak 0x04FB268C->0x00147BDB -> LIVE
+  audio: HPF_LPF      _buf_C1_FILT_01          floor 0/0 moved 51/4294967295 peak 0x08000000->0x0583A568 -> LIVE
+  audio: MATRIX       _buf_C1_BUS_MTX_01       floor 0/0 moved 64/53667947 peak 0x0443E0AB->0x0110F840 -> LIVE
+  audio: METER        no probe point — read-only peak/rms/gr words; changes no sample, so its verdict is the readback against the capture
+  meter: captured 0.500000  word 0x3E88A9E5 = 0.266921 as float32 / 3.908365 as Q4.28 -> NO_VERDICT
+  audio: NOISE_GEN    _buf_C1_NOISE            floor 0/0 moved 64/4274685694 peak 0x00000000->0x0FFEED30 -> LIVE
+  audio: ROUTING      _buf_C1_BUS_AUX_01       floor 0/0 moved 64/53667947 peak 0x0443E0AB->0x0110F840 -> LIVE
+  audio: TALKBACK     _buf_C1_TALK_01          floor 64/4294964032 moved 64/4294965152 peak 0x00006A00->0x0001C700 -> NO_FLOOR
+  audio: TUBE_SAT     _buf_C1_TUBE_01          floor 0/0 moved 64/66472384 peak 0x0443E09A->0x083A2A5A -> LIVE
+
+== contract ==
+- COMPRESSOR (C1_COMP_01, 544 cells)
+  contract: 17 of 17 rw cells on C1_COMP_01 answer at their landed address
+- DELAY (C1_DLY_01, 34 cells)
+  contract: 1 of 1 rw cells on C1_DLY_01 answer at their landed address
+- EQ_BIQUAD (C1_EQ_01, 625 cells)
+  contract: 14 of 14 rw cells on C1_EQ_01 answer at their landed address
+- FADER_PAN (C1_FDR_01, 122 cells)
+  contract: 3 of 3 rw cells on C1_FDR_01 answer at their landed address
+- GAIN (C1_GAIN_01, 96 cells)
+  contract: 2 of 2 rw cells on C1_GAIN_01 answer at their landed address
+- GATE (C1_GATE_01, 336 cells)
+  contract: 12 of 12 rw cells on C1_GATE_01 answer at their landed address
+- HPF_LPF (C1_FILT_01, 72 cells)
+  contract: 3 of 3 rw cells on C1_FILT_01 answer at their landed address
+- MATRIX (C1_RTG_01, 0 cells)
+  contract: 4 of 4 rw cells on C1_RTG_01 answer at their landed address
+- METER (C1_MTR_01, 118 cells)
+  contract: 0 of 0 rw cells on C1_MTR_01 answer at their landed address
+- NOISE_GEN (C1_NOISE, 3 cells)
+  contract: 3 of 3 rw cells on C1_NOISE answer at their landed address
+- ROUTING (C1_RTG_01, 1104 cells)
+  contract: 46 of 46 rw cells on C1_RTG_01 answer at their landed address
+- TALKBACK (C1_TALK_01, 8 cells)
+  contract: 4 of 4 rw cells on C1_TALK_01 answer at their landed address
+- TUBE_SAT (C1_TUBE_01, 48 cells)
+  contract: 2 of 2 rw cells on C1_TUBE_01 answer at their landed address
+
+== chip 2 ==
+  chip 2 build_cfg 0xCF45FF10
+  chip 2 ready, healthy=True
+
+== audio ==
+  audio: ANTI_FB      _buf_C2_AUX_AFB_01       floor 0/0 moved 64/4294954376 peak 0x08000000->0x07B14C98 -> LIVE
+  audio: AUX_INPUT    no stimulus path on this bench
+  audio: CROSSOVER    _buf_C2_MAIN_OEQ_01      floor 64/216 moved 64/4293528165 peak 0x07E960D8->0x074AF230 -> LIVE
+  audio: DCA          no probe point — HOST-MANAGED since the 2026-08-30 ruling (D57) — the DSP applies no DCA gain, so there is nothing on the part for an audio probe to find
+  audio: FX_ENGINE    _buf_C2_FX_ENG_01        floor 0/0 moved 2/4294967295 peak 0x08000000->0x00000001 -> LIVE
+  audio: FX_RETURN    _buf_C2_MIX_MAIN_L       floor 64/3583 moved 64/100666342 peak 0x08000684->0x020008E2 -> LIVE
+  audio: GEQ          _buf_C2_AUX_GEQ_01       floor 0/0 moved 64/4294795910 peak 0x08000000->0x082DE520 -> LIVE
+  audio: LIMITER      _buf_C2_AUX_LIM_01       floor 0/0 moved 64/125729150 peak 0x08000000->0x00818682 -> LIVE
+  audio: MATRIX_OUT   _buf_C2_MTX_FDR_01       floor 0/0 moved 64/100663296 peak 0x08000000->0x02000000 -> LIVE
+  audio: MIX_BUS      _buf_C2_MIX_AUX_01       floor 56/20 moved 64/100663313 peak 0x0800000A->0x02000008 -> LIVE
+  audio: MONITOR      _buf_C2_MON              floor 0/0 moved 64/100663296 peak 0x08000000->0x02000000 -> LIVE
+
+== contract ==
+- ANTI_FB (C2_AUX_AFB_01, 160 cells)
+  contract: 20 of 20 rw cells on C2_AUX_AFB_01 answer at their landed address
+- AUX_INPUT (C2_BT_IN, 8 cells)
+  contract: 2 of 2 rw cells on C2_BT_IN answer at their landed address
+- CROSSOVER (C2_MAIN_XOVER, 8 cells)
+  contract: 8 of 8 rw cells on C2_MAIN_XOVER answer at their landed address
+- DCA (C2_DCA_01, 16 cells)
+  contract: 2 of 2 rw cells on C2_DCA_01 answer at their landed address
+- FX_ENGINE (C2_FX_ENG_01, 114 cells)
+  contract: 16 of 16 rw cells on C2_FX_ENG_01 answer at their landed address
+- FX_RETURN (C2_FX_FDR_01, 0 cells)
+  contract: 2 of 2 rw cells on C2_FX_FDR_01 answer at their landed address
+- GEQ (C2_AUX_GEQ_01, 403 cells)
+  contract: 31 of 31 rw cells on C2_AUX_GEQ_01 answer at their landed address
+- LIMITER (C2_AUX_LIM_01, 48 cells)
+  contract: 4 of 4 rw cells on C2_AUX_LIM_01 answer at their landed address
+- MATRIX_OUT (C2_MTX_FDR_01, 0 cells)
+  contract: 4 of 4 rw cells on C2_MTX_FDR_01 answer at their landed address
+- MIX_BUS (C2_MIX_AUX_01, 96 cells)
+  contract: 4 of 4 rw cells on C2_MIX_AUX_01 answer at their landed address
+- MONITOR (C2_MON, 3 cells)
+  contract: 3 of 3 rw cells on C2_MON answer at their landed address
+
+wrote famverify-20260920-1335.json
+
+== summary ==
+ANTI_FB      cells   160  contract  20/20   audio LIVE             numeric -           
+AUX_INPUT    cells     8  contract   2/2    audio NO_STIMULUS_PATH numeric -           
+COMPRESSOR   cells   544  contract  17/17   audio LIVE             numeric NO_STIMULUS 
+CROSSOVER    cells     8  contract   8/8    audio LIVE             numeric -           
+DCA          cells    16  contract   2/2    audio NO_PROBE         numeric -           
+DELAY        cells    34  contract   1/1    audio LIVE             numeric -           
+EQ_BIQUAD    cells   625  contract  14/14   audio LIVE             numeric NOT_APPLICABLE 
+FADER_PAN    cells   122  contract   3/3    audio LIVE             numeric BIT_EXACT   
+FX_ENGINE    cells   114  contract  16/16   audio LIVE             numeric -           
+FX_RETURN    cells     0  contract   2/2    audio LIVE             numeric -           
+GAIN         cells    96  contract   2/2    audio LIVE             numeric -           
+GATE         cells   336  contract  12/12   audio LIVE             numeric BIT_EXACT   
+GEQ          cells   403  contract  31/31   audio LIVE             numeric -           
+HPF_LPF      cells    72  contract   3/3    audio LIVE             numeric NOT_APPLICABLE 
+LIMITER      cells    48  contract   4/4    audio LIVE             numeric -           
+MATRIX       cells     0  contract   4/4    audio LIVE             numeric -           
+MATRIX_OUT   cells     0  contract   4/4    audio LIVE             numeric -           
+METER        cells   118  contract   0/0    audio NO_PROBE         numeric -           NO_VERDICT
+MIX_BUS      cells    96  contract   4/4    audio LIVE             numeric -           
+MONITOR      cells     3  contract   3/3    audio LIVE             numeric -           
+NOISE_GEN    cells     3  contract   3/3    audio LIVE             numeric -           
+OUTPUT_TDM   cells     8  contract   0/0    audio -                numeric -           
+ROUTING      cells  1104  contract  46/46   audio LIVE             numeric -           
+TALKBACK     cells     8  contract   4/4    audio NO_FLOOR         numeric -           
+TEST_MEAS    cells     7  contract   0/0    audio -                numeric -           
+TEST_OSC     cells     8  contract   0/0    audio -                numeric -           
+TUBE_SAT     cells    48  contract   2/2    audio LIVE             numeric BIT_EXACT   
+  report: goldens/famverify-20260920-1335.json
+EXIT=0

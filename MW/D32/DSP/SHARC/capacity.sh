@@ -186,7 +186,8 @@ if [ "${BUILD:-1}" = "1" ]; then
     python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
 
     ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
     scp -q "$D/chip1.ldr" "$D/chip2.ldr" $BENCH:$STAGE/ || exit 3
     # sym.json is NOT symlinked -- it must be this build's (S10-9).
     scp -q "$D/chip1.sym.json" "$D/chip2.sym.json" $BENCH:$STAGE/ || exit 3
@@ -204,7 +205,8 @@ elif [ -f "$D/chip1.ldr" ]; then
     [ -f "$D/chip2.sym.json" ] || \
         python3 $ROOT/tools/dsp/map_syms.py "$D/chip2.map.xml" > "$D/chip2.sym.json"
     ssh $BENCH "mkdir -p '$STAGE' && for f in /home/app/dspboot/*.py; do \
-        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done" || exit 3
+        ln -sfn \"\$f\" '$STAGE'/\$(basename \"\$f\"); done; \
+    ln -sfn /home/app/dspboot/input_patch.json '$STAGE'/input_patch.json" || exit 3
     scp -q "$D/chip1.ldr" "$D/chip2.ldr" $BENCH:$STAGE/ || exit 3
     scp -q "$D/chip1.sym.json" "$D/chip2.sym.json" $BENCH:$STAGE/ || exit 3
 else

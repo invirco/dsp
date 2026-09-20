@@ -491,19 +491,39 @@ def _tube_model(xs, p, st0, twin=False):
     return [f(x, satq) for x in xs]
 
 
+# THE PAN CELL DRIVEN HERE IS ON THE WIRE'S OWN GRID (PW, S83).
+#
+# `Pan` is an INDEX under DSP4_PAN_TABLE, which is the shipping default:
+# the kernel does `fix(pan * 126.0)`, clamps to 0..126 and reads the
+# resident table (chip1/pan_law.asm). So the cell has 127 positions and a
+# host float between two of them lands on one. Driving 0.317 drove
+# something 0.058 of a step off position 40, the part answered with
+# position 40's legs -- 86/126 and 40/126, exactly -- and the bar called
+# that a MISMATCH against a model that had never heard of the table
+# (S82-Q3). PW's ruling: the wire's grid is the contract, so the setup
+# drives a value that IS a position and the model quantises.
+#
+# Position 40 is the one S82 measured, kept so the re-take compares with
+# the reading that raised the question rather than with a fresh one.
+FDR_PAN_IDX = 40
+FDR_PAN_VALUE = fr.fdr_pan_grid(FDR_PAN_IDX)
+
+
 def _fdr_setup(strip):
     """FADER_PAN at an UNTIDY level, not a power of two.
 
     The node's own output is one MAC and one round-and-saturate, so the
     only thing a capture can separate is the rounding -- and at level 0.5
     or 0.25 the product has no low bits and round-to-nearest gives the
-    identical word as truncation. 0.37 and 0.317 put a fraction into
-    both the coefficient and the pan legs. (The squared-gain defect this
-    node shipped lived in the BUS FEED, which has a pan leg in it;
-    `_buf_<FDR>` does not, and the harness tests that form where it
-    belongs.)"""
+    identical word as truncation. 0.37 puts a fraction into the
+    coefficient. The PAN is on the table's grid (see above): a fraction
+    in the legs is what position 40 already gives, and a value off the
+    grid only tests which way a host's rounding went. (The squared-gain
+    defect this node shipped lived in the BUS FEED, which has a pan leg
+    in it; `_buf_<FDR>` does not, and the harness tests that form where
+    it belongs.)"""
     return [(GATE_ON, 0, 0), (COMP_ON, 0, 0), (TUBE_ON, 0, 0),
-            (FDR_LEVEL, f32(0.37), 0), (FDR_PAN, f32(0.317), 0),
+            (FDR_LEVEL, f32(0.37), 0), (FDR_PAN, f32(FDR_PAN_VALUE), 0),
             (FDR_MUTE, 0, 0)]
 
 
@@ -601,11 +621,13 @@ NODES = {
                 '_fdr_rq_C1_FDR_%02d'],
         state=[],
         cvt=lambda p: [('fdr level coefficient', p[0],
-                        fr.fdr_coeffs(0.37, 0.317, 0)[0]),
-                       ('fdr LEFT pan leg (linear law; D42 open)',
-                        p[1], fr.fdr_coeffs(0.37, 0.317, 0)[1]),
-                       ('fdr RIGHT pan leg', p[2],
-                        fr.fdr_coeffs(0.37, 0.317, 0)[2])],
+                        fr.fdr_coeffs(0.37, FDR_PAN_VALUE, 0)[0]),
+                       ('fdr LEFT pan leg (table index %d; D42 open)'
+                        % FDR_PAN_IDX,
+                        p[1], fr.fdr_pan_legs(FDR_PAN_VALUE)[0]),
+                       ('fdr RIGHT pan leg (table index %d)'
+                        % FDR_PAN_IDX,
+                        p[2], fr.fdr_pan_legs(FDR_PAN_VALUE)[1])],
         stim=[('step', 2), ('impulse', 1)],
         why='the pan law and the level coefficient (D31)'),
 }
@@ -721,9 +743,124 @@ def read_params(part, syms, strip):
     return out
 
 
+STATE_SETTLE = 15.0        # seconds a state word is given to stop moving
+
+# WHY THE LAST RUN COULD NOT READ A NODE'S STATE, and it was never the
+# link (S83-1, root-caused 2026-09-20 from the S82 logs).
+#
+# `read_params` votes: it returns a word only after seeing the SAME value
+# twice in eight asks. That is right for a PARAMETER, which is static
+# between block-rate conversions -- every one of COMPRESSOR's six
+# converted words read first time, including the two that are genuinely
+# zero, so the zero sentinel was armed and working. It is wrong for
+# STATE. `_comp_envelope_` and `_gate_envelope_` are written on EVERY
+# sample; an eight-ask vote over a word the part is still moving is the
+# same defect `dsp4_scope.rd_counter` exists for, and it can only agree
+# by accident.
+#
+# And the state read happens immediately after a STEP capture, which is
+# exactly when the envelope is furthest from rest and decaying: it needs
+# the release to run out before it is still. So COMPRESSOR and GATE both
+# returned `node state unreadable` on the very first try -- COMP got one
+# try by construction, and GATE broke out of its three-attempt loop on
+# `st is None` before ever reaching its own rest-watcher. Four of five
+# S82 runs died there, which is what made the COMPRESSOR bound look like
+# an unstable measurement when it was an unread one.
+#
+# So the state is WAITED FOR, the way the gate's rest already was, and
+# the wait is measured and printed rather than slept through. A state
+# that never settles is reported with the words it was actually reading,
+# because "unreadable" and "still moving" are different faults and only
+# one of them is the link's.
+LAST_NOTE = ''
+
+
+def read_state(part, syms, strip, log=print):
+    """A node's STATE words, read only once the part has stopped moving
+    them. Returns (values, seconds waited); values is None if they never
+    settled inside STATE_SETTLE."""
+    global LAST_NOTE
+    if not syms:
+        return [], 0.0
+    t0 = time.time()
+    st = read_params(part, syms, strip)
+    if st is not None:
+        return st, 0.0
+    while time.time() - t0 < STATE_SETTLE:
+        time.sleep(0.5)
+        st = read_params(part, syms, strip)
+        if st is not None:
+            log('  state settled %.1f s after the capture (it was still '
+                'moving when the capture ended)' % (time.time() - t0))
+            return st, time.time() - t0
+    took = time.time() - t0
+    log('  node state never settled in %.1f s — what it was reading:' % took)
+    missing = False
+    for sym in syms:
+        nm = sym % strip
+        off = 0
+        if '+' in nm:
+            nm, o = nm.split('+')
+            off = int(o)
+        addr = part.sc.sym.get(nm)
+        if addr is None:
+            log('    %s -> NO SUCH SYMBOL IN THIS IMAGE' % nm)
+            missing = True
+            continue
+        try:
+            vals = [s32(part.sc.peek(addr + off)) for _ in range(5)]
+        except IOError as exc:
+            log('    %s -> link refused: %s' % (nm, exc))
+            missing = True
+            continue
+        log('    %s -> %s%s' % (nm, vals,
+                                '  (MOVING)' if len(set(vals)) > 1 else
+                                '  (static — the vote should have taken it)'))
+    LAST_NOTE = ('state symbol absent from this image' if missing else
+                 'state never settled in %.0f s' % STATE_SETTLE)
+    return None, took
+
+
+def settled_state(part, syms, strip, st0, log=print):
+    """The node's state, STILL, immediately before a capture is armed --
+    and that state, not the one read minutes earlier, is what the model
+    of that capture is run from.
+
+    THE REPEAT CAPTURE IS THE NOISE FLOOR AND IT WAS BEING TAKEN FROM A
+    DIFFERENT PLACE (S83-1, second half). The bar takes a stimulus
+    twice and requires the two to be identical, which is right: two runs
+    of the same stimulus from the same rest must agree. But nothing made
+    the second run START from the same rest. COMPRESSOR's envelope is
+    driven up by the first capture and comes back down on its release;
+    `capture()` sleeps a fixed CAPTURE_REST and arms again, so the
+    second capture began wherever the release had got to. Measured
+    2026-09-20: `repeat capture DIFFERS in 12 / 62 / 56 of 64 words` on
+    three amplitudes in a row, and the node got no verdict at all --
+    reported as NO_STIMULUS, i.e. as though no stimulus had moved it,
+    when every stimulus had and the node had not come back.
+
+    IT IS NOT REQUIRED TO COME BACK TO THE SAME WORD, and that was
+    measured too, on the run that first demanded it: COMPRESSOR's rest
+    envelope read 558, then 556, then 511 on three successive arrivals
+    at rest, so `st0` is a still state and not a fixed point. Demanding
+    equality with it refused every capture and took GATE's verdict with
+    it. So what is required is what the comparison actually needs --
+    the state STILL, and the SAME for the two halves of the repeat --
+    and the model is run from the state that was there."""
+    st, waited = read_state(part, syms, strip, log)
+    if st is None:
+        return None, waited
+    if syms and list(st) != list(st0 or []):
+        log('  state before this capture: %s (at rest it read %s)'
+            % (st, list(st0 or [])))
+    return st, waited
+
+
 def run_node(part, name, spec, strip, n, log=print):
     """One node: converted parameters, then the sample path, then the
     negative control. Returns (verdicts, ok, measurable)."""
+    global LAST_NOTE
+    LAST_NOTE = ''
     b = (strip - 1) * STRIDE
     log(f'--- {name}: {spec["why"]}')
     read_arm(part, log)
@@ -785,7 +922,7 @@ def run_node(part, name, spec, strip, n, log=print):
     for attempt in range(3):
         capture(part, spec['out'] % strip, inj, AMPS[0], 2, 4, tries=2)
         time.sleep(CAPTURE_REST)
-        st = read_params(part, spec['state'], strip)
+        st, _waited = read_state(part, spec['state'], strip, log)
         if name != 'GATE' or st is None or st[2] == p[3]:
             break
         # REST IS WAITED FOR AND MEASURED, NOT SLEPT THROUGH (S21-5).
@@ -813,7 +950,7 @@ def run_node(part, name, spec, strip, n, log=print):
             f'capture (target {st[2]}, floor {p[3]}) — driving it again so '
             f'the new hold value takes')
     if st is None and spec['state']:
-        log('  node state unreadable — no verdict for this node')
+        log('  no verdict for this node — %s' % (LAST_NOTE or 'state unread'))
         return 0, 0, 0
     st0 = list(st or [])
     if st0:
@@ -828,6 +965,7 @@ def run_node(part, name, spec, strip, n, log=print):
             log(f'  the gate is NOT closed at rest (target {st0[2]}, range '
                 f'floor {rng}) — its hold counter has not expired, so the '
                 f'unreadable counter cannot be modelled. No verdict')
+            LAST_NOTE = 'gate not closed at rest'
             return 0, 0, 0
 
     measurable, allbad = 0, bad
@@ -845,18 +983,40 @@ def run_node(part, name, spec, strip, n, log=print):
     for stim_name, mode in spec['stim']:
         amps = choose_amps(spec, p, st0, n, mode, log)
         for amp in amps:
+            sa, _w = settled_state(part, spec['state'], strip, st0, log)
             ys = capture(part, spec['out'] % strip, inj, amp, mode, n, log=log)
             if ys is None:
                 continue
+            sb, _w = settled_state(part, spec['state'], strip, st0, log)
             ys2 = capture(part, spec['out'] % strip, inj, amp, mode, n, log=log)
+            stc = sa if sa is not None else st0
             if ys2 != ys:
                 # THE REPEAT IS THE NOISE FLOOR. Two runs of the same
                 # stimulus from the same rest must be identical; if they
                 # are not, the graph did not come back to rest and no
                 # comparison below means anything.
+                #
+                # AND THE TWO STATES ARE NOW QUOTED BESIDE IT (S83), which
+                # is what turns "not at rest" from a guess into a reading.
+                # It is a REPORT and not a veto: measured 2026-09-20, the
+                # dynamics envelopes never arrive at the same word twice
+                # -- GATE's rest envelope read 91 / 220 / 135 / 90 / 152 /
+                # 153 across six arrivals -- so refusing every capture
+                # whose two halves disagree refuses them all, and it cost
+                # GATE the bit-exact verdict it gives when the word is
+                # simply reported. For GATE the envelope LSB is a
+                # don't-care (the ladder is driven by the target and the
+                # range floor); for COMPRESSOR it is the whole model,
+                # which is why one passes and the other does not.
+                st_note = ('' if not spec['state'] or sa is None else
+                           f'; state before them {sa} then {sb}')
                 log(f'  {stim_name} amp 0x{amp:08X}: repeat capture DIFFERS '
                     f'in {sum(a != c for a, c in zip(ys, ys2))} of {n} '
-                    f'words — not at rest, trying another amplitude')
+                    f'words — not at rest, trying another amplitude'
+                    f'{st_note}')
+                if spec['state'] and sa is not None and sa != sb:
+                    LAST_NOTE = ('the node does not arrive at the same state '
+                                 'twice, so no repeat can be the noise floor')
                 continue
             xs = capture(part, spec['inp'] % strip, inj, amp, mode,
                          n * blk, log=log)
@@ -882,8 +1042,8 @@ def run_node(part, name, spec, strip, n, log=print):
                         'place:')
                     chain_witness(part, inj, strip)
                 continue
-            want_all = spec['model'](xs, p, st0)
-            twin_all = spec['model'](xs, p, st0, twin=True)
+            want_all = spec['model'](xs, p, stc)
+            twin_all = spec['model'](xs, p, stc, twin=True)
             want = _sub(want_all, blk)
             twin = _sub(twin_all, blk)
             if blk > 1:

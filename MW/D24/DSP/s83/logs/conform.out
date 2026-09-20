@@ -1,0 +1,80 @@
+=== plan (from the contract, not from the image) ===
+  addresses in the dispatch tables : 7160
+    mapped to a DM symbol          : 6700
+    unmapped (write is an error)   : 460
+    named by a master cell         : 5095
+    kernel-written readback (meters): 37
+    reachable by offset (uncertain) : 518
+    INERT (nothing reads or writes) : 207
+
+  wrote /tmp/conform/plan.json (7160 addresses)
+=== build (shipping configuration) ===
+  chip1.ldr e3e25a79 chip2.ldr 41a6b913
+=== chip 1 — all ===
+  gainfix: 2 strip(s) at 0x3F800000
+  presence: {'ECHO': 4500, 'UNMAPPED': 220, 'CLEARED': 104, 'HOST_MANAGED': 32, 'SKIPPED_METER': 111, 'ERROR': 17} in 292.3s
+  ChanGateRng        0.0 -> want 0x10000000 got 0x0FFFFFE5 PASS
+  ChanGateRng       20.0 -> want 0x0199999A got 0x0199999A PASS
+  ChanGateRng       40.0 -> want 0x0028F5C3 got 0x0028F5C3 PASS
+  ChanGateRng       60.0 -> want 0x00041893 got 0x00041894 PASS
+  ChanCompPar        0.0 -> want 0x00000000 got 0x00000000 PASS
+  ChanCompPar       25.0 -> want 0x20000000 got 0x20000000 PASS
+  ChanCompPar       50.0 -> want 0x40000000 got 0x40000000 PASS
+  ChanCompPar      100.0 -> want 0x7FFFFFFF got 0x7FFFFFFF PASS
+  ChanGateAtt        0.1 -> want 0x18127845 got 0x0CCCCCD0 FAIL
+  ChanGateAtt       25.0 -> want 0x001B4B98 got 0xFFFFFFFF FAIL
+  ChanGateAtt      250.0 -> want 0x0002BB06 got 0xFFFFFFFF FAIL
+  ChanGateRel       50.0 -> want 0x000DA686 got 0xFFFFFFFF FAIL
+  ChanGateRel      500.0 -> want 0x00015D85 got 0xFFFFFFFF FAIL
+  ChanGateRel     5000.0 -> want 0x000022F4 got 0xFFFFFFFF FAIL
+  ChanCompAtt        0.5 -> want 0x053947A6 got 0x40000000 FAIL
+  ChanCompAtt       25.0 -> want 0x001B4B98 got 0xFFFFFFFF FAIL
+  ChanCompAtt      250.0 -> want 0x0002BB06 got 0xFFFFFFFF FAIL
+  ChanCompRel        5.0 -> want 0x00883FD1 got 0xFFFFFFFF FAIL
+  ChanCompRel      500.0 -> want 0x00015D85 got 0xFFFFFFFF FAIL
+  ChanCompRel     5000.0 -> want 0x000022F4 got 0xFFFFFFFF FAIL
+  ChanGateHold       0.0 -> want 0x00000000 got 0x00000000 PASS
+  ChanGateHold      50.0 -> want 0x00000960 got 0x00000960 PASS
+  ChanGateHold    2000.0 -> want 0x00017700 got 0x00017700 PASS
+  ChanDelay          0.0 -> want 0x00000000 got 0x00000000 PASS
+  ChanDelay         10.0 -> want 0x000001E0 got 0x000001E0 PASS
+  ChanDelay        250.0 -> want 0x00002EE0 got 0x00002EE0 PASS
+  ChanPol       pol0 268435456 pol1 -268435456 PASS
+  ChanMute      unmuted 0x10000000 muted 0x0 PASS
+  ramp GainFast  Chan001Gain001 -> arrived in 10.8 ms (documented 8)
+  ramp GainFast  Chan001Gain001 -> arrived in 8.1 ms (documented 8)
+  ramp DynSafe   Chan001GateThr001 -> arrived in 2.7 ms (documented 20)
+  ramp DynSafe   Chan001GateThr001 -> arrived in 2.6 ms (documented 20)
+  ramp GainFast  Chan001Level001 -> arrived in 10.7 ms (documented 8)
+  ramp GainFast  Chan001Level001 -> arrived in 8.0 ms (documented 8)
+  driven window: _buf_C1_BUS_MAIN_L is silent; falling back to _buf_C1_FDR_01, the strip output. That window sees every class in the strip but NOT ROUTING or the mix.
+  driven window: _buf_C1_FDR_01 through inj 0x90338, peak 0x3F800000 against an injected 0x08000000
+  positive control (GAIN): 0 of 32 bus words moved (1 moved on their own over the same wait)
+  positive control (CompThr): 1 of 32 bus words moved (0 moved on their own over the same wait)
+  inert: 0 classes sampled of 0 candidate addresses (bus window)
+  wrote conform_s83_c1.json; part healthy at exit: True
+  ChanGateRng        0.0 -> want 0x00000000 got 0x0FFFFFE5 FAIL
+  ChanGateRng       20.0 -> want 0x7FFFFFFF got 0x0199999A FAIL
+  ChanGateRng       40.0 -> want 0x7FFFFFFF got 0x0028F5C3 FAIL
+  ChanGateRng       60.0 -> want 0x7FFFFFFF got 0x00041894 FAIL
+  wrote conform_s83_c1_negunit.json; part healthy at exit: True
+  NOTE: --limit dropped 4920 addresses from this run
+  presence: {'UNVERIFIED': 64} in 0.6s
+  wrote conform_s83_c1_noverify.json; part healthy at exit: True
+=== chip 2 — all ===
+  presence: {'ECHO': 1920, 'HOST_MANAGED': 28, 'CLEARED': 17, 'UNMAPPED': 180, 'SKIPPED_METER': 27, 'ERROR': 4} in 132.1s
+  effect: skipped — chip 2 carries no family whose unit is declared in wire-units.csv
+  inert: skipped — the bus capture, the injection slot and the positive control are chip-1 symbols
+  wrote conform_s83_c2.json; part healthy at exit: True
+=== report ===
+  conform_s83_c1.json: chip 1 all 4984/4984 addresses, healthy=True
+  conform_s83_c1_negunit.json: chip 1 effect 4984/4984 addresses, healthy=True
+  conform_s83_c1_noverify.json: chip 1 presence 64/4984 addresses, healthy=True
+  conform_s83_c2.json: chip 2 all 2176/2176 addresses, healthy=True
+  presence: {'ECHO': 6420, 'UNMAPPED': 400, 'CLEARED': 121, 'HOST_MANAGED': 60, 'SKIPPED_METER': 138, 'ERROR': 21}
+  declared-unit checks: 22 pass, 12 fail
+  negative control wrong-unit: FAILED as required (4 of 4)
+  VERDICT: PASS
+  wrote /tmp/conform/conform_s83.csv
+  table: /tmp/conform/conform_s83.md
+EXIT=0

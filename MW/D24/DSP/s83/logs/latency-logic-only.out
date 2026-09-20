@@ -1,0 +1,28 @@
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+--- boot 1 ---
+rep  0: offset  14430  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  1: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  2: offset  14436  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  3: offset  14432  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  4: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  5: offset  14436  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  6: offset  14432  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  7: offset  14432  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  8: offset  14430  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep  9: offset  14427  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 10: offset  14430  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 11: offset  14433  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 12: offset  14433  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 13: offset  14433  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 14: offset  14436  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 15: offset  14436  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 16: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 17: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 18: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+rep 19: offset  14435  coherent 100.0%  runner-up   0.0%  margin xinf  peak width 4
+
+arm: 20 reps
+  offset  min 14427  median 14435  max 14436  spread 9
+  coherent fraction  min 100.0%  max 100.0%
+  worst margin over the runner-up: xinf
+EXIT=0

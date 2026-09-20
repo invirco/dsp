@@ -6,6 +6,145 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE THREE ANSWERS LAND, THE LATENCY ROW IS TAKEN, AND THE MIC LANES ARE DARK (2026-09-20, session 83)
+
+Hub dispatch `tasks.md` 2026-09-20 12:18Z. The hub answered S82's three
+questions; this session landed them, re-took the two rows S82 owed, and
+measured the mic ADC lanes on the fixed bitstream.
+Report: `MW/D24/DSP/s83/contract-lanes.md`.
+
+**S83-1 🟢 FOUR OF FIVE famverify RUNS COULD NOT READ A NODE'S STATE, AND IT
+WAS THE VOTE.** `read_params` returns a word only after seeing the same value
+twice in eight asks — right for a PARAMETER, which is static between block-rate
+conversions (every one of COMPRESSOR's six converted words read first time,
+including the two that are genuinely zero, so the zero sentinel was armed and
+working), and wrong for STATE. `_comp_envelope_` and `_gate_envelope_` are
+written on EVERY SAMPLE; an eight-ask vote over a word the part is still moving
+can only agree by accident. It is the class `dsp4_scope.rd_counter` exists for.
+The state read also happens immediately after a STEP capture, when the envelope
+is furthest from rest: COMPRESSOR got ONE attempt by construction and GATE
+broke out of its own three-attempt rest-watcher on `st is None` before reaching
+it, so both died on the first try every time. Fixed by waiting for the state
+and SAYING HOW LONG IT TOOK (`read_state`, the rule the gate's rest-watcher has
+followed since S21-5). **The consequence is a verdict no session had obtained:
+`GATE` numeric goes `NO_STIMULUS` → `BIT_EXACT`**, i.e. the signed
+`DSP4_GATE_LINTHR` arm scoring bit-exact against the linear-threshold model on
+the part. A second defect went with it: `run_node` returns `(0,0,0)` both when a
+stimulus separated nothing and when it never ran one, and `numeric_phase` scored
+both `NO_STIMULUS` — so "the bar could not read the node" was recorded as "no
+stimulus moved it". There is now `NO_VERDICT` with a `reason`.
+
+**S83-2 🟢 `latency.sh`'s BOOT: `dsp4_config.py` EXITED AT IMPORT AND THE ERROR
+WENT TO `/dev/null`.** The config tool reads the input patch from a file beside
+ITSELF and `sys.exit`s at import when it is absent (`dsp4_config.py:96-100`). A
+staged arm links `~/dspboot/*.py` into its stage directory, so the tool is a
+symlink but `__file__` is the LINK and the lookup lands in `$STAGE`, which had
+no `input_patch.json`. Reproduced by hand in S82's own stage directory before
+any edit. The chips therefore booted and were NEVER CONFIGURED — both at
+BOOT_STAGE 5 on all four of S82's boots — and the 0.0 % coherent fraction the
+bar reported was a correct reading of an unconfigured part. **It is a class:
+46 occurrences of the staging block in 44 scripts had the same gap**, proved
+within the hour when the first S83 famverify run, staged to a fresh directory,
+failed identically and still wrote a 27-family table of dashes and exited 0.
+All 46 fixed at the source; `latency.sh`'s link is deliberately OUTSIDE its
+`BUILD=1` guard, because `BUILD=0 STAGE=…` is exactly the arm that skipped the
+staging block. `latency_run.sh` now retries the whole boot, checks MAGIC before
+believing BOOT_STAGE, prints the config error instead of discarding it, and
+EXITS NON-ZERO rather than taking its reps; `dsp4_family_verify.main` returns 4
+when a chip was not ready.
+
+**S83-3 🟢 THE LATENCY ROW IS TAKEN AND THE 82-SAMPLE CONTRACT DOES NOT MOVE.**
+Signed pair (`e3e25a79`/`41a6b913`) on `maincap`, both chips BOOT_STAGE 7:
+offset median **14515** (14510…14529), **100.0 % coherent on 20 of 20 reps**,
+where S82 got 0.0 % on forty. LOGIC-only reference RE-TAKEN the same session on
+`pisel`: median **14435** (14427…14436), 100.0 % coherent — reproducing S20's
+14,433 to two samples. **Through-DSP latency 80 samples at block 16.** 82 is
+inside the through-DSP arm's own 19-sample spread, so the reading is consistent
+with the contract number and does not replace it; moving it needs an arm whose
+spread is smaller than the change claimed.
+
+**S83-4 🟢 `FADER_PAN` CLOSES: THE PART WAS RIGHT AND THE MODEL WAS WRONG.**
+`Pan` is an INDEX. Under `DSP4_PAN_TABLE` — the shipping default
+(`src/dsp_block.h:148-151`) — the kernel computes `fix(pan × 126.0)` in float32
+(`fix` rounds to nearest, ties to even, no `+0.5`), clamps to `0..126` and reads
+the resident table (`src/chip1/pan_law.asm`), so the cell has 127 positions and
+a host float between two of them lands on one. S82 drove `Pan = 0.317`, 0.058 of
+a step off position 40; the part answered position 40's legs — `86/126` and
+`40/126` EXACTLY — and `fixed_ref.fdr_coeffs`, which models the pre-R5
+arithmetic, called it a mismatch. `fixed_ref.fdr_pan_legs` now quantises through
+`tools/dsp/pan_table.py` (the law is not duplicated) and `_fdr_setup` drives a
+value that IS a position. The new model reproduced the part to the word AT THE
+DESK before any bench run, and the bench confirmed it: **`FADER_PAN` numeric
+`FAILED` → `BIT_EXACT`**, both stimuli, negative control firing as predicted.
+Nothing about the part changed. PW's Q3 ruling, executed.
+
+**S83-5 🟡 THE COMPRESSOR WITNESS WAS NOT RE-MEASURED, AND THE REASON IS NOW A
+READING.** With the state readable, COMPRESSOR reaches the next stage and stops:
+the repeat capture — two runs of the same stimulus from the same rest, which the
+bar correctly requires to be identical — never starts from the same place.
+**The envelope does not arrive at the same word twice:** six arrivals at rest in
+one run read 468, 511, 548, 508, 538, 485 (GATE's read 91, 220, 135, 90, 152,
+153). For GATE the envelope LSB is a don't-care and it passes; for COMPRESSOR it
+is the whole model. An intermediate fix DEMANDED equality with the rest state,
+refused every capture and took GATE's verdict with it — measured and reverted
+the same session, which is why the check reports the state pair instead of
+vetoing on it. The witness stands at S82's **0.02509 dB**, recorded as a witness
+under the hub's Q1 ruling and inside the 0.0950 dB design bound. Nothing is
+outside a contract term.
+
+**S83-6 🔴 THE AK5558 LANES ARE DARK AND IT IS NOT THE SLOT MAP.** The desk half
+is conclusive: `git diff a4ee3d1f HEAD` on `shared/dsp4-logic/slot-map.csv` and
+`tdm-lines.csv` returns NOTHING for any `A_I0`/`A_I1`/`A_I2` row — those rows
+were added once at `8439b189` (2026-07-31) and never touched — so MIC 5 lands in
+`_buf_C1_IN_16` on BOTH bitstreams, zero lanes of movement, and there is no live
+lane for S58's patch to be missing. `net_sel` is `4'b1000` in both branches
+(`dsp4_logic_top.v:312`), so `i_dspa[0..2]` take the converters. The bench half
+assumed nothing: one tone, every lane, tone off then on, with FRAME_COUNT as the
+must-move control and `_rx_slot_C1_IN_01` as the must-not-move control, both
+satisfied on every pass; the route proved DIGITALLY first (AUX 1 bus −43.017
+dBFS at oscillator −40.0). **With the rails UP and the 595 chain unmuted at gain
+63 phantom off (VERIFIED 200/200), 32 of 32 `_buf_C1_IN_*` read EXACT DIGITAL
+ZERO, tone on and tone off alike, while all four codec lanes carry their own
+dithered noise floor in the same pass.** No EIN row is takeable: S54's
+−127.2 dBu cannot be met or missed by a lane that produces no samples. The CPLD
+cannot help — its `cdc_*` ones/toggles/frames witness counts `cdc_o` ONLY
+(`dsp4_logic_top.v:185-230`) and there is no equivalent on `ad[0..2]`. Probe
+list in the report §3.4; the cheapest decisive step is adding that counter.
+
+**S83-7 🔴 THE TALKBACK LOOP IS NOT CARRYING THE TONE, SO T1/T3 STOP.** The AUX
+1 bus reads −43.008 dBFS at oscillator −40.0, the rails were up, and the
+talkback lane does not follow the oscillator: three drives 20 dB apart put the
+lane at −105.773 / −105.609 / −105.676 dBFS, a spread of 0.16 dB. What DOES move
+it is MGN2R — −106.7 dBFS at code 0 to −87.8 dBFS at code 11 — which is the
+front end amplifying its own noise floor. S70 measured **+41.75 dB** of loop
+gain at code 11 with the lane at −6.5 dBFS; today the same code is about
+**81 dB** below that. Gate 1's 27 dB drop reads 25.558 dB FAIL and the T1 ladder
+scatters by ±12 dB, which is what a noise floor does when the gain in front of
+it changes. No number from this run is quoted as a talkback measurement.
+Gates 2 and 4 fail the SAME way — the bus carries the tone digitally and nothing
+analog comes back on any path — which is one observation, not two.
+
+**S83-8 🟡 THE BENCH'S CPLD HISTORY BETWEEN S42 AND S81 IS NOT ON RECORD.**
+`loadlogic.sh`'s `shipping` label was hardcoded to the pre-S34 `a1f6672af6c3`
+from its creation at S37 until S82 changed it, so any session that handed the
+bench back with `loadlogic.sh shipping` in that window silently reflashed a
+bitstream that drives no converter clock — and that artifact predates the
+design-ID stamp, so no readback could catch it. Meanwhile `s41_mhrx_pullup_off.
+15f3ae07dae1`'s own manifest states in writing that IT, not `a1f6672af6c3`, is
+what the bench lived on from 2026-09-12, with the converter clock pair driven
+and measured at U3 pins 141/142. No dispatch block between S46 and S77 mentions
+touching the CPLD at all. **So which bitstream S54 took its real preamp noise on
+is not determinable from this repo**, and S54's data is unambiguously live
+converter data. Two incompatible accounts are on record and only a dated flash
+log can settle it.
+
+**S83-9 🟢 A BOUND AND A WITNESS ARE DIFFERENT THINGS IN THE MANIFEST NOW.**
+They were one dictionary, which is exactly how `comp_numeric_max_db` came to
+hold S20's MEASUREMENT as though it were a limit. `gen_accept_fixtures.py` reads
+any `*_witness_db` key into its own `numeric_witnesses_db` field, and
+`limits.csv` carries `comp_numeric_witness_db` with its value, its date, the
+configuration triple it was taken on and how reliably it was obtained.
+
 ## THE SIGNED CONFIGURATION SHIPS, ON THE FIXED BITSTREAM (2026-09-20, session 82)
 
 Hub dispatch `tasks.md` 2026-09-20 10:19Z. PW adopted the S34 converter-clock

@@ -74,8 +74,43 @@ re-signing question, not a new bound.
 | bound | value | what it is | where the number is PRODUCED |
 |---|---|---|---|
 | `DSP4_DYN_LUT` | **≤ 0.0950 dB** | worst-case gain error of the baked level→gain table over the whole documented COMPRESSOR/LIMITER parameter sweep, at the shipped K = 4 | `tools/dsp/dyn_lut_design.py --sweep` |
-| `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** | shift in the GATE's effective threshold from comparing in the linear domain instead of log2 | `tools/dsp/dyn_state_bound.py` §6 |
-| `COMPRESSOR` numeric | **≤ 0.00518 dB** | one `famverify` verdict moves numerically against `fixed_ref`; this is how far | `famverify.sh` → `dsp4_node_verify.py::numeric_phase` |
+| `DSP4_GATE_LINTHR` | **≤ 0.0002 dB** for `GateThr ≥ −60 dB`; **one Q4.28 LSB (0.00035 dB)** below it | shift in the GATE's effective threshold from comparing in the linear domain instead of log2 | `tools/dsp/dyn_state_bound.py` §6 |
+| `COMPRESSOR` numeric | **≤ 0.0950 dB** — the `DSP4_DYN_LUT` design bound | one `famverify` verdict moves numerically against `fixed_ref`; the arm measures the LUT against the polynomial it replaces, so the LUT's own design bound is its term | `tools/dsp/dyn_lut_design.py --sweep`; WITNESSED by `famverify.sh` → `dsp4_node_verify.py::numeric_phase` |
+
+### 2.0 The three answers the hub gave S82 (2026-09-20)
+
+S82 measured, stopped, and asked. The rulings are landed above and in
+`tools/accept/limits.csv`, `shared/numeric-spec.md` and the accept manifest.
+
+**Q1 — the COMPRESSOR term is the DESIGN bound, and the bench figure is a
+WITNESS.** The term is ≤ 0.0950 dB, PW's 0.1 dB dynamics ruling of 2026-09-09
+by way of `DSP4_DYN_LUT`'s design sweep. Three findings of S82 make that the
+right shape rather than a relaxation: `famverify`'s numeric arm reads
+`ARM['dyn_lut']` and never uses it, so what it scores is the LUT against the
+polynomial it replaces — which is `DSP4_DYN_LUT`'s own deviation; the
+0.00518 dB it had been carried at was **S20's measurement promoted to a
+limit**; and the figure depends on an amplitude the bar SEARCHES for at run
+time, so it is not a fixed quantity a re-run can be held to. The measured
+figure is recorded beside the bound as `comp_numeric_witness_db`, with its
+value and with how reliably it was obtained. PW is informed of this, not
+asked: the 0.1 dB ruling already covers it.
+
+**Q2 — the GATE's low-threshold bound IS one Q4.28 LSB**, stated as such
+rather than as a second tuned number: ≤ 0.0002 dB for `GateThr ≥ −60 dB`, and
+below −60 dB the bound is one LSB, 2⁻²⁸ = 0.00035 dB. The 19 exceedances the
+801-point sweep finds are all at or below −77.1 dB, worst +0.000320 dB, which
+is inside one LSB.
+
+**Q3 — the wire's own grid is the contract, and the MODEL was wrong.** `Pan`
+is an INDEX: under `DSP4_PAN_TABLE` (the shipping default) the kernel computes
+`fix(pan × 126.0)` in float32, clamps to `0..126` and reads the resident table
+(`chip1/pan_law.asm`), so the cell has **127 positions** and a host float
+between two of them lands on one. `FADER_PAN`'s numeric failure was the part
+reading position 40's legs — `86/126` and `40/126`, exactly — against a model
+that had never heard of the table. The model now quantises the same way
+(`fixed_ref.fdr_pan_legs`, delegating to `tools/dsp/pan_table.py` rather than
+carrying a copy of the law) and `_fdr_setup` drives a value that IS a position
+(`fixed_ref.fdr_pan_grid`). Nothing about the part changed.
 
 Three things the table's right-hand column is doing deliberately.
 
@@ -96,10 +131,11 @@ contract range, not outside the bound.** The full 801-point sweep finds 19
 points over 0.0002 dB, *all* at thresholds at or below −77.1 dB, worst
 +0.000320 dB at −79.9 dB, where the linear word is a few tens of Q4.28 LSBs and
 one LSB of quantisation is already larger than the bar. Over any threshold at
-or above −60 dB the worst shift is +0.000122 dB. **The contract term should say
-so**: ≤ 0.0002 dB for `GateThr ≥ −60 dB`, and ≤ 0.00035 dB below it. A bound
-that is quietly exceeded at the edge of its range is the shape this project
-calls a defect in the instrument.
+or above −60 dB the worst shift is +0.000122 dB. **The contract term now says
+so** (hub, 2026-09-20): ≤ 0.0002 dB for `GateThr ≥ −60 dB`, and below it the
+bound IS one Q4.28 LSB — 0.00035 dB — named as the LSB and not as a second
+tuned number. A bound that is quietly exceeded at the edge of its range is the
+shape this project calls a defect in the instrument.
 
 **`DSP4_DYN_LUT` sits exactly on its bound with no margin.** 0.0950 dB against
 PW's 0.1 dB ruling, worst case `comp thr −60.0 ratio 100.0 knee 0.0` at

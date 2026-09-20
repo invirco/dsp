@@ -293,15 +293,26 @@ def dsp_context():
             'DSP4_GATE_LINTHR') if k in val}
     except Exception as e:                      # noqa: BLE001 -- reported, not raised
         out['build_cfg_error'] = '%s: %s' % (type(e).__name__, e)
-    bounds, path = {}, os.path.join(ROOT, 'tools', 'accept', 'limits.csv')
+    # BOUNDS AND WITNESSES ARE CARRIED SEPARATELY (hub ruling, S83-Q1).
+    # A bound is a contract term: a measurement outside it is a stop. A
+    # witness is the figure a named instrument last read, recorded so the
+    # manifest says what was actually measured -- a re-measurement that
+    # moves but stays inside its bound REPLACES a witness and stops a
+    # bound. Keeping both in one dictionary is how `comp_numeric_max_db`
+    # came to hold S20's measurement as if it were a limit.
+    bounds, wit = {}, {}
+    path = os.path.join(ROOT, 'tools', 'accept', 'limits.csv')
     try:
         for r in rows_csv(path):
             if r['key'] in ('dyn_lut_max_db', 'gate_linthr_max_db',
                             'gate_linthr_lowthr_max_db', 'comp_numeric_max_db'):
                 bounds[r['key']] = float(r['value'])
+            elif r['key'].endswith('_witness_db'):
+                wit[r['key']] = float(r['value'])
     except Exception as e:                      # noqa: BLE001
         bounds = {'error': '%s: %s' % (type(e).__name__, e)}
     out['numeric_bounds_db'] = bounds
+    out['numeric_witnesses_db'] = wit
     out['numeric_bounds_from'] = 'tools/accept/limits.csv'
     out['proposal'] = 'proposals/CONTRACT-PROPOSAL-S82.md'
     return out

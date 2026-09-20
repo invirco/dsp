@@ -1,0 +1,45 @@
+  image: chip1.ldr 7d73e79a chip2.ldr ef85c658  (shipping float configuration)
+/tmp/landed-d24.json  3989 cells  sha256 220a14eca190  pin defs-v2026.09.19.3
+landed contract: d24  pin defs-v2026.09.19.3  sha256 220a14eca190  3989 cells
+
+== cross-check: transcribed constants vs the landed contract ==
+  cross-check: 25 of 25 transcribed constants agree with the landed contract
+
+== chip 1 ==
+  chip 1 not ready: chip 1 not ready after 8 attempts: BOOT_STAGE below 6
+
+== chip 2 ==
+  chip 2 not ready: chip 2 not ready after 8 attempts: BOOT_STAGE below 6
+
+wrote famverify-20260920-1330.json
+
+== summary ==
+ANTI_FB      cells   160  contract   0/0    audio -                numeric -           
+AUX_INPUT    cells     8  contract   0/0    audio -                numeric -           
+COMPRESSOR   cells   544  contract   0/0    audio -                numeric -           
+CROSSOVER    cells     8  contract   0/0    audio -                numeric -           
+DCA          cells    16  contract   0/0    audio -                numeric -           
+DELAY        cells    34  contract   0/0    audio -                numeric -           
+EQ_BIQUAD    cells   625  contract   0/0    audio -                numeric -           
+FADER_PAN    cells   122  contract   0/0    audio -                numeric -           
+FX_ENGINE    cells   114  contract   0/0    audio -                numeric -           
+FX_RETURN    cells     0  contract   0/0    audio -                numeric -           
+GAIN         cells    96  contract   0/0    audio -                numeric -           
+GATE         cells   336  contract   0/0    audio -                numeric -           
+GEQ          cells   403  contract   0/0    audio -                numeric -           
+HPF_LPF      cells    72  contract   0/0    audio -                numeric -           
+LIMITER      cells    48  contract   0/0    audio -                numeric -           
+MATRIX       cells     0  contract   0/0    audio -                numeric -           
+MATRIX_OUT   cells     0  contract   0/0    audio -                numeric -           
+METER        cells   118  contract   0/0    audio -                numeric -           
+MIX_BUS      cells    96  contract   0/0    audio -                numeric -           
+MONITOR      cells     3  contract   0/0    audio -                numeric -           
+NOISE_GEN    cells     3  contract   0/0    audio -                numeric -           
+OUTPUT_TDM   cells     8  contract   0/0    audio -                numeric -           
+ROUTING      cells  1104  contract   0/0    audio -                numeric -           
+TALKBACK     cells     8  contract   0/0    audio -                numeric -           
+TEST_MEAS    cells     7  contract   0/0    audio -                numeric -           
+TEST_OSC     cells     8  contract   0/0    audio -                numeric -           
+TUBE_SAT     cells    48  contract   0/0    audio -                numeric -           
+  report: goldens/famverify-20260920-1330.json
+EXIT=0
