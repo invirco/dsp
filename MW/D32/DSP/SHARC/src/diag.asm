@@ -170,21 +170,21 @@
  * DIAG_BUILD_CFG had no spare bit and three arms 81,299 cycles/block apart
  * all read the same word (S11-1). See diag.h. */
 .var _diag_build_cfg2 = DIAG_BUILD_CFG2_VALUE;
-/* The THIRD build-config word (S75). CFG2's own note says the next flag of
- * its class needs a new word rather than another narrowing of its
- * signature; DSP4_EXTRAM is that flag. See diag.h.
+/* The THIRD build-config word (S75, filled and UNGATED at S80). CFG2's own
+ * note says the next flag of its class needs a new word rather than another
+ * narrowing of its signature; DSP4_EXTRAM was that flag, and S80 gave the
+ * word the rest of the switches neither full word can carry. See diag.h.
  *
- * GATED, AND THAT IS A DELIBERATE LIMITATION WITH A DATE ON IT. A word here
- * is a word of DM, and a word of DM moves every address behind it -- which
- * would cost S75 the one proof it most wants to be able to state, that the
- * L2 arm rebuilds the shipping pair BYTE-IDENTICAL. So until the next
- * authorised shipping-image change, 0xE0EC reads 0 on a DSP4_EXTRAM=0 image
- * (the unmapped answer) and that reading means exactly one thing: this
- * image has no CFG3, therefore no external-RAM pool. It is not ambiguous;
- * it is simply less informative than it will be. */
-#if DSP4_EXTRAM
+ * NO LONGER `#if DSP4_EXTRAM`, AND THAT IS THE POINT OF LANDING IT. S75 gated
+ * this cell so the L2 arm could be proved to rebuild the shipping pair
+ * BYTE-IDENTICAL -- one word of DM moves every address behind it. The price
+ * was that 0xE0EC read back plain 0 on every shipping image, so an image with
+ * the off-aux park gate on and one with it off answered identically in all
+ * three words (S79) -- exactly the silence this word exists to end. The word
+ * is unconditional now: every image's md5 moves ONCE, here, and after that
+ * two images that differ in any switch the word carries differ in the triple
+ * the part answers. */
 .var _diag_build_cfg3 = DIAG_BUILD_CFG3_VALUE;
-#endif
 
 .global _diag_boot_stage;
 .var _diag_boot_stage = DIAG_STAGE_INIT;
@@ -997,10 +997,10 @@ _diag_read:
     r4 = DIAG_BUILD_CFG2;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg2);
-#if DSP4_EXTRAM
     r4 = DIAG_BUILD_CFG3;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg3);
+#if DSP4_EXTRAM
     r4 = DIAG_EXTRAM_STAT;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_extram_stat);
@@ -1101,11 +1101,11 @@ _diag_read:
     r4 = dm(_diag_build_cfg2);
     rts;
 
-#if DSP4_EXTRAM
 .diag_rd_build_cfg3:
     r4 = dm(_diag_build_cfg3);
     rts;
 
+#if DSP4_EXTRAM
 .diag_rd_extram_stat:
     /* Assembled from the live words rather than latched at boot: the
      * backend can in principle be forced back to L2 later, and a latched

@@ -54,7 +54,7 @@ listed here so the contract record has them in one place.
 
 | address | name | R/W | meaning |
 |---|---|---|---|
-| `0xE0EC` | `DIAG_BUILD_CFG3` | R | third build-config word. `31..24` = `0xC4` signature, `23..1` reserved zero, bit 0 = `DSP4_EXTRAM`. A read of 0 means the image has no CFG3, i.e. it was built without the pool. |
+| `0xE0EC` | `DIAG_BUILD_CFG3` | R | third build-config word. `31..24` = `0xC4` signature. **FILLED AT S80** (this row is the layout as it now ships; S75 proposed the signature and bit 0 and left `23..1` free): bit 23 INSTRUMENT (any switch no config word carries a field for is off its shipping value), 22 `DSP4_RTG_FABRIC`, 21 `DSP4_GAIN_SIMD`, 20 `DSP4_DLY_SPLIT`, 19 `DSP4_C2_XPAIR`, `18..17` `DSP4_DYN_INLINE`, 16 `DSP4_DYN_TABLES`, `15..8` the WHOLE eight-class `DSP4_SHARED_KERNELS` mask, `7..6` reserved zero, 5 `DSP4_SPI_PARTIAL_FIX2`, 4 `DSP4_RTA`, 3 `DSP4_CUE`, 2 MTX_GATE (capability: this image resolves `CFG_MTX_MASK`, S79), 1 `DSP4_AUXIN_BYPASS`, 0 `DSP4_EXTRAM`. A read of 0 means the image was built before S80 and has no CFG3 cell at all. A shipping image reads `0xC47C0F26`. |
 | `0xE0ED` | `DIAG_EXTRAM_STAT` | R | bit 0 backend (1 EXTRAM), bit 1 device present, `7..4` fail code (0 none, 1 controller init, 2 STIG timeout, 3 ID floated, 4 pattern test, 5 forced off), `31..16` this chip's pool line count. |
 | `0xE0EE` | `DIAG_EXTRAM_ID0` | R | raw HyperBus register-space ID word 0. |
 | `0xE0EF` | `DIAG_EXTRAM_ID1` | R | raw HyperBus register-space ID word 1. |
@@ -67,12 +67,15 @@ bits and its bits 23..0 are full, and the note added with `DSP4_TALK_INVERT`
 (S72/S74) ends "THE NEXT flag of this kind needs a third word
 (`DIAG_BUILD_CFG3`), not a seventh narrowing". `DSP4_EXTRAM` is that next flag.
 
-**A limitation with a date on it:** CFG3 is itself behind `#if DSP4_EXTRAM`
-today, because a `.var` in `diag.asm` is a word of DM and a word of DM moves
-every address behind it — which would cost this session the proof that the L2
-arm rebuilds the shipping pair byte-identical. It becomes unconditional at the
-next authorised shipping-image change. Until then `0xE0EC` reading 0 means
-exactly one thing: this image has no external-RAM pool.
+**A limitation with a date on it — the date came, S80.** CFG3 was behind
+`#if DSP4_EXTRAM` when this was written, because a `.var` in `diag.asm` is a
+word of DM and a word of DM moves every address behind it, which would have
+cost S75 the proof that the L2 arm rebuilds the shipping pair byte-identical.
+It is **unconditional now**, and the word carries the switches neither full
+word can (the row above). Every image's md5 moved once, at S80. A `0xE0EC`
+reading of 0 therefore no longer means "no external-RAM pool"; it means the
+image predates S80 and cannot state its park gate, its matrix gate, its
+shared-kernel mask **or** its memory pool.
 
 ## 4. What does NOT change
 

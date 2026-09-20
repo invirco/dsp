@@ -1007,6 +1007,16 @@ DSP4_COMMIT_STAGE="${DSP4_COMMIT_STAGE:-2}"
 # link -- see main.asm). Off by default; the loop spins.
 DSP4_NO_IDLE_OVERRIDE="${DSP4_NO_IDLE_OVERRIDE:-0}"
 CFLAGS="$CFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN -DDSP4_FCWM=$DSP4_FCWM"
+# ...and to the ASSEMBLER too (S80). These four were the only DSP4_*
+# switches this script defined for the C compiler and not for easmb, and
+# src/diag.h's DIAG_BUILD_CFG3 instrument bit has to see EVERY switch none
+# of the three config words carries a field for -- the cell that carries
+# the word is assembled, not compiled, so a switch missing here would have
+# evaluated as 0 in diag.asm and the bit would have read "this is a
+# shipping image" for a build with (say) DSP4_PATTERN=1 in it. No assembly
+# source reads any of the four; they are defined so the instrument bit
+# cannot be blind to them.
+ASMFLAGS="$ASMFLAGS -DDSP4_DMA_AUTOBUF=$DSP4_DMA_AUTOBUF -DDSP4_RX0_L2=$DSP4_RX0_L2 -DDSP4_PATTERN=$DSP4_PATTERN -DDSP4_FCWM=$DSP4_FCWM"
 ASMFLAGS="$ASMFLAGS -DDSP4_POLL_ISR_ONLY=$DSP4_POLL_ISR_ONLY -DDSP4_BLOCK_MASK=$DSP4_BLOCK_MASK -DDSP4_NODE_LIMIT=$DSP4_NODE_LIMIT -DDSP4_NODE_LIMIT2=$DSP4_NODE_LIMIT2 -DDSP4_COMP_NOCVT=$DSP4_COMP_NOCVT -DDSP4_COMMIT_STAGE=$DSP4_COMMIT_STAGE -DDSP4_NO_IDLE_OVERRIDE=$DSP4_NO_IDLE_OVERRIDE -DDSP4_STUB_COMPGAIN=$DSP4_STUB_COMPGAIN -DDSP4_STUB_EXP2=$DSP4_STUB_EXP2 -DDSP4_STUB_LOG2=$DSP4_STUB_LOG2 -DDSP4_STUB_POLY=$DSP4_STUB_POLY -DDSP4_BLOCK_DECIMATE=$DSP4_BLOCK_DECIMATE -DDSP4_STRIPS=$DSP4_STRIPS"
 
 # Linker flags — LDF resolved in build(): the repo LDF hardcodes

@@ -94,6 +94,14 @@ want2 = {
     'DSP4_C2_BQ_GRAPH':       bdefault('DSP4_C2_BQ_GRAPH', 0),
     'DSP4_BQ_SIMD_PIPE':      bdefault('DSP4_BQ_SIMD_PIPE', 0),
     'DSP4_SHARED_KERNELS':    bdefault('DSP4_SHARED_KERNELS', 0),
+    # S80, AND FOUND BY THIS SCRIPT'S OWN GATE. DIAG_BUILD_CFG2 has carried
+    # DSP4_TEST_NODES at bit 24 since S49 and the bench mirror has decoded it
+    # since S49 -- this dict never had it, and neither did cfg_words.WORD2, so
+    # the word the repo side COMPUTED for a DSP4_TEST_NODES=1 arm was
+    # 0x01000000 short of what that arm's part answers. Nothing had built one
+    # since (it is 0 in shipping.config), so nothing had failed; adding the
+    # word-3 fields to the completeness gate turned it up in the word above.
+    'DSP4_TEST_NODES':        bdefault('DSP4_TEST_NODES', 0),
 }
 # DSP4_SIMD_STRIPS is derived: build.sh defaults it to 1 whenever
 # DSP4_SIMD_DYN is on. Derived, so computed here rather than read.
@@ -108,20 +116,28 @@ for k, v in want2.items():
         bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING2 says %s'
                    % (k, v, mirror2.get(k)))
 
-# THE THIRD WORD'S MIRROR (S75), checked the same way as want2/mirror2 above
-# -- and for the same reason the check above quotes S74 by name: S74 found
-# DSP4_TALK_INVERT sitting in DIAG_BUILD_CFG2 but never in THIS script's
-# want2, so shipping.config could disagree with dsp4_buildcfg.SHIPPING2 on
-# that one key and nothing here would notice. DIAG_BUILD_CFG3 is one flag
-# old (DSP4_EXTRAM, S75) and gets its own want3 from day one rather than
-# waiting to be the next gap.
+# THE THIRD WORD'S MIRROR (S75, twelve switches wide since S80), checked the
+# same way as want2/mirror2 above -- and for the same reason the check above
+# quotes S74 by name: S74 found DSP4_TALK_INVERT sitting in DIAG_BUILD_CFG2 but
+# never in THIS script's want2, so shipping.config could disagree with
+# dsp4_buildcfg.SHIPPING2 on that one key and nothing here would notice. want3
+# is DERIVED from cfg_words.WORD3 rather than typed out, so a field added to
+# the word reaches this check without anybody remembering to add it.
 mirror3 = ns['SHIPPING3']
-want3 = {
-    'DSP4_EXTRAM': bdefault('DSP4_EXTRAM', 0),
-}
+import cfg_words
+want3 = {k: bdefault(k, 0) for k in cfg_words.WORD3}
 for k, v in cfg.items():
     if k in want3:
         want3[k] = v
+# THE CAPABILITY BITS ARE NOT SWITCHES and cannot come from build.sh or from
+# the config file: they are properties of the SOURCE TREE (MTX_GATE = this
+# image resolves CFG_MTX_MASK, S79), so cfg_words.py states them and the
+# bench mirror has to agree with that statement rather than with a default
+# that does not exist. INSTRUMENT is the same shape and is 0 for a shipping
+# image by definition.
+want3.update(cfg_words.CFG3_CAPS)
+want3['INSTRUMENT'] = 1 if cfg_words.instrument(
+    cfg_words.resolve('MW/D32/DSP/SHARC/shipping.config')[0]) else 0
 for k, v in want3.items():
     if mirror3.get(k) != v:
         bad.append('%s: the build says %s, dsp4_buildcfg.SHIPPING3 says %s'
@@ -138,7 +154,6 @@ for k, v in want3.items():
 # tools/dsp/cfg_words.py owns the list of fields each word carries, so that
 # list is the denominator here: a field the word carries and these mirrors
 # do not is DRIFT, not an omission.
-import cfg_words
 alias2 = {'DSP4_BLOCK_DECIMATE': 'decimate'}
 for k in cfg_words.WORD1:
     kk = alias.get(k, k)
@@ -153,6 +168,67 @@ for k in cfg_words.WORD2:
     if kk not in mirror2:
         bad.append('%s is in DIAG_BUILD_CFG2 and not in '
                    'dsp4_buildcfg.SHIPPING2' % k)
+# THE THIRD WORD, under the same gate from its first full day (S80). It landed
+# with one field (S75) and nobody had to remember anything; it now carries
+# twelve switches, two multi-bit fields and two bits that are not switches at
+# all, which is exactly the size at which the last three gaps opened.
+for k in cfg_words.WORD3:
+    if k not in want3:
+        bad.append('%s is in DIAG_BUILD_CFG3 and not in this script\'s want3'
+                   % k)
+    if k not in mirror3:
+        bad.append('%s is in DIAG_BUILD_CFG3 and not in '
+                   'dsp4_buildcfg.SHIPPING3' % k)
+for k in list(cfg_words.CFG3_CAPS) + ['INSTRUMENT']:
+    if k not in mirror3:
+        bad.append('%s is a DIAG_BUILD_CFG3 field and not in '
+                   'dsp4_buildcfg.SHIPPING3' % k)
+# ...and every field the DECODER reads must be a field somebody expects a
+# value for, which is the gate run the other way round. S77's hole was a field
+# in the word and not in the mirror; the mirror carrying a field the word does
+# not have would be the same defect with the sign flipped -- the check would
+# compare a key the part can never answer and pass on it for ever.
+_decl3 = set(cfg_words.WORD3) | set(cfg_words.CFG3_CAPS) | {'INSTRUMENT'}
+for _bit, k in ns['FLAGS3']:
+    if k not in _decl3:
+        bad.append('dsp4_buildcfg.FLAGS3 decodes %s, which cfg_words.py does '
+                   'not say DIAG_BUILD_CFG3 carries' % k)
+
+# ---- THE INSTRUMENT BIT'S LIST, IN BOTH PLACES (S80) ----
+#
+# DIAG_BUILD_CFG3 bit 23 is the truth value of "any switch NO word carries a
+# field for is off its shipping value". src/diag.h has to compute that at
+# assembly time, from literals, because the cell that carries the word is
+# assembled -- so the list and its values exist twice, which is the S8-2 shape
+# this whole script exists to police. cfg_words.uncarried() DERIVES the list
+# from build.sh and shipping.config; the block in diag.h is checked against it
+# in BOTH directions and on the VALUES, so the duplication is proved rather
+# than trusted.
+_diag_h = open('MW/D32/DSP/SHARC/src/diag.h').read()
+_m = re.search(r'#define DIAG_CFG3_INSTR_SUM \((.*?)\)\n#if', _diag_h, re.S)
+if not _m:
+    bad.append('src/diag.h has no DIAG_CFG3_INSTR_SUM block: DIAG_BUILD_CFG3 '
+               'bit 23 cannot be computed and this check cannot verify it')
+else:
+    _hdr = dict((g[0], int(g[1]))
+                for g in re.findall(r'\+\s*\((DSP4_[A-Z0-9_]+)\s*!=\s*'
+                                    r'(-?\d+)\)', _m.group(1)))
+    _want = cfg_words.uncarried()
+    for k in sorted(set(_want) - set(_hdr)):
+        bad.append('%s is carried by NO config word and is NOT in '
+                   'src/diag.h\'s DIAG_CFG3_INSTR_SUM: an image built with it '
+                   'moved would read back bit 23 = 0 and call itself the '
+                   'product' % k)
+    for k in sorted(set(_hdr) - set(_want)):
+        bad.append('src/diag.h\'s DIAG_CFG3_INSTR_SUM compares %s, which is '
+                   'not in cfg_words.uncarried() — either a config word now '
+                   'carries a field for it (so it must come out of the sum) '
+                   'or build.sh no longer declares it' % k)
+    for k in sorted(set(_hdr) & set(_want)):
+        if _hdr[k] != _want[k]:
+            bad.append('%s: src/diag.h\'s DIAG_CFG3_INSTR_SUM compares '
+                       'against %s, the shipping value is %s'
+                       % (k, _hdr[k], _want[k]))
 
 for b in bad:
     print('SHIPPING CONFIG DRIFT: ' + b)
@@ -190,24 +266,55 @@ w2 = (0xC2000000
       | (mirror2['DSP4_SIMD_GRAPH'] << 2)
       | (mirror2['DSP4_SIMD_DYN'] << 1)
       | mirror2['DSP4_STRIP_FUSED'])
-# THE THIRD WORD'S readback (S75). DIAG_BUILD_CFG3's DM cell only exists
-# `#if DSP4_EXTRAM` (diag.asm) -- widening DM for every image just to carry
-# a word that is 0 on every shipping build today would have cost S75 its
-# byte-identical-rebuild proof. So with mirror3['DSP4_EXTRAM'] == 0 (today's
-# shipping value) 0xE0EC is not in the part's dispatch table at all: it
-# reads back the unmapped answer, plain 0 -- NOT 0xC4000000 -- and the line
-# below must say that plainly rather than quote a signed word the part will
-# never return, or a bench operator chasing a "wrong" CFG3 reading would be
-# chasing a phantom.
-if mirror3['DSP4_EXTRAM']:
-    w3 = 0xC4000000 | (mirror3['DSP4_EXTRAM'] & 1)
-    cfg3_msg = 'and DIAG_BUILD_CFG3 0x%08X' % w3
-else:
-    cfg3_msg = ('and DIAG_BUILD_CFG3 UNMAPPED (reads 0x00000000, not '
-                '0xC4000000 -- DSP4_EXTRAM=0 compiles the word out entirely; '
-                'this is the normal reading today, not a fault)')
-print('shipping config: consistent; DIAG_BUILD_CFG must read 0x%08X, '
-      'DIAG_BUILD_CFG2 0x%08X, %s' % (w, w2, cfg3_msg))
+# THE THIRD WORD'S readback (S75, filled S80). Built from the BENCH MIRROR's
+# own dict, like w and w2 above and not from cfg_words.py: the point of
+# printing it here is that the mirror a bench actually scores a part against
+# produces this word, so computing it from the repo-side tool would prove
+# nothing about the mirror. Between S75 and S80 this had to print "UNMAPPED,
+# reads 0" instead of a word, because diag.asm defined the DM cell only
+# `#if DSP4_EXTRAM` and every shipping image answered plain 0 at 0xE0EC. The
+# cell is unconditional now, so there is a word to print -- and a part that
+# still answers 0 is a pre-S80 image and says so.
+shk3 = mirror3['DSP4_SHARED_KERNELS']
+w3 = (0xC4000000
+      | ((1 if mirror3['INSTRUMENT'] else 0) << 23)
+      | ((mirror3['DSP4_RTG_FABRIC'] & 1) << 22)
+      | ((mirror3['DSP4_GAIN_SIMD'] & 1) << 21)
+      | ((mirror3['DSP4_DLY_SPLIT'] & 1) << 20)
+      | ((mirror3['DSP4_C2_XPAIR'] & 1) << 19)
+      | ((mirror3['DSP4_DYN_INLINE'] & 3) << 17)
+      | ((mirror3['DSP4_DYN_TABLES'] & 1) << 16)
+      | ((shk3 & 0xFF) << 8)
+      | ((mirror3['DSP4_SPI_PARTIAL_FIX2'] & 1) << 5)
+      | ((mirror3['DSP4_RTA'] & 1) << 4)
+      | ((mirror3['DSP4_CUE'] & 1) << 3)
+      | ((mirror3['MTX_GATE'] & 1) << 2)
+      | ((1 if mirror3['DSP4_AUXIN_BYPASS'] else 0) << 1)
+      | (1 if mirror3['DSP4_EXTRAM'] else 0))
+# AND THE TWO SIDES OF THE TRIPLE MUST AGREE. The words above come from the
+# bench mirror; cfg_words.py computes the same three from build.sh and the
+# file. They are independent computations of one fact, which is the only
+# reason either is worth printing, so the disagreement is an error and not a
+# footnote -- this is the check that would have caught S77's 0xE2010244
+# without needing a part on a bench to notice.
+_val, _ = cfg_words.resolve('MW/D32/DSP/SHARC/shipping.config')
+_t = cfg_words.triple(_val)
+for _lbl, _a, _b in (('DIAG_BUILD_CFG', w, _t[0]),
+                     ('DIAG_BUILD_CFG2', w2, _t[1]),
+                     ('DIAG_BUILD_CFG3', w3, _t[2])):
+    if _a != _b:
+        print('SHIPPING CONFIG DRIFT: %s: the bench mirror computes 0x%08X, '
+              'cfg_words.py computes 0x%08X (differ 0x%08X)'
+              % (_lbl, _a, _b, _a ^ _b))
+        sys.exit(1)
+print('shipping config: consistent; the part must read DIAG_BUILD_CFG '
+      '0x%08X, DIAG_BUILD_CFG2 0x%08X, DIAG_BUILD_CFG3 0x%08X' % (w, w2, w3))
+print('  on the bench:  dsp4_buildcfg.py --expect-shipping        '
+      '# reads all three off the part')
+print('  by hand:       dsp4_buildcfg.py --expect-shipping --word '
+      '0x%08X,0x%08X,0x%08X' % (w, w2, w3))
+print('  a part answering 0x00000000 at 0xE0EC is a PRE-S80 image: it has no '
+      'DIAG_BUILD_CFG3 cell at all')
 # ...AND WHAT A PASS HERE DOES NOT COVER (S79). `consistent` means the
 # mirrors agree with the file, which is worth exactly what the two words
 # carry -- and `cfg_words.unrepresented()` is the list of settings two

@@ -529,30 +529,88 @@
     | ((DSP4_SIMD_DYN         & 1) <<  1)                               \
     | ( DSP4_STRIP_FUSED      & 1) )
 
-/* ---- DIAG_BUILD_CFG3 — THE THIRD WORD, BECAUSE CFG2 SAID SO (S75) ---
+/* ---- DIAG_BUILD_CFG3 — THE THIRD WORD, BECAUSE CFG2 SAID SO (S75),
+ * ---- FILLED AND LANDED (S80) -----------------------------------------
  *
  * The DSP4_TALK_INVERT note above ends: "the signature is down to six bits
  * and bits 23..0 are full. THE NEXT flag of this kind needs a third word
- * (DIAG_BUILD_CFG3), not a seventh narrowing." DSP4_EXTRAM is the next flag
- * of that kind -- it changes what the image CAN do with memory, what it
- * costs, and (once a RAM answers) what every delay line longer than 20 ms
- * sounds like -- so this is that word, taken rather than narrowing CFG2
- * again.
+ * (DIAG_BUILD_CFG3), not a seventh narrowing." S75 took that word for
+ * DSP4_EXTRAM and left bits 23..1 free. S80 fills them, because the hole the
+ * two full words leave had by then cost two sessions of record: an image with
+ * the off-aux park gate on and one with it off read back the SAME
+ * 0xE2018264 (S79, and shipping.config said so at the point of definition),
+ * and mask 3 and mask 15 of DSP4_SHARED_KERNELS have read back the same word
+ * since S26 (S27-3).
  *
- * SIGNATURE 0xC4 in 31..24, distinct from CFG's 0xCF and CFG2's 0xC2/0xC3/
- * 0xE2 in the low nibble, so a decoder that reads the wrong address says so
- * instead of decoding nonsense. Bits 23..1 are free and stated as free:
- * this word starts life almost empty, which is the point of starting one.
+ * RULED, S75-13 (hub, 2026-09-20): S75's ADDRESS, SIGNATURE AND BIT 0 STAND.
+ * tools/dsp/cfg_words.py carried an earlier, never-applied design for a word
+ * of this name -- S28 gate 3, signature 0xC3, every one of bits 23..0
+ * allocated -- and the two layouts could not both be right. That design is
+ * DELETED. Its field set is not: the switches it named are carried here, at
+ * S75's signature, moved up out of the way of bit 0.
  *
- *   31..24  0xC4      signature
- *   23..1   reserved, zero
- *   0       DSP4_EXTRAM — the external-RAM pool is compiled in
+ *   31..24  0xC4      signature; distinct from CFG's 0xCF and CFG2's
+ *                     0xC2/0xE2 in the low nibble, so a decoder that reads
+ *                     the wrong address says so instead of decoding nonsense
+ *   23      INSTRUMENT            1 if ANY switch none of the three words
+ *                                 carries is off its shipping value. A
+ *                                 shipping image reads 0. This is the bit
+ *                                 that makes "is this the product or an
+ *                                 instrument?" a question the PART answers,
+ *                                 which is what S11-1 cost a fortnight of
+ *                                 capacity record. The list is below and
+ *                                 check_shipping_config.sh proves it is the
+ *                                 same list tools/dsp/cfg_words.py derives.
+ *   22      DSP4_RTG_FABRIC
+ *   21      DSP4_GAIN_SIMD
+ *   20      DSP4_DLY_SPLIT
+ *   19      DSP4_C2_XPAIR
+ *   18..17  DSP4_DYN_INLINE       0..3
+ *   16      DSP4_DYN_TABLES
+ *   15..8   DSP4_SHARED_KERNELS   THE WHOLE EIGHT-CLASS MASK. CFG2 carries
+ *                                 two bits of it (5 and 15) and is NOT
+ *                                 re-laid out: its value does not change for
+ *                                 any image and every decoder that reads it
+ *                                 keeps working. This is what tells mask 3
+ *                                 from mask 15 (S27-3, closed here).
+ *    7..6   reserved, zero        and stated as free, on purpose: CFG2 was
+ *                                 allocated to the last bit and then needed a
+ *                                 seventh narrowing of its own signature
+ *    5      DSP4_SPI_PARTIAL_FIX2
+ *    4      DSP4_RTA
+ *    3      DSP4_CUE
+ *    2      MTX_GATE              the product-driven matrix gate has a READER
+ *                                 in this image: CFG_MTX_MASK (0xF006) is
+ *                                 latched and resolved at CONFIG_COMMIT, and
+ *                                 C2_MIX_AUX_nn is behind its aux bit (S79).
+ *                                 NOT a build switch -- one image boots every
+ *                                 product (D8), so the behaviour is
+ *                                 unconditional and this bit is a
+ *                                 CAPABILITY: 1 in this tree, 0 in every
+ *                                 image built before S79, which is otherwise
+ *                                 indistinguishable from this one by any word
+ *                                 the part answers. A host that sends the
+ *                                 fourth product word to an image reading 0
+ *                                 here is writing to a cell with no reader.
+ *    1      DSP4_AUXIN_BYPASS     the off-aux park gate (S32; in the shipping
+ *                                 file since S79). S12-7's shape, closed here
+ *    0      DSP4_EXTRAM           the external-RAM pool is compiled in (S75,
+ *                                 unmoved)
  *
- * WHAT THIS BIT DOES NOT SAY. It does not say a RAM was found. The image
- * probes at boot and falls back; the RESULT of that probe is a runtime
- * word, DIAG_EXTRAM_STAT, and the two are deliberately separate. An image
- * with this bit set and DIAG_EXTRAM_STAT reading "absent, fell back" is the
- * NORMAL state of an unmodified card, not a fault. */
+ * WHAT BIT 0 DOES NOT SAY. It does not say a RAM was found. The image probes
+ * at boot and falls back; the RESULT of that probe is a runtime word,
+ * DIAG_EXTRAM_STAT, and the two are deliberately separate. An image with this
+ * bit set and DIAG_EXTRAM_STAT reading "absent, fell back" is the NORMAL
+ * state of an unmodified card, not a fault.
+ *
+ * THE WORD IS NO LONGER GATED, AND THAT IS THE COST OF LANDING IT. S75 put
+ * the DM cell behind `#if DSP4_EXTRAM` so the L2 arm could be proved to
+ * rebuild the shipping pair BYTE-IDENTICAL; the consequence was that 0xE0EC
+ * read back plain 0 on every shipping image, which is precisely the silence
+ * this word exists to end -- a park-gate image and a pre-park-gate one both
+ * answered 0. It is unconditional now. Every image's md5 moves once, here,
+ * and after that two images that differ in anything above differ in the
+ * TRIPLE the part answers. */
 #ifndef DSP4_EXTRAM
 #define DSP4_EXTRAM 0
 #endif
@@ -561,20 +619,149 @@
 #else
 #define DIAG_CFG3_EXTRAM 0
 #endif
+#ifndef DSP4_AUXIN_BYPASS
+#define DSP4_AUXIN_BYPASS 0
+#endif
+#if DSP4_AUXIN_BYPASS != 0
+#define DIAG_CFG3_AUXIN_BYPASS 1
+#else
+#define DIAG_CFG3_AUXIN_BYPASS 0
+#endif
+/* The capability bit, not a switch. It is 1 because src/product_config.asm
+ * defines CFG_MTX_MASK and chipN/mask_gates.asm resolves it -- if either of
+ * those is ever removed this must go with it, and product_fit.py's fourth
+ * word with it. */
+#define DIAG_CFG3_MTX_GATE 1
+#ifndef DSP4_CUE
+#define DSP4_CUE 0
+#endif
+#ifndef DSP4_RTA
+#define DSP4_RTA 0
+#endif
+#ifndef DSP4_SPI_PARTIAL_FIX2
+#define DSP4_SPI_PARTIAL_FIX2 0
+#endif
+#ifndef DSP4_DYN_TABLES
+#define DSP4_DYN_TABLES 0
+#endif
+#ifndef DSP4_DYN_INLINE
+#define DSP4_DYN_INLINE 0
+#endif
+#ifndef DSP4_C2_XPAIR
+#define DSP4_C2_XPAIR 0
+#endif
+#ifndef DSP4_DLY_SPLIT
+#define DSP4_DLY_SPLIT 0
+#endif
+#ifndef DSP4_GAIN_SIMD
+#define DSP4_GAIN_SIMD 0
+#endif
+#ifndef DSP4_RTG_FABRIC
+#define DSP4_RTG_FABRIC 0
+#endif
 
-/* A COLLISION, NAMED RATHER THAN LEFT TO BE DISCOVERED (S75-13).
- * tools/dsp/cfg_words.py carries an EARLIER, UNAPPLIED design for a word of
- * this name -- S28 gate 3, signature 0xC3, every one of bits 23..0 allocated
- * to a strip cut, the full shared-kernel mask and six other switches. It has
- * never been implemented and nothing in the firmware produces it. The two
- * layouts cannot both be right and neither has a free bit for the other.
- * They ARE distinguishable, 0xC3 against 0xC4, so a decoder reading the wrong
- * one rejects it instead of decoding nonsense -- which is the whole reason
- * these words carry signatures. Which design survives is PW's call; what must
- * not happen is one landing on top of the other without one. */
-#define DIAG_BUILD_CFG3      0xE0EC  /* R  packed memory configuration */
+/* THE INSTRUMENT BIT'S OWN LIST (S80).
+ *
+ * Every DSP4_* switch build.sh defines that NONE of the three words carries a
+ * field for, compared against the value `shipping.config` resolves it to --
+ * which for all of them today is build.sh's own default, because
+ * shipping.config names none of them. One comparison per switch, summed, and
+ * the bit is the sum's truth value: a build with any of them moved is an
+ * instrument and says so in one bit rather than in fifty-six.
+ *
+ * TWO PLACES, AND THE SECOND ONE CHECKS THE FIRST. These literals are a
+ * mirror of build.sh's defaults, which is the S8-2 shape -- so
+ * check_shipping_config.sh derives the same list and the same values from
+ * build.sh and shipping.config and FAILS if this block disagrees, in either
+ * direction: a switch here that is not in the derived list, a switch in the
+ * derived list that is not here, or a literal that is not the shipping value.
+ * The mirror is not trusted; it is proved on every regeneration run.
+ *
+ * WHAT THIS BIT DOES NOT SAY: WHICH switch. Two different instrument arms
+ * read back the same triple, and the image md5 is what separates them. That
+ * is a deliberate trade -- fifty-six bits do not exist -- and it is stated
+ * here and in cfg_words.unrepresented() rather than left to be discovered.
+ * A switch that changes what the PRODUCT costs or sounds like does not belong
+ * in this list; it belongs in a field of its own, in bits 7..6. */
+#define DIAG_CFG3_INSTR_SUM ( 0 \
+    + (DSP4_AFB_DESIGN       != 1) \
+    + (DSP4_BQE_VERIFY       != 0) \
+    + (DSP4_BQG_VERIFY       != 0) \
+    + (DSP4_BQP_NOSAVE       != 0) \
+    + (DSP4_BQ_FLOAT32       != 0) \
+    + (DSP4_BQ_GRAPH         != 1) \
+    + (DSP4_BQ_GUARD_FORCE   != 0) \
+    + (DSP4_BQ_NEGCTL        != 0) \
+    + (DSP4_BQ_PAIR_STAGES   != 4) \
+    + (DSP4_BQ_PROBE         != 0) \
+    + (DSP4_BQ_SELFTEST      != 0) \
+    + (DSP4_BQ_SHOOTOUT      != 0) \
+    + (DSP4_BQ_TRACE         != 0) \
+    + (DSP4_C2_BQ_NEGCTL     != 0) \
+    + (DSP4_C2_BQ_NOLATCH    != 0) \
+    + (DSP4_CALL_SELFTEST    != 0) \
+    + (DSP4_CFG_WATCH        != 0) \
+    + (DSP4_COMMIT_STAGE     != 2) \
+    + (DSP4_COMP_NOCVT       != 0) \
+    + (DSP4_CTL_ALWAYS       != 0) \
+    + (DSP4_CTL_NEGCTL       != 0) \
+    + (DSP4_DAG_PROBE        != 0) \
+    + (DSP4_DAG_SEC_INIT     != 0) \
+    + (DSP4_DLY_NOMEM        != 0) \
+    + (DSP4_DMA_AUTOBUF      != 1) \
+    + (DSP4_DYN_SELFTEST     != 0) \
+    + (DSP4_DYN_SHOOTOUT     != 0) \
+    + (DSP4_FAULT_TRAP       != 0) \
+    + (DSP4_FCWM             != 1) \
+    + (DSP4_GAIN_NOCHAIN     != 0) \
+    + (DSP4_GAIN_SIMD_NEGCTL != 0) \
+    + (DSP4_GEQ_DESIGN       != 1) \
+    + (DSP4_MTR_NOCVT        != 0) \
+    + (DSP4_MTR_NOFOLD       != 0) \
+    + (DSP4_MTR_NOSQRT       != 0) \
+    + (DSP4_MTR_OFF          != 0) \
+    + (DSP4_NODE_LIMIT       != 0) \
+    + (DSP4_NODE_LIMIT2      != 0) \
+    + (DSP4_NO_IDLE_OVERRIDE != 0) \
+    + (DSP4_NUM_NEGCTL       != 0) \
+    + (DSP4_NUM_SELFTEST     != 0) \
+    + (DSP4_PATTERN          != 0) \
+    + (DSP4_POLL_ISR_ONLY    != 0) \
+    + (DSP4_POOL_PAD         != 0) \
+    + (DSP4_RTG_NOACC        != 0) \
+    + (DSP4_RX0_L2           != 0) \
+    + (DSP4_SIMD_NEGCTL      != 0) \
+    + (DSP4_SIMD_PROBE       != 0) \
+    + (DSP4_SKIP_PAIR        != 0) \
+    + (DSP4_SKIP_SIMDCALL    != 0) \
+    + (DSP4_STRIPS           != 0) \
+    + (DSP4_STUB_COMPGAIN    != 0) \
+    + (DSP4_STUB_EXP2        != 0) \
+    + (DSP4_STUB_LOG2        != 0) \
+    + (DSP4_STUB_POLY        != 0) \
+    + (DSP4_XOVER_DESIGN     != 1) )
+#if DIAG_CFG3_INSTR_SUM != 0
+#define DIAG_CFG3_INSTRUMENT 1
+#else
+#define DIAG_CFG3_INSTRUMENT 0
+#endif
+
+#define DIAG_BUILD_CFG3      0xE0EC  /* R  the switches the other two cannot */
 #define DIAG_BUILD_CFG3_VALUE ( 0xC4000000                              \
-    | (DIAG_CFG3_EXTRAM & 1) )
+    | ((DIAG_CFG3_INSTRUMENT   & 1) << 23)                              \
+    | ((DSP4_RTG_FABRIC        & 1) << 22)                              \
+    | ((DSP4_GAIN_SIMD         & 1) << 21)                              \
+    | ((DSP4_DLY_SPLIT         & 1) << 20)                              \
+    | ((DSP4_C2_XPAIR          & 1) << 19)                              \
+    | ((DSP4_DYN_INLINE        & 3) << 17)                              \
+    | ((DSP4_DYN_TABLES        & 1) << 16)                              \
+    | ((DSP4_SHARED_KERNELS  & 0xFF) << 8)                              \
+    | ((DSP4_SPI_PARTIAL_FIX2  & 1) <<  5)                              \
+    | ((DSP4_RTA               & 1) <<  4)                              \
+    | ((DSP4_CUE               & 1) <<  3)                              \
+    | ((DIAG_CFG3_MTX_GATE     & 1) <<  2)                              \
+    | ((DIAG_CFG3_AUXIN_BYPASS & 1) <<  1)                              \
+    | ( DIAG_CFG3_EXTRAM       & 1) )
 
 /* ---- THE RUNTIME SIDE OF THE POOL (S75) -----------------------------
  *

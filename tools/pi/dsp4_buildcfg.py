@@ -95,17 +95,49 @@ NEVER_SHIPPING2 = ('DSP4_SCOPE_BLK_TAP',)
 # shipping image, not an instrument-only switch (S49). It is 0 in
 # shipping.config today, so a 1 still shows up as a difference.
 
-# THE THIRD WORD (S75). DIAG_BUILD_CFG2's own note (diag.h) says the next
-# flag of its class needs a new word rather than a seventh narrowing of a
-# signature already down to six bits and fully allocated below it --
-# DSP4_EXTRAM, the external-RAM delay-pool flag, is that flag, and this is
-# that word. It starts almost empty: bit 0 only, 23..1 reserved zero.
+# THE THIRD WORD (S75, FILLED AND UNGATED AT S80). DIAG_BUILD_CFG2's own note
+# (diag.h) says the next flag of its class needs a new word rather than a
+# seventh narrowing of a signature already down to six bits and fully
+# allocated below it -- DSP4_EXTRAM was that flag and S75 took the word for
+# it, bit 0 only, 23..1 free. S80 filled them with the switches neither full
+# word can carry, because by then the hole had cost two sessions of record: an
+# image with the off-aux park gate on and one with it off read back the SAME
+# 0xE2018264 (S79), and mask 3 and mask 15 of DSP4_SHARED_KERNELS have read
+# back the same CFG2 since S26 (S27-3).
+#
+# THE WORD IS NO LONGER COMPILED OUT. S75 gated the DM cell `#if DSP4_EXTRAM`
+# to keep its byte-identical-rebuild proof, so 0xE0EC read plain 0 on every
+# shipping image; every image's md5 moved once at S80 and the word is
+# unconditional. A 0 here now means the image PREDATES S80 -- see decode3().
 DIAG_BUILD_CFG3 = 0xE0EC
 SIGNATURE3 = 0xC4000000
 
+# LSB-first. Two entries are not build switches and are marked: MTX_GATE is a
+# CAPABILITY (the image has a reader for CFG_MTX_MASK, S79) and INSTRUMENT is
+# the truth value of "any switch no word carries is off its shipping value".
 FLAGS3 = [
     (0, 'DSP4_EXTRAM'),
+    (1, 'DSP4_AUXIN_BYPASS'),
+    (2, 'MTX_GATE'),
+    (3, 'DSP4_CUE'),
+    (4, 'DSP4_RTA'),
+    (5, 'DSP4_SPI_PARTIAL_FIX2'),
+    (16, 'DSP4_DYN_TABLES'),
+    (19, 'DSP4_C2_XPAIR'),
+    (20, 'DSP4_DLY_SPLIT'),
+    (21, 'DSP4_GAIN_SIMD'),
+    (22, 'DSP4_RTG_FABRIC'),
+    (23, 'INSTRUMENT'),
 ]
+# The multi-bit fields, extracted in decode3() rather than as flags: the VALUE
+# is the cost, exactly as DSP4_TX_EARLY and DSP4_BQ_SIMD_PIPE are in CFG2.
+#   15..8   DSP4_SHARED_KERNELS   the WHOLE eight-class mask
+#   18..17  DSP4_DYN_INLINE       0..3
+#
+# INSTRUMENT IS THE ONE FIELD THAT MUST NEVER BE 1 IN A SHIPPING IMAGE, and
+# unlike NEVER_SHIPPING/NEVER_SHIPPING2 it is not a switch that could be
+# argued into the product later: it is the statement that one is.
+NEVER_SHIPPING3 = ('INSTRUMENT',)
 
 # The shipping configuration, mirrored from MW/D32/DSP/SHARC/shipping.config.
 # Kept here rather than read from the repo because this tool runs on the bench,
@@ -183,6 +215,29 @@ SHIPPING2 = {
 # that gap for itself on its first day.
 SHIPPING3 = {
     'DSP4_EXTRAM': 0,
+    # S79: the off-aux park gate SHIPS. It reached shipping.config nine days
+    # after S32 measured it, having defaulted to 0 in build.sh the whole time
+    # (S78-Q3) -- and no word the part answered could say which of the two it
+    # was running until this one.
+    'DSP4_AUXIN_BYPASS': 1,
+    # The capability, not a switch: 1 on any image built from the S79 tree or
+    # later. A 0 here on a part the host is sending CFG_MTX_MASK to means the
+    # host is writing to a cell with no reader.
+    'MTX_GATE': 1,
+    'DSP4_CUE': 0,
+    'DSP4_RTA': 0,
+    'DSP4_SPI_PARTIAL_FIX2': 1,
+    'DSP4_DYN_TABLES': 0,
+    'DSP4_DYN_INLINE': 2,
+    'DSP4_C2_XPAIR': 1,
+    'DSP4_DLY_SPLIT': 1,
+    'DSP4_GAIN_SIMD': 1,
+    'DSP4_RTG_FABRIC': 1,
+    # The whole eight-class mask, which is the field that closes S27-3: CFG2
+    # carries two bits of it and reads back 3 whether the image was built with
+    # 3, 7 or 15.
+    'DSP4_SHARED_KERNELS': 15,
+    'INSTRUMENT': 0,
 }
 
 
@@ -243,8 +298,8 @@ def describe2(d):
     # S26 added. So `shipping.config.s21` (mask 3) and `shipping.config.s26`
     # (mask 15) produce the SAME two words, and this decoder cannot tell them
     # apart -- which is S12-7's shape one flag along. Say that here instead
-    # of printing a number that reads like the whole mask; the image md5 is
-    # what identifies a shared-kernel arm until the word is widened.
+    # of printing a number that reads like the whole mask, and point at the
+    # word that DOES carry all four bits (DIAG_BUILD_CFG3, S80).
     if d['DSP4_SHARED_KERNELS']:
         lines.append('DSP4_SHARED_KERNELS %d (%s) — that class runs ONE body '
                      'for all 32 strips'
@@ -254,7 +309,9 @@ def describe2(d):
         lines.append('  ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are '
                      'NOT carried in DIAG_BUILD_CFG2, so this value does not '
                      'distinguish shipping.config.s21 from .s26 (S27-3). '
-                     'Identify a shared-kernel arm by its image md5.')
+                     'DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) '
+                     '-- read it there; fall back to the image md5 only on a '
+                     'pre-S80 image, where CFG3 is unmapped.')
     on = [n for _, n in FLAGS2 if d[n]]
     off = [n for _, n in FLAGS2 if not d[n]]
     lines.append('on2:  ' + (', '.join(on) or '-'))
@@ -265,23 +322,28 @@ def describe2(d):
 def decode3(word):
     """Decode DIAG_BUILD_CFG3, or raise ValueError.
 
-    UNLIKE decode()/decode2(), a raw value of 0 is not reported as a stale
-    or garbage read here -- it is today's NORMAL reading. diag.asm only
-    defines the _diag_build_cfg3 DM cell `#if DSP4_EXTRAM` (S75: a word of
-    DM moves every address behind it, which would have cost the "the L2 arm
-    rebuilds byte-identical" proof), so with DSP4_EXTRAM=0 -- today's
-    shipping value -- 0xE0EC is not in the dispatch table at all and falls
-    through to the unmapped-address default, which reads back plain 0. That
-    reading means exactly one thing: this image has no CFG3, therefore no
-    external-RAM pool. It does NOT mean the word is garbage or the tool is
-    stale, so it decodes cleanly to DSP4_EXTRAM=0 instead of raising.
+    UNLIKE decode()/decode2(), a raw value of 0 is not raised on -- it is
+    decoded and REPORTED, because it has one meaning and it is not a garbage
+    read. Between S75 and S80 diag.asm defined the _diag_build_cfg3 DM cell
+    only `#if DSP4_EXTRAM` (a word of DM moves every address behind it, which
+    would have cost S75 the "the L2 arm rebuilds byte-identical" proof), so
+    0xE0EC was not in the dispatch table at all on a DSP4_EXTRAM=0 image and
+    fell through to the unmapped-address default. S80 made the cell
+    unconditional, so a 0 now means THE IMAGE PREDATES S80: it cannot say
+    whether it carries the off-aux park gate, the matrix gate, the whole
+    shared-kernel mask or the external-RAM pool. That is a real finding about
+    a part on a bench, not a fault in this tool, so it decodes rather than
+    raising -- and `diff_shipping3` fails it, because a shipping image built
+    today answers 0xC47C0F26.
     """
     if word == 0:
-        return {'raw': 0, 'present': False, 'DSP4_EXTRAM': 0}
+        return {'raw': 0, 'present': False}
     if word is None or (word & 0xFF000000) != SIGNATURE3:
         raise ValueError('0x%s is not a DIAG_BUILD_CFG3 word (signature 0xC4)'
                          % ('%08X' % word if word is not None else '????????'))
-    d = {'raw': word, 'present': True}
+    d = {'raw': word, 'present': True,
+         'DSP4_SHARED_KERNELS': (word >> 8) & 0xFF,
+         'DSP4_DYN_INLINE': (word >> 17) & 3}
     for bit, name in FLAGS3:
         d[name] = (word >> bit) & 1
     return d
@@ -289,10 +351,33 @@ def decode3(word):
 
 def describe3(d):
     if not d['present']:
-        return ['raw3 0x%08X — no DIAG_BUILD_CFG3 (unmapped address, reads '
-                '0): NORMAL for a DSP4_EXTRAM=0 image, where the word is '
-                'compiled out entirely, not a fault' % d['raw']]
+        return ['raw3 0x%08X — no DIAG_BUILD_CFG3 cell: this image was built '
+                'BEFORE S80 (0xE0EC unmapped, reads 0). It cannot say whether '
+                'it carries the off-aux park gate, the CFG_MTX_MASK reader, '
+                'the whole shared-kernel mask or the external-RAM pool'
+                % d['raw']]
     lines = ['raw3 0x%08X' % d['raw']]
+    if d['INSTRUMENT']:
+        lines.append('INSTRUMENT — at least one switch NO config word carries '
+                     'a field for is off its shipping value: this is an '
+                     'instrument or a debug build, whatever else it looks '
+                     'like. WHICH switch is not in the word (fifty-six bits '
+                     'do not exist); identify the arm by its image md5')
+    if not d['MTX_GATE']:
+        lines.append('MTX_GATE 0 — this image has NO reader for CFG_MTX_MASK '
+                     '(0xF006): a host that sends the fourth product word to '
+                     'it is writing to a cell nothing reads, and every chip-2 '
+                     'matrix chain runs whatever the product is (pre-S79)')
+    if d['DSP4_AUXIN_BYPASS']:
+        lines.append('DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: '
+                     'an AUX_INPUT whose `on` cell is 0 is not called at all')
+    lines.append('DSP4_SHARED_KERNELS %d (%s) — the WHOLE eight-class mask, '
+                 'which is what CFG2 could not say (S27-3)'
+                 % (d['DSP4_SHARED_KERNELS'],
+                    ', '.join(n for b, n in ((1, 'COMP'), (2, 'TUBE'),
+                                             (4, 'GATE'), (8, 'FILT'))
+                              if d['DSP4_SHARED_KERNELS'] & b) or 'none'))
+    lines.append('DSP4_DYN_INLINE %d' % d['DSP4_DYN_INLINE'])
     on = [n for _, n in FLAGS3 if d[n]]
     off = [n for _, n in FLAGS3 if not d[n]]
     lines.append('on3:  ' + (', '.join(on) or '-'))
@@ -302,10 +387,19 @@ def describe3(d):
 
 def diff_shipping3(d):
     out = []
+    if not d['present']:
+        return ['DIAG_BUILD_CFG3 is ABSENT (0xE0EC reads 0): this image was '
+                'built before S80 and cannot state its own park gate, matrix '
+                'gate, shared-kernel mask or memory pool. A shipping image '
+                'built today reads 0xC47C0F26']
     for k, want in SHIPPING3.items():
         got = d.get(k)
         if got != want:
             out.append('%s = %s, shipping is %s' % (k, got, want))
+    for k in NEVER_SHIPPING3:
+        if d.get(k):
+            out.append('%s is SET — this is an instrument build, not a '
+                       'shipping one' % k)
     return sorted(set(out))
 
 
@@ -321,13 +415,14 @@ def diff_shipping2(d):
         # found this — on the shipping pair, at the end of a bench session,
         # with the part reading the correct word. Only the two bits the word
         # actually carries can be compared, and what the other two are is a
-        # question for the image md5 until DIAG_BUILD_CFG3 lands (S75-13).
+        # question DIAG_BUILD_CFG3 answers since S80 (bits 15..8).
         if k == 'DSP4_SHARED_KERNELS':
             if got is not None and (got & 3) != (want & 3):
                 out.append('%s = %s in the two bits this word carries, '
                            'shipping is %s (%s in those two bits); the other '
                            'two bits are not in CFG2 at all (S27-3) — '
-                           'identify the arm by its image md5'
+                           'DIAG_BUILD_CFG3 bits 15..8 carry the whole mask '
+                           '(S80); on a pre-S80 image, the image md5'
                            % (k, got, want, want & 3))
             continue
         if got != want:
@@ -466,7 +561,7 @@ def main():
             if args.expect_shipping:
                 rc = 4
 
-        # THE THIRD WORD (S75). word3 is None only from a manual --word with
+        # THE THIRD WORD (S75, filled S80). word3 is None only from a --word
         # fewer than three values given -- decode3 raises on that exactly as
         # decode2 raises on a missing word2, and that is reported the same
         # way. A word3 of plain 0 is NOT an error case (see decode3): it
@@ -485,7 +580,8 @@ def main():
             print('%s  %s' % (pad, line))
         bad3 = diff_shipping3(d3)
         if bad3:
-            print('%s  NOT THE SHIPPING MEMORY CONFIGURATION:' % pad)
+            print('%s  NOT THE SHIPPING CONFIGURATION IN THE THIRD WORD:'
+                  % pad)
             for b in bad3:
                 print('%s    %s' % (pad, b))
             if args.expect_shipping:
