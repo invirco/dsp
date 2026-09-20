@@ -68,8 +68,20 @@ bench_deploy_link_tools() {
     # this tree deployed it -- so every bench script was applying whatever
     # copy /home/app/dspboot happened to hold, or failing outright when it
     # held none. Same reason the link tools are here.
+    # dsp4_buildcfg.py joins them at S80, and it is the same fault a third
+    # time. It is the ONLY thing on the bench that decodes what the image on
+    # the part was built with, `--expect-shipping` is what scores a part
+    # against shipping.config, and nothing deployed it -- so a bench read the
+    # whatever copy of it had last been scp'd by hand. That mattered the
+    # moment DIAG_BUILD_CFG3 got fields: a PRE-S80 copy reading the new word
+    # passes its own signature check, decodes bit 0 alone, ignores the
+    # instrument bit, the park gate, the matrix gate and the whole
+    # shared-kernel mask, and reports "== the shipping configuration" while
+    # having read almost none of it. A stale decoder that says PASS is worse
+    # than one that raises.
     scp -q "$dir/dsp4_config.py" "$dir/dsp4_diag.py" "$dir/dsp4_scope.py" \
            "$dir/dsp4_bootlog.py" "$dir/dsp4_spiphase.py" \
+           "$dir/dsp4_buildcfg.py" \
            "$dir/../../MW/D24/DSP/input_patch.json" \
            "$BENCH_HOST:/home/app/dspboot/" 2>/dev/null \
       || echo ">>> BENCH DEPLOY: could not refresh the link tools on $BENCH_HOST" >&2
