@@ -132,7 +132,17 @@ module dsp4_pcm_reframe #(
     // unconnected witness reads back as zero, which the reader reports as
     // "the witness is not wired", never as "the lane is silent".
     input  wire [31:0] cdc_wit_l,
-    input  wire [31:0] cdc_wit_r
+    input  wire [31:0] cdc_wit_r,
+    // ad[0..2] WITNESS (S84), handed back by the THIRD knock. Same argument
+    // as the pair above: the lanes and the TDM8 sample strobe live in
+    // dsp4_logic_top and this module never sees them. `ad_sel` goes the other
+    // way -- the knock's low two bits choose which of the three lanes the
+    // witness presents, because three lanes at cdc precision do not fit in
+    // one 64-bit reply. Defaulted so the existing testbenches elaborate
+    // unchanged.
+    input  wire [31:0] ad_wit_l,
+    input  wire [31:0] ad_wit_r,
+    output wire [1:0]  ad_sel
 );
 
     // ---- PCM clock generation: BCK = sysclk/16, LRCLK = frame ----
@@ -315,6 +325,59 @@ module dsp4_pcm_reframe #(
             cdc_count <= cdc_count - 8'd1;
     end
 
+    // ---- THIRD KNOCK: the ad[0..2] witness (S84) ----
+    //
+    // Same mechanism and the same shipping-safety argument once more: a
+    // specific 64 bits whose right half is the exact inverse of its left,
+    // costing 128 Pi frames (2.7 ms) of the CM4's own return stream on a
+    // false trigger and touching nothing DSP-facing, no DAC lane, no NET
+    // lane and no panel.
+    //
+    // THE LOW TWO BITS SELECT THE LANE, which is the only difference from
+    // the two knocks above. Three converter lanes at the cdc witness's
+    // precision are 3 x (9 + 9 + 9) bits plus a frame counter and do not fit
+    // in a 64-bit reply, and a reply at lower precision would not separate
+    // "stuck high" from "carrying data" -- which is the whole question. So
+    // the reader knocks three times and the part answers about one lane each
+    // time. Lane 3 is not witnessed (AD3 carries no converter on the D24, and
+    // `net_sel` routes it from the NET lane), so the pattern with both bits
+    // set is not a knock at all and falls through to audio.
+    //
+    // Collision with the other two knocks is impossible by construction:
+    // KNOCK3_BASE differs from KNOCK_L in 18 bits and from KNOCK2_L in 16,
+    // and the compare below still requires the full 62-bit pattern plus the
+    // inverse relation. If two windows were somehow open at once the ID reply
+    // wins, then the cdc reply, then this -- the safe order, since a reader
+    // identifies its own reply by the magic in the right channel and no other
+    // reply carries AD_MAGIC.
+    localparam [31:0] KNOCK3_BASE = 32'hAD07_5E20;   // low 2 bits = lane
+
+    wire [1:0] knock3_lane = pw_flat[1:0];
+    wire knock3_hit = pi_sample
+                      && (pi_word_pos == (PCM_DATA_DELAY[5:0] + 6'd1))
+                      && (pw_flat[31:2]  == KNOCK3_BASE[31:2])
+                      && (pw_flat[63:32] == ~pw_flat[31:0])
+                      && (knock3_lane != 2'd3);
+
+    // Power-up state stated, not inherited -- see cdc_count above. An X here
+    // turns the whole capture word X and fails every recorded pair in
+    // tb_pcm_capture.
+    reg [7:0] ad_count;
+    reg [1:0] ad_lane;
+    initial   ad_count = 8'd0;
+    initial   ad_lane  = 2'd0;
+    wire ad_reply = (ad_count != 8'd0);
+    always @(posedge sysclk) begin
+        if (knock3_hit) begin
+            ad_count <= 8'd128;
+            ad_lane  <= knock3_lane;
+        end else if (cap_snap && ad_reply)
+            ad_count <= ad_count - 8'd1;
+    end
+    // Held for the whole reply window, so the witness words the top module
+    // presents are stable across all 128 frames of one reading.
+    assign ad_sel = ad_lane;
+
     // ---- FRAME-LOCKED SNAPSHOT -- this is not decoration ----
     //
     // cap_flat is rewritten slot by slot as the DSP frame arrives: slot s
@@ -355,9 +418,11 @@ module dsp4_pcm_reframe #(
     always @(posedge sysclk) begin
         if (cap_snap) begin
             cap_hold_l <= id_reply  ? DESIGN_ID
-                        : cdc_reply ? cdc_wit_l : cap_src_l;
+                        : cdc_reply ? cdc_wit_l
+                        : ad_reply  ? ad_wit_l : cap_src_l;
             cap_hold_r <= id_reply  ? {ID_MAGIC, CFG_BITS}
-                        : cdc_reply ? cdc_wit_r : cap_src_r;
+                        : cdc_reply ? cdc_wit_r
+                        : ad_reply  ? ad_wit_r : cap_src_r;
         end
     end
 

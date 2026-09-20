@@ -244,6 +244,121 @@ module dsp4_logic_top (
     wire [31:0] cdc_wit_l = {7'd0, cdc_ones_l, 7'd0, cdc_ones_max};
     wire [31:0] cdc_wit_r = {CDC_MAGIC, cdc_tog_l, cdc_frames[15:9]};
 
+    // ---- ad[0..2] WITNESS (S84, DSP4_AD_WITNESS) ----
+    //
+    // The same instrument as the cdc_o witness above, pointed at the OTHER
+    // converter return: the three AK5558 TDM8 lanes. S83 and S84 read every
+    // `_buf_C1_IN_*` lane on all three bitstreams this bench has ever
+    // carried -- the two current ones and `s41_mhrx_pullup_off`, which the
+    // flash log says it lived on from 2026-09-13 to 2026-09-19 including the
+    // day S54-S58 measured real preamp noise -- and got EXACT DIGITAL ZERO on
+    // all 32 mic lanes every time, rails up, 595 chain unmuted at gain 63,
+    // while the four codec lanes carried their own dithered floor in the same
+    // pass. Everything a desk or the SPI link can ask has been asked. This is
+    // the one question left that needs no scope: are the AK5558 output pins
+    // moving AT ALL?
+    //
+    // ad[0..2] arrive at this part and pass through it as a plain wire
+    // (`i_dspa[n] = net_sel[n] ? ni[n] : ad[n]`), so the CPLD can see them and
+    // nothing else on the card can. A MAX V has no readback and the TEST pins
+    // land on a DNP header, so the witness rides the one path off this part
+    // that needs no hands -- the CM4 PCM knock, a third word pair.
+    //
+    // ONE LANE PER KNOCK. Three lanes x (ones, toggles, max) plus the frame
+    // counter does not fit in 64 bits at a precision worth having, and the
+    // cdc witness's numbers are the right ones. So the knock's low two bits
+    // SELECT the lane and the reply is the cdc reply's exact shape, with the
+    // lane echoed back in the spare bits of the left word as a transcription
+    // guard. Three knocks, three readings, same resolution as cdc_o.
+    //
+    // WHAT THE NUMBERS SEPARATE, exactly as for cdc_o:
+    //   ones 0,   toggles 0    the lane is at exact digital zero
+    //   ones 256, toggles 0    the lane is stuck HIGH -- a different fault
+    //   ones >0,  toggles >0   the lane is carrying data, i.e. the ADC is
+    //                          clocked, out of reset, and converting
+    //
+    // WHAT IT CANNOT WITNESS, said here rather than discovered later. The
+    // frame counter below counts fs8 -- and `conv_fs = fs8`, an OUTPUT of
+    // this part. It therefore witnesses that this CPLD's clock generator is
+    // running and framing, NOT that the bit clock and frame sync arrive at
+    // the AK5558 pins; U3.142/U3.141 are the only drivers on those nets and
+    // nothing in a MAX V can see the far end of a net it drives. That is the
+    // same limit the cdc_o witness carries and it is why the probe list in
+    // the report names U3 pins 141/142 whatever this answers.
+    //
+    // What makes the counter worth its bits is the OTHER direction: it is the
+    // instrument's own negative control. S80's lesson (finding S80-19) is
+    // that an instrument answering static zero on a build where it cannot
+    // work is worse than no instrument. Two knocks more than ~11 ms apart
+    // MUST return different counter values, and the reader refuses to report
+    // the zeros as a measurement if they do not.
+    localparam [15:0] AD_MAGIC = 16'hAD07;
+
+`ifdef DSP4_AD_WITNESS
+    // Per lane: the frame accumulator, the last complete frame, and the
+    // high-water mark of `ones` since power-up so a single burst between two
+    // knocks is not averaged away by a quiet frame.
+    reg [2:0]  ad_q;
+    reg [8:0]  ad_ones_c  [0:2];
+    reg [8:0]  ad_tog_c   [0:2];
+    reg [8:0]  ad_ones_l  [0:2];
+    reg [8:0]  ad_tog_l   [0:2];
+    reg [8:0]  ad_ones_max[0:2];
+    reg [15:0] ad_frames;                  // free-running, fs8 (= conv_fs)
+
+    integer i;
+    // Power-up state stated rather than inherited -- the same argument as
+    // cdc_count in dsp4_pcm_reframe.v. MAX V macrocells come up cleared;
+    // saying so keeps simulation and silicon in agreement and keeps an
+    // unwritten counter from propagating X into the capture word.
+    initial begin
+        ad_q = 3'd0;
+        ad_frames = 16'd0;
+        for (i = 0; i < 3; i = i + 1) begin
+            ad_ones_c[i]   = 9'd0; ad_tog_c[i]    = 9'd0;
+            ad_ones_l[i]   = 9'd0; ad_tog_l[i]    = 9'd0;
+            ad_ones_max[i] = 9'd0;
+        end
+    end
+
+    // Sampled on bck8_sample -- the same edge the DSP samples the lane on, so
+    // the count is of the bit periods the DSP itself sees and not of a phase
+    // nothing reads. Identical to the cdc_o arm, deliberately: the two
+    // witnesses are comparable only if they count the same thing.
+    always @(posedge sysclk) begin
+        if (bck8_sample) begin
+            ad_q <= ad[2:0];
+            for (i = 0; i < 3; i = i + 1) begin
+                if (ad[i])            ad_ones_c[i] <= ad_ones_c[i] + 9'd1;
+                if (ad[i] != ad_q[i]) ad_tog_c[i]  <= ad_tog_c[i]  + 9'd1;
+            end
+        end
+        if (cdc_frame_end) begin
+            for (i = 0; i < 3; i = i + 1) begin
+                ad_ones_l[i] <= ad_ones_c[i];
+                ad_tog_l[i]  <= ad_tog_c[i];
+                if (ad_ones_c[i] > ad_ones_max[i])
+                    ad_ones_max[i] <= ad_ones_c[i];
+                ad_ones_c[i] <= 9'd0;
+                ad_tog_c[i]  <= 9'd0;
+            end
+            ad_frames <= ad_frames + 16'd1;
+        end
+    end
+
+    wire [1:0]  ad_sel;                    // driven by the reframer's knock
+    wire [31:0] ad_wit_l = {5'd0, ad_sel, ad_ones_l[ad_sel],
+                            7'd0, ad_ones_max[ad_sel]};
+    wire [31:0] ad_wit_r = {AD_MAGIC, ad_tog_l[ad_sel], ad_frames[15:9]};
+`else
+    // Not built: the reply words are zero, which carries no AD_MAGIC, so the
+    // reader reports "no reply / the witness is not in this bitstream" and
+    // never reports the zeros as a silent lane.
+    wire [1:0]  ad_sel;
+    wire [31:0] ad_wit_l = 32'd0;
+    wire [31:0] ad_wit_r = 32'd0;
+`endif
+
     // ---- Pi PCM re-framer -> DSPA I6 ----
     wire pcm_tdm;
     // The broadcast copy of the Pi stream (all eight TDM8 slots), used
@@ -303,7 +418,10 @@ module dsp4_logic_top (
         .tdm_out     (pcm_tdm),
         .tdm_drive   (pcm_drive),
         .cdc_wit_l   (cdc_wit_l),
-        .cdc_wit_r   (cdc_wit_r)
+        .cdc_wit_r   (cdc_wit_r),
+        .ad_wit_l    (ad_wit_l),
+        .ad_wit_r    (ad_wit_r),
+        .ad_sel      (ad_sel)
     );
 
     // ---- Input-lane sources (fixed per product) ----

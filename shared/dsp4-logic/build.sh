@@ -40,6 +40,14 @@ fi
 #   DRIVE_ALL    every DSPA input lane driven from the Pi's playback,
 #                broadcast across all eight TDM8 slots -- the driven-
 #                capacity stimulus (S19), which costs the DSP nothing
+#   AD_WITNESS   ones/toggles/frames counters on ad[0..2] -- the AK5558
+#                return lanes -- read by a third knock (S84). A DIAGNOSTIC,
+#                not a shipping switch: it is here because every mic lane
+#                reads exact digital zero on all three bitstreams this bench
+#                has carried and nothing a desk or the SPI link can ask is
+#                left. The cdc_o witness it copies IS built in every
+#                configuration; whether this one joins it is the hub's call,
+#                and until then a build carrying it says so in its name.
 NAME="dsp4_logic"
 MACRO_ARG=()
 NONSHIP=()
@@ -74,6 +82,12 @@ if [ "${PI_TDM8:-0}" = "1" ]; then
     NONSHIP+=("pi_tdm8: CM4 link at 4x frame rate (192 kHz), 8 channels each way")
     echo "*** PI_TDM8 EVALUATION BUILD (CM4 link at 4x rate, 8 channels) ***" >&2
 fi
+if [ "${AD_WITNESS:-0}" = "1" ]; then
+    MACRO_ARG+=(--verilog_macro=DSP4_AD_WITNESS=1)
+    NAME="${NAME}_adwit"
+    NONSHIP+=("ad_witness: ones/toggles/frames counters on ad[0..2], third knock")
+    echo "*** AD_WITNESS DIAGNOSTIC BUILD (ad[0..2] counters on knock 3) ***" >&2
+fi
 
 # THE ARTIFACT HASH COVERS EVERY MACRO, AND IT DID NOT.
 #
@@ -94,6 +108,7 @@ fi
 CFG_LINE="loopback=${LOOPBACK:-0} pi_selftest=${PI_SELFTEST:-0}"
 CFG_LINE="$CFG_LINE pi_maincap=${PI_MAINCAP:-0} pi_tdm8=${PI_TDM8:-0}"
 CFG_LINE="$CFG_LINE drive_all=${DRIVE_ALL:-0}"
+CFG_LINE="$CFG_LINE ad_witness=${AD_WITNESS:-0}"
 
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
@@ -110,14 +125,15 @@ SRC_HASH=$(cat \
 # CFG_BITS records the same configuration the manifest's `config:` line
 # does, in one word, so a part can say what it is without a manifest to
 # hand: bit 0 loopback, 1 pi_selftest, 2 pi_maincap, 3 pi_tdm8, 4 shipping
-# (set when no non-shipping switch is set), 5 drive_all. Bits 6-15
-# reserved, zero.
+# (set when no non-shipping switch is set), 5 drive_all, 6 ad_witness. Bits
+# 7-15 reserved, zero.
 DESIGN_ID="32'h${SRC_HASH:4:8}"
 CFG_BITS_N=$(( (${LOOPBACK:-0} ? 1 : 0) \
              | (${PI_SELFTEST:-0} ? 2 : 0) \
              | (${PI_MAINCAP:-0} ? 4 : 0) \
              | (${PI_TDM8:-0} ? 8 : 0) \
              | (${DRIVE_ALL:-0} ? 32 : 0) \
+             | (${AD_WITNESS:-0} ? 64 : 0) \
              | ( ${#NONSHIP[@]} == 0 ? 16 : 0 ) ))
 CFG_BITS=$(printf "16'h%04X" "$CFG_BITS_N")
 MACRO_ARG+=(--verilog_macro="DSP4_DESIGN_ID=$DESIGN_ID")
@@ -162,6 +178,29 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
     echo "  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;"
     echo "  the frame counter MUST advance between two knocks or the witness"
     echo "  is dead and its zeros mean nothing (S81)"
+    if [ "${AD_WITNESS:-0}" = "1" ]; then
+        echo "ad_witness: play {L=0xAD075E2<n>, R=~L} for lane n = 0,1,2 and"
+        echo "  record, 128 frames:"
+        echo "  L = {5'b0, lane[1:0], ad_ones_last[8:0], 7'b0, ad_ones_max[8:0]}"
+        echo "  R = {0xAD07, ad_toggles_last[8:0], frame_counter[15:9]}"
+        echo "  One lane per knock -- three lanes at this precision do not fit"
+        echo "  in one 64-bit reply. lane=3 is NOT a knock (no converter on"
+        echo "  AD3). Counts are per 48 kHz frame over 256 TDM8 bit periods,"
+        echo "  sampled on the same edge the DSP samples the lane on."
+        echo "  The frame counter is fs8 = conv_fs, which this part GENERATES:"
+        echo "  it witnesses that the clock generator runs, NOT that the clock"
+        echo "  arrives at the AK5558 pins. It MUST advance between two knocks"
+        echo "  or the witness is dead and its zeros mean nothing (S81/S84)."
+    fi
+    # Stated because a diagnostic that costs half the part is a fact the next
+    # session needs before it adds anything else, and because the fit is the
+    # only place it is written down otherwise.
+    echo "logic_elements: $(grep -m1 'Total logic elements' \
+          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
+    echo "registers: $(grep -m1 'Total registers' \
+          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
+    echo "pins: $(grep -m1 'Total pins' \
+          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
     echo "pi_link: $([ "${PI_TDM8:-0}" = "1" ] \
           && echo "2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots" \
           || echo "2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only")"

@@ -1,0 +1,90 @@
+=== AN_EN and CS_M as found ===
+26: op -- pd | lo // GPIO26 = output
+27: ip    pu | hi // GPIO27 = input
+=== the pair that will be booted ===
+90daae5b442a7a0eae31e2f4133529fb  chip1.ldr
+2483d61ce889e1794846350b1443ffb5  chip2.ldr
+=== boot: chip1 stage 7, chip2 stage 7 ===
+=== rails UP (S70 recipe, authorised) ===
+26: op -- pd | hi // GPIO26 = output
+=== 595 chain: every register UNMUTED at gain 63, phantom off (0xFC) ===
+  sending 0xFC = 11111100 x24 + 00000000
+  VERIFIED 200/200 at 0xFC
+
+=== THE FLOOR ARM: every lane, chain 0xFC, rails up, no stimulus ===
+symbol map: /home/app/s83tn/chip1.sym.json  (6452 symbols)
+  control MUST MOVE      FRAME_COUNT +39332  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01 -> 1 distinct  [ok]
+
+lane               read distinct           min           max   peak dBFS  verdict
+IN_01                16        1             0             0    -336.000  STATIC ZERO
+IN_02                16        1             0             0    -336.000  STATIC ZERO
+IN_03                16        1             0             0    -336.000  STATIC ZERO
+IN_04                16        1             0             0    -336.000  STATIC ZERO
+IN_05                16        1             0             0    -336.000  STATIC ZERO
+IN_06                16        1             0             0    -336.000  STATIC ZERO
+IN_07                16        1             0             0    -336.000  STATIC ZERO
+FRAME_COUNT +39332, dead-symbol distinct 1
+MOVING       4: XIN_CODEC_01(16 distinct, -69.1 dBFS), XIN_CODEC_02(16 distinct, -69.7 dBFS), XIN_CODEC_03(15 distinct, -96.4 dBFS), XIN_CODEC_04(16 distinct, -81.5 dBFS)
+STATIC ZERO 42: IN_01, IN_02, IN_03, IN_04, IN_05, IN_06, IN_07, IN_08, IN_09, IN_10, IN_11, IN_12, IN_13, IN_14, IN_15, IN_16, IN_17, IN_18, IN_19, IN_20, IN_21, IN_22, IN_23, IN_24, IN_25, IN_26, IN_27, IN_28, IN_29, IN_30, IN_31, IN_32, XIN_PI_L, XIN_PI_R, XIN_SNK_01, XIN_SNK_02, XIN_SNK_03, XIN_SNK_04, XIN_SNK_05, XIN_SNK_06, XIN_SNK_07, XIN_SNK_08
+STATIC other 1: XIN_MEMS(ffffffff)
+
+MIC-ADC LANES (IN_01..IN_32): 0 of 32 MOVING
+
+=== THE TONE ARM: the S83 one-tone sweep, same chain, same rails ===
+_buf_C1_IN_02              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_03              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_04              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_05              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_06              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_07              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_08              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_09              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_10              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_11              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_12              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_13              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_14              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_15              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_16              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_17              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_18              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_19              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_20              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_21              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_22              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_23              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_24              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_25              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_26              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_27              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_28              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_29              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_30              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_31              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_IN_32              1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_CODEC_01       24 distinct, peak -68.0 dBFS 24 distinct, peak -70.1 dBFS moving, no rise
+_buf_C1_XIN_CODEC_02       24 distinct, peak -71.0 dBFS 24 distinct, peak -65.4 dBFS moving, no rise
+_buf_C1_XIN_CODEC_03       23 distinct, peak -92.1 dBFS 24 distinct, peak -90.6 dBFS moving, no rise
+_buf_C1_XIN_CODEC_04       24 distinct, peak -83.0 dBFS 24 distinct, peak -79.4 dBFS moving, no rise
+_buf_C1_XIN_MEMS           1 distinct, peak -168.6 dBFS 1 distinct, peak -168.6 dBFS dark
+_buf_C1_XIN_PI_L           1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_PI_R           1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_01         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_02         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_03         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_04         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_05         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_06         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_07         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+_buf_C1_XIN_SNK_08         1 distinct, peak -336.0 dBFS 1 distinct, peak -336.0 dBFS dark
+
+NO LANE CARRIES THE TONE. The AUX 1 bus does (above), so the stimulus reaches the DAC and the loop is broken downstream of it: either the cable is not in J25 or the AK5558s are not converting. This run does not choose between those.
+
+wrote /home/app/s84/gate2-s41.json
+
+=== the 595 SAFE image restored (S70-7), rails DOWN ===
+  sending 0x01 = 00000001 x24 + 00000000
+  VERIFIED 200/200 at 0x01
+26: op -- pd | lo // GPIO26 = output
+27: ip    pu | hi // GPIO27 = input

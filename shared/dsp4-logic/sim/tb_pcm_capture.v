@@ -41,6 +41,15 @@ module tb_pcm_capture;
     // whether dsp4_logic_top counts cdc_o correctly is tb_logic_top's job.
     localparam [31:0] TB_CDC_L     = 32'h0055_00AA;
     localparam [31:0] TB_CDC_R     = {CDC_MAGIC, 16'h1234};
+    // The S84 ad[0..2] knock. Its low two bits SELECT the lane, so unlike
+    // the two above it has a reply that must DEPEND on what was knocked --
+    // which is the part worth testing, and the part a fixed reply word
+    // would not test at all. The witness words below are therefore a
+    // function of the `ad_sel` the reframer drives back out, so a decode
+    // that ignored the low bits, or held the wrong lane across the reply
+    // window, answers the wrong word here and fails.
+    localparam [31:0] KNOCK3_BASE  = 32'hAD07_5E20;
+    localparam [15:0] AD_MAGIC     = 16'hAD07;
 
     // With the period decode corrected and CAP_EXTRA_DELAY back at 0, the
     // capture link is plain Philips I2S and the CM4 model is the ordinary
@@ -126,12 +135,28 @@ module tb_pcm_capture;
     wire c_clk, c_fs, c_din, c_dout, c_tdm_out;
     reg [31:0] pi_left  = 32'h0000_0000;
     reg [31:0] pi_right = 32'h0000_0000;
+    // Stand-in for dsp4_logic_top's per-lane witness registers: lane n
+    // answers a word that names n, so the round trip knock -> ad_sel ->
+    // reply word is checkable here without counting anything.
+    // THE LAYOUT HERE IS THE REAL ONE, bit for bit, and that is the point.
+    // The first version of this stand-in packed the lane one bit lower than
+    // dsp4_logic_top's `ad_wit_l` does, so the testbench passed while the
+    // reader on the bench -- written from the same mistaken layout -- read
+    // {lane[0], ones_last[8]} and reported a lane mismatch on a part that was
+    // answering perfectly. A stand-in whose shape does not match the thing it
+    // stands in for tests the knock and nothing else.
+    //   L = {5'b0, lane[1:0], ones_last[8:0], 7'b0, ones_max[8:0]}
+    wire [1:0]  c_ad_sel;
+    wire [8:0]  tb_ad_ones = 9'h0A0 + {7'd0, c_ad_sel};
+    wire [31:0] tb_ad_l = {5'd0, c_ad_sel, tb_ad_ones, 7'd0, 9'h0F0};
+    wire [31:0] tb_ad_r = {AD_MAGIC, 9'h123, 5'd0, c_ad_sel};
     dsp4_pcm_reframe #(.DESIGN_ID(TB_DESIGN_ID), .CFG_BITS(TB_CFG_BITS)) u_c (
         .sysclk(sysclk), .frame_pos(frame_pos),
         .pcm_clk(c_clk), .pcm_fs(c_fs), .pcm_dout(c_dout), .pcm_din(c_din),
         .bck8_launch(bck8_launch), .bck8_sample(bck8_sample),
         .tdm_in(tdm_line), .tdm_out(c_tdm_out),
-        .cdc_wit_l(TB_CDC_L), .cdc_wit_r(TB_CDC_R)
+        .cdc_wit_l(TB_CDC_L), .cdc_wit_r(TB_CDC_R),
+        .ad_wit_l(tb_ad_l), .ad_wit_r(tb_ad_r), .ad_sel(c_ad_sel)
     );
     model_pi_i2s_tx u_c_tx (.bck(c_clk), .ws(c_fs),
                             .left(pi_left), .right(pi_right), .sd(c_dout));
@@ -225,6 +250,7 @@ module tb_pcm_capture;
     end
 
     integer knock_errors = 0;
+    integer k;
 
     initial begin
         if ($test$plusargs("vcd")) begin
@@ -304,6 +330,55 @@ module tb_pcm_capture;
             knock_errors = knock_errors + 1;
         end else begin
             $display("  knock2 answered and expired back to audio");
+        end
+
+        // --- 5: the ad[0..2] witness knock (S84), once per lane ---
+        // The knock's low two bits choose the lane, so the reply must CHANGE
+        // with them. Three fixed replies would pass a decode that ignored the
+        // selector entirely, which is the one mistake this knock can make
+        // that the other two cannot.
+        for (k = 0; k < 3; k = k + 1) begin
+            pi_left  = KNOCK3_BASE | k;
+            pi_right = ~(KNOCK3_BASE | k);
+            #(1024.0 * 2.0 * SYS_HALF * 6);
+            pi_left  = 32'h0000_0000;
+            pi_right = 32'h0000_0000;
+            #(1024.0 * 2.0 * SYS_HALF * 4);
+
+            if (c_r[31:16] !== AD_MAGIC) begin
+                $display("  KNOCK3[%0d]: R read %08x, no AD magic", k, c_r);
+                knock_errors = knock_errors + 1;
+            end else if (c_r[1:0] !== k[1:0] || c_l[26:25] !== k[1:0]) begin
+                $display("  KNOCK3[%0d]: answered for lane %0d/%0d, not %0d",
+                         k, c_l[26:25], c_r[1:0], k);
+                knock_errors = knock_errors + 1;
+            end else begin
+                $display("  knock3 lane %0d answered %08x / %08x", k, c_l, c_r);
+            end
+
+            #(1024.0 * 2.0 * SYS_HALF * 140);
+            if (c_r[31:16] === AD_MAGIC) begin
+                $display("  KNOCK3[%0d]: reply never expired", k);
+                knock_errors = knock_errors + 1;
+            end
+        end
+
+        // --- 6: lane 3 is NOT a knock (AD3 carries no converter on D24) ---
+        // The negative control for the decode: the same 62 bits with both
+        // selector bits set must fall through to audio, not answer about
+        // some lane. Without this, `knock3_lane != 3` could be deleted and
+        // every test above would still pass.
+        pi_left  = KNOCK3_BASE | 2'd3;
+        pi_right = ~(KNOCK3_BASE | 2'd3);
+        #(1024.0 * 2.0 * SYS_HALF * 6);
+        pi_left  = 32'h0000_0000;
+        pi_right = 32'h0000_0000;
+        #(1024.0 * 2.0 * SYS_HALF * 4);
+        if (c_r[31:16] === AD_MAGIC) begin
+            $display("  KNOCK3: lane 3 answered %08x / %08x -- it must not", c_l, c_r);
+            knock_errors = knock_errors + 1;
+        end else begin
+            $display("  knock3 lane 3 correctly not a knock");
         end
 
         if (errors == 0 && knock_errors == 0)

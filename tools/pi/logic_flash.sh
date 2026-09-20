@@ -15,21 +15,28 @@
 #                      live unit; this is how you find out whether the
 #                      interlock is currently satisfiable.
 #   --rollback <svf>   what goes back if the flash does not take.
-#                      Default s41_mhrx_pullup_off.15f3ae07dae1.svf — the
-#                      bitstream the bench lives on. S41 put it on the part
-#                      on 2026-09-13 (four plays, four FLASH-OK); it is
-#                      s37 step 0 plus the pin-74 pull-up and nothing else.
+#                      Default dsp4_logic.7a6a4529f29c.svf — the bitstream
+#                      the bench lives on. S82 made it the shipping label and
+#                      S84 left it on the part (design ID read back
+#                      32'h4529f29c / cfg_bits 0x0010).
 #                      A default rollback that is not what is on the part is
 #                      not a rollback, it is a second unannounced flash, so
 #                      this line moves with the bench and is part of the
 #                      write-up of every session that flashes.
-#                      History, because this line has been stale twice:
-#                      dsp4_logic.a1f6672af6c3.svf until S41 found it stale
-#                      (S38 had put step 0 on the part on 2026-09-12);
-#                      s37_shipping_step0.c62c024714f2.svf until S42 found
-#                      it stale the same way — S41 updated it to the
-#                      bitstream it rolled back TO, not the one it left on
-#                      the part. Set it AFTER the flash, from the flash log.
+#                      History, because this line has now been stale THREE
+#                      times: dsp4_logic.a1f6672af6c3.svf until S41 found it
+#                      stale (S38 had put step 0 on the part on 2026-09-12);
+#                      s37_shipping_step0.c62c024714f2.svf until S42 found it
+#                      stale the same way — S41 updated it to the bitstream it
+#                      rolled back TO, not the one it left on the part;
+#                      s41_mhrx_pullup_off.15f3ae07dae1.svf from S42 until
+#                      S84, which is the long one: the part stopped carrying
+#                      s41 at 2026-09-19T21:47:06Z and this line still named
+#                      it a day later, through every S77-S83 flash.
+#                      Set it AFTER the flash, FROM THE FLASH LOG — which is
+#                      now a table, `docs/d24-bench-logic-flash-log.md`, so
+#                      "what is on the part" costs a glance rather than a
+#                      grep through 2.2 million lines.
 #   --stop-app         stop matrix-app, then RE-READ GPIO26. See below.
 #   --leave-app-stopped  do not restart matrix-app at the end.
 #   --an-en-waived "<written reason>"   PW's shape-3 ruling, recorded.
@@ -89,7 +96,7 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BENCH="${BENCH:-app@192.168.1.219}"
 BITDIR="${BITDIR:-$HERE/../../shared/dsp4-logic/bitstream}"
-ROLLBACK="s41_mhrx_pullup_off.15f3ae07dae1.svf"
+ROLLBACK="dsp4_logic.7a6a4529f29c.svf"
 DRYRUN=0; STOPAPP=0; RESTART=1; WAIVER=""; SELFTEST=""
 ARG=""
 

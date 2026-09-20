@@ -55,13 +55,36 @@ commit in a clean tree and got the same label and a byte-identical pof.
 
 ## `dsp4_logic.a1f6672af6c3` — retired S82, because it does not clock the converters and cannot say what it is
 
-**THE ARTIFACT THE BENCH LIVED ON FOR A MONTH UNDER THE NAME "shipping".**
-Built 2026-08-21 at commit `a4ee3d1f`, which `git merge-base --is-ancestor`
-puts BEFORE `ded71079` — the S34 converter-clock fix of 2026-09-11, whose own
-RTL comment reads *"THESE WERE INPUTS, AND THAT IS WHY NO CONVERTER CAN
-WORK"*. On this bitstream U3 pins 142/141 (board nets C1 and L0) are INPUTS,
-so nothing drives the converter bit clock or frame sync at all and no
-converter on the card can work.
+**THE ARTIFACT THE `shipping` LABEL NAMED FOR A MONTH.** Built 2026-08-21 at
+commit `a4ee3d1f`, which `git merge-base --is-ancestor` puts BEFORE
+`ded71079` — the S34 converter-clock fix of 2026-09-11, whose own RTL comment
+reads *"THESE WERE INPUTS, AND THAT IS WHY NO CONVERTER CAN WORK"*. On this
+bitstream U3 pins 142/141 (board nets C1 and L0) are INPUTS, so nothing drives
+the converter bit clock or frame sync at all and no converter on the card can
+work.
+
+**TWO CORRECTIONS, BOTH FROM S84 AND BOTH MEASURED.**
+
+*The bench did not live on it for a month.* The heading above used to say so
+and the bench's own dated flash log says otherwise: `a1f6672af6c3` was on the
+part for about 35 hours in all (2026-09-11 06:43Z to 2026-09-12 17:41Z), and
+from 2026-09-13T13:11:14Z to 2026-09-19T21:47:06Z — six days containing
+2026-09-16, the day S54–S58 measured live preamp noise — the part carried
+`s41_mhrx_pullup_off.15f3ae07dae1` with nothing flashed in between. The LABEL
+pointed here for a month; the PART did not. The whole table is in
+`docs/d24-bench-logic-flash-log.md`, and it is the record, not this note.
+
+*"Pre-S34" is NOT the discriminator and must not be used as one.*
+`s41_mhrx_pullup_off` and its parent `s37_shipping_step0` are pre-`ded71079`
+by ancestry (`git merge-base --is-ancestor ded71079 61e38ce3` is FALSE) and
+they DRIVE the clock pair: at `61e38ce3` the top module already carries
+`assign conv_bck = bck8; assign conv_fs = fs8;`, the same two lines HEAD has,
+where `a4ee3d1f` has no such ports at all. Two independent lineages drive the
+pair — the step-0 shipping branch and post-`ded71079` `main` — and exactly one
+artifact does not. S41 measured it at the time (U3.142 = 12.288 MHz,
+U3.141 = 48 kHz) and S84 confirmed it by reading all four codec lanes live on
+`s41_mhrx_pullup_off`. What is wrong with `a1f6672af6c3` is what this file
+says about `a1f6672af6c3`, and nothing may be inferred from a build date.
 
 **Measured, not deduced (S81 §3.4).** Same DSP pair, same firmware, same
 symbol map, same reads, half an hour apart, only the bitstream changed: on
@@ -83,6 +106,8 @@ and `loadlogic.sh` refuses to stage ANY artifact whose manifest carries no
 | | pof md5 | design_id | converter clock |
 |---|---|---|---|
 | retired `a1f6672af6c3` | `f08f3b525ff0fe2f7957a96d958842e6` | none — predates the stamp | **NOT DRIVEN** |
+| `s37_shipping_step0.c62c024714f2` | `79284dad6e9c27995f91806056c9fba5` | none — does not fit at that size | driven (its own lineage, pre-`ded71079`) |
+| `s41_mhrx_pullup_off.15f3ae07dae1` | `72a28864d54334215d192070d5742252` | none — does not fit at that size | driven (measured S41, confirmed S84) |
 | shipping `7a6a4529f29c` | `7dc0976d7b13d98b4a37795d1eeaf49e` | `32'h4529f29c` | driven (S34) |
 
 ---

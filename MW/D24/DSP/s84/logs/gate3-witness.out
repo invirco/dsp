@@ -1,0 +1,78 @@
+=== what is on the part (it must be the witness build) ===
+  design_id: 32'hdbb1424a   cfg_bits: 16'h0040   (no flags)
+    reply frames 2175 of 144000 captured, 1 distinct reply words
+    MATCHES --expect dbb1424a
+
+=== ARM A: RAILS DOWN, 595 as found ===
+26: op -- pd | lo // GPIO26 = output
+cdc_o (the CONTROL: the codec lane S83/S84 measured live)
+  cdc_o  knock 1: ones  48 [10..86]  max  91  toggles  24 [12..34]  frame_ctr  41  (2175 reply frames)
+  cdc_o  knock 2: ones  49 [11..86]  max  91  toggles  24 [10..36]  frame_ctr  91  (2175 reply frames)
+  cdc_o  knock 3: ones  48 [12..86]  max  91  toggles  24 [10..36]  frame_ctr   9  (2175 reply frames)
+    -> CARRYING DATA -- 48 of 256 bit periods high, 24 transitions, in the last frame
+
+ad[0]  (knock L=0xAD075E20 R=0x52F8A1DF)
+  ad[0]  knock 1: ones  97 [12..179]  max 186  toggles  26 [14..38]  frame_ctr  57  (2175 reply frames)
+  ad[0]  knock 2: ones  94 [13..179]  max 186  toggles  26 [12..38]  frame_ctr 103  (2175 reply frames)
+  ad[0]  knock 3: ones  98 [16..182]  max 186  toggles  26 [12..38]  frame_ctr  25  (2175 reply frames)
+    -> CARRYING DATA -- 98 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[1]  (knock L=0xAD075E21 R=0x52F8A1DE)
+  ad[1]  knock 1: ones  96 [9..181]  max 186  toggles  26 [16..38]  frame_ctr  71  (2175 reply frames)
+  ad[1]  knock 2: ones  96 [13..179]  max 186  toggles  26 [12..38]  frame_ctr 121  (2175 reply frames)
+  ad[1]  knock 3: ones  94 [10..181]  max 186  toggles  26 [12..38]  frame_ctr  39  (2175 reply frames)
+    -> CARRYING DATA -- 94 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[2]  (knock L=0xAD075E22 R=0x52F8A1DD)
+  ad[2]  knock 1: ones  95 [12..180]  max 187  toggles  26 [14..38]  frame_ctr  88  (2175 reply frames)
+  ad[2]  knock 2: ones  96 [9..178]  max 187  toggles  26 [12..38]  frame_ctr   6  (2175 reply frames)
+  ad[2]  knock 3: ones 112 [14..181]  max 187  toggles  26 [14..40]  frame_ctr  56  (2175 reply frames)
+    -> CARRYING DATA -- 112 of 256 bit periods high, 26 transitions, in the last frame
+
+   cdc_o: frame counter advanced 41 -> 91 -> 9 -- the witness is live.
+   ad[0]: frame counter advanced 57 -> 103 -> 25 -- the witness is live.
+   ad[1]: frame counter advanced 71 -> 121 -> 39 -- the witness is live.
+   ad[2]: frame counter advanced 88 -> 6 -> 56 -- the witness is live.
+
+VERDICT: ad lanes are MOVING. The lanes are alive at the CPLD and the zero the DSP reads is downstream of this part -- slot map, SPORT, DMA or graph.
+
+=== ARM B: RAILS UP (S70 recipe, authorised), 595 unmuted gain 63 ===
+26: op -- pd | hi // GPIO26 = output
+  sending 0xFC = 11111100 x24 + 00000000
+  VERIFIED 200/200 at 0xFC
+cdc_o (the CONTROL: the codec lane S83/S84 measured live)
+  cdc_o  knock 1: ones  49 [12..86]  max  91  toggles  24 [10..36]  frame_ctr  52  (2175 reply frames)
+  cdc_o  knock 2: ones  48 [10..86]  max  91  toggles  24 [10..34]  frame_ctr  98  (2175 reply frames)
+  cdc_o  knock 3: ones  47 [10..86]  max  91  toggles  24 [10..36]  frame_ctr  19  (2175 reply frames)
+    -> CARRYING DATA -- 47 of 256 bit periods high, 24 transitions, in the last frame
+
+ad[0]  (knock L=0xAD075E20 R=0x52F8A1DF)
+  ad[0]  knock 1: ones  96 [13..181]  max 187  toggles  26 [14..38]  frame_ctr  64  (2175 reply frames)
+  ad[0]  knock 2: ones  94 [11..180]  max 187  toggles  26 [14..38]  frame_ctr 114  (2175 reply frames)
+  ad[0]  knock 3: ones  96 [14..181]  max 187  toggles  26 [14..40]  frame_ctr  31  (2175 reply frames)
+    -> CARRYING DATA -- 96 of 256 bit periods high, 26 transitions, in the last frame
+
+ad[1]  (knock L=0xAD075E21 R=0x52F8A1DE)
+  ad[1]  knock 1: ones  97 [32..162]  max 187  toggles  50 [34..68]  frame_ctr  81  (2175 reply frames)
+  ad[1]  knock 2: ones  96 [32..160]  max 187  toggles  50 [32..68]  frame_ctr 126  (2175 reply frames)
+  ad[1]  knock 3: ones  96 [32..161]  max 187  toggles  50 [32..70]  frame_ctr  47  (2175 reply frames)
+    -> CARRYING DATA -- 96 of 256 bit periods high, 50 transitions, in the last frame
+
+ad[2]  (knock L=0xAD075E22 R=0x52F8A1DD)
+  ad[2]  knock 1: ones  95 [33..158]  max 187  toggles  48 [32..68]  frame_ctr  92  (2175 reply frames)
+  ad[2]  knock 2: ones  96 [26..163]  max 187  toggles  48 [32..64]  frame_ctr  14  (2175 reply frames)
+  ad[2]  knock 3: ones  95 [29..164]  max 187  toggles  48 [30..66]  frame_ctr  59  (2175 reply frames)
+    -> CARRYING DATA -- 95 of 256 bit periods high, 48 transitions, in the last frame
+
+   cdc_o: frame counter advanced 52 -> 98 -> 19 -- the witness is live.
+   ad[0]: frame counter advanced 64 -> 114 -> 31 -- the witness is live.
+   ad[1]: frame counter advanced 81 -> 126 -> 47 -- the witness is live.
+   ad[2]: frame counter advanced 92 -> 14 -> 59 -- the witness is live.
+
+VERDICT: ad lanes are MOVING. The lanes are alive at the CPLD and the zero the DSP reads is downstream of this part -- slot map, SPORT, DMA or graph.
+
+=== the 595 SAFE image restored (S70-7), rails DOWN ===
+  sending 0x01 = 00000001 x24 + 00000000
+  VERIFIED 200/200 at 0x01
+26: op -- pd | lo // GPIO26 = output
+27: ip    pu | hi // GPIO27 = input

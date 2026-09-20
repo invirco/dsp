@@ -17,3 +17,32 @@ slot_map: sha256:c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cd
 sim_gate: PASS
 device: 5M1270ZT144C4
 fmax: 67.25 MHz
+built_from: a1536bc6 (S83 tip, = HEAD when this artifact was built at S82)
+  RECORDED AT S84, because from S84 this artifact no longer rebuilds from
+  HEAD and the only thing that said which commit it came from was "HEAD at
+  the time". The label IS the source hash -- sha256 over the slot-map hash,
+  the CFG_LINE, rtl/*.v, the qsf and the sdc, first 12 chars -- so it can be
+  checked WITHOUT Quartus, in one line, at any commit:
+
+    git -C <repo> stash list >/dev/null   # clean tree, then at that commit:
+    cd shared/dsp4-logic && cat \
+      <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
+      <(echo "loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0") \
+      rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
+      | sha256sum | cut -c1-12
+    # -> 7a6a4529f29c at a1536bc6 and at every commit up to it.
+
+  Note the CFG_LINE above has no `ad_witness=` term: that term is added at
+  S84, so the one-liner for THIS artifact is the five-switch form and the
+  one for anything built after S84 is the six-switch form. That is the whole
+  reason the label moved.
+
+why_it_moved: S84 added the ad[0..2] witness to rtl/ under DSP4_AD_WITNESS
+  (default OFF) to answer S83-Q1. SRC_HASH covers rtl/*.v wholesale and
+  cannot tell a guarded addition from a behavioural change, so the shipping
+  build's label moves from 7a6a4529f29c to 0cc6f94444b2 even though the
+  shipping PATH is unchanged and the sim gate passes on it. THIS artifact --
+  the one on the part -- is not affected: it is still the bytes it always
+  was, it still answers 32'h4529f29c, and it is still the shipping bitstream.
+  Whether shipping ADOPTS 0cc6f94444b2 (and re-checks the S82 84.34 % D24
+  capacity row on it) is the hub's call; S84 did not make it.
