@@ -45,5 +45,6 @@ for name in _A[2:]:
     print('          ' + ' '.join('%08X' % (w & 0xFFFFFFFF) for w in ws[8:]))
     print('   Q4.28  ' + ' '.join('%+.5f' % v for v in x[:8]))
     print('          ' + ' '.join('%+.5f' % v for v in x[8:]))
-    print('   peak %.6f (%.2f dBFS)   max|dx| %.6f   FOLD %+.2f dB' %
-          (pk, 20 * math.log10(pk) if pk > 0 else -999, md, fold))
+    nb = sum(1 for w in ws if w & 0x80000000)
+    print('   peak %.6f (%.2f dBFS)   max|dx| %.6f   FOLD %+.2f dB   bit31 %d/16' %
+          (pk, 20 * math.log10(pk) if pk > 0 else -999, md, fold, nb))
