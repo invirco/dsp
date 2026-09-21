@@ -1,0 +1,3 @@
+timestamp,step,jack,node,drive_dbfs_pk,return_rms_dbfs,loop_gain_db,adc_fs_dbu,implied_fs_dbu,thd_pct,verdict,note
+2026-09-21T16:05Z,TRS-1,Monitor L (TRS),C2_MON_OUT codec slot 0,-26.02,-49.30,-20.27,17.55,-2.72,0.0878,ALIVE,"coherent TEST_MEAS MeasChan 18; digital tap read either side of the lane read; source MAIN (cue not selectable, DSP4_CUE=0)"
+2026-09-21T16:07Z,TRS-1b,Monitor L (TRS) rep 2,C2_MON_OUT codec slot 0,-26.02,-49.30,-20.27,17.55,-2.72,0.0662,ALIVE,"repeat, RmsResult identical to 0.00 dB"
