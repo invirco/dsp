@@ -1,3 +1,26 @@
+## HUB DISPATCH 2026-09-21 08:22Z — S88 — XLR input and output reference levels vs the D24's internal references, with PW's dScope at the bench over Remote Control (implied ADC/DAC full scale, loop closure, units.csv updated)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S88 — XLR input and output reference levels against the D24's internal references, with PW's dScope at the bench. Interactive: PW is AT THE BENCH and reaches this session through Remote Control (this session starts with it; the link is printed at start — PW reads your step prompts and types readings back in this conversation). PW 2026-09-21: "the most useful test at this time is to compare XLR input and output ref levels, to see how closely they match d24 internal refs."
+
+Context. The acceptance runner turns lane dBFS into dBu through two per-unit references in tools/accept/units.csv: dac_fs_dbu = +23.13 dBu (DAC full scale at the OUT XLR J45, PW's DMM 2026-09-16) and the ADC full scale +17.55 dBu at the MIC XLR at gain code 0 (S55/S57). Neither has been checked with a calibrated analyser. The dScope is that analyser: a generator with an exact dBu output and an analyser with an exact dBu reading, balanced XLR both ways. The unit is MW-D24-2 rev C (the S86 state: shipping bitstream 83b3cc22, SAFE image, dead analog section mics 1–4 and 13–16 — never use those; MIC 5 = J25 = C1_IN_05; AUX 1 = J45). The S87 session's four uncommitted files (MW/D24/HW/hardware-map.md, tools/pi/dsp4_s42_align.py, MW/D24/DSP/s87/, tools/dsp/gap_list.py) are NOT yours: leave them exactly as they are and never commit them. Standing: 983.04 MHz only; signed triple unchanged; deploy stays staged; unit as found at the end (SAFE image, AN_EN lo, matrix-app 3/3); AN_EN raise authorised (S70 recipe) — the rails are needed for this.
+
+The instruments you already have: the S55 machinery (MW/D24/DSP/s55/tools/s55_run.py: the DSP oscillator "osc" on AUX 1 at a set dBFS, TEST_MEAS coherent gain and lane peak dBFS, the 595 gain-code image through H1S1, the capture arm), dsp4_meascap.py, and the S54 tone check. Reuse them; write nothing new unless a step needs it.
+
+Protocol (each step: print the step for PW in ONE short line saying exactly what to connect or set and what to type back; wait for PW's reply in the conversation; record the reading with a timestamp from `date`; never proceed on a guess):
+A. Setup: rails up, gain code 0 on every powered register, tone off, strips neutral; tell PW when the unit is ready and which XLRs you will use.
+B. INPUT reference (MIC 5 first, then MIC 6 and MIC 9 as witnesses on the other two ADCs): PW sets the dScope generator to 1 kHz at +4.00 dBu balanced into the MIC XLR (pin 2 hot); you read the lane's coherent peak dBFS (TEST_MEAS) at code 0; implied ADC full scale = 4.00 − lane_dBFS. Then +14.00 dBu (near FS) and −16.00 dBu (linearity, three points). Also at gain code 32 for one channel (the gain-law anchor: implied gain vs the universal table). Table: channel, code, dScope dBu, lane dBFS, implied FS dBu, delta vs +17.55.
+C. OUTPUT reference (AUX 1 / J45 first, then MAIN L, MAIN R, and one Monitor TRS): you put the DSP oscillator at −20.00 dBFS then −6.00 dBFS then −1.00 dBFS 1 kHz on the output (path at unity, everything else muted); PW types the dScope dBu reading (balanced, unloaded, then with the dScope's 600 Ω load if it offers one). Implied DAC full scale = dScope_dBu − osc_dBFS. Table: output, osc dBFS, dScope dBu, implied FS, delta vs +23.13; note the 600 Ω droop.
+D. LOOP cross-check: with the dScope out of the way, the S54 loop (AUX 1 → MIC 5, PW's cable) gives the lane-to-lane loop gain; it must equal (DAC FS − ADC FS) implied from B and C within 0.1 dB — state the closure.
+E. Result: the two references re-stated with "dScope 2026-09-21" provenance; if either differs from the stored value by more than 0.1 dB, update tools/accept/units.csv (dac_fs_dbu) and docs/spec-audio-test-set.md's measured-references table (append a row, never overwrite), and say what the runner's dBu verdicts change by. Report MW/D24/DSP/s88/xlr-refs.md with the three tables and the closure; a CSV of every reading (MW/D24/DSP/s88/readings.csv: timestamp, step, connector, code, stimulus, dScope dBu, lane dBFS, implied FS). tasks.md status, commit and push (only your files + units.csv/spec-audio-test-set.md), unit as found.
+
+Rules: never a dialog box — the conversation IS the dialog with PW; if PW does not answer within 15 minutes, park the unit safe (tone off, code 0, rails down), write the block 🟡 "waiting for PW at the bench", commit, push, and stop. Bounded to this morning. No sub-agents.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-20 15:53Z — S87 — the D24's completeness on the signed configuration: the gap list from the master, the legs in PW's order, each priced driven under the bar; the dead-section guard sized to eight   [status: 🟡 dispatched]   [model: opus]
 
 model: opus
