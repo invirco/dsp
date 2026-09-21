@@ -449,3 +449,152 @@ cheapest remaining step**, and it costs the two flashes in S89d-Q1. The scope
 brief in §6 stands as the fallback for the case where the stamps come back in
 order on lane 18 — which would point at the per-channel read side rather than
 exonerate the transmit path.
+
+---
+
+# S89d (executed) — the mechanism, measured: the core overwrites the last frame of each half while it is still going out
+
+PW authorised the flash-and-restore round trip. It was run, and it closed the
+root cause. **No scope is needed.**
+
+## The clean one-change bitstream
+
+The three `maincap` bitstreams already in `bitstream/` were all **unusable for
+this**: every one carries a different `slot_map` from what is on the part
+(`4ecc4aa2…` / `2c53de21…` against shipping's `c4a3ca82…`), and flashing a
+different wire contract would have mis-framed the lanes and produced scrambled
+stamps for a reason that has nothing to do with the DMA. That is memory item
+16's trap exactly, and it would have been a false positive.
+
+So the shipping RTL was rebuilt as a control first — `./build.sh` reproduced
+`dsp4_logic.d02d83b3cc22` with a **byte-identical POF** (the SVF and manifest
+differ only in their wall-clock/`built:` lines) — and then rebuilt once more with
+`PI_MAINCAP=1` and nothing else:
+
+    dsp4_logic_maincap.58ae3dfe6e25
+      design_id  32'h3dfe6e25   cfg_bits 16'h0004 (pi_maincap only)
+      slot_map   sha256:c4a3ca82f956…8477cdd   <- IDENTICAL to shipping
+      sim_gate   PASS      fmax 63.98 MHz
+
+Flashed FLASH-OK on attempt 1, and the part answered
+`design_id 32'h3dfe6e25 cfg_bits 16'h0004 pi_maincap` — confirmed on the part,
+not assumed.
+
+## The measurement
+
+`DSP4_TXPROBE=1` built into three arms (signed, `SIMD_DYN=0`, `DYN_LUT=0`),
+one second of capture each on `hw:dsp4pcm,0`, stamps decoded by
+`tools/pi/s89_stamps.py`. No audio is needed — the stamp is written regardless.
+
+| arm | sample index out of sequence | block counter wrong | verdict |
+|---|--:|--:|---|
+| **`SIMD_DYN=1 + DYN_LUT=1`** | 0.0000 % | **12.5006 %** | **DISPLACED** |
+| `SIMD_DYN=0` | 0.0000 % | 0.0000 % | IN ORDER |
+| `DYN_LUT=0` | 0.0000 % | 0.0000 % | IN ORDER |
+
+**12.5006 % is 2 of every 16 transitions, which is ONE frame per block** — and
+S89c's spectral fit predicted the corruption at ~2 samples of every 16 from the
+analog side alone. Two entirely independent methods, one digital and one
+acoustic, on the same number.
+
+The raw sequence says the rest:
+
+    frame  stamp       block  idx  half
+      208  0x0004411E   1089   14   1
+      209  0x0004431F   1091   15   1   <-- block +2
+      210  0x00044200   1090    0   0   <-- block -2 (re-sync)
+      211  0x00044201   1090    1   0
+
+- the **sample index is never wrong** — frames leave in order, so the DMA
+  addressing and the descriptors are correct;
+- **ping/pong alternates correctly** — `_blk_latch_bufs` picks the right half;
+- **exactly one frame per block is wrong: index 15, the LAST frame of the half**;
+- it carries block **1091** where its neighbours carry **1089** — **+2 blocks**.
+
+## The mechanism
+
+Two blocks is **one full ping-pong cycle**, i.e. *the same half*. So the word
+that went out on frame 15 is the one the core wrote for the *next* time round
+that half — the core had already overwritten it.
+
+**The core is early, not the DDE late.** The stamp is `+2` (content from the
+future), not `−2` (stale content). Having latched a half, the gather loop
+reaches frame 15 of it *before the SPORT has finished shifting frame 15 of the
+previous cycle out of that same half*, and overwrites it in place. The DMA's
+half-completion interrupt fires when the last word has been handed to the SPORT,
+not when it has been serialised, and the SPORT's transmit FIFO is exactly that
+gap.
+
+That is why the switch pair matters, and it is why the direction confused S89c:
+`SIMD_DYN + DYN_LUT` is **the fastest configuration in the tree** — the paired
+table lookup is 54.1 cycles per sample-pair against the polynomial's 215.2 — so
+it is the only one whose gather reaches frame 15 inside the SPORT's drain
+window. S89c measured the folding arm as the *lightest* (chip 2 worst-block
+78.81 % against 86.84 % and 93.07 % on the two clean arms) and flagged that the
+"runs early" direction fitted but was unproven. **It is now proven**, and the
+sign of the stamp is the proof.
+
+This also resolves S89c's open tension — "`_blk_latch_bufs` is gated by
+`_block_ready` once per ISR, so a fast core should not be able to run it twice".
+It does not run twice. It runs **once, on time, and then writes too quickly**.
+
+## The fix — recommended, NOT applied
+
+The invariant being violated: *the core must not write a buffer half until the
+SPORT has finished shifting the previous cycle's last frame out of it.* Three
+ways to restore it, in increasing cost and robustness:
+
+1. **Gate the gather's last frame on the transmit FIFO draining** — poll the
+   SPORT's transmit-status field before writing the final frame of the half
+   (`SPORT_CTL`'s `DXS`; it is readable, and it is the very field whose bit-30
+   difference showed up in S89c's folded-boot register dump and was set aside as
+   FIFO status). Smallest change, targeted at the one frame that is wrong.
+2. **Reverse the gather order for the last frame only** — write frame 15 first
+   and frames 0..14 after, so the frame closest to the wire is written furthest
+   from its deadline. Cheap, but it narrows the window rather than closing it.
+3. **Triple-buffer the chip-2 TX region** — removes the class of defect outright,
+   at one more block of DM and one more block of output latency.
+
+**Recommendation: (1) as the fix, with (3) as the fallback if the FIFO status
+proves not to be readable early enough.** Nothing has been applied, the signed
+configuration is untouched, and `~/dspboot/candidate-s82` is unchanged. This
+needs verifying on real silicon against the cable-loop THD row
+(`tools/pi/dsp4_loop_thd.sh`) before it goes anywhere near a signed image.
+
+**A free falsifiable prediction for whoever applies it:** *slowing the folding
+arm should cure the fold without touching either switch.* Adding load, or
+dropping `DSP4_DYN_INLINE`, should push the gather's frame 15 outside the drain
+window. If it does not, this mechanism is wrong.
+
+**One refinement to S89c, stated rather than buried:** the spectral fit put the
+corruption at ~2 samples wide and the stamp says **one frame**. Both can be true
+— `_tx_probe_stamp` writes slot 1 *after* `_gather_chip2` writes slot 0 for the
+same frame, so the audio word sits exposed slightly longer than the stamp, and
+the DAC's reconstruction filter smears a one-sample defect across about two.
+The stamp count is the better measurement and supersedes the spectral estimate.
+
+## An instrument bug found and fixed on the way
+
+`dsp4_boot_linked.sh` reported **FOLDED** six times in a row during the restore.
+It was not folded: the Pi's reboot had left **GPIO27 as `ip pd`**, which enables
+U2 on MISO and kills the parameter link — the known CS_M defect, which presents
+as "cannot phase the parameter link". `sudo pinctrl set 27 ip pu` fixed it
+instantly and the pair was at BOOT_STAGE 7 the whole time.
+
+The bug was mine: `s89_signbit.py` let any exception exit 1, which the wrapper
+read as FOLDED, so it rebooted the pair six times against a fault a one-line
+`pinctrl` fixes. It now catches the failure, exits 2 (inconclusive — *a link
+that will not answer is not a folded link*), and prints the `pinctrl` remedy.
+
+## Unit as found
+
+Shipping `dsp4_logic.d02d83b3cc22` reflashed FLASH-OK attempt 1 and the part
+read back `design_id 32'h83b3cc22 cfg_bits 16'h0010 SHIPPING` **before** the
+overlay went back (the ID knock needs duplex). `config.txt` diffed clean against
+the pre-session backup; card 0 is back to the slave overlay's playback-only
+device 1. AN_EN `lo`. matrix-app active, 3 of 3 MCUs verified.
+`~/dspboot/candidate-s82` md5s unchanged. S87's four files untouched.
+
+One deliberate difference from the session's opening state: **GPIO27 is now
+`ip pu` where it was `op hi`**. Both hold U2 off MISO; `ip pu` is the state the
+CS_M finding prescribes, and it is what the link needs after a Pi reboot.

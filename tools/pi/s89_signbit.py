@@ -23,12 +23,26 @@ import dsp4_scope as S
 
 SYMDIR = _A[0]
 NW = int(_A[1]) if len(_A) > 1 else 32
+
+# A LINK THAT WILL NOT ANSWER IS NOT A FOLDED LINK. Without this, any
+# exception here (most often "cannot phase the parameter link", which is the
+# CS_M/U2 defect: GPIO27 comes back from a Pi reboot as `ip pd` and enables U2
+# on MISO) exits 1 and reads to the caller as FOLDED. The boot wrapper then
+# rebooted the pair six times against a fault a one-line pinctrl fixes.
+def _unreadable(msg):
+    print('CANNOT READ THE PART: %s' % msg)
+    print('  If this is "cannot phase the parameter link", try:  '
+          'sudo pinctrl set 27 ip pu')
+    sys.exit(2)
 GROUPS = (('lane 0 (SPORT 0)  MAIN L/R', (0, 1)),
           ('lane 1 (SPORT 1)  codec ret', (25, 26)))
 res = {}
 for chip in (1, 2):
-    sc = S.Scope(chip, symfile='%s/chip%d.sym.json' % (SYMDIR, chip))
-    sc.d.resync(); sc.check_chip()
+    try:
+        sc = S.Scope(chip, symfile='%s/chip%d.sym.json' % (SYMDIR, chip))
+        sc.d.resync(); sc.check_chip()
+    except Exception as e:
+        _unreadable(e)
     syms = json.load(open('%s/chip%d.sym.json' % (SYMDIR, chip)))
     if 'symbols' in syms: syms = syms['symbols']
     def A(n):

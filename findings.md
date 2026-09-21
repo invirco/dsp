@@ -13938,3 +13938,67 @@ at 3/6/9 kHz), corruption upstream of the DMA (S89c, slot clean to −110 dBc ov
 (S89d-2). Open: a write-side half handoff that is timing-dependent, and a
 read-side per-channel DDE skew. Both need `tx_probe` and therefore the flash. A
 physical scope is still NOT the next step.
+
+## S89d (executed) — ROOT CAUSE: the core overwrites the last frame of each TX buffer half while it is still being shifted out
+
+PW authorised the flash round trip; it was run and it closed the root cause.
+**No scope is needed.**
+
+**The bitstream had to be built, not reused.** All three `maincap` bitstreams in
+`bitstream/` carry a different `slot_map` from what is on the part (`4ecc4aa2…`,
+`2c53de21…` vs shipping `c4a3ca82…`); flashing one would have mis-framed the
+lanes and produced scrambled stamps for a reason unrelated to the DMA — a false
+positive, and memory item 16's trap exactly. The shipping RTL was rebuilt as a
+control (reproduces `d02d83b3cc22` with a byte-identical POF) and then rebuilt
+with `PI_MAINCAP=1` and nothing else: `dsp4_logic_maincap.58ae3dfe6e25`,
+design_id `3dfe6e25`, cfg_bits `0x0004`, **slot_map identical to shipping**, sim
+gate PASS. Flashed FLASH-OK attempt 1; the part answered `3dfe6e25 pi_maincap`.
+
+**The measurement**, `DSP4_TXPROBE=1`, one second of capture per arm:
+
+| arm | sample idx out of sequence | block counter wrong |
+|---|--:|--:|
+| `SIMD_DYN=1 + DYN_LUT=1` | 0.0000 % | **12.5006 %** |
+| `SIMD_DYN=0` | 0.0000 % | 0.0000 % |
+| `DYN_LUT=0` | 0.0000 % | 0.0000 % |
+
+12.5006 % of transitions is **one frame per 16-sample block**, and S89c's
+spectral fit predicted ~2 of 16 from the analog side alone — two independent
+methods on the same number. The sample index is never wrong and ping/pong
+alternates correctly, so the DMA addressing and `_blk_latch_bufs` are both fine.
+Exactly one frame is wrong: **index 15, the last frame of the half**, carrying a
+stamp **+2 blocks** ahead of its neighbours (`… 1089/14, 1091/15, 1090/0 …`).
+
+**Mechanism.** Two blocks is one full ping-pong cycle, i.e. the same half. The
+word that went out on frame 15 is the one the core wrote for the *next* pass over
+that half — **the core had already overwritten it**. The core is EARLY, not the
+DDE late: the stamp is +2 (future content), not −2 (stale). The DMA's
+half-completion interrupt fires when the last word reaches the SPORT, not when it
+has been serialised, and the SPORT's transmit FIFO is that gap. `SIMD_DYN +
+DYN_LUT` is the fastest configuration in the tree (paired table lookup 54.1
+cycles/sample-pair vs the polynomial's 215.2), so it is the only one whose gather
+reaches frame 15 inside the drain window — which is why S89c measured the folding
+arm as the *lightest* (chip 2 78.81 % vs 86.84 %/93.07 %). S89c's open tension
+("`_blk_latch_bufs` is gated by `_block_ready` once per ISR") is resolved: it
+does not run twice, it runs once and then writes too quickly.
+
+**Fix, recommended and NOT applied**: (1) gate the gather's final frame on the
+SPORT transmit FIFO draining (`SPORT_CTL.DXS` — the field whose bit-30
+difference S89c saw and set aside); (2) write frame 15 first (narrows, does not
+close); (3) triple-buffer the chip-2 TX region (closes it outright, costs a block
+of DM and a block of latency). Recommend (1), fallback (3). Needs verifying on
+silicon against `tools/pi/dsp4_loop_thd.sh`. **Free falsifiable prediction:
+slowing the folding arm should cure the fold without touching either switch.**
+
+**S89c refinement**: the spectral fit said ~2 samples, the stamp says one frame.
+Both hold — `_tx_probe_stamp` writes slot 1 after `_gather_chip2` writes slot 0
+for the same frame, so the audio word is exposed slightly longer, and the
+reconstruction filter smears a one-sample defect across about two. The stamp
+count supersedes the spectral estimate.
+
+**Instrument bug found and fixed**: `dsp4_boot_linked.sh` called FOLDED six times
+during the restore when the real fault was GPIO27 coming back from the Pi reboot
+as `ip pd` (the CS_M/U2 defect, which presents as "cannot phase the parameter
+link"). `s89_signbit.py` let any exception exit 1, which the wrapper read as
+FOLDED. It now exits 2 — *a link that will not answer is not a folded link* — and
+prints `sudo pinctrl set 27 ip pu`.
