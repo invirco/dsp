@@ -273,3 +273,179 @@ Stated plainly so the next session does not assume otherwise:
   `_scope_record` (the instrument the peek could not be).
 - `tools/pi/s89_cyc.py` — the worst-block high-water mark, with `DIAG_CLEAR` so
   the config ladder is excluded.
+
+---
+
+# S89d — the code search came back empty, and `tx_probe` needs the bench after all
+
+Appended to this file rather than opened as `dac-fold-mechanism.md`: no mechanism
+was established, so a file named for one would be misleading. This is the same
+narrowing, one step further in, plus a correction to S89c's own framing.
+
+## 🔴 S89d-Q1 — `tx_probe.asm` cannot be run without a CPLD flash
+
+**This contradicts S89c's framing and the dispatch built on it, so it is stated
+first.** S89c recommended `tx_probe.asm` as "the cheaper route before a scope",
+which is true — it is cheaper than a scope session — but S89c also said it "needs
+the `_maincap` LOGIC build flashed", and the dispatch read the recommendation as
+*bench-free*. It is not. Read end to end, `tx_probe.asm` is a **write-side**
+instrument:
+
+    _tx_probe_stamp:
+        r1 = dm(_tx_active_buf);      /* the half the gather just wrote */
+        ...                            /* off + sample*stride + 1 */
+        dm(i4, 0) = r3;                /* block ctr | ping-pong bit | sample idx */
+
+It writes the stamp **into the TX DMA ring**, in the slot next to the audio, and
+the stamp then leaves the part on the wire. Nothing reads it back on-chip. The
+readback path is the CPLD → Pi capture, which is why the file's own header
+specifies the `_maincap` LOGIC build and `CAP_SLOT_L=0 / CAP_SLOT_R=1`.
+
+**Exactly what it needs, in order:**
+
+1. Build a `DSP4_TXPROBE=1` arm of the folding configuration — host-side, free.
+2. **Flash a capture LOGIC bitstream** (`dsp4_logic_maincap.1216e35175cb` or the
+   current equivalent), displacing shipping `83b3cc22` in flash. *This is the
+   parked-unit violation and the reason this dispatch stops here.*
+3. **Switch the Pi PCM overlay to duplex** — `config.txt` line 74 currently
+   selects `dsp4-pcm-slave`; the capture path needs duplex. Edit plus a Pi
+   reboot, ~30 s back.
+4. DSP double boot+config after the LOGIC flash — the S88 runbook step, without
+   which the SPORTs stay configured against the pre-flash clock relationship.
+5. `arecord` on `hw:dsp4pcm,0`, decode the stamps.
+6. Restore: reflash shipping, design-ID readback, double boot+config, overlay
+   back, re-park.
+
+Two flashes and an overlay round trip; call it 45–60 minutes with the
+verification. No PW hands are needed beyond authorising it — the flash is
+OpenOCD on the CM4's own GPIOs, not a JTAG pod.
+
+**One correction to carry into that session.** `DSP4_TXPROBE_LANE` defaults to
+18, which is `C2_MAIN_ST_OUT` on SPORT3 — the Pi return lane, not the codec lane
+(SPORT2, entry 16) that carries the folded Monitor and AUX output. That default
+is nevertheless **the right choice here**, and for a reason worth knowing: all
+five of chip 2's TX lanes share **one** DMA region and **one** `_tx_active_buf`
+pointer, toggled by **one** ISR (`LAST_CSID 37`, SPORT0_A_DMA). So a *write-side*
+half-handoff fault is common to every lane and lane 18 is representative. The
+caveat is the mirror image of that: each SPORT has its own DDE channel, so a
+*read-side* per-channel skew would **not** show on lane 18. If the stamps come
+back in order on lane 18, that does not yet exonerate the codec lane — it moves
+the suspicion from the shared write side to the per-channel read side, which is a
+useful bisection in itself.
+
+## S89d-1 — there is no index or pointer difference to find. The handoff code is identical.
+
+Gate 3 asked for a concrete code search: *find where the index/pointer
+computation differs between the folding and clean configurations.* **It was done,
+and it came back empty — decisively.** That is a result, not a failure to look,
+and it removes a whole class of explanation.
+
+**Source level.** The files that own the handoff do not mention either switch:
+
+| file | contains | `DSP4_SIMD_DYN` | `DSP4_DYN_LUT` |
+|---|---|--:|--:|
+| `sport_init.asm` | `_blk_latch_bufs` — the ring-half selection | 0 | 0 |
+| `chip2/block_io.asm` | `_gather_chip2`, `_scatter_chip2` | 0 | 0 |
+| `dma_config.c` | the DDE rings, `SPEN` | 0 | 0 |
+| `main.asm` | the chip-2 block loop | 2 | 0 |
+
+and `main.asm`'s two are both `#if DSP4_SIMD_DYN && DSP4_DYN_SELFTEST`, which is
+off in every configuration here, so they compile to nothing.
+
+**Binary level**, which is the part that actually settles it. Comparing the
+signed arm against `DSP4_SIMD_DYN=0` and against `DSP4_DYN_LUT=0`, all three
+built from the environment S89b proved reproduces the signed pair byte for byte:
+
+| routine | signed | SIMD_DYN=0 | DYN_LUT=0 |
+|---|--:|--:|--:|
+| `_scatter_chip2` | 55 B | 55 B | 55 B |
+| `_gather_chip2` | 69 B | 69 B | 69 B |
+| `_blk_latch_bufs` | 27 B | 27 B | 27 B |
+| `_sport_dma_work` | 66 B | 66 B | 66 B |
+| `_meter_scan_chip2` | 51 B | 51 B | 51 B |
+
+Same length in every arm. The raw bytes differ only because the DM variables they
+reference are relocated when the kernels' data footprint changes — and
+disassembled, the difference vanishes:
+
+    $ diff p_signed.gather.txt p_nosimddyn.gather.txt   -> no difference
+    $ diff p_signed.gather.txt p_nolut.gather.txt       -> no difference
+    $ diff p_signed.latch.txt  p_nosimddyn.latch.txt    -> no difference
+    $ diff p_signed.latch.txt  p_nolut.latch.txt        -> no difference
+
+`_blk_latch_bufs` in full, identical in all three arms:
+
+    _blk_latch_bufs:
+        r0 = dm(_rx_pend_buf);
+        dm(_ic_rx_active_buf) = r0;
+        r0 = dm(_tx_pend_buf);
+        r1 = dm(_tx_ping_w);
+        comp(r0, r1);
+        if ne jump (pc, .txe_have);
+        r1 = dm(_tx_pong_w);
+    .txe_have:
+        r0 = r1;
+        dm(_tx_active_buf) = r0;
+        rts;
+
+**So whatever the displacement turns out to be, it is not computed differently.**
+The ring-half selection, the gather, the scatter and the block ISR are the same
+instructions in the arm that folds and in the two that do not. Gate 3's "find the
+line" has no line to find, and any future explanation must account for identical
+code behaving differently — i.e. timing, data placement, or bus behaviour, not
+control flow.
+
+## What this leaves, and what it costs
+
+| hypothesis | status after S89d |
+|---|---|
+| different ring-half index/pointer computation | **refuted** — instruction-identical |
+| over-budget blocks / late gather | refuted in S89c — the folding arm is the lightest |
+| nonlinearity in the audio path | refuted in S89c — no energy at 3/6/9 kHz |
+| corruption upstream of the DMA | refuted in S89c — slot clean to −110 dBc, 1024 contiguous samples |
+| shared cause with S89-1 | refuted in S89c — build-independent vs switch-dependent |
+| **write-side half handoff, timing-dependent** | **open** — needs `tx_probe` (a flash) |
+| **read-side per-channel DDE skew** | **open** — `tx_probe` on lane 18 does not cover it |
+| **data placement / bus contention** | **refuted** — tested below |
+
+### Data placement: raised, tested, and refuted in the same session
+
+The one thing that *does* differ between the images, outside the kernels, is
+where the DM variables land — which is why the handoff routines' byte images
+differ at all while their disassembly does not. Chip 2's DM total moves by
+38,520 bytes between `DYN_LUT=1` and `DYN_LUT=0` (S89b), so it was worth asking
+whether the TX ring or its pointers cross a memory-block boundary in one
+configuration and not the other, which would be switch-dependent, timing-shaped,
+block-periodic and invisible to everything checked so far.
+
+It does not survive contact with the link maps:
+
+| symbol | signed (folds) | `SIMD_DYN=0` (clean) | `DYN_LUT=0` (clean) |
+|---|---|---|---|
+| `c2_tx_buf_ping` (the TX DMA ring) | `0x2D3200` | `0x2D2AE0` | `0x2C9D80` |
+| `_tx_active_buf` | `0x0B4711` | `0x0B4549` | `0x097F71` |
+| `_tx_ping_w` / `_tx_pong_w` | `0x0B4716/17` | `0x0B454E/4F` | `0x097F76/77` |
+
+**The folding arm and the `SIMD_DYN=0` clean arm sit in the same regions**, 0x720
+words apart for the ring and 0x1C8 apart for the pointers. It is `DYN_LUT=0` —
+also clean — that relocates wholesale. So membership of a memory block does not
+track the fault: if the region mattered, `SIMD_DYN=0` would fold, and it does
+not. Refuted, and recorded here so the next session does not raise it again.
+
+## Is a scope still needed?
+
+**Not yet, and possibly not at all.** The remaining open hypotheses are all
+digital and all reachable without probing a pin:
+
+- write-side handoff → `tx_probe` (one flash, as above);
+- read-side DDE skew → `tx_probe` on a second lane, or the DDE's own
+  current-address register sampled from firmware;
+- read-side DDE skew → `tx_probe` on a second lane, or the DDE's own
+  current-address register sampled from firmware.
+
+The link-map comparison that would have been the cheap next step was run tonight
+and came back negative (above), so **`tx_probe` on the folding arm is now the
+cheapest remaining step**, and it costs the two flashes in S89d-Q1. The scope
+brief in §6 stands as the fallback for the case where the stamps come back in
+order on lane 18 — which would point at the per-channel read side rather than
+exonerate the transmit path.

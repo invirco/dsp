@@ -13888,3 +13888,53 @@ instances that no cell on a D24 can reach, plus the runtime all-off case — and
 it is the same lever S32 built and S78-Q3 says was never switched on. **None of
 it is worth designing until Q2 and Q3 are answered**, because both change what
 "runs for nothing" means.
+
+## S89d — the DAC fold's handoff code is identical in the folding and clean arms, and `tx_probe` needs a flash
+
+**🔴 S89d-Q1 — `tx_probe.asm` cannot run without a CPLD flash, contradicting
+S89c's own framing.** S89c recommended it as "the cheaper route before a scope",
+which is true, and also said it needs the `_maincap` LOGIC build — the dispatch
+read the recommendation as bench-free. It is not. `_tx_probe_stamp` writes its
+stamp INTO the TX DMA ring (`dm(_tx_active_buf + off + sample*stride + 1)`) and
+nothing reads it back on-chip; the readback is CPLD → Pi capture, which is why
+the file's header names `_maincap` and `CAP_SLOT_L=0 / CAP_SLOT_R=1`. Running it
+needs: a `DSP4_TXPROBE=1` build (free), a capture-bitstream flash displacing
+shipping `83b3cc22`, the Pi overlay switched from `dsp4-pcm-slave` to duplex plus
+a reboot, the S88 double boot+config, the capture, then the whole restore. Two
+flashes and an overlay round trip, 45–60 min, no PW hands beyond authorising it.
+Note for that session: `DSP4_TXPROBE_LANE` defaults to 18 (SPORT3, the Pi return
+lane) rather than the codec lane that folds — which is nevertheless the right
+choice, because all five of chip 2's TX lanes share ONE DMA region, ONE
+`_tx_active_buf` and ONE ISR, so a write-side handoff fault is common to all of
+them. The mirror caveat: each SPORT has its own DDE channel, so a read-side
+per-channel skew would NOT show on lane 18, and stamps arriving in order there
+would move suspicion to the read side rather than exonerate the transmit path.
+
+**S89d-1 — there is no index or pointer difference to find.** S89c's gate-3 code
+search was run and came back empty, decisively. Source: `sport_init.asm`
+(`_blk_latch_bufs`), `chip2/block_io.asm` (`_gather_chip2`, `_scatter_chip2`) and
+`dma_config.c` contain zero references to `DSP4_SIMD_DYN` or `DSP4_DYN_LUT`;
+`main.asm`'s only two are gated by `DSP4_DYN_SELFTEST`, off everywhere here.
+Binary: across the signed arm and both single-switch-off arms, `_scatter_chip2`
+(55 B), `_gather_chip2` (69 B), `_blk_latch_bufs` (27 B), `_sport_dma_work`
+(66 B) and `_meter_scan_chip2` (51 B) are the same length in every arm, and
+disassembled they diff to nothing — the raw bytes differ only in relocated DM
+operands. So the ring-half selection, the gather, the scatter and the block ISR
+are the same instructions in the arm that folds and the two that do not, and any
+future explanation must account for identical code behaving differently.
+
+**S89d-2 — data placement raised and refuted the same session.** The only
+non-kernel difference between the images is where DM lands, so the TX ring and
+its pointers were checked for a memory-block crossing. `c2_tx_buf_ping` sits at
+`0x2D3200` on the folding arm and `0x2D2AE0` on the `SIMD_DYN=0` arm — same
+region, 0x720 words apart — while it is the *clean* `DYN_LUT=0` arm that
+relocates wholesale to `0x2C9D80`. Block membership does not track the fault.
+Recorded so it is not raised again.
+
+**Where that leaves it.** Refuted so far: a different ring-half index/pointer
+computation (S89d-1), over-budget blocks (S89c), a nonlinearity (S89c, no energy
+at 3/6/9 kHz), corruption upstream of the DMA (S89c, slot clean to −110 dBc over
+1024 contiguous samples), a shared cause with S89-1 (S89c), and data placement
+(S89d-2). Open: a write-side half handoff that is timing-dependent, and a
+read-side per-channel DDE skew. Both need `tx_probe` and therefore the flash. A
+physical scope is still NOT the next step.
