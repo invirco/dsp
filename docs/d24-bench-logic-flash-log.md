@@ -362,3 +362,51 @@ the reading it was flashed for and after the restore.
 `logic_flash.sh`'s default rollback stays `dsp4_logic.d02d83b3cc22.svf` — set
 from this table, after the last flash, which is the rule the S84 entry spells
 out.
+
+## Procedure (S88, 2026-09-21) — two items the runbook was missing
+
+S88 opened with the CPLD carrying `driveall` (`32'h27966c28`) instead of shipping, on a
+unit S86 had logged as restored to shipping at handback the night before (Table 1's #4,
+above). Nothing between S86's handback and S88's start is on record as a flash — so either
+S86's restore-and-verify step didn't survive a power cycle, or the two are separated by an
+untracked flash. Either way, "the log says shipping" was not sufficient; two procedure gaps
+follow from it, both binding on every session that flashes or boots this bench from here on.
+
+**1. `logic_flash.sh`'s own next-step line stops one step short, and a DSP boot+config must
+follow every LOGIC flash before any reading is trusted.** The tool already prints "NEXT:
+confirm what is actually on the part" and names `dsp4_logic_id.py` — that check is necessary
+but not sufficient. A CPLD reflash changes `conv_bck`/`conv_fs`, and the DSP's SPORT
+peripherals stay configured against the *pre-flash* clock relationship until
+`dsp4_boot.py`/`dsp4_config.py` are re-run (S88 found this the hard way: the first
+double-boot after the S88-1 reflash left MIC 5 dark; an identical second one brought it up).
+**Runbook addition: every LOGIC flash ends with (a) `dsp4_logic_id.py` design-ID readback,
+matched against the artifact's manifest, AND (b) a full DSP double boot+config
+(`dsp4_boot.py` + `dsp4_config.py --chip 1` + `--chip 2`, twice, the standing S46/S70
+recipe) before any audio reading is taken on that pair.** A design-ID match alone is not
+proof the DSP side is caught up.
+
+**2. Unit-as-found must be proven by a power cycle, not assumed from the last flash log
+entry.** "Shipping bitstream restored" in a session's handback note is a statement about
+what was written, not about what a MAX V answers after the bench has sat untouched. Add to
+every session's unit-as-found checklist: **the shipping bitstream must be confirmed IN
+FLASH by a power cycle (or, short of a full cycle, at minimum a fresh `dsp4_logic_id.py`
+readback taken at the *start* of the next session, before trusting any prior session's
+handback note)** — this is exactly the gap S88 fell into.
+
+**3. Dead-lane triage order, going forward (S88's own path there was expensive — this is
+what should have been step one).** When RX lanes read exact digital zero (or float around
+the noise floor with no correlation to a known stimulus) on this bench:
+
+1. **CPLD design-ID readback first** (`dsp4_logic_id.py`) — rules out or confirms the
+   cheapest, most totalizing fault (wrong bitstream in flash) before touching anything else.
+2. **AN_EN / 595 chain / DMA-alive checks** — GPIO26 state, a 595 chain readback (pass-2 =
+   current state; CS_M should read `op pu|hi`, driven, once anything has written the chain),
+   and confirm the RX DMA engine is actually running (`_rx_active_buf` ping-ponging,
+   `FRAME_COUNT` advancing) — these separate "no rails/no chain/no DMA" from "wrong data."
+3. **Only then `dsp4_rxscan.py`** (the S86-proven RX-DMA-region instrument, not `TEST_MEAS`
+   or a raw `_buf_C1_IN_nn` peek under `DSP4_BLOCK_KERNELS` — see S86) — and read its
+   built-in controls (`FRAME_COUNT` must move, the two `_rx_slot`/`_buf` symbols nothing
+   writes must not move) before trusting any per-lane verdict it prints.
+
+Skipping straight to step 3, as S88 initially did, produced two full rounds of "the
+instrument must be lying" before the CPLD state was actually checked.

@@ -1,0 +1,28 @@
+timestamp,step,connector,code,stimulus,dscope_dbu,lane_dbfs_pk,implied_fs_dbu,note
+2026-09-21T09:35Z,C,J45 AUX1,-,osc -20.00 dBFS 1kHz (diagnostic pair TEST_OSC),3.125,-20.00,23.125,S88-2: oscillator amplitude later found unreliable; superseded by generator-path C row
+2026-09-21T13:14Z,B1,J25 MIC5,0,dScope +4.00 dBu 1kHz,4.00,-13.49,17.49,rxscan 32-sample scan; matches +17.55 stored within 0.06 dB
+2026-09-21T13:16Z,B2,J25 MIC5,0,dScope +14.00 dBu 1kHz,14.00,-3.51,17.51,rxscan 32-sample scan
+2026-09-21T13:18Z,B3,J25 MIC5,0,dScope -16.00 dBu 1kHz,-16.00,-33.49,17.49,rxscan 32-sample scan
+2026-09-21T13:19Z,B4,J25 MIC5,32,dScope +4.00 dBu 1kHz,4.00,0.00,,INVALID - clipped hard (~54 dB gain at code 32 vs +4 dBu in); code-32 anchor not obtained; -40.00 dBu redo owed next session
+2026-09-21T13:34Z,C,J45 AUX1,-,strip 20 (MIC5 lane) -> AUX1 unity; dScope +4.00 dBu 1kHz on J25,9.64,-13.49,23.13,delta 0.00 dB vs stored +23.13; corroborates the 09:35 oscillator-path C row
+2026-09-21T13:45Z,witness,J27 MIC6,0,dScope +4.00 dBu 1kHz (strip 18 on this pair),4.00,-13.94,17.94,delta +0.39 dB vs +17.55, +0.45 dB vs MIC5
+2026-09-21T13:50Z,witness,J35 MIC9,0,dScope +4.00 dBu 1kHz,4.00,-31.09,,S88-5 OPEN: 18 dB low, register confirmed landed correctly
+2026-09-21T13:52Z,witness,J35 MIC9,0,dScope +4.00 dBu 1kHz (after reseat),4.00,-105.60,,S88-5 OPEN: floor after reseat, register confirmed landed correctly both times
+2026-09-21T13:55Z,MAIN,C2_MAIN_OUT_L,-,osc -20.00 dBFS 1kHz pan hard left (strip6 diagnostic pair TEST_OSC),2.58,,22.58,S88-2/S88-4: oscillator unreliable AND wrong-strip/mono-graph artefact - not a reference
+2026-09-21T13:58Z,MAIN,C2_MAIN_OUT_R,-,osc -20.00 dBFS 1kHz pan hard right,-13.64,,6.36,S88-2/S88-3: retracted, nonsense implied FS
+2026-09-21T14:05Z,MAIN,C2_MAIN_OUT_L,-,osc -20.00 dBFS 1kHz pan hard left (limiter bypassed),-13.60,,,S88-2: third distinct oscillator value at the same setpoint
+2026-09-21T14:10Z,MAIN,C2_MAIN_OUT_L,-,osc restart -20.00 dBFS 1kHz pan hard left,1.78,,,S88-2: fourth distinct oscillator value at the same setpoint - oscillator retired as a level reference
+2026-09-21T14:15Z,MAIN,C2_MAIN_OUT_L/R,-,strip 5 (wrong strip on this pair) -> MAIN unity dScope +4.00 dBu J25,-0.40,,,S88-3 RETRACTED: wrong-strip artefact (MIC5 = strip 20 on this pair, not strip 5)
+2026-09-21T14:22Z,MAIN,C2_MAIN_OUT_L/R,-,strip 20 (correct strip) -> MAIN unity pan hard left dScope +4.00 dBu J25,5.616,,,S88-4: MAIN L=R both sides - deferred (diagnostic-pair MAIN graph is not the product topology)
+2026-09-21T14:40Z,loop,J27 MIC6 return via AUX1,0,dScope +4.00 dBu 1kHz on J25 -> strip20 -> AUX1 -> loop cable -> J27,,-96.61 (IN_18) / -13.52 (IN_20 source),,SUPERSEDED - transient dark return, resolved by the later closing capture below
+2026-09-21T15:05Z,C-retake,J45 AUX1,-,strip 20 -> AUX1 unity dScope +4.00 dBu J25 (socket confirmed by PW after the 13:29-13:55 uncertainty),9.64,-13.52,23.13,delta 0.00 dB; reproduces the original 13:34 reading exactly
+2026-09-21T15:08Z,loop-closure,J27 MIC6 return via AUX1,0,dScope generator on J25 strip20->AUX1->loop cable->J27; same capture as the C-retake,,-7.91 (IN_18 return) / -13.52 (IN_20 source),,loop gain 5.61 dB vs expected 5.64 dB (MIC5 FS) delta -0.03 dB CLOSES; vs 5.19 dB (MIC6 own FS) delta +0.42 dB
+2026-09-21T15:12Z,AUX-survey,AUX2,0,loop cable output end on AUX2; strip20->AUX2 unity,,-7.92 (IN_18),23.12,delta -0.01 dB vs 23.13 (internal method, IN_18-IN_18ref+23.13)
+2026-09-21T15:15Z,AUX-survey,AUX3,0,loop cable output end on AUX3; strip20->AUX3 unity,,-7.90 (IN_18),23.14,delta +0.01 dB
+2026-09-21T15:18Z,AUX-survey,AUX4,0,loop cable output end on AUX4; strip20->AUX4 unity,,-7.96 (IN_18),23.08,delta -0.05 dB
+2026-09-21T15:21Z,AUX-survey,AUX5,0,loop cable output end on AUX5; strip20->AUX5 unity,,-7.93 (IN_18),23.11,delta -0.02 dB
+2026-09-21T15:24Z,AUX-survey,AUX6,0,loop cable output end on AUX6; strip20->AUX6 unity,,-7.91 (IN_18),23.13,delta 0.00 dB
+2026-09-21T15:27Z,AUX-survey,AUX7,0,loop cable output end on AUX7; strip20->AUX7 unity,,-9.22 (IN_18),21.82,S88-7 OPEN - internal reading DISCARDED; dScope on AUX7 out saw NO signal with route confirmed live per every cell; XLR output stage suspect
+2026-09-21T15:31Z,AUX-survey,AUX8,0,loop cable output end on AUX8; strip20->AUX8 unity,9.638,-8.01,23.03 (internal) / 23.13 (dScope),internal delta -0.10 dB was the loop reading not the DAC; dScope confirms 23.13 delta 0.00 - internal method holds to ~+-0.1 dB
+2026-09-21T15:33Z,Center/LF,-,-,SKIPPED,,,,deferred with S88-4 - no source-select cell distinct from the shared mono Main001/crossover stage
+2026-09-21T15:40Z,talkback-input,J1 TB XLR,MGN2R=0 (-6dB min),dScope +4.00 dBu 1kHz,4.00,-10.31 (XIN_CODEC_04),14.31,S70 node-mislabel reproduces: graph's own "TB XLR" node (XIN_CODEC_01) reads floor -70.35 dBFS; real signal on XIN_CODEC_04 ("Aux In R" per the graph); no stored reference for this FS yet
