@@ -14135,3 +14135,101 @@ between the builds — and its four deltas swing −0.16…+0.10, so the fix is 
 the resolution of the instrument measuring it. The fix adds no instructions and
 does not touch the node graph, so the silent delta bounds the driven one; that
 is an argument, not a measurement, and the driven row is owed.
+
+**S90-1 🔴 TWO OF THE SELF-TEST SPEC'S FIRMWARE PREREQUISITES MUST NOT BE
+BUILT, AND SAYING SO IS THE FINDING.** `docs/spec-d24-selftest.md` asks H1S1 for
+a chip-select test command (DC1/DC2) and an `!RST_D` pulse (DR1). H1S1's own
+source refuses both: `~/build-h1s1/Core/Src/main.c:362-381` configures **all
+eight CS pins as `GPIO_MODE_INPUT`** under *"ALL EIGHT CS pins (CS1-CS8) are
+OWNED BY THE CM4 — this MCU must never drive them"*, which is DSP4 architecture
+decision D1 written into the firmware, and `RST_D_Pin` is undefined, PA13 absent
+from the `.ioc`, and the only two references in `main.c:124-126` commented out.
+`!RST_D` has **six places on one net, no series resistor and no arbitration**
+(`hardware-map.md:305-324`), so the spec's command would put a second push-pull
+driver on an unisolated reset net. **Neither test needed firmware**: DC1, DC2 and
+DR1 all ran from the CM4 (CS1 = GPIO6, CS2 = GPIO24, `!RST_D` = GPIO16) and
+passed. Proposals S90-P3/P4 are to withdraw both prerequisites, not to land them.
+
+**S90-2 SIX OF THE EIGHT CHIP-SELECT ROWS HAVE NO POSSIBLE SUBJECT ON DSP4.**
+`hardware-map.md:410-411`: only CS1/CS2 are live; **CS3/CS4 are wired to
+DSPA/DSPB SPI_RDY and are INPUTS**; CS5–CS8 are 8-DSP scaling provision with no
+fitted part. Workbook rows 105-110 can therefore never answer, whatever firmware
+lands — they are not NO DATA waiting on a prerequisite but rows that belong in a
+different class. Related: `fw.csv` `Dsp1..Dsp8` declare a pin and a net, **not a
+part number**, so DC2's "id matches the declared part" has nothing to match; what
+CS1/CS2 prove is CHIP_ID, BUILD_ID and the signed triple
+`0xCF45FF10/0xE2018E6F/0xC47C0F26`, which is what was recorded.
+
+**S90-3 THE PANEL MCUs ARE PEERS ON MH1's BUS, NOT BEHIND AN H1S1 UART MUX — AND
+ENUMERATION WAS ALREADY FREE.** H1S3 (SW_RIGHT) and H1S4 (SW_LEFT) are peer MCUs
+on the matrix bus (`defs/products/d24/fw.csv:26,66`), each with its own
+`testMessage[]`; `S_TEST` makes all three answer, and `matrix-app` has been
+logging `MCU verified: // H1S1 DSP` / `// H1S3 SW Right` / `// H1S4 SW Left` on
+every boot all along. ML-P1/ML-P2 pass today with no firmware change. Only the
+VERSION is missing, from all three, and the cheapest fix is to extend the string
+already being transmitted (S90-P2) rather than add cells.
+
+**S90-4 🔴 `matrix-app`'s `H1S1.shex` md5 IS STALE BY CONSTRUCTION AND WOULD MAKE
+A VERSION CELL WORSE THAN USELESS.** The app logs
+`779c5665f9992fbf814eeed2043d9280 95552B firmware/H1S1.shex` from
+`deploy-manifest.txt` (`generatedUtc=2026-08-18`); the file on the unit is
+**`5dc7acdea662f9153b09b816f9ae76b2`, 100216 B, dated 2026-09-20** — the S81
+pack, flashed by hand through `app cli loadfw H1S1`. The manifest is a
+deploy-time record and does not track hand-flashed firmware, so ML2's
+"equals the version in H1S1.shex's manifest" compares a live value against one
+that has been wrong for two days and will stay wrong. Landing a version cell
+(S90-P1) without also writing that literal into the shex pack leaves the test
+worse off than no test.
+
+**S90-5 THE UNIT DROPS ~1 % OF A 5 Hz PING AND IT IS `matrix-app`, NOT THE
+ETHERNET.** NW3 fails, and two controls name the cause. *Target*: loss appears
+toward the unit's own default gateway one switch hop away as well as toward the
+bench host — worst-of-3 **1.5 %** and **1.0 %** — so it is not the driving host's
+path. *Load*: with `matrix-app` **stopped, 6 of 6 passes read 0.0 % loss** (three
+per target) and the max RTT to the bench host falls 0.703 → 0.624 ms; load
+average goes ~1.0 → 0.04 on a four-core CM4. Everything else about the link is
+clean — `1000Mb/s Full`, zero interface error counters, 94 Mbit/s each way, which
+is line rate for the 100 Mb/s path it was measured over. The row is landed FAIL
+because the criterion is about the unit as it ships, but it should be read as
+"the CM4 drops ICMP under matrix-app's load", not as a cabling fault.
+
+**S90-6 A ONE-SHOT 200-PACKET PING DOES NOT SETTLE A 0 % BAR, AND THE INSTRUMENT
+HAD TO LEARN IT.** Five consecutive one-shot NW3 passes on the same path read
+**2.0 %, 0.5 %, 0.0 %, 0.0 %, 0.5 %**. Whichever verdict a single run lands is
+the one the scheduler handed it, and re-running until it passes is not a
+measurement. NW3 now takes three passes per target and scores the WORST, which
+makes the reading reproducible in the only sense that counts: it does not improve
+if you run it again. The same restraint was applied to NW2, whose FAIL
+(`rx_dropped` +2 across the test window, 0 in the idle control) was **not**
+re-taken for a better number.
+
+**S90-7 U15's LANES ARE ALIVE; IT IS THE FRONT END THAT IS ABSENT.** AS-ADC's
+per-converter grouping puts numbers on S86's conclusion: **all eight of U15's
+lanes carry a real dithered floor at −117.7…−115.0 dBFS, the same as U39's
+(−119.2…−114.6) and U60's (−119.5…−113.8)**. The converter converts; what
+MW-D24-2 has not got is the front end for panel mics 1-4 and 13-16 (XLRs J15-J22,
+preamps U17-U31). A lane test cannot see a missing preamp and should not be asked
+to. Lane 3's eight entries read STATIC `0xFFFFFFFF` and that is the product, not
+a fault: input strips 25-32 have no analog source on a D24 at all.
+
+**S90-8 THREE SECTION-1 ROWS CANNOT REACH PASS UNATTENDED AND THE SPEC SHOULD
+SAY WHICH.** AS-ADC, MM1 and AS-DAC each depend on something the unit's as-found
+state does not have: the analog rails (AN_EN is CM4 GPIO26, `lo`, and **a
+dispatched session may not raise it** — bench note 19 / S49-15), and a stimulus
+(TEST_OSC exists only under `DSP4_TEST_NODES=1`; the pair under test is the
+shipping pair). AS-CPLD adds a third: `dsp4_logic_id.py` needs the DUPLEX PCM
+overlay and answers "no reply" for every bitstream under `dsp4-pcm-slave`, which
+is what this unit's `config.txt` selects — so its silence carries no information
+and flipping it needs a reboot. All four are landed NO DATA naming the
+prerequisite; none was softened into a FAIL, because a converter marked FAIL for
+having its rails down is a defect invented by the harness.
+
+**S90-9 TWO RUNNER DEFECTS FOUND BY READING THE ARTIFACT, NOT THE SUMMARY.**
+(a) `s89_signbit.py` takes the symbol directory as `argv[1]`; called bare it
+raised `IndexError` before reading the part, so the **inter-chip link gate scored
+nothing while appearing to run** — the first section-C pass was therefore taken
+through an unverified boot (~1 in 7 fold silently, S89-1). Fixed, and every
+landed section-C row was re-taken on a boot gated **CLEAN on both lanes**.
+(b) `pkill -f "iperf3 -s"` matched the shell running that very command, so NW4's
+launcher killed itself before launching anything and the test read as a network
+failure; it is `pkill -x iperf3` now.

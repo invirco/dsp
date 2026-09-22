@@ -1,0 +1,1319 @@
+#!/usr/bin/env python3
+"""d24_selftest.py -- section 1 of the D24 self-test set: every workbook item the
+unit can judge itself with, no hands and no jig.
+
+Implements `~/mx26/docs/spec-d24-selftest.md` tests A-C. Runs on THIS machine and
+drives the unit's CM4 over SSH, the way the `tools/pi/dsp4_*` legs do; appends
+`MW/D24/DSP/accept/item-status.csv` (`board,item,test,verdict,measured,limit,
+evidence,stamp`) and prints the verdict table. `board` and `item` are the
+workbook's column A and B strings VERBATIM -- the hub exports the key list with
+`tools/d24/build-d24-connector-status.py --export-keys` and its generator errors
+on an unknown key, so `--keys` cross-checks the table here before a run rather
+than after one.
+
+THE VERDICT VOCABULARY IS THREE WORDS AND THE MIDDLE ONE IS THE POINT.
+
+    PASS      the read path answered and the answer met the spec's criterion
+    FAIL      the read path answered and the answer did not
+    NO DATA   the read path did not answer, or does not exist yet
+
+A read path that answers nothing is NO DATA, never a silent PASS -- and, the
+other way up, never a silent FAIL either. That second half is not symmetry for
+its own sake: AN_EN is `lo` on this unit and a dispatched session may not raise
+it (bench note 19 / S49-15, "AN_EN is never written by a dispatched session"),
+so the mic front ends are not converting and a dark lane is the TEST STATE. A
+converter reported FAIL for that would be a defect invented by the harness.
+Every test that depends on the rails therefore reads `_an_en()` first and says so.
+
+Evidence is the RAW READ -- the EDID vendor string, the register value, the id
+hex, the cell value -- never a summary word. Long reads are trimmed in the CSV
+and written whole to `MW/D24/DSP/s90/logs/<stamp>/<test>.txt`.
+
+WHAT THIS RUNNER WILL NOT DO, and each is a bench rule rather than a limitation:
+
+  * it never raises AN_EN (GPIO26) -- it reads it and records it;
+  * it never flashes the CPLD -- shipping `d02d83b3cc22` stays in flash;
+  * it never boots from `/home/app/dspboot` itself (the candidate pair is staged
+    there and must stay byte-identical) -- it copies to `--stage` and boots that;
+  * it hands the 595 chain back to the SAFE image LAST, after the final DSP boot,
+    because a boot clocks half a megabyte through the chain and only a CS_M edge
+    decides what gets latched (S70-7);
+  * it puts GPIO27 back to `ip pu` -- CS_M left low gates the U2 MISO buffer and
+    looks exactly like a DSP link phase fault;
+  * it restarts `matrix-app` and reads the MCU verdict from the WHOLE of
+    `/home/app/logs/log`, because the app rewrites that file on start.
+
+    d24_selftest.py --section A                 # nothing is stopped; app stays up
+    d24_selftest.py --section A,B,C             # the full run; stops the app
+    d24_selftest.py --section A --no-append     # print only, write no CSV rows
+    d24_selftest.py --keys /tmp/keys.csv        # cross-check the key table first
+"""
+import argparse
+import csv
+import datetime
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(HERE))   # tools/pi -> tools -> repo root
+CSV_PATH = os.path.join(ROOT, 'MW', 'D24', 'DSP', 'accept', 'item-status.csv')
+LOG_ROOT = os.path.join(ROOT, 'MW', 'D24', 'DSP', 's90', 'logs')
+CSV_COLS = ['board', 'item', 'test', 'verdict', 'measured', 'limit', 'evidence', 'stamp']
+
+BENCH = 'app@192.168.1.219'
+BENCH_HOST_SELF = '192.168.1.211'       # this machine, as the unit sees it
+DSPBOOT = '/home/app/dspboot'
+CONN = '/sys/class/drm/card0-HDMI-A-1'
+ETHTOOL = '/usr/sbin/ethtool'           # NOT on app's PATH; absolute or nothing
+
+PASS, FAIL, NODATA = 'PASS', 'FAIL', 'NO DATA'
+
+# Pi GPIO map for the DSP bus, off DSP4 PI header J6 -- dsp4_boot.py:83-86.
+# CS1/CS2 are the two live chip selects; CS3/CS4 come BACK as SPI_RDY and are
+# inputs; !RST_D resets both parts together.
+CS_GPIO = {1: 6, 2: 24}
+RDY_GPIO = {1: 8, 2: 12}
+RST_GPIO = 16
+CS_M_GPIO = 27
+AN_EN_GPIO = 26
+
+# The 595 mic-gain chain. byte = (gain & 63) << 2 | (phantom & 1) << 1 | (mute & 1).
+SAFE_IMAGE = [0x01] * 24 + [0x00]                       # gain 0, phantom off, MUTED
+KNOWN_IMAGE = [((g & 63) << 2) | 1 for g in range(1, 25)] + [0x00]
+# ^ 24 distinct gains, phantom OFF and MUTED on every position, so the known
+#   image is as safe as SAFE while being distinguishable from it, from all-ones
+#   and from all-zeros. `micGainFull` (0xFC x 24) -- what an S_RESET actually
+#   leaves behind -- is gain 63 phantom off UNMUTED, and is never written here.
+
+SHIPPING_CPLD = 'd02d83b3cc22'
+SIGNED_TRIPLE = ('0xCF45FF10', '0xE2018E6F', '0xC47C0F26')   # the S82-signed pair
+
+# ---------------------------------------------------------------------------
+# The key table. `board`/`item` are the workbook's strings verbatim; the number
+# in the comment is the workbook row (the --export-keys line number minus the
+# header). A test may cover several items and then writes one row per item,
+# which is the results contract's "one row per workbook item".
+# ---------------------------------------------------------------------------
+B_DSP = 'DSP PCBA (H1S1 MCU wiring)'
+B_LINK = 'Inter-board links'
+B_ASM = 'Assemblies'
+B_LSW = 'Left Switch PCBA'
+
+ITEMS = {
+    # A -- from the CM4
+    'HD0-1':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),        # 128
+                (B_ASM, 'TFT display')],                                  # 204
+    'HD0-2':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),
+                (B_ASM, 'TFT display')],
+    'HD-PWR':  [(B_LINK, "Link 'hdmi-pwr'")],                             # 152
+    'NW1':     [('Digital', 'Ethernet (RJ45)')],                          # 129
+    'NW2':     [('Digital', 'Ethernet (RJ45)')],
+    'NW3':     [('Digital', 'Ethernet (RJ45)')],
+    'NW4':     [('Digital', 'Ethernet (RJ45)')],
+    'AS-CM4':  [(B_ASM, 'CM4 compute module')],                           # 194
+    'USB-HUB': [],           # no workbook item: the spec files it under section-2 UA1
+    # B -- through H1S1 over the matrix bus
+    'ML1':     [(B_DSP, 'H1S1 MCU (STM32U575) link'),                     # 102
+                (B_ASM, 'S MCU H1S1 (STM32U575)')],                       # 203
+    'ML2':     [(B_DSP, 'H1S1 MCU (STM32U575) link'),
+                (B_ASM, 'S MCU H1S1 (STM32U575)')],
+    'ML-M':    [(B_ASM, 'M MCU (STM32G031)')],                            # 202
+    'ML-P1':   [(B_DSP, 'Right panel MCU link (fw.csv SW_RIGHT)'),        # 126
+                (B_LINK, "Link 'dig-panel-a'")],                          # 144
+    'ML-P2':   [(B_DSP, 'Left panel MCU link (fw.csv SW_LEFT)'),          # 127
+                (B_LINK, "Link 'dig-panel-b'")],                          # 145
+    'ML-B0':   [(B_DSP, 'Right panel MCU link (fw.csv SW_RIGHT)'),
+                (B_DSP, 'Left panel MCU link (fw.csv SW_LEFT)')],
+    'DR1':     [(B_DSP, 'DSP reset RST_D (fw.csv Reset)')],               # 111
+    'DR2':     [(B_DSP, 'DSP reset RST_D (fw.csv Reset)')],
+    'MC1':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],   # 112
+    'MC2':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],
+    'MC3':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],
+    'CC1':     [(B_DSP, 'Codec select CS_C (fw.csv Codec)'),              # 113
+                (B_ASM, 'Codec AK4619')],                                 # 200
+    'CC2':     [(B_DSP, 'Codec select CS_C (fw.csv Codec)'),
+                (B_ASM, 'Codec AK4619')],
+    # C -- from the DSPs
+    'AS-DSPA': [(B_ASM, 'SHARC DSP A (ADSP-21564)'),                      # 195
+                (B_LINK, "Link 'dig-dsp-a'")],                            # 140
+    'AS-DSPB': [(B_ASM, 'SHARC DSP B (ADSP-21564)'),                      # 196
+                (B_LINK, "Link 'dig-dsp-b'")],                            # 141
+    'AS-CPLD': [(B_ASM, 'CPLD clock master (MAX V)')],                    # 197
+    'AS-ADC':  [(B_ASM, 'ADC AK5558 ×3 (U15 dead, U39, U60)'),            # 199
+                (B_LINK, "Link 'dig-analog-adc'")],                       # 142
+    'AS-DAC':  [(B_ASM, 'DAC AK4458 ×2'),                                 # 198
+                (B_LINK, "Link 'dig-analog-dac'")],                       # 143
+    'AS-PWR':  [(B_ASM, 'Power MCU (STM32F030F4, always-on)')],           # 201
+    'MM1':     [(B_LSW, 'Panel MEMS mic (talkback)')],                    # 56
+    'SP1':     [(B_LSW, 'Speaker')],                                      # 57
+}
+# DC1/DC2 fan out over the eight chip selects, one workbook row each (103-110).
+for _n in range(1, 9):
+    ITEMS['DC1-CS%d' % _n] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
+    ITEMS['DC2-CS%d' % _n] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
+
+SECTION = {}
+for _t in ('HD0-1', 'HD0-2', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
+    SECTION[_t] = 'A'
+for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
+           'MC1', 'MC2', 'MC3', 'CC1', 'CC2'):
+    SECTION[_t] = 'B'
+for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR', 'MM1', 'SP1'):
+    SECTION[_t] = 'C'
+for _n in range(1, 9):
+    SECTION['DC1-CS%d' % _n] = 'B'
+    SECTION['DC2-CS%d' % _n] = 'B'
+
+
+# ---------------------------------------------------------------------------
+# plumbing
+# ---------------------------------------------------------------------------
+def stamp():
+    return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+class Rig:
+    """The unit, and the run's bookkeeping."""
+
+    def __init__(self, args):
+        self.a = args
+        self.rows = []
+        self.results = {}
+        self.logdir = os.path.join(LOG_ROOT, stamp().replace(':', ''))
+        if not args.no_append:
+            os.makedirs(self.logdir, exist_ok=True)
+        self.app_stopped = False
+        self.an_en_at_start = None
+
+    # -- transport ----------------------------------------------------------
+    def sh(self, cmd, timeout=120):
+        return subprocess.run(['bash', '-c', cmd], capture_output=True,
+                              text=True, timeout=timeout)
+
+    def rsh(self, cmd, timeout=120):
+        """One command on the CM4. stdout and stderr come back joined on the
+        object; callers that care about the difference read them apart."""
+        return subprocess.run(
+            ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', BENCH, cmd],
+            capture_output=True, text=True, timeout=timeout)
+
+    def out(self, cmd, timeout=120):
+        return self.rsh(cmd, timeout).stdout.strip()
+
+    def log(self, test, text):
+        if self.a.no_append:
+            return
+        with open(os.path.join(self.logdir, '%s.txt' % test), 'a') as fh:
+            fh.write(text.rstrip() + '\n')
+
+    # -- state the verdicts lean on ----------------------------------------
+    def an_en(self):
+        """AN_EN as it IS. Never written here -- see the module docstring."""
+        return self.out('pinctrl get %d' % AN_EN_GPIO)
+
+    def pin(self, spec):
+        return self.out('sudo pinctrl set %s' % spec)
+
+    # -- recording ----------------------------------------------------------
+    def record(self, test, verdict, measured, limit, evidence):
+        assert verdict in (PASS, FAIL, NODATA), verdict
+        ev = ' '.join(str(evidence).split())
+        self.log(test, '=== %s  %s\n%s' % (stamp(), verdict, evidence))
+        if len(ev) > 400:
+            ev = ev[:397] + '...'
+        st = stamp()
+        self.results[test] = verdict
+        for board, item in ITEMS[test]:
+            self.rows.append({'board': board, 'item': item, 'test': test,
+                              'verdict': verdict, 'measured': str(measured),
+                              'limit': str(limit), 'evidence': ev, 'stamp': st})
+        print('  %-9s %-8s %s' % (test, verdict, str(measured)[:96]))
+
+    def run(self, test, fn):
+        if SECTION[test] not in self.a.section:
+            return
+        if self.a.only and test not in self.a.only:
+            return
+        print('%s ...' % test, flush=True)
+        try:
+            v, m, lim, ev = fn()
+        except Exception as exc:                      # noqa: BLE001 -- see below
+            # A crashed instrument is not a read path answering nothing, so it is
+            # recorded as NO DATA with the exception in `evidence` and shouted
+            # about in the summary rather than quietly folded in with the honest
+            # NO DATAs.
+            v, m, lim, ev = NODATA, 'runner error', '', 'RUNNER ERROR: %r' % (exc,)
+        self.record(test, v, m, lim, ev)
+
+
+# ---------------------------------------------------------------------------
+# A -- read from the CM4
+# ---------------------------------------------------------------------------
+def t_hd01(r):
+    status = r.out('cat %s/status' % CONN)
+    edid = r.out('edid-decode < %s/edid 2>&1 | head -40' % CONN)
+    modes = r.out('cat %s/modes' % CONN)
+    active = r.out('kmsprint 2>/dev/null | grep -A4 "HDMI-A-1" | head -8')
+    mfr = re.search(r'Manufacturer:\s*(\S+)', edid)
+    prod = re.search(r'Model:\s*(\S+)', edid)
+    native = modes.splitlines()[0] if modes else ''
+    raw = ('status=%s\n--- edid-decode ---\n%s\n--- modes ---\n%s\n--- kmsprint ---\n%s'
+           % (status, edid, modes, active))
+    if status != 'connected':
+        return FAIL, 'status=%s' % status, 'connected', raw
+    if not (mfr and prod):
+        return NODATA, 'EDID did not parse', 'manufacturer + product code', raw
+    # The native mode is `modes`' first line; "is the active mode" is decided
+    # against kmsprint's CRTC line, which carries the mode string verbatim.
+    act = bool(native) and native in active
+    v = PASS if act else FAIL
+    return (v, 'HDMI-A-1 connected, %s %s, native %s, active=%s'
+            % (mfr.group(1), prod.group(1), native, act),
+            'connected + EDID mfr/product + native mode active', raw)
+
+
+def t_hd02(r):
+    """The dropout soak. A sampler was started at the top of the run; this
+    harvests it. The window is whatever actually elapsed and is reported as
+    such -- the spec asks >= 1 h (24 h for a shipping proof), so a shorter
+    window is NO DATA naming its own length, never a PASS on a soak that was
+    not run."""
+    log = r.out('cat /tmp/d24_hdsoak.log 2>/dev/null')
+    # udevadm monitor's banner is two lines and the SECOND of them begins
+    # "UDEV - the event which udev sends out...", so `grep -c "^UDEV"` counts a
+    # banner as a hotplug and reports a dropout on a display that never moved.
+    # A real event line is `UDEV  [12345.6] change /devices/...`, so the
+    # bracketed timestamp is what the match hangs on.
+    uev = r.out('{ grep -cE "^UDEV +\\[" /tmp/d24_hdsoak.uevents 2>/dev/null '
+                '|| echo 0; } | head -1')
+    lines = [x for x in log.splitlines() if x.strip()]
+    if not lines:
+        return NODATA, 'no soak samples', 'status never leaves connected', log
+    states = sorted({x.split()[-1] for x in lines})
+    # The duration is what the LOG spans, read off its own timestamps. Deriving
+    # it from the sample count times the interval assumes every sleep landed,
+    # which is the kind of assumption a soak exists to avoid.
+    try:
+        t0 = datetime.datetime.strptime(lines[0].split()[0], '%Y-%m-%dT%H:%M:%SZ')
+        t1 = datetime.datetime.strptime(lines[-1].split()[0], '%Y-%m-%dT%H:%M:%SZ')
+        dur = int((t1 - t0).total_seconds())
+    except (ValueError, IndexError):
+        dur = (len(lines) - 1) * r.a.soak_interval
+    raw = ('samples=%d interval=%ds duration=%ds states=%s drm_uevents=%s\n'
+           'first: %s\nlast:  %s' % (len(lines), r.a.soak_interval, dur, states,
+                                      uev, lines[0], lines[-1]))
+    if states != ['connected']:
+        return FAIL, 'states seen %s over %d s' % (states, dur), \
+            'status never leaves connected', raw
+    m = 'connected on %d of %d samples over %d s, drm hotplug uevents %s' % (
+        len(lines), len(lines), dur, uev)
+    if dur < 3600:
+        return NODATA, m + ' (window short of the spec)', \
+            '>= 3600 s, no state change, hotplug count unchanged', raw
+    return PASS, m, '>= 3600 s, no state change, hotplug count unchanged', raw
+
+
+def t_hdpwr(r):
+    """Inferred, and said to be: the TFT answers EDID only when its rail is up."""
+    hd = r.results.get('HD0-1')
+    raw = 'inferred from HD0-1 = %s' % hd
+    if hd == PASS:
+        return PASS, 'inferred from HD0-1 PASS', 'HD0-1 PASS', raw
+    return NODATA, 'HD0-1 = %s' % hd, 'HD0-1 PASS', raw
+
+
+def t_nw1(r):
+    et = r.out('%s eth0 2>&1' % ETHTOOL)
+    carrier = r.out('cat /sys/class/net/eth0/carrier')
+    link = re.search(r'Link detected:\s*(\S+)', et)
+    speed = re.search(r'Speed:\s*(\S+)', et)
+    duplex = re.search(r'Duplex:\s*(\S+)', et)
+    raw = '%s\ncarrier=%s' % (et, carrier)
+    if not (link and speed and duplex):
+        return NODATA, 'ethtool did not answer', 'link up, 1000Mb/s, Full', raw
+    m = 'Link detected: %s, Speed: %s, Duplex: %s, carrier=%s' % (
+        link.group(1), speed.group(1), duplex.group(1), carrier)
+    ok = (link.group(1) == 'yes' and speed.group(1) == '1000Mb/s'
+          and duplex.group(1) == 'Full' and carrier == '1')
+    return (PASS if ok else FAIL), m, 'link up, 1000Mb/s, Full', raw
+
+
+def _ifstats(r):
+    txt = r.out('ip -s link show eth0')
+    nums = [int(x) for x in re.findall(r'\d+', txt.split('RX:')[1])] if 'RX:' in txt else []
+    return txt, nums
+
+
+def t_nw2(r):
+    """rx/tx errors, dropped and overruns across NW3+NW4.
+
+    `before` was taken before NW3 ran: a counter set read only as absolute
+    totals cannot tell a fault during the run from one that predates the
+    unit's six hours of uptime.
+
+    AND IT CARRIES ITS OWN CONTROL, because the first run of this test read
+    `rx_dropped +1` and that is not necessarily traffic the test caused. An
+    IDLE window of the same shape is sampled afterwards with nothing driving
+    the link; if a counter climbs there too it is ambient (this LAN carries
+    multicast the unit does not subscribe to, and `rx_dropped` counts
+    host-side software drops, not wire errors), and the evidence says so
+    rather than leaving a reader to guess."""
+    after, nums_a = _ifstats(r)
+    before, nums_b = getattr(r, '_nw2_before', (None, None))
+    if not nums_b or len(nums_b) != len(nums_a):
+        return NODATA, 'no before-sample', 'errors/dropped/overruns delta = 0', \
+            '--- after ---\n%s' % after
+    # ip -s link: RX bytes packets errors dropped missed mcast
+    #             TX bytes packets errors dropped carrier collsns
+    names = ['rx_bytes', 'rx_packets', 'rx_errors', 'rx_dropped', 'rx_missed', 'rx_mcast',
+             'tx_bytes', 'tx_packets', 'tx_errors', 'tx_dropped', 'tx_carrier', 'tx_collsns']
+    fault_keys = ['rx_errors', 'rx_dropped', 'rx_missed',
+                  'tx_errors', 'tx_dropped', 'tx_carrier', 'tx_collsns']
+    delta = dict(zip(names, [a - b for a, b in zip(nums_a, nums_b)]))
+    faults = {k: delta[k] for k in fault_keys}
+
+    idle_t = 30
+    _, nums_i0 = _ifstats(r)
+    time.sleep(idle_t)
+    idle_txt, nums_i1 = _ifstats(r)
+    idle = dict(zip(names, [x - y for x, y in zip(nums_i1, nums_i0)]))
+    idle_faults = {k: idle[k] for k in fault_keys}
+
+    bad = {k: v for k, v in faults.items() if v != 0}
+    ambient = {k for k, v in idle_faults.items() if v != 0}
+    raw = ('--- before NW3 ---\n%s\n--- after NW4 ---\n%s\n'
+           'delta over the tests: %s\n'
+           '--- idle control, %d s with nothing driving the link ---\n%s\n'
+           'delta while idle: %s\ncounters that also climb while idle: %s'
+           % (before, after, faults, idle_t, idle_txt, idle_faults, sorted(ambient) or 'none'))
+    m = 'deltas over NW3+NW4: %s; idle control (%d s): %s' % (faults, idle_t, idle_faults)
+    return ((FAIL if bad else PASS), m, 'all zero for the run', raw)
+
+
+def t_nw3(r):
+    """Loss and RTT to the bench host -- AND to the unit's own default gateway,
+    several passes each, scored on the WORST.
+
+    TWO THINGS THIS TEST HAD TO LEARN ON THE BENCH.
+
+    First, the control. A red cell against "Ethernet (RJ45)" for loss measured
+    against one particular host would be a verdict about the PATH written
+    against the unit's NIC. The gateway is one switch hop from the unit and
+    shares none of the driving host's cabling, so the two targets separate
+    "this link" from "that path".
+
+    Second, and this is the one that matters: **a single 200-packet run does
+    not settle a 0 % bar on this bench.** Five consecutive runs during this
+    session read 2.0 %, 0.5 %, 0.0 %, 0.0 % to the bench host and 0.0 %, 0.5 %
+    to the gateway -- so whichever verdict a one-shot lands is the one the
+    scheduler happened to hand it, and re-running until it passes is not a
+    measurement. The test therefore takes `--nw3-runs` passes per target and
+    scores the WORST, which makes the reading reproducible in the only sense
+    that counts: it does not improve if you run it again."""
+    def ping(target):
+        txt = r.out('ping -c 200 -i 0.2 %s 2>&1 | tail -3' % target, timeout=200)
+        loss = re.search(r'([\d.]+)% packet loss', txt)
+        rtt = re.search(r'=\s*([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+)\s*ms', txt)
+        return txt, (float(loss.group(1)) if loss else None), \
+            (float(rtt.group(3)) if rtt else None)
+
+    gw = r.out("ip route | awk '/default/{print $3; exit}'")
+    logs, worst = [], {}
+    for label, target in (('bench host %s' % BENCH_HOST_SELF, BENCH_HOST_SELF),
+                          ('gateway %s' % gw, gw)):
+        if not target:
+            continue
+        losses, maxes = [], []
+        for i in range(r.a.nw3_runs):
+            txt, loss, mx = ping(target)
+            logs.append('--- %s, pass %d/%d ---\n%s' % (label, i + 1, r.a.nw3_runs, txt))
+            if loss is None:
+                continue
+            losses.append(loss)
+            maxes.append(mx if mx is not None else float('nan'))
+        if losses:
+            worst[label] = (max(losses), max(maxes), losses)
+    raw = '\n'.join(logs)
+    if not worst:
+        return NODATA, 'ping did not summarise', '0% loss, max RTT < 5 ms', raw
+    host_key = 'bench host %s' % BENCH_HOST_SELF
+    m = '; '.join('%s: worst %.1f%% loss over %d passes %s, max RTT %.3f ms'
+                  % (k, v[0], len(v[2]), v[2], v[1]) for k, v in worst.items())
+    if host_key not in worst:
+        return NODATA, m, '0% loss, max RTT < 5 ms', raw
+    h_loss, h_max, _ = worst[host_key]
+    if h_loss == 0.0 and h_max < 5.0:
+        return PASS, m, '0% loss, max RTT < 5 ms (worst of %d passes)' % r.a.nw3_runs, raw
+    gw_key = [k for k in worst if k != host_key]
+    if gw_key and worst[gw_key[0]][0] == 0.0:
+        return (NODATA, m, '0% loss, max RTT < 5 ms',
+                raw + '\nThe unit\'s own link passed its control on every pass -- 0 %% loss to '
+                      'the gateway, one switch hop away, over none of the driving host\'s '
+                      'cabling -- while the path to the bench host did not. The loss is not '
+                      'attributed to the unit and this is NO DATA rather than FAIL. Re-take '
+                      'from a host on the same gigabit switch.')
+    return (FAIL, m, '0% loss, max RTT < 5 ms',
+            raw + '\nLoss appears toward BOTH targets, including the unit\'s own gateway one '
+                  'switch hop away, so it is not a property of the driving host\'s path alone.')
+
+
+def t_nw4(r):
+    """Throughput both ways.
+
+    THE SERVER RUNS ON THE UNIT, NOT ON THE BENCH HOST, and the swap is
+    deliberate. The spec's `iperf3 -c <bench host>` needs an inbound port open
+    on the bench host; this machine runs ufw with `deny (incoming)` and only
+    22/tcp allowed, so the spec's form times out and reports nothing -- a leg
+    that is meant to run again and again cannot depend on the firewall posture
+    of whatever machine is driving it. Driving it the other way measures the
+    same two directions over the same link and needs nothing opened: without
+    `-R` the unit RECEIVES, with `-R` the unit SENDS. The direction is named in
+    the evidence so the numbers are never ambiguous about which way they ran."""
+    # `pkill -x iperf3`, never `pkill -f "iperf3 -s"`: the -f form matches the
+    # shell this very command is running in and kills the launcher before it
+    # launches anything, which reads downstream as "iperf3 gave no receiver line".
+    # THE PATH IS PART OF THE INSTRUMENT. The spec's >= 900 Mbit/s bar assumes a
+    # gigabit LAN end to end; if the DRIVING host's link is slower, the number
+    # measures that link and nothing about the unit. Scoring it FAIL would be a
+    # defect invented by the bench, so the bottleneck is read first and a run
+    # that cannot reach the bar is NO DATA naming the reason.
+    iface = r.sh("ip route get %s | sed -n 's/.*dev \\([^ ]*\\).*/\\1/p' | head -1"
+                 % BENCH.split("@")[1]).stdout.strip()
+    host_mbit = r.sh('cat /sys/class/net/%s/speed 2>/dev/null || echo 0' % iface).stdout.strip()
+    r.rsh('pkill -x iperf3 >/dev/null 2>&1; '
+          'setsid nohup iperf3 -s -p 5201 </dev/null >/tmp/d24_iperf3.log 2>&1 & sleep 1')
+    time.sleep(1.5)
+    try:
+        rx = r.sh('iperf3 -c %s -p 5201 -t 10 -f m 2>&1 | tail -6' % BENCH.split("@")[1],
+                  timeout=90).stdout
+        time.sleep(1.0)
+        tx = r.sh('iperf3 -c %s -p 5201 -t 10 -R -f m 2>&1 | tail -6' % BENCH.split("@")[1],
+                  timeout=90).stdout
+    finally:
+        r.rsh('pkill -x iperf3 >/dev/null 2>&1; true')
+    raw = ('driving host %s: iface %s, link %s Mb/s\n'
+           '--- unit receiving (host -> unit) ---\n%s\n'
+           '--- unit sending (unit -> host, -R) ---\n%s'
+           % (BENCH_HOST_SELF, iface, host_mbit, rx, tx))
+
+    def mbits(txt):
+        m = re.findall(r'([\d.]+)\s+Mbits/sec.*receiver', txt)
+        return float(m[-1]) if m else None
+    a_rx, a_tx = mbits(rx), mbits(tx)
+    if a_rx is None or a_tx is None:
+        return NODATA, 'iperf3 gave no receiver line', '>= 900 Mbit/s each way', raw
+    try:
+        capped = int(host_mbit) < 1000
+    except ValueError:
+        capped = True
+    if capped:
+        return (NODATA,
+                'unit rx %.0f Mbit/s, unit tx %.0f Mbit/s -- but the driving host\'s %s '
+                'negotiates %s Mb/s, so this is the path, not the unit'
+                % (a_rx, a_tx, iface, host_mbit),
+                '>= 900 Mbit/s each way',
+                raw + '\nPREREQUISITE: a gigabit path between the unit and the driving host. '
+                      'The unit\'s own link is 1000Mb/s Full (NW1); the dsp machine\'s %s is '
+                      'at %s Mb/s, which caps this measurement below the bar whatever the unit '
+                      'does. Re-run from a gigabit-attached host, or move the unit and that '
+                      'host onto the same gigabit switch port pair.' % (iface, host_mbit))
+    ok = a_rx >= 900.0 and a_tx >= 900.0
+    return ((PASS if ok else FAIL),
+            'unit rx %.0f Mbit/s, unit tx %.0f Mbit/s' % (a_rx, a_tx),
+            '>= 900 Mbit/s each way', raw)
+
+
+def t_ascm4(r):
+    txt = r.out('uptime; vcgencmd get_throttled; vcgencmd measure_temp; '
+                'vcgencmd measure_volts core; tr -d "\\0" < /proc/device-tree/model; echo; '
+                'systemctl is-active matrix-app')
+    thr = re.search(r'throttled=(0x[0-9a-fA-F]+)', txt)
+    tmp = re.search(r"temp=([\d.]+)'C", txt)
+    vol = re.search(r'volt=([\d.]+)V', txt)
+    act = 'active' in txt.splitlines()[-1] if txt else False
+    if not (thr and tmp and vol):
+        return NODATA, 'vcgencmd did not answer', 'throttled 0x0, temp < 70 C, app active', txt
+    t = float(tmp.group(1))
+    ok = thr.group(1) in ('0x0',) and t < 70.0 and act
+    return ((PASS if ok else FAIL),
+            'throttled=%s temp=%.1f C core=%sV matrix-app=%s'
+            % (thr.group(1), t, vol.group(1), 'active' if act else 'inactive'),
+            'throttled 0x0, temp < 70 C, core volts in window, app active', txt)
+
+
+def t_usbhub(r):
+    txt = r.out('lsusb -t; echo ---; lsusb')
+    # The spec's criterion: the CM4's hub enumerates with its four ports and
+    # ports 3 and 4 report no device. Presence of a device is section 2.
+    hubs = len(re.findall(r'Class=Hub', txt))
+    ok = hubs >= 1
+    return ((PASS if ok else FAIL), '%d hub(s) enumerated' % hubs,
+            'CM4 hub enumerates; ports 3/4 empty (a device there is section 2)', txt)
+
+
+# ---------------------------------------------------------------------------
+# B -- through H1S1 over the matrix bus
+# ---------------------------------------------------------------------------
+def _bus(r, mode, extra=''):
+    txt = r.out('cd %s && python3 d24_bus_probe.py --mode %s %s' % (r.a.stage, mode, extra),
+                timeout=90)
+    try:
+        return json.loads(txt.splitlines()[-1]), txt
+    except (ValueError, IndexError):
+        return None, txt
+
+
+def t_ml1(r):
+    j, raw = _bus(r, 'cell', '--reps 3')
+    if not j:
+        return NODATA, 'probe gave no JSON', '3 identical well-formed answers', raw
+    vals = [x['value'] for x in j['reads']]
+    ms = [x['ms'] for x in j['reads']]
+    m = 'Sys001Test001 (5414) x3 = %s, %s ms' % (
+        ['0x%02X' % v if v is not None else None for v in vals], ms)
+    if j['answered'] == 0:
+        return NODATA, 'cell did not answer in 3 of 3', '3 identical answers', raw
+    ok = j['identical'] and j['answered'] == 3
+    return ((PASS if ok else FAIL), m, '3 identical answers within the bus timeout', raw)
+
+
+def t_ml2(r):
+    shex = r.out('md5sum /home/app/firmware/H1S1.shex; stat -c %%s /home/app/firmware/H1S1.shex')
+    return (NODATA,
+            'no H1S1 version cell; host side H1S1.shex %s' % shex.split()[0] if shex else 'no shex',
+            'non-zero version equal to the H1S1.shex manifest',
+            'PREREQUISITE: H1S1 firmware-version cell (spec prereq 1). H1S1\'s whole '
+            'local cell table is Sys001Enc001/Sys001Skin001/Sys001Test001/Sys001Test002 '
+            '(~/build-h1s1/Core/Inc/matrix.cs:11-18); no *Ver*/*Build* cell exists. '
+            'The only identity it publishes is the S_TEST string "// H1S1 DSP" '
+            '(matrix.cs:46). Host side reads: %s' % shex)
+
+
+def t_mlm(r):
+    j, raw = _bus(r, 'stest')
+    mcus = (j or {}).get('mcus', {})
+    ml1 = r.results.get('ML1')
+    m = 'ML1=%s; S_TEST identities: %s' % (ml1, mcus)
+    ev = ('%s\nMH1 firmware is not in ~/build-h1s1, so whether it publishes a version '
+          'cell is UNKNOWN; no version was read.' % raw)
+    if ml1 != PASS:
+        return NODATA, m, 'ML1 PASS; version reads', ev
+    return PASS, m, 'ML1 PASS (version, if published, reads)', ev
+
+
+def _panel(r, tag, name):
+    j, raw = _bus(r, 'stest')
+    mcus = (j or {}).get('mcus', {})
+    applog = r.out('grep "MCU verified" /home/app/logs/log | tail -6')
+    ev = '%s\n--- matrix-app /home/app/logs/log ---\n%s' % (raw, applog)
+    line = mcus.get(tag)
+    m = '%s S_TEST = %r; app log: %s' % (
+        tag, line, ' | '.join(x.strip() for x in applog.splitlines()))
+    if not line:
+        return NODATA, m, 'id answers and matches fw.csv %s' % name, ev
+    # The identity string names the MCU, not the part number: fw.csv declares
+    # STM32F030R8 and nothing on the wire repeats it, so the match is by MCU
+    # name against fw.csv and is stated that way rather than claimed as a
+    # part-number read.
+    return PASS, m, 'id answers (fw.csv %s = STM32F030R8, not carried on the wire)' % name, ev
+
+
+def t_mlp1(r):
+    return _panel(r, 'H1S3', 'SW_RIGHT')
+
+
+def t_mlp2(r):
+    return _panel(r, 'H1S4', 'SW_LEFT')
+
+
+def t_mlb0(r):
+    return (NODATA, 'no BOOT0/NRST drive on H1S1', 'ROM ACK 0x79 and re-enumeration',
+            'PREREQUISITE: BOOT0/NRST drive from H1S1 (spec prereq 6). No BOOT0, NRST, '
+            'S9 or S13 anywhere in ~/build-h1s1; H1S1\'s entire GPIO set is CS1-8, RST_C, '
+            'CS_M, CS_C, BLINK, BUSY, S2, S3 (Core/Inc/main.h:59-91).')
+
+
+def _diag(r, chip, timeout=90):
+    return r.out('cd %s && python3 dsp4_diag.py --chip %d --cs-gpio %d --rdy-gpio %d 2>&1'
+                 % (r.a.stage, chip, CS_GPIO[chip], RDY_GPIO[chip]), timeout=timeout)
+
+
+def _field(txt, name):
+    m = re.search(r'^\s*%s\s+(\S+)' % re.escape(name), txt, re.M)
+    return m.group(1) if m else None
+
+
+def _deassert(r):
+    r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+
+
+def t_dc1(r, n):
+    """Assert one select, clock a read; the other selects stay high."""
+    if n in (1, 2):
+        _deassert(r)
+        txt = _diag(r, n)
+        cid, bid = _field(txt, 'CHIP_ID'), _field(txt, 'BUILD_ID')
+        ok = cid is not None and int(cid, 0) == n
+        return ((PASS if ok else FAIL),
+                'CS%d asserted (GPIO%d): CHIP_ID %s BUILD_ID %s' % (n, CS_GPIO[n], cid, bid),
+                'the addressed part answers CHIP_ID %d' % n, txt)
+    if n in (3, 4):
+        lvl = r.out('pinctrl get %d' % RDY_GPIO[n - 2])
+        return (NODATA, 'CS%d is not a chip select on DSP4: %s' % (n, lvl),
+                'n/a -- assert-one-read-one does not apply',
+                'SPEC CORRECTION. CS3/CS4 are wired to DSPA/DSPB SPI_RDY and are INPUTS '
+                '(MW/D24/HW/hardware-map.md:193-195; dsp4_boot.py RDY_GPIO = {1: 8, 2: 12}). '
+                'Level read at the CM4 end: %s. A 10K pulldown on each part rests the line '
+                'ASSERTED, so the level does not prove a part is alive either.' % lvl)
+    return (NODATA, 'CS%d has no part behind it on DSP4' % n,
+            'n/a -- 8-DSP scaling provision',
+            'SPEC CORRECTION. hardware-map.md:410-411: "CS1-8 DSP chip-select provision '
+            '(8-DSP scaling -- only CS1/CS2 live on DSP4; CS3/CS4 wired as DSP1/2 SPI_RDY)". '
+            'CS5-CS8 reach no fitted part, so no read can answer and none ever will on '
+            'this board.')
+
+
+def t_dc2(r, n):
+    """The identity of the part behind the select."""
+    if n not in (1, 2):
+        return t_dc1(r, n)
+    txt = r.out('cd %s && python3 dsp4_buildcfg.py --chip %d 2>&1' % (r.a.stage, n), timeout=90)
+    trip = re.findall(r'0x[0-9A-Fa-f]{8}', txt)
+    cfg = _diag(r, n)
+    cid = _field(cfg, 'CHIP_ID')
+    bid = _field(cfg, 'BUILD_ID')
+    raw = '%s\n--- diag ---\n%s' % (txt, cfg)
+    if not bid:
+        return NODATA, 'no BUILD_ID from CS%d' % n, 'id matches the declared part', raw
+    match = all(t in trip for t in SIGNED_TRIPLE)
+    return ((PASS if (cid and int(cid, 0) == n) else FAIL),
+            'CS%d: CHIP_ID %s BUILD_ID %s, build cfg triple %s (S82-signed: %s)'
+            % (n, cid, bid, trip[:3], match),
+            'id answers behind the select; fw.csv Dsp%d declares a pin and net, not a part '
+            'number, so there is nothing on the wire to match it against' % n, raw)
+
+
+def t_dr1(r):
+    """Pulse !RST_D and watch the heartbeat stop. The pulse is the CM4's
+    GPIO16, not H1S1's -- see the spec correction in the report."""
+    a1 = _field(_diag(r, 1), 'FRAME_COUNT')
+    time.sleep(1.0)
+    a2 = _field(_diag(r, 1), 'FRAME_COUNT')
+    r.pin('%d op dl' % RST_GPIO)
+    time.sleep(0.05)
+    r.pin('%d op dh' % RST_GPIO)
+    time.sleep(0.5)
+    b1 = _diag(r, 1)
+    time.sleep(1.0)
+    b2 = _diag(r, 1)
+    f_b1, f_b2 = _field(b1, 'FRAME_COUNT'), _field(b2, 'FRAME_COUNT')
+    raw = ('before: FRAME_COUNT %s -> %s\nafter the pulse:\n%s\n---\n%s'
+           % (a1, a2, b1, b2))
+    if a1 is None or a2 is None or a1 == a2:
+        return NODATA, 'heartbeat was not advancing before the pulse (%s -> %s)' % (a1, a2), \
+            'heartbeat stops within one block period', raw
+    stopped = (f_b1 is None or f_b2 is None or f_b1 == f_b2)
+    return ((PASS if stopped else FAIL),
+            'FRAME_COUNT %s -> %s advancing; after !RST_D (GPIO%d) low 50 ms: %s -> %s'
+            % (a1, a2, RST_GPIO, f_b1, f_b2),
+            'heartbeat stops within one block period', raw)
+
+
+def t_dr2(r):
+    """The boot+config recipe, and the lane read that proves the slots."""
+    log = boot_pair(r)
+    d1, d2 = _diag(r, 1), _diag(r, 2)
+    st1, st2 = _field(d1, 'BOOT_STAGE'), _field(d2, 'BOOT_STAGE')
+    b1, b2 = _field(d1, 'BUILD_ID'), _field(d2, 'BUILD_ID')
+    lanes = rxscan(r)
+    carrying = lanes.count('CARRYING')
+    raw = '%s\n--- chip1 ---\n%s\n--- chip2 ---\n%s\n--- rxscan ---\n%s' % (log, d1, d2, lanes)
+    ok = (st1 and st2 and int(st1, 0) >= 7 and int(st2, 0) >= 7)
+    return ((PASS if ok else FAIL),
+            'BOOT_STAGE %s/%s, BUILD_ID %s/%s, %d lanes CARRYING' % (st1, st2, b1, b2, carrying),
+            'both SHARCs boot and answer; BOOT_STAGE 7', raw)
+
+
+def _chain(r, image):
+    hexes = ' '.join('0x%02X' % b for b in image)
+    return r.out('cd /home/app/s55 && sudo -n python3 s55_chain.py %s 2>&1' % hexes, timeout=60)
+
+
+def t_mc1(r):
+    txt = _chain(r, KNOWN_IMAGE)
+    want = ' '.join('%02X' % b for b in KNOWN_IMAGE)
+    r._mc1_raw = txt
+    ok = txt.startswith('VERIFIED 200/200') and want in txt
+    return ((PASS if ok else FAIL), 'wrote %s, read back: %s' % (want, txt.split('|')[0].strip()),
+            'read-back equals the image', 'image=%s\n%s' % (want, txt))
+
+
+def t_mc2(r):
+    txt = _chain(r, SAFE_IMAGE)
+    want = ' '.join('%02X' % b for b in SAFE_IMAGE)
+    ok = txt.startswith('VERIFIED 200/200') and want in txt
+    return ((PASS if ok else FAIL), 'wrote SAFE %s, read back: %s' % (want, txt.split('|')[0].strip()),
+            'read-back equals SAFE (gain 0, phantom off, MUTED)', 'image=%s\n%s' % (want, txt))
+
+
+def t_mc3(r):
+    """The all-zeros guard. It is not a separate measurement -- it is what
+    decides whether MC1's reading means anything, so it reads CS_M's state
+    either way and says whether the guard fired."""
+    raw_mc1 = getattr(r, '_mc1_raw', '')
+    lvl = r.out('pinctrl get %d' % CS_M_GPIO)
+    zeros = bool(re.search(r'\b00(\s+00){20,}', raw_mc1))
+    ev = ('MC1 read-back: %s\nCS_M at the CM4 end (GPIO%d): %s\n'
+          'The analog-board end of CS_M is not readable through H1S1 (no such command); '
+          'the CM4 end is, and GPIO%d in pull-DOWN holds CS_M LOW, which gates the U2 '
+          'MISO buffer and reads as an all-zeros shift-back.'
+          % (raw_mc1, CS_M_GPIO, lvl, CS_M_GPIO))
+    if not raw_mc1:
+        return NODATA, 'MC1 did not run', 'not all-zeros, or the CS_M level explains it', ev
+    if zeros:
+        return FAIL, 'MC1 read all zeros; CS_M (GPIO%d) = %s' % (CS_M_GPIO, lvl), \
+            'not all-zeros, or the CS_M level explains it', ev
+    return PASS, 'MC1 read-back is not all-zeros; guard not invoked; CS_M (GPIO%d) = %s' \
+        % (CS_M_GPIO, lvl), 'not all-zeros, or the CS_M level explains it', ev
+
+
+def _codec_read(r, reg):
+    txt = r.out('cd %s && python3 codec4619.py --read %s 2>&1' % (DSPBOOT, reg), timeout=60)
+    # codec4619 prints one line per register: `05H -> 0xBB   guard 0x43   ANSWERED`.
+    # `no reply` is a real reading -- the arm did not answer -- and must not parse
+    # as a value, so the alternation is explicit rather than a loose hex search.
+    m = re.search(r'^%sH -> (no reply|0x([0-9A-Fa-f]{2}))' % reg, txt, re.M)
+    val = int(m.group(2), 16) if (m and m.group(2)) else None
+    return val, txt
+
+
+def t_cc1(r):
+    val, txt = _codec_read(r, '05')
+    if val is None:
+        return NODATA, 'the S81 read arm did not answer', '05H = 0xBB', txt
+    ok = val == 0xBB
+    r._cc1_val = val
+    return ((PASS if ok else FAIL), '05H = 0x%02X' % val,
+            '0xBB (MGN2L/MGN2R = +27 dB, the StartAK4619 image)', txt)
+
+
+def t_cc2(r):
+    """Write MGN2R to another code, read back, restore. The restore is not
+    optional bookkeeping -- 05H is the talkback input's gain."""
+    before = getattr(r, '_cc1_val', None)
+    if before is None:
+        before, _ = _codec_read(r, '05')
+    if before is None:
+        return NODATA, 'could not read 05H to restore it afterwards', 'read-back tracks the write', ''
+    target = 0x05 if (before & 0x0F) != 0x05 else 0x02
+    # --reg/--val writes the WHOLE byte. `--mgn2r N` would default the other
+    # nibble to the init image's 0xB, which silently rewrites MGN2L on a unit
+    # whose 05H is not the init image -- the restore would then not restore.
+    wr = 'cd %s && python3 codec4619.py --reg 05 --val %%02X 2>&1' % DSPBOOT
+    w1 = r.out(wr % ((before & 0xF0) | target), timeout=60)
+    time.sleep(0.2)
+    got, t1 = _codec_read(r, '05')
+    w2 = r.out(wr % before, timeout=60)
+    time.sleep(0.2)
+    back, t2 = _codec_read(r, '05')
+    raw = ('before=0x%02X\nwrite MGN2R=%d:\n%s\nread: %s\nrestore MGN2R=%d:\n%s\nread: %s'
+           % (before, target, w1, t1, before & 0x0F, w2, t2))
+    if got is None:
+        return NODATA, 'read-back did not answer after the write', 'read-back tracks the write', raw
+    ok = (got & 0x0F) == target and back == before
+    return ((PASS if ok else FAIL),
+            '05H 0x%02X -> MGN2R %d -> 0x%02X -> restored 0x%s'
+            % (before, target, got, '%02X' % back if back is not None else '??'),
+            'read-back tracks the write, and 05H is restored', raw)
+
+
+# ---------------------------------------------------------------------------
+# C -- read from the DSPs
+# ---------------------------------------------------------------------------
+def rxscan(r, chip=1):
+    return r.out('cd %s && python3 dsp4_rxscan.py --symdir %s 2>&1'
+                 % (r.a.stage, r.a.stage), timeout=240)
+
+
+def _lane_rows(txt):
+    """rxscan prints one line per lane ending CARRYING or STATIC."""
+    rows = []
+    for ln in txt.splitlines():
+        if ln.rstrip().endswith(('CARRYING', 'STATIC')):
+            rows.append(ln.strip())
+    return rows
+
+
+def _heartbeat(r, chip):
+    a = _field(_diag(r, chip), 'FRAME_COUNT')
+    time.sleep(1.0)
+    b = _field(_diag(r, chip), 'FRAME_COUNT')
+    if a is None or b is None:
+        return None, (a, b)
+    return int(b, 0) - int(a, 0), (a, b)
+
+
+def _as_dsp(r, chip):
+    d = _diag(r, chip)
+    cid, bid = _field(d, 'CHIP_ID'), _field(d, 'BUILD_ID')
+    st = _field(d, 'BOOT_STAGE')
+    delta, pair = _heartbeat(r, chip)
+    cfg = r.out('cd %s && python3 dsp4_buildcfg.py --chip %d 2>&1' % (r.a.stage, chip), timeout=90)
+    lanes = _lane_rows(rxscan(r)) if chip == 1 else []
+    raw = '%s\n--- buildcfg ---\n%s\n--- rxscan (%d lanes) ---\n%s' % (
+        d, cfg, len(lanes), '\n'.join(lanes))
+    if bid is None or cid is None:
+        return NODATA, 'the part did not answer on its select', \
+            'heartbeat advancing, build id, lanes carrying', raw
+    ok = (int(cid, 0) == chip and delta and delta > 0 and st and int(st, 0) >= 7)
+    carrying = sum(1 for x in lanes if x.endswith('CARRYING'))
+    return ((PASS if ok else FAIL),
+            'CHIP_ID %s BUILD_ID %s BOOT_STAGE %s, FRAME_COUNT %s->%s (delta %s)%s'
+            % (cid, bid, st, pair[0], pair[1], delta,
+               ', %d/%d lanes CARRYING' % (carrying, len(lanes)) if lanes else ''),
+            'heartbeat advancing + build id answers + BOOT_STAGE 7', raw)
+
+
+def t_asdspa(r):
+    return _as_dsp(r, 1)
+
+
+def t_asdspb(r):
+    return _as_dsp(r, 2)
+
+
+def t_ascpld(r):
+    """Two halves, and only one of them can answer on this unit as found."""
+    overlay = r.out('grep -n "dtoverlay=dsp4-pcm" /boot/firmware/config.txt')
+    idtxt = r.out('cd %s && python3 dsp4_logic_id.py 2>&1 | tail -6' % DSPBOOT, timeout=120)
+    blk1 = r.out('cd %s && python3 dsp4_blk30.py 1 10 2>&1 | tail -4' % r.a.stage, timeout=120)
+    blk2 = r.out('cd %s && python3 dsp4_blk30.py 2 10 2>&1 | tail -4' % r.a.stage, timeout=120)
+    raw = ('config.txt: %s\n--- logic_id ---\n%s\n--- blk30 chip1 ---\n%s\n--- blk30 chip2 ---\n%s'
+           % (overlay, idtxt, blk1, blk2))
+    ov_slave = 'slave' in overlay
+    d1 = re.search(r'BLK_OVERRUN\s+(\d+)\s*->\s*(\d+)\s*\(delta\s+(-?\d+)', blk1)
+    d2 = re.search(r'BLK_OVERRUN\s+(\d+)\s*->\s*(\d+)\s*\(delta\s+(-?\d+)', blk2)
+    ovr = 'chip1 %s chip2 %s' % (d1.group(3) if d1 else '?', d2.group(3) if d2 else '?')
+    if ov_slave:
+        return (NODATA,
+                'design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 10 s: %s' % ovr,
+                'id = %s and zero overrun delta' % SHIPPING_CPLD,
+                raw + '\nPREREQUISITE: dsp4_logic_id.py needs the DUPLEX PCM overlay. Under '
+                      'dsp4-pcm-slave it answers "no reply" for EVERY bitstream (bench note 12), '
+                      'so its silence carries no information. Flipping the overlay is a '
+                      'config.txt edit plus a reboot, which is not "the unit as found", so it '
+                      'was not done. The overrun half of the test ran and is reported.')
+    got = re.search(r'design_id:\s*32\'h([0-9a-fA-F]{8})', idtxt)
+    ok = bool(got) and got.group(1).lower() == SHIPPING_CPLD[-8:] and \
+        (d1 and int(d1.group(3)) == 0) and (d2 and int(d2.group(3)) == 0)
+    return ((PASS if ok else FAIL),
+            'design_id %s, BLK_OVERRUN delta %s' % (got.group(1) if got else 'no reply', ovr),
+            'id = %s and zero overrun delta' % SHIPPING_CPLD, raw)
+
+
+def _lane_verdict(r, rows, want, label, limit):
+    """Shared by AS-ADC, AS-DAC and MM1. The rails decide whether a dark lane
+    is a fault or the test state, so they are read here and not assumed."""
+    an = r.an_en()
+    hit = [x for x in rows if want in x]
+    raw = 'AN_EN (GPIO%d) = %s\n%s' % (AN_EN_GPIO, an, '\n'.join(hit) if hit else '\n'.join(rows))
+    if not hit:
+        return NODATA, 'no %s lane in the scan' % label, limit, raw
+    carrying = [x for x in hit if x.endswith('CARRYING')]
+    if carrying:
+        return PASS, '%d of %d %s lanes CARRYING' % (len(carrying), len(hit), label), limit, raw
+    if 'hi' not in an:
+        return (NODATA,
+                '%d %s lanes all STATIC with AN_EN %s' % (len(hit), label, an.split('//')[0].strip()),
+                limit,
+                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched '
+                      'session may not raise it (bench note 19 / S49-15: "AN_EN is never written '
+                      'by a dispatched session"). With the front ends unpowered a STATIC lane is '
+                      'the test state, not a converter fault, so this is NO DATA and not FAIL.')
+    return FAIL, '%d %s lanes all STATIC with AN_EN up' % (len(hit), label), limit, raw
+
+
+# rxscan's `lane` column is the RX geometry lane, and on a D24 it names the
+# converter: lane 0 = AD0 = ADC8 #1 = U15, lane 1 = AD1 = U39, lane 2 = AD2 = U60
+# (MW/D24/HW/hardware-map.md:149-152). Lane 3 carries input strips 25-32, which
+# have NO analog source on a D24 at all -- they are NET-only -- so a STATIC
+# reading there is the product, not a fault.
+ADC_OF_LANE = {0: 'U15', 1: 'U39', 2: 'U60'}
+
+
+def t_asadc(r):
+    """Per-lane activity on the mic inputs, grouped by the converter that feeds
+    them. The verdict is on U39 and U60: U15's eight have no front end fitted on
+    MW-D24-2 (measured S86) and are reported, not scored."""
+    txt = rxscan(r)
+    rows = []
+    for ln in _lane_rows(txt):
+        f = ln.split()
+        if not re.match(r'^IN_\d+$', f[0]):
+            continue
+        try:
+            # columns: node entry off lane lidx read distinct rms pk words... state
+            rows.append((f[0], int(f[3]), f[-1], float(f[7]), int(f[6])))
+        except (IndexError, ValueError):
+            continue
+    an = r.an_en()
+    raw = 'AN_EN (GPIO%d) = %s\n%s' % (AN_EN_GPIO, an, '\n'.join(_lane_rows(txt)))
+    if not rows:
+        return NODATA, 'no IN_* lanes in the scan', 'U39 and U60 lanes alive and not stuck-at', raw
+    by = {}
+    for name, lane, state, rms, distinct in rows:
+        by.setdefault(lane, []).append((name, state, rms, distinct))
+    parts = []
+    for lane in sorted(by):
+        live = [x for x in by[lane] if x[1] == 'CARRYING']
+        tag = ADC_OF_LANE.get(lane, 'strips 25-32, NET-only (no D24 ADC)')
+        parts.append('lane %d (%s): %d/%d CARRYING, rms %s dBFS'
+                     % (lane, tag, len(live), len(by[lane]),
+                        '%.1f..%.1f' % (min(x[2] for x in by[lane]),
+                                        max(x[2] for x in by[lane]))))
+    scored = [lane for lane in by if ADC_OF_LANE.get(lane) in ('U39', 'U60')]
+    ok = bool(scored) and all(all(x[1] == 'CARRYING' for x in by[lane]) for lane in scored)
+    m = '; '.join(parts)
+    if ok:
+        return PASS, m, 'U39 and U60 lanes alive and not stuck-at (U15\'s eight known dead)', \
+            raw + '\nU15 (lane 0) has no front end fitted on MW-D24-2 -- panel mics 1-4 and ' \
+                  '13-16, XLRs J15-J22, preamps U17-U31, measured S86. Its lanes are reported ' \
+                  'and not scored; the CONVERTER is fine, the front end is absent.'
+    if 'hi' not in an:
+        return (NODATA, m,
+                'U39 and U60 lanes alive and not stuck-at',
+                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched '
+                      'session may not raise it (bench note 19 / S49-15), so a STATIC lane here '
+                      'is the test state, not a converter fault.')
+    return FAIL, m, 'U39 and U60 lanes alive and not stuck-at', raw
+
+
+def t_asdac(r):
+    """The read path exists and is exercised; the stimulus the spec's criterion
+    needs does not exist on the image under test, so the slot reading is
+    evidence and not a verdict."""
+    cap = r.out('cd %s && python3 s89_slotcap.py %s 2 _tx_out_slot_C2_MON_OUT 256 2>&1 | tail -6'
+                % (r.a.stage, r.a.stage), timeout=180)
+    osc = r.out('cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
+                'print(\'_osc_blk_q_C1_TEST_OSC\' in j)"' % r.a.stage, timeout=60)
+    raw = ('--- coherent capture of _tx_out_slot_C2_MON_OUT (256 samples) ---\n%s\n'
+           'chip1 carries _osc_blk_q_C1_TEST_OSC: %s' % (cap, osc))
+    return (NODATA,
+            'TX slot read (see evidence); no stimulus on this image (TEST_NODES symbol: %s)' % osc,
+            'slots non-constant while TEST_OSC runs, correct level in dBFS',
+            raw + '\nPREREQUISITE: a stimulus. The spec\'s criterion is "non-constant WHILE '
+                  'TEST_OSC runs into an output"; TEST_OSC exists only under DSP4_TEST_NODES=1 '
+                  'and the pair under test is the shipping pair. dsp4_s49_osc.py refuses such '
+                  'an image by symbol check rather than printing four zeros that would look '
+                  'like a measurement. With nothing driving the output, neither a constant nor '
+                  'a varying slot separates a working DAC path from a silent one, so the '
+                  'capture is recorded and the verdict is NO DATA.')
+
+
+def t_aspwr(r):
+    an = r.an_en()
+    return (NODATA, 'no reader for the power MCU\'s published words; AN_EN (GPIO26) = %s'
+            % an.split('//')[0].strip(),
+            'state running, PWR_FAIL clear, AN_EN as expected',
+            'PREREQUISITE: a reader for the power MCU over MHRX. Nothing in this repo reads '
+            'the power MCU\'s state word, PWR_FAIL or its AN_EN view; src/fw/d24-pwr-mcu-def.csv '
+            'is not in this tree (it is mx26\'s). AN_EN is not an MCU word at all -- it is CM4 '
+            'GPIO26, read here as: %s' % an)
+
+
+def t_mm1(r):
+    rows = _lane_rows(rxscan(r))
+    v, m, lim, ev = _lane_verdict(r, rows, 'MEMS', 'MEMS',
+                                  'lane alive; idle floor within the declared window')
+    return v, m, lim, ev + ('\nThe spec asks for the PDM clock as well as the lane, and nothing '
+                            'on the CM4 reads it: the CPLD\'s lane witness counts cdc_o only -- '
+                            'there is no counter on the MEMS group (bench note 31) -- so "lane '
+                            'stuck" and "no PDM clock" are not separated by any read path that '
+                            'exists. A stuck 0xFFFFFFFF is what S79-2 recorded on this lane too.')
+
+
+def t_sp1(r):
+    return (NODATA, 'no TEST_OSC -> SPKR route in the topology',
+            '1 kHz tone on the MEMS lane >= 20 dB above its idle floor',
+            'DEF ITEM, not a fixture (the spec\'s own disposition for this case). No node or '
+            'cell named for the speaker exists: zero hits for spkr/speaker in '
+            'defs/products/d24/dsp.csv and MW/D24/MX/_matrix.csv. SPKR0/SPKR1 are connector '
+            'pins only (d24-hw-inventory.csv:1075 Left Switch J2; :278 Analog J59). The path '
+            'is DSPB O2 = PLL8_1 = CDC_I -> AK4619 codec DAC -> TS482 amp on the Digital board '
+            '-> panels (hardware-map.md:157,439), so the speaker sits behind an ANALOG '
+            'amplifier fed by a codec DAC and there is no routable DSP output to name. '
+            'Compounded by the AS-DAC prerequisite: TEST_OSC needs DSP4_TEST_NODES=1.')
+
+
+# ---------------------------------------------------------------------------
+# bench choreography
+# ---------------------------------------------------------------------------
+def stage_setup(r):
+    """A stage directory of our own, populated the way the bench scripts do it.
+
+    Two traps are avoided by construction. `/home/app/dspboot` is never booted
+    from -- the candidate pair is staged there and must stay byte-identical --
+    so the images are COPIED here. And the tools that exist only in this repo
+    are scp'd AFTER the symlink loop and only for names the loop did not link,
+    because an scp onto a symlink writes THROUGH it into /home/app/dspboot."""
+    s = r.a.stage
+    r.rsh("mkdir -p %s && cp %s/candidate-s82/chip1.ldr %s/candidate-s82/chip2.ldr "
+          "%s/candidate-s82/chip1.sym.json %s/candidate-s82/chip2.sym.json %s/"
+          % (s, DSPBOOT, DSPBOOT, DSPBOOT, DSPBOOT, s), timeout=120)
+    r.rsh("for f in %s/*.py; do ln -sfn \"$f\" %s/$(basename \"$f\"); done; "
+          "ln -sfn %s/input_patch.json %s/input_patch.json" % (DSPBOOT, s, DSPBOOT, s),
+          timeout=120)
+    for name in ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py'):
+        src = os.path.join(HERE, name)
+        if os.path.exists(src):
+            r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
+            subprocess.run(['scp', '-q', src, '%s:%s/' % (BENCH, s)], check=True, timeout=60)
+    return r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s))
+
+
+def pin_handback(r):
+    """The pin handback a boot needs. NOT `pinctrl set 6,...,24,... a0`, which
+    is what every old run script still does: GPIO24's ALT0 is SD0_DAT2, not a
+    deasserted CS, so chip 2's select sits asserted while chip 1's stream is
+    clocked and chip 2 comes up running chip1.ldr."""
+    r.pin('7,9,10,11,22,23,25 a0')
+    r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+    r.pin('%d,%d ip' % (RDY_GPIO[1], RDY_GPIO[2]))
+
+
+def boot_pair(r):
+    """Boot and configure both chips TWICE. The config commit desyncs the
+    parameter link on the first pass every time -- pre-existing, reproduces on
+    the original image -- and the pair reaches BOOT_STAGE 7 on the second."""
+    log = []
+    for cycle in (1, 2):
+        pin_handback(r)
+        b = r.rsh('cd %s && python3 dsp4_boot.py --dir . 2>&1 | tail -12' % r.a.stage, timeout=300)
+        log.append('--- boot cycle %d ---\n%s' % (cycle, b.stdout + b.stderr))
+        for chip in (1, 2):
+            r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+            c = r.rsh('cd %s && python3 dsp4_config.py --product d24 --chip %d 2>&1 | tail -6'
+                      % (r.a.stage, chip), timeout=300)
+            log.append('--- config cycle %d chip %d ---\n%s' % (cycle, chip, c.stdout + c.stderr))
+    # s89_signbit takes the symbol directory as argv[1] -- called bare it raises
+    # IndexError before it reads the part, and the gate silently scores nothing.
+    sb = r.rsh('cd %s && python3 s89_signbit.py %s 2>&1 | tail -6'
+               % (r.a.stage, r.a.stage), timeout=180)
+    log.append('--- inter-chip link gate (s89_signbit, exit %d) ---\n%s'
+               % (sb.returncode, sb.stdout + sb.stderr))
+    return '\n'.join(log)
+
+
+def app_stop(r):
+    r.an_en_at_start = r.an_en()
+    r.rsh('sudo systemctl stop matrix-app', timeout=90)
+    time.sleep(2)
+    r.app_stopped = True
+    print('matrix-app stopped; AN_EN at start: %s' % r.an_en_at_start)
+
+
+def handback(r):
+    """Unit as found. Order matters: SAFE goes on the chain LAST, after the
+    final DSP boot, because a boot clocks half a megabyte through it and only
+    a CS_M edge decides what gets latched (S70-7)."""
+    notes = []
+    notes.append('SAFE image: %s' % _chain(r, SAFE_IMAGE))
+    r.pin('%d ip pu' % CS_M_GPIO)
+    notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
+    notes.append('AN_EN: %s' % r.an_en())
+    r.rsh('sudo systemctl start matrix-app', timeout=120)
+    time.sleep(25)
+    notes.append('matrix-app: %s' % r.out('systemctl is-active matrix-app'))
+    # The app REWRITES /home/app/logs/log on start, so the verdict is read from
+    # the whole file, never from "lines added since a mark".
+    notes.append('MCU verify (whole log): %s'
+                 % ' | '.join(r.out('grep "MCU verified" /home/app/logs/log').splitlines()))
+    return '\n'.join(notes)
+
+
+# ---------------------------------------------------------------------------
+def write_csv(r):
+    exists = os.path.exists(CSV_PATH)
+    os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
+    with open(CSV_PATH, 'a', newline='') as fh:
+        w = csv.DictWriter(fh, fieldnames=CSV_COLS)
+        if not exists:
+            w.writeheader()
+        for row in r.rows:
+            w.writerow(row)
+
+
+def check_keys(path):
+    want = set()
+    for its in ITEMS.values():
+        want |= set(its)
+    have = set()
+    with open(path, newline='') as fh:
+        for row in csv.DictReader(fh):
+            have.add((row['board'], row['item']))
+    missing = sorted(want - have)
+    if missing:
+        sys.exit('ERROR: %d key(s) not in the export -- board/item must match verbatim:\n%s'
+                 % (len(missing), '\n'.join('  %r' % (k,) for k in missing)))
+    print('key check: %d distinct items, all present in the export' % len(want))
+
+
+def summary(r):
+    print('\n%-10s %-8s %s' % ('TEST', 'VERDICT', 'MEASURED'))
+    print('-' * 78)
+    tally = {PASS: 0, FAIL: 0, NODATA: 0}
+    per_item = {}
+    for row in r.rows:
+        tally[row['verdict']] += 1
+        k = (row['board'], row['item'])
+        # An item's roll-up is its WORST verdict: a FAIL is not cancelled by a
+        # PASS on another test of the same item.
+        rank = {PASS: 0, NODATA: 1, FAIL: 2}
+        if k not in per_item or rank[row['verdict']] > rank[per_item[k]]:
+            per_item[k] = row['verdict']
+    for t in sorted(r.results):
+        print('%-10s %-8s' % (t, r.results[t]))
+    it = {PASS: 0, FAIL: 0, NODATA: 0}
+    for v in per_item.values():
+        it[v] += 1
+    print('-' * 78)
+    print('rows:  %d PASS / %d FAIL / %d NO DATA  (%d rows)'
+          % (tally[PASS], tally[FAIL], tally[NODATA], len(r.rows)))
+    print('items: %d PASS / %d FAIL / %d NO DATA  (%d of 36 workbook rows covered)'
+          % (it[PASS], it[FAIL], it[NODATA], len(per_item)))
+    errs = [t for t in r.results if r.results[t] == NODATA
+            and any(x['test'] == t and x['evidence'].startswith('RUNNER ERROR')
+                    for x in r.rows)]
+    if errs:
+        print('\n*** RUNNER ERRORS (not honest NO DATAs): %s' % ', '.join(sorted(errs)))
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--section', default='A,B,C')
+    ap.add_argument('--only', help='comma-separated test ids to run within the chosen '
+                                   'sections (e.g. NW3, or AS-ADC,MM1); the rest are skipped. '
+                                   'Use it to re-take one row without superseding the others.')
+    ap.add_argument('--stage', default='/home/app/s90')
+    ap.add_argument('--keys', help='cross-check the key table against --export-keys output and exit')
+    ap.add_argument('--no-append', action='store_true', help='print only; write no CSV rows')
+    ap.add_argument('--nw3-runs', type=int, default=3,
+                    help='ping passes per target for NW3; the verdict is the WORST, because a '
+                         'single 200-packet run does not settle a 0%% bar on this bench')
+    ap.add_argument('--soak-seconds', type=int, default=3600)
+    ap.add_argument('--soak-interval', type=int, default=60)
+    ap.add_argument('--no-soak-wait', action='store_true',
+                    help='harvest the HD0-2 soak as it stands instead of waiting for the window')
+    a = ap.parse_args()
+    if a.keys:
+        check_keys(a.keys)
+        return
+    a.section = set(x.strip().upper() for x in a.section.split(','))
+    a.only = set(x.strip().upper() for x in a.only.split(',')) if a.only else None
+    if a.only:
+        unknown = a.only - set(ITEMS)
+        if unknown:
+            sys.exit('ERROR: --only names no such test: %s' % ', '.join(sorted(unknown)))
+
+    r = Rig(a)
+    print('D24 self-test, section 1 -- sections %s -- %s'
+          % (','.join(sorted(a.section)), stamp()))
+
+    soak = 'A' in a.section and (not a.only or {'HD0-2'} & a.only)
+    if soak:
+        # The soak is passive and long, so it starts first and is harvested last.
+        r.rsh("rm -f /tmp/d24_hdsoak.log /tmp/d24_hdsoak.done /tmp/d24_hdsoak.uevents; "
+              # seq 0..N, not 1..N: N samples at interval I SPAN (N-1)*I, so a
+              # 3600 s window asked for as 60 samples of 60 s observes only 3540 s
+              # and reports itself short. One extra sample makes the span the
+              # window that was asked for.
+              "nohup sh -c 'for i in $(seq 0 %d); do echo \"$(date -u +%%FT%%TZ) "
+              "$(cat %s/status)\" >> /tmp/d24_hdsoak.log; sleep %d; done; "
+              "touch /tmp/d24_hdsoak.done' >/dev/null 2>&1 &"
+              % (max(1, a.soak_seconds // a.soak_interval), CONN, a.soak_interval))
+        r.rsh("nohup timeout %d stdbuf -oL udevadm monitor --udev --subsystem-match=drm "
+              "> /tmp/d24_hdsoak.uevents 2>/dev/null &" % a.soak_seconds)
+
+    if 'A' in a.section:
+        r.run('HD0-1', lambda: t_hd01(r))
+        r.run('AS-CM4', lambda: t_ascm4(r))
+        r.run('USB-HUB', lambda: t_usbhub(r))
+        r.run('NW1', lambda: t_nw1(r))
+        if not a.only or 'NW2' in a.only:
+            r._nw2_before = _ifstats(r)
+        r.run('NW3', lambda: t_nw3(r))
+        r.run('NW4', lambda: t_nw4(r))
+        r.run('NW2', lambda: t_nw2(r))
+
+    if {'B', 'C'} & a.section:
+        app_stop(r)
+
+    try:
+        if {'B', 'C'} & a.section:
+            # INSIDE the try. Staging does an scp with check=True, and a failure
+            # there used to leave `matrix-app` stopped with no handback -- the one
+            # way this leg could break "the unit as found" while reporting nothing.
+            print(stage_setup(r)[:400])
+        if 'B' in a.section:
+            r.run('ML1', lambda: t_ml1(r))
+            r.run('ML2', lambda: t_ml2(r))
+            r.run('ML-M', lambda: t_mlm(r))
+            r.run('ML-P1', lambda: t_mlp1(r))
+            r.run('ML-P2', lambda: t_mlp2(r))
+            r.run('ML-B0', lambda: t_mlb0(r))
+            r.run('CC1', lambda: t_cc1(r))
+            r.run('CC2', lambda: t_cc2(r))
+            r.run('MC1', lambda: t_mc1(r))
+            r.run('MC2', lambda: t_mc2(r))
+            r.run('MC3', lambda: t_mc3(r))
+            # DR/DC need the pair up, so the prep boot runs before DR1 pulses
+            # the reset out from under it.
+            print(boot_pair(r)[-600:])
+            r.run('DR1', lambda: t_dr1(r))
+            r.run('DR2', lambda: t_dr2(r))
+            for n in range(1, 9):
+                r.run('DC1-CS%d' % n, (lambda k: (lambda: t_dc1(r, k)))(n))
+            for n in range(1, 9):
+                r.run('DC2-CS%d' % n, (lambda k: (lambda: t_dc2(r, k)))(n))
+        elif 'C' in a.section:
+            print(boot_pair(r)[-600:])
+
+        if 'C' in a.section:
+            r.run('AS-DSPA', lambda: t_asdspa(r))
+            r.run('AS-DSPB', lambda: t_asdspb(r))
+            r.run('AS-CPLD', lambda: t_ascpld(r))
+            r.run('AS-ADC', lambda: t_asadc(r))
+            r.run('AS-DAC', lambda: t_asdac(r))
+            r.run('AS-PWR', lambda: t_aspwr(r))
+            r.run('MM1', lambda: t_mm1(r))
+            r.run('SP1', lambda: t_sp1(r))
+    finally:
+        if r.app_stopped:
+            print('\n--- handback ---\n%s' % handback(r))
+
+    if soak:
+        if not a.no_soak_wait:
+            print('\nwaiting for the HD0-2 soak window (%d s)...' % a.soak_seconds, flush=True)
+            deadline = time.time() + a.soak_seconds + 120
+            while time.time() < deadline:
+                if r.out('test -f /tmp/d24_hdsoak.done && echo done'):
+                    break
+                time.sleep(30)
+        r.run('HD0-2', lambda: t_hd02(r))
+    if 'A' in a.section:
+        r.run('HD-PWR', lambda: t_hdpwr(r))
+
+    summary(r)
+    if not a.no_append:
+        write_csv(r)
+        print('\nappended %d rows to %s' % (len(r.rows), CSV_PATH))
+        print('raw reads: %s' % r.logdir)
+
+
+if __name__ == '__main__':
+    main()
