@@ -14224,6 +14224,17 @@ and flipping it needs a reboot. All four are landed NO DATA naming the
 prerequisite; none was softened into a FAIL, because a converter marked FAIL for
 having its rails down is a defect invented by the harness.
 
+**S90-10 A 60-SAMPLE SOAK AT 60 s SPANS 3540 s, NOT 3600.** HD0-2's first
+harvest reported itself 60 s short of the spec's hour — correct behaviour from
+incorrect code, and the useful half is that it said so rather than rounding a
+3540 s window up into "a soak". Two fixes: the sampler takes one extra sample so
+the span is the window that was asked for, and the duration is read off the log's
+own timestamps instead of being multiplied out of a sample count, which assumes
+every sleep landed. The re-take is the landed row — **61 of 61 samples
+`connected` over a full 3600 s, DRM hotplug count unmoved** — and it supersedes
+the short one by stamp, which is the first live exercise of the results
+contract's newest-wins rule. Both readings are kept in the CSV.
+
 **S90-9 TWO RUNNER DEFECTS FOUND BY READING THE ARTIFACT, NOT THE SUMMARY.**
 (a) `s89_signbit.py` takes the symbol directory as `argv[1]`; called bare it
 raised `IndexError` before reading the part, so the **inter-chip link gate scored

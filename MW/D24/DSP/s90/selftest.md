@@ -14,7 +14,7 @@ drives the unit's CM4 over SSH. The read-path inventory it was built from is
 
 ## 1. The verdicts
 
-**17 PASS / 1 FAIL / 18 NO DATA over the 36 workbook rows** — 58 CSV rows, one
+**19 PASS / 1 FAIL / 16 NO DATA over the 36 workbook rows** — 58 tests, one row
 per test per item, all 36 rows covered. Nothing was skipped and nothing was
 softened: every NO DATA names the prerequisite that would close it.
 
@@ -26,7 +26,7 @@ item's tests — a FAIL is not cancelled by a PASS on another test of the same r
 | test | verdict | measured |
 |---|---|---|
 | HD0-1 | **PASS** | HDMI-A-1 `connected`; EDID parses — manufacturer `RTK`, product code `10811`, display name `RTK FHD`, serial `J257M96B00FL`; native mode `1920x1080` and it is the active CRTC mode |
-| HD0-2 | **NO DATA** | `connected` on 60 of 60 samples, **0 DRM hotplug uevents** — but the window spanned 3540 s, 60 s short of the spec's hour. See below |
+| HD0-2 | **PASS** | `connected` on 61 of 61 samples over **3600 s**, **0 DRM hotplug uevents**. (The first attempt read the same thing over 3540 s and reported itself short — see below) |
 | HD-PWR | **PASS** | inferred from HD0-1, and said to be inferred rather than measured |
 | NW1 | **PASS** | `Link detected: yes`, `Speed: 1000Mb/s`, `Duplex: Full`, `carrier=1` |
 | NW2 | **FAIL** | `rx_dropped` +2 across NW3+NW4; every other counter 0. Idle control, 30 s with nothing driving the link: all zero |
@@ -73,15 +73,17 @@ item's tests — a FAIL is not cancelled by a PASS on another test of the same r
 | MM1 | **NO DATA** | the one MEMS lane is STATIC `0xFFFFFFFF` with AN_EN `lo` |
 | SP1 | **NO DATA** | no TEST_OSC → SPKR route exists in the topology |
 
-**HD0-2's shortfall is the runner's, not the unit's.** The sampler took 60
-samples at 60 s, which SPANS 3540 s, and the harvest reported itself short rather
-than rounding up — the right behaviour from the wrong code. Fixed (the sampler
-takes one extra sample so the span is the window asked for, and the duration is
-read off the log's own timestamps rather than multiplied out of a sample count),
-and a corrected 3600 s soak was re-taken; its row supersedes this one in the CSV.
-What the short window already shows is clean: the connector never left
-`connected` and the DRM hotplug count never moved. The row is owed a 24 h run for
-a shipping proof either way, which is the spec's own bar.
+**HD0-2 took two goes, and the first shortfall was the runner's, not the unit's.**
+The sampler took 60 samples at 60 s, which SPANS 3540 s, and the harvest reported
+itself 60 s short rather than rounding up — the right behaviour from the wrong
+code. Fixed: the sampler takes one extra sample so the span is the window that
+was asked for, and the duration is read off the log's own timestamps rather than
+multiplied out of a sample count, which is the kind of assumption a soak exists
+to avoid. The re-take is the landed row — **61 of 61 samples `connected` over a
+full 3600 s with the DRM hotplug count unmoved** — and it supersedes the short
+one in the CSV by stamp, the way the results contract intends. Both readings are
+kept. The row is owed a 24 h run for a shipping proof either way; that is the
+spec's own bar, not a shortcoming of this one.
 
 Every section-C reading was taken through a boot whose inter-chip link gate
 (`s89_signbit.py`) read **CLEAN on both lanes** — lane 0 sent bit31 42/64 and
