@@ -1,0 +1,19 @@
+=== 2026-09-22T19:01:03Z  NO DATA
+driving host 192.168.1.211: iface ens9, link 100 Mb/s
+--- unit receiving (host -> unit) ---
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec   113 MBytes  94.6 Mbits/sec    0            sender
+[  5]   0.00-10.01  sec   112 MBytes  93.9 Mbits/sec                  receiver
+
+iperf Done.
+
+--- unit sending (unit -> host, -R) ---
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec   114 MBytes  95.5 Mbits/sec  145            sender
+[  5]   0.00-10.00  sec   112 MBytes  94.0 Mbits/sec                  receiver
+
+iperf Done.
+
+PREREQUISITE: a gigabit path between the unit and the driving host. The unit's own link is 1000Mb/s Full (NW1); the dsp machine's ens9 is at 100 Mb/s, which caps this measurement below the bar whatever the unit does. Re-run from a gigabit-attached host, or move the unit and that host onto the same gigabit switch port pair.

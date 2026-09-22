@@ -1,0 +1,125 @@
+=== 2026-09-22T19:17:03Z  PASS
+=== DSP4 chip 1 diagnostics ===
+  MAGIC          0xD5B40001
+  CHIP_ID        1   (DSPA/U6)
+  BOOT_STAGE     7   running
+  BOOT_CFG       1
+  FRAME_COUNT    9517
+  TICKS          2521
+  SEC_COUNT      9519
+  LAST_CSID      37   SPORT0_A_DMA (block clock)
+  UNK_CSID       0
+  UNK_COUNT      0
+  BLK_OVERRUN    3915
+  SPI_RX_COUNT   510
+  SPI_ERR_COUNT  0
+  SPI_STAT       0x00540001
+  SPI_STAT_STK   0x00144023
+  RESP_DROP      0
+  PRODUCT_ID     1
+  LED_MODE       0
+  SPORT0_ERR_A   0x00000000
+  DMA0_STAT      0x00006200
+  SPI_CTL        0x0001A501
+  SPI_RXCTL      0x00040001
+  SPI_TXCTL      0x00000001
+  BUILD_ID       0x20260812   (2026-08-12)
+  CFG_PHASE      0
+  CGU_FAIL       0
+  CGU_IT1        0
+  CGU_IT2        0
+  CGU_IT3        0
+  CGU_IT4        0
+  SPI_PART_FIX   0
+  SPI_PART_TICKS 0
+  SPI_PART_SEEN  0
+  SPI_PART_SKIP  0
+  SPI_REQ_WORD   0x00000000
+  BUILD_CFG      0xCF45FF10
+                 BLOCK 16
+                 CCLK 983.040 MHz
+                 BLOCK_MASK 7
+                 on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+                 off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+                 budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+  BUILD_CFG2     0xE2018E6F
+                 DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+                 DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+                   ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+                 on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TALK_INVERT
+                 off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+
+  ISSUES
+    - BLK_OVERRUN = 3915 — the main loop missed that many blocks; audio was dropped.
+    - SPI_STAT sticky bits: TUR  transmit underrun; FCS  flow-control stall
+--- buildcfg ---
+chip 1: raw 0xCF45FF10
+        BLOCK 16
+        CCLK 983.040 MHz
+        BLOCK_MASK 7
+        on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+        off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+        budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+          == the shipping configuration
+          raw2 0xE2018E6F
+          DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+          DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+            ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+          on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TALK_INVERT
+          off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+          raw3 0xC47C0F26
+          DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+          DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+          DSP4_DYN_INLINE 2
+          on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+          off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT
+          NOT THE SHIPPING CONFIGURATION IN THE THIRD WORD:
+            DSP4_TX_DEFER = 0, shipping is 2
+--- rxscan (47 lanes) ---
+IN_04              0     0     0     0    16       14   -116.36   -111.63  fffff400 ffffee00 fffff800  CARRYING
+IN_16              1     1     0     1    16       15   -116.79   -111.24  00000a00 fffff400 00000500  CARRYING
+IN_03              2     2     0     2    16       13   -118.32   -112.45  00000500 fffff000 00000200  CARRYING
+IN_15              3     3     0     3    16       15   -113.74   -108.37  fffff900 fffffa00 00000b00  CARRYING
+IN_14              4     4     0     4    16       16   -119.14   -114.39  ffffff00 fffff800 00000300  CARRYING
+IN_02              5     5     0     5    16       15   -113.96   -108.37  00000200 00000d00 ffffe600  CARRYING
+IN_13              6     6     0     6    16       13   -115.91   -110.17  ffffed00 ffffed00 00000700  CARRYING
+IN_01              7     7     0     7    16       12   -117.67   -109.85  00000200 00001100 00000900  CARRYING
+IN_08              8   128     1     0    16       12   -114.85   -109.53  00001000 fffff800 00001000  CARRYING
+IN_20              9   129     1     1    16       11   -117.09   -108.65  fffffe00 00000b00 00001000  CARRYING
+IN_07             10   130     1     2    16       11   -118.04   -111.63  00000400 00000400 ffffea00  CARRYING
+IN_19             11   131     1     3    16       15   -118.12   -111.63  00000100 fffffc00 fffff200  CARRYING
+IN_18             12   132     1     4    16       15   -116.48   -109.53  fffff200 00000800 00001400  CARRYING
+IN_06             13   133     1     5    16       15   -114.59   -106.65  fffff400 ffffeb00 00000500  CARRYING
+IN_17             14   134     1     6    16       14   -115.36   -109.23  00000400 00001d00 fffff700  CARRYING
+IN_05             15   135     1     7    16       14   -116.49   -109.53  00000b00 00001c00 00000900  CARRYING
+IN_12             16   256     2     0    16       13   -117.79   -113.37  00000a00 fffff200 fffff600  CARRYING
+IN_24             17   257     2     1    16       15   -116.29   -109.53  fffffe00 fffff800 00000200  CARRYING
+IN_11             18   258     2     2    16       14   -116.01   -109.85  00000c00 00000200 00000400  CARRYING
+IN_23             19   259     2     3    16       13   -116.99   -108.93  00000400 fffff400 fffff200  CARRYING
+IN_22             20   260     2     4    16       15   -114.97   -109.23  00001d00 00000300 fffff900  CARRYING
+IN_10             21   261     2     5    16       13   -116.92   -111.24  00001700 ffffff00 00000800  CARRYING
+IN_21             22   262     2     6    16       11   -114.70   -107.84  ffffee00 fffff200 00002200  CARRYING
+IN_09             23   263     2     7    16       13   -117.59   -110.17  fffff100 00000500 fffffa00  CARRYING
+IN_25             24   384     3     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_26             25   385     3     1    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_27             26   386     3     2    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_28             27   387     3     3    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_29             28   388     3     4    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_30             29   389     3     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_31             30   390     3     6    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+IN_32             31   391     3     7    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_CODEC_01      32   512     4     0    16       16    -78.47    -72.26  fffcef00 fffcd600 0000f600  CARRYING
+XIN_CODEC_02      33   513     4     1    16       16    -75.73    -68.56  fffd7a00 000c3b00 00007c00  CARRYING
+XIN_CODEC_03      34   514     4     2    16       16    -98.74    -93.71  ffff7600 ffffd500 ffff6800  CARRYING
+XIN_CODEC_04      35   515     4     3    16       16    -86.95    -79.45  00001200 fffe5600 ffff4c00  CARRYING
+XIN_SNK_01        36   576     5     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_02        37   577     5     1    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_03        38   578     5     2    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_04        39   579     5     3    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_05        40   580     5     4    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_06        41   581     5     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_07        42   582     5     6    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_SNK_08        43   583     5     7    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+XIN_PI_L          44   704     6     0    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_PI_R          45   705     6     1    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_MEMS          46   736     7     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC

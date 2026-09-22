@@ -1,0 +1,4 @@
+=== 2026-09-22T19:03:13Z  NO DATA
+AN_EN (GPIO26) = 26: op -- pd | lo // GPIO26 = output
+XIN_MEMS          46   736     7     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+PREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched session may not raise it (bench note 19 / S49-15: "AN_EN is never written by a dispatched session"). With the front ends unpowered a STATIC lane is the test state, not a converter fault, so this is NO DATA and not FAIL.

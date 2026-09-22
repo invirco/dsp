@@ -1,0 +1,2 @@
+=== 2026-09-22T19:02:30Z  NO DATA
+SPEC CORRECTION. hardware-map.md:410-411: "CS1-8 DSP chip-select provision (8-DSP scaling -- only CS1/CS2 live on DSP4; CS3/CS4 wired as DSP1/2 SPI_RDY)". CS5-CS8 reach no fitted part, so no read can answer and none ever will on this board.

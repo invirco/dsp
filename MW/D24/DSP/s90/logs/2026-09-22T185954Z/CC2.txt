@@ -1,0 +1,8 @@
+=== 2026-09-22T19:01:59Z  PASS
+before=0xBB
+write MGN2R=5:
+05H := 0xB5
+read: 05H -> 0xB5   guard 0x43   ANSWERED
+restore MGN2R=11:
+05H := 0xBB
+read: 05H -> 0xBB   guard 0x43   ANSWERED

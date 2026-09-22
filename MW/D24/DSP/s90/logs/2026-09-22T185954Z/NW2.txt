@@ -1,0 +1,25 @@
+=== 2026-09-22T19:01:33Z  FAIL
+--- before NW3 ---
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether d8:3a:dd:82:d6:45 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+     237050160  260473      0     137       0   57965 
+    TX:  bytes packets errors dropped carrier collsns           
+     130402979  162104      0       0       0       0
+--- after NW4 ---
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether d8:3a:dd:82:d6:45 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+     362872831  384202      0     139       0   58126 
+    TX:  bytes packets errors dropped carrier collsns           
+     256545629  285014      0       0       0       0
+delta over the tests: {'rx_errors': 0, 'rx_dropped': 2, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropped': 0, 'tx_carrier': 0, 'tx_collsns': 0}
+--- idle control, 30 s with nothing driving the link ---
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether d8:3a:dd:82:d6:45 brd ff:ff:ff:ff:ff:ff
+    RX:  bytes packets errors dropped  missed   mcast           
+     362917889  384367      0     139       0   58222 
+    TX:  bytes packets errors dropped carrier collsns           
+     256559289  285069      0       0       0       0
+delta while idle: {'rx_errors': 0, 'rx_dropped': 0, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropped': 0, 'tx_carrier': 0, 'tx_collsns': 0}
+counters that also climb while idle: none

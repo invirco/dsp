@@ -1,0 +1,6 @@
+=== 2026-09-22T19:01:51Z  PASS
+{"mode": "stest", "window_ms": 3011.0, "mcus": {"H1S1": "// H1S1 DSP", "H1S4": "// H1S4 SW Left", "H1S3": "// H1S3 SW Right"}, "raw": "+\n:\n.\n:\n.\n:\n.\n:\n+\n// H1S1 DSP\n// H1S4 SW Left\n// H1S3 SW Right\n.\n:\n.\n:\n.\n:\n.\n:\n.\n:\n.\n:\n"}
+--- matrix-app /home/app/logs/log ---
+22/09/2026 19:59:28.721894: MCU verified: // H1S1 DSP
+22/09/2026 19:59:28.723907: MCU verified: // H1S4 SW Left
+22/09/2026 19:59:28.723972: MCU verified: // H1S3 SW Right

@@ -1,0 +1,7 @@
+=== 2026-09-22T18:59:56Z  PASS
+19:59:56 up  6:51,  3 users,  load average: 1.68, 1.21, 1.07
+throttled=0x0
+temp=56.9'C
+volt=0.9200V
+Raspberry Pi Compute Module 4 Rev 1.1
+active

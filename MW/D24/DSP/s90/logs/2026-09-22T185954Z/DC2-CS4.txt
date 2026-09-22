@@ -1,0 +1,2 @@
+=== 2026-09-22T19:02:33Z  NO DATA
+SPEC CORRECTION. CS3/CS4 are wired to DSPA/DSPB SPI_RDY and are INPUTS (MW/D24/HW/hardware-map.md:193-195; dsp4_boot.py RDY_GPIO = {1: 8, 2: 12}). Level read at the CM4 end: 12: ip    pd | hi // GPIO12 = input. A 10K pulldown on each part rests the line ASSERTED, so the level does not prove a part is alive either.

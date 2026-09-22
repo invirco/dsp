@@ -1,0 +1,9 @@
+=== 2026-09-22T19:11:48Z  PASS
+--- to the bench host 192.168.1.211 ---
+--- 192.168.1.211 ping statistics ---
+200 packets transmitted, 200 received, 0% packet loss, time 40665ms
+rtt min/avg/max/mdev = 0.374/0.513/0.678/0.049 ms
+--- control: to the default gateway 192.168.1.254 ---
+--- 192.168.1.254 ping statistics ---
+200 packets transmitted, 199 received, 0.5% packet loss, time 40103ms
+rtt min/avg/max/mdev = 0.412/0.953/6.036/0.431 ms

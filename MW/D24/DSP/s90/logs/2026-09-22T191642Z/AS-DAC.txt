@@ -1,0 +1,7 @@
+=== 2026-09-22T19:17:36Z  NO DATA
+--- coherent capture of _tx_out_slot_C2_MON_OUT (256 samples) ---
+_tx_out_slot_C2_MON_OUT at 0x0B10CC, capturing 256 contiguous samples
+captured True samples, 256 non-zero
+first 16 Q4.28: +0.00001 +0.00000 -0.00001 +0.00000 +0.00000 -0.00000 +0.00000 -0.00000 +0.00000 -0.00001 -0.00000 -0.00000 +0.00000 +0.00000 +0.00000 -0.00000
+chip1 carries _osc_blk_q_C1_TEST_OSC: False
+PREREQUISITE: a stimulus. The spec's criterion is "non-constant WHILE TEST_OSC runs into an output"; TEST_OSC exists only under DSP4_TEST_NODES=1 and the pair under test is the shipping pair. dsp4_s49_osc.py refuses such an image by symbol check rather than printing four zeros that would look like a measurement. With nothing driving the output, neither a constant nor a varying slot separates a working DAC path from a silent one, so the capture is recorded and the verdict is NO DATA.

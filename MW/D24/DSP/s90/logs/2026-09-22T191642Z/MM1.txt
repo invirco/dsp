@@ -1,0 +1,5 @@
+=== 2026-09-22T19:17:39Z  NO DATA
+AN_EN (GPIO26) = 26: op -- pd | lo // GPIO26 = output
+XIN_MEMS          46   736     7     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+PREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched session may not raise it (bench note 19 / S49-15: "AN_EN is never written by a dispatched session"). With the front ends unpowered a STATIC lane is the test state, not a converter fault, so this is NO DATA and not FAIL.
+The spec asks for the PDM clock as well as the lane, and nothing on the CM4 reads it: the CPLD's lane witness counts cdc_o only -- there is no counter on the MEMS group (bench note 31) -- so "lane stuck" and "no PDM clock" are not separated by any read path that exists. A stuck 0xFFFFFFFF is what S79-2 recorded on this lane too.

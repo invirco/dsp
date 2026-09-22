@@ -1,0 +1,4 @@
+=== 2026-09-22T19:02:01Z  PASS
+MC1 read-back: VERIFIED 200/200 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00 | pass1 FC FC FC FC 00 43 00 05 00 C3 00 05 B5 43 00 05 00 C3 00 05 BB 43 00 05 00
+CS_M at the CM4 end (GPIO27): 27: op -- pu | hi // GPIO27 = output
+The analog-board end of CS_M is not readable through H1S1 (no such command); the CM4 end is, and GPIO27 in pull-DOWN holds CS_M LOW, which gates the U2 MISO buffer and reads as an all-zeros shift-back.

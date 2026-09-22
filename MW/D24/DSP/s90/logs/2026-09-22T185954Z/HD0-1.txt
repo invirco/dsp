@@ -1,0 +1,90 @@
+=== 2026-09-22T18:59:56Z  PASS
+status=connected
+--- edid-decode ---
+edid-decode (hex):
+
+00 ff ff ff ff ff ff 00 4a 8b 3b 2a 01 01 01 01
+17 15 01 03 80 3c 22 78 ea 1e c5 ae 4f 34 b1 26
+0e 50 54 a5 4b 00 81 80 a9 40 d1 c0 71 4f 01 01
+01 01 01 01 01 01 02 3a 80 18 71 38 2d 40 58 2c
+45 00 55 50 21 00 00 1e 00 00 00 ff 00 4a 32 35
+37 4d 39 36 42 30 30 46 4c 0a 00 00 00 fc 00 52
+54 4b 20 46 48 44 0a 20 20 20 20 20 00 00 00 fd
+00 38 4c 1e 51 11 00 0a 20 20 20 20 20 20 01 bb
+
+02 03 29 f1 50 90 05 04 03 02 07 16 01 1f 12 13
+14 20 15 11 06 23 09 07 07 67 03 0c 00 10 00 38
+2d 83 01 00 00 e3 05 03 01 02 3a 80 18 71 38 2d
+40 58 2c 45 00 06 44 21 00 00 1e 01 1d 80 18 71
+1c 16 20 58 2c 25 00 06 44 21 00 00 9e 01 1d 00
+72 51 d0 1e 20 6e 28 55 00 06 44 21 00 00 1e 8c
+0a d0 8a 20 e0 2d 10 10 3e 96 00 06 44 21 00 00
+18 00 00 00 00 00 00 00 00 00 00 00 00 00 00 3e
+
+----------------
+
+Block 0, Base EDID:
+  EDID Structure Version & Revision: 1.3
+  Vendor & Product Identification:
+    Manufacturer: RTK
+    Model: 10811
+    Serial Number: 16843009 (0x01010101)
+    Made in: week 23 of 2011
+  Basic Display Parameters & Features:
+    Digital display
+    Maximum image size: 60 cm x 34 cm
+    Gamma: 2.20
+    DPMS levels: Standby Suspend Off
+    RGB color display
+    First detailed timing is the preferred timing
+  Color Characteristics:
+    Red  : 0.6796, 0.3095
+    Green: 0.2060, 0.6933
+    Blue : 0.1513, 0.0546
+--- modes ---
+1920x1080
+1920x1080
+1920x1080
+1920x1080i
+1920x1080i
+1920x1080i
+1920x1080
+1920x1080i
+1920x1080
+1920x1080
+1600x1200
+1280x1024
+1280x1024
+1152x864
+1280x720
+1280x720
+1280x720
+1280x720
+1024x768
+1024x768
+800x600
+800x600
+720x576
+720x576
+720x576i
+720x576i
+720x480
+720x480
+720x480
+720x480
+720x480
+720x480i
+720x480i
+720x480i
+720x480i
+640x480
+640x480
+640x480
+640x480
+720x400
+--- kmsprint ---
+Connector 0 (35) HDMI-A-1 (connected)
+  Encoder 0 (34) TMDS
+    Crtc 3 (102) 1920x1080@60.00 148.500 1920/88/44/148/+ 1080/4/5/36/+ 60 (60.00) P|U|D 
+      Plane 3 (91) fb-id: 723 (crtcs: 3) 0,0 1920x1080 -> 0,0 1920x1080 (XR24 AR24 AB24 XB24 RX24 RA24 BX24 BA24 RG16 BG16 AR15 XR15 RG24 BG24 YU16 YV16 YU24 YV24 YU12 YV12 NV12 NV21 NV16 NV61 P030 XR30 AR30 AB30 XB30 RGB8 BGR8 XR12 AR12 XB12 AB12 BX12 BA12 RX12 RA12)
+        FB 723 1920x1080 XR24
