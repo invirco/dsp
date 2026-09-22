@@ -14002,3 +14002,136 @@ as `ip pd` (the CS_M/U2 defect, which presents as "cannot phase the parameter
 link"). `s89_signbit.py` let any exception exit 1, which the wrapper read as
 FOLDED. It now exits 2 — *a link that will not answer is not a folded link* — and
 prints `sudo pinctrl set 27 ip pu`.
+
+## S89e — THE FOLD IS FIXED: the gather's position in the block period was a function of the graph's speed, and is now a constant
+
+Hub dispatch `tasks.md` 2026-09-22 14:03Z. Report:
+`MW/D24/DSP/s89/dac-fold-fix.md`.
+
+**S89e-1 🟢 ROOT CAUSE, RESTATED AND MEASURED: neither signed audio switch is
+wrong.** The chip-2 transmit ring is a two-row 2D autobuffer; the DDE reads one
+row while the core fills the other and `DSP4_TX_EARLY` picks which. The block
+gather ran at the END of the block period, so the instant the core wrote the row
+was `interrupt + whatever the graph cost` — **which row is safe was a function
+of the load, and no file said so.** S9-2 measured the safe row at the
+2026-09-09 load and adopted `DSP4_TX_EARLY=2`; S82 then signed `DSP4_SIMD_DYN`
++ `DSP4_DYN_LUT`, chip 2 went from about 93 % of budget to 78.81 %, and the
+gather moved roughly 14 % of a period earlier — across the boundary. That is
+S88-1's DAC fold. This supersedes S89d's "SPORT transmit FIFO drain" framing:
+the drain window is not the mechanism (see S89e-3), the gather's *position* is.
+
+**S89e-2 🟢 GATE 1 HELD, AND THE CURE THRESHOLD IS THE CLEAN ARMS' OWN
+POSITION.** `DSP4_GDELAY` burns N cycles on chip 2 before the gather, touching
+no switch; `chip1.ldr` is byte-identical across every delay arm. Budget 327,680
+cycles/block. 0 → 57.40 % loop THD; 6,000 → 41.28 %; 13,000 → 41.34 %;
+20,000 → 57.34 %; **26,000 → 0.3213 %**; 47,000 → 0.3217 %. The threshold is
+between 20,000 and 26,000 cycles, i.e. the gather crossing back through about
+85 % of the period — and S89c independently put the two clean switch-arms at
+**86.84 %** and **93.07 %** against the folding arm's **78.81 %**. Two methods,
+one number.
+
+**S89e-3 🔴 THE DISPATCH'S OPTION (1) CANNOT BE MADE TO HOLD, AND NOT BECAUSE
+THE POLL IS EXPENSIVE.** S89d recommended gating the gather's final frame on
+`SPORT_CTL.DXS` draining. Chip 2's SPORT transmits continuously at 48 kHz, so
+its transmit FIFO is **never empty while audio is flowing**: a poll for
+"drained" either never returns or returns a status that says nothing about the
+row the core is about to write. The fallback the dispatch named (triple
+buffering) was not needed either — see S89e-4.
+
+**S89e-4 🟢 THE FIX IS `DSP4_TX_DEFER`, AND IT COSTS NOTHING.** The gather moves
+to a FIXED point in the block period: `src/main.asm`, immediately after the
+block interrupt and BEFORE `_blk_latch_bufs` advances the row, so
+`_tx_active_buf` still names the row the previous block was gathered for and the
+node output slots still hold that block's samples. The same 24 outputs × 16
+samples, the same instructions, moved — no staging buffer, no copy, no third
+row, no change to the DMA topology, and no added output latency (the contract
+figure of 82 samples / 1.708 ms is unmoved). Per-chip mask like
+`DSP4_TX_EARLY`; **2 = chip 2 only**. Measured on the part over three gated
+boots: **0.3212…0.3213 %** at −12 dBFS drive against the unfixed build's
+**57.33…57.43 %**, same cable, same route, return level agreeing to 0.01 dB.
+
+**S89e-5 🟢 LOAD-INDEPENDENCE IS THE THING THAT WAS PROVED, NOT MARGIN.** The
+unfixed build is clean at some graph speeds and folds at others; the fixed build
+was measured at three — the signed graph and the same graph slowed by 26,000 and
+47,000 cycles (78.8 %, 86.7 %, 93.1 % of budget) — and is clean at all three.
+The complementary control is the other half of the proof: with the gather
+deferred, `DSP4_TX_EARLY=0` **folds again** (57.43 %) while `=2` is clean, so
+this is a geometry and not a margin. Which is exactly why **`DSP4_TX_EARLY=0`
+is not the fix** even though it measures clean today (0.3215 %): it is the same
+load-dependent coin landing the other way up.
+
+**S89e-6 🟢 THE CYCLE WINDOW HAD TO MOVE WITH THE GATHER, AND SAYING SO IS THE
+POINT.** `_proc_cyc` is taken between `_proc_t0` and the close after the node
+graph; the deferred gather runs before that point. Left alone, the measurement
+would have dropped the whole gather — about 6,000 cycles, 1.8 % of budget — out
+of the window while the part still paid for it, and **the fixed build would
+have read cheaper than the folding one for no reason but where a timestamp
+sits.** On a deferred build the window now opens before the gather; a build
+without the switch keeps the original placement byte for byte, so every number
+already on record stays comparable.
+
+**S89e-7 🟢 THE TRIPLE MOVES IN THE THIRD WORD ONLY**: `DIAG_BUILD_CFG3`
+`0xC47C0F26` → **`0xC47C0FA6`**, bits 7..6 = `DSP4_TX_DEFER`. CFG and CFG2 are
+unchanged. The control (`DSP4_TX_DEFER=0`) rebuilds the S82 signed pair BYTE FOR
+BYTE (`e3e25a79…` / `41a6b913…`), and the fix's **chip 1 image differs from it
+in exactly ONE BYTE**, which is chip 1's own CFG3 stamp — so the deferred-gather
+code is provably inert when the switch is off and chip 1's code does not move.
+
+**S89e-8 🔴 A PINNED LANE READS A PLAUSIBLE THD, AND IT NEARLY COST THIS
+SESSION ITS FIRST THREE ARMS.** With the 595 preamp chain wherever `matrix-app`
+had left it, the loop returned **−0.7 dBFS at every drive from −12 to −42
+dBFS** — 30 dB of stimulus moving the reading 0.9 dB — and a *clean* build then
+read **39 %** THD while the folding build read 58 %. Both numbers are
+meaningless. The chain was written to gain code 0 (all-zero 25-byte image,
+VERIFIED 200/200) and every figure in the S89e record is from after that.
+`tools/pi/dsp4_loop_thd.sh` now enforces a return-level window and calls a
+reading outside it INCONCLUSIVE, never a pass. Nothing in the S89 record said
+the chain state was part of the instrument; it is.
+
+**S89e-9 🟢 THE ACCEPTANCE LEG HAS A VERDICT NOW.**
+`tools/pi/dsp4_loop_thd.sh` is rewritten from a printer into a leg whose EXIT
+CODE is the gate (0 PASS / 1 FAIL / 2 INCONCLUSIVE), with the loop lane as
+`OSC_STRIP`/`MEAS_STRIP` rather than hard-coded; `MW/D32/DSP/SHARC/loopthd.sh`
+builds and stages any named configuration for it the way `capacity.sh` does for
+a capacity row. `T3L` is in `tools/accept/battery.csv` with three limits in
+`tools/accept/limits.csv`, and `docs/acceptance-audio-layer.md` carries the
+measured references. The limit (1 %) is the loop's own floor plus margin — six
+independent clean arms read 0.321…0.360 % and the defect reads 57.3…59.7 % —
+and is **not** a product audio specification.
+
+**S89e-10 🔴 THE LOOP'S 0.32 % FLOOR IS ANALOG, SO GATE 2's "THD ≤ 0.01 %" BAR
+IS BELOW THE INSTRUMENT ON THIS PATH.** Six arms built from different switch
+positions read 0.3212…0.3217 % at −12 dBFS drive and S89's all-off control read
+0.360 % on the same cable; the fixed build is indistinguishable from all of
+them. At −22 dBFS drive the same arms read 0.019…0.039 %. The bar as written
+cannot be met by a DAC → cable → preamp → ADC loop whatever the firmware does,
+and a limit that no passing build can reach is not a gate. `T3L`'s 1 % is what
+was landed instead, with the separation stated.
+
+**S89e-11 🔴 A ROUTE THAT WAS NEVER ASSERTED READS AS A PASS, AND THE NEW LEG'S
+OWN FIRST RUN PROVED IT.** `MW/D32/DSP/SHARC/loopthd.sh` staged every tool the
+leg needs except `s89_set.py`, which lives in this repo and **not** in
+`/home/app/dspboot` — so the stage directory's `ln -sfn /home/app/dspboot/*.py`
+loop never picked it up (S83-2's trap, one file along) — and the leg wrote its
+route with stderr discarded. It measured the DEFAULT configuration, in which the
+donor strip's compressor is ON with a threshold near −22 dBFS (S70-3): the
+return read −29.61 dBFS, 10 dB of drive moved it 4.9 dB, and the leg reported
+**PASS at 0.238 %**. Fixed in both halves: `loopthd.sh` stages `s89_set.py`, and
+the leg now checks the route write's exit status AND **requires the return to
+track the drive within 2 dB**. That tracking check also catches S89e-8's pinned
+chain, which the level window alone did not. Both directions are now proved on
+the part: `ARM=s89e ./loopthd.sh` → 0.3216 %, exit 0; `ARM=ctl
+DSP4_TX_DEFER=0 ./loopthd.sh` → 57.4803 %, exit 1, same cable, same levels.
+
+**S89e-12 🔴 FOR PW — THE DRIVEN ROW COULD NOT BE TAKEN, AND IT IS THIS
+DISPATCH'S OWN BENCH RULE THAT FORBIDS IT.** Gate 3 asks for the driven row
+re-priced against the 84.47 % bar; `capacity.sh --driven` needs the `driveall`
+LOGIC bitstream on the part, and the dispatch says no CPLD flash. This is
+S89b-Q1 unanswered. What was taken is the **silent row, both products, both
+chips, two boots each, zero missed blocks in all sixteen chip-rows**: D24 chip 2
+77.51 % → 77.51 % (Δ 0.00), D32 chip 2 92.57 % → 92.70 % (Δ +0.13), worst-block
+deltas +0.13 and +0.16. Chip 1 is the null arm — its code is byte-identical
+between the builds — and its four deltas swing −0.16…+0.10, so the fix is inside
+the resolution of the instrument measuring it. The fix adds no instructions and
+does not touch the node graph, so the silent delta bounds the driven one; that
+is an argument, not a measurement, and the driven row is owed.

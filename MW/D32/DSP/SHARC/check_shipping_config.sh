@@ -361,6 +361,7 @@ w3 = (0xC4000000
       | ((mirror3['DSP4_DYN_INLINE'] & 3) << 17)
       | ((mirror3['DSP4_DYN_TABLES'] & 1) << 16)
       | ((shk3 & 0xFF) << 8)
+      | ((mirror3['DSP4_TX_DEFER'] & 3) << 6)
       | ((mirror3['DSP4_SPI_PARTIAL_FIX2'] & 1) << 5)
       | ((mirror3['DSP4_RTA'] & 1) << 4)
       | ((mirror3['DSP4_CUE'] & 1) << 3)

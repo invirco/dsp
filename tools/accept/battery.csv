@@ -14,3 +14,4 @@ T6,mute depth (DSP strip mute),input;output,-,mute engaged vs released,meter,1 k
 T7,crosstalk at 10 kHz,input;output,10 kHz,10 kHz,meter,10 kHz sine lane -6 dBFS pk on the path; every other lane idle,worst neighbour dB (coherent) and the detector floor
 T8,latency,input;output;node,from the code-0 chirp,same,chirp,T1's chirps,samples (group delay 1-2 kHz) and ms
 A1,gain-change artefacts,input,-,the table's transitions silent + tone,span,silence and 1 kHz across each 595 change,peak dBFS and DC pump ms per transition
+T3L,cable-loop THD (output stage on the wire),output,every configuration before it is signed,same,fft,1 kHz sine from TEST_OSC on the loop's donor strip at -12 and -22 dBFS,THD+N % at the return strip's post-fader tap; PASS below the loop-floor limit

@@ -185,6 +185,16 @@ ASMFLAGS="$ASMFLAGS -DDSP4_TXPROBE=$DSP4_TXPROBE"
 if [ "$DSP4_TXPROBE" != "0" ]; then
     echo "  *** INSTRUMENT BUILD: DSP4_TXPROBE=$DSP4_TXPROBE stamps chip-2 TX lane 3 slot 1 ***"
 fi
+# S89e gate 1: burn N core cycles on chip 2 BEFORE the block gather, so the
+# gather's writes land later in the block period without touching a single
+# audio switch. The falsifiable half of S89d's mechanism -- see main.asm.
+# INSTRUMENT ONLY; a shipping image carries 0.
+DSP4_GDELAY="${DSP4_GDELAY:-0}"
+CFLAGS="$CFLAGS -DDSP4_GDELAY=$DSP4_GDELAY"
+ASMFLAGS="$ASMFLAGS -DDSP4_GDELAY=$DSP4_GDELAY"
+if [ "$DSP4_GDELAY" != "0" ]; then
+    echo "  *** INSTRUMENT BUILD: DSP4_GDELAY=$DSP4_GDELAY cycles burnt before the chip-2 gather ***"
+fi
 # CFG_CHAN_MASK / CFG_AUX_MASK GET READERS (2026-09-09). 1 = the fix:
 # the process chain tests the live masks and SKIPS a masked strip or aux
 # outright, and _mask_apply latches them at CONFIG_COMMIT. 0 is the
@@ -237,6 +247,14 @@ ASMFLAGS="$ASMFLAGS -DDSP4_GATHER_FIRST=$DSP4_GATHER_FIRST"
 DSP4_TX_EARLY="${DSP4_TX_EARLY:-0}"
 CFLAGS="$CFLAGS -DDSP4_TX_EARLY=$DSP4_TX_EARLY"
 ASMFLAGS="$ASMFLAGS -DDSP4_TX_EARLY=$DSP4_TX_EARLY"
+# THE DEFERRED GATHER (S89e). Per-chip mask, the same shape as
+# DSP4_TX_EARLY: 1 = chip 1 IC TX, 2 = chip 2 converter TX. The block
+# gather runs at a FIXED point in the block period instead of wherever the
+# node graph finishes, so which transmit row is safe stops depending on the
+# graph's cycle count. See src/main.asm and MW/D24/DSP/s89/dac-fold-fix.md.
+DSP4_TX_DEFER="${DSP4_TX_DEFER:-0}"
+CFLAGS="$CFLAGS -DDSP4_TX_DEFER=$DSP4_TX_DEFER"
+ASMFLAGS="$ASMFLAGS -DDSP4_TX_DEFER=$DSP4_TX_DEFER"
 CFLAGS="$CFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 ASMFLAGS="$ASMFLAGS -DDSP4_BLOCK_KERNELS=$DSP4_BLOCK_KERNELS"
 

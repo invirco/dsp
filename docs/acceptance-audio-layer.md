@@ -114,3 +114,57 @@ python3 tools/pi/dsp4_accept.py plan --manifest MW/D24/DSP/accept/manifest.json 
 ```
 
 Regenerate the fixtures after any defs bump; `manifest.json` records the defs commit, the contract and the sha256 of every input table.
+
+## T3L — the cable-loop THD row, and the measured references behind it (S89e, 2026-09-22)
+
+Added because the signed shipping configuration passed every other bar in this
+document and shipped with 57 % THD at the XLR (S88-1). The defect lived between
+the chip-2 output slot and the wire — the gather overwriting a transmit row the
+DMA had not finished reading — and not one of goldens, `dsp_validate`, the dry
+run, conformance, `famverify` or the driven capacity row looks there. They are
+all digital or host-side. **T3L is the row that listens.**
+
+| piece | file |
+|---|---|
+| the leg, with a verdict and an exit code | `tools/pi/dsp4_loop_thd.sh` |
+| the build + stage half | `MW/D32/DSP/SHARC/loopthd.sh` |
+| the boot gate it runs behind | `tools/pi/dsp4_boot_linked.sh` + `tools/pi/s89_signbit.py` |
+
+**The measured references, on MW-D24-2, 2026-09-22, loop cable Monitor L →
+MIC 6, 595 preamp chain at gain code 0, oscillator into strip 20, read at
+strip 6 post-fader.** Every arm is a `DSP4_TEST_NODES=1` build of this tree
+with the four signed switches on, booted through the S89-1 link gate.
+
+| what | drive −12.0 dBFS | drive −22.0 dBFS |
+|---|---|---|
+| return level, every arm | −22.21…−22.25 dBFS | −31.44…−31.49 dBFS |
+| clean (six independent arms) | **0.3212…0.3217 %** | 0.0187…0.0386 % |
+| folded (`DSP4_TX_DEFER=0`, the shipping build before this fix) | **57.33…57.43 %** | 57.30…57.43 % |
+
+0.32 % is **the analog loop's own floor**, not a DSP number: six arms built
+from different switch positions read it to four significant figures, and S89's
+all-off control read 0.360 % on the same cable. The separation from the defect
+is 45 dB with nothing in between, which is what makes a single limit safe.
+`t3l_loop_thd_max_pct = 1.0 %` sits in that gap. It is **not a product audio
+specification** and must not be quoted as one — it is the did-anything-listen
+gate.
+
+Two traps this row has already fallen into once each, both now enforced by the
+leg itself:
+
+- **A pinned lane reads a plausible THD.** With the 595 chain left wherever
+  `matrix-app` put it, the loop returned −0.7 dBFS at *every* drive from −12 to
+  −42 dBFS — a 30 dB change in stimulus moving the reading 0.9 dB — and a
+  *clean* build then read 39 % THD. The return-level window
+  (`t3l_loop_level_min/max_dbfs`) makes that INCONCLUSIVE instead of a fail.
+  Set the chain to the reference gain before measuring.
+- **A folded inter-chip link looks exactly like a folded DAC** (~56 % THD, right
+  level). The leg boots only through `dsp4_boot_linked.sh`, whose exit code is
+  the gate, so the two cannot be confused.
+
+**The row proves the CONFIGURATION, not the byte-identical shipping image.**
+`TEST_OSC`/`TEST_MEAS` are the instrument and `shipping.config` carries
+`DSP4_TEST_NODES=0`; a shipping image has no oscillator with which to drive its
+own output. `loopthd.sh` therefore builds the configuration under proof with
+`DSP4_TEST_NODES=1` and nothing else moved, and prints the arm's md5. A report
+must say which image was measured.

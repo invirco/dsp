@@ -191,6 +191,28 @@
 #endif
 .extern ldf_stack_space, ldf_stack_length;
 .extern _block_ready;
+
+/*----------------------------------------------------------------------
+ * DSP4_TX_DEFER — the deferred gather (S89e). A PER-CHIP MASK, the same
+ * shape as DSP4_TX_EARLY: 1 = chip 1's inter-chip TX, 2 = chip 2's
+ * converter TX, 3 = both. The block gather then runs at a FIXED point in
+ * the block period (immediately after the block interrupt) instead of
+ * wherever the node graph happens to finish. Full reasoning at the call
+ * site, below `dm(_block_ready) = r0`.
+ *----------------------------------------------------------------------*/
+#ifndef DSP4_TX_DEFER
+#define DSP4_TX_DEFER 0
+#endif
+#define DSP4_TX_DEFER_HERE (((DSP4_TX_DEFER) >> (CHIP_ID - 1)) & 1)
+#if DSP4_TX_DEFER_HERE && !DSP4_BLK_LATCH
+#error "DSP4_TX_DEFER needs DSP4_BLK_LATCH: without the latch the row pointer moves under the sample loop, and 'the row the previous block was gathered for' has no meaning."
+#endif
+#if DSP4_TX_DEFER_HERE && !DSP4_BLOCK_KERNELS
+#error "DSP4_TX_DEFER needs DSP4_BLOCK_KERNELS: only the block-kernel loop has a whole-block gather to defer. The per-sample loop interleaves the gather with the graph and would have to be restructured first."
+#endif
+#if DSP4_TX_DEFER_HERE && CHIP_ID == 1
+#error "DSP4_TX_DEFER bit 0 (chip 1) is not implemented: chip 1's gather is in its own block loop and has not been measured. S89e ships mask 2."
+#endif
 .extern _rx_active_buf, _tx_active_buf;
 #if DSP4_BLK_LATCH
 .extern _blk_latch_bufs;
@@ -917,6 +939,114 @@ _start:
     r0 = 0;
     dm(_block_ready) = r0;
 
+#if DSP4_TX_DEFER_HERE
+    /* THE CYCLE WINDOW OPENS HERE ON A DEFERRED-GATHER BUILD, AND IT HAS
+     * TO. _proc_cyc is the number every capacity table on this project is
+     * scored against, and it is taken between _proc_t0/_proc_c0 below and
+     * the close after the node graph. The deferred gather runs BEFORE that
+     * point, so leaving the window where it was would have dropped the
+     * whole gather -- about 6,000 cycles, 1.8 % of budget -- out of the
+     * measurement while the part still paid for it, and the fixed build
+     * would have read CHEAPER than the folding one for no reason but where
+     * a timestamp sits. That is a capacity figure taken on a different
+     * build, which is the defect shipping.config exists for.
+     *
+     * So on THIS build the window opens before the gather and closes where
+     * it always did, and it additionally covers _blk_latch_bufs and the
+     * decimate test -- tens of cycles against a 327,680-cycle budget. A
+     * build without the deferred gather keeps the original placement
+     * byte for byte, so every control arm and every number already on
+     * record stays comparable. */
+    r0 = dm(_diag_ticks);
+    dm(_proc_t0) = r0;
+    r0 = tcount;
+    dm(_proc_c0) = r0;
+
+    /* ================= THE DEFERRED GATHER (S89e) =====================
+     *
+     * THE DEFECT THIS CLOSES, stated as the invariant it restores: THE
+     * MOMENT THE CORE WRITES THE TRANSMIT ROW MUST NOT DEPEND ON HOW
+     * LONG THE NODE GRAPH TOOK.
+     *
+     * The transmit ring is two rows. The DDE reads one while the core
+     * fills the other, and DSP4_TX_EARLY picks WHICH one. That choice is
+     * only safe for a RANGE of graph speeds, because the gather used to
+     * run at the END of the block period -- so where in the period it
+     * landed, and therefore how far it sat from the DDE's own read
+     * position, was set by the graph's cycle count and by nothing else.
+     *
+     * S9-2 measured the safe row at the 2026-09-09 load and adopted
+     * DSP4_TX_EARLY=2. S82 then signed DSP4_SIMD_DYN + DSP4_DYN_LUT,
+     * which took chip 2 from about 93 % of budget to 78.81 % -- and moved
+     * the gather roughly 14 % of a period earlier, across the boundary,
+     * onto the wrong side of the DDE. That is S88-1's DAC fold: 57.4 %
+     * cable-loop THD, one frame in sixteen carrying the content of two
+     * blocks later (S89d's transmit stamp: +2 blocks at frame 15,
+     * 12.5006 % of transitions).
+     *
+     * Neither audio switch is wrong. They made the core fast enough to
+     * cross a boundary the design never named, and the proof is that
+     * SLOWING THE FOLDING ARM CURES IT WITH BOTH SWITCHES ON (S89e gate
+     * 1, measured on the part): 78.81 % folds at 57.40 %, and a delay of
+     * 26,000 cycles -- 7.9 % of budget, touching no switch -- gives
+     * 0.3213 %, which is the analog loop's own floor. The threshold is
+     * between 20,000 and 26,000 cycles, i.e. the gather crossing back
+     * through about 85 % of the period.
+     *
+     * So the gather moves to a FIXED POINT: here, immediately after the
+     * block interrupt has been taken and BEFORE _blk_latch_bufs advances
+     * the row. _tx_active_buf therefore still names the row the previous
+     * block was gathered for, and the node output slots still hold that
+     * block's samples -- the graph for this block has not run yet. The
+     * write now happens at the same offset from the row boundary on every
+     * block, whatever the graph costs, so a capacity change can never
+     * move it again.
+     *
+     * IT COSTS NOTHING. The gather runs once per block either way: the
+     * same 24 outputs x BLOCK_SIZE samples, the same instructions, moved.
+     * No staging buffer, no copy, no extra DM beyond nothing, and no
+     * change to the DMA topology, the row count or the one-interrupt-
+     * one-row mapping. It adds no output latency: the row written is the
+     * same row, and it is written before the DDE returns to it.
+     *
+     * PER-CHIP MASK, like DSP4_TX_EARLY, because the cost and the proof
+     * are per chip: 1 = chip 1's inter-chip TX, 2 = chip 2's converter
+     * TX. Chip 1's gather has the same shape and the same latent defect
+     * (S9-2 recorded that and the transmit stamp cannot see it); its bit
+     * is 0, so chip 1's CODE does not move on this dispatch. Its IMAGE
+     * moves by exactly one byte, and that byte is chip 1's own
+     * DIAG_BUILD_CFG3 stamp carrying the mask -- checked, not assumed.
+     *
+     * Needs DSP4_BLK_LATCH -- without the latch the row pointer moves
+     * under the sample loop and "the row the previous block used" has no
+     * meaning -- and DSP4_BLOCK_KERNELS, because only the block-kernel
+     * loop has a whole-block gather to defer. Both are #error'd at the
+     * top of this file. */
+    r5 = 0;
+.c2_defer_gath_lp:
+    dm(_sample_idx) = r5;
+    r0 = r5;
+#if DSP4_BLOCK_MASK & 4
+    call _gather_chip2;
+#endif
+#if DSP4_TXPROBE
+    /* The stamp goes with the gather it belongs to. _tx_probe_tick has
+     * not run for THIS block yet, so the block counter still reads the
+     * block these samples were computed for -- which is what the stamp
+     * has to say. */
+    r0 = dm(_sample_idx);
+    call _tx_probe_stamp;
+#endif
+    /* Reload BOTH: _gather_chip2 loads the active DMA buffer address
+     * into r6 (see the note in the chip-2 sample loop, which is the same
+     * trap and cost a session). */
+    r5 = dm(_sample_idx);
+    r5 = r5 + 1;
+    r6 = BLOCK_SIZE;
+    comp(r5, r6);
+    if lt jump (pc, .c2_defer_gath_lp);
+#endif /* DSP4_TX_DEFER_HERE */
+
 #if DSP4_BLK_LATCH
     /* Take this block's DMA halves BEFORE the sample loop starts. The
      * generated scatter/gather reload the active-buffer pointer on every
@@ -955,10 +1085,12 @@ _start:
     dm(_diag_boot_stage) = r0;
 
     /* ---- Block processing: BLOCK_SIZE samples per block ---- */
+#if !DSP4_TX_DEFER_HERE
     r0 = dm(_diag_ticks);
     dm(_proc_t0) = r0;
     r0 = tcount;
     dm(_proc_c0) = r0;
+#endif
 
     /* Meter readback gate for this block. The meters MEASURE every
      * sample of every block; this only says whether this block's fold
@@ -1177,6 +1309,35 @@ _start:
     call _chip2_process_all;
 #endif
 
+#if DSP4_GDELAY
+    /* S89e GATE 1 — THE FALSIFIABLE PREDICTION, AND NOTHING ELSE.
+     *
+     * S89d's mechanism says the chip-2 gather reaches the transmit half
+     * too EARLY and overwrites a frame the DDE has not read yet, and that
+     * DSP4_SIMD_DYN + DSP4_DYN_LUT fold because they are the FASTEST
+     * configuration in the tree (chip-2 worst block 78.81 % of budget
+     * against 86.84 % and 93.07 % on the two clean arms). The prediction
+     * that follows is free: SLOW THE FOLDING ARM DOWN, touching neither
+     * switch, and the fold must go away.
+     *
+     * This is that slowing, in the one place that reproduces the contrast
+     * the clean arms actually have -- BEFORE the gather, so the gather's
+     * writes land later in the block period, exactly as a heavier node
+     * graph would push them later. A delay in the gather's TAIL would not
+     * do it: the tail runs after the writes it is supposed to postpone.
+     *
+     * DSP4_GDELAY is the delay in core cycles (one cycle per iteration of
+     * a hardware loop with a nop body). Budget at block 16 / 983.04 MHz is
+     * 327,680 cycles per block, so 26,000 puts the folding arm at about
+     * 86.7 % and 47,000 at about 93.1 % -- the two clean arms' own
+     * positions. It is an INSTRUMENT: the audio it produces is the
+     * product's, but the cycle budget is not, and a shipping image must
+     * carry 0. build.sh says so on every non-zero build. */
+    lcntr = DSP4_GDELAY, do .c2_gdelay_lp until lce;
+.c2_gdelay_lp:
+        nop;
+#endif
+
     r5 = 0;
 .c2_gath_loop:
     dm(_sample_idx) = r5;
@@ -1206,10 +1367,10 @@ _start:
      * the losing order.
      */
     r0 = dm(_sample_idx);
-#if DSP4_BLOCK_MASK & 4
+#if (DSP4_BLOCK_MASK & 4) && !DSP4_TX_DEFER_HERE
     call _gather_chip2;
 #endif
-#if DSP4_TXPROBE
+#if DSP4_TXPROBE && !DSP4_TX_DEFER_HERE
     r0 = dm(_sample_idx);
     call _tx_probe_stamp;
 #endif
@@ -1227,10 +1388,10 @@ _start:
 #endif
 #if !DSP4_GATHER_FIRST
     r0 = dm(_sample_idx);
-#if DSP4_BLOCK_MASK & 4
+#if (DSP4_BLOCK_MASK & 4) && !DSP4_TX_DEFER_HERE
     call _gather_chip2;
 #endif
-#if DSP4_TXPROBE
+#if DSP4_TXPROBE && !DSP4_TX_DEFER_HERE
     r0 = dm(_sample_idx);
     call _tx_probe_stamp;
 #endif

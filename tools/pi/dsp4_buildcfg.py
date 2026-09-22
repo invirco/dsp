@@ -133,6 +133,7 @@ FLAGS3 = [
 # is the cost, exactly as DSP4_TX_EARLY and DSP4_BQ_SIMD_PIPE are in CFG2.
 #   15..8   DSP4_SHARED_KERNELS   the WHOLE eight-class mask
 #   18..17  DSP4_DYN_INLINE       0..3
+#    7..6   DSP4_TX_DEFER         per-chip mask, S89e
 #
 # INSTRUMENT IS THE ONE FIELD THAT MUST NEVER BE 1 IN A SHIPPING IMAGE, and
 # unlike NEVER_SHIPPING/NEVER_SHIPPING2 it is not a switch that could be
@@ -247,6 +248,10 @@ SHIPPING3 = {
     'DSP4_DLY_SPLIT': 1,
     'DSP4_GAIN_SIMD': 1,
     'DSP4_RTG_FABRIC': 1,
+    # S89e: THE DEFERRED GATHER SHIPS, CHIP 2. 2 = chip 2's converter TX only;
+    # chip 1's inter-chip gather has the same shape and the same latent defect
+    # (S9-2 recorded it) and is not deferred, so its image does not move.
+    'DSP4_TX_DEFER': 2,
     # The whole eight-class mask, which is the field that closes S27-3: CFG2
     # carries two bits of it and reads back 3 whether the image was built with
     # 3, 7 or 15.
@@ -357,7 +362,13 @@ def decode3(word):
                          % ('%08X' % word if word is not None else '????????'))
     d = {'raw': word, 'present': True,
          'DSP4_SHARED_KERNELS': (word >> 8) & 0xFF,
-         'DSP4_DYN_INLINE': (word >> 17) & 3}
+         'DSP4_DYN_INLINE': (word >> 17) & 3,
+         # S89e, bits 7..6. A PER-CHIP MASK like DSP4_TX_EARLY: 1 = chip 1's
+         # inter-chip TX, 2 = chip 2's converter TX. The block gather runs at
+         # a fixed point in the block period instead of wherever the node
+         # graph finishes, so which transmit row is safe no longer depends on
+         # the graph's cycle count.
+         'DSP4_TX_DEFER': (word >> 6) & 3}
     for bit, name in FLAGS3:
         d[name] = (word >> bit) & 1
     return d
@@ -382,6 +393,17 @@ def describe3(d):
                      '(0xF006): a host that sends the fourth product word to '
                      'it is writing to a cell nothing reads, and every chip-2 '
                      'matrix chain runs whatever the product is (pre-S79)')
+    if d['DSP4_TX_DEFER']:
+        lines.append('DSP4_TX_DEFER %d (%s) — the block gather runs at a FIXED '
+                     'point in the block period (right after the block '
+                     'interrupt, before the row is advanced) instead of '
+                     'wherever the node graph finishes, so which transmit row '
+                     'is safe no longer depends on the graph\'s cycle count. '
+                     'S89e; without it a fast enough graph overwrites the row '
+                     'the DDE is still reading (S88-1, the DAC fold)'
+                     % (d['DSP4_TX_DEFER'],
+                        {1: 'chip 1 IC TX', 2: 'chip 2 TX',
+                         3: 'both chips'}[d['DSP4_TX_DEFER']]))
     if d['DSP4_AUXIN_BYPASS']:
         lines.append('DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: '
                      'an AUX_INPUT whose `on` cell is 0 is not called at all')

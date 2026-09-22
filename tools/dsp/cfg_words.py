@@ -75,7 +75,11 @@ WORD2 = ['DSP4_STRIP_FUSED', 'DSP4_SIMD_DYN', 'DSP4_SIMD_GRAPH',
 WORD3 = ['DSP4_RTG_FABRIC', 'DSP4_GAIN_SIMD', 'DSP4_DLY_SPLIT',
          'DSP4_C2_XPAIR', 'DSP4_DYN_INLINE', 'DSP4_DYN_TABLES',
          'DSP4_SHARED_KERNELS', 'DSP4_SPI_PARTIAL_FIX2', 'DSP4_RTA',
-         'DSP4_CUE', 'DSP4_AUXIN_BYPASS', 'DSP4_EXTRAM']
+         'DSP4_CUE', 'DSP4_AUXIN_BYPASS', 'DSP4_EXTRAM',
+         # S89e: the deferred gather, bits 7..6. A per-chip mask, so the
+         # VALUE is what it costs and what it covers, exactly as
+         # DSP4_TX_EARLY is in WORD2.
+         'DSP4_TX_DEFER']
 # The CAPABILITY bits of DIAG_BUILD_CFG3 -- not build switches, so not in
 # WORD3 and not resolvable from any config file. Each is a property of the
 # SOURCE TREE, 1 here and 0 in every image built before the named session,
@@ -329,6 +333,7 @@ def word3(val):
             # carries bits 0 and 1 of it (word bits 5 and 15) and mask 3 and
             # mask 15 have read back the same CFG2 since S26.
             | ((shk & 0xFF) << 8)
+            | ((val['DSP4_TX_DEFER'] & 3) << 6)
             | ((val['DSP4_SPI_PARTIAL_FIX2'] & 1) << 5)
             | ((val['DSP4_RTA'] & 1) << 4)
             | ((val['DSP4_CUE'] & 1) << 3)

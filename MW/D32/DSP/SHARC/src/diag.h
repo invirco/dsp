@@ -659,6 +659,21 @@
 #ifndef DSP4_RTG_FABRIC
 #define DSP4_RTG_FABRIC 0
 #endif
+/* S89e: the deferred gather, a per-chip mask like DSP4_TX_EARLY. It takes
+ * DIAG_BUILD_CFG3 bits 7..6, two of the three bits S80 left unallocated in
+ * that word (6, 7 and the signature's own). It has to be CARRIED: an image
+ * with the gather deferred and one without differ in nothing else a word
+ * says, and this project calls a pair of images that behave differently and
+ * answer identically a defect in the instrument (S12-7). */
+#ifndef DSP4_TX_DEFER
+#define DSP4_TX_DEFER 0
+#endif
+/* S89e gate 1's instrument: cycles burnt before the chip-2 gather. NO word
+ * carries a field for it, so it is in DIAG_CFG3_INSTR_SUM below and an arm
+ * built with it reads back bit 23 = 1. */
+#ifndef DSP4_GDELAY
+#define DSP4_GDELAY 0
+#endif
 
 /* THE INSTRUMENT BIT'S OWN LIST (S80).
  *
@@ -715,6 +730,7 @@
     + (DSP4_FCWM             != 1) \
     + (DSP4_GAIN_NOCHAIN     != 0) \
     + (DSP4_GAIN_SIMD_NEGCTL != 0) \
+    + (DSP4_GDELAY           != 0) \
     + (DSP4_GEQ_DESIGN       != 1) \
     + (DSP4_MTR_NOCVT        != 0) \
     + (DSP4_MTR_NOFOLD       != 0) \
@@ -756,6 +772,7 @@
     | ((DSP4_DYN_INLINE        & 3) << 17)                              \
     | ((DSP4_DYN_TABLES        & 1) << 16)                              \
     | ((DSP4_SHARED_KERNELS  & 0xFF) << 8)                              \
+    | ((DSP4_TX_DEFER          & 3) <<  6)                              \
     | ((DSP4_SPI_PARTIAL_FIX2  & 1) <<  5)                              \
     | ((DSP4_RTA               & 1) <<  4)                              \
     | ((DSP4_CUE               & 1) <<  3)                              \
