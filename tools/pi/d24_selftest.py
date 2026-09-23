@@ -547,21 +547,35 @@ def t_nw4(r):
 
 
 def t_ascm4(r):
+    # "app active" means THE PRODUCT APPLICATION is up, not one named service.
+    # Since S97 the same binary serves two roles in two units: matrix-app (the
+    # mixer, which owns the H1S1/MX bus) and d24-testui (the factory test
+    # display, which owns the screen and nothing else). During a factory session
+    # the mixer is deliberately stopped, so gating on matrix-app alone would
+    # score the CM4 red for running exactly the software the session asked for.
     txt = r.out('uptime; vcgencmd get_throttled; vcgencmd measure_temp; '
                 'vcgencmd measure_volts core; tr -d "\\0" < /proc/device-tree/model; echo; '
-                'systemctl is-active matrix-app')
+                'echo "roles: matrix-app=$(systemctl is-active matrix-app) '
+                'd24-testui=$(systemctl is-active d24-testui)"')
     thr = re.search(r'throttled=(0x[0-9a-fA-F]+)', txt)
     tmp = re.search(r"temp=([\d.]+)'C", txt)
     vol = re.search(r'volt=([\d.]+)V', txt)
-    act = 'active' in txt.splitlines()[-1] if txt else False
+    roles = re.search(r'roles: matrix-app=(\S+) d24-testui=(\S+)', txt)
+    live = [n for n, st in (('matrix-app', roles.group(1) if roles else ''),
+                            ('d24-testui', roles.group(2) if roles else ''))
+            if st == 'active']
+    act = bool(live)
     if not (thr and tmp and vol):
-        return NODATA, 'vcgencmd did not answer', 'throttled 0x0, temp < 70 C, app active', txt
+        return NODATA, 'vcgencmd did not answer', \
+            'throttled 0x0, temp < 70 C, the product app running in either role', txt
     t = float(tmp.group(1))
     ok = thr.group(1) in ('0x0',) and t < 70.0 and act
     return ((PASS if ok else FAIL),
-            'throttled=%s temp=%.1f C core=%sV matrix-app=%s'
-            % (thr.group(1), t, vol.group(1), 'active' if act else 'inactive'),
-            'throttled 0x0, temp < 70 C, core volts in window, app active', txt)
+            'throttled=%s temp=%.1f C core=%sV app=%s'
+            % (thr.group(1), t, vol.group(1),
+               '+'.join(live) if live else 'neither role running'),
+            'throttled 0x0, temp < 70 C, core volts in window, the product app '
+            'running in either role (matrix-app or d24-testui)', txt)
 
 
 def t_usbhub(r):
@@ -1144,6 +1158,16 @@ def handback(r):
     r.pin('%d ip pu' % CS_M_GPIO)
     notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
     notes.append('AN_EN: %s' % r.an_en())
+    if r.a.no_app_restart:
+        # Driven from the standalone test display: matrix-app is deliberately
+        # down for the whole session and starting it here would seize the DRM
+        # display from the process drawing the wizard. The hardware handback
+        # above -- SAFE image, CS_M, AN_EN -- is unchanged; only the mixer's
+        # restart is skipped, and with it the MCU-verify line it produces.
+        notes.append('matrix-app: left stopped (--no-app-restart); '
+                     'the test display owns the screen')
+        notes.append('MCU verify (whole log): not read -- the app was not restarted')
+        return '\n'.join(notes)
     r.rsh('sudo systemctl start matrix-app', timeout=120)
     time.sleep(25)
     notes.append('matrix-app: %s' % r.out('systemctl is-active matrix-app'))
@@ -1235,6 +1259,13 @@ def main():
     ap.add_argument('--soak-interval', type=int, default=60)
     ap.add_argument('--no-soak-wait', action='store_true',
                     help='harvest the HD0-2 soak as it stands instead of waiting for the window')
+    ap.add_argument('--no-app-restart', action='store_true',
+                    help='stop matrix-app for the bus-exclusive sections as usual, but do NOT '
+                         'start it again at handback. For a run driven from the standalone '
+                         'test display (d24-testui, S97), which owns the screen for the whole '
+                         'factory session: starting matrix-app would take the DRM display away '
+                         'from it. Everything else about handback is unchanged -- the 595 SAFE '
+                         'image, CS_M and AN_EN are still put back.')
     a = ap.parse_args()
     if a.keys:
         check_keys(a.keys)
