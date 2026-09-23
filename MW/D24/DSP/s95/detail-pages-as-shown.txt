@@ -1,0 +1,158 @@
+================================================================================================
+#128 — DEFAULT (Detail off — what opens)
+================================================================================================
+NUM        #128 of 204
+STATUSBIG  PASS
+KEY        HDMI FPC (rev B)   |   Display link HDMI0 → TFT
+CLASS      class display   ·   workbook says UNTESTED – no fixture   ·   automation section 1   ·   A. Read
+           from the CM4 (Linux)
+TESTS      scripted today: HD0-1,HD0-2   (runner section A)
+SHORT      No action needed — press START TEST. The app stays up and the colour changes when it finishes.
+LAST       last: HD0-1 PASS at 2026-09-23T10:34:13Z — HDMI-A-1 connected, RTK 10811, native 1920x1080,
+           active=True
+DETAIL     DETAIL
+START      START TEST
+
+================================================================================================
+#128 — DETAIL (after pressing DETAIL)
+================================================================================================
+NUM        #128 of 204
+STATUSBIG  PASS
+KEY        HDMI FPC (rev B)   |   Display link HDMI0 → TFT
+CLASS      class display   ·   workbook says UNTESTED – no fixture   ·   automation section 1   ·   A. Read
+           from the CM4 (Linux)
+TESTS      scripted today: HD0-1,HD0-2   (runner section A)
+H_EXPLAIN  WHAT THIS TEST IS
+EXPLAIN    HD0-1: cat /sys/class/drm/card*-HDMI-A-1/status; edid-decode <
+           /sys/class/drm/card*-HDMI-A-1/edid (or xxd); cat …/modes; kmsprint or modetest -c for the active
+           CRTC mode
+           HD0-2: record …/status and the DRM hotplug/uevent count at start; re-read every 60 s for the
+           soak window (≥ 1 h; 24 h for a shipping proof)
+H_PASS     PASS WHEN
+PASSWHEN   HD0-1: status connected; EDID parses with a manufacturer + product code; the native mode is in
+           modes and is the active mode
+           HD0-2: status never leaves connected; hotplug count unchanged
+H_MANUAL   EVIDENCE / MANUAL INPUT
+MANUAL     HD0-1: connector name, manufacturer/product from EDID, active mode string
+           HD0-2: start/end counts, duration
+LAST       last: HD0-1 PASS at 2026-09-23T10:34:13Z — HDMI-A-1 connected, RTK 10811, native 1920x1080,
+           active=True
+DETAIL     HIDE DETAIL
+START      START TEST
+
+================================================================================================
+#36 — DEFAULT (Detail off — what opens)
+================================================================================================
+NUM        #36 of 204
+STATUSBIG  UNTESTED
+KEY        Analog   |   Monitor Out L (TRS, unbalanced)
+CLASS      class analog output   ·   workbook says BENCH FAULT   ·   automation section 2+4   ·   4b.
+           Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147,
+           148) — every row gated on 🔴 PW-1
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+SHORT      Analog grade — method being rewritten (PW: no dScope in the skin; a manual self-cable loop
+           replaces it). Not built yet.
+LAST       no result recorded for this row
+DETAIL     DETAIL
+START      NOT YET AUTOMATED
+
+================================================================================================
+#36 — DETAIL (after pressing DETAIL)
+================================================================================================
+NUM        #36 of 204
+STATUSBIG  UNTESTED
+KEY        Analog   |   Monitor Out L (TRS, unbalanced)
+CLASS      class analog output   ·   workbook says BENCH FAULT   ·   automation section 2+4   ·   4b.
+           Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147,
+           148) — every row gated on 🔴 PW-1
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+H_EXPLAIN  WHAT THIS TEST IS
+EXPLAIN    LB8: H1-c on the codec DAC path
+H_PASS     PASS WHEN
+PASSWHEN   DS-MON: a Monitor-class limit — the path is the AK4619 codec DAC and unbalanced, so the +23.13
+           dBu XLR figure does not transfer
+           LB8: both raise the lane; L and R within ±1.0 dB
+H_MANUAL   EVIDENCE / MANUAL INPUT
+MANUAL     DS-MON: 🔴 PL-9
+           LB8: both dBFS. Monitor R is NOT DRIVEN at all until S89-2 lands (the chip-2 gather writes one
+           entry per stereo pair). Until then this is NO DATA naming S89-2, never FAIL
+LAST       no result recorded for this row
+DETAIL     HIDE DETAIL
+START      NOT YET AUTOMATED
+
+================================================================================================
+#55 — DEFAULT (Detail off — what opens)
+================================================================================================
+NUM        #55 of 204
+STATUSBIG  UNTESTED
+KEY        Left Switch PCBA   |   BOOT0 indicator LED (red, fw.csv BootLed)
+CLASS      class panel LED   ·   workbook says UNTESTED – no fixture   ·   automation section 4   ·   4a.
+           LEDs and displays — an eye (28 rows)
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+SHORT      Needs an eye: the host lights one indicator at a time and you confirm the named one lit. Not
+           built yet — nothing to press.
+LAST       no result recorded for this row
+DETAIL     DETAIL
+START      NOT YET AUTOMATED
+
+================================================================================================
+#55 — DETAIL (after pressing DETAIL)
+================================================================================================
+NUM        #55 of 204
+STATUSBIG  UNTESTED
+KEY        Left Switch PCBA   |   BOOT0 indicator LED (red, fw.csv BootLed)
+CLASS      class panel LED   ·   workbook says UNTESTED – no fixture   ·   automation section 4   ·   4a.
+           LEDs and displays — an eye (28 rows)
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+H_EXPLAIN  WHAT THIS TEST IS
+EXPLAIN    (no method text in the spec for this row)
+H_PASS     PASS WHEN
+PASSWHEN   PM-BOOT: lights while its panel MCU is held in the ROM bootloader, dark in normal run
+H_MANUAL   EVIDENCE / MANUAL INPUT
+MANUAL     PM-BOOT: lit/dark in both states. BLOCKED on ML-B0: nothing in the unit can force BOOT0 — no
+           H1S1 pin exists (S90-P5). Until PW rules ML-B0 this row cannot be taken at all, with or without
+           an eye
+LAST       no result recorded for this row
+DETAIL     HIDE DETAIL
+START      NOT YET AUTOMATED
+
+================================================================================================
+#149 — DEFAULT (Detail off — what opens)
+================================================================================================
+NUM        #149 of 204
+STATUSBIG  UNTESTED
+KEY        Inter-board links   |   Link 'hdmi-fpc'
+CLASS      class board-to-board link   ·   workbook says UNTESTED – no fixture   ·   automation section 1
+           ·   🔴 Proposed corrections to section 1's coverage
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+SHORT      See Detail for what this test needs.
+LAST       no result recorded for this row
+DETAIL     DETAIL
+START      NOT YET AUTOMATED
+
+================================================================================================
+#149 — DETAIL (after pressing DETAIL)
+================================================================================================
+NUM        #149 of 204
+STATUSBIG  UNTESTED
+KEY        Inter-board links   |   Link 'hdmi-fpc'
+CLASS      class board-to-board link   ·   workbook says UNTESTED – no fixture   ·   automation section 1
+           ·   🔴 Proposed corrections to section 1's coverage
+TESTS      NOT YET AUTOMATED — specified, not built (S92 sections 2–4)
+H_EXPLAIN  WHAT THIS TEST IS
+EXPLAIN    Two, both found while classifying. Neither changes a section-1 test; both change which rows
+           section 1 is credited with. - S92-C1 — Link 'hdmi-fpc' (149) is a section-1 row and the coverage
+           list does not say so. Its criterion is *"IL1 seated, IL2 the link's signals present at the far
+           end"*, and HD0-1 passing is that far-end check — the same inference the spec already accepts for
+           Link 'hdmi-pwr' (152), which IS in the list. Proposed: add 149 to section 1's coverage as
+           inferred-from-HD0-1, exactly like HD-PWR. It is already marked 1 in the workbook's Automation
+           column, which is why the column shows 37 rows at 1 against the coverage line's 36 — the two will
+           agree once the coverage line is edited. - S92-C2 — the TEMP third of row 94 needs no plug, no
+           press and no meter. TEMP is a value the right panel MCU reads on PA1 and reports over the panel
+           UART section 1 already
+H_PASS     PASS WHEN
+H_MANUAL   EVIDENCE / MANUAL INPUT
+LAST       no result recorded for this row
+DETAIL     HIDE DETAIL
+START      NOT YET AUTOMATED
+
