@@ -47,7 +47,18 @@ changes no control; run it before touching anything else.
   to slots 3/2 (DAC_12/DAC_11 = the MAIN L/R XLRs). This tool reads the
   lane by node name out of the generated table, so it follows the change.
 
+  THE DEPOPULATED SECTION (S48 S4.4, owed since; hub ruling on S86-N1).
+  Eight of MW-D24-2's twenty-four mic channels have no analog front end
+  fitted -- panel mics 1-4 and 13-16, XLRs J15-J22, preamps U17-U31, the
+  whole of converter U15 / `ad[0]`. Their converter still dithers, so the
+  lanes are live and correctly framed and simply sit ~50 dB below the
+  preamp band; scoring them on that band failed the whole RX bank for
+  four sessions running. Those lanes are now scored on the bare-converter
+  band instead and reported in their own column. `DSP4_DEPOP_STRIPS`
+  overrides the list per unit ("1-4,13-16", or "none").
+
 usage: python3 dsp4_s42_align.py [symdir] [samples]
+       DSP4_DEPOP_STRIPS=none python3 dsp4_s42_align.py [symdir] [samples]
 """
 import sys, math
 _argv = list(sys.argv); sys.argv = ['s']
@@ -61,6 +72,71 @@ N = int(_argv[2]) if len(_argv) > 2 else 32
 # by a factor of two each way so a different room or a different mic-pre
 # state is not scored as a failure. -85 dBFS = 5.6e-5, -65 dBFS = 5.6e-4.
 RMS_LO, RMS_HI = 2.5e-5, 1.2e-3
+
+# ------------------------------------------------ the depopulated section ----
+# THE GUARD S48 ASKED FOR, SIZED FROM A MEASUREMENT (owed since S48 S4.4,
+# restated S49; hub ruling on S86-N1, 2026-09-20).
+#
+# A lane whose analog front end is not fitted still has a converter in
+# front of it, and that converter dithers: the words are live, distinct
+# and correctly framed, and the rms is simply far below the preamp band
+# because nothing is amplifying anything into it. The band test has no
+# notion of that, so it scored those lanes `**BAD**` and failed the whole
+# RX bank on them -- S48 S5.1 said in writing that "that FAIL is the
+# instrument, not the part", and the tool went on doing it through S49,
+# S55, S85 and S86.
+#
+# THE SECTION IS EIGHT CHANNELS, NOT FOUR. S48 could name four because it
+# was reading twelve lanes; S86 measured all 24 XLRs at gain codes 63 and
+# 0 and found J15-J22 -- panel mics 1-4 AND 13-16, preamps U17-U31, the
+# whole of converter U15 / `ad[0]` -- rising -0.21..+0.08 dB against
+# 31.8..40.4 dB on the other sixteen, and sitting at -116.0..-116.2 dBFS
+# at both codes. S85-3's CPLD toggle counts agree from the other side:
+# `ad[0]` alone does not respond to the analog rails and its `ones`
+# high-water is 188 of 256 where U39's and U60's reach 256.
+#
+# THIS IS A PROPERTY OF THE BENCH UNIT MW-D24-2, NOT OF THE DESIGN. It is
+# declared here with its evidence rather than hidden in a threshold, and
+# `DSP4_DEPOP_STRIPS` overrides it per unit: a strip list ("1-4,13-16"),
+# or "none" on a fully populated board. A guarded lane is not skipped --
+# it is scored on the test that still applies to it (correct framing and a
+# live dither floor) and reported in its own column, so a guarded lane
+# that goes IDLE or starts setting bits 6:0 still fails.
+DEPOP_SECTION_SIZE = 8          # channels; asserted against the list below
+DEPOP_STRIPS_DEFAULT = '1-4,13-16'
+# What a converter with no front end reads: S48's -114..-118 dBFS and
+# S86's -116.0..-116.2, widened each way for the same reason the preamp
+# band is widened. -100 dBFS = 1.0e-5, -130 dBFS = 3.2e-7.
+DEPOP_RMS_LO, DEPOP_RMS_HI = 3.2e-7, 1.0e-5
+
+
+def parse_strips(spec):
+    """'1-4,13-16' -> {1,2,3,4,13,14,15,16}; 'none' -> set()."""
+    out = set()
+    if spec.strip().lower() in ('none', ''):
+        return out
+    for part in spec.split(','):
+        part = part.strip()
+        if '-' in part:
+            a, b = part.split('-', 1)
+            out.update(range(int(a), int(b) + 1))
+        else:
+            out.add(int(part))
+    return out
+
+
+import os
+DEPOP_SPEC = os.environ.get('DSP4_DEPOP_STRIPS', DEPOP_STRIPS_DEFAULT)
+DEPOP = parse_strips(DEPOP_SPEC)
+# FAIL LOUDLY rather than quietly guarding a different number of lanes
+# than the record says: the size and the list are two statements of one
+# fact and a tool that lets them drift is how "four" survived four
+# sessions. An explicit override is exempt -- it is the unit speaking.
+if DEPOP_SPEC == DEPOP_STRIPS_DEFAULT and len(DEPOP) != DEPOP_SECTION_SIZE:
+    raise SystemExit('depopulated-section guard: the list %s covers %d '
+                     'strips and DEPOP_SECTION_SIZE says %d — one of the '
+                     'two is wrong, and neither is a default to paper over'
+                     % (DEPOP_STRIPS_DEFAULT, len(DEPOP), DEPOP_SECTION_SIZE))
 
 
 def sgn(w):
@@ -124,7 +200,18 @@ offs = sc1.sym['_c1_rx_off']
 strds = sc1.sym['_c1_rx_stride']
 
 print('=== RX: chip 1 converter lanes, %d words each ===' % N)
-print('lane   b31 set  lo7 set   rms as-is      dBFS    verdict')
+if DEPOP:
+    covered = sorted(x for x in DEPOP if 1 <= x <= 12)
+    print('    depopulated-section guard: strips %s (%d of the section\'s %d '
+          'channels fall in this bank) scored on the converter-dither band '
+          '%.1f..%.1f dBFS instead of the preamp band%s'
+          % (DEPOP_SPEC, len(covered), len(DEPOP),
+             dbfs(DEPOP_RMS_LO), dbfs(DEPOP_RMS_HI),
+             '' if DEPOP_SPEC == DEPOP_STRIPS_DEFAULT else '  [OVERRIDE]'))
+else:
+    print('    depopulated-section guard: OFF — every lane scored on the '
+          'preamp band')
+print('lane   b31 set  lo7 set   rms as-is      dBFS   band     verdict')
 lanes = []
 ALL_WORDS = []
 LANE_WORDS = {}
@@ -149,10 +236,13 @@ for strip in range(1, 13):
     b31 = sum(1 for x in w if x & 0x80000000)
     lo7 = sum(1 for x in w if x & 0x7F)
     rms = math.sqrt(sum((sgn(x) / 2.0 ** 31) ** 2 for x in w) / len(w))
-    ok = (lo7 == 0) and (RMS_LO <= rms <= RMS_HI)
-    lanes.append((strip, b31, lo7, rms, ok))
-    print(' %2d      %3d      %3d    %.6f   %7.1f    %s'
-          % (strip, b31, lo7, rms, dbfs(rms), 'ok' if ok else '**BAD**'))
+    depop = strip in DEPOP
+    lo, hi = (DEPOP_RMS_LO, DEPOP_RMS_HI) if depop else (RMS_LO, RMS_HI)
+    ok = (lo7 == 0) and (lo <= rms <= hi)
+    lanes.append((strip, b31, lo7, rms, ok, depop))
+    print(' %2d      %3d      %3d    %.6f   %7.1f   %-7s  %s'
+          % (strip, b31, lo7, rms, dbfs(rms),
+             'depop' if depop else 'preamp', 'ok' if ok else '**BAD**'))
 
 rx_fail = []
 rx_undriven = False
@@ -177,7 +267,7 @@ else:
     # care is the DISTINCT-VALUE COUNT. A converter noise floor is dither:
     # 32 words give ~32 different small numbers. An idle line gives two.
     idle = 0
-    for strip, _, _, _, _ in lanes:
+    for strip, _, _, _, _, _ in lanes:
         w = LANE_WORDS[strip]
         rail = sum(1 for v in w if v in (0, 0xFFFFFFFF))
         if len(set(w)) <= 4 and rail >= 0.9 * len(w):
@@ -193,23 +283,44 @@ else:
             'board isolation links fitted, AN_EN high) and re-run. The '
             'per-lane SPORT_MCTL.MFD read above is the part of this gate '
             'that does not need them.')
-    elif all(b == 0 for _, b, _, _, _ in lanes):
+    elif all(b == 0 for _, b, _, _, _, _ in lanes):
         rx_fail.append('bit 31 NEVER set on any word of any lane — this is '
                        'exactly S39-4 and the MFD change did not reach the '
                        'part (check DIAG_BUILD_CFG and the image md5)')
     if not rx_undriven:
-        if any(l7 for _, _, l7, _, _ in lanes):
+        if any(l7 for _, _, l7, _, _, _ in lanes):
             rx_fail.append('bits 6:0 set on some word — the 24-in-32 pad is '
                            'not where it should be, so the window is off the '
                            'other way')
-        bad = [s for s, _, _, _, ok in lanes if not ok]
+        # THE BAND FAILURES ARE REPORTED IN TWO LISTS, because a guarded
+        # lane and an unguarded one that miss their bands are two different
+        # statements: the first says the depopulated section is not reading
+        # like a bare converter any more (so the guard, or the board,
+        # changed), the second is S48's original verdict.
+        bad = [n for n, _, _, _, ok, dp in lanes if not ok and not dp]
+        bad_dp = [n for n, _, _, _, ok, dp in lanes if not ok and dp]
         if bad:
             rx_fail.append('lane(s) %s outside the -65..-85 dBFS converter '
                            'noise band' % ','.join(str(x) for x in bad))
-        rmss = [r for _, _, _, r, _ in lanes]
-        if len(set('%.7f' % r for r in rmss)) < max(2, len(rmss) // 3):
-            rx_fail.append('the twelve noise floors are not distinct — a '
-                           'stuck or common source, not twelve converters')
+        if bad_dp:
+            rx_fail.append('guarded lane(s) %s outside the %.0f..%.0f dBFS '
+                           'depopulated-section band — the section is not '
+                           'reading as a bare converter, so either the guard '
+                           'list (%s) or the board has changed'
+                           % (','.join(str(x) for x in bad_dp),
+                              dbfs(DEPOP_RMS_HI), dbfs(DEPOP_RMS_LO),
+                              DEPOP_SPEC))
+        # THE DISTINCTNESS TEST IS TAKEN OVER THE UNGUARDED LANES ONLY. The
+        # depopulated section's floors are eight readings of the same bare
+        # converter and S86 measured them inside 0.2 dB of each other, so
+        # counting them here would answer "not distinct" for a reason that
+        # is not a fault.
+        rmss = [r for _, _, _, r, ok, dp in lanes if not dp]
+        if len(rmss) >= 2 and (len(set('%.7f' % r for r in rmss))
+                               < max(2, len(rmss) // 3)):
+            rx_fail.append('the %d populated noise floors are not distinct — '
+                           'a stuck or common source, not %d converters'
+                           % (len(rmss), len(rmss)))
 
 print('\nRX: %s' % ('PASS' if not rx_fail else 'FAIL'))
 for f in rx_fail:

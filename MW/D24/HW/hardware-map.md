@@ -146,7 +146,7 @@ The table above holds at DSP-port level; the exact lane/source mapping is:
 
 | DSP port | DSP4 net | Resolves to |
 |---|---|---|
-| DSPA I0 | AD0 | Mic/line ch 1-4 & 13-16 — ADC8 #1 (Analog bd, TDM8 via FPC J41/J58) |
+| DSPA I0 | AD0 | Mic/line ch 1-4 & 13-16 — ADC8 #1 (Analog bd, TDM8 via FPC J41/J58) — **U15; the bench unit MW-D24-2's front end for this converter is NOT FITTED: see the note below** |
 | DSPA I1 | AD1 | Mic/line ch 5-8 & 17-20 — ADC8 #2 |
 | DSPA I2 | AD2 | Mic/line ch 9-12 & 21-24 — ADC8 #3 |
 | DSPA I3 | AD3 | **No D24 ADC** — driven only via D32_COMPAT J33 / LOGIC NET mux |
@@ -156,6 +156,21 @@ The table above holds at DSP-port level; the exact lane/source mapping is:
 | DSPB O1 | **DA3, not DA1** | DAC8 OUT_9-16 → line outs 9-16; DA1 dead-ends at Digital J18 (spare) |
 | DSPB O2 | PLL8_1 = CDC_I | AK4916 codec DAC: talkback SPKR (TS482 on Digital → panels) + aux out |
 | DSPB O3 | — | "DAC MAIN": **no D24 sink by design** (resolved 2026-07-31: D24 main outs are line outs on the Analog PCBA — the OUT_1-8/OUT_9-16 DAC8s via DA0/DA3; the Analog ROOT carries no third audio DAC and J58/J59 no spare TDM lane). Lane reserved for D32/future |
+
+**MW-D24-2's depopulated mic section is EIGHT channels (measured 2026-09-20,
+S86; hub ruling on S86-N1).** Not four. The whole of ADC8 #1 / `ad[0]` / U15 —
+**panel mics 1-4 AND 13-16, XLRs J15-J22, preamps U17-U31** — has no front end
+fitted on this unit: across all 24 XLRs at gain codes 63 and 0 those eight rise
+**-0.21 to +0.08 dB** where the other sixteen (U39, U60) rise 31.8-40.4 dB, and
+they sit at -116.0..-116.2 dBFS at both codes. The converter itself is fine and
+converting — S85-3's CPLD toggle counts read `ad[0]` alive but indifferent to
+the analog rails, with an `ones` high-water of 188 of 256 against 256 on the
+other two lanes, which is what a converter with nothing in front of it looks
+like from the other side. This is a property of THIS UNIT, not of the design.
+It was found independently at S48 (as "MIC 1-4"), S55 ("J15-J22 … no rails
+today"), S85-3 and S86; `tools/pi/dsp4_s42_align.py` carries the guard sized to
+eight (`DSP4_DEPOP_STRIPS`, default `1-4,13-16`) so a bank verdict is no longer
+failed by it.
 
 Digital-only paths (no analog resolution): I5 snake, I6 Pi PCM, O4-O7 NET
 (option cards), DA2 (D32_COMPAT J33 only). Phones PCBA is analog-only
