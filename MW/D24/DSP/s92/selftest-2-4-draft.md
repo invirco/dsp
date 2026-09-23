@@ -191,7 +191,24 @@ The one intended difference is the 37-vs-36 at code `1` — S92-C1, §7.
   `release-notes-contract-convention.md`.
 - **It did not rewrite section 1.** The spec's first 110 lines are byte-identical.
 
-## 10. Where the work landed
+## 10. Two things the next session will trip on
+
+**The workbook generator cannot run in mx26 as found.** `defs` is an uninitialised
+submodule there and its recorded URL is `https://github.com/invirco/defs.git`,
+which fails with `could not read Username for 'https://github.com'` — the token is
+dead. It needs the SSH remote, which works:
+
+```
+git -C ~/mx26 config submodule.defs.url git@github.com:invirco/defs.git
+git -C ~/mx26 submodule update --init defs
+```
+
+**And `openpyxl` is not installed on this machine**, system-wide or in any venv —
+a scratch venv was used for this dispatch. Both were worked around rather than
+changed: mx26 is left exactly as found, submodule deinitialised and the local URL
+override removed.
+
+## 11. Where the work landed
 
 - mx26 `docs/spec-d24-selftest.md` — sections 2–4 appended, section 1 unchanged.
 - mx26 `tools/d24/build-d24-connector-status.py` — the Automation column.
