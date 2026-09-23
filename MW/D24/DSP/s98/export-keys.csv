@@ -1,0 +1,205 @@
+num,board,item,class,status,section
+1,Analog,MIC 1,analog input,UNTESTED – dead section,2+4
+2,Analog,MIC 2,analog input,UNTESTED – dead section,2+4
+3,Analog,MIC 3,analog input,UNTESTED – dead section,2+4
+4,Analog,MIC 4,analog input,UNTESTED – dead section,2+4
+5,Analog,MIC 13,analog input,UNTESTED – dead section,2+4
+6,Analog,MIC 14,analog input,UNTESTED – dead section,2+4
+7,Analog,MIC 15,analog input,UNTESTED – dead section,2+4
+8,Analog,MIC 16,analog input,UNTESTED – dead section,2+4
+9,Analog,MIC 5,analog input,PARTIAL,2+4
+10,Analog,MIC 6,analog input,PARTIAL,2+4
+11,Analog,MIC 9,analog input,BENCH FAULT,2+4
+12,Analog,MIC 10,analog input,PARTIAL,2+4
+13,Analog,MIC 11,analog input,PARTIAL,2+4
+14,Analog,MIC 12,analog input,PARTIAL,2+4
+15,Analog,MIC 17,analog input,PARTIAL,2+4
+16,Analog,MIC 18,analog input,PARTIAL,2+4
+17,Analog,MIC 19,analog input,PARTIAL,2+4
+18,Analog,MIC 21,analog input,PARTIAL,2+4
+19,Analog,MIC 22,analog input,PARTIAL,2+4
+20,Analog,MIC 23,analog input,PARTIAL,2+4
+21,Analog,MIC 24,analog input,PARTIAL,2+4
+22,Analog,MIC 7,analog input,FAIL,2+4
+23,Analog,MIC 8,analog input,FAIL,2+4
+24,Analog,MIC 20,analog input,FAIL,2+4
+25,Analog,Aux Out A1 (doubles as Monitor 1),analog output,PARTIAL,2+4
+26,Analog,Aux Out A2,analog output,PARTIAL,2+4
+27,Analog,Aux Out A3,analog output,PARTIAL,2+4
+28,Analog,Aux Out A4,analog output,PARTIAL,2+4
+29,Analog,Aux Out A5,analog output,PARTIAL,2+4
+30,Analog,Aux Out A6,analog output,PARTIAL,2+4
+31,Analog,Aux Out A7,analog output,BENCH FAULT,2+4
+32,Analog,Aux Out A8,analog output,PARTIAL,2+4
+33,Analog,Main Out L,analog output,UNTESTED – no fixture,2+4
+34,Analog,Main Out R,analog output,BENCH FAULT,2+4
+35,Analog,Center/LF Out,analog output,UNTESTED – no fixture,2+4
+36,Analog,"Monitor Out L (TRS, unbalanced)",analog output,BENCH FAULT,2+4
+37,Analog,"Monitor Out R (TRS, unbalanced)",analog output,BENCH FAULT,2+4
+38,Analog,Talkback TB (XLR),analog input (codec path),UNTESTED – no fixture,2+4
+39,Analog,"Aux Out A 1-2 (TRS, Phone Jack sub-assembly)",analog output,UNTESTED – no fixture,2+4
+40,Analog,"Aux Out A 3-4 (TRS, Phone Jack sub-assembly)",analog output,UNTESTED – no fixture,2+4
+41,Analog,"Aux Out A 5-6 (TRS, Phone Jack sub-assembly)",analog output,UNTESTED – no fixture,2+4
+42,Analog,"Aux Out A 7-8 (TRS, Phone Jack sub-assembly)",analog output,UNTESTED – no fixture,2+4
+43,Left Switch PCBA,MONO AUX (fw.csv MonoAux) button,panel switch,UNTESTED – no fixture,3
+44,Left Switch PCBA,MONO AUX (fw.csv MonoAux) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+45,Left Switch PCBA,STEREO AUX (fw.csv StereoAux) button,panel switch,UNTESTED – no fixture,3
+46,Left Switch PCBA,STEREO AUX (fw.csv StereoAux) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+47,Left Switch PCBA,FX (fw.csv Fx) button,panel switch,UNTESTED – no fixture,3
+48,Left Switch PCBA,FX (fw.csv Fx) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+49,Left Switch PCBA,EQ (fw.csv Eq) button,panel switch,UNTESTED – no fixture,3
+50,Left Switch PCBA,EQ (fw.csv Eq) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+51,Left Switch PCBA,AUX ON FADERS (fw.csv AuxOnFaders) button,panel switch,UNTESTED – no fixture,3
+52,Left Switch PCBA,AUX ON FADERS (fw.csv AuxOnFaders) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+53,Left Switch PCBA,OVERVIEW (fw.csv Overview) button,panel switch,UNTESTED – no fixture,3
+54,Left Switch PCBA,OVERVIEW (fw.csv Overview) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+55,Left Switch PCBA,"BOOT0 indicator LED (red, fw.csv BootLed)",panel LED,UNTESTED – no fixture,4
+56,Left Switch PCBA,Panel MEMS mic (talkback),panel mic,UNTESTED – no fixture,1
+57,Left Switch PCBA,Speaker,panel speaker,UNTESTED – no fixture,1
+58,Left Switch PCBA,Pedal UART through-path,panel control,UNTESTED – no fixture,2
+59,Right Switch PCBA,FX MUTE (fw.csv FxMute) button,panel switch,UNTESTED – no fixture,3
+60,Right Switch PCBA,FX MUTE (fw.csv FxMute) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+61,Right Switch PCBA,FX MUTE (fw.csv FxMute) red LEDs,panel LED,UNTESTED – no fixture,4
+62,Right Switch PCBA,HOME (fw.csv Home) button,panel switch,UNTESTED – no fixture,3
+63,Right Switch PCBA,HOME (fw.csv Home) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+64,Right Switch PCBA,MENU (fw.csv Menu) button,panel switch,UNTESTED – no fixture,3
+65,Right Switch PCBA,MENU (fw.csv Menu) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+66,Right Switch PCBA,+48 (fw.csv Phantom48) button,panel switch,UNTESTED – no fixture,3
+67,Right Switch PCBA,+48 (fw.csv Phantom48) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+68,Right Switch PCBA,FEEDBACK (fw.csv Feedback) button,panel switch,UNTESTED – no fixture,3
+69,Right Switch PCBA,FEEDBACK (fw.csv Feedback) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+70,Right Switch PCBA,MUTE (fw.csv 'Nute' — typo) button,panel switch,UNTESTED – no fixture,3
+71,Right Switch PCBA,MUTE (fw.csv 'Nute' — typo) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+72,Right Switch PCBA,SCENE (fw.csv Scene) button,panel switch,UNTESTED – no fixture,3
+73,Right Switch PCBA,SCENE (fw.csv Scene) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+74,Right Switch PCBA,L (fw.csv L) button,panel switch,UNTESTED – no fixture,3
+75,Right Switch PCBA,L (fw.csv L) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+76,Right Switch PCBA,C (fw.csv C) button,panel switch,UNTESTED – no fixture,3
+77,Right Switch PCBA,C (fw.csv C) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+78,Right Switch PCBA,C (fw.csv C) red LED,panel LED,UNTESTED – no fixture,4
+79,Right Switch PCBA,CH ASSIGN (fw.csv ChanAssign) button,panel switch,UNTESTED – no fixture,3
+80,Right Switch PCBA,CH ASSIGN (fw.csv ChanAssign) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+81,Right Switch PCBA,R (fw.csv R) button,panel switch,UNTESTED – no fixture,3
+82,Right Switch PCBA,R (fw.csv R) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+83,Right Switch PCBA,MONITOR (fw.csv Monitor) button,panel switch,UNTESTED – no fixture,3
+84,Right Switch PCBA,MONITOR (fw.csv Monitor) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+85,Right Switch PCBA,REC/PLY (fw.csv RecPlay) button,panel switch,UNTESTED – no fixture,3
+86,Right Switch PCBA,REC/PLY (fw.csv RecPlay) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+87,Right Switch PCBA,REC/PLY (fw.csv RecPlay) red LEDs,panel LED,UNTESTED – no fixture,4
+88,Right Switch PCBA,STUDIO CTL (fw.csv Studio) button,panel switch,UNTESTED – no fixture,3
+89,Right Switch PCBA,STUDIO CTL (fw.csv Studio) button LEDs (white pair),panel LED,UNTESTED – no fixture,4
+90,Right Switch PCBA,Encoder ring,panel encoder,UNTESTED – no fixture,3
+91,Right Switch PCBA,"Encoder ring LEDs (8 white singles, fw.csv Enc1–Enc8)",panel LED,UNTESTED – no fixture,4
+92,Right Switch PCBA,Talkback switch + LEDs (pass-through),panel control,UNTESTED – no fixture,3+4
+93,Right Switch PCBA,Mini-jack insertion sense (pass-through),panel control,UNTESTED – no fixture,2+3
+94,Right Switch PCBA,TEMP / BLOWER / FAN sense (pass-through),panel control,UNTESTED – no fixture,2+4
+95,Analog,"Mini-jack 1 (3.5 mm, Mini Jack sub-assembly)",analog input (mini-jack),UNTESTED – no fixture,2+4
+96,Analog,"Mini-jack 2 (3.5 mm, Mini Jack sub-assembly)",analog input (mini-jack),UNTESTED – no fixture,2+4
+97,Analog,Phones 1 (headphone jack),analog output (phones),UNTESTED – no fixture,2+4
+98,P1 pedal (rev B),Footswitch 1,pedal switch,UNTESTED – no fixture,3
+99,P1 pedal (rev B),Footswitch 2,pedal switch,UNTESTED – no fixture,3
+100,P1 pedal (rev B),7-segment display + LEDs,pedal LED,UNTESTED – no fixture,4
+101,P1 pedal (rev B),Pedal link + 9 V,control,UNTESTED – no fixture,2+4
+102,DSP PCBA (H1S1 MCU wiring),H1S1 MCU (STM32U575) link,mcu link,UNTESTED – no fixture,1
+103,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS1 (fw.csv Dsp1),dsp control,UNTESTED – no fixture,1
+104,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS2 (fw.csv Dsp2),dsp control,UNTESTED – no fixture,1
+105,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS3 (fw.csv Dsp3),dsp control,UNTESTED – no fixture,1
+106,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS4 (fw.csv Dsp4),dsp control,UNTESTED – no fixture,1
+107,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS5 (fw.csv Dsp5),dsp control,UNTESTED – no fixture,1
+108,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS6 (fw.csv Dsp6),dsp control,UNTESTED – no fixture,1
+109,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS7 (fw.csv Dsp7),dsp control,UNTESTED – no fixture,1
+110,DSP PCBA (H1S1 MCU wiring),DSP chip-select CS8 (fw.csv Dsp8),dsp control,UNTESTED – no fixture,1
+111,DSP PCBA (H1S1 MCU wiring),DSP reset RST_D (fw.csv Reset),dsp control,UNTESTED – no fixture,1
+112,DSP PCBA (H1S1 MCU wiring),Mic-gain chain latch CS_M (fw.csv MicGain),analog control,UNTESTED – no fixture,1
+113,DSP PCBA (H1S1 MCU wiring),Codec select CS_C (fw.csv Codec),analog control,UNTESTED – no fixture,1
+114,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD0 (fw.csv Psu1),psu monitor,UNTESTED – no fixture,—
+115,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD1 (fw.csv Psu2),psu monitor,UNTESTED – no fixture,—
+116,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD2 (fw.csv Psu3),psu monitor,UNTESTED – no fixture,—
+117,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD3 (fw.csv Psu4),psu monitor,UNTESTED – no fixture,—
+118,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD4 (fw.csv Psu5),psu monitor,UNTESTED – no fixture,—
+119,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD5 (fw.csv Psu6),psu monitor,UNTESTED – no fixture,—
+120,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD6 (fw.csv Psu7),psu monitor,UNTESTED – no fixture,—
+121,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD7 (fw.csv Psu8),psu monitor,UNTESTED – no fixture,—
+122,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD8 (fw.csv Psu9),psu monitor,UNTESTED – no fixture,—
+123,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD9 (fw.csv Psu10),psu monitor,UNTESTED – no fixture,—
+124,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD10 (fw.csv Psu11),psu monitor,UNTESTED – no fixture,—
+125,DSP PCBA (H1S1 MCU wiring),PSU monitor ADC PAD11 (fw.csv Psu12),psu monitor,UNTESTED – no fixture,—
+126,DSP PCBA (H1S1 MCU wiring),Right panel MCU link (fw.csv SW_RIGHT),mcu link,UNTESTED – no fixture,1
+127,DSP PCBA (H1S1 MCU wiring),Left panel MCU link (fw.csv SW_LEFT),mcu link,UNTESTED – no fixture,1
+128,HDMI FPC (rev B),Display link HDMI0 → TFT,display,UNTESTED – no fixture,1
+129,Digital,Ethernet (RJ45),network,UNTESTED – no fixture,1
+130,Digital,P1 Foot Pedal (RJ45),control,UNTESTED – no fixture,2+4
+131,Analog,"USB A (dual jack, hub port 3)",USB-A,UNTESTED – no fixture,2+4
+132,Analog,"USB A (dual jack, hub port 4)",USB-A,UNTESTED – no fixture,2+4
+133,Digital,HDMI 1 (placeholder),HDMI,UNTESTED – no fixture,4
+134,Digital,IEC Power Inlet,power,UNTESTED – no fixture,4
+135,Digital,Power Switch,power,UNTESTED – no fixture,3
+136,Digital (slot 1 card),USB-C Multitrack/DAW,digital audio,UNTESTED – no fixture,2
+137,Inter-board links,Link 'opt1',board-to-board link,UNTESTED – no fixture,4
+138,Inter-board links,Link 'opt2',board-to-board link,UNTESTED – no fixture,4
+139,Inter-board links,Link 'opt3',board-to-board link,UNTESTED – no fixture,4
+140,Inter-board links,Link 'dig-dsp-a',board-to-board link,UNTESTED – no fixture,1
+141,Inter-board links,Link 'dig-dsp-b',board-to-board link,UNTESTED – no fixture,1
+142,Inter-board links,Link 'dig-analog-adc',board-to-board link,UNTESTED – no fixture,1
+143,Inter-board links,Link 'dig-analog-dac',board-to-board link,UNTESTED – no fixture,1
+144,Inter-board links,Link 'dig-panel-a',board-to-board link,UNTESTED – no fixture,1
+145,Inter-board links,Link 'dig-panel-b',board-to-board link,UNTESTED – no fixture,1
+146,Inter-board links,Link 'pedal',board-to-board link,UNTESTED – no fixture,2
+147,Inter-board links,Link 'phones',board-to-board link,UNTESTED – no fixture,2+4
+148,Inter-board links,Link 'minijack',board-to-board link,UNTESTED – no fixture,2+4
+149,Inter-board links,Link 'hdmi-fpc',board-to-board link,UNTESTED – no fixture,1
+150,Inter-board links,Link 'd32compat',board-to-board link,UNTESTED – no fixture,4
+151,Inter-board links,Link 'analog-12v',board-to-board link,UNTESTED – no fixture,—
+152,Inter-board links,Link 'hdmi-pwr',board-to-board link,UNTESTED – no fixture,1
+153,Inter-board links,Link 'fan',board-to-board link,UNTESTED – no fixture,4
+154,Analog,J11 (power link / header),power link / header,UNTESTED – no fixture,—
+155,Analog,J12 (power link / header),power link / header,UNTESTED – no fixture,—
+156,Analog,J13 (power link / header),power link / header,UNTESTED – no fixture,—
+157,Analog,J14 (power link / header),power link / header,UNTESTED – no fixture,—
+158,Analog,J23 (power link / header),power link / header,UNTESTED – no fixture,—
+159,Analog,J24 (power link / header),power link / header,UNTESTED – no fixture,—
+160,Analog,J33 (power link / header),power link / header,UNTESTED – no fixture,—
+161,Analog,J34 (power link / header),power link / header,UNTESTED – no fixture,—
+162,Analog,J43 (power link / header),power link / header,UNTESTED – no fixture,—
+163,Analog,J44 (power link / header),power link / header,UNTESTED – no fixture,—
+164,Analog,J56 (board header),board header,UNTESTED – no fixture,4
+165,DSP PCBA (H1S1 MCU wiring),J1 (power link / header),power link / header,UNTESTED – no fixture,4
+166,DSP PCBA (H1S1 MCU wiring),J2 (power link / header),power link / header,UNTESTED – no fixture,4
+167,DSP PCBA (H1S1 MCU wiring),J3 (power link / header),power link / header,UNTESTED – no fixture,4
+168,DSP PCBA (H1S1 MCU wiring),J4 (power link / header),power link / header,UNTESTED – no fixture,4
+169,DSP PCBA (H1S1 MCU wiring),J6 (power link / header),power link / header,UNTESTED – no fixture,4
+170,Digital,J4 (power link / header),power link / header,UNTESTED – no fixture,4
+171,Digital,J5 (board header),board header,UNTESTED – no fixture,4
+172,Digital,J6 (board header),board header,UNTESTED – no fixture,4
+173,Digital,J7 (power link / header),power link / header,UNTESTED – no fixture,4
+174,Digital,J10 (power link / header),power link / header,UNTESTED – no fixture,4
+175,Digital,J14 (debug / test header),debug / test header,UNTESTED – no fixture,4
+176,Digital,J15 (debug / test header),debug / test header,UNTESTED – no fixture,4
+177,Digital,J19 (power link / header),power link / header,UNTESTED – no fixture,—
+178,Digital,J20 (board header),board header,UNTESTED – no fixture,4
+179,Digital,J21 (board header),board header,UNTESTED – no fixture,4
+180,Digital,J22 (power link / header),power link / header,UNTESTED – no fixture,4
+181,Digital,J23 (debug / test header),debug / test header,UNTESTED – no fixture,4
+182,Digital,J24 (power link / header),power link / header,UNTESTED – no fixture,4
+183,Digital,J25 (power link / header),power link / header,UNTESTED – no fixture,4
+184,Digital,J26 (board header),board header,UNTESTED – no fixture,4
+185,Digital,J27 (power link / header),power link / header,UNTESTED – no fixture,4
+186,Digital,J30 (power link / header),power link / header,UNTESTED – no fixture,—
+187,Digital,J31 (power link / header),power link / header,UNTESTED – no fixture,4
+188,Digital,J32 (debug / test header),debug / test header,UNTESTED – no fixture,4
+189,Digital,J35 (power link / header),power link / header,UNTESTED – no fixture,—
+190,Digital,J36 (power link / header),power link / header,UNTESTED – no fixture,—
+191,Digital,J37 (power link / header),power link / header,UNTESTED – no fixture,—
+192,Digital,J38 (power link / header),power link / header,UNTESTED – no fixture,—
+193,Digital,J39 (power link / header),power link / header,UNTESTED – no fixture,—
+194,Assemblies,CM4 compute module,assembly,UNTESTED – no fixture,1
+195,Assemblies,SHARC DSP A (ADSP-21564),assembly,UNTESTED – no fixture,1
+196,Assemblies,SHARC DSP B (ADSP-21564),assembly,UNTESTED – no fixture,1
+197,Assemblies,CPLD clock master (MAX V),assembly,UNTESTED – no fixture,1
+198,Assemblies,DAC AK4458 ×2,assembly,UNTESTED – no fixture,1
+199,Assemblies,"ADC AK5558 ×3 (U15 dead, U39, U60)",assembly,UNTESTED – no fixture,1
+200,Assemblies,Codec AK4619,assembly,UNTESTED – no fixture,1
+201,Assemblies,"Power MCU (STM32F030F4, always-on)",assembly,UNTESTED – no fixture,1
+202,Assemblies,M MCU (STM32G031),assembly,UNTESTED – no fixture,1
+203,Assemblies,S MCU H1S1 (STM32U575),assembly,UNTESTED – no fixture,1
+204,Assemblies,TFT display,assembly,UNTESTED – no fixture,1

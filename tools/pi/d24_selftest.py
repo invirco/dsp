@@ -1191,18 +1191,63 @@ def write_csv(r):
 
 
 def check_keys(path):
+    """Cross-check the ITEMS table against --export-keys: every key present, and
+    every row number written in a `# NNN` comment still the row it names.
+
+    The numbers in the comments are the workbook positions the wizard prints.
+    Until S98 nothing checked them -- they were hand-typed, the export carried no
+    number to check them against, and a stale one would have quietly pointed a
+    reader at a different item. The export now has a `num` column, so they are
+    verified here rather than believed.
+    """
     want = set()
     for its in ITEMS.values():
         want |= set(its)
     have = set()
+    by_num = {}
+    numbered = False
     with open(path, newline='') as fh:
-        for row in csv.DictReader(fh):
+        for i, row in enumerate(csv.DictReader(fh), start=1):
             have.add((row['board'], row['item']))
+            n = (row.get('num') or '').strip()
+            if n:
+                numbered = True
+                if n != str(i):
+                    sys.exit('ERROR: %s: num %r is not the row position %d (%s | %s)'
+                             % (path, n, i, row['board'], row['item']))
+            by_num[i] = (row['board'], row['item'])
     missing = sorted(want - have)
     if missing:
         sys.exit('ERROR: %d key(s) not in the export -- board/item must match verbatim:\n%s'
                  % (len(missing), '\n'.join('  %r' % (k,) for k in missing)))
-    print('key check: %d distinct items, all present in the export' % len(want))
+    if not numbered:
+        print('key check: %d distinct items, all present in the export '
+              '(pre-S98 export: no num column, row numbers not checked)' % len(want))
+        return
+    bad = []
+    src = open(__file__, encoding='utf-8').read().splitlines()
+    checked = 0
+    for line in src:
+        m = re.search(r'#\s*(\d+)\s*$', line)
+        if not m or "ITEMS[" in line:
+            continue
+        # The item is the last complete string literal on the line, in either
+        # quote style -- `"Link 'dig-dsp-b'"` is one literal, not three.
+        quoted = re.findall(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'',
+                            line[:m.start()])
+        if not quoted:
+            continue
+        n, item = int(m.group(1)), quoted[-1][1:-1]
+        if n not in by_num:
+            bad.append('  # %d is past the end of the export (%d rows)' % (n, len(by_num)))
+        elif by_num[n][1] != item:
+            bad.append('  # %d says %r, the export has %r' % (n, item, by_num[n][1]))
+        checked += 1
+    if bad:
+        sys.exit('ERROR: %d stale row number(s) in the ITEMS table:\n%s'
+                 % (len(bad), '\n'.join(bad)))
+    print('key check: %d distinct items, all present in the export; '
+          '%d row numbers in the table match their position' % (len(want), checked))
 
 
 def summary(r):
