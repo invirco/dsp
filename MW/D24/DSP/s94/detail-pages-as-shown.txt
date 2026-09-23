@@ -1,0 +1,42 @@
+==============================================================================
+NUM        #128 of 204
+STATUSBIG  PASS
+KEY        HDMI FPC (rev B)   |   Display link HDMI0 → TFT
+CLASS      class display  ·  workbook says UNTESTED – no fixture  ·  automation section 1  ·  A. Read from the CM4 (Linux)
+TESTS      scripted today: HD0-1,HD0-2   (runner section A)
+EXPLAIN    HD0-1: cat /sys/class/drm/card*-HDMI-A-1/status; edid-decode <
+           /sys/class/drm/card*-HDMI-A-1/edid (or xxd); cat …/modes; kmsprint or modetest -c for the active
+           CRTC mode
+           HD0-2: record …/status and the DRM hotplug/uevent count at start; re-read every 60 s for the
+           soak window (≥ 1 h; 24 h for a shipping proof)
+PASSWHEN   HD0-1: status connected; EDID parses with a manufacturer + product code; the native mode is in
+           modes and is the active mode
+           HD0-2: status never leaves connected; hotplug count unchanged
+MANUAL     HD0-1: connector name, manufacturer/product from EDID, active mode string
+           HD0-2: start/end counts, duration
+LAST       last: HD0-2 PASS at 2026-09-22T21:01:44Z — connected on 61 of 61 samples over 3600 s, drm hotplug uevents 0
+RUNNOTE    Runs HD0-1,HD0-2 — section A, reads from the CM4 only. The app stays up and the colour changes
+           when it finishes. Soak halves are taken as they stand, not waited out.
+START      START TEST
+==============================================================================
+NUM        #129 of 204
+STATUSBIG  PARTIAL
+KEY        Digital   |   Ethernet (RJ45)
+CLASS      class network  ·  workbook says UNTESTED – no fixture  ·  automation section 1  ·  A. Read from the CM4 (Linux)
+TESTS      scripted today: NW1,NW2,NW3,NW4   (runner section A)
+EXPLAIN    NW1: ethtool eth0 (Link detected, Speed, Duplex); cat /sys/class/net/eth0/carrier
+           NW2: ip -s link show eth0 before/after NW3–NW4
+           NW3: ping -c 200 -i 0.2 <hub>
+           NW4: iperf3 -c <bench host> -t 10 and -R
+PASSWHEN   NW1: link up, 1000Mb/s, Full
+           NW2: rx/tx errors, dropped, overruns = 0 for the run
+           NW3: 0 % loss, max RTT < 5 ms on the bench LAN
+           NW4: ≥ 900 Mbit/s each way
+MANUAL     NW1: the three fields
+           NW2: counters
+           NW3: loss %, min/avg/max
+           NW4: Mbit/s each way
+LAST       last: NW2 PASS at 2026-09-23T09:56:05Z — deltas over NW3+NW4: {'rx_errors': 0, 'rx_dropped': 0, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropped': 0, 'tx_carrier': 0, 'tx_collsns': 0}; idle contro
+RUNNOTE    Runs NW1,NW2,NW3,NW4 — section A, reads from the CM4 only. The app stays up and the colour
+           changes when it finishes. Soak halves are taken as they stand, not waited out.
+START      START TEST

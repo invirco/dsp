@@ -183,7 +183,10 @@ class Rig:
         self.a = args
         self.rows = []
         self.results = {}
-        self.logdir = os.path.join(LOG_ROOT, stamp().replace(':', ''))
+        self.csv_path = args.csv or CSV_PATH
+        log_root = (os.path.join(os.path.dirname(self.csv_path), 'logs')
+                    if args.csv else LOG_ROOT)
+        self.logdir = os.path.join(log_root, stamp().replace(':', ''))
         if not args.no_append:
             os.makedirs(self.logdir, exist_ok=True)
         self.app_stopped = False
@@ -196,10 +199,26 @@ class Rig:
 
     def rsh(self, cmd, timeout=120):
         """One command on the CM4. stdout and stderr come back joined on the
-        object; callers that care about the difference read them apart."""
+        object; callers that care about the difference read them apart.
+
+        Under `--local` this IS the CM4, so the ssh wrapper comes off and the
+        command runs here. Nothing else about a test changes -- the same reads,
+        the same criteria, the same evidence -- which is what lets the D24 test
+        skin drive this runner from the unit's own display."""
+        if self.a.local:
+            return subprocess.run(['bash', '-c', cmd], capture_output=True,
+                                  text=True, timeout=timeout)
         return subprocess.run(
             ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', BENCH, cmd],
             capture_output=True, text=True, timeout=timeout)
+
+    def put(self, src, dstdir, timeout=60):
+        """One file onto the CM4 -- a copy when we are already on it."""
+        if self.a.local:
+            subprocess.run(['cp', src, dstdir + '/'], check=True, timeout=timeout)
+        else:
+            subprocess.run(['scp', '-q', src, '%s:%s/' % (BENCH, dstdir)],
+                           check=True, timeout=timeout)
 
     def out(self, cmd, timeout=120):
         return self.rsh(cmd, timeout).stdout.strip()
@@ -1071,7 +1090,7 @@ def stage_setup(r):
         src = os.path.join(HERE, name)
         if os.path.exists(src):
             r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
-            subprocess.run(['scp', '-q', src, '%s:%s/' % (BENCH, s)], check=True, timeout=60)
+            r.put(src, s)
     return r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s))
 
 
@@ -1137,9 +1156,9 @@ def handback(r):
 
 # ---------------------------------------------------------------------------
 def write_csv(r):
-    exists = os.path.exists(CSV_PATH)
-    os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
-    with open(CSV_PATH, 'a', newline='') as fh:
+    exists = os.path.exists(r.csv_path)
+    os.makedirs(os.path.dirname(r.csv_path), exist_ok=True)
+    with open(r.csv_path, 'a', newline='') as fh:
         w = csv.DictWriter(fh, fieldnames=CSV_COLS)
         if not exists:
             w.writeheader()
@@ -1200,6 +1219,13 @@ def main():
                                    'sections (e.g. NW3, or AS-ADC,MM1); the rest are skipped. '
                                    'Use it to re-take one row without superseding the others.')
     ap.add_argument('--stage', default='/home/app/s90')
+    ap.add_argument('--local', action='store_true',
+                    help='we ARE the CM4: run every command here instead of over '
+                         'ssh, and copy staged files instead of scp-ing them. This '
+                         'is how the D24 test skin drives the runner from the '
+                         "unit's own display.")
+    ap.add_argument('--csv', help='append results here instead of the repo path '
+                                  '(the on-unit copy lives beside the skin catalog)')
     ap.add_argument('--keys', help='cross-check the key table against --export-keys output and exit')
     ap.add_argument('--no-append', action='store_true', help='print only; write no CSV rows')
     ap.add_argument('--nw3-runs', type=int, default=3,
@@ -1311,7 +1337,7 @@ def main():
     summary(r)
     if not a.no_append:
         write_csv(r)
-        print('\nappended %d rows to %s' % (len(r.rows), CSV_PATH))
+        print('\nappended %d rows to %s' % (len(r.rows), r.csv_path))
         print('raw reads: %s' % r.logdir)
 
 
