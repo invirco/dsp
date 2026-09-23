@@ -168,3 +168,31 @@ leg itself:
 own output. `loopthd.sh` therefore builds the configuration under proof with
 `DSP4_TEST_NODES=1` and nothing else moved, and prints the arm's md5. A report
 must say which image was measured.
+
+### T3L has no driven-regime reading, and will not get one on this lane (S91)
+
+The row is an **idle-regime** row. S91 tried to take it under load and could
+not, and the reason is worth carrying because it looks like a gap in the proof
+and is not one.
+
+**The `driveall` bitstream disconnects the loop.** A driven capacity row needs
+`dsp4_logic_driveall`, which assigns `i_dspa[5:0] = {6{pcm_drive}}`
+(`rtl/dsp4_logic_top.v`), so every DSPA input lane carries the Pi's playback —
+including the mic lane the loop cable returns on. On that bitstream the cable
+is disconnected as far as the DSP is concerned.
+
+**The loaded configuration swamps the measurement tap.** `LOAD_SETUP=1` applies
+`dsp4_driven_setup.py --mode load` before the route write, which puts chip 2 at
+the driven position (84.3–84.5 % of budget, printed on the same boot). The loop
+then reads **−19.0 dBFS that does not move with the drive**, about 3 dB above
+what the loop itself returns. Eliminated on the part: the rails, the 595 chain
+gain, the dynamics on the loop path (`LOAD_OFF`, default `Comp,Gate,Limiter`),
+and the MAIN sum (31 strips closed off it). The same arm on the same boot with
+the load not applied reads −22.22 dBFS and 0.32122 %, so the lane is fine.
+
+**What stands in for the load axis.** S89e measured the fixed build clean at
+three graph speeds — 78.8 %, 86.7 % and 93.1 % of budget — which brackets the
+driven 84.4 % from both sides, while the unfixed build folds at one of the
+three and is clean at the other two. Until the loop cable moves to a **codec**
+input, that bracket is the load-independence evidence and T3L is quoted as an
+idle-regime row.

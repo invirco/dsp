@@ -29,6 +29,12 @@
 #   BOOTS=3 ./loopthd.sh                          three gated boots
 #   OSC_STRIP=6 MEAS_STRIP=5 ./loopthd.sh         AUX 1 -> MIC 5
 #   BUILD=0 ARM=... ./loopthd.sh                  re-run what is staged
+#   LOAD_SETUP=1 ./loopthd.sh                     the LOADED regime (S91): the
+#                                                 graph put in its loaded
+#                                                 configuration before the loop
+#                                                 is read, and the position the
+#                                                 gather then landed at printed
+#                                                 beside the THD number
 set -u
 cd "$(dirname "$0")"
 ROOT=../../../..
@@ -84,9 +90,22 @@ scp -q $ROOT/tools/pi/dsp4_loop_thd.sh $ROOT/tools/pi/dsp4_boot_linked.sh \
        $ROOT/tools/pi/s89_set.py \
        $ROOT/tools/pi/dsp4_boot.py $ROOT/tools/pi/dsp4_config.py \
        $BENCH:$STAGE/ || exit 3
+# THE LOADED-REGIME HALF (S91). `LOAD_SETUP=1` puts the graph in the loaded
+# configuration before the loop is read, which needs the setup tool, the
+# capacity reader that says where the gather then landed, and the LANDED
+# CONTRACT they both address the part through -- generated here from the
+# tree's own defs pin, the same way capacity.sh does it, so a bench run
+# cannot score against a contract this tree is not on.
+PRODUCT="${LOAD_PRODUCT:-d24}"
+python3 $ROOT/tools/dsp/landed_map.py --product "$PRODUCT" \
+        --json /tmp/landed-$PRODUCT.json || exit 3
+scp -q $ROOT/tools/pi/dsp4_driven_setup.py $ROOT/tools/pi/dsp4_capacity.py \
+       /tmp/landed-$PRODUCT.json $BENCH:$STAGE/ || exit 3
 scp -q $ROOT/tools/pi/dsp4_loop_thd.sh $ROOT/tools/pi/dsp4_boot_linked.sh \
        $BENCH:/home/app/ || exit 3
 
 ssh $BENCH "OSC_STRIP='${OSC_STRIP:-20}' MEAS_STRIP='${MEAS_STRIP:-6}' \
             THD_LIMIT_PCT='${THD_LIMIT_PCT:-1.0}' DRIVES='${DRIVES:--12.0 -22.0}' \
+            LOAD_SETUP='${LOAD_SETUP:-0}' LOAD_PRODUCT='$PRODUCT' \
+            LOAD_OFF='${LOAD_OFF-Comp,Gate,Limiter}' \
             bash /home/app/dsp4_loop_thd.sh 'loopthd/$ARM' $BOOTS"

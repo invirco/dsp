@@ -71,6 +71,52 @@ LVL_MAX="${LOOP_LVL_MAX_DBFS:--5.0}"
 # number taken beside it means nothing. INCONCLUSIVE, never a pass.
 TRACK_TOL="${LOOP_TRACK_TOL_DB:-2.0}"
 
+# ---- THE LOADED REGIME (S91) -------------------------------------------
+#
+# WHY A LOOP READING TAKEN AT IDLE IS NOT THE WHOLE PROOF. The defect this
+# leg exists to catch is a function of WHERE IN THE BLOCK PERIOD chip 2's
+# gather lands, and until DSP4_TX_DEFER that position was the node graph's
+# cycle count (MW/D24/DSP/s89/dac-fold-fix.md). So a clean reading at the
+# graph's idle speed says nothing about the graph's loaded speed, and the
+# S89e figures were all taken at idle: chip 2 sits at ~77.5 % of budget with
+# the product's default routes and dynamics, and at ~84.4 % with every bus
+# assign and send open and every dynamics node on.
+#
+# LOAD_SETUP=1 applies `dsp4_driven_setup.py --mode load` to BOTH chips
+# after the gated boot and BEFORE the route write, so the loop's own two
+# strips are the only ones the route then clears and the other thirty stay
+# loaded. It also prints where the gather actually landed -- chip 2's
+# `_proc_cyc` as a percentage of budget, read on the same boot as the THD
+# number beside it -- because "clean at 84 % of budget" is the claim, and a
+# percentage nobody read is not a claim.
+#
+# IT IS NOT THE `driveall` DRIVEN ROW AND MUST NOT BE CALLED ONE. That row
+# needs the driveall bitstream, which broadcasts the Pi's playback onto
+# every DSPA input lane -- including the one this cable returns to, so the
+# loop cannot be measured on it at all. What is measurable is the LOADED
+# configuration on the shipping bitstream, and S86's own table is why that
+# is the right stand-in: chip 2 reads 84.41 % silent-loaded against 84.47 %
+# driven, 0.06 points apart, because the cost of the load is the routes and
+# the engaged dynamics rather than the sample values.
+LOAD_SETUP="${LOAD_SETUP:-0}"
+LOAD_PRODUCT="${LOAD_PRODUCT:-d24}"
+POS_DWELL="${POS_DWELL:-15}"
+# THE LOADED CONFIGURATION IS NOT TRANSPARENT TO THE LOOP, AND CLEARING THE
+# LOOP'S OWN TWO STRIPS IS NOT ENOUGH (S91). `--mode load` turns EVERY
+# dynamics node on with a -60 dB threshold, and the loop's donor is Monitor L,
+# whose source is the MAIN bus -- so the MAIN compressor and limiter sit on the
+# loop path, downstream of both strips the route write clears. Measured: with
+# the load applied and nothing else changed, the return sat at -63.4 dBFS and
+# 10 dB of drive moved it 0.01 dB. That is the S70-3 trap one level up, and
+# the tracking check caught it rather than a number being reported.
+#
+# So the classes on the loop path are switched off AFTER the load is applied.
+# What that costs the position is almost nothing and the position readout
+# below says so on the same boot: chip 2's cost here is the OPEN BUSES, not
+# the dynamics' expensive branch (S91's own ladder puts row C within 0.01
+# points of row B on chip 2).
+LOAD_OFF="${LOAD_OFF:-Comp,Gate,Limiter}"
+
 # Cell names are three digits wide (Chan006, Chan020); pad rather than
 # interpolating, so OSC_STRIP=6 does not silently address "Chan06".
 OSC=$(printf '%03d' "$OSC_STRIP")
@@ -81,6 +127,56 @@ for i in $(seq 1 "$N"); do
     L=$(timeout 900 "${BOOT_SH:-$HOME/dsp4_boot_linked.sh}" "$D" 8 2>&1 | grep -c "FOLDED")
     cd "/home/app/$D" || exit 2
     sudo pinctrl set 6,24 op dh
+    # THE LOADED REGIME, BEFORE THE ROUTE AND NOT AFTER IT. `--mode load`
+    # turns every dynamics node ON; the route write below clears the two
+    # strips the loop runs through, so running it the other way round would
+    # put the donor's compressor back and the reading would be of a
+    # compressor (S70-3). Order is the check here.
+    if [ "$LOAD_SETUP" = "1" ]; then
+        for C in 1 2; do
+            python3 dsp4_driven_setup.py --chip $C --mode load \
+                    --landed "landed-$LOAD_PRODUCT.json" \
+                    ${LOAD_OFF:+--off "$LOAD_OFF"} \
+                    > "/tmp/loopthd_load_c$C.$$" 2>&1 \
+                || { echo "LOAD SETUP FAILED on chip $C -- the reading that"
+                     echo "follows would be of the DEFAULT configuration:"
+                     sed 's/^/    /' "/tmp/loopthd_load_c$C.$$"
+                     rm -f "/tmp/loopthd_load_c$C.$$"; exit 2; }
+            echo "  load c$C: $(tail -1 "/tmp/loopthd_load_c$C.$$")"
+            rm -f "/tmp/loopthd_load_c$C.$$"
+        done
+        # WHERE THE GATHER LANDED, on this boot, in the part's own words.
+        sudo pinctrl set 6,24 op dh
+        python3 dsp4_capacity.py --dwell "$POS_DWELL" --tag loopthd-load \
+                --json "/tmp/loopthd_pos.$$.json" 2>&1 \
+            | sed -n 's/^chip \([12]\) .*/CHIP \1/p;s/^ *_proc_cyc  *\([0-9]*\)  *\([0-9.]*\)%/  _proc_cyc \1 = \2 % of budget/p' \
+            | sed 's/^/  position: /'
+        rm -f "/tmp/loopthd_pos.$$.json"
+        sudo pinctrl set 6,24 op dh
+        # THE LOAD OPENS EVERY STRIP INTO MAIN, AND MAIN IS THE LOOP'S SOURCE.
+        # Monitor L takes MAIN (S89), so with every assign open the cable
+        # carries the SUM of all 32 strips' converter noise, not the tone.
+        # Measured: the return sat at -19.00 dBFS and 10 dB of drive moved it
+        # 0.50 dB, because the tone was ~31 dB under that sum. Closing every
+        # OTHER strip's MAIN assign puts the donor alone on the loop while the
+        # aux and matrix fabric -- which is where chip 2's loaded cost
+        # actually is -- stays wide open. The position printed above is taken
+        # AFTER this, so the number the THD is quoted against is the number
+        # the part was running at.
+        CLOSE=""
+        for s in $(seq 1 32); do
+            [ "$s" = "$OSC_STRIP" ] && continue
+            CLOSE="$CLOSE Chan$(printf '%03d' "$s")MainOn001=0"
+        done
+        python3 s89_set.py "/home/app/$D" $CLOSE > /tmp/loopthd_close.$$ 2>&1 \
+            || { echo "MAIN-CLOSE WRITE FAILED -- the loop would be measuring"
+                 echo "the sum of every strip, not the tone:"
+                 sed 's/^/    /' /tmp/loopthd_close.$$
+                 rm -f /tmp/loopthd_close.$$; exit 2; }
+        echo "  loop path: $(( 32 - 1 )) other strips closed off MAIN"
+        rm -f /tmp/loopthd_close.$$
+        sudo pinctrl set 6,24 op dh
+    fi
     # The donor strip is part of the instrument and is NOT transparent out of
     # dsp4_config.py (S70-2/S70-3): its compressor is ON with a threshold near
     # -22 dBFS and would read as an analog overload. Both strips are cleared

@@ -28,12 +28,22 @@
 #
 #   ./loadlogic.sh maincap        33b6eb00a4e8, the transmit-stamp capture
 #   ./loadlogic.sh pisel          983656926e3e, the CPLD-only loop reference
-#   ./loadlogic.sh driveall       c49f4128a083, the DRIVEN-CAPACITY stimulus
+#   ./loadlogic.sh driveall       943f27966c28, the DRIVEN-CAPACITY stimulus
 #                                 (S19: every DSPA input lane carries the
 #                                 Pi's playback, so the graph can be
 #                                 measured under load for zero DSP cycles)
-#   ./loadlogic.sh shipping       7a6a4529f29c, THE STATE THE BENCH LIVES IN
+#   ./loadlogic.sh shipping       d02d83b3cc22, THE STATE THE BENCH LIVES IN
+#   ./loadlogic.sh shipping-s82   7a6a4529f29c, the label S82 adopted
 #   ./loadlogic.sh --id           what is on it now
+#
+# THIS LIST IS THE CASE STATEMENT'S, AND IT DRIFTED FROM IT (S91). Two of the
+# four names above were a label behind: `driveall` moved to 943f27966c28 and
+# `shipping` to d02d83b3cc22 at S85, and this header still named their
+# predecessors -- which are both still reachable, under `driveall-pre85` and
+# `shipping-s82`, so the stale text read as a correct one. A bitstream label
+# that says the wrong hash in the file that flashes it is the S11-1 shape in a
+# comment: check the case statement below, not this list, and fix this list
+# when they disagree.
 #
 # `shipping` MOVED AT S82, AND EVERY CONVERTER READING TAKEN BEFORE IT IS VOID.
 #
@@ -71,8 +81,15 @@
 # S78-3. A full-scale square therefore wrapped to 2 LSB and every driven row
 # taken before S77 was a silence row on 46 of chip 1's 48 input kernels.
 #
-#   driveall         c49f4128a083  the FIXED stimulus: bit-exact on every
+#   driveall         943f27966c28  the FIXED stimulus: bit-exact on every
 #                                  lane. Drive it at the amplitude you mean.
+#                                  MOVED AT S85 from c49f4128a083, to the
+#                                  build that carries the ad[0..2] witness
+#                                  the way shipping does; the DRIVE_ALL path
+#                                  itself is unchanged, and the S82 84.34 %
+#                                  D24 driven row was re-taken on it (S86,
+#                                  84.47 %) to prove that.
+#   driveall-pre85   c49f4128a083  what S79-S84's driven rows were taken on.
 #   driveall-pre78   14df62d98a4d  what every driven capacity row up to and
 #                                  including S78's bisect was taken on. Keep
 #                                  it to reproduce an old row; its stimulus
@@ -206,7 +223,7 @@ case "${1:-}" in
      echo "  resolve. It is not flashed again." >&2
      exit 2 ;;
   --id)     ssh $BENCH "cd /home/app/dspboot && python3 dsp4_logic_id.py"; exit $? ;;
-  *) echo "usage: $0 maincap|pisel|driveall|driveall-pre78|driveall-base|maincap-s36|pisel-s36|driveall-s36|shipping|--id" >&2
+  *) echo "usage: $0 maincap|pisel|driveall|driveall-pre85|driveall-pre78|driveall-base|maincap-s36|pisel-s36|driveall-s36|shipping|shipping-s82|--id" >&2
      echo "       (something NEW on the part goes through tools/pi/logic_flash.sh)" >&2
      exit 2 ;;
 esac
