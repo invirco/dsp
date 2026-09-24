@@ -126,6 +126,40 @@ confirm the net carried it, **if H1S1 published a cell reporting a pin's level**
 is `Sys001Enc001/Skin001/Test001/Test002`). That is now what prereq 2 asks for, in place of the assert-one-read-one
 command it used to ask for.
 
+## 3a. Against the two rulings the hub landed at 08:37–08:38 BST, mid-session
+
+**The untestable-rows ruling** (`mx26 docs/decision-mx26-mandates.md`, PW 2026-09-24) names this case itself:
+*"the spec asked the wrong question of a real, checkable signal (CS3/CS4's SPI_RDY case) is not untestable either
+— it needs a corrected test, not removal"*. Checked all eight rows against its taxonomy, and **none of them comes
+off the list**:
+
+| rows | category | stays or goes |
+|---|---|---|
+| CS1, CS2 | tested, PASS | stays |
+| CS3, CS4 | *wrong question of a real signal* | **stays — corrected test, which is this report** |
+| CS5, CS6 | *missing a capability that could be added* — an H1S1 cell reporting a pin level would test them | stays, `NO DATA` |
+| CS7, CS8 | *wrong question of a real signal* again — SWD_EN1/EN3 are live CM4 functions — but the corrected test needs tooling this project does not have (no SWD transaction in the runner, no CM4 GPIO recorded for either line, and driving them blind breaks the SWD channel select) | stays, `NO DATA`, and flagged — see 🔴 S100-2 |
+
+None is "dead/unpopulated hardware with no signal path at all" or a `DEF ITEM` with no node anywhere, which is
+the only category the ruling removes.
+
+**The fw.csv audit** queued behind this session (`mx26 pipeline.md` 08:38 BST) asks S100 to *"determine the
+correct CS3/CS4 declaration"*. What this session establishes is the **function** of each net; the **names** are
+PW's call, and the hub's own note says names are forever. So this is a proposal, not an edit — nothing in
+`defs/` was touched:
+
+| fw.csv row today | what it actually is | proposed |
+|---|---|---|
+| `DSP,Dsp3,,B14,CS3` | DSPA `SPI2_RDY` (`PB_05`) arriving at H1S1 `B14` as an **input**; CM4 `GPIO8` is the working end | the pin and net are right, the type and name are not — something like `RdyDspA`, notes "SPI2_RDY from DSPA, monitor only; H1S1 never drives it" |
+| `DSP,Dsp4,,B13,CS4` | DSPB `SPI2_RDY`; CM4 `GPIO12` | `RdyDspB`, same note |
+| `DSP,Dsp5,,C13,CS5` | spare select, no part fitted; the CM4's CS5 line carries `CS_M` on this unit (D8 amendment, proto wire) | keep as a provision; note the CS_M claim so nobody drives it |
+| `DSP,Dsp6,,B15,CS6` | the one genuinely idle select | keep as a provision |
+| `DSP,Dsp7,,C15,CS7` | `SWD_EN1`, CM4-owned (D8 amendment) | `SwdEn1`, notes "CM4 SWD channel select; H1S1 input only — an output here forces ch3" |
+| `DSP,Dsp8,,H0,CS8` | `SWD_EN3`, CM4-owned | `SwdEn3`, same note |
+
+`Dsp1`/`Dsp2` are correct as they stand, except that nothing in fw.csv records that **the CM4, not H1S1, is the
+master** of all eight nets.
+
 ## 4. The mechanism bug the rename exposed
 
 `item-status.csv` is append-only and keyed on `(board, item, test)`, so **a renamed test leaves its old results in
@@ -192,7 +226,21 @@ identically in both.
 
 Nothing in `defs/` was touched and `defs.lock` did not move.
 
-## 7. Unit left as
+## 7. Two calls left to PW, flagged not guessed
+
+**🔴 S100-1 — the fw.csv declarations above are a proposal.** The functions are established; the names are not
+mine to pick, and the hub's own queue note says names are forever. The audit it queued behind this session needs
+PW's word on `RdyDspA`/`RdyDspB`/`SwdEn1`/`SwdEn3` (or whatever he prefers) before anything moves in `defs/`.
+
+**🔴 S100-2 — CS7/CS8 are a real signal with no test in this runner, and that may be the wrong place for them.**
+They are the CM4's SWD channel select, not a DSP select at all. Three options, none of which S100 should pick
+alone: (a) leave them as `NO DATA` rows in the DSP self-test saying what they are, which is where this session
+left them; (b) give them a real test — it needs the CM4 GPIO numbers for SWD_EN1/EN3 recorded somewhere and an
+SWD transaction the runner can issue, neither of which exists today; (c) move them out of the DSP chip-select
+block in the workbook entirely, since a CM4 debug-mux select is not DSP-board wiring in any useful sense. (c)
+changes the row list, which is the workbook's and PW's call.
+
+## 8. Unit left as
 
 | | |
 |---|---|
