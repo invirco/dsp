@@ -1,0 +1,11 @@
+Fitter Status : Successful - Thu Sep 24 15:51:02 2026
+Quartus Prime Version : 21.1.1 Build 850 06/23/2022 SJ Lite Edition
+Revision Name : dsp4_logic
+Top-level Entity Name : dsp4_logic_top
+Family : MAX V
+Device : 5M1270ZT144C4
+Timing Models : Final
+Total logic elements : 882 / 1,270 ( 69 % )
+Total pins : 72 / 114 ( 63 % )
+Total virtual pins : 0
+UFM blocks : 0 / 1 ( 0 % )

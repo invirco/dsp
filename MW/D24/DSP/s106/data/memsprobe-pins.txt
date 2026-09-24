@@ -1,0 +1,6 @@
+mems_bck                     : 119       : output : 3.3-V LVTTL       :         : 2         : Y              
+mems_fs                      : 120       : output : 3.3-V LVTTL       :         : 2         : Y              
+mems_i2s                     : 121       : input  : 3.3-V LVTTL       :         : 2         : Y              
+mems                         : 137       : input  : 3.3-V LVTTL       :         : 2         : Y              
+conv_fs                      : 141       : output : 3.3-V LVTTL       :         : 2         : Y              
+conv_bck                     : 142       : output : 3.3-V LVTTL       :         : 2         : Y              
