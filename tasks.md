@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-24 14:23Z — S107 — catalog deploy-date stamp on the D24 SELF-TEST title   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-24 14:23Z — S107 — catalog deploy-date stamp on the D24 SELF-TEST title   [status: 🟢 done — stamp landed as `D24 SELF-TEST · 2026-09-24 14:49` (trimmed from the dispatch's literal example, which overflowed the TITLE box into QUEUEPOS — see MW/D24/DSP/s107/deploy-title-stamp.md 🔴 for the conflict and what a fuller shape would need); app rebuilt (dotnet publish linux-arm64 self-contained), deployed to app@192.168.1.219, md5-matched, rollback at /home/app/app.bak-s107-pre; on-glass capture confirms one line, no overlap.]   [model: sonnet]
 
 model: sonnet
 
