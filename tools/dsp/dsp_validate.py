@@ -137,7 +137,17 @@ EXTRA_PARAMS = {
     # outputs and on no other OUTPUT_TDM node, which is exactly the marker
     # gen_dsp.py::expand_output_tdm and dsp_codegen.py::gen_output_tdm key
     # on: no `mo_page`, no cells, no arithmetic, byte-identical emitted text.
-    'OUTPUT_TDM':     {'scope', 'signal', 'sport_slots',
+    #
+    # `sink` (S102): the PHYSICAL thing this output's slots reach on the
+    # product that scopes the node, where the lane's signal name does not
+    # say it. The same shape as TALKBACK's `invert_opt` -- one output's
+    # wiring, not a property of the type -- and it exists because SP1 spent
+    # three sessions reading as "no route to the speaker" when the route was
+    # there under another name: `C2_MON_OUT` slot 0 is `CODEC_OUT_1`, which
+    # is the AK4619's AOUT1L (pin 22), which is the D24 panel speaker feed.
+    # No generator reads it; it is a declaration, so that a search of the
+    # topology for the speaker finds the slot that is the speaker.
+    'OUTPUT_TDM':     {'scope', 'signal', 'sink', 'sport_slots',
                        'mo_page', 'mo_addr'},
     # `mtx_*` (S22 gate 1): the matrix sends and the SPI block they live in.
     # `mtx_page`/`mtx_addr` are a SECOND address block for one node -- the

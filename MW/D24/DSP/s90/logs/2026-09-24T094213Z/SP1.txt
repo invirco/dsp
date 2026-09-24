@@ -1,0 +1,37 @@
+=== 2026-09-24T09:42:43Z  NO DATA
+THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC injects at C1_IN_20 -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell (Chan020MainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv now declares it: sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT.
+
+AN_EN (GPIO26) = 26: op -- pd | lo // GPIO26 = output
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): False
+--- the route write (exit 0) ---
+--- other strips off MAIN ---
+inOn001           chip1 addr 3396   0x00000000  0.000000
+Chan025MainOn001           NOT IN CONTRACT
+Chan026MainOn001           NOT IN CONTRACT
+Chan027MainOn001           NOT IN CONTRACT
+Chan028MainOn001           NOT IN CONTRACT
+Chan029MainOn001           NOT IN CONTRACT
+Chan030MainOn001           NOT IN CONTRACT
+Chan031MainOn001           NOT IN CONTRACT
+Chan032MainOn001           NOT IN CONTRACT
+--- the route ---
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+Chan020Mute001             chip1 addr 2818   0x00000000  0.000000
+Chan020Level001            chip1 addr 2816   0x3F800000  1.000000
+Chan020Pan001              chip1 addr 2817   0x3F000000  0.500000
+Chan020CompOn001           chip1 addr 2792   0x00000000  0.000000
+Chan020GateOn001           chip1 addr 2776   0x00000000  0.000000
+Chan020TubeOn001           chip1 addr 2812   0x00000000  0.000000
+Chan020EqOn001             chip1 addr 2773   0x00000000  0.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Main001Mute001             chip2 addr 1381   0x00000000  0.000000
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+--- read back through the image's own dispatch table ---
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+--- MEMS lane, idle ---
+XIN_MEMS          46   736     7     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  STATIC
+PREREQUISITE: the analog rails (AN_EN = 26: op -- pd | lo; a dispatched session may not raise it -- bench note 19 / S49-15); a DSP4_TEST_NODES=1 pair (TEST_OSC's injection hook is inside that guard; the staged pair is the shipping pair). The route itself is not a prerequisite any more -- it is written above and read back above. What is left is a stimulus and a powered analog path.

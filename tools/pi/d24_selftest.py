@@ -1213,28 +1213,233 @@ def t_aspwr(r):
             'GPIO26, read here as: %s' % an)
 
 
+# --- the combined speaker + MEMS-mic test (S102) ----------------------------
+#
+# MM1 and SP1 are ONE measurement taken twice, not two tests: SP1 plays a tone
+# out the panel speaker and the ONLY thing that can hear it is MM1's MEMS mic,
+# sitting on the same Left Switch board. So one sequence runs -- idle capture,
+# tone on, tone off -- and the two rows take their verdicts out of it. They stay
+# two rows because they are two PARTS on the board inventory (56 the mic, 57 the
+# speaker) and a unit with a dead speaker and a live mic has to land on 57.
+#
+# THE ROUTE EXISTS AND ALWAYS DID (S102, correcting S90-P6). What was missing
+# was its NAME. The speaker is codec TDM slot 0 -- `C2_MON_OUT`'s left slot,
+# `signal=CODEC_OUT_1` -- which is the AK4619's AOUT1L on pin 22, the ONLY
+# codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67; AOUT1R,
+# AOUT2L and AOUT2R have their caps C20/C21/C22 DNP). From there:
+#
+#   U3.22 -> analog C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82
+#         -> TS482 (digital U32) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2
+#
+# and upstream of the slot the chain is ordinary graph:
+#
+#   C1_TEST_OSC (inject at C1_IN_nn) -> strip -> C1_RTG_nn main_on
+#     -> MAIN mix -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0
+#
+# Every hop has a contract cell: Chan<nn>MainOn/Level/Pan/Mute, Main001Level001,
+# Mon001Level001/002. The node graph now says so out loud -- `sink=SPKR` on
+# `C2_MON_OUT` (and `sink=DNP` on `C2_CODEC_AUX_OUT`, which reaches no fitted
+# part at all) -- which is why a search of the topology for the speaker no
+# longer comes back empty.
+#
+# TWO PREREQUISITES REMAIN AND BOTH ARE NAMED RATHER THAN WORKED AROUND:
+#   * the analog rails (AN_EN, CM4 GPIO26). A dispatched session never writes
+#     it (bench note 19 / S49-15). Without them the MEMS lane is dark and the
+#     TS482 has no supply, so neither half can read.
+#   * a DSP4_TEST_NODES=1 pair. TEST_OSC's injection hook is inside that guard,
+#     so on the shipping image the oscillator cells take writes and nothing
+#     reads them -- the same prerequisite AS-DAC carries.
+_SPKR_OSC_STRIP = 20              # S89's donor strip, for the same reason
+_SPKR_FREQ_HZ = 1000.0
+_SPKR_DRIVE_DBFS = -20.0
+_SPKR_MARGIN_DB = 20.0            # the spec's criterion
+_SPKR_RETURN_DB = 3.0             # tone off -> back within this of the floor
+_OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
+
+
+def _mems_row(rows):
+    hit = [x for x in rows if 'MEMS' in x]
+    return hit[0] if hit else None
+
+
+def _mems_rms(row):
+    """rxscan column 7 is the lane's rms in dBFS (same column t_asadc reads)."""
+    if row is None:
+        return None
+    try:
+        return float(row.split()[7])
+    except (IndexError, ValueError):
+        return None
+
+
+def _route_cells():
+    """The write that asserts the TEST_OSC -> speaker route, as one list.
+
+    Lifted from `dsp4_loop_thd.sh`'s proven route write, which exists because
+    the FIRST run of that leg measured the default configuration instead: the
+    donor strip's compressor is ON out of dsp4_config.py at about -22 dBFS
+    (S70-3), so a route that is not asserted still produces a plausible
+    number. Every write here is checked."""
+    osc = '%03d' % _SPKR_OSC_STRIP
+    close = ['Chan%03dMainOn001=0' % s for s in range(1, 33) if s != _SPKR_OSC_STRIP]
+    route = ['Chan%sMainOn001=1' % osc, 'Chan%sMute001=0' % osc,
+             'Chan%sLevel001=f1.0:4' % osc, 'Chan%sPan001=f0.5:4' % osc,
+             'Chan%sCompOn001=0' % osc, 'Chan%sGateOn001=0' % osc,
+             'Chan%sTubeOn001=0' % osc, 'Chan%sEqOn001=0' % osc,
+             'Main001Level001=f1.0:4', 'Main001Mute001=0',
+             # the speaker's own level word: C2_MON, the node that feeds
+             # C2_MON_OUT slot 0.
+             'Mon001Level001=f1.0:4', 'Mon001Level002=f1.0:4']
+    return close, route
+
+
+def _set(r, cells, timeout=300):
+    c = r.rsh('cd %s && python3 s89_set.py %s %s 2>&1'
+              % (r.a.stage, r.a.stage, ' '.join(cells)), timeout=timeout)
+    return c.returncode, (c.stdout + c.stderr).strip()
+
+
+def _spkr_capture(r):
+    """One run of the whole sequence, cached on the rig so MM1 and SP1 read
+    the SAME capture rather than scanning the lane twice and disagreeing."""
+    cached = getattr(r, '_spkr_cap', None)
+    if cached is not None:
+        return cached
+
+    cap = {'an': r.an_en(), 'route_rc': None, 'route_txt': '', 'probe': '',
+           'tone': None, 'back': None, 'osc_on': '', 'osc_off': ''}
+    idle_rows = _lane_rows(rxscan(r))
+    cap['idle_rows'] = idle_rows
+    cap['idle_row'] = _mems_row(idle_rows)
+    cap['idle'] = _mems_rms(cap['idle_row'])
+
+    # Is this a pair that can be driven at all? The symbol only exists inside
+    # `#if DSP4_TEST_NODES`, which is exactly the check dsp4_s49_osc.py makes
+    # before it refuses -- a shipping image would otherwise take every write
+    # and read back a number that looks like a measurement.
+    cap['testnodes'] = r.out(
+        'cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
+        'print(\'%s\' in j)"' % (r.a.stage, _OSC_SYM), timeout=60) == 'True'
+
+    # The route is asserted and PROVED whatever the rails do: these are SPI
+    # parameter writes through the image's own dispatch table, and the
+    # read-back is what turns "there is a route" from a claim into a reading.
+    close, route = _route_cells()
+    rc1, t1 = _set(r, close)
+    rc2, t2 = _set(r, route)
+    # s89_set.py exits 0 whatever it printed, so the exit code alone does not
+    # say the route was asserted. A name the contract does not carry, or a
+    # link that would not phase, has to fail LOUDLY here -- everything
+    # downstream would otherwise be a reading of the default configuration.
+    # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it
+    # walks strips 1-32 and a D24 has 24, so 25-32 have no cells.
+    bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
+        or 'NOT IN CONTRACT' in t2
+    cap['route_rc'] = 1 if bad else 0
+    cap['route_txt'] = ('--- other strips off MAIN ---\n%s\n--- the route ---\n%s'
+                        % (t1[-400:], t2[-800:]))
+    cap['probe'] = r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
+                         'Main001Level001 Chan%03dMainOn001 2>&1'
+                         % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
+
+    if cap['testnodes']:
+        cap['osc_on'] = r.out(
+            'cd %s && python3 dsp4_s49_osc.py --strip %d --freq %g --level %g '
+            '--symdir %s 2>&1' % (r.a.stage, _SPKR_OSC_STRIP, _SPKR_FREQ_HZ,
+                                  _SPKR_DRIVE_DBFS, r.a.stage), timeout=300)
+        tone_rows = _lane_rows(rxscan(r))
+        cap['tone_row'] = _mems_row(tone_rows)
+        cap['tone'] = _mems_rms(cap['tone_row'])
+        cap['osc_off'] = r.out('cd %s && python3 dsp4_s49_osc.py --off --symdir %s 2>&1'
+                               % (r.a.stage, r.a.stage), timeout=300)
+        back_rows = _lane_rows(rxscan(r))
+        cap['back_row'] = _mems_row(back_rows)
+        cap['back'] = _mems_rms(cap['back_row'])
+
+    r._spkr_cap = cap
+    return cap
+
+
 def t_mm1(r):
-    rows = _lane_rows(rxscan(r))
-    v, m, lim, ev = _lane_verdict(r, rows, 'MEMS', 'MEMS',
+    """The mic half: is the MEMS lane alive, and where does it idle. This is
+    also SP1's reference level, which is why it is one capture."""
+    cap = _spkr_capture(r)
+    v, m, lim, ev = _lane_verdict(r, cap['idle_rows'], 'MEMS', 'MEMS',
                                   'lane alive; idle floor within the declared window')
     return v, m, lim, ev + ('\nThe spec asks for the PDM clock as well as the lane, and nothing '
                             'on the CM4 reads it: the CPLD\'s lane witness counts cdc_o only -- '
                             'there is no counter on the MEMS group (bench note 31) -- so "lane '
                             'stuck" and "no PDM clock" are not separated by any read path that '
-                            'exists. A stuck 0xFFFFFFFF is what S79-2 recorded on this lane too.')
+                            'exists. A stuck 0xFFFFFFFF is what S79-2 recorded on this lane too.'
+                            '\nThis reading is the idle half of the combined SP1 capture (S102); '
+                            'SP1 measures the same lane with the tone on.')
+
+
+SPKR_ROUTE_NOTE = (
+    'THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is '
+    'codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 '
+    'pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: '
+    'C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = '
+    'digital J42.12 -> C82 -> TS482 (digital U32) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 '
+    '(mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC '
+    'injects at C1_IN_%02d -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> '
+    'C2_MON_OUT slot 0, every hop with a contract cell (Chan%03dMainOn001/Level001/Pan001/'
+    'Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv now declares it: '
+    'sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT.'
+    % (_SPKR_OSC_STRIP, _SPKR_OSC_STRIP))
 
 
 def t_sp1(r):
-    return (NODATA, 'no TEST_OSC -> SPKR route in the topology',
-            '1 kHz tone on the MEMS lane >= 20 dB above its idle floor',
-            'DEF ITEM, not a fixture (the spec\'s own disposition for this case). No node or '
-            'cell named for the speaker exists: zero hits for spkr/speaker in '
-            'defs/products/d24/dsp.csv and MW/D24/MX/_matrix.csv. SPKR0/SPKR1 are connector '
-            'pins only (d24-hw-inventory.csv:1075 Left Switch J2; :278 Analog J59). The path '
-            'is DSPB O2 = PLL8_1 = CDC_I -> AK4619 codec DAC -> TS482 amp on the Digital board '
-            '-> panels (hardware-map.md:157,439), so the speaker sits behind an ANALOG '
-            'amplifier fed by a codec DAC and there is no routable DSP output to name. '
-            'Compounded by the AS-DAC prerequisite: TEST_OSC needs DSP4_TEST_NODES=1.')
+    """The speaker half: with the route asserted, does the tone reach the mic.
+
+    Two prerequisites can stop this short and they are reported apart, because
+    they belong to different people: the rails are PW's (a dispatched session
+    never raises AN_EN) and the TEST_NODES pair is a build."""
+    cap = _spkr_capture(r)
+    lim = '1 kHz tone on the MEMS lane >= %g dB above its idle floor; tone off -> floor returns' \
+        % _SPKR_MARGIN_DB
+    an = cap['an']
+    rails = 'hi' in an
+    ev = ['%s\n' % SPKR_ROUTE_NOTE,
+          'AN_EN (GPIO%d) = %s' % (AN_EN_GPIO, an),
+          'DSP4_TEST_NODES pair (%s in chip1.sym.json): %s' % (_OSC_SYM, cap['testnodes']),
+          '--- the route write (exit %s) ---\n%s' % (cap['route_rc'], cap['route_txt']),
+          '--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'],
+          '--- MEMS lane, idle ---\n%s' % (cap['idle_row'] or 'no MEMS lane in the scan')]
+
+    if cap['route_rc']:
+        return (NODATA, 'the route write failed -- nothing downstream would be measured',
+                lim, '\n'.join(ev))
+    if cap['idle_row'] is None:
+        return NODATA, 'no MEMS lane in the scan', lim, '\n'.join(ev)
+
+    if not cap['testnodes'] or not rails:
+        missing = []
+        if not rails:
+            missing.append('the analog rails (AN_EN = %s; a dispatched session may not raise '
+                           'it -- bench note 19 / S49-15)' % an.split('//')[0].strip())
+        if not cap['testnodes']:
+            missing.append('a DSP4_TEST_NODES=1 pair (TEST_OSC\'s injection hook is inside '
+                           'that guard; the staged pair is the shipping pair)')
+        return (NODATA,
+                'route asserted and read back; waiting on %s' % ' and '.join(missing),
+                lim,
+                '\n'.join(ev) + '\nPREREQUISITE: ' + '; '.join(missing)
+                + '. The route itself is not a prerequisite any more -- it is written above '
+                  'and read back above. What is left is a stimulus and a powered analog path.')
+
+    ev.append('--- oscillator on ---\n%s' % cap['osc_on'])
+    ev.append('--- MEMS lane, tone on ---\n%s' % (cap['tone_row'] or 'gone from the scan'))
+    ev.append('--- oscillator off ---\n%s' % cap['osc_off'])
+    ev.append('--- MEMS lane, tone off ---\n%s' % (cap['back_row'] or 'gone from the scan'))
+    idle, tone, back = cap['idle'], cap['tone'], cap['back']
+    if idle is None or tone is None or back is None:
+        return NODATA, 'the scan did not give an rms for every leg', lim, '\n'.join(ev)
+    rise, ret = tone - idle, back - idle
+    m = 'idle %.2f dBFS, tone %.2f dBFS (+%.2f dB), back %.2f dBFS (%+.2f dB)' \
+        % (idle, tone, rise, ret, back, ret)
+    ok = rise >= _SPKR_MARGIN_DB and ret <= _SPKR_RETURN_DB
+    return (PASS if ok else FAIL), m, lim, '\n'.join(ev)
 
 
 # ---------------------------------------------------------------------------
@@ -1255,7 +1460,12 @@ def stage_setup(r):
     r.rsh("for f in %s/*.py; do ln -sfn \"$f\" %s/$(basename \"$f\"); done; "
           "ln -sfn %s/input_patch.json %s/input_patch.json" % (DSPBOOT, s, DSPBOOT, s),
           timeout=120)
-    for name in ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py'):
+    # s89_set.py and dsp4_s49_osc.py are the S102 speaker route's own two tools
+    # and NEITHER is in /home/app/dspboot -- the symlink loop above cannot find
+    # them, which is exactly the trap that made loopthd.sh's first run measure
+    # the default configuration and report PASS on a route it never asserted.
+    for name in ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py',
+                 's89_set.py', 'dsp4_s49_osc.py'):
         src = os.path.join(HERE, name)
         if os.path.exists(src):
             r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
