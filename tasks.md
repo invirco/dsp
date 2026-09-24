@@ -1,3 +1,89 @@
+## HUB DISPATCH 2026-09-24 10:05Z — S103 — raise AN_EN, stage TEST_NODES pair, get first real SP1/MM1 result   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S103 — raise AN_EN, stage a TEST_NODES pair, get the first real SP1/MM1 result
+
+S102 (this repo, `MW/D24/DSP/s102/spkr-mems-and-single-press.md`) built and
+deployed the combined speaker+MEMS-mic test and proved the route on the unit,
+but both `SP1` and `MM1` still read `NO DATA` behind two prerequisites
+neither of which a dispatched session could clear under the old rule. Both
+are now clearable: PW ruled today (`docs/decision-mx26-mandates.md`, "AN_EN
+may now be raised by a dispatched session, PW no longer needs to be
+present") that a dispatched session may raise `AN_EN` without PW physically
+present. **Read that mandate entry in full before touching the rails** —
+it lifts exactly one constraint and nothing else; every other bench
+discipline named in it (shipping CPLD stays in flash unless specifically
+authorised otherwise, the boot+config recipe still runs and proves the lane
+reads after any reset, the unit is left in a known SAFE state at handback,
+you name exactly what you did to the rails and confirm they were restored)
+stays in force precisely as before, with the same reporting rigor as every
+other dispatch.
+
+## What to do
+
+S102 §4/"the sequence to run, once the rails are up" already specifies this
+exactly — follow it, don't re-derive it:
+
+```bash
+# 1. build and stage a TEST_NODES pair (the loopthd arm already does exactly this)
+cd ~/dsp/MW/D32/DSP/SHARC && ARM=s103 DSP4_TEST_NODES=1 ./loopthd.sh   # builds + stages
+
+# 2. raise the rails — now permitted, per today's ruling
+ssh app@192.168.1.219 'sudo pinctrl set 26 op dh'
+
+# 3. one press on row 57 of the wizard, or from the bench host:
+cd ~/dsp && python3 tools/pi/d24_selftest.py --section C --only MM1,SP1
+```
+
+Expect (S102's own words): `MM1` PASS (the lane CARRYING with a real floor)
+and `SP1` PASS with a measured line of the shape `idle −xx.xx dBFS, tone
+−yy.yy dBFS (+zz.zz dB), back −xx.xx dBFS`. **This is an acoustic test** —
+the panel speaker has to actually be fitted (`lswitch J2`) and the bench
+has to be quiet enough for a 20 dB margin to read clean; if the unit's
+current physical state doesn't support that, say so plainly rather than
+force a reading.
+
+A FAIL is meaningful now (S102 built a real remedial line for it, walking
+the analog half from `U3.22` to the J2 lead) — a genuine FAIL is a real
+result and a fine outcome for this dispatch, it is not something to work
+around or re-run until it passes.
+
+## Known trap, already closed once — check it stays closed
+
+S102 found `s89_set.py` phasing fail (`IOError: cannot phase the parameter
+link`) on its first live run of the session, before the pair had come up
+cleanly. If the same thing happens here, that is diagnostic information
+about pair bring-up, not a reason to retry blindly — read what `SP1`
+reports (it distinguishes "the route write failed" from a real NO DATA) and
+say what actually happened.
+
+## Handback, exactly as S102 left it and the AN_EN mandate requires
+
+- Lower `AN_EN` back before finishing (state explicitly whether you did, and
+  what it read at the final check — S102's own "Unit as found" table is the
+  model for this).
+- Leave the unit in test mode as found (`d24-testui` active, `matrix-app`
+  inactive), SAFE image on the 595 chain, same as every prior session in
+  this series.
+- Do not flash the CPLD; the shipping pair in flash is untouched unless you
+  have a specific, separately-authorised reason.
+
+## Report
+
+State plainly, in an `MW/D24/DSP/s103/` report: the actual `SP1`/`MM1`
+result (PASS, FAIL, or still NO DATA and why), the exact rail sequence run
+and confirmed restored, whether the TEST_NODES pair built and staged
+cleanly, and a screenshot from row 57 on the glass the same way S102
+captured row 56/57 (`d24_touch_inject.py` press, then a capture) — a
+git-landed claim of PASS without the on-glass capture is not enough, per
+this whole project's own "verify on hardware, don't just report the build"
+discipline. Commit and push to `main` when done.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 09:25Z — S102 — combined speaker+MEMS-mic test (routing addition, AN_EN-blocked prerequisite named) plus single-press Start   [status: 🟢 done — **THE SPEAKER ROUTE WAS NEVER MISSING — IT WAS NEVER NAMED, and `SP1` now reads "route asserted and read back; waiting on the analog rails" on the glass instead of "no TEST_OSC -> SPKR route in the topology"; ONE PRESS runs a bus-exclusive test, witnessed on two section-C rows.** **The speaker is codec TDM slot 0** = `C2_MON_OUT`'s LEFT slot = `signal=CODEC_OUT_1` = the AK4619's **`AOUT1L` on analog `U3` pin 22**, **the only codec DAC output fitted on a D24** — `mx26 tools/netlist/parts.csv:67` says `C20`/`C21`/`C22` on `AOUT1R`/`AOUT2L`/`AOUT2R` are **DNP**, and the netlist backs it: net `G0209` has exactly two pins (`analog U3.22`, `analog C23.+`), then `SPKR` (`G3461`) `C23.-` → `analog J59.12` = `digital J42.12` → `C82` → **TS482 (`digital U32`)** → `SPKR0`/`SPKR1` → `lswitch J1.6/7` → `J2.1/2`. `d24-signals.csv:85` had said it in words all along — *"`CODEC_OUT_1..4` (talkback speaker; aux out L/R)"*. S90's zero hits for `spkr`/`speaker` were a **spelling problem, not a missing def**: the node that drives the speaker is labelled `Monitor Out`, after a pair of rear-panel TRS jacks it does not drive. Upstream every hop is ordinary graph with a contract cell — `C1_TEST_OSC` injects at `C1_IN_20` → strip → MAIN → `C2_MAIN_FDR` → `C2_MON` → `C2_MON_DLY` → `C2_MON_OUT` slot 0 — so **nothing needed inventing**. **What was added is the declaration**, in the only tier that owns DSP routing: `sink=SPKR` on `C2_MON_OUT` and `sink=DNP` on `C2_CODEC_AUX_OUT` in `MW/D32/DSP/SHARC/dsp.csv`, with `sink` added to `OUTPUT_TDM`'s `EXTRA_PARAMS` in `dsp_validate.py` (which **refuses** an unknown param key — the no-fallback policy is why the allowlist had to move first). Same shape as `TALKBACK`'s `invert_opt` (S71): one output's wiring, not a property of the type. **Byte-neutral on every generated artefact** — `./regenerate-dsp-contract.sh` clean, `git status` showed exactly those two files, no cell/address/matrix row/SHARC source moved, `defs.lock` unmoved at `defs-v2026.09.19.3`, **nothing written into `defs/`**, and **no contract bump owed** because no generated output changed. `check-contract-drift.sh` clean. **S90-P6's hold on S89-2 is RELEASED**: `AOUT1R`, `AOUT2L`, `AOUT2R` are the three DNP outputs and they are exactly `C2_MON_OUT` slot 1 and both `C2_CODEC_AUX_OUT` slots, so the two undriven codec slots reach **no fitted part** and cannot hold SP1 up; slot 0 is driven and S89 measured it clean to −110 dBc. **Combined-test decision: ONE runner sequence, TWO catalog rows.** One sequence because `MM1`'s idle floor **is** `SP1`'s reference — `_spkr_capture()` runs idle → route → tone → off once and caches it, and `t_mm1`/`t_sp1` take their halves, so the two can never disagree about the same lane. Two rows because 56 and 57 are two **parts** on the inventory sheet and S101 established the item names are the acceptance keys: a unit with a live mic and a dead speaker has to land on 57. **`SP1` LEFT `NO_FAIL_TESTS`** — the only row that ever has — so row 57 is off the permanently-amber list (9 rows now, was 10), it has a real FAIL branch and an authored remedial line walking the analog half from `U3.22` to the J2 lead (30 of 204 rows carry one, was 29). **Two traps closed**: `s89_set.py` and `dsp4_s49_osc.py` are **not** in `/home/app/dspboot` (confirmed on the unit) so `stage_setup` now copies them explicitly — the exact trap that made `loopthd.sh`'s first run report PASS on a route it never asserted (S89e); and `s89_set.py` **exits 0 whatever it printed**, so the check is on the text (`Traceback` in either write, `NOT IN CONTRACT` in the route write). That check earned its place on the session's FIRST live run: the pair had not come up, every write raised `cannot phase the parameter link`, and `SP1` reported **"the route write failed — nothing downstream would be measured"** rather than a reading. **Live, `--section C --only MM1,SP1`, pair booted, `s89_signbit` CLEAN both lanes**: the route write and its read-back are in the evidence — `Mon001Level001` chip2 addr **1789** `0x3F800000`, `Mon001Level002` 1790, `Main001Level001` 1379, `Chan020MainOn001` chip1 2820 `0x1` — **written and given back through the image's own dispatch table**, with the MEMS lane row `XIN_MEMS … −186.64 dBFS … ffffffff ffffffff ffffffff STATIC` beneath it. **MM1 unchanged** (`1 MEMS lanes all STATIC with AN_EN lo`) — the mic half is still rails-blocked and this session did not pretend otherwise. **🔴 WHAT IS LEFT FOR A PW-PRESENT SESSION, and neither is a def**: (1) **`AN_EN` up** — CM4 GPIO26, `lo`, never written by a dispatched session (bench note 19 / S49-15) and never written here, read `lo` at the start and end of every run; (2) **a `DSP4_TEST_NODES=1` pair** — `TEST_OSC`'s injection hook is inside that guard and the staged pair is the shipping pair, the same prerequisite `AS-DAC` carries. The exact sequence is in the report: `ARM=s102 DSP4_TEST_NODES=1 ./loopthd.sh` to stage, `sudo pinctrl set 26 op dh` (**PW only**), then one press on row 57 or `python3 tools/pi/d24_selftest.py --section C --only MM1,SP1`. It is an **acoustic** test — speaker fitted in `lswitch J2`, panel assembled, room quiet enough for a 20 dB margin. **SINGLE PRESS, live on two bus-exclusive rows**: `_armedKey` and its two resets gone, the arming branch out of `StartSelected()`, `"CONFIRM — STOPS THE APP"` out of `StartLabel()`, `"PRESS START AGAIN TO CONFIRM."` out of both `RunNote()` branches, the catalog's short line `"press START TEST twice"` → `"press START TEST"`, and `preview-d24-test-skin.py` mirrored so the offline prediction still matches. **The instructional text stays** — the page still says the run stops the mixer. **163/163 green** (164 − the layout case for a label that no longer exists). On the glass: **one** tap on `START` at `#56` → status tile `RUNNING`, button `RUNNING…`, `started MM1 at 10:52:21 in d24-selftest.service`, `systemctl is-active d24-selftest` = **active**; the same at `#57`; `matrix-app` **inactive throughout** and `d24-testui` never left the technician. **🔴 S102-1, found by the pin map and NOT caused by this session**: S89's TRS leg loop-cabled *"Monitor L out → MIC 6"* and filed the reading under `C2_MON_OUT` slot 0 — but that slot's net has **exactly two pins** and continues to the speaker amplifier and **nowhere else**, so **there is no jack on that path**. The −2.72 dBu figure belongs to a different output, and its *"~20 dB low is not a fault, it is a codec DAC"* explanation rests on the wrong converter. Which node feeds the rear `Monitor Out L/R` jacks was NOT established here. **🔴 S102-2**: `C2_CODEC_AUX_OUT` reaches **no fitted part** on a D24 — recorded as `sink=DNP` and nothing else, because removing the node moves the chip-2 TX gather; `mx26 docs/d24-signals.csv` still describes the lane as carrying "aux out L/R". Hub's call. **🔴 S102-3**: `MM1` still cannot separate "lane stuck" from "no PDM clock" — no counter on the MEMS group (bench note 31), carried forward unchanged. Deployed and md5-matched: app `998a12bf…` (rollback `app.bak-s102-pre`, `1e1e412c…`), catalog `eebeeb3f…`, runner `4e359f9b…`, plus `s89_set.py`/`dsp4_s49_osc.py`; **skin regenerated byte-identical (`f517539d…`) and not redeployed**. Report `MW/D24/DSP/s102/spkr-mems-and-single-press.md` with four captures; specs `spec-d24-selftest.md` (prereq 5 withdrawn, both rows, the gating table) and `spec-d24-test-skin.md` (single press, `NO_FAIL_TESTS` down to eight, row 57 off the amber list). **Unit as found**: test mode (`d24-testui` active, `matrix-app` inactive), **AN_EN never raised**, `CS_M ip pu`, no CPLD flashed, capture drop-in removed and checked against the running process's own `/proc/…/environ`, injector killed and `/tmp/tap` removed.]   [model: opus]
 
 model: opus
