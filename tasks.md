@@ -1,3 +1,97 @@
+## HUB DISPATCH 2026-09-24 15:54Z — S108 -- AK4619 DAC/output path deep dive, no signal at pin 22   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S108 — the AK4619's DAC/output path has never been verified. Deep dive it.
+
+PW, live at the bench: no signal at `AK4619 U3 pin 22` (`AOUT1L`) itself —
+the codec's own output pin, before even C23. S103's TEST_OSC proof and
+`CC1`/`CC2` only ever verified the codec's **control interface** (register
+writes/reads over SPI, via `CS_C`/H1S1) and the **DSP-side digital signal**
+(correctly computed and routed to the TDM slot the codec is meant to read).
+**Neither proves the codec's DAC actually converts that data to an analog
+voltage.** PW's own words: "we didn't test any codec outputs yet, only
+inputs, so i suggest a deep dive there first." Every prior analog test on
+this board (the whole mic-preamp/EIN/gain-law effort) exercises the codec's
+**ADC** side. The **DAC** side has never been asked a question until today.
+
+## Already checked, don't re-derive
+
+- **Not a power/rail issue.** The codec's entire supply is `+3V3` on pins
+  3/18/21 (net `G2408`), ground on 4/19/20/33 (`G2607`) — the full pin list
+  confirms no separate analog supply pin, and `+3V3` is `PSU_DIG_EN`-gated,
+  not `AN_EN`. `AN_EN` has been low for every speaker test today and this
+  rules out that being why — don't raise it chasing this.
+- **The signal path, verified against the live netlist**: `U3.22 (AOUT1L)
+  → C23 → net SPKR → J59.12=J42.12 → C82 → TS482 → panel speaker`. Nothing
+  at C23 or U3.22 either — checked in that order, both clean/negative.
+- **The control interface works.** `CC1`/`CC2` (`MW/D24/DSP/accept/item-
+  status.csv`) already PASS: register 05H reads back exactly what was
+  written, both the init value and a live changed value with restore. The
+  part responds to its SPI bus correctly.
+- **`StartAK4619()`'s init image** (H1S1, `~/build-h1s1/Core/Inc/matrix.cs`,
+  decoded in earlier dsp session notes): `{0xC3, 0x00,0x00, 0x37, 0xAC,
+  0x10, 0x00, 0xBB, 0xBB, 0x30,0x30,0x30,0x30, 0x00, 0x00,0x00,0x00, 0x18,
+  0x18,0x18,0x18, 0x04, 0x05, 0x0A}` = write starting 00H: `00H=0x37`
+  (RSTN, PMDA1/2, PMAD1/2 all on — the DAC power bits, per the name, are
+  claimed ON), `01H=0xAC` (TDM mode), `04H/05H=0xBB` (mic gains). **This
+  was decoded for the ADC/TDM-mode question at the time (S69) and never
+  re-checked specifically for whether it correctly configures the DAC
+  output path** — PMDA on is a claim in a write, not a verified state.
+- `RST_C` = S MCU PA11, pulsed once at H1S1 init, not written since.
+
+## Do this
+
+1. **Find the actual AK4619 datasheet.** None is currently staged locally
+   (an earlier session had one at `/tmp/ak4619.pdf` on this machine, not
+   preserved). Check Dropbox `_Matrix` more broadly than the hub already
+   did, check whether this machine (unlike the fx spoke) can reach the
+   vendor site, or say plainly if it's genuinely not available and name
+   exactly what's blocked without it.
+2. **Read back, don't just re-read the init write.** Every DAC-relevant
+   register live on the part right now: power management (the PMDA1/2 bits
+   and whatever else the map shows for the DAC section specifically, not
+   just ADC), DAC mute, DAC output data format/TDM slot select, any
+   DAC-specific master/slave clock or de-emphasis control. Confirm the
+   *live* state matches what the init claims — a write that took but a
+   register that drifted, or a bit the init sequence never actually
+   touched, would look identical to this failure from the outside.
+3. **Confirm the TDM slot alignment is right for the DAC's OWN input**,
+   separately from the ADC-side slot mapping S69 already settled (S69-1
+   found the ADC channel mapping was NOT what was assumed — check whether
+   the DAC side has the same kind of unverified assumption). `C2_MON_OUT`
+   slot 0 is what the DSP transmits to; confirm that's genuinely the slot
+   the codec's DAC section is configured to read, not assumed from the
+   slot map doc (`slot-map.csv` already has one contradiction on record,
+   S106-2 — treat its DAC-side entries with the same suspicion until
+   checked against the part directly).
+4. **If the registers all check out correctly**: this becomes a hardware
+   question — RST_C timing/polarity actually correct at power-up, the part
+   itself, or a board-level defect on U3's own pins/pads. Say so plainly
+   rather than keep hunting in registers past the point they've stopped
+   being informative.
+5. Coordinate with PW at the bench the same way S106 did — this is real
+   hardware, PW is present and probing; a register-level finding that
+   suggests a next physical measurement is exactly the kind of thing to
+   hand back for PW's own multimeter/scope, not something to guess at
+   from software alone.
+
+## Report
+
+State plainly: what the datasheet search found, the live register readback
+for every DAC-relevant bit and whether it matches the init's claim, the TDM
+slot check, and — if nothing in the digital/register domain explains it —
+say clearly that this is now a hardware-level question and name the next
+physical measurement. `docs/bd3201`-style precision: measured, not guessed,
+and a real negative result ("registers are correct, so it isn't this") is
+as valuable as a positive one. Commit and push to `main`. Unit handback:
+same discipline as every session today — AN_EN untouched, no CPLD flash,
+SAFE state, named plainly.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 14:39Z — S106 — root-cause the dead MEMS mic lane, bench tools not the wizard   [status: 🟢 done — **ROOT CAUSE FOUND, AND IT IS NOT THE MICROPHONE: the CPLD reads the MEMS lane off PIN 137 (`LOGIC_MEMS`), a net that dies at `digital J18 P26` with no load, while the panel mic's data arrives on PIN 121 — and pins 119/120 (`M_BCK`/`M_FS`, the bit clock and frame sync the PDM bridge `digital U13` runs on) are left as RESERVED INPUTS, so U13 has never been clocked in any bitstream this bench has carried.** `qsf:107` is `set_location_assignment PIN_137 -to mems` and `rtl:783` is `assign i_dspa[7] = mems;`, a plain wire; the FITTER'S OWN pin report (the authority the S34 trap note says to trust over the qsf text) reads `RESERVED_INPUT_WITH_WEAK_PULLUP : 119 / 120 / 121` and `mems : 137 : input`. That assignment entered in **`3b48f468` (2026-07-31**, the first real pin set, read off the schematic sheet) and `git log -S` returns that ONE commit — the qsf has had no commit since 2026-09-15, so this holds for EVERY bitstream, which is exactly why **S103-3 is explained: `MM1` has never passed anywhere because the lane was never wired up.** The netlist trace that found the stub is dated 2026-09-11 (`mx26 docs/d24-netlist-global.md:468-472`, *“the net actually named `MEMS` is vestigial”*) and **S103-4 flagged it as a trap for the next reader — it had already caught the RTL.** **THE PART IS CARRYING THAT BITSTREAM**, read off it this session with no flash: `dsp4_logic_id.py --expect 83b3cc22` → `design_id: 32'h83b3cc22 cfg_bits: 16'h0010 SHIPPING MATCHES`, i.e. `dsp4_logic.d02d83b3cc22`. **THE MEASUREMENT AND ITS CONTROLS, fresh this session, 32 reps, signed pair `candidate-s82`, all three rxscan controls `[ok]`: THREE lanes whose CPLD input pin has no driver return the IDENTICAL constant and every lane that has a driver returns something else** — lane 3 `IN_25..32` (`ni[3]`, option slot 1 empty), lane 5 `XIN_SNK_01..08` (snake, not fitted) and lane 7 `XIN_MEMS` all read `ffffffff ... STATIC −186.64 dBFS`, while lanes 0/1/2 (AK5558 ×3) and lane 4 (AK4619) carry 20-32 distinct values of converter dither and lane 6 (Pi, CPLD-driven) reads `00000000`. −186.64 dBFS is `20·log10(1/2^31)` — the word is −1, every bit set. S86's archived handback scan (different session, different symbol map, earlier pair) shows the same three groups at the same value. **`0xFFFFFFFF` is the reading of an unconnected CPLD input, not of a microphone**, and none of S103's four candidates (ribbon / LVDS pair / PDM clock / mic) is exonerated or convicted — nothing on this unit has ever asked any of them a question. **DISPATCH §1, a clean negative: there was no cheaper read and there could not be.** The `cdc_o` and `ad[0..2]` witnesses cannot see the MEMS group (`AD_BANKS = 6`; bank 6 does not exist) — bench note 31 is correct — **and a MEMS bank would have been USELESS anyway: a counter on `mems` counts pin 137 and would have answered “stuck high, zero toggles”, read as a dead mic.** `digital U30`/`U31` (SN65LVDS1 driver / SN65LVDS2 receiver) are 5-pin parts with all five accounted for in the netlist (VCC, GND, the differential pair, the single-ended side) — **no LOCK or status pin exists to read.** The CPLD test points land on the DNP header `digital J15`. **DISPATCH §2: a CPLD counter is NOT required** — both halves of what it would have separated are already answered (there is no PDM clock because there is no bit clock into the bridge that generates it; the mic's state is unknown and unasked). What IS required is the bring-up: `mems` → PIN_121, and two new outputs `bck8`/`fs8` on PIN_119/120 — **and NO new counter, because the DSP's own RX DMA is the instrument** (if U13 is alive, lane 7 stops reading `0xFFFFFFFF` in `dsp4_rxscan.py`). **Feasibility-built in a SCRATCH COPY — nothing in the tree modified, nothing flashed: map/fit/STA successful, TIMING MET, 882/1,270 LE (69 %, the SAME count as shipping), 72 pins, Fmax 67.43 MHz** against a 49.152 MHz sysclk. Bus-fight check per S34: `U3.119`/`U3.120` are the ONLY active pins on `M_BCK`/`M_FS`, so driving them fights nothing, and pin 137 falls back to the global unused-pin reservation onto a net that reaches no load. **DISPATCH §3, said plainly rather than performed: the acoustic check was NOT tried and could not have shown anything** — it would have been measured through a pin connected to nothing, and with no bit clock into U13 there is no PDM clock at the capsule either, so it is not converting. It becomes a real test the moment the probe is on the part, and is the right SECOND test then. **DISPATCH §4: rails NOT raised and not needed** — S103 §3.3 already showed no AN_EN-gated rail is in this chain and this session reads a pin map; `AN_EN` was never written, `26: op -- pd | lo` at start and at handback. **DISPATCH §5: the speaker-by-ear check is PREPARED, NOT RUN** — it needs PW at the bench and a dispatched session cannot open a question, so the full copy-pasteable recipe is in the report §4.5 (boot `/home/app/loopthd/s103`, the S102/S103 route write, `dsp4_s49_osc.py --strip 20 --freq 1000 --level -20`). It needs the TEST_NODES pair because `TEST_OSC`'s hook is inside that guard and the pair booted now is the signed `candidate-s82`. **🔴 FOR PW: say the word and it runs.** **🔴 S106-1**: implementing the fix RENAMES THE SHIPPING BITSTREAM LABEL — `build.sh`'s `SRC_HASH` covers `rtl/*.v` and the qsf, so even an `ifdef` the shipping build compiles out produces a new label while the part carries `d02d83b3cc22`. That is the “two bitstreams, one story about what is on the part” failure the hash-labelling doctrine exists to prevent, so the tree was LEFT UNTOUCHED; the diff is ~15 lines and ready on the hub's word. **🔴 S106-2**: **what part IS `digital U13`?** `mx26 src/hw/d24-hw-ics.csv:12` says **ADAU7002**, `tdm-lines.csv:9` / `slot-map.csv:54` / the RTL comment say **ADAU7302** — different devices, and whether it can place its output in TDM8 slot 5 or only emit stereo I2S decides the rest of the fix (if it slots, `bck8`/`fs8` is the whole change; if stereo-only, LOGIC must re-frame it as `dsp4_pcm_reframe.v` already does for the Pi link, and `slot-map.csv:54` is wrong and owes a contract bump). Could not be settled here — analog.com blocks curl AND WebFetch from this machine and neither datasheet is in `_Matrix`. Wants a datasheet, `R42`'s fitted value off the board, or PW's word. **The probe build is framing-agnostic and does NOT wait on this; the product fix does.** **🔴 S106-3**: **`strap_d32` reads HIGH on a D24** — `rtl:781` is `i_dspa[5] = strap_d32 ? snake_in : 1'b0`, lane 5 should be a hard `0x00000000` like the Pi lane and instead reads `0xFFFFFFFF` = `snake_in` (PIN_109, the one pin with an explicit `WEAK_PULL_UP`). So `S4` (PIN_70, S-MCU, documented PROVISIONAL) sits high and `snake_out`/`dac_main` are DRIVEN rather than high-Z — which is precisely what the S36 comment says must not happen on a D24 so a card in option slot 2 owns its own lanes. Slot 2 is empty today; fit a card and something fights. **🟡 S106-4**: the stale-symbol-map trap fired again — run against the wrong map `dsp4_rxscan.py` prints all three controls `[ok]` and a full table of `0x00000000 STATIC`; only the `?` in the node column catches it. **CATALOG ROWS NOT TOUCHED** (moving a verdict is the hub's call): `MM1` FAIL is describing the DESIGN, not MW-D24-2, and the glass's remedial line sending a technician to the panel ribbon first is now a known wasted trip; `SP1` NO DATA stays correct for a sharper reason — its only instrument reads a pin that is not connected to anything. **UNIT AS HANDED BACK: NOTHING CHANGED — every tool run this session was read-only.** Test mode as found (`d24-testui` active, `matrix-app` inactive), `AN_EN` never written and confirmed `lo`, `CS_M 27: ip pu` never written, 595 chain NOT written (left as S103's SAFE handback left it), CPLD not flashed and confirmed on the part by design-ID read-back, DSP pair not booted (only peeked), `/home/app/loopthd/s103` still staged for the speaker check, runner/app/catalog/skin untouched, `defs.lock` unmoved at `defs-v2026.09.19.3` so **no contract bump owed**. Report `MW/D24/DSP/s106/mems-lane-root-cause.md` with the full 47-lane scan and the scratch build's fitter output.]   [model: opus]
 
 model: opus
