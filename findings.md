@@ -6,6 +6,80 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CODEC'S DAC IS FED A CONSTANT ZERO BY THE CPLD (2026-09-24, session 108)
+
+Hub dispatch `tasks.md` 2026-09-24 15:54Z. Dispatched to deep-dive the AK4619's
+DAC/output path after PW measured nothing at `U3.22 (AOUT1L)` at the bench.
+Report: `MW/D24/DSP/s108/dac-path-root-cause.md`.
+
+**S108-1 🔴 `assign cdc_i = strap_d32 ? 1'b0 : o_dspb[2]` AND `strap_d32` IS
+HIGH ON A D24, SO THE CODEC'S SDIN1 HAS ALWAYS BEEN TIED TO ZERO.**
+`rtl/dsp4_logic_top.v:792`, unconditional, one commit in its history
+(`e9b0f7da`, the original routing top) — so this is every bitstream this bench
+has ever carried. The strap reading is measured, not inherited: `rtl:781` is
+`i_dspa[5] = strap_d32 ? snake_in : 1'b0`, and on the shipping bitstream
+(`design_id 32'h83b3cc22`, read off the part, no flash) lane 5 reads
+`0xFFFFFFFF` = `snake_in`'s weak pull-up, where a low strap would give the hard
+`0x00000000` that lane 6 shows. **The codec converts a constant, `AOUT1L` sits
+at its DC bias, and that is the entire symptom.** The ADC side works because
+`i_dspa[4] = cdc_o` is a plain wire with no strap — every test this codec has
+ever passed was an ADC test, and the strap gates only the send path. **The
+codec is not at fault:** all 21 registers read back live and equal the init
+image byte for byte, with PMDA1/2 = 1, RSTN = 1, DAC volumes at `0x18` = 0.0 dB
+(Table 19 — *not* the ADC's law, whose zero is `0x30`), `DA1MUTE`/`DA2MUTE` = 0,
+TDM256 I2S with `SLOT` = 1, `FS` = 000 matching a board that ties BICK and MCLK
+to one net, and `DAC1SEL` = SDIN1. Per datasheet Table 8 the part is in Normal
+operation, so `U3.22` must idle at AVDD/2 ≈ 1.65 V — the measurement that
+confirms it from the analog side.
+
+**S108-2 🔴 `12H` IS THE RESET DEFAULT AND THE DEFAULT IS WRONG FOR THIS
+BOARD — THE AUX OUTPUTS CANNOT WORK EITHER.** `DAC2SEL` = 01 selects **SDIN2**,
+and datasheet 9.3 says input on SDIN2 is *ignored* in TDM mode, while the
+netlist says `U3.2` is **N/C** (`G3619`) — the datasheet's own unused-pin rule
+asks for it to be tied to VSS2. So `AOUT2L`/`AOUT2R` = `CODEC_OUT_3/4` = aux out
+L/R are fed from nothing, independently of S108-1, and would still be silent
+after it is fixed. One byte: `matrix.cs` `ak4619[]` index 21, `0x04` → `0x00`.
+Not made here — H1S1 firmware, needs a flash.
+
+**S108-3 🔴 THE D24/D32 PERSONALITY STRAP HAS NO DEFINED LEVEL.** `PIN_70` is
+net `M MCU_S4` = `G2737`, and the netlist gives it exactly **two pins**: the
+CPLD and `U8.11` (M MCU, STM32G031C8T6, DSP card). No pull resistor on the net,
+no `WEAK_PULL_UP`/`DOWN` on the pin in the qsf, and MAX V I/O offers weak
+pull-*up* only, so the CPLD cannot supply a pull-down. The level is whatever MH1
+does with `U8.11` — and the M MCU's documented job is the S0–S31 matrix
+signalling bus, so if `S4` is a live signalling line the strap may be **toggling
+at runtime**, not merely stuck. Cheapest fix is MH1 driving it low (firmware
+only, no CPLD flash, no new bitstream label); a pull-down on the net is the
+belt-and-braces. Blocked on MH1's source, which is not on this machine.
+
+**S108-4 ONE CAUSE, THREE SYMPTOMS, AND THE THIRD IS A LATENT HAZARD.** The same
+strap leaves `snake_out` (PIN_110) and `dac_main` (PIN_111) **driven** on a D24
+instead of high-Z (`rtl:823/824`) — precisely what S36-4's fix exists to
+prevent so a card in option slot 2 owns its own lanes. Slot 2 is empty today;
+fit a card and two drivers fight. S106-3 saw the strap and read only the
+cosmetic lane-5 symptom from it.
+
+**S108-5 THE AK4619 DATASHEET IS NOT MISSING, AND akm.com IS NOT BLOCKED.**
+200900082-E-00 (2021/06, 73 pages) fetches with plain `curl` from
+`https://www.akm.com/content/dam/documents/products/audio/audio-codec/ak4619vn/ak4619vn-en-datasheet.pdf`
+(HTTP 200, md5 `57b8e7a0c41cdffe4b1336b4bf92e6d2`), byte-identical to the copy
+already on this machine at `~/Stonepower Dropbox/Peter Watts/_mx/_0/tools/PCBA/
+ConsoleApp1/bin/Debug/net6.0/PCBA/Datasheets/Codec AK4619.pdf`. S106's note that
+analog.com blocks curl and WebFetch is true and does **not** generalise to other
+vendors. **Trap:** `file` reports the local PDF as "3 page(s)" because it is
+RC4-encrypted for copy-protection; `pdfinfo` says 73 and `pdftotext` extracts it
+all. Do not discard the file on the `file` line.
+
+**S108-6 THE DISPATCH'S PIN LIST OMITS THE TWO PINS THAT WOULD KILL EVERY ANALOG
+OUTPUT AT ONCE.** `U3.5` is **AVDRV**, the internal 1.2 V LDO output, and `U3.17`
+is **VCOM** (½ × AVDD, the output bias) — each needs a 2.2 µF cap to ground and
+nothing else. Both are fitted and correct here (`G0202` = `U3.5` + `C18.1`;
+`G0211` = `U3.17` + `C19.1`), so neither is a candidate, but they belong on the
+list. Also: the dispatch's "no separate analog supply pin" is wrong — `U3.18` is
+**AVDD** and `U3.3` is **TVDD**, two different supplies tied to the same `+3V3`,
+which is what the datasheet asks for. The conclusion (not a rail problem, `AN_EN`
+not in it) survives; the reasoning should not be inherited.
+
 ## THE MIC LANES WERE NEVER DARK: `_buf_C1_IN_nn` IS A SYMBOL NO BLOCK-KERNEL BUILD WRITES (2026-09-20, session 86)
 
 Hub dispatch `tasks.md` 2026-09-20 15:05Z. Dispatched to bisect chip 1's

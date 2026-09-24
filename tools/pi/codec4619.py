@@ -349,15 +349,41 @@ def decode(image=None):
                % (r[13], (r[13] >> 7) & 1, (r[13] >> 6) & 1, (r[13] >> 5) & 1,
                   (r[13] >> 2) & 1, (r[13] >> 1) & 1))
     for i, name in ((14, 'DAC1 L'), (15, 'DAC1 R'), (16, 'DAC2 L'), (17, 'DAC2 R')):
-        out.append('%02XH %02X  %s digital volume' % (i, r[i], name))
-    out.append('12H %02X  DAC input select: DAC2SEL=%d DAC1SEL=%d'
-               % (r[18], (r[18] >> 2) & 3, r[18] & 3))
+        out.append('%02XH %02X  %s digital volume (%s)'
+                   % (i, r[i], name, voldac_db(r[i])))
+    # DAC source mux, Tables 17/18. THE DEFAULT IS WRONG FOR THIS BOARD and the
+    # decode says so: in TDM mode only SDIN1 carries data (datasheet 9.3 -- "input
+    # data on the SDIN2 pin is ignored"), and on the D24 analog PCBA U3.2 (SDIN2)
+    # is N/C. So a DAC whose mux still points at SDIN2, which is what reset leaves
+    # DAC2 at, is fed from nothing at all and its two AOUT pins are silent.
+    dsel = {0: 'SDIN1', 1: 'SDIN2', 2: 'SDOUT1 (ADC loopback)',
+            3: 'SDOUT2 (ADC loopback)'}
+    _d2, _d1 = (r[18] >> 2) & 3, r[18] & 3
+    tdm = (r[1] >> 7) & 1
+    out.append('12H %02X  DAC input select: DAC1SEL=%d (%s)%s  DAC2SEL=%d (%s)%s'
+               % (r[18], _d1, dsel[_d1],
+                  '  <-- DEAD SOURCE IN TDM MODE' if (tdm and _d1 == 1) else '',
+                  _d2, dsel[_d2],
+                  '  <-- DEAD SOURCE IN TDM MODE' if (tdm and _d2 == 1) else ''))
     out.append('13H %02X  DAC de-emphasis: DEM2=%d DEM1=%d'
                % (r[19], (r[19] >> 2) & 3, r[19] & 3))
     out.append('14H %02X  DAC mute/filter: ATSPDA=%d DA2MUTE=%d DA1MUTE=%d DA2SD=%d DA2SL=%d DA1SD=%d DA1SL=%d'
                % (r[20], (r[20] >> 7) & 1, (r[20] >> 5) & 1, (r[20] >> 4) & 1,
                   (r[20] >> 3) & 1, (r[20] >> 2) & 1, (r[20] >> 1) & 1, r[20] & 1))
     return '\n'.join(out)
+
+
+def voldac_db(code):
+    """DAC digital volume, datasheet Table 19 / Table 22.
+
+    NOT the same law as the ADC's, and the difference is a whole 0x18 of offset:
+    0x00 = +12.0 dB, 0x18 = 0.0 dB (default), 0xFF = mute, half a dB a step. The
+    ADC's zero is 0x30. Reading a DAC image against voladc_db() would call the
+    part's own default +12 dB and a genuine +12 dB setting 0 dB, so the two
+    tables are kept apart deliberately."""
+    if code == 0xFF:
+        return 'MUTE'
+    return '%+.1f dB' % ((0x18 - code) * 0.5)
 
 
 def voladc_db(code):

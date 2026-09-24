@@ -1,0 +1,42 @@
+00H -> 0x37   guard 0x43   ANSWERED
+01H -> 0xAC   guard 0x43   ANSWERED
+02H -> 0x10   guard 0x43   ANSWERED
+03H -> 0x00   guard 0x43   ANSWERED
+04H -> 0xBB   guard 0x43   ANSWERED
+05H -> 0xBB   guard 0x43   ANSWERED
+06H -> 0x30   guard 0x43   ANSWERED
+07H -> 0x30   guard 0x43   ANSWERED
+08H -> 0x30   guard 0x43   ANSWERED
+09H -> 0x30   guard 0x43   ANSWERED
+0AH -> 0x00   guard 0x43   ANSWERED
+0BH -> 0x00   guard 0x43   ANSWERED
+0CH -> 0x00   guard 0x43   ANSWERED
+0DH -> 0x00   guard 0x43   ANSWERED
+0EH -> 0x18   guard 0x43   ANSWERED
+0FH -> 0x18   guard 0x43   ANSWERED
+10H -> 0x18   guard 0x43   ANSWERED
+11H -> 0x18   guard 0x43   ANSWERED
+12H -> 0x04   guard 0x43   ANSWERED
+13H -> 0x05   guard 0x43   ANSWERED
+14H -> 0x0A   guard 0x43   ANSWERED
+
+00H 37  Power: PMAD2=1 PMAD1=1 PMDA2=1 PMDA1=1 RSTN=1
+01H AC  Audio I/F: TDM=1 DCF=2 -> TDM256 I2S compatible; DSL=3 (32-bit slot) BCKP=0 (BICK falling edge) SDOPH=0
+02H 10  Audio I/F: SLOT=1 (slot-length basis) DIDL=0 (SDIN 24-bit) DODL=0 (SDOUT 24-bit)
+03H 00  System clock: FS=0
+04H BB  MIC gain: MGN1L=B (27.0 dB)  MGN1R=B (27.0 dB)
+05H BB  MIC gain: MGN2L=B (27.0 dB)  MGN2R=B (27.0 dB)
+06H 30  ADC1 L digital volume (+0.0 dB)
+07H 30  ADC1 R digital volume (+0.0 dB)
+08H 30  ADC2 L digital volume (+0.0 dB)
+09H 30  ADC2 R digital volume (+0.0 dB)
+0AH 00  ADC digital filter: AD2VO=0 AD2SD=0 AD2SL=0 AD1VO=0 AD1SD=0 AD1SL=0
+0BH 00  ADC analog input: AD1L=differential AD1R=differential AD2L=differential AD2R=differential
+0DH 00  ADC mute/HPF: ATSPAD=0 AD2MUTE=0 AD1MUTE=0 AD2HPFN=0 AD1HPFN=0
+0EH 18  DAC1 L digital volume
+0FH 18  DAC1 R digital volume
+10H 18  DAC2 L digital volume
+11H 18  DAC2 R digital volume
+12H 04  DAC input select: DAC2SEL=1 DAC1SEL=0
+13H 05  DAC de-emphasis: DEM2=1 DEM1=1
+14H 0A  DAC mute/filter: ATSPDA=0 DA2MUTE=0 DA1MUTE=0 DA2SD=1 DA2SL=0 DA1SD=1 DA1SL=0
