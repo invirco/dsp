@@ -1,3 +1,92 @@
+## HUB DISPATCH 2026-09-24 12:48Z — unblock defs.lock: declare Usb HostSync as hardware-control   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# Unblock defs.lock: declare Usb HostSync/HostSyncWhy as hardware-control, not no-graph-node
+
+## What this actually is — read this before touching anything
+
+S104 (`MW/D24/DSP/s104/cs5-micgainlatch-retire-107.md`) found `defs.lock`
+could not advance past `defs-v2026.09.24.1` because doing so also crosses
+`defs-v2026.09.20`'s landing of `Usb[1-1]HostSync[1-1]` /
+`Usb[1-1]HostSyncWhy[1-1]` into the cell master (net N67/N68's proposal,
+already landed upstream in `invirco/defs` — this is not a new cell addition,
+the cells already exist in `common/cells/mx_master.csv`). What's missing is
+purely this repo's own side: `gen_dsp.py`'s `_UNMAPPED_REASONS` dict has no
+entry for the `Usb` family's `HostSync`/`HostSyncWhy` fields, so the
+generator has nothing to invent a classification from and the D24's
+`dsp-unmapped.csv` can't be regenerated — which is what blocks
+`--update-lock`.
+
+**These two cells were never meant to be DSP functions.** Per the proposal's
+own README (`net proposals/defs/README.md`, now historical since the cells
+already landed): they're read-backs of a decision the RT1180/net firmware
+makes entirely on its own — whether the connected USB host follows the
+card's clock — surfaced today only on a developer console
+(`mwnet_usb_uac2.c`'s `s_fpReason[]`). Nothing on the SHARC side is
+involved; there is no DSP signal path to build and none was ever proposed.
+
+## The one judgement call, made and cited — apply it, don't re-derive it
+
+Classify both as **`hardware-control`**, not `no-graph-node`. The existing
+dict already has the exact right precedent, twice:
+
+```python
+('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
+('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
+```
+
+Both are status values owned and decided by non-DSP hardware/firmware,
+reported to the app with no DSP address — precisely `Usb HostSync`'s shape.
+`no-graph-node` is the wrong class here: it means "the graph SHOULD build
+this DSP function and hasn't" (see `Chan AntiClip`'s entry, which is
+genuinely unbuilt DSP arithmetic waiting on a design decision) — that's not
+this case. `HostSync` was never a DSP function to begin with; using
+`no-graph-node` would misfile it as DSP work outstanding when the actual
+owner is the network firmware.
+
+## Do this
+
+1. In `MW/D32/DSP/gen_dsp.py`'s `_UNMAPPED_REASONS` dict, add:
+   ```python
+   ('Usb', 'HostSync'): ('hardware-control',
+       'computer-follows-card-clock read-back, decided entirely by the RT1180/net '
+       'firmware (mwnet_usb_uac2.c) — no DSP signal path, none was ever proposed '
+       '(net N67/N68, landed defs-v2026.09.20)'),
+   ('Usb', 'HostSyncWhy'): ('hardware-control',
+       'the refusal reason code for Usb[1-1]HostSync[1-1], same owner and same '
+       'shape — the codes are the firmware\'s own enum indices, not a DSP value'),
+   ```
+   Match the file's existing formatting/comment style around the `Bt`/`Card`
+   entries exactly.
+2. Regenerate for every product that actually emits these cells — per the
+   proposal, only D24 does (`products/d24/d24.csv` declares `rec.usb,1`;
+   confirm D32/others don't before assuming they're unaffected, don't guess).
+   Confirm `dsp-unmapped.csv` gains the two new rows and nothing else moved —
+   same "byte-neutral except the two new rows" bar S104 already held itself
+   to for the CS5 rename.
+3. Run this repo's own `--update-lock` path (the one S104 found already
+   works cleanly up to this exact point) to advance `defs.lock` to
+   `defs-v2026.09.24.1`. Confirm the pin now matches mx26's.
+4. **Explicitly out of scope, do not do it**: wiring these cells into the
+   D24's `fw.csv` or giving them a skin surface. The proposal's own README
+   says that's product-side, app/skin design work for a separate session —
+   this dispatch only unblocks the lock, it does not make the cells do
+   anything yet.
+
+## Report
+
+State plainly: the exact dict entries added, which product(s)' `dsp-unmapped.csv`
+changed and confirmation nothing else moved, and `defs.lock`'s new value
+confirmed matching mx26's pin. Commit and push to `main`. No PW question
+expected — the classification is made and cited above; if `_UNMAPPED_REASONS`
+turns out not to be the actual mechanism, or D32 also needs an entry and
+that's not obvious, stop and say so as a 🔴 line rather than guess.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 12:17Z — rename CS5 to MicGainLatch, retire test 107 in favour of MC1/MC2/MC3   [status: 🔴 blocked — **STEP 1 (fw.csv rename) DONE AND PUSHED; STEP 2 (retire test 107) FULLY DONE; dsp's OWN defs.lock pin is the one piece NOT advanced, and it is blocked by something outside this dispatch's scope.** `defs` `Dsp5` -> `MicGainLatch` landed exactly as specified, tagged `defs-v2026.09.24.1` (`invirco/defs@041d4ac`, on top of `404669d`/S101's own CS3/4/7/8 rename which had landed upstream but was never pulled into either spoke's pin), pushed; mx26's submodule and `CLAUDE.md` pin text both advanced to it (byte-neutral references, verified: only the tag string and `products/d24/fw.csv`'s own sha changed across all six products' reference.md). **Row 107 retired outright, not repurposed**: mx26 `tools/d24/build-d24-connector-status.py`'s `CS_DECL` loses its CS5 tuple (204 -> 203 keys, verified before/after), `docs/spec-d24-selftest.md`'s DC1 row carries an explicit redirect where CS5 used to sit, MC1's row text now names the wire and the old row number, the S99 GATING table and coverage count (36 -> 35 rows, 103–110 -> 103–109) updated to match. This repo's `tools/pi/d24_selftest.py`: `DC_SELECTS` drops 5, its `DC_NO_DATA[5]` entry removed, and **every row-number comment for every item from the old row 107 onward re-numbered** (a cascading off-by-one the dispatch didn't anticipate, since removing one catalog row shifts everything after it) — reconciled against a fresh `--export-keys` pull and `--keys` cross-check, clean: *"35 distinct items, all present in the export; 28 row numbers in the table match their position."* `MW/D24/DSP/accept/item-status.csv`'s four now-orphaned `DC1-CS5`/`DC2-CS5` history rows removed — unlike CS3/CS4 (S101), whose catalog row *persisted* under a new test (`DY1`) so their old evidence rows still matched a live key, CS5's catalog row is gone outright, so its old rows would fail the generator's own "keys must match `--export-keys` verbatim, unknown key is an error, never skipped" gate; confirmed by running the generator against the reconciled file: `merged 58 tests over 35 items... rows: 203`. **🔴 WHAT DID NOT MOVE, and why**: advancing *this* repo's `defs.lock` past `defs-v2026.09.19.3` requires the same pin as mx26, but `defs-v2026.09.20`'s `Usb[1-1]HostSync[1-1]`/`HostSyncWhy[1-1]` cells (net N67/N68's proposal, riding along in the same linear history purely because nobody had bumped this spoke's pin since before they landed) hit `gen_dsp.py`'s no-fallback family gate: the cell reaches no DSP address and has no `_UNMAPPED_REASONS` entry, and mx26's own `tasks.md`/`HANDOVER-ADDENDUM.md` still list its wire-table units as UNDECLARED with "net's defs.lock re-pin is N68's or later" — i.e. genuinely open elsewhere, not something to invent a mapping or a reason-string for from this dispatch. Adopting the family into `matrix-families-allowlist.txt` alone (mechanical, done, then reverted with everything else once the deeper block surfaced) was not enough. **Reverted cleanly**: `defs.lock`, `matrix-families-allowlist.txt`, `MW/D12/MX/_matrix.csv`, `MW/D16/MX/_matrix.csv` restored to their pre-dispatch committed state, the `MW/D24|D32/MX/_matrix.expansion.csv` staging files removed, the `defs/` submodule checked back out at `6fd9159` (the pinned commit) — this repo's tree is clean, nothing half-applied. **Needs from the hub**: either a ruling on the `Usb[1-1]HostSync` mapping (graph node, or an explicit `_UNMAPPED_REASONS` entry) from whoever owns net N67/N68, or an explicit call to re-pin past it anyway some other way — then a short follow-up dispatch re-runs `./regenerate-dsp-contract.sh --update-lock` (already proven to work cleanly up to that exact point) and this bullet closes. Report `MW/D24/DSP/s104/cs5-micgainlatch-retire-107.md`; commits: dsp (this repo), mx26 `78bdcd4`+`024cc17`, defs `041d4ac`.]   [model: sonnet]
 
 model: sonnet
