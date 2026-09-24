@@ -2663,6 +2663,13 @@ _UNMAPPED_REASONS = {
         '(PW ruling R4, 2026-09-10 — was open question Q4)'),
     ('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
     ('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
+    ('Usb', 'HostSync'): ('hardware-control',
+        'computer-follows-card-clock read-back, decided entirely by the RT1180/net '
+        'firmware (mwnet_usb_uac2.c) — no DSP signal path, none was ever proposed '
+        '(net N67/N68, landed defs-v2026.09.20)'),
+    ('Usb', 'HostSyncWhy'): ('hardware-control',
+        'the refusal reason code for Usb[1-1]HostSync[1-1], same owner and same '
+        'shape — the codes are the firmware\'s own enum indices, not a DSP value'),
     ('Chan', 'AntiClip'): ('no-graph-node',
         'per-channel anti-clip — the master calls it "Auto gain reduction '
         'on/off (M&W exclusive)". No node implements it, and S25 gate 4 '
