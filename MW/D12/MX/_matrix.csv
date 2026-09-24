@@ -2335,3 +2335,5 @@ MainSub001CrossoverSlope001,1,1,1,,,Crossover slope (HPF 36/48 dB/oct),2333,qiu,
 MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,2334,qiv,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0
 Main001Name001,16,1,1,,,Main L/R master name,2335,qiw,1,,,,,,,,,,,,,,,,,,,,Master,,-
 Sys001SwUpd001,1,1,1,,false,Software updater open/close SW button,2336,qjh,2,,,,,,,,,,,,,,,,,,,,,,-
+Usb001HostSync001,1,1,1,true,false,Read-back: computer follows this card clock (0=unknown 1=yes 2=no - recording refused),2337,qji,3,,,,,,,,,,,,,,,,,,,,,,-
+Usb001HostSyncWhy001,1,1,1,true,false,Read-back: why sync refused (0=none 1=nopoll 2=slope-retired 3=fill 4=bench 5=drift),2338,qjj,6,,,,,,,,,,,,,,,,,,,,,,-

@@ -375,5 +375,7 @@ TestThdResult
 TestXtalkDst
 TestXtalkResult
 TestXtalkSrc
+UsbHostSync
+UsbHostSyncWhy
 UsbLevel
 UsbOn
