@@ -1,3 +1,108 @@
+## HUB DISPATCH 2026-09-24 14:39Z — S106 — root-cause the dead MEMS mic lane, bench tools not the wizard   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S106 — root-cause the dead MEMS mic lane, bench tools not the wizard
+
+PW's ask directly: work SP1/MM1 outside the test app to actually get them
+working, not through another wizard run. S103
+(`MW/D24/DSP/s103/rails-up-first-real-result.md`) already did the wizard-side
+job — `MM1` is a genuine, real, reproducible **FAIL** (the MEMS lane reads
+`0xFFFFFFFF STATIC` identically with `AN_EN` hi or lo, across every build,
+every unit, every session that's ever read it — S79-2, S86-2, S90, S102,
+S103 all agree). This session is engineering root-cause, at the bench, with
+direct tools — not another catalog run.
+
+## What's already known — read S103 §3.3/§4 (findings S103-2/S103-3) before
+## starting, don't re-derive it
+
+- **The route/DSP side is proven good.** `TEST_OSC` injected 1 kHz at −20
+  dBFS peak and `TEST_MEAS` read it back exact (−23.01 dBFS RMS, 0.00016%
+  THD+N) through the whole speaker chain to `C2_MON_OUT` slot 0. The DSP,
+  the routing, and the codec's DAC side are not suspects.
+- **Four candidates for the mic's own dead lane**, from the schematic, none
+  ruled in or out yet: the panel ribbon, the LVDS pair (`lswitch U1`/`U2`,
+  `digital U30`/`U31`), the PDM clock out of `digital U13` (ADAU7002,
+  PDM-to-TDM bridge, TDM8 slot 5 strap), and the mic itself (`lswitch U3`,
+  IMP34DT05).
+- **One candidate already narrowed, not eliminated.** `ML-P2`
+  (`dig-panel-b`, the same physical ribbon's MCU link — `MCU_RX`/`MCU_TX`
+  pins 11/13, `MCU_S0-S3` 15-18, `MCU_BUSY` 19) PASSes, so the ribbon is
+  seated and those pins are good. It says nothing about pins 2-5
+  (`CLK0`/`CLK1`/`D0`/`D1`), which are the only ones the mic uses and are
+  on the same connector, same cable, different conductors.
+- **The instrument gap.** The CPLD's lane witness counts `cdc_o` only —
+  there is no counter on the MEMS PDM group (bench note 31) — so today
+  nothing on this unit can tell "PDM clock present, mic/LVDS dead" apart
+  from "no PDM clock reaching the mic at all." S103 named a CPLD counter on
+  the MEMS group as the thing that would split it.
+
+## Do this — cheapest real discriminator first, no wizard
+
+1. **Before reaching for a CPLD change, check for a cheaper read.** Does any
+   existing, already-flashed GPIO on the CM4, H1S1, or the CPLD's current
+   design already expose the PDM clock or either LVDS line, even
+   indirectly (a test point, a debug mux setting, anything not requiring a
+   new bitstream)? Check `digital U30`/`U31`'s own datasheet for a
+   LOCK/status pin already wired to something readable. Say plainly if
+   there is nothing and a real instrument is required — don't force a
+   negative into a positive.
+2. **If a CPLD counter is genuinely required to separate clock-absent from
+   mic-dead**: scope it, but do not flash it blind. The shipping CPLD stays
+   in flash unless there is a specific, authorised reason to flash
+   something else — that authorisation is a 🔴 line to the hub/PW, not
+   something to assume because AN_EN can now be raised. Build and stage it,
+   name exactly what test bitstream you'd need and why, and stop there for
+   a ruling before flashing anything.
+3. **A cheap, independent, non-electrical check that needs no new
+   instrument at all: does the mic itself work, mechanically/acoustically,
+   full stop?** If there's a bench way to inject a known acoustic signal
+   near the physical MEMS capsule (a phone speaker at close range, a tap
+   test) while watching whatever raw register IS readable today (even a
+   non-quantitative "does the STATIC word ever move at all" check), that's
+   a fast way to rule the part itself in or out before spending time on the
+   clock/LVDS pair. State clearly if this was tried and what it showed, or
+   why it couldn't be tried.
+4. **Rails**: raise `AN_EN` under today's ruling exactly as S103 did —
+   gates checked first (`dsp4_diag.py`, `s55_chain.py` SAFE), state exactly
+   what was done and confirm restored at handback, same reporting rigor.
+5. **Separately, and it does not depend on #1-4**: the speaker side has a
+   cheap sanity check available right now that needs no working mic at
+   all. `TEST_OSC` → the proven route is real; ask PW to listen at the
+   physical speaker while you drive it (same 1 kHz/−20 dBFS as S103, or
+   audible-range if that's inaudible/annoying) and confirm by ear whether
+   the panel speaker actually produces sound. This doesn't close `SP1` (its
+   only automated instrument is still the dead mic) but it's a real,
+   independent data point on the analog output stage (`U3.22 → C23 → SPKR →
+   analog J59.12 = digital J42.12 → C82 → TS482 → SPKR0/SPKR1`) that costs
+   nothing to get today. Coordinate the exact moment with PW rather than
+   just running it unannounced.
+
+## What this is not
+
+Not a wizard run — don't dispatch through `d24_selftest.py --section C
+--only MM1,SP1` as the primary tool here; that's already been done three
+times (S102, S103, and it will read the same FAIL until the hardware
+changes). Direct bench tools (`dsp4_diag.py`, `s89_set.py`,
+`dsp4_s49_osc.py`, and whatever new probe this session needs to write) are
+the right instruments for root-cause, not the catalog runner.
+
+## Report
+
+State plainly: what was actually tried, what it showed (including negative
+results — "checked X, found nothing," not silence), whether a CPLD counter
+is genuinely required and what it would need, and the speaker audible check
+result if PW was available for it. This is real root-cause work of
+open-ended shape — if it doesn't resolve today, a clear "here's what's
+ruled out and here's what's left" is a complete and useful report; don't
+manufacture a false conclusion to close it out. Commit and push to `main`.
+Unit handback: same discipline as every prior session (SAFE image, rails
+restored and confirmed, no CPLD flash without an explicit go-ahead).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 14:23Z — S107 — catalog deploy-date stamp on the D24 SELF-TEST title   [status: 🟢 done — stamp landed as `D24 SELF-TEST · 2026-09-24 14:49` (trimmed from the dispatch's literal example, which overflowed the TITLE box into QUEUEPOS — see MW/D24/DSP/s107/deploy-title-stamp.md 🔴 for the conflict and what a fuller shape would need); app rebuilt (dotnet publish linux-arm64 self-contained), deployed to app@192.168.1.219, md5-matched, rollback at /home/app/app.bak-s107-pre; on-glass capture confirms one line, no overlap.]   [model: sonnet]
 
 model: sonnet
