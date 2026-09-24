@@ -19,11 +19,13 @@ THE VERDICT VOCABULARY IS THREE WORDS AND THE MIDDLE ONE IS THE POINT.
 
 A read path that answers nothing is NO DATA, never a silent PASS -- and, the
 other way up, never a silent FAIL either. That second half is not symmetry for
-its own sake: AN_EN is `lo` on this unit and a dispatched session may not raise
-it (bench note 19 / S49-15, "AN_EN is never written by a dispatched session"),
-so the mic front ends are not converting and a dark lane is the TEST STATE. A
-converter reported FAIL for that would be a defect invented by the harness.
-Every test that depends on the rails therefore reads `_an_en()` first and says so.
+its own sake: AN_EN is `lo` on this unit unless a session has deliberately
+raised it (`sudo pinctrl set 26 op dh` -- PW lifted the old "never written by a
+dispatched session" bar on 2026-09-24; this RUNNER still never writes it, it
+reads it and records it), so with the rails down the mic front ends are not
+converting and a dark lane is the TEST STATE. A converter reported FAIL for
+that would be a defect invented by the harness. Every test that depends on the
+rails therefore reads `_an_en()` first and says so.
 
 Evidence is the RAW READ -- the EDID vendor string, the register value, the id
 hex, the cell value -- never a summary word. Long reads are trimmed in the CSV
@@ -67,6 +69,18 @@ CSV_COLS = ['board', 'item', 'test', 'verdict', 'measured', 'limit', 'evidence',
 BENCH = 'app@192.168.1.219'
 BENCH_HOST_SELF = '192.168.1.211'       # this machine, as the unit sees it
 DSPBOOT = '/home/app/dspboot'
+# THE PAIR THE RUN BOOTS. The signed candidate is the default and the only
+# thing a normal run ever boots. A DSP4_TEST_NODES=1 pair is a DIFFERENT
+# image -- it carries TEST_OSC, which is what SP1 needs and what a shipping
+# image must not have -- so pointing the run at one is a deliberate act with
+# a name: `--pair DIR` from a bench host, or PAIR_CONF on the unit for a run
+# the wizard's own START button launches (it takes no arguments). Whichever
+# is used, the directory and the images' md5s are printed in the banner and
+# carried in SP1's evidence, so no reading can be mistaken for the shipping
+# pair's. PAIR_CONF is a bench artefact: a session that writes it removes it
+# at handback and says so.
+PAIR_DEFAULT = DSPBOOT + '/candidate-s82'
+PAIR_CONF = '/home/app/selftest/pair.conf'
 CONN = '/sys/class/drm/card0-HDMI-A-1'
 ETHTOOL = '/usr/sbin/ethtool'           # NOT on app's PATH; absolute or nothing
 
@@ -202,6 +216,8 @@ class Rig:
             os.makedirs(self.logdir, exist_ok=True)
         self.app_stopped = False
         self.an_en_at_start = None
+        self.pair = None
+        self.pair_why = None
 
     # -- transport ----------------------------------------------------------
     def sh(self, cmd, timeout=120):
@@ -1118,10 +1134,12 @@ def _lane_verdict(r, rows, want, label, limit):
         return (NODATA,
                 '%d %s lanes all STATIC with AN_EN %s' % (len(hit), label, an.split('//')[0].strip()),
                 limit,
-                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched '
-                      'session may not raise it (bench note 19 / S49-15: "AN_EN is never written '
-                      'by a dispatched session"). With the front ends unpowered a STATIC lane is '
-                      'the test state, not a converter fault, so this is NO DATA and not FAIL.')
+                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low. Raise them with '
+                      '`sudo pinctrl set 26 op dh` and re-take -- PW lifted the old bar on a '
+                      'dispatched session doing that on 2026-09-24 (bench note 19 / S49-15 is '
+                      'superseded on that one point only). With the front ends unpowered a STATIC '
+                      'lane is the test state, not a converter fault, so this is NO DATA and not '
+                      'FAIL.')
     return FAIL, '%d %s lanes all STATIC with AN_EN up' % (len(hit), label), limit, raw
 
 
@@ -1174,8 +1192,8 @@ def t_asadc(r):
     if 'hi' not in an:
         return (NODATA, m,
                 'U39 and U60 lanes alive and not stuck-at',
-                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low and a dispatched '
-                      'session may not raise it (bench note 19 / S49-15), so a STATIC lane here '
+                raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low; raise them with '
+                      '`sudo pinctrl set 26 op dh` and re-take. With them down a STATIC lane here '
                       'is the test state, not a converter fault.')
     return FAIL, m, 'U39 and U60 lanes alive and not stuck-at', raw
 
@@ -1243,12 +1261,15 @@ def t_aspwr(r):
 # longer comes back empty.
 #
 # TWO PREREQUISITES REMAIN AND BOTH ARE NAMED RATHER THAN WORKED AROUND:
-#   * the analog rails (AN_EN, CM4 GPIO26). A dispatched session never writes
-#     it (bench note 19 / S49-15). Without them the MEMS lane is dark and the
-#     TS482 has no supply, so neither half can read.
+#   * the analog rails (AN_EN, CM4 GPIO26). Without them the MEMS lane is dark
+#     and the TS482 has no supply, so neither half can read. Raising them is no
+#     longer gated on PW being at the bench (PW 2026-09-24, superseding bench
+#     note 19 / S49-15 on that one point); the session raises it, names what it
+#     did and puts it back.
 #   * a DSP4_TEST_NODES=1 pair. TEST_OSC's injection hook is inside that guard,
 #     so on the shipping image the oscillator cells take writes and nothing
-#     reads them -- the same prerequisite AS-DAC carries.
+#     reads them -- the same prerequisite AS-DAC carries. `--pair DIR` (or
+#     PAIR_CONF on the unit) is how a run is pointed at one.
 _SPKR_OSC_STRIP = 20              # S89's donor strip, for the same reason
 _SPKR_FREQ_HZ = 1000.0
 _SPKR_DRIVE_DBFS = -20.0
@@ -1393,8 +1414,9 @@ def t_sp1(r):
     """The speaker half: with the route asserted, does the tone reach the mic.
 
     Two prerequisites can stop this short and they are reported apart, because
-    they belong to different people: the rails are PW's (a dispatched session
-    never raises AN_EN) and the TEST_NODES pair is a build."""
+    they are different kinds of thing: the rails are a pin the session raises
+    (`AN_EN`, no longer gated on PW's presence -- PW 2026-09-24) and the
+    TEST_NODES pair is a build, staged and named with `--pair`."""
     cap = _spkr_capture(r)
     lim = '1 kHz tone on the MEMS lane >= %g dB above its idle floor; tone off -> floor returns' \
         % _SPKR_MARGIN_DB
@@ -1402,6 +1424,7 @@ def t_sp1(r):
     rails = 'hi' in an
     ev = ['%s\n' % SPKR_ROUTE_NOTE,
           'AN_EN (GPIO%d) = %s' % (AN_EN_GPIO, an),
+          'pair booted: %s (%s)' % (r.pair, r.pair_why),
           'DSP4_TEST_NODES pair (%s in chip1.sym.json): %s' % (_OSC_SYM, cap['testnodes']),
           '--- the route write (exit %s) ---\n%s' % (cap['route_rc'], cap['route_txt']),
           '--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'],
@@ -1416,8 +1439,10 @@ def t_sp1(r):
     if not cap['testnodes'] or not rails:
         missing = []
         if not rails:
-            missing.append('the analog rails (AN_EN = %s; a dispatched session may not raise '
-                           'it -- bench note 19 / S49-15)' % an.split('//')[0].strip())
+            missing.append('the analog rails (AN_EN = %s; `sudo pinctrl set %d op dh` raises '
+                           'them -- PW lifted the dispatched-session bar on 2026-09-24, and '
+                           'every other bench discipline stands)'
+                           % (an.split('//')[0].strip(), AN_EN_GPIO))
         if not cap['testnodes']:
             missing.append('a DSP4_TEST_NODES=1 pair (TEST_OSC\'s injection hook is inside '
                            'that guard; the staged pair is the shipping pair)')
@@ -1436,8 +1461,29 @@ def t_sp1(r):
     if idle is None or tone is None or back is None:
         return NODATA, 'the scan did not give an rms for every leg', lim, '\n'.join(ev)
     rise, ret = tone - idle, back - idle
+    # Five placeholders, five values. S102 wrote six here (`ret` twice) and the
+    # line never ran, because every run so far stopped at a prerequisite above
+    # it -- the FIRST run with both the rails and a TEST_NODES pair raised
+    # TypeError and the row came back `RUNNER ERROR` instead of a reading.
     m = 'idle %.2f dBFS, tone %.2f dBFS (+%.2f dB), back %.2f dBFS (%+.2f dB)' \
-        % (idle, tone, rise, ret, back, ret)
+        % (idle, tone, rise, back, ret)
+    # SP1'S INSTRUMENT IS MM1'S MICROPHONE, so a dead lane is NO DATA and not a
+    # speaker FAIL. The module's own doctrine: a read path that answers nothing
+    # is never a silent PASS and never a silent FAIL either. A lane that reads
+    # STATIC in EVERY leg -- idle, tone on, tone off -- did not answer, and a
+    # speaker verdict taken through it would be a defect invented by the
+    # harness. A lane that carries and simply does not rise IS a real SP1 FAIL,
+    # which is why the test is on all three legs and not on MM1's verdict.
+    if all((cap.get(k) or '').strip().endswith('STATIC')
+           for k in ('idle_row', 'tone_row', 'back_row')):
+        return (NODATA,
+                'the MEMS lane is STATIC in all three legs (%s) -- nothing was measured' % m,
+                lim,
+                '\n'.join(ev) + '\nPREREQUISITE: a MEMS lane that reads. SP1 measures the '
+                'speaker THROUGH the mic MM1 tests, and MM1 is FAIL on this unit with the '
+                'rails up -- the lane sits at 0xFFFFFFFF whatever the tone does. Scoring the '
+                'speaker FAIL on that would blame the speaker for a dead microphone. Fix the '
+                'mic half first, then this reading means something.')
     ok = rise >= _SPKR_MARGIN_DB and ret <= _SPKR_RETURN_DB
     return (PASS if ok else FAIL), m, lim, '\n'.join(ev)
 
@@ -1454,9 +1500,9 @@ def stage_setup(r):
     are scp'd AFTER the symlink loop and only for names the loop did not link,
     because an scp onto a symlink writes THROUGH it into /home/app/dspboot."""
     s = r.a.stage
-    r.rsh("mkdir -p %s && cp %s/candidate-s82/chip1.ldr %s/candidate-s82/chip2.ldr "
-          "%s/candidate-s82/chip1.sym.json %s/candidate-s82/chip2.sym.json %s/"
-          % (s, DSPBOOT, DSPBOOT, DSPBOOT, DSPBOOT, s), timeout=120)
+    p = pair_dir(r)
+    r.rsh("mkdir -p %s && cp %s/chip1.ldr %s/chip2.ldr "
+          "%s/chip1.sym.json %s/chip2.sym.json %s/" % (s, p, p, p, p, s), timeout=120)
     r.rsh("for f in %s/*.py; do ln -sfn \"$f\" %s/$(basename \"$f\"); done; "
           "ln -sfn %s/input_patch.json %s/input_patch.json" % (DSPBOOT, s, DSPBOOT, s),
           timeout=120)
@@ -1470,7 +1516,35 @@ def stage_setup(r):
         if os.path.exists(src):
             r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
             r.put(src, s)
-    return r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s))
+    return ('pair: %s (%s)\n' % (r.pair, r.pair_why)
+            + r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s)))
+
+
+def pair_dir(r):
+    """Which pair this run boots, resolved ONCE and remembered on the rig.
+
+    `--pair` wins. Otherwise PAIR_CONF on the unit, if a session has put one
+    there -- that is the only way a run launched by the wizard's own START
+    button (which passes no arguments) can be pointed at a DSP4_TEST_NODES=1
+    pair. Otherwise the signed candidate. A pointer to a directory that does
+    not hold a pair is an ERROR, not a silent fall back to the default: a run
+    that quietly booted the shipping image after being asked for a test-node
+    one would report `waiting on a DSP4_TEST_NODES=1 pair` and read as a
+    prerequisite rather than as the mistake it is."""
+    if r.pair:
+        return r.pair
+    p, why = r.a.pair, '--pair'
+    if not p:
+        p, why = r.out('cat %s 2>/dev/null' % PAIR_CONF).strip(), PAIR_CONF
+    if not p:
+        p, why = PAIR_DEFAULT, 'default'
+    missing = r.out('for f in chip1.ldr chip2.ldr chip1.sym.json chip2.sym.json; '
+                    'do [ -f %s/$f ] || echo $f; done' % p)
+    if missing:
+        sys.exit('ERROR: pair directory %s (%s) has no %s'
+                 % (p, why, ', '.join(missing.split())))
+    r.pair, r.pair_why = p, why
+    return p
 
 
 def pin_handback(r):
@@ -1658,6 +1732,12 @@ def main():
                                    'sections (e.g. NW3, or AS-ADC,MM1); the rest are skipped. '
                                    'Use it to re-take one row without superseding the others.')
     ap.add_argument('--stage', default='/home/app/s90')
+    ap.add_argument('--pair',
+                    help='directory holding the chip1/chip2 .ldr + .sym.json pair to '
+                         'stage and boot. Default: %s, or whatever %s names on the '
+                         'unit. A DSP4_TEST_NODES=1 pair goes here -- SP1 needs '
+                         'TEST_OSC and the signed candidate does not carry it.'
+                         % (PAIR_DEFAULT, PAIR_CONF))
     ap.add_argument('--local', action='store_true',
                     help='we ARE the CM4: run every command here instead of over '
                          'ssh, and copy staged files instead of scp-ing them. This '

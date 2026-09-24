@@ -1,0 +1,2 @@
+=== 2026-09-24T10:12:28Z  NO DATA
+RUNNER ERROR: TypeError('not all arguments converted during string formatting')
