@@ -119,59 +119,63 @@ B_LSW = 'Left Switch PCBA'
 
 ITEMS = {
     # A -- from the CM4
-    'HD0-1':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),        # 128
-                (B_ASM, 'TFT display')],                                  # 204
+    'HD0-1':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),        # 127
+                (B_ASM, 'TFT display')],                                  # 203
     'HD0-2':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),
                 (B_ASM, 'TFT display')],
-    'HD-PWR':  [(B_LINK, "Link 'hdmi-pwr'")],                             # 152
-    'NW1':     [('Digital', 'Ethernet (RJ45)')],                          # 129
+    'HD-PWR':  [(B_LINK, "Link 'hdmi-pwr'")],                             # 151
+    'NW1':     [('Digital', 'Ethernet (RJ45)')],                          # 128
     'NW2':     [('Digital', 'Ethernet (RJ45)')],
     'NW3':     [('Digital', 'Ethernet (RJ45)')],
     'NW4':     [('Digital', 'Ethernet (RJ45)')],
-    'AS-CM4':  [(B_ASM, 'CM4 compute module')],                           # 194
+    'AS-CM4':  [(B_ASM, 'CM4 compute module')],                           # 193
     'USB-HUB': [],           # no workbook item: the spec files it under section-2 UA1
     # B -- through H1S1 over the matrix bus
     'ML1':     [(B_DSP, 'H1S1 MCU (STM32U575) link'),                     # 102
-                (B_ASM, 'S MCU H1S1 (STM32U575)')],                       # 203
+                (B_ASM, 'S MCU H1S1 (STM32U575)')],                       # 202
     'ML2':     [(B_DSP, 'H1S1 MCU (STM32U575) link'),
                 (B_ASM, 'S MCU H1S1 (STM32U575)')],
-    'ML-M':    [(B_ASM, 'M MCU (STM32G031)')],                            # 202
-    'ML-P1':   [(B_DSP, 'Right panel MCU link (fw.csv SW_RIGHT)'),        # 126
-                (B_LINK, "Link 'dig-panel-a'")],                          # 144
-    'ML-P2':   [(B_DSP, 'Left panel MCU link (fw.csv SW_LEFT)'),          # 127
-                (B_LINK, "Link 'dig-panel-b'")],                          # 145
+    'ML-M':    [(B_ASM, 'M MCU (STM32G031)')],                            # 201
+    'ML-P1':   [(B_DSP, 'Right panel MCU link (fw.csv SW_RIGHT)'),        # 125
+                (B_LINK, "Link 'dig-panel-a'")],                          # 143
+    'ML-P2':   [(B_DSP, 'Left panel MCU link (fw.csv SW_LEFT)'),          # 126
+                (B_LINK, "Link 'dig-panel-b'")],                          # 144
     'ML-B0':   [(B_DSP, 'Right panel MCU link (fw.csv SW_RIGHT)'),
                 (B_DSP, 'Left panel MCU link (fw.csv SW_LEFT)')],
-    'DR1':     [(B_DSP, 'DSP reset RST_D (fw.csv Reset)')],               # 111
+    'DR1':     [(B_DSP, 'DSP reset RST_D (fw.csv Reset)')],               # 110
     'DR2':     [(B_DSP, 'DSP reset RST_D (fw.csv Reset)')],
-    'MC1':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],   # 112
+    'MC1':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],   # 111
     'MC2':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],
     'MC3':     [(B_DSP, 'Mic-gain chain latch CS_M (fw.csv MicGain)')],
-    'CC1':     [(B_DSP, 'Codec select CS_C (fw.csv Codec)'),              # 113
-                (B_ASM, 'Codec AK4619')],                                 # 200
+    'CC1':     [(B_DSP, 'Codec select CS_C (fw.csv Codec)'),              # 112
+                (B_ASM, 'Codec AK4619')],                                 # 199
     'CC2':     [(B_DSP, 'Codec select CS_C (fw.csv Codec)'),
                 (B_ASM, 'Codec AK4619')],
     # C -- from the DSPs
-    'AS-DSPA': [(B_ASM, 'SHARC DSP A (ADSP-21564)'),                      # 195
-                (B_LINK, "Link 'dig-dsp-a'")],                            # 140
-    'AS-DSPB': [(B_ASM, 'SHARC DSP B (ADSP-21564)'),                      # 196
-                (B_LINK, "Link 'dig-dsp-b'")],                            # 141
-    'AS-CPLD': [(B_ASM, 'CPLD clock master (MAX V)')],                    # 197
-    'AS-ADC':  [(B_ASM, 'ADC AK5558 ×3 (U15 dead, U39, U60)'),            # 199
-                (B_LINK, "Link 'dig-analog-adc'")],                       # 142
-    'AS-DAC':  [(B_ASM, 'DAC AK4458 ×2'),                                 # 198
-                (B_LINK, "Link 'dig-analog-dac'")],                       # 143
-    'AS-PWR':  [(B_ASM, 'Power MCU (STM32F030F4, always-on)')],           # 201
+    'AS-DSPA': [(B_ASM, 'SHARC DSP A (ADSP-21564)'),                      # 194
+                (B_LINK, "Link 'dig-dsp-a'")],                            # 139
+    'AS-DSPB': [(B_ASM, 'SHARC DSP B (ADSP-21564)'),                      # 195
+                (B_LINK, "Link 'dig-dsp-b'")],                            # 140
+    'AS-CPLD': [(B_ASM, 'CPLD clock master (MAX V)')],                    # 196
+    'AS-ADC':  [(B_ASM, 'ADC AK5558 ×3 (U15 dead, U39, U60)'),            # 198
+                (B_LINK, "Link 'dig-analog-adc'")],                       # 141
+    'AS-DAC':  [(B_ASM, 'DAC AK4458 ×2'),                                 # 197
+                (B_LINK, "Link 'dig-analog-dac'")],                       # 142
+    'AS-PWR':  [(B_ASM, 'Power MCU (STM32F030F4, always-on)')],           # 200
     'MM1':     [(B_LSW, 'Panel MEMS mic (talkback)')],                    # 56
     'SP1':     [(B_LSW, 'Speaker')],                                      # 57
 }
-# DC1/DC2 fan out over the chip selects, one workbook row each (103-110) --
+# DC1/DC2 fan out over the chip selects, one workbook row each (103-109) --
 # EXCEPT CS3 and CS4 (rows 105/106). Those two nets are not chip selects in
 # either direction: they carry DSPA's and DSPB's SPI2_RDY BACK to the CM4, and
 # an assert-one-read-one test of them was a permanent NO DATA because it asked
 # a question the wiring cannot answer (S100). They get DY1 instead, which tests
-# what the line actually does.
-DC_SELECTS = (1, 2, 5, 6, 7, 8)
+# what the line actually does. CS5 (row 107) is ALSO retired, not renamed: PW's
+# ruling 2026-09-24 makes fw.csv's Dsp5 row MicGainLatch, the CM4's permanent
+# drive for the 74HC595 mic-gain chain latch, and MC1/MC2/MC3 already exercise
+# that exact wire end to end -- there is nothing left for a standalone board-CS5
+# row to check once the net is correctly named.
+DC_SELECTS = (1, 2, 6, 7, 8)
 RDY_SELECT = {1: 3, 2: 4}            # chip -> the CS number its SPI_RDY uses
 for _n in DC_SELECTS:
     ITEMS['DC1-CS%d' % _n] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
@@ -711,7 +715,7 @@ def _deassert(r):
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
 
 
-# --- the six selects that cannot answer, and why each one cannot -------------
+# --- the three selects that cannot answer, and why each one cannot ----------
 #
 # S100 checked all eight against MW/D24/HW/hardware-map.md and defs fw.csv
 # rather than treating "not CS1/CS2" as one diagnosis. They are not one
@@ -721,17 +725,6 @@ def _deassert(r):
 # them: all eight are GPIO_Input and must stay that way (~/build-h1s1
 # Core/Src/main.c MX_GPIO_Init_2, "ALL EIGHT CS pins are OWNED BY THE CM4").
 DC_NO_DATA = {
-    5: ('CS5 reaches no fitted part; the CM4 line is claimed for CS_M on this unit',
-        'no part behind the select, and no read path to the net',
-        'SPEC CORRECTION (S100). hardware-map.md:410-411: "CS1-8 DSP chip-select '
-        'provision (8-DSP scaling -- only CS1/CS2 live on DSP4)". fw.csv Dsp5 is '
-        'H1S1 pin C13 on net CS5, and H1S1 holds it an INPUT by decision, so nothing '
-        'asserts it and H1S1 publishes no cell that could report its level -- there '
-        'is no read path in either direction, not merely no part. Separately, the D8 '
-        'amendment gives CS_M a spare stack CS line and this unit carries that as a '
-        'proto wire from the CM4 CS5 pin (GPIO27) to the CS_M pad, so the CM4 end of '
-        'CS5 is no longer free: driving it would move mic gain. MC1/MC2/MC3 exercise '
-        'that wire; they do not exercise the board CS5 net.'),
     6: ('CS6 reaches no fitted part',
         'no part behind the select, and no read path to the net',
         'SPEC CORRECTION (S100). hardware-map.md:410-411, the 8-DSP scaling '
@@ -868,8 +861,10 @@ def t_dc1(r, n):
     """Assert one select, clock a read; the other selects stay high.
 
     CS1 and CS2 are the only two that can answer. CS3/CS4 are not here at all
-    -- they are SPI_RDY and belong to DY1 -- and CS5-CS8 each say why they
-    cannot answer in DC_NO_DATA above rather than sharing one blanket line."""
+    -- they are SPI_RDY and belong to DY1 -- CS5 is retired (fw.csv MicGainLatch,
+    the CM4's permanent mic-gain latch drive, MC1/MC2/MC3's job) -- and CS6-CS8
+    each say why they cannot answer in DC_NO_DATA above rather than sharing one
+    blanket line."""
     if n in (1, 2):
         _deassert(r)
         txt = _diag(r, n)
