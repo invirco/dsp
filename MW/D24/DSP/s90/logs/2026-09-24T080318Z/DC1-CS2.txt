@@ -1,0 +1,54 @@
+=== 2026-09-24T08:03:35Z  PASS
+=== DSP4 chip 2 diagnostics ===
+  MAGIC          0xD5B40001
+  CHIP_ID        2   (DSPB/U5)
+  BOOT_STAGE     7   running
+  BOOT_CFG       1
+  FRAME_COUNT    11431
+  TICKS          3046
+  SEC_COUNT      11435
+  LAST_CSID      37   SPORT0_A_DMA (block clock)
+  UNK_CSID       0
+  UNK_COUNT      0
+  BLK_OVERRUN    4591
+  SPI_RX_COUNT   463
+  SPI_ERR_COUNT  0
+  SPI_STAT       0x00540001
+  SPI_STAT_STK   0x00144023
+  RESP_DROP      0
+  PRODUCT_ID     1
+  LED_MODE       0
+  SPORT0_ERR_A   0x00000000
+  DMA0_STAT      0x00006200
+  SPI_CTL        0x0001A501
+  SPI_RXCTL      0x00040001
+  SPI_TXCTL      0x00000001
+  BUILD_ID       0x20260812   (2026-08-12)
+  CFG_PHASE      0
+  CGU_FAIL       0
+  CGU_IT1        0
+  CGU_IT2        0
+  CGU_IT3        0
+  CGU_IT4        0
+  SPI_PART_FIX   0
+  SPI_PART_TICKS 0
+  SPI_PART_SEEN  0
+  SPI_PART_SKIP  0
+  SPI_REQ_WORD   0x00000000
+  BUILD_CFG      0xCF45FF10
+                 BLOCK 16
+                 CCLK 983.040 MHz
+                 BLOCK_MASK 7
+                 on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+                 off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+                 budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+  BUILD_CFG2     0xE2018E6F
+                 DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+                 DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+                   ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+                 on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TALK_INVERT
+                 off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH, DSP4_TEST_NODES
+
+  ISSUES
+    - BLK_OVERRUN = 4591 — the main loop missed that many blocks; audio was dropped.
+    - SPI_STAT sticky bits: TUR  transmit underrun; FCS  flow-control stall

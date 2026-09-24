@@ -151,10 +151,19 @@ ITEMS = {
     'MM1':     [(B_LSW, 'Panel MEMS mic (talkback)')],                    # 56
     'SP1':     [(B_LSW, 'Speaker')],                                      # 57
 }
-# DC1/DC2 fan out over the eight chip selects, one workbook row each (103-110).
-for _n in range(1, 9):
+# DC1/DC2 fan out over the chip selects, one workbook row each (103-110) --
+# EXCEPT CS3 and CS4 (rows 105/106). Those two nets are not chip selects in
+# either direction: they carry DSPA's and DSPB's SPI2_RDY BACK to the CM4, and
+# an assert-one-read-one test of them was a permanent NO DATA because it asked
+# a question the wiring cannot answer (S100). They get DY1 instead, which tests
+# what the line actually does.
+DC_SELECTS = (1, 2, 5, 6, 7, 8)
+RDY_SELECT = {1: 3, 2: 4}            # chip -> the CS number its SPI_RDY uses
+for _n in DC_SELECTS:
     ITEMS['DC1-CS%d' % _n] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
     ITEMS['DC2-CS%d' % _n] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
+for _c, _n in RDY_SELECT.items():
+    ITEMS['DY1-RDY%d' % _c] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
 
 SECTION = {}
 for _t in ('HD0-1', 'HD0-2', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
@@ -164,9 +173,11 @@ for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
     SECTION[_t] = 'B'
 for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR', 'MM1', 'SP1'):
     SECTION[_t] = 'C'
-for _n in range(1, 9):
+for _n in DC_SELECTS:
     SECTION['DC1-CS%d' % _n] = 'B'
     SECTION['DC2-CS%d' % _n] = 'B'
+for _c in RDY_SELECT:
+    SECTION['DY1-RDY%d' % _c] = 'B'
 
 
 # ---------------------------------------------------------------------------
@@ -684,8 +695,165 @@ def _deassert(r):
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
 
 
+# --- the six selects that cannot answer, and why each one cannot -------------
+#
+# S100 checked all eight against MW/D24/HW/hardware-map.md and defs fw.csv
+# rather than treating "not CS1/CS2" as one diagnosis. They are not one
+# diagnosis: CS7/CS8 are as mis-described by the workbook row as CS3/CS4 were.
+# fw.csv declares Dsp1..Dsp8 as H1S1 pins B12/C14/B14/B13/C13/B15/C15/H0 on
+# nets CS1..CS8, so each row is an H1S1 PIN ON A NET, and H1S1 drives none of
+# them: all eight are GPIO_Input and must stay that way (~/build-h1s1
+# Core/Src/main.c MX_GPIO_Init_2, "ALL EIGHT CS pins are OWNED BY THE CM4").
+DC_NO_DATA = {
+    5: ('CS5 reaches no fitted part; the CM4 line is claimed for CS_M on this unit',
+        'no part behind the select, and no read path to the net',
+        'SPEC CORRECTION (S100). hardware-map.md:410-411: "CS1-8 DSP chip-select '
+        'provision (8-DSP scaling -- only CS1/CS2 live on DSP4)". fw.csv Dsp5 is '
+        'H1S1 pin C13 on net CS5, and H1S1 holds it an INPUT by decision, so nothing '
+        'asserts it and H1S1 publishes no cell that could report its level -- there '
+        'is no read path in either direction, not merely no part. Separately, the D8 '
+        'amendment gives CS_M a spare stack CS line and this unit carries that as a '
+        'proto wire from the CM4 CS5 pin (GPIO27) to the CS_M pad, so the CM4 end of '
+        'CS5 is no longer free: driving it would move mic gain. MC1/MC2/MC3 exercise '
+        'that wire; they do not exercise the board CS5 net.'),
+    6: ('CS6 reaches no fitted part',
+        'no part behind the select, and no read path to the net',
+        'SPEC CORRECTION (S100). hardware-map.md:410-411, the 8-DSP scaling '
+        'provision. fw.csv Dsp6 is H1S1 pin B15 on net CS6; H1S1 holds it an INPUT '
+        'and publishes no cell that could report its level, so there is no read path. '
+        'CS6 is the one genuinely idle select of the eight: the D8 amendment lists '
+        'CS5 OR CS6 as the spare for CS_M and this unit took CS5.'),
+    7: ('CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned',
+        'n/a -- assert-one-read-one does not apply to this net',
+        'SPEC CORRECTION (S100), the same shape as CS3/CS4. CS7 (H1S1 PC15, fw.csv '
+        'Dsp7) carries SWD_EN1: dsp4-architecture-decisions.md D8 amendment, "CS7/8 '
+        'are permanently the CM4-owned SWD_EN selects", realised on rev C as the '
+        'CS7/CS8 -> SWD_EN1/EN3 proto wires. H1S1 driving it "forces ch3 permanently '
+        'selected and breaks the CM4 SWD channel-select" (archive/tasks-archive-'
+        '2026-08-20.md:365-367), which is why H1S1 holds it an input. No part answers '
+        'behind it and this runner has no SWD transaction to prove the select with, '
+        'so there is nothing to read today -- and driving it blind would take the '
+        'SWD channel select down with it.'),
+    8: ('CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned',
+        'n/a -- assert-one-read-one does not apply to this net',
+        'SPEC CORRECTION (S100), the same shape as CS3/CS4. CS8 (H1S1 PH0, fw.csv '
+        'Dsp8) carries SWD_EN3 -- see CS7: same D8 amendment, same proto wire pair, '
+        'same reason H1S1 holds it an input, and the same absence of a read path in '
+        'this runner.'),
+}
+
+
+def _dc_nodata(n):
+    # CS3/CS4 never arrive here: they are DY1's, and the fan-out above leaves
+    # them out of DC1/DC2 entirely. A KeyError would be the fan-out drifting.
+    assert n in DC_NO_DATA, 'CS%d has no DC1/DC2 row -- see DC_SELECTS/DY1' % n
+    m, lim, ev = DC_NO_DATA[n]
+    return NODATA, m, lim, ev
+
+
+# --- DY1: the SPI_RDY lines that the workbook calls CS3 and CS4 --------------
+#
+# WHAT THE SIGNAL ACTUALLY IS. PB_05 on each SHARC is SPI2_RDY, muxed to SPI2
+# by spi2_init() (MW/D32/DSP/SHARC/src/dma_config.c) and configured FCEN=1,
+# FCPL=1, FCWM=1: a push-pull OUTPUT that is HIGH while the receive FIFO has
+# room and deasserts LOW as it fills, stalling the host. It leaves the card as
+# CS3/CS4 and lands on CM4 GPIO8 (chip 1) / GPIO12 (chip 2).
+#
+# WHY THE OLD READ PROVED NOTHING, AND WHY THIS ONE DOES. Each DSP carries a
+# 10K pulldown to GND on that net (R34 on DSPA, R22 on DSPB), so an undriven
+# line rests LOW. A bare `pinctrl get` inherits whatever pull the CM4 pin was
+# left in, and GPIO8 powers up pulled UP while GPIO12 powers up pulled DOWN --
+# which is exactly why the old evidence recorded "8: ip pu | hi" and could not
+# say whether anything was driving it. Force the CM4's own pull DOWN and the
+# ambiguity is gone: with 10K to GND on the card AND the CM4's ~50K to GND, a
+# HIGH can only be the part driving the pin.
+#
+# The criterion is the line FOLLOWING the part, measured both ways:
+#   * !RST_D held low  -> the pad is high-Z, the pulldowns win, must read LOW;
+#   * booted to BOOT_STAGE 7 -> SPI2 flow control drives it, must read HIGH.
+# Passing both proves the pad is bonded and muxed, the net card -> J6 -> CM4 is
+# continuous, the line is shorted to neither rail, and SPI2 flow control is
+# configured and saying "ready". A static level proves none of those.
+#
+# The stimulus is the run's own recipe, not a new one: the dip is !RST_D (what
+# DR1 pulses) and the recovery is boot_pair() (what DR2 runs). One dip serves
+# both chips because !RST_D resets both parts together, so the cycle runs once
+# per session and both DY1 rows read it.
+RDY_SETTLE_S = 0.3
+
+
+def _rdy_parse(raw):
+    """{chip: 'hi'|'lo'|None} out of a `pinctrl get 8,12` transcript."""
+    lv = {}
+    for chip, g in RDY_GPIO.items():
+        m = re.search(r'^\s*%d:.*\|\s*(hi|lo)\b' % g, raw, re.M)
+        lv[chip] = m.group(1) if m else None
+    return lv
+
+
+def _rdy_levels(r):
+    """Both SPI_RDY lines with the CM4's own pull-DOWN forced on."""
+    raw = r.out('sudo pinctrl set %d,%d ip pd; sleep %s; pinctrl get %d,%d'
+                % (RDY_GPIO[1], RDY_GPIO[2], RDY_SETTLE_S,
+                   RDY_GPIO[1], RDY_GPIO[2]))
+    return _rdy_parse(raw), raw
+
+
+def _rdy_cycle(r):
+    """Run the characterisation once and cache it on the rig."""
+    cached = getattr(r, '_rdy_cycle', None)
+    if cached is not None:
+        return cached
+    run, raw_run = _rdy_levels(r)
+    # The dip is one remote command so the 200 ms window is timed on the CM4,
+    # not across three ssh round trips.
+    dip = r.out('sudo pinctrl set %d op dl; sleep 0.2; pinctrl get %d,%d; '
+                'sudo pinctrl set %d op dh'
+                % (RST_GPIO, RDY_GPIO[1], RDY_GPIO[2], RST_GPIO))
+    rst = _rdy_parse(dip)
+    log = boot_pair(r)
+    post, raw_post = _rdy_levels(r)
+    stage = {}
+    for chip in (1, 2):
+        stage[chip] = _field(_diag(r, chip), 'BOOT_STAGE')
+    out = {'run': run, 'rst': rst, 'post': post, 'stage': stage,
+           'raw': ('--- 1. as DR2 left the pair (CM4 pull-down forced) ---\n%s\n'
+                   '--- 2. !RST_D (GPIO%d) held low 200 ms ---\n%s\n'
+                   '--- 3. after boot_pair ---\n%s\nBOOT_STAGE %s/%s\n'
+                   '--- boot log ---\n%s'
+                   % (raw_run, RST_GPIO, dip, raw_post,
+                      stage[1], stage[2], log[-1200:]))}
+    r._rdy_cycle = out
+    return out
+
+
+def t_dy1(r, chip):
+    """SPI_RDY must follow the part: LOW in reset, HIGH once it is running."""
+    c = _rdy_cycle(r)
+    g, cs = RDY_GPIO[chip], RDY_SELECT[chip]
+    lim = ('SPI_RDY (CS%d, GPIO%d) reads LOW with !RST_D held low and HIGH with the '
+           'part at BOOT_STAGE 7, the CM4 pin pulled DOWN for both reads' % (cs, g))
+    m = ('CS%d/GPIO%d SPI_RDY: running %s, in reset %s, after boot %s (BOOT_STAGE %s)'
+         % (cs, g, c['run'][chip], c['rst'][chip], c['post'][chip], c['stage'][chip]))
+    st = c['stage'][chip]
+    if st is None or int(st, 0) < 7:
+        # The part never came back, so the line had nothing to drive. That is
+        # DR2's verdict to give, not this one's.
+        return NODATA, m, lim, ('chip %d did not reach BOOT_STAGE 7 after the dip, so '
+                                'the HIGH half has no part behind it to prove -- see '
+                                'DR2.\n%s' % (chip, c['raw']))
+    if c['rst'][chip] is None or c['post'][chip] is None:
+        return NODATA, m, lim, 'a level read did not parse.\n%s' % c['raw']
+    ok = (c['rst'][chip] == 'lo' and c['post'][chip] == 'hi')
+    return (PASS if ok else FAIL), m, lim, c['raw']
+
+
 def t_dc1(r, n):
-    """Assert one select, clock a read; the other selects stay high."""
+    """Assert one select, clock a read; the other selects stay high.
+
+    CS1 and CS2 are the only two that can answer. CS3/CS4 are not here at all
+    -- they are SPI_RDY and belong to DY1 -- and CS5-CS8 each say why they
+    cannot answer in DC_NO_DATA above rather than sharing one blanket line."""
     if n in (1, 2):
         _deassert(r)
         txt = _diag(r, n)
@@ -694,20 +862,7 @@ def t_dc1(r, n):
         return ((PASS if ok else FAIL),
                 'CS%d asserted (GPIO%d): CHIP_ID %s BUILD_ID %s' % (n, CS_GPIO[n], cid, bid),
                 'the addressed part answers CHIP_ID %d' % n, txt)
-    if n in (3, 4):
-        lvl = r.out('pinctrl get %d' % RDY_GPIO[n - 2])
-        return (NODATA, 'CS%d is not a chip select on DSP4: %s' % (n, lvl),
-                'n/a -- assert-one-read-one does not apply',
-                'SPEC CORRECTION. CS3/CS4 are wired to DSPA/DSPB SPI_RDY and are INPUTS '
-                '(MW/D24/HW/hardware-map.md:193-195; dsp4_boot.py RDY_GPIO = {1: 8, 2: 12}). '
-                'Level read at the CM4 end: %s. A 10K pulldown on each part rests the line '
-                'ASSERTED, so the level does not prove a part is alive either.' % lvl)
-    return (NODATA, 'CS%d has no part behind it on DSP4' % n,
-            'n/a -- 8-DSP scaling provision',
-            'SPEC CORRECTION. hardware-map.md:410-411: "CS1-8 DSP chip-select provision '
-            '(8-DSP scaling -- only CS1/CS2 live on DSP4; CS3/CS4 wired as DSP1/2 SPI_RDY)". '
-            'CS5-CS8 reach no fitted part, so no read can answer and none ever will on '
-            'this board.')
+    return _dc_nodata(n)
 
 
 def t_dc2(r, n):
@@ -1115,7 +1270,12 @@ def pin_handback(r):
     clocked and chip 2 comes up running chip1.ldr."""
     r.pin('7,9,10,11,22,23,25 a0')
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
-    r.pin('%d,%d ip' % (RDY_GPIO[1], RDY_GPIO[2]))
+    # `ip pd`, not bare `ip`: GPIO8 powers up pulled UP and GPIO12 pulled DOWN,
+    # so a later `pinctrl get` of the two SPI_RDY lines was only readable on one
+    # of them (S100). With the CM4's pull matching the card's 10K pulldown, a
+    # HIGH on either is the part driving it and nothing else. The boot is
+    # unaffected: the line reads low while the part is in reset either way.
+    r.pin('%d,%d ip pd' % (RDY_GPIO[1], RDY_GPIO[2]))
 
 
 def boot_pair(r):
@@ -1378,9 +1538,14 @@ def main():
             print(boot_pair(r)[-600:])
             r.run('DR1', lambda: t_dr1(r))
             r.run('DR2', lambda: t_dr2(r))
-            for n in range(1, 9):
+            # DY1 dips !RST_D itself and boots the pair back with boot_pair(),
+            # so it sits after DR2 (which leaves the pair up for the first
+            # sample) and before the DC selects (which need it up again).
+            for c in (1, 2):
+                r.run('DY1-RDY%d' % c, (lambda k: (lambda: t_dy1(r, k)))(c))
+            for n in DC_SELECTS:
                 r.run('DC1-CS%d' % n, (lambda k: (lambda: t_dc1(r, k)))(n))
-            for n in range(1, 9):
+            for n in DC_SELECTS:
                 r.run('DC2-CS%d' % n, (lambda k: (lambda: t_dc2(r, k)))(n))
         elif 'C' in a.section:
             print(boot_pair(r)[-600:])
