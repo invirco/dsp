@@ -1,3 +1,78 @@
+## HUB DISPATCH 2026-09-24 14:23Z — S107 — catalog deploy-date stamp on the D24 SELF-TEST title   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S107 — show the catalog's own deploy date next to the D24 SELF-TEST title
+
+PW's ask, straight from today's live confusion: it wasn't obvious from the
+glass alone whether the unit was running S104's retired-row-107 catalog or
+the stale one — the count/content had to be pulled off the CSV directly to
+be sure. A stamp on the header answers that at a glance next time.
+
+## Design, already made — apply it, don't re-derive it
+
+Source: **`test-catalog.csv`'s own last-write time on the unit** — not a
+generation timestamp threaded through the generator, not a build date. This
+is the cheapest, most honest signal for the actual question ("is what's
+loaded right now current"), needs no generator changes
+(`tools/d24/build-d24-test-skin.py` untouched), and can't go stale relative
+to what's actually deployed the way a baked-in generation timestamp could
+(e.g. if a file were copied later than it was generated).
+
+`src/sw/app/Core/TestSkinStore.cs`:
+
+1. Add a field alongside `_lastLoad` (line 122) for the catalog's stamp,
+   set inside `LoadCatalog()` (line 265) right after the catalog is
+   actually read — `File.GetLastWriteTime(CatalogPath)`, same file property
+   already at line 156. If the read throws (file missing, permissions),
+   handle it the same way the rest of `LoadCatalog()` already handles a
+   missing/bad catalog — don't add a new failure path the method doesn't
+   already have.
+2. `Field("TITLE")` (lines 843-846): append the stamp after `"D24
+   SELF-TEST"`, same separator style `"UPDATED"` uses (line 862's `"   "`
+   double/triple-space before the path) or the `"  —  "` the error variant
+   already uses — pick whichever reads cleaner in the actual layout, your
+   call once you see it rendered, not a coin flip. Format: date and time,
+   not just time — `"UPDATED"` gets away with `HH:mm:ss` because it's
+   always today's boot, but a stale catalog could be from days ago, so the
+   date matters here. Something like `"D24 SELF-TEST   catalog 2026-09-24
+   14:46"` is the shape; exact punctuation is yours.
+3. Check `TestSkinLayoutTests.cs` for any test asserting the exact `TITLE`
+   string and update it to match, the same way S102 had to drop a case
+   when it changed `StartLabel()`.
+
+## Build, deploy, verify
+
+This changes C# (`TestSkinStore.cs`), unlike S105/S104 — **the app needs a
+real rebuild this time**, check it rather than assume either way, the same
+discipline S105 held to when it confirmed a rebuild was *not* needed. Deploy
+to `app@192.168.1.219` (the pattern every S9x/S10x dispatch already uses),
+md5-match, rollback path named. Confirm on the glass with a real capture —
+the title bar showing the new stamp — before calling this done; S105's own
+miss (a claimed-but-not-captured row) is exactly the standard to hold to
+here, and this dispatch has no reason to repeat it.
+
+## Handback
+
+Before starting, check whether anyone is at the physical bench — S105
+found real touch activity on the panel mid-session and backed off rather
+than inject over it; if the same thing is happening, wait or coordinate,
+don't fight for the screen. Standard idle handback otherwise: `d24-testui`
+active, `matrix-app` inactive, `AN_EN` untouched, capture drop-in removed
+if this session adds one.
+
+## Report
+
+State plainly: the exact title format landed, the rebuild confirmation, the
+deploy md5s, and the on-glass capture. Commit and push to `main`. No PW
+question expected — this is fully specified; if the layout doesn't have
+room for a longer title and something has to be trimmed, say so as a 🔴
+line with what you'd cut rather than silently truncating it.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 13:45Z — S105 — deploy S104's CS5/test-107 retirement to the live unit   [status: 🔴 blocked — catalog + runner deployed and md5-verified (no app rebuild needed, confirmed via S104's mx26 diff), row count 204→203 confirmed both on a genuine live DRM capture and in the app's own boot log. **Short of complete**: mid-deployment the app's log showed PREV/NEXT touch events this session never sent — `ps`/`who` ruled out any other process or session, leaving the real ILITEK panel as the only source, i.e. someone appears to have been physically at the bench (14:51:41–14:52:04 BST). Session killed its own touch injector and stopped navigating rather than send more synthetic taps into a screen mid-press; got row-111/MC1's content proven by byte-verified deployed CSV + an explicitly-not-a-screenshot offline preview, but not a live capture of that specific row. Left the capture systemd drop-in in place and the wizard's queue wherever that activity left it (ALL ROWS, row 41) rather than restart `d24-testui` and reset it out from under whoever that was. Full writeup + question: `MW/D24/DSP/s105/deploy-cs5-retirement.md` §4. **Needs from the hub**: confirm the bench is clear (was that PW?) and either accept the evidence gathered as sufficient or re-dispatch for the specific row-111 screenshot + drop-in cleanup once clear.]   [model: sonnet]
 
 model: sonnet
