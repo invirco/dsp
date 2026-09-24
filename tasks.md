@@ -1,3 +1,108 @@
+## HUB DISPATCH 2026-09-24 12:17Z — rename CS5 to MicGainLatch, retire test 107 in favour of MC1/MC2/MC3   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# Rename CS5 to MicGainLatch, retire test #107 in favour of MC1/MC2/MC3
+
+## The ruling, and why nothing here needs re-investigating
+
+PW, live in the review session: CS5 has been repurposed to drive `!CS_M` (the
+74HC595 mic-gain chain latch), tested, and is permanent rev-D copper — so
+`fw.csv` and the test spec need to catch up to what the hardware and the
+mods PDFs already record. This is not a new finding to chase: it is already
+fully established and cross-referenced in this repo and mx26 —
+
+- `mx26 docs/backlog-d24-schematic-errata.md:468` — **FITTED** on the rev C
+  proto 2026-09-12, restated BLUE in `D24 DSP mods.pdf` (sheets 3, 6, 7) and
+  `d24 digital mods.pdf` (sheets 1, 2), bench-verified (`chain readback
+  VERIFIED 200/200`), H1S1's release of the pin made explicit in firmware
+  2026-09-14.
+- `mx26 docs/backlog-d24-schematic-errata.md:207` — already in the **REV-D
+  MOD LIST**: `D24 DSP mods.pdf` page 1 gains MOD 3 ("!CS_M is the CM4's;
+  PA14 released"), `d24 digital mods.pdf` page 1 has "the CS5→!CS_M copper".
+- `dsp MW/D24/DSP/s100/cs3-cs4.md:118` (this repo) — already found *"the
+  CM4's CS5 line carries CS_M on this unit... MC1/MC2/MC3 exercise that
+  wire"* and proposed keeping CS5 as a bare provision, which is now
+  superseded by PW's ruling that this is CS_M's real, permanent function,
+  not a spare.
+
+Do not re-derive any of this or re-investigate the schematic — the facts
+are settled and cited above. This dispatch is the mechanical follow-through
+S101 already did for CS3/CS4/CS7/CS8, applied to CS5.
+
+## Step 1 — `defs/products/d24/fw.csv`
+
+Rename the `Dsp5` row (today: `DSP,Dsp5,,C13,CS5`) to **`MicGainLatch`**,
+PW's name — chosen for meaning: it names what the pin does (latches the mic
+gain/phantom/mute shift chain), not the bus it used to belong to. Note in
+the row (same style as S101's `RdyDspA` notes): *"CM4 GPIO27 drives `!CS_M`,
+the 74HC595 mic-gain chain latch on the analog board; H1S1 releases the pin
+as input/no-pull and plays no active role (D8 amendment, fitted rev C proto
+2026-09-12, permanent rev-D copper). Not a DSP chip-select despite the H1S1
+pin C13 / `CS5` net legacy naming."*
+
+Follow the standing defs discipline exactly (`CLAUDE.md` § the defs repo):
+bump `defs.toml` before regenerating, run whatever the existing pipeline
+uses to confirm zero unrelated byte changes (S102's `regenerate-dsp-contract.sh`
+is the precedent — this rename should be similarly byte-neutral on every
+other generated artefact, since it is a label, not an address or a layout
+change), tag `defs-vYYYY.MM.DD` (today's date), push tag + main on `defs`,
+then bump this repo's submodule pointer and mx26's `CLAUDE.md` pin text —
+the exact sequence S101 already used for its own fw.csv rename, mirror it.
+
+## Step 2 — retire test #107, don't rename it in place
+
+Unlike CS3/CS4 (which became a new test, `DY1`, because the corrected
+question needed a runner that didn't exist yet), CS5's corrected question
+is **already fully answered** by `MC1`/`MC2`/`MC3` — they exercise the exact
+same wire end to end (CM4 GPIO27 → `!CS_M` pad → the 595 chain's latch
+input) as part of proving the whole chain shifts and latches correctly.
+There is nothing left for a standalone #107 to check once `fw.csv` no
+longer calls this pin a chip-select.
+
+So: **retire row #107 outright** — remove it from
+`MW/D24/DSP/accept/item-status.csv`'s live set and the test-catalog
+generator, the same "genuinely nothing separate to check, once correctly
+named" category the untestable-rows ruling describes, not a "missing
+capability" case any more now that the rename makes plain what it actually
+is. Do not invent a replacement runner — none is owed.
+
+In `mx26 docs/spec-d24-selftest.md`, replace row 107's entry with a short
+note where it used to be (do not just delete the line silently — the next
+reader needs to know CS5 didn't vanish, it was renamed): something like
+*"CS5 → renamed `MicGainLatch` in `fw.csv` (PW ruling, 2026-09-24): it is
+the CM4's drive for the mic-gain chain latch `!CS_M`, not a DSP
+chip-select. Tested as part of MC1/MC2/MC3, not as its own row — see
+those."* Cross-reference MC1/MC2/MC3's own row text so a reader lands
+there, not on a dead end.
+
+## Acceptance
+
+- `defs` tagged and pushed; this repo and mx26 both point at the new tag.
+- `fw.csv`'s `Dsp5` row reads `MicGainLatch` with the note above.
+- `docs/spec-d24-selftest.md` row 107 replaced with the redirect note, not
+  silently deleted.
+- The workbook/catalog generator's row count drops by one and the
+  generator runs clean (`tools/d24/build-d24-connector-status.py` in mx26,
+  same check S100/S101 already ran).
+- `MC1`/`MC2`/`MC3`'s own text still correctly describes what they test —
+  confirm it doesn't need updating to mention it now also stands in for
+  the old #107, and add a line if it's genuinely missing that context.
+
+## Report
+
+State plainly: the defs tag, confirmation the regenerate step was
+byte-neutral elsewhere, the exact `fw.csv` diff, the exact
+`spec-d24-selftest.md` diff, and the new row count. Commit and push both
+repos (`dsp`, `mx26`) to `main`. No PW question expected — this is fully
+specified from an already-settled ruling; if something doesn't match this
+spec's assumptions (e.g. MC1/2/3 turn out not to actually cover the full
+wire), stop and say so as a 🔴 line rather than improvise a fix.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-24 10:05Z — S103 — raise AN_EN, stage TEST_NODES pair, get first real SP1/MM1 result   [status: 🟢 done — **BOTH PREREQUISITES CLEARED AND THE MEMS LANE DID NOT MOVE: `MM1` is **FAIL**, `SP1` is **NO DATA**, and `AN_EN` was never what held either up.** The lane reads the SAME ROW BYTE FOR BYTE with the rails high as with them low — `XIN_MEMS 46 736 7 0 16 1 -186.64 -186.64 ffffffff ffffffff ffffffff STATIC` — so S102's prerequisite (1) was real as a rule and **empty as a cause**. The netlist, traced AFTER the measurement, says why and agrees: the mic `lswitch U3` (IMP34DT05) runs off `+3V3.00039` made on the panel board by `lswitch U5` (a 3-pin LDO) from `+5V` arriving on `lswitch J1.1/.14 = digital J13.1/.14`, and its converter `digital U13` (ADAU7002, TDM8 slot 5 strap) sits on digital `+3V3` (`d24-netlist-global-pins.csv:8048`) — both `PSU_DIG_EN` bucks. **`AN_EN` gates only `PSU_12_CLK` (±15 V) and `PSU_48_CLK` (+45 V phantom)** (`src/fw/pwr-mcu/board.h:6-16`, `d24-pwr-mcu-def.csv:22-23`), so **there is no AN_EN-gated rail anywhere in the MEMS mic's supply chain**. **RAILS, exactly: the two gates of the 2026-09-10 AN_EN ruling were met first** — both chips `BOOT_STAGE 7 running` (`FRAME_COUNT 240189/239538`) and the 595 chain loaded+read back SAFE `VERIFIED 200/200` (gain 0, phantom off, MUTED) — **then `sudo pinctrl set 26 op dh`, `lo`→`hi`, four runs over ~6 min, then `sudo pinctrl set 26 op dl`, `hi`→`lo`, CONFIRMED RESTORED by direct read** (`26: op -- pd | lo`), CPLD not flashed, shipping pair in flash untouched. **THE OSCILLATOR RAN FOR REAL** — `TEST_OSC` 1 kHz at −20.00 dBFS peak on strip 20, settling `RmsResult -23.01 dBFS` (the exact RMS of that peak, +0.00 dB) at `ThdResult -116.12 dB = 0.00016 %`, with the route asserted and read back through the image's own dispatch table (`Mon001Level001` chip2 1789 `0x3F800000`, `Main001Level001` 1379, `Chan020MainOn001` chip1 2820 `0x1`). S102 proved the route could be WRITTEN; this proves it can be DRIVEN. The mic simply never answered: STATIC idle, STATIC with the tone on, STATIC with it off. **THE PAIR: `ARM=s103 DSP4_TEST_NODES=1 ./loopthd.sh` built and staged clean** (`chip1.ldr 0d4a4416…`, `chip2.ldr 6f11a1dd…`, `_osc_blk_q_C1_TEST_OSC` present, 6452 symbols); the leg's own THD verdict was INCONCLUSIVE (`-116.09 dBFS`, LOOP LEVEL OUT OF WINDOW) which is 🔴 S102-1's cable, not a build fault. **THE DISPATCH'S SEQUENCE COULD NOT HAVE WORKED AS WRITTEN and that is named, not papered over**: `loopthd.sh` stages to `/home/app/loopthd/<ARM>` but `stage_setup` copied the pair it boots from a hard-coded `candidate-s82`, so the run would have booted the SIGNED pair and reported `waiting on a DSP4_TEST_NODES=1 pair` — a message that was by then false. Runner gained **`--pair DIR`** (bench host) and **`/home/app/selftest/pair.conf`** (the only way the wizard's own START, which passes no arguments, can reach a test-node pair); a pointer to a directory without all four files is a hard **ERROR**, never a silent fall back; the resolved directory and WHY are in the banner and in `SP1`'s evidence. **A BUG THAT ONLY CLEARING THE PREREQUISITES COULD FIND**: the first run with both met returned `RUNNER ERROR: TypeError('not all arguments converted during string formatting')` — S102's PASS/FAIL line had five placeholders and six arguments (`ret` twice, `back`/`ret` transposed) and had NEVER EXECUTED because every run until now stopped at a prerequisite above it. Fixed. **DESIGN CALL, mine: `SP1` returns NO DATA, not FAIL, when the MEMS lane is STATIC in all three legs** — `SP1`'s only instrument is `MM1`'s microphone, and scoring the speaker FAIL through a dead mic is the harness inventing a defect, which this runner's own three-word doctrine forbids. A lane that CARRIES and does not rise is still a real `SP1` FAIL, which is why the test is on the three legs and not on `MM1`'s verdict. **ON THE GLASS, ONE PRESS EACH, both captured**: `#57` → `SP1 NO DATA 2026-09-24T10:16:29Z — the MEMS lane is STATIC in all three legs`; `#56` → status tile **`FAIL`** in red, `MM1 FAIL 2026-09-24T10:17:39Z — 1 MEMS lanes all STATIC with AN_EN up`, score line `4 FAIL · 177 not resolved` → **`5 FAIL · 176 not resolved`**, and the authored remedial paragraph appearing for the first time (*“the PDM clock or the mic … check the panel ribbon first”*) — arrived at independently of the netlist trace and agreeing with it. Both were real section-C runs in the wizard's own transient unit, resolving the pair through `pair.conf`, `matrix-app` inactive and `d24-testui` active throughout. **🔴 S103-1, found here and NOT caused here**: `s89_signbit`, called “the inter-chip link gate”, **does not gate** — 17 calls in the unit's run log, 17 exit 0s, including every FOLDED one, and nothing reads it. **4 of 16 boots came up FOLDED** (`received bit31 0/64`, 64 distinct values and not one negative), **2 of them on the SIGNED candidate before this session** — `08:25:30Z` (section B) and `09:53:26Z`, which is **S102's own row-57 `SP1` run**, the one behind its `live-57-after-one-press.png`. The MAIN bus carrying the speaker route crosses that lane. It did not change today's verdicts but it will change somebody's; wants its own dispatch, and the fix moves reported verdicts so it is the hub's call. **🔴 S103-2**: `MM1` FAIL still cannot name which of four things is broken (ribbon / LVDS pair / PDM clock / mic) — bench note 31, no counter on the MEMS group. Narrowed here: `lswitch J1` carries the MEMS LVDS pairs (pins 2-5) AND the left panel MCU link (11/13/15-19) on ONE connector, and **`ML-P2` (`dig-panel-b`) PASSes**, so the ribbon is seated — but that proves nothing about pins 2-5, the only ones the mic uses. (The glass text names `ML-P1`/`ML-P2` together; `ML-P1` is `dig-panel-a`, the RIGHT panel, not on this ribbon — one-word spec fix next time that text is touched.) **🔴 S103-3**: this lane has NEVER read non-static on any unit, any build, any rail state (S79-2, S86-2, S90, S102, S103); S85's `_laneid` marker `f4aea000` proved the pin/slot binding, not a microphone — so “FAIL” may be describing a path never brought up rather than a fault on MW-D24-2. **🔴 S103-4**: a vestigial net literally named `MEMS` (CPLD pin 137 → `J18` P26, no digital-side load) will be the first hit for anyone grepping; the live path is `J13`/`J1`. **mx26 `docs/spec-d24-selftest.md`: 🔴 PW-1 CLOSED** — the spec still said a dispatched session may not raise `AN_EN` and that all 47 section-2B rows were gated on an unanswered ruling; now ✅ ruled (option (a), PW 2026-09-24), 2B gated on the H1 harness only, and what survives of S49-15 kept and sharpened as a SEQUENCING FACT not a permission (the first `matrix-app` restart after a hand-raised `AN_EN` drops the rails again). **Unit as handed back**: test mode (`d24-testui` active, `matrix-app` inactive), **`AN_EN` lowered and confirmed `lo`**, `CS_M ip pu`, 595 SAFE `VERIFIED 200/200` read back exactly `01 ×24 00`, CPLD not flashed, `pair.conf` removed, capture drop-in removed and the running process checked through `/proc/<pid>/environ` (**0** `MX_DRM*` vars), injector stopped and `/tmp/tap` removed, app/catalog/skin untouched, `defs.lock` unmoved at `defs-v2026.09.19.3` so **no contract bump is owed**. Report `MW/D24/DSP/s103/rails-up-first-real-result.md` with four captures and the two on-unit evidence logs.]   [model: opus]
 
 model: opus
