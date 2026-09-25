@@ -1282,14 +1282,20 @@ AL1_MEAS_CHAN = 54                # C1_XIN_MEMS -- see above, not a strip
 # THE TONE IS SAFE BY DEFAULT AND CANNOT BE MADE LOUD BY ACCIDENT.
 # PW drove this speaker to full scale by hand on 2026-09-25 and heard no
 # clipping, which is what says the path is healthy -- it is NOT permission for
-# an automated test to do the same. An unattended run plays -20 dBFS, fades in
-# and out over 150 ms so the speaker is never asked for a step, and is on for
-# well under a second (0.6 s measured; `--then-off` stops the tone inside the
-# same session, which is the only way that number is small -- a second
-# invocation spends two to four seconds starting up with the tone still
-# sounding). `--al1-level` moves it and CANNOT go past AL1_TONE_CAP_DBFS.
-AL1_TONE_DBFS = -20.0
-AL1_TONE_CAP_DBFS = -6.0
+# an automated test to do the same. PW ruled 2026-09-25 (S110 follow-up) that
+# the -20 dBFS default was too quiet to measure: the mic sits only ~8 dB over
+# its own floor there, so THD+N cannot read better than ~-8 dB (40 %) however
+# clean the speaker is -- it was a weak clip detector, not a real one. The
+# default moves to -6 dBFS, where THD+N reads as a real number, and the hard
+# cap moves to -3 dBFS -- still 3 dB under the 0 dBFS PW drove by hand today
+# with no audible or visible clipping. An unattended run fades in and out over
+# 150 ms so the speaker is never asked for a step, and is on for well under a
+# second (0.6 s measured; `--then-off` stops the tone inside the same session,
+# which is the only way that number is small -- a second invocation spends two
+# to four seconds starting up with the tone still sounding). `--al1-level`
+# moves it and CANNOT go past AL1_TONE_CAP_DBFS.
+AL1_TONE_DBFS = -6.0
+AL1_TONE_CAP_DBFS = -3.0
 AL1_RAMP_MS = 150.0
 AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 
@@ -1314,18 +1320,18 @@ AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 AL1_CAL = {
     'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
     'unit': 'MW-D24-2 (rev C+)',
-    'stamp': '2026-09-25T13:15:34Z',
+    'stamp': '2026-09-25T13:46:11Z',
     'pair': '/home/app/loopthd/s109',
-    'runs': '15 runs at -30/-20/-10 dBFS x 5 reps; 10 fitted, 5 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -20 dBFS; default drive -20 dBFS',
-    'slope_db_per_db': 0.940,
-    'intercept_dbfs': -30.590,
+    'runs': '15 runs at -12/-6/-3 dBFS x 5 reps; 15 fitted, 0 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -12 dBFS; default drive -6 dBFS',
+    'slope_db_per_db': 1.029,
+    'intercept_dbfs': -29.650,
     'level_tol_db': 4.000,
     'level_hi_tol_db': 7.000,
     'high_fails': False,
-    'snr_min_db': 3.900,
-    'floor_max_dbfs': -48.500,
-    'thdn_abs_db': -4.100,
-    'thdn_margin_db': 4.900,
+    'snr_min_db': 15.400,
+    'floor_max_dbfs': -48.300,
+    'thdn_abs_db': -16.700,
+    'thdn_margin_db': 10.800,
 }
 AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
                         'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
@@ -1670,7 +1676,7 @@ def t_al1(r):
 
 
 # --- calibration ------------------------------------------------------------
-AL1_CAL_LEVELS = (-30.0, -20.0, -10.0)
+AL1_CAL_LEVELS = (-12.0, -6.0, -3.0)   # brackets AL1_TONE_DBFS (S110 follow-up)
 AL1_CAL_REPS = 5
 
 

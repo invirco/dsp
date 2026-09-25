@@ -307,8 +307,9 @@ To undo: `rm /home/app/selftest/pair.conf`.
 
 - **🔴 Thresholds are provisional.** No speaker supplier datasheet, and the R97
   amp-gain change has not happened. One command re-calibrates (§4).
-- **🟡 THD+N at the −20 dBFS default is noise-limited** (§4). PW's call whether
-  the default moves to −10.
+- **🟢 CLOSED §10 (2026-09-25 follow-up).** THD+N at the −20 dBFS default was
+  noise-limited (§4); PW's call was neither "leave it" nor "−10" but **default
+  −6 / cap −3**, recalibrated on the part. See §10.
 - **🔴 For the hub, in mx26 — the class line overlaps the `tests` line on the
   glass, and it is not this row's fault.** The app composes
   `row N of M · class C · workbook says S [(no run on this unit yet)] ·
@@ -345,3 +346,89 @@ To undo: `rm /home/app/selftest/pair.conf`.
 | mx26 | `docs/spec-d24-selftest.md` | MM1 + SP1 → AL1 |
 | unit | `/home/app/selftest/*` | nine files deployed, md5-matched, `*.bak-s110-pre` |
 | unit | `/home/app/selftest/pair.conf` | written and LEFT — §7 |
+
+## 10. Follow-up: level (2026-09-25, PW ruling)
+
+PW ruled the §8 open item closed the other way from what it asked about: not
+−10 dBFS, but a new default of **−6 dBFS** and a new hard cap of **−3 dBFS**
+(was −20 / −6). Reason: at −20 the mic sat only ~8 dB over its own floor, so
+THD+N could not read better than ~−8 dB (40 %) on a healthy unit — a weak clip
+detector, not a real one. PW drove the speaker to 0 dBFS by hand with no
+audible or visible clipping, so −3 is safe for the 0.6 s ramped burst this test
+uses.
+
+**Recalibrated on MW-D24-2**, `--al1-calibrate` with the bracket moved to
+`-12/-6/-3` dBFS (was `-30/-20/-10`), 5 reps each, same fit rule (`THD+N <=
+-6 dB` defines the line — all 15 points fitted this time, 0 excluded, because
+every bracketed level now reads a real tone). Raw log:
+`data/calibration-runs-level-followup.txt`.
+
+```
+                         old (S110)      new (this follow-up)
+slope_db_per_db            0.940              1.029
+intercept_dbfs           -30.590            -29.650
+level_tol_db                4.000              4.000
+level_hi_tol_db             7.000              7.000
+snr_min_db                  3.900             15.400
+floor_max_dbfs            -48.500            -48.300
+thdn_abs_db                -4.100            -16.700
+thdn_margin_db              4.900             10.800
+```
+
+**What moved and why.** `snr_min_db` jumped from 3.9 to 15.4 dB because SNR at
+the new, much louder default is itself much higher (~19-20 dB at −6 dBFS vs
+~8 dB at the old −20 dBFS default) — NO SOUND is still a label, not the safety
+net (the level window still does that work), it just labels correctly at the
+new volume. `thdn_abs_db` moved from −4.1 to −16.7 dB (~14.6 %): **THD+N at
+the new default is a real number, not noise** — measured 5.5-10.3 % across 5
+reps at −6 dBFS (mean −21.31 dB = 8.6 %), close to but a little above PW's "a
+few percent" expectation; the fit rule set the ceiling 3 dB past the worst of
+those 5 readings, same rule as before, applied to real distortion instead of
+mic noise this time. `slope_db_per_db` and `intercept_dbfs` moved slightly
+(0.940 → 1.029, −30.59 → −29.65) because the fit line is now anchored by three
+much louder points instead of three quiet ones — the line is still a straight
+fit in dB, so the table still survives the next amp-gain change the same way.
+`level_tol_db`/`level_hi_tol_db` did not move: the run-to-run spread at the new
+levels (0.04-0.05 dB) is far inside the 4 dB floor the window already carried.
+
+**Verified against the new windows on the part**, immediately after
+recalibrating: one live `--only AL1` run at the new −6 dBFS default (no
+`--al1-level` override) — `PASS base -52.6 tone -36.0 SNR 16.6 dB THD+N -24.3
+dB 6.1%` — inside the recalibrated line and ceiling. (One run in between hit a
+transient inter-chip link FOLD on that boot cycle, unrelated to the level
+change — see `MW/D24/DSP/s110/data/` timestamps around 13:46Z; the next boot
+came up CLEAN and is the PASS quoted above.)
+
+**Redeployed, S105 procedure.** Only `d24_selftest.py` (the constants + the
+recalibrated table) and `test-catalog.csv` (the AL1 remedial line, which
+referenced the old "-20 dBFS default is mostly noise" reasoning and needed to
+say something true) changed; the skin regenerates **byte-identical**
+(`f517539d6a7c2b3ac72a65d35267f8da`) so it was not redeployed, matching the
+S110 precedent. Rollback copies taken first as `*.bak-s110-level-pre`,
+matching the previously-deployed md5s (`d7aaa92660d42c403474b1dc154a1cb4`,
+`2d3561fc93b60aa339b1afc1bdd947f7`) before overwrite:
+
+| file | deployed md5 |
+|---|---|
+| `d24_selftest.py` | `7ec3e742eecd6517bb020cfec0393fe0` |
+| `test-catalog.csv` | `fd4de54e1f60aa89a43ffde47536c45a` |
+
+`d24-testui` restarted to pick up the new catalog; the app's own log confirms
+`TestSkinStore: catalog 202 rows from /home/app/selftest/test-catalog.csv` —
+the row count is unchanged, only row 56's `remedy` text differs (confirmed by
+the same keyed-diff method §5 used: nums only-old = only-new = {}, rows
+differing = {56}). The touch-UI-to-runner wiring itself was not touched this
+session (only the level constants and the AL1_CAL table) and was already
+proven working through the touch path earlier the same day (`item-status.csv`
+on the unit carries two AL1 PASS rows from touch presses at 13:25:53Z and
+13:32:01Z, both before this redeploy); re-verification after redeploy was done
+with the identical `--only AL1` invocation the skin's START button runs,
+rather than a fresh synthetic touch-injection cycle, since PW was at the bench
+and the injector's device-enumeration caveat (§S110) would have needed a
+second `d24-testui` bounce right next to a live session.
+
+**Unit as left**: `AN_EN` lo, `CS_M` `op -- pu | hi` (DRIVEN), 595 chain SAFE,
+`matrix-app` inactive, `d24-testui` active on the recalibrated catalog,
+`pair.conf` unchanged at `/home/app/loopthd/s109`, CPLD and H1S1 not touched,
+`defs.lock` unmoved — no contract bump owed (no def CSV, slot map, wire table
+or generated artefact changed).
