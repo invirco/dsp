@@ -1,3 +1,97 @@
+## HUB DISPATCH 2026-09-25 12:58Z — D24 self-test: speaker tone + MEMS level/THD acoustic loop (SP1/MM1)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# Integrate the speaker + MEMS mic into the D24 self-test: tone out, mic checks level and coarse THD
+
+RELEASE: the hub hold from earlier today is over. PW is at the bench with MW-D24-2
+and asked for this. Rev C+ only (MW-D24-1 hands-off).
+
+## What is now known (do not re-derive, all measured 2026-09-25 with PW)
+
+- CPLD `dsp4_logic.90e24de0dd4a` is on the part; H1S1 has the aux byte flashed
+  (S109 §10). MEMS = ADAU7002, the mic is on **0-based slot 4** of A_I7 (`XIN_MEMS`),
+  CONFIRMED by ear: quiet room -71.5 dBFS RMS, 1 kHz tone at -6 dBFS peak from the
+  speaker -> -35.6 dBFS, at -3 dBFS -> ..., at 0 dBFS -> -29.5 dBFS (peak -23.6),
+  linear with level. So S109-4 (which slot is the mic) is CLOSED, do not run the
+  slot-tap test; correct the record if anything still says "unresolved".
+- The speaker path works end to end: strip 20 (osc) -> Main -> Mon -> codec DAC1 ->
+  `analog U3.22` -> C23 -> SPKR -> C82 -> TS482 `digital U32` (unity, BRIDGED, 5 V) ->
+  SPKR0/SPKR1 -> panel speaker. PW measured a clean 1 kHz sine, about 1.85 V rms on
+  each U32 output at -6 dBFS, and heard the tone rising to full scale with no audible
+  or visible clipping. The route recipe is `MW/D24/DSP/s109/cpld-io-fix-and-audit.md`
+  §6a. Rails: I raised AN_EN (`pinctrl set 26 op dh`) for the bench session and it is
+  still HIGH, the DSP pair is booted (`/home/app/loopthd/s109`), 595 chain loaded
+  safe. Check the state, do not assume it.
+- PW intends to boost the amp gain (R97 parallel resistor, +6 dB or more) and the
+  supplier datasheet for the speaker is not in yet. So thresholds cannot be spec
+  limits yet: they are provisional and must be easy to change in ONE place.
+
+## Build this
+
+Combine the catalog's speaker row (#57 SP1) and MEMS row (#56 MM1) into one
+acoustic-loop check, in `tools/pi/d24_selftest.py` (+ `test-catalog.csv` /
+`hardware-map` wording as the existing rows require; look at how S102/S103
+implemented SP1 and MM1 and extend them, do not fork a second harness):
+
+1. Baseline: tone OFF, measure the MEMS strip's own level (noise floor, dBFS).
+2. Tone: inject 1 kHz through strip 20 to the speaker at a SAFE default (-20 dBFS,
+   configurable, hard-capped so a test can never exceed -6 dBFS peak by default, with
+   a ramp on and off and at most ~3 s on). PW gave the OK for full scale by hand
+   today; automated tests must not.
+3. Measure the mic while it plays, using the S49 measurement nodes (TEST_MEAS: RMS,
+   THD+N) pointed at the strip that carries `XIN_MEMS` (find it: the MEMS_TB / talkback
+   strip; `dsp4_s49_osc.py --meas <strip>`), NOT a scatter of rxscan reads, so the
+   THD figure is over a real continuous window. Report level in dBFS, THD+N in dB AND
+   in percent (PW rule: every THD/THD+N in both), and tone-on minus tone-off (SNR).
+4. Verdicts, all coarse and provisional, meant to catch faults not to certify:
+   - NO SOUND: tone-on level within a few dB of the baseline -> speaker, amp, codec
+     path, or mic dead (say which stage cannot be told apart).
+   - LOW: level below the lower window.
+   - CLIP/DISTORTED: THD+N above a loose ceiling (calibrate; a small speaker and a
+     room will not be clean, PW said this is for clip / other-problem detection only).
+   - PASS otherwise.
+   Put windows and ceilings in ONE table at the top of the test, marked
+   `PROVISIONAL until the speaker supplier datasheet`, and derive the first values from
+   real runs you take now on this unit at 3 tone levels (e.g. -30/-20/-10), 5 reps each,
+   with the numbers shown in the report so PW can see the spread. Make the windows
+   RELATIVE where you can (expected mic level = f(injected level) from the measured
+   slope, mic dB per injected dB) so that when PW adds amp gain the test still works
+   after a one-command recalibration (`--calibrate` that re-measures and rewrites the
+   table, printing old and new).
+5. Restore state: tone off, strips/routes back to as found, and AN_EN LOWERED at the
+   end if this session raised it or found it high with no other owner. Say plainly in
+   the report what AN_EN was at start, and at handback. Standing ruling (PW 2026-09-24)
+   lets a dispatched session raise and lower AN_EN; the two gates (digital clocks
+   stable, 595 chain loaded safe) still apply.
+
+## Also
+
+- The MEMS lane still carries the pull-up tail (`...FFF`, low 12 bits) — the level
+  and THD numbers are affected only marginally, but say so if you see it in the THD
+  floor.
+- H1S1 aux flash landed (S109 §10): if you can verify `12H` reads 0x00 now (rails are
+  up, `matrix-app` may or may not be running; do not start it if it would break the
+  route, ask via a 🔴 note instead), do it; otherwise leave that item open.
+- Do not touch the CPLD (the PIN_70 no-pull-up build is built, not flashed, and stays
+  that way).
+- Mods rule: if the run shows the amp or speaker needs a hardware change, that goes as
+  a red item for the hub in the mods PDF, not a guess.
+
+## Rules
+
+- Never open a question dialog (PW 2026-09-19): 🔴 notes in the block, commit, push, stop.
+- Board actions named in the block with hashes/reads. Single trunk, pull first, push main.
+  No AI attribution anywhere. Provenance header on any new standalone report.
+- Report: what the test does, the calibration data (all runs), the provisional
+  windows and where they live, the one command PW runs, AN_EN start/handback, and
+  what is still open. Keep it short; append to the S109 report as §11 or a small
+  s110 doc, your call.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-25 12:04Z — S109 follow-ups: aux flash, MEMS slot test tool, M MCU_S4, CS_M recipe   [status: 🟢 done — **ALL FOUR ITEMS LANDED; THE H1S1 FLASH IS ON THE PART AND THE READBACK THE DISPATCH EXPECTED TO BE IMPOSSIBLE WAS TAKEN, WITH NO RAILS.** **🟡 THREE BENCH STEPS ARE QUEUED FOR AFTER THE HUB HOLD** (PW went to the bench for the §6a speaker tone mid-session; the unit was NOT touched after that, and it was already in a clean handback state when the hold arrived): (1) `scp MW/D24/DSP/s109/mems-slot-test.sh app@192.168.1.219:/home/app/` + `chmod +x`; (2) one run with nobody tapping, to prove the quiet-baseline half on the unit — the TAP half is PW's and this session must not run it; (3) redeploy `MW/D24/DSP/s105/test-catalog.csv` to the unit's glass. **BOARD ACTION — H1S1 FLASHED on MW-D24-2 (S109-1 CLOSED).** `~/build-h1s1` is not a git repo, so the edit was CAPTURED FIRST: `MW/D24/DSP/s109/h1s1/matrix.cs` + `matrix.cs.patch`, the S109 change alone, reconstructed against a pre-S109 copy rather than the last on-disk backup (which predates S81's read arm and would have carried it in too). **The build was reproduced before it was changed**: rebuilding the PRE-S109 source with `Debug/fw.sh` produced `H1S1.bin` md5 `5b6041d8472ade8c5a2bb11a87e87b61` **byte-identically** to the 2026-09-20 (S81) artifact, and the bench's `fwbuild/H1S1-s81b.hex` md5 `cd1da041449bb8c50cdacc0bef54563f` is the same hex this box makes — so the toolchain here is the one that made what was on the part. **THE DISASSEMBLY CHECK IS AS STRONG AS IT GETS: ONE BYTE IN THE WHOLE IMAGE.** text/data/bss 35760/661/1944 unchanged; `objdump -d` of the two ELFs **byte-identical** (only the filename line differs); **exactly 1 byte of 36421 differs**, at file offset `0x8C39` = `.data` LMA `0x08008BB0` + `ak4619`@`0x74` + 21, `0x04`→`0x00`; the pack `H1S1-s109.shex` has 2279 records (unchanged) of which **one differs** (`:108C30…04050A…` → `…00050A…`). Rollback kept twice and named, md5 `5dc7acdea662f9153b09b816f9ae76b2` (`/home/app/fwbuild/H1S1-pre-s109-2026-09-25.shex`, `/home/app/firmware/H1S1.shex.bak-2026-09-25-pre-s109`). MH1 was wedged in its flash dispatcher as in S69-4, so `SYSRESETREQ` by hand over SWD ch3 (OpenOCD logging `target was in unknown state when halt was requested`), then `./app cli loadfw H1S1` → **`OK: H1S1`** first try. **`matrix-app` NEVER STARTED. `AN_EN` read `26: op -- pd | lo` before the SWD step, after it, and after the flash — NEVER WRITTEN.** **AND THE `12H` READBACK IS NOT BLOCKED ON `matrix-app` — THE DISPATCH'S ONE WRONG PREMISE, AND IT IS WORTH KNOWING: `codec4619.py` drives MH1's bus DIRECTLY through `termios`, and what S109 read as "NO REPLY on all 21 registers" was MH1 sitting in its flash dispatcher. `--run` (S_RUN) is the missing step.** After it: `S_RUN` → `// H1S1 DSP` / `// H1S4 SW Left` / `// H1S3 SW Right`, **3 of 3 MCUs announce** (so the flashed firmware runs and is on the bus); **`12H -> 0x00   guard 0x43   ANSWERED`** — `DAC2SEL=0 DAC1SEL=0`, both DACs on SDIN1, and the data byte is not the register number so it is a live read and not a MOSI echo; `--read-all` → all 21 registers `ANSWERED`, byte for byte the init image **except** `12H`, and the decode no longer prints the S108-2 `SDIN2 <-- DEAD SOURCE IN TDM MODE` flag. **So nothing about the aux outputs is left unverified on the digital side**; what is still unproved is the same thing S108 left unproved for DAC1 — that the aux ANALOG stage works — and that is PW's probe on `U3.24/25` (`AOUT2L/R`), not a register read. **THE REFLASH RE-RAN `MainInit()` AND SO REWROTE THE 595 CHAIN TO `micGainFull`** (24×`0xFC` = gain 63, phantom off, UNMUTED — the S80 correction, not "cleared"); `AN_EN` was low so nothing was powered, and it was not left that way: SAFE written and read back **`VERIFIED 200/200 01×24 00`** (gain 0, phantom off, MUTED), `CS_M` back to `op dh`. **Anyone reflashing an MCU on this board must do the same.** **S109-2 ANSWERED FROM THE CODE AND IT IS NOT A STRAP AT ALL.** `S4` belongs to the M MCU's S0–S31 bus, it is MEANT to move, and it is a **RESET line**: the bus is eight slave slots × four lines and S4 opens slot 2 — `main.c:962` `//S4_Pin = 1; // S2 reset = 1`, `main.h:79` one of a uniform `S0_Pin`…`S31_Pin` array, `main.c:1432` `GPIO_MODE_OUTPUT_PP`/`GPIO_NOPULL` (**push-pull output, never an input**). The netlist agrees the quad is one block — `G2737..G2740` = `M MCU_S4..S7` = `U8.11/12/15/16` → `U3.70/69/68/67`, four consecutive pins at each end, where slot 1's quad `S0..S3` goes to the S MCU `U7` instead — and the M MCU's own inventory names the slot: `pcbName[1]` = `"PCB1: MW D24 DSP4 LOGIC   MCU H"`. S5=boot0, S6=ready (INPUT at U8), S7=send-data. **The message is not data: it is reset assert/de-assert plus bootloader select, addressed to a slave that cannot answer**, since the CPLD implements none of that protocol. Levels, from the code: `ResetAllSlaves()` drives S4 **LOW** (startup, before the host handshake, and on every `S_SCAN`); `StartAllSlaves()` on the host's **`S_RUN`** drives it **HIGH** and nothing revisits it; `SB2()` pulses it LOW→HIGH 1 ms with S5 high to put slot 2 in its bootloader. **THAT CLOSES §1.2's "the strap CHANGED STATE between sessions" AS A MYSTERY — and makes it worse than "undefined": S106/S108 read HIGH because `matrix-app` had issued `S_RUN`; S109 read LOW because `matrix-app` was inactive and the M MCU was parked with its slaves in reset. The old `strap_d32` was reading whether MH1 had been told to run — REPEATABLE IN THE WRONG DIRECTION, not merely floating.** **(b) THE PULL-UP IS HARMLESS BUT WRONG, AND IT IS FIXED IN THE qsf WITHOUT A FLASH.** It cannot fight U8 (push-pull CMOS wins both ways) and costs ~130 µA while S4 is asserted — so not risky and **not worth a flash on its own**; it rides the next CPLD build. But it is the same objection `mhrx` was taken out of the global reservation for (S41), so `PIN_70` now comes out BY NAME exactly as `mhrx` does (`RESERVE_PIN "AS INPUT TRI-STATED"` + `WEAK_PULL_UP_RESISTOR OFF` on `m_mcu_s4`). **BUILT AND GATED, NOT FLASHED**: `dsp4_logic.99616cc44dc4` (`design_id 32'h6cc44dc4`, `cfg_bits 16'h0010`, SHIPPING), sim gate PASS, worst-case setup slack **+5.517**, **Fmax 67.44 MHz** (was 65.78), logic elements **881/1270 UNCHANGED**, registers 663, pins 67→**68/114** (a reserved-by-name pin counts as a pin, as `mhrx` does). **The FITTER confirms it, not the qsf**: `m_mcu_s4 : 70 : input : 3.3-V LVTTL` with the weak pull-up column **`Off`**, identical to `mhrx`; pins 67/68/69 still read `RESERVED_INPUT_WITH_WEAK_PULLUP` so the change is confined to PIN_70; and "Reserve all unused pins = As input tri-stated with weak pull-up" is intact in `fit.rpt`, so the 2026-08-19 trap's fix is untouched. **THE PART IS STILL ON `90e24de0dd4a` AND THE SHIPPING LABEL HAS NOT MOVED** (`logic_flash.sh`'s `ROLLBACK` default and header unchanged). **No probe of U3.70 is needed** — the code settles it; a probe would only show one instant of the handshake. **🔴 S109-2b, FOUND WHILE ANSWERING IT: S5 and S7 have the same defect and are NOT fixed here** — push-pull outputs of U8 exactly like S4, left alone because the finding asked about PIN_70 and a three-pin change is a wider un-benched delta than it covers. **S6 MUST KEEP its pull-up**: it is an INPUT at the M MCU end, so this end's pull-up is the only thing defining that net. Fold S5/S7 in with any other qsf work. **S109-4: THE TEST IS ONE COMMAND, WRITTEN AND DESK-PROVEN** — `MW/D24/DSP/s109/mems-slot-test.sh`, run as `cd /home/app && ./mems-slot-test.sh`. It checks `dsp4_logic_id.py --expect 4de0dd4a` and stops with the DUPLEX-overlay trap spelled out if the knock says "no reply"; READS and reports `AN_EN` and never writes it; drives `CS_M op dh`; releases the boot pins with the **corrected** sequence (`7,9,10,11,22,23,25 a0` + `6,24 op dh` + `8,12 ip`, never the `…24 a0` form that boots two chip-1s), re-driving `6,24 op dh` before every tool call; runs the **double** boot+config per slot and checks `BOOT_STAGE`; takes a **QUIET BASELINE FIRST** and only then asks for a sound; boots `/home/app/loopthd/s109` (slot 4) then `/home/app/loopthd/s103` (slot 5); prints the answer in three lines. **No rails, no speaker, no audio played, no 595 write, no codec write, no CPLD flash.** Two design points: it is **best-of-N repeated scans across the window, not one scan** (a `--reps 32` rxscan is ~1–3 s and would probably miss the tap; and it is a SAMPLED read — peak under-reads up to ~6 dB — which is why the verdict is strictly RELATIVE, quiet vs tapped, same lane, same image); and **it refuses rather than guesses** — no verdict if rxscan's three controls fail, `NO DATA` for a window with no `XIN_MEMS` row, `INCOMPLETE` unless both slots have both windows, and a NAMED diagnosis for "both moved" and "neither moved" instead of picking a winner. **DESK-PROVEN ON SIX SYNTHETIC CASES** in rxscan's real JSON shape via `--reduce-only` (slot-4-moved, slot-5-moved, both-moved, neither-moved, controls-failed, missing-window) — each printing the right verdict including all three refusals; `--dry-run` walks the whole flow and executes nothing; `bash -n` clean; node name `XIN_MEMS` checked against S109's own `data/rxscan-slot4-image.txt`. **The tap half was NOT run and must not be — it is PW's.** **S109-5: EVERY LIVE CS_M RECIPE NOW DRIVES THE PIN.** Fixed, with the reason in a comment at each site: **`tools/pi/d24_selftest.py` — the one actually-EXECUTED defect, `handback()` re-armed `ip pu` on every dispatched session's handback** (plus its docstring bullet); `tools/pi/codec4619.py`'s "put CS_M back to `ip pu`" instruction; `tools/pi/s89_signbit.py`'s PRINTED remedial line and the comment above it; `MW/D24/DSP/s105/test-catalog.csv` MC1/MC3 remedial text (**this is the unit's glass** — redeploy queued); `MW/D24/HW/hardware-map.md`'s standing "Fix: GPIO27 as an input with a pull-UP" line AND the "Rev-D line" below it, which predicted this and is now overtaken by events; `docs/d24-bench-logic-flash-log.md`'s triage-order expectation (already garbled as `op pu|hi`). **Runbook line, as asked: the pull no longer holds the pin against whatever sinks it, so `ip pu` can read `hi` and the link still not phase — the pin has to be DRIVEN; `ip pu|hi` → `op dh` creates no edge so it does not clock the 595 latch.** LEFT ALONE deliberately: `tasks.md`'s ~96 and `findings.md`'s ~49 hits (all inside dated dispatch blocks and numbered findings), the per-session gate scripts under `s83/`–`s86/tools/` (each session writes its own, none referenced later, all superseded by `d24_selftest.py` from S90), and the two READ-ONLY sites that assert nothing (`MW/D32/DSP/SHARC/s83_run.sh`, `d24_selftest.py::t_mc3`). `check_bench_pins.sh`/`bench_lock.sh` never touch GPIO27. **mx26 read-only, as instructed: `scripts/cm4-setup-pi.sh` has NO GPIO27 LINE AT ALL** — zero matches for `27`/`CS_M`/`ip pu` in 945 lines; its `config.txt` baseline covers GPIO4, GPIO26 (`AN_EN op,dl`), GPIO2/3, GPIO13 and a CS1/CS2 comment. **So CS_M has no boot-time baseline on the CM4 whatsoever**, which is exactly why a bare reboot can land it somewhere a weak pull-up cannot hold. **🔴 S109-5a, TWO ITEMS FOR THE HUB IN mx26 (not edited):** (i) `docs/spec-d24-test-skin.md` and `tools/d24/build-d24-test-skin.py` carry the SAME `pinctrl set 27 ip pu` wording the catalog was drafted from, so **a fix confined to this repo's CSV will be undone the next time the catalog is regenerated upstream**; (ii) the real fix for CS_M is a BOOT-TIME baseline in `cm4-setup-pi.sh` (`gpio=27=op,dh` or the `config.txt` equivalent), so the link is not dead on every fresh boot until someone runs a command. **UNIT AS LEFT** (and untouched since the hold): H1S1 on the S109 pack (`/home/app/firmware/H1S1.shex` md5 `272868c889fc87ead0a3b4bb277f55e2`), 3 of 3 MCUs announcing, codec `12H = 0x00` read off the part; **CPLD NOT flashed, still `4de0dd4a`**; **`AN_EN` never written, `op -- pd | lo`**; `CS_M` `op -- pu | hi` (DRIVEN); 595 chain SAFE, `VERIFIED 200/200`; no DSP boot, no audio, no speaker; `d24-testui` active / `matrix-app` inactive, as found. `defs.lock` UNMOVED at `defs-v2026.09.24.2`, **no contract bump owed** — no def CSV, slot map, wire table or generated artifact touched. Report: §10 "Follow-ups" appended to `MW/D24/DSP/s109/cpld-io-fix-and-audit.md`.]   [model: opus]
 
 model: opus
