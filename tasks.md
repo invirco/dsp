@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-25 16:07Z — S112: rebuild+deploy test app, wizard stays on row after PASS   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-25 16:07Z — S112: rebuild+deploy test app, wizard stays on row after PASS   [status: 🟢 done — rebuilt (163/163 tests green), deployed `432ae0fc…` (rollback `app.bak-s112-pre` = S107's `5981fd34…`), catalog 202 rows confirmed; proved live through the wizard's own START: row 56 AL1 PASS now stays on-row showing the green tile and full result line (was: silent auto-advance to the next row), NEXT still walks forward normally, and a non-PASS row (107, reliable NO DATA) stays put unchanged — write-up `MW/D24/DSP/s112/rebuild-deploy-stay-on-pass.md`. Unit handed back on row 56, AN_EN lo, CS_M driven hi, matrix-app inactive, d24-testui active, injector/FIFO removed.]   [model: sonnet]
 
 model: sonnet
 
