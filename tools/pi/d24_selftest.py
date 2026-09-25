@@ -164,9 +164,20 @@ ITEMS = {
     'AS-DAC':  [(B_ASM, 'DAC AK4458 ×2'),                                 # 197
                 (B_LINK, "Link 'dig-analog-dac'")],                       # 142
     'AS-PWR':  [(B_ASM, 'Power MCU (STM32F030F4, always-on)')],           # 200
-    'MM1':     [(B_LSW, 'Panel MEMS mic (talkback)')],                    # 56
-    'SP1':     [(B_LSW, 'Speaker')],                                      # 57
+    # ONE TEST, ONE ROW, ONE PRESS (PW 2026-09-25). AL1 plays a tone out of the
+    # panel speaker and hears it on the panel microphone. They are two PARTS
+    # and one MEASUREMENT, so the workbook still counts two rows (56 the mic,
+    # 57 the speaker) while the bench surface carries one: mx26's
+    # build-d24-connector-status.py MERGED_KEYS folds the pair into a single
+    # key at row 56's number, and this is that key. MM1 and SP1 are kept as
+    # --only aliases (ALIASES below) and resolve here.
+    'AL1':     [(B_LSW, 'Panel MEMS mic (talkback) + Speaker')],          # 56
 }
+
+# Retired test ids that still name something real. `--only MM1` and `--only
+# SP1` are in reports, in the workbook and in PW's fingers; they run AL1, which
+# is the test those two became.
+ALIASES = {'MM1': 'AL1', 'SP1': 'AL1'}
 # DC1/DC2 fan out over the chip selects, one workbook row each (103-109) --
 # EXCEPT CS3 and CS4 (rows 105/106). Those two nets are not chip selects in
 # either direction: they carry DSPA's and DSPB's SPI2_RDY BACK to the CM4, and
@@ -191,7 +202,7 @@ for _t in ('HD0-1', 'HD0-2', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'US
 for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
            'MC1', 'MC2', 'MC3', 'CC1', 'CC2'):
     SECTION[_t] = 'B'
-for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR', 'MM1', 'SP1'):
+for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR', 'AL1'):
     SECTION[_t] = 'C'
 for _n in DC_SELECTS:
     SECTION['DC1-CS%d' % _n] = 'B'
@@ -1228,66 +1239,108 @@ def t_aspwr(r):
             'GPIO26, read here as: %s' % an)
 
 
-# --- the combined speaker + MEMS-mic test (S102) ----------------------------
+# --- AL1: the acoustic loop, speaker + MEMS mic in one test (S110) ----------
 #
-# MM1 and SP1 are ONE measurement taken twice, not two tests: SP1 plays a tone
-# out the panel speaker and the ONLY thing that can hear it is MM1's MEMS mic,
-# sitting on the same Left Switch board. So one sequence runs -- idle capture,
-# tone on, tone off -- and the two rows take their verdicts out of it. They stay
-# two rows because they are two PARTS on the board inventory (56 the mic, 57 the
-# speaker) and a unit with a dead speaker and a live mic has to land on 57.
+# ONE TEST, ONE BUTTON, TWO PARTS (PW 2026-09-25). S102 built this as two rows,
+# MM1 for the mic and SP1 for the speaker, because they are two parts on the
+# board inventory. They are still two parts -- `ITEMS['AL1']` carries both keys
+# and every run records a result against each -- but there is only one thing to
+# press, because there is only one measurement: a tone out of the panel speaker
+# and back in through the panel microphone. Nothing else on the board can hear
+# the speaker and nothing else can drive the mic, so a reading is either both
+# halves working or a fault that this test cannot, on its own, attribute to one
+# of them. The verdict says which stages it cannot separate rather than picking.
+# MM1 and SP1 remain valid `--only` names (see ALIASES) and both resolve here.
 #
-# THE ROUTE EXISTS AND ALWAYS DID (S102, correcting S90-P6). What was missing
-# was its NAME. The speaker is codec TDM slot 0 -- `C2_MON_OUT`'s left slot,
-# `signal=CODEC_OUT_1` -- which is the AK4619's AOUT1L on pin 22, the ONLY
-# codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67; AOUT1R,
-# AOUT2L and AOUT2R have their caps C20/C21/C22 DNP). From there:
+# THE INSTRUMENT IS S49's MEASUREMENT NODE, NOT A SCATTER OF rxscan READS.
+# `dsp4_rxscan.py` samples the RX DMA region a word at a time: a peak taken
+# that way under-reads by up to 6 dB and a "waveform" from it is scrambled
+# (bench note: a 16-word node peek spans ~15 audio blocks). THD+N cannot be had
+# from it at all. `C1_TEST_MEAS` accumulates over a continuous 4,096-sample
+# window on the part and publishes RMS, THD+N and a noise figure, which is what
+# a distortion number has to come from. rxscan is still read here, once, for
+# the one thing it is good at: saying whether the MEMS lane is CARRYING at all.
 #
-#   U3.22 -> analog C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82
-#         -> TS482 (digital U32) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2
+# WHERE THE MIC IS: MeasChan 54, NOT A STRIP. The dispatch asked for "the strip
+# that carries XIN_MEMS" and there is none -- `C1_XIN_MEMS` feeds `C1_TALK_02`,
+# a TALKBACK node whose output is a per-block scalar nothing downstream reads
+# (the Talk001Dest fan-out gap dsp-unmapped.csv records). MeasChan 1..32 are
+# strips and 33..50 are buses, so both miss it. The converter-return lane codes
+# (S69/S73, dsp_codegen.py TEST_MEAS_LANE_CODES) put the tap on the input lane
+# itself, which is the right measurement point for an input path anyway: the
+# last place the converter's output is still exactly what the converter made.
+# 54 is the MEMS lane. Proven on the part in S110 -- MeasChan <- 0x36 reads
+# back, the window serial advances, and the level tracks the tone.
 #
-# and upstream of the slot the chain is ordinary graph:
-#
-#   C1_TEST_OSC (inject at C1_IN_nn) -> strip -> C1_RTG_nn main_on
-#     -> MAIN mix -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0
-#
-# Every hop has a contract cell: Chan<nn>MainOn/Level/Pan/Mute, Main001Level001,
-# Mon001Level001/002. The node graph now says so out loud -- `sink=SPKR` on
-# `C2_MON_OUT` (and `sink=DNP` on `C2_CODEC_AUX_OUT`, which reaches no fitted
-# part at all) -- which is why a search of the topology for the speaker no
-# longer comes back empty.
-#
-# TWO PREREQUISITES REMAIN AND BOTH ARE NAMED RATHER THAN WORKED AROUND:
-#   * the analog rails (AN_EN, CM4 GPIO26). Without them the MEMS lane is dark
-#     and the TS482 has no supply, so neither half can read. Raising them is no
-#     longer gated on PW being at the bench (PW 2026-09-24, superseding bench
-#     note 19 / S49-15 on that one point); the session raises it, names what it
-#     did and puts it back.
-#   * a DSP4_TEST_NODES=1 pair. TEST_OSC's injection hook is inside that guard,
-#     so on the shipping image the oscillator cells take writes and nothing
-#     reads them -- the same prerequisite AS-DAC carries. `--pair DIR` (or
-#     PAIR_CONF on the unit) is how a run is pointed at one.
+# THE ROUTE (S102, correcting S90-P6 which read it as absent) is unchanged and
+# is asserted and READ BACK before anything is measured; see SPKR_ROUTE_NOTE.
 _SPKR_OSC_STRIP = 20              # S89's donor strip, for the same reason
 _SPKR_FREQ_HZ = 1000.0
-_SPKR_DRIVE_DBFS = -20.0
-_SPKR_MARGIN_DB = 20.0            # the spec's criterion
-_SPKR_RETURN_DB = 3.0             # tone off -> back within this of the floor
 _OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
+AL1_MEAS_CHAN = 54                # C1_XIN_MEMS -- see above, not a strip
+
+# THE TONE IS SAFE BY DEFAULT AND CANNOT BE MADE LOUD BY ACCIDENT.
+# PW drove this speaker to full scale by hand on 2026-09-25 and heard no
+# clipping, which is what says the path is healthy -- it is NOT permission for
+# an automated test to do the same. An unattended run plays -20 dBFS, fades in
+# and out over 150 ms so the speaker is never asked for a step, and is on for
+# well under a second (0.6 s measured; `--then-off` stops the tone inside the
+# same session, which is the only way that number is small -- a second
+# invocation spends two to four seconds starting up with the tone still
+# sounding). `--al1-level` moves it and CANNOT go past AL1_TONE_CAP_DBFS.
+AL1_TONE_DBFS = -20.0
+AL1_TONE_CAP_DBFS = -6.0
+AL1_RAMP_MS = 150.0
+AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
+
+# ===========================================================================
+# THE WINDOWS AND CEILINGS -- ONE TABLE, PROVISIONAL
+# ===========================================================================
+# PROVISIONAL until the speaker supplier's datasheet arrives, and provisional
+# again until PW's planned amp-gain change (a resistor in parallel with R97,
+# +6 dB or more) lands. These are NOT spec limits. They are set to catch a
+# fault -- no sound, a quiet path, a distorting one -- on a small speaker in an
+# ordinary room, and nothing here certifies anything.
+#
+# EVERY NUMBER HERE CAME OFF THIS UNIT. See the calibration table in the S110
+# report for the runs behind each one.
+#
+# THE LEVEL WINDOW IS RELATIVE, WHICH IS THE POINT. The expected mic level is
+# a straight line in the injected level -- `pred = slope * drive + intercept`
+# -- so the table survives a change in what is between the two ends of the
+# loop. When PW adds amp gain, one command re-measures and rewrites this
+# block: `d24_selftest.py --only AL1 --al1-calibrate`, which prints the old
+# table and the new one side by side and says what moved.
+AL1_CAL = {
+    'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
+    'unit': 'MW-D24-2 (rev C+)',
+    'stamp': '2026-09-25T13:15:34Z',
+    'pair': '/home/app/loopthd/s109',
+    'runs': '15 runs at -30/-20/-10 dBFS x 5 reps; 10 fitted, 5 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -20 dBFS; default drive -20 dBFS',
+    'slope_db_per_db': 0.940,
+    'intercept_dbfs': -30.590,
+    'level_tol_db': 4.000,
+    'level_hi_tol_db': 7.000,
+    'high_fails': False,
+    'snr_min_db': 3.900,
+    'floor_max_dbfs': -48.500,
+    'thdn_abs_db': -4.100,
+    'thdn_margin_db': 4.900,
+}
+AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
+                        'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
+                        'thdn_abs_db', 'thdn_margin_db')
+
+
+def pct_of_db(db):
+    """A ratio in dB as percent. PW's standing rule (2026-09-16): every
+    THD/THD+N figure is printed in dB AND in percent, never one alone."""
+    return 100.0 * 10.0 ** (db / 20.0)
 
 
 def _mems_row(rows):
     hit = [x for x in rows if 'MEMS' in x]
     return hit[0] if hit else None
-
-
-def _mems_rms(row):
-    """rxscan column 7 is the lane's rms in dBFS (same column t_asadc reads)."""
-    if row is None:
-        return None
-    try:
-        return float(row.split()[7])
-    except (IndexError, ValueError):
-        return None
 
 
 def _route_cells():
@@ -1317,80 +1370,47 @@ def _set(r, cells, timeout=300):
     return c.returncode, (c.stdout + c.stderr).strip()
 
 
-def _spkr_capture(r):
-    """One run of the whole sequence, cached on the rig so MM1 and SP1 read
-    the SAME capture rather than scanning the lane twice and disagreeing."""
-    cached = getattr(r, '_spkr_cap', None)
-    if cached is not None:
-        return cached
+def _al1_osc(r, level=None, timeout=300):
+    """One S49 window measurement of the MEMS lane.
 
-    cap = {'an': r.an_en(), 'route_rc': None, 'route_txt': '', 'probe': '',
-           'tone': None, 'back': None, 'osc_on': '', 'osc_off': ''}
-    idle_rows = _lane_rows(rxscan(r))
-    cap['idle_rows'] = idle_rows
-    cap['idle_row'] = _mems_row(idle_rows)
-    cap['idle'] = _mems_rms(cap['idle_row'])
+    `level=None` is the tone-OFF leg: the oscillator is stopped and the window
+    reads the lane's own floor. Otherwise the tone is faded in, three windows
+    are taken, and the tone is faded out IN THE SAME SESSION (`--then-off`),
+    which is what keeps the on-time under a second.
 
-    # Is this a pair that can be driven at all? The symbol only exists inside
-    # `#if DSP4_TEST_NODES`, which is exactly the check dsp4_s49_osc.py makes
-    # before it refuses -- a shipping image would otherwise take every write
-    # and read back a number that looks like a measurement.
-    cap['testnodes'] = r.out(
-        'cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
-        'print(\'%s\' in j)"' % (r.a.stage, _OSC_SYM), timeout=60) == 'True'
-
-    # The route is asserted and PROVED whatever the rails do: these are SPI
-    # parameter writes through the image's own dispatch table, and the
-    # read-back is what turns "there is a route" from a claim into a reading.
-    close, route = _route_cells()
-    rc1, t1 = _set(r, close)
-    rc2, t2 = _set(r, route)
-    # s89_set.py exits 0 whatever it printed, so the exit code alone does not
-    # say the route was asserted. A name the contract does not carry, or a
-    # link that would not phase, has to fail LOUDLY here -- everything
-    # downstream would otherwise be a reading of the default configuration.
-    # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it
-    # walks strips 1-32 and a D24 has 24, so 25-32 have no cells.
-    bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
-        or 'NOT IN CONTRACT' in t2
-    cap['route_rc'] = 1 if bad else 0
-    cap['route_txt'] = ('--- other strips off MAIN ---\n%s\n--- the route ---\n%s'
-                        % (t1[-400:], t2[-800:]))
-    cap['probe'] = r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
-                         'Main001Level001 Chan%03dMainOn001 2>&1'
-                         % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
-
-    if cap['testnodes']:
-        cap['osc_on'] = r.out(
-            'cd %s && python3 dsp4_s49_osc.py --strip %d --freq %g --level %g '
-            '--symdir %s 2>&1' % (r.a.stage, _SPKR_OSC_STRIP, _SPKR_FREQ_HZ,
-                                  _SPKR_DRIVE_DBFS, r.a.stage), timeout=300)
-        tone_rows = _lane_rows(rxscan(r))
-        cap['tone_row'] = _mems_row(tone_rows)
-        cap['tone'] = _mems_rms(cap['tone_row'])
-        cap['osc_off'] = r.out('cd %s && python3 dsp4_s49_osc.py --off --symdir %s 2>&1'
-                               % (r.a.stage, r.a.stage), timeout=300)
-        back_rows = _lane_rows(rxscan(r))
-        cap['back_row'] = _mems_row(back_rows)
-        cap['back'] = _mems_rms(cap['back_row'])
-
-    r._spkr_cap = cap
-    return cap
-
-
-def t_mm1(r):
-    """The mic half: is the MEMS lane alive, and where does it idle. This is
-    also SP1's reference level, which is why it is one capture."""
-    cap = _spkr_capture(r)
-    v, m, lim, ev = _lane_verdict(r, cap['idle_rows'], 'MEMS', 'MEMS',
-                                  'lane alive; idle floor within the declared window')
-    return v, m, lim, ev + ('\nThe spec asks for the PDM clock as well as the lane, and nothing '
-                            'on the CM4 reads it: the CPLD\'s lane witness counts cdc_o only -- '
-                            'there is no counter on the MEMS group (bench note 31) -- so "lane '
-                            'stuck" and "no PDM clock" are not separated by any read path that '
-                            'exists. A stuck 0xFFFFFFFF is what S79-2 recorded on this lane too.'
-                            '\nThis reading is the idle half of the combined SP1 capture (S102); '
-                            'SP1 measures the same lane with the tone on.')
+    Returns (dict-or-None, raw text). The dict is the settled window plus the
+    on-time; None means the tool refused or the JSON did not come back, and
+    the raw text says why."""
+    j = '%s/al1-osc.json' % r.a.stage
+    if level is None:
+        args = '--off'
+    else:
+        args = ('--strip %d --level %g --ramp-ms %g --then-off'
+                % (_SPKR_OSC_STRIP, level, AL1_RAMP_MS))
+    # The CS lines are re-driven before every tool call: a boot or a stray
+    # reset leaves them somewhere else and the link then reads plausible
+    # zeros rather than failing (bench recipe, and S109 on CS_M).
+    r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+    c = r.rsh('cd %s && rm -f %s && python3 dsp4_s49_osc.py --meas %d --freq %g '
+              '--symdir %s --json %s %s 2>&1'
+              % (r.a.stage, j, AL1_MEAS_CHAN, _SPKR_FREQ_HZ, r.a.stage, j, args),
+              timeout=timeout)
+    txt = (c.stdout + c.stderr).strip()
+    raw = r.out('cat %s 2>/dev/null' % j)
+    if not raw:
+        return None, txt
+    try:
+        d = json.loads(raw)
+    except ValueError:
+        return None, txt + '\n--- json did not parse ---\n' + raw[:400]
+    good = [w for w in d.get('rows', []) if not w.get('torn')]
+    if not good:
+        return None, txt + '\n--- every window was torn ---'
+    w = dict(good[-1])
+    w['on_seconds'] = d.get('on_seconds')
+    w['level_dbfs_peak'] = d.get('level_dbfs_peak')
+    w['off'] = d.get('off')
+    return w, txt
 
 
 SPKR_ROUTE_NOTE = (
@@ -1398,91 +1418,460 @@ SPKR_ROUTE_NOTE = (
     'codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 '
     'pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: '
     'C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = '
-    'digital J42.12 -> C82 -> TS482 (digital U32) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 '
-    '(mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC '
-    'injects at C1_IN_%02d -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> '
-    'C2_MON_OUT slot 0, every hop with a contract cell (Chan%03dMainOn001/Level001/Pan001/'
-    'Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv now declares it: '
-    'sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT.'
-    % (_SPKR_OSC_STRIP, _SPKR_OSC_STRIP))
+    'digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> '
+    'lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/'
+    'G3463). Upstream: C1_TEST_OSC injects at C1_IN_%02d -> strip -> MAIN -> C2_MAIN_FDR -> '
+    'C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell '
+    '(Chan%03dMainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). '
+    'MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_MON_OUT, sink=DNP on '
+    'C2_CODEC_AUX_OUT. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 '
+    '(0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code %d.'
+    % (_SPKR_OSC_STRIP, _SPKR_OSC_STRIP, AL1_MEAS_CHAN))
 
 
-def t_sp1(r):
-    """The speaker half: with the route asserted, does the tone reach the mic.
+def al1_level(r):
+    """The drive level this run uses, hard-capped. A number past the cap is
+    NOT an error that stops the run -- it is clamped and said out loud, so a
+    fat finger on the bench cannot turn a self-test into a full-scale tone."""
+    want = r.a.al1_level
+    if want > AL1_TONE_CAP_DBFS:
+        print('  AL1: --al1-level %g dBFS is past the %g dBFS cap; using the cap'
+              % (want, AL1_TONE_CAP_DBFS))
+        return AL1_TONE_CAP_DBFS
+    return want
 
-    Two prerequisites can stop this short and they are reported apart, because
-    they are different kinds of thing: the rails are a pin the session raises
-    (`AN_EN`, no longer gated on PW's presence -- PW 2026-09-24) and the
-    TEST_NODES pair is a build, staged and named with `--pair`."""
-    cap = _spkr_capture(r)
-    lim = '1 kHz tone on the MEMS lane >= %g dB above its idle floor; tone off -> floor returns' \
-        % _SPKR_MARGIN_DB
-    an = cap['an']
-    rails = 'hi' in an
-    ev = ['%s\n' % SPKR_ROUTE_NOTE,
-          'AN_EN (GPIO%d) = %s' % (AN_EN_GPIO, an),
-          'pair booted: %s (%s)' % (r.pair, r.pair_why),
-          'DSP4_TEST_NODES pair (%s in chip1.sym.json): %s' % (_OSC_SYM, cap['testnodes']),
-          '--- the route write (exit %s) ---\n%s' % (cap['route_rc'], cap['route_txt']),
-          '--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'],
-          '--- MEMS lane, idle ---\n%s' % (cap['idle_row'] or 'no MEMS lane in the scan')]
+
+def _al1_prereq(r):
+    """Everything that has to be true before a tone is worth playing, as
+    (blocker-or-None, evidence-lines, capture-dict). The rails are RAISED here
+    when they are down -- PW lifted the dispatched-session bar on 2026-09-24 --
+    and the fact is recorded so handback can put them back."""
+    ev = ['%s\n' % SPKR_ROUTE_NOTE]
+    cap = {'an_start': r.an_en(), 'raised': False}
+    if 'hi' not in cap['an_start']:
+        # The two gates that still apply: the digital clocks are stable (the
+        # pair is booted and its lanes read, which section C has already
+        # established by the time AL1 runs) and the 595 chain is loaded SAFE.
+        r.pin('%d op dh' % AN_EN_GPIO)
+        time.sleep(1.0)
+        cap['raised'] = True
+    cap['an'] = r.an_en()
+    ev.append('AN_EN (GPIO%d): at entry %s; now %s%s'
+              % (AN_EN_GPIO, cap['an_start'].split('//')[0].strip(),
+                 cap['an'].split('//')[0].strip(),
+                 ' (RAISED by this run; handback lowers it)' if cap['raised'] else ''))
+    ev.append('pair booted: %s (%s)' % (r.pair, r.pair_why))
+
+    cap['testnodes'] = r.out(
+        'cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
+        'print(\'%s\' in j)"' % (r.a.stage, _OSC_SYM), timeout=60) == 'True'
+    ev.append('DSP4_TEST_NODES pair (%s in chip1.sym.json): %s'
+              % (_OSC_SYM, cap['testnodes']))
+
+    # rxscan, once, for the one thing it is good at: is the lane carrying.
+    rows = _lane_rows(rxscan(r))
+    cap['mems_row'] = _mems_row(rows)
+    ev.append('--- MEMS lane, rxscan ---\n%s'
+              % (cap['mems_row'] or 'no MEMS lane in the scan'))
+
+    close, route = _route_cells()
+    rc1, t1 = _set(r, close)
+    rc2, t2 = _set(r, route)
+    # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it walks
+    # strips 1-32 and a D24 has 24, so 25-32 have no cells.
+    bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
+        or 'NOT IN CONTRACT' in t2
+    cap['route_rc'] = 1 if bad else 0
+    ev.append('--- the route write (exit %d) ---\n--- other strips off MAIN ---\n%s'
+              '\n--- the route ---\n%s' % (cap['route_rc'], t1[-400:], t2[-800:]))
+    cap['probe'] = r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
+                         'Main001Level001 Chan%03dMainOn001 2>&1'
+                         % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
+    ev.append('--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
 
     if cap['route_rc']:
-        return (NODATA, 'the route write failed -- nothing downstream would be measured',
-                lim, '\n'.join(ev))
-    if cap['idle_row'] is None:
-        return NODATA, 'no MEMS lane in the scan', lim, '\n'.join(ev)
+        return 'the route write failed -- nothing downstream would be measured', ev, cap
+    if cap['mems_row'] is None:
+        return 'no MEMS lane in the scan', ev, cap
+    if not cap['testnodes']:
+        return ('a DSP4_TEST_NODES=1 pair is needed (TEST_OSC\'s injection hook is inside '
+                'that guard; the staged pair is the shipping pair). `--pair DIR`, or '
+                'PAIR_CONF on the unit for a run the wizard\'s own START launches'), ev, cap
+    if 'hi' not in cap['an']:
+        return ('the analog rails did not come up (AN_EN = %s). Without them the TS482 has '
+                'no supply and the MEMS lane is dark' % cap['an'].split('//')[0].strip()), ev, cap
+    return None, ev, cap
 
-    if not cap['testnodes'] or not rails:
-        missing = []
-        if not rails:
-            missing.append('the analog rails (AN_EN = %s; `sudo pinctrl set %d op dh` raises '
-                           'them -- PW lifted the dispatched-session bar on 2026-09-24, and '
-                           'every other bench discipline stands)'
-                           % (an.split('//')[0].strip(), AN_EN_GPIO))
-        if not cap['testnodes']:
-            missing.append('a DSP4_TEST_NODES=1 pair (TEST_OSC\'s injection hook is inside '
-                           'that guard; the staged pair is the shipping pair)')
-        return (NODATA,
-                'route asserted and read back; waiting on %s' % ' and '.join(missing),
-                lim,
-                '\n'.join(ev) + '\nPREREQUISITE: ' + '; '.join(missing)
-                + '. The route itself is not a prerequisite any more -- it is written above '
-                  'and read back above. What is left is a stimulus and a powered analog path.')
 
-    ev.append('--- oscillator on ---\n%s' % cap['osc_on'])
-    ev.append('--- MEMS lane, tone on ---\n%s' % (cap['tone_row'] or 'gone from the scan'))
-    ev.append('--- oscillator off ---\n%s' % cap['osc_off'])
-    ev.append('--- MEMS lane, tone off ---\n%s' % (cap['back_row'] or 'gone from the scan'))
-    idle, tone, back = cap['idle'], cap['tone'], cap['back']
-    if idle is None or tone is None or back is None:
-        return NODATA, 'the scan did not give an rms for every leg', lim, '\n'.join(ev)
-    rise, ret = tone - idle, back - idle
-    # Five placeholders, five values. S102 wrote six here (`ret` twice) and the
-    # line never ran, because every run so far stopped at a prerequisite above
-    # it -- the FIRST run with both the rails and a TEST_NODES pair raised
-    # TypeError and the row came back `RUNNER ERROR` instead of a reading.
-    m = 'idle %.2f dBFS, tone %.2f dBFS (+%.2f dB), back %.2f dBFS (%+.2f dB)' \
-        % (idle, tone, rise, back, ret)
-    # SP1'S INSTRUMENT IS MM1'S MICROPHONE, so a dead lane is NO DATA and not a
-    # speaker FAIL. The module's own doctrine: a read path that answers nothing
-    # is never a silent PASS and never a silent FAIL either. A lane that reads
-    # STATIC in EVERY leg -- idle, tone on, tone off -- did not answer, and a
-    # speaker verdict taken through it would be a defect invented by the
-    # harness. A lane that carries and simply does not rise IS a real SP1 FAIL,
-    # which is why the test is on all three legs and not on MM1's verdict.
-    if all((cap.get(k) or '').strip().endswith('STATIC')
-           for k in ('idle_row', 'tone_row', 'back_row')):
+def al1_measure(r, level):
+    """Baseline, tone, baseline again -- the three legs of one loop reading.
+
+    The baseline is taken WITH THE ROUTE ASSERTED and not before it, which is
+    not fussiness: strip 20's own input noise reaches the speaker through the
+    same route the tone does, so a floor measured with MainOn off is not the
+    floor the tone is compared against. The second baseline is what says the
+    floor came back and the reading was the tone rather than something in the
+    room."""
+    base, t0 = _al1_osc(r, None)
+    tone, t1 = _al1_osc(r, level)
+    back, t2 = _al1_osc(r, None)
+    return {'base': base, 'tone': tone, 'back': back,
+            'raw': '--- baseline (tone off) ---\n%s\n--- tone at %.1f dBFS ---\n%s'
+                   '\n--- tone off again ---\n%s' % (t0, level, t1, t2)}
+
+
+def al1_numbers(m, level):
+    """The measured quantities, or None with the reason. One place, so the
+    calibrator and the verdict cannot compute them differently."""
+    if not (m['base'] and m['tone'] and m['back']):
+        missing = [k for k in ('base', 'tone', 'back') if not m[k]]
+        return None, 'no settled window for: %s' % ', '.join(missing)
+    n = {'drive_dbfs': level,
+         'base_dbfs': m['base']['rms_dbfs'],
+         'tone_dbfs': m['tone']['rms_dbfs'],
+         'back_dbfs': m['back']['rms_dbfs'],
+         'thdn_db': m['tone']['thd_db'],
+         'noise_dbfs': m['tone']['noise_dbfs'],
+         'on_seconds': m['tone'].get('on_seconds')}
+    n['thdn_pct'] = pct_of_db(n['thdn_db'])
+    n['snr_db'] = n['tone_dbfs'] - n['base_dbfs']
+    n['return_db'] = n['back_dbfs'] - n['base_dbfs']
+    return n, None
+
+
+def al1_verdict(n):
+    """The four coarse outcomes the dispatch asked for, in order. Every number
+    they lean on is in AL1_CAL and nowhere else."""
+    c = AL1_CAL
+    pred = c['slope_db_per_db'] * n['drive_dbfs'] + c['intercept_dbfs']
+    n['pred_dbfs'] = pred
+    # The noise floor already in the reading sets how good THD+N could
+    # possibly be; anything past THAT by the margin is distortion.
+    n['thdn_ceiling_db'] = max(c['thdn_abs_db'], -n['snr_db'] + c['thdn_margin_db'])
+    if n['snr_db'] < c['snr_min_db']:
+        return FAIL, 'NO SOUND'
+    if n['tone_dbfs'] < pred - c['level_tol_db']:
+        return FAIL, 'LOW'
+    if n['thdn_db'] > n['thdn_ceiling_db']:
+        # 'CLIP' and not 'CLIP/DISTORTED': the word leads a line the glass cuts
+        # at 70 characters and the long form costs ten of them. The evidence
+        # below spells out that it is clipping OR any other distortion.
+        return FAIL, 'CLIP'
+    if c['high_fails'] and n['tone_dbfs'] > pred + c['level_hi_tol_db']:
+        return FAIL, 'HIGH'
+    return PASS, 'PASS'
+
+
+AL1_NO_SOUND_NOTE = (
+    'NO SOUND means the tone did not come back. This test CANNOT say which stage: the DSP '
+    'graph to codec slot 0, the AK4619 DAC (U3.22), C23/SPKR/J59.12=J42.12/C82, the TS482 '
+    'amplifier (U32) and its 5 V, the SPKR0/SPKR1 pair, the lswitch J1.6/7 FPC and J2 lead, '
+    'the speaker itself, the ADAU7002 MEMS mic, its PDM clock, or the A_I7 slot-4 lane are '
+    'all in series and one reading sees all of them. Check the J2 speaker lead and the '
+    'J13 = lswitch J1 panel FPC first -- they are the two connectors in the loop -- then '
+    'probe U3.22 for the tone to split the loop in half.')
+
+
+def t_al1(r):
+    """The whole acoustic loop: tone out of the panel speaker, back in through
+    the panel MEMS mic, in one press."""
+    lim = ('level within %.0f dB of the calibrated line (pred = %.3f x drive %+.2f dBFS), '
+           'SNR >= %.0f dB over the tone-off floor, THD+N under the ceiling '
+           '(PROVISIONAL -- %s)'
+           % (AL1_CAL['level_tol_db'], AL1_CAL['slope_db_per_db'],
+              AL1_CAL['intercept_dbfs'], AL1_CAL['snr_min_db'],
+              AL1_CAL['provisional']))
+    blocker, ev, cap = _al1_prereq(r)
+    r._al1_an = cap                      # handback reads this
+    if blocker:
+        return NODATA, blocker, lim, '\n'.join(ev) + '\nPREREQUISITE: ' + blocker
+
+    if r.a.al1_calibrate:
+        return al1_calibrate(r, ev)
+
+    level = al1_level(r)
+    m = al1_measure(r, level)
+    ev.append(m['raw'])
+    n, why = al1_numbers(m, level)
+    if n is None:
+        return NODATA, why, lim, '\n'.join(ev)
+
+    if (cap['mems_row'] or '').endswith('STATIC') and n['snr_db'] < AL1_CAL['snr_min_db']:
         return (NODATA,
-                'the MEMS lane is STATIC in all three legs (%s) -- nothing was measured' % m,
+                'the MEMS lane reads STATIC and the tone did not move it -- nothing was '
+                'measured (base %.2f, tone %.2f dBFS)' % (n['base_dbfs'], n['tone_dbfs']),
                 lim,
-                '\n'.join(ev) + '\nPREREQUISITE: a MEMS lane that reads. SP1 measures the '
-                'speaker THROUGH the mic MM1 tests, and MM1 is FAIL on this unit with the '
-                'rails up -- the lane sits at 0xFFFFFFFF whatever the tone does. Scoring the '
-                'speaker FAIL on that would blame the speaker for a dead microphone. Fix the '
-                'mic half first, then this reading means something.')
-    ok = rise >= _SPKR_MARGIN_DB and ret <= _SPKR_RETURN_DB
-    return (PASS if ok else FAIL), m, lim, '\n'.join(ev)
+                '\n'.join(ev) + '\nPREREQUISITE: a MEMS lane that reads. The speaker is '
+                'measured THROUGH the microphone, so a dead lane would score the speaker '
+                'FAIL for a microphone fault.')
+
+    if n['base_dbfs'] > AL1_CAL['floor_max_dbfs']:
+        ev.append('\nNOTE: the tone-off floor is %.2f dBFS, above the %.2f dBFS the table '
+                  'calls a floor. Something is feeding the speaker, or the room is loud. '
+                  'The verdict below still stands -- it is measured against THIS run\'s own '
+                  'baseline -- but the margin is smaller than the calibration had.'
+                  % (n['base_dbfs'], AL1_CAL['floor_max_dbfs']))
+
+    verdict, word = al1_verdict(n)
+    high = (word == 'PASS'
+            and n['tone_dbfs'] > n['pred_dbfs'] + AL1_CAL['level_hi_tol_db'])
+    if high:
+        # The window's other edge. Not scored (AL1_CAL['high_fails']) because a
+        # hand or a voice near the panel lifts this reading and a factory test
+        # that fails for that is worse than one that says so; marked here so a
+        # genuinely hot loop is not silent.
+        word = 'PASS+'
+    # THE GLASS TRUNCATES `measured` AT 70 CHARACTERS (TestSkinStore.
+    # OneResultLine: `if (m.Length > 70) m = m.Substring(0, 67) + "..."`), and
+    # PW asked for the verdict word, the baseline, the tone level, the SNR and
+    # THD+N in dB AND percent to be ON THE TILE. So this line carries exactly
+    # those, inside the budget, and every other number -- the drive level, the
+    # predicted level, the in-window noise, the floor afterwards, the
+    # oscillator on-time -- is in the evidence below, which the CSV keeps in
+    # full. S110 found this by reading the glass after the first press, where
+    # the old long form was cut off at "tone -49.36 dBFS (p...".
+    measured = ('%s base %.1f tone %.1f SNR %.1f dB THD+N %.1f dB %.1f%%'
+                % (word, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
+                   n['thdn_db'], n['thdn_pct']))
+    if len(measured) > 70:                       # never let the glass cut it
+        measured = ('%s %.0f/%.0f SNR %.0f THD+N %.0f dB %.0f%%'
+                    % (word, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
+                       n['thdn_db'], n['thdn_pct']))
+    ev.append('\n--- the numbers ---\n'
+              'drive            %8.2f dBFS peak\n'
+              'baseline (off)   %8.2f dBFS\n'
+              'tone (on)        %8.2f dBFS   predicted %.2f (%.3f x drive %+.2f)\n'
+              'SNR              %8.2f dB    (tone on minus tone off)\n'
+              'THD+N            %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%\n'
+              'in-window noise  %8.2f dBFS\n'
+              'floor afterwards %8.2f dBFS  (%+.2f dB)\n'
+              'oscillator on    %8s s      (cap %.1f s)\n'
+              'VERDICT          %s (%s)'
+              % (n['drive_dbfs'], n['base_dbfs'], n['tone_dbfs'], n['pred_dbfs'],
+                 AL1_CAL['slope_db_per_db'], AL1_CAL['intercept_dbfs'],
+                 n['snr_db'], n['thdn_db'], n['thdn_pct'],
+                 n['thdn_ceiling_db'], pct_of_db(n['thdn_ceiling_db']),
+                 n['noise_dbfs'], n['back_dbfs'], n['return_db'],
+                 ('%.2f' % n['on_seconds']) if n['on_seconds'] else '?',
+                 AL1_MAX_ON_S, word, verdict))
+    if high:
+        ev.append('\nNOTE: the level is %+.2f dB above the predicted line, past the '
+                  '%.1f dB upper edge of the window. NOT scored (AL1_CAL[\'high_fails\'] '
+                  'is False): a hand or a voice near the panel lifts this reading, and a '
+                  'factory test that fails for that is worse than one that says so. The '
+                  'verdict word is PASS+ so it is not silent.'
+                  % (n['tone_dbfs'] - n['pred_dbfs'], AL1_CAL['level_hi_tol_db']))
+    ev.append('\nTHE WINDOWS ARE PROVISIONAL (%s). They live in ONE place, AL1_CAL at the '
+              'top of the AL1 section of this file, and `--only AL1 --al1-calibrate` '
+              're-measures and rewrites them.\n%s'
+              % (AL1_CAL['provisional'],
+                 AL1_NO_SOUND_NOTE if word == 'NO SOUND' else ''))
+    return verdict, measured, lim, '\n'.join(ev)
+
+
+# --- calibration ------------------------------------------------------------
+AL1_CAL_LEVELS = (-30.0, -20.0, -10.0)
+AL1_CAL_REPS = 5
+
+
+def al1_calibrate(r, ev):
+    """Re-measure the table on this unit and rewrite it in this file.
+
+    One command, because the table has to be re-derivable in one: PW is about
+    to change the amp gain and the alternative to this is hand-editing eight
+    numbers from a report. Prints every run, the old table and the new one, and
+    what moved."""
+    grid = []
+    for lv in AL1_CAL_LEVELS:
+        if lv > AL1_TONE_CAP_DBFS:
+            continue
+        for k in range(AL1_CAL_REPS):
+            m = al1_measure(r, lv)
+            n, why = al1_numbers(m, lv)
+            if n is None:
+                print('  AL1 cal %6.1f dBFS rep %d: %s' % (lv, k + 1, why))
+                continue
+            n['rep'] = k + 1
+            grid.append(n)
+            print('  AL1 cal %6.1f dBFS rep %d: base %7.2f  tone %7.2f  SNR %6.2f  '
+                  'THD+N %7.2f dB = %7.3f %%'
+                  % (lv, k + 1, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
+                     n['thdn_db'], n['thdn_pct']))
+    if len(grid) < 4:
+        return (NODATA, 'calibration got %d usable runs' % len(grid),
+                'at least 4 runs over 2 levels', '\n'.join(ev))
+
+    old = dict(AL1_CAL)
+    new = al1_fit(grid, r)
+    table = al1_table(grid)
+    diff = '\n'.join(
+        '  %-18s %12s -> %12s%s'
+        % (k, _fmt(old.get(k)), _fmt(new[k]),
+           '' if _fmt(old.get(k)) == _fmt(new[k]) else '   CHANGED')
+        for k in AL1_CAL_KEYS_NUMERIC)
+    wrote = al1_write_table(new)
+    ev.append('\n--- every calibration run ---\n%s' % table)
+    ev.append('\n--- the table: old -> new ---\n%s' % diff)
+    ev.append('\n%s' % wrote)
+    print('\n--- every calibration run ---\n%s' % table)
+    print('\n--- the table: old -> new ---\n%s' % diff)
+    print(wrote)
+    return (NODATA,
+            'CALIBRATION, not a verdict: %d runs over %d levels; the table was rewritten'
+            % (len(grid), len(set(g['drive_dbfs'] for g in grid))),
+            'a calibration run scores nothing -- it sets the windows the next run is '
+            'scored against', '\n'.join(ev))
+
+
+def _fmt(v):
+    return ('%.3f' % v) if isinstance(v, float) else str(v)
+
+
+def al1_table(grid):
+    head = ('  drive    rep   baseline      tone        SNR     THD+N        THD+N   '
+            '  noise    on\n  dBFS           dBFS       dBFS        dB        dB     '
+            '      %      dBFS     s')
+    lines = [head]
+    for g in grid:
+        lines.append('  %6.1f %5d %10.2f %10.2f %10.2f %9.2f %12.3f %9.2f %6s'
+                     % (g['drive_dbfs'], g['rep'], g['base_dbfs'], g['tone_dbfs'],
+                        g['snr_db'], g['thdn_db'], g['thdn_pct'], g['noise_dbfs'],
+                        ('%.2f' % g['on_seconds']) if g['on_seconds'] else '?'))
+    for lv in sorted(set(g['drive_dbfs'] for g in grid)):
+        at = [g for g in grid if g['drive_dbfs'] == lv]
+        t = [g['tone_dbfs'] for g in at]
+        lines.append('  mean at %6.1f: tone %.2f dBFS (spread %.2f dB), baseline %.2f, '
+                     'SNR %.2f dB, THD+N %.2f dB = %.3f %%'
+                     % (lv, sum(t) / len(t), max(t) - min(t),
+                        sum(g['base_dbfs'] for g in at) / len(at),
+                        sum(g['snr_db'] for g in at) / len(at),
+                        sum(g['thdn_db'] for g in at) / len(at),
+                        pct_of_db(sum(g['thdn_db'] for g in at) / len(at))))
+    return '\n'.join(lines)
+
+
+# A calibration point defines the line only if the window it came from was
+# MEASURING A TONE. THD+N is exactly the test for that: it is everything in
+# the window that is not the fundamental, over the total, so THD+N above
+# -6 dB means the fundamental is less than half of what was there and the
+# window is reading the room.
+#
+# S110 needed this, and an SNR gate did not do it. At -30 dBFS drive the tone
+# lands ON the mic's floor: the level readings scattered over 3.8 dB and two
+# of the five happened to sit 4.4 and 7.0 dB above their own baseline purely
+# because the baseline window before them was quiet. An SNR gate let those two
+# in and they bent the line from 0.97 to 0.79 dB/dB, which would have made
+# every later reading at -10 look 2 dB low. Their THD+N was -1.15 and -2.23 dB
+# -- 88 % and 77 % -- and no gate on THD+N of any plausible value admits them.
+AL1_FIT_THDN_MAX_DB = -6.0
+AL1_FIT_SNR_MIN_DB = 3.0
+
+
+def al1_fit(grid, r):
+    """Least squares on the points the loop actually carried, plus the
+    windows around them.
+
+    A point that was not measuring a tone is EXCLUDED from the line (see
+    AL1_FIT_THDN_MAX_DB). It is still printed in the table -- it is the
+    measurement that says how far down this loop can be driven and still be
+    read, which is worth more than a fitted point would have been."""
+    c = dict(AL1_CAL)
+    use = [g for g in grid if g['thdn_db'] <= AL1_FIT_THDN_MAX_DB
+           and g['snr_db'] >= AL1_FIT_SNR_MIN_DB]
+    if len(use) < 2 or len(set(g['drive_dbfs'] for g in use)) < 2:
+        use = list(grid)
+    xs = [g['drive_dbfs'] for g in use]
+    ys = [g['tone_dbfs'] for g in use]
+    n = float(len(xs))
+    mx, my = sum(xs) / n, sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    slope = (sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx) if sxx else 1.0
+    inter = my - slope * mx
+    resid = [y - (slope * x + inter) for x, y in zip(xs, ys)]
+    spread = max(resid) - min(resid)
+    c['slope_db_per_db'] = round(slope, 3)
+    c['intercept_dbfs'] = round(inter, 2)
+    # The window is the observed spread plus headroom, floored at 4 dB: a
+    # window tighter than the run-to-run spread of the thing it measures
+    # fails good units, and this is a coarse fault check, not a grade.
+    c['level_tol_db'] = round(max(4.0, spread + 3.0), 1)
+    c['level_hi_tol_db'] = round(c['level_tol_db'] + 3.0, 1)
+    bases = [g['base_dbfs'] for g in grid]
+    c['floor_max_dbfs'] = round(max(bases) + 6.0, 1)
+    # NO SOUND has to sit below the worst SNR a working loop showed at the
+    # level the test actually runs at, with room for a noisier room.
+    # NO SOUND is a LABEL, not the safety net. What actually catches a dead
+    # loop is the level window above: with no tone the mic reads its own
+    # floor, which on this unit is 7 dB or more below the fitted line, so the
+    # verdict is LOW even when a noisy room lifts the apparent SNR. So this
+    # threshold is set LOW on purpose -- it is there to name the obvious case,
+    # and a false NO SOUND on a loud bench would be the worse error.
+    at_def = [g for g in use if abs(g['drive_dbfs'] - AL1_TONE_DBFS) < 0.01] or use
+    worst_snr = min(g['snr_db'] for g in at_def)
+    c['snr_min_db'] = round(max(3.0, worst_snr - 3.0), 1)
+    # THD+N. Two ceilings, and the reason there are two is in the table's own
+    # comment: over this loop THD+N is mostly NOISE at the safe drive level.
+    # `thdn_abs_db` comes from the points at the level the test actually runs
+    # at; `thdn_margin_db` is how far past what the measured SNR already
+    # explains a healthy loop went, worst case.
+    excess = [g['thdn_db'] - (-g['snr_db']) for g in use]
+    c['thdn_margin_db'] = round(max(excess) + 3.0, 1)
+    c['thdn_abs_db'] = round(max(g['thdn_db'] for g in at_def) + 3.0, 1)
+    c['stamp'] = stamp()
+    c['pair'] = str(r.pair)
+    lo = min(g['drive_dbfs'] for g in use)
+    c['runs'] = ('%d runs at %s dBFS x %d reps; %d fitted, %d excluded as not '
+                 'measuring a tone (THD+N > %g dB); lowest drive that read: '
+                 '%g dBFS; default drive %g dBFS'
+                 % (len(grid), '/'.join('%g' % l for l in sorted(set(g['drive_dbfs']
+                                                                    for g in grid))),
+                    AL1_CAL_REPS, len(use), len(grid) - len(use),
+                    AL1_FIT_THDN_MAX_DB, lo, AL1_TONE_DBFS))
+    return c
+
+
+def al1_write_table(new):
+    """Rewrite AL1_CAL in this source file, between its own markers.
+
+    In place and in this file on purpose: the table is the thing a reader of
+    the test has to be able to see, and a JSON file beside it would be a
+    second place for it to live. The file is re-read and re-parsed before it
+    is replaced, so a failed rewrite leaves the old table intact."""
+    path = os.path.abspath(__file__)
+    src = open(path, encoding='utf-8').read()
+    head = 'AL1_CAL = {'
+    i = src.find('\n' + head)
+    if i < 0:
+        return 'TABLE NOT REWRITTEN: AL1_CAL not found in %s' % path
+    j = src.find('\n}\n', i)
+    if j < 0:
+        return 'TABLE NOT REWRITTEN: no end of AL1_CAL in %s' % path
+    body = ["\n%s" % head,
+            "    'provisional': %r," % new['provisional'],
+            "    'unit': %r," % new['unit'],
+            "    'stamp': %r," % new['stamp'],
+            "    'pair': %r," % new['pair'],
+            "    'runs': %r," % new['runs'],
+            "    'slope_db_per_db': %s," % _fmt(new['slope_db_per_db']),
+            "    'intercept_dbfs': %s," % _fmt(new['intercept_dbfs']),
+            "    'level_tol_db': %s," % _fmt(new['level_tol_db']),
+            "    'level_hi_tol_db': %s," % _fmt(new['level_hi_tol_db']),
+            "    'high_fails': %r," % new['high_fails'],
+            "    'snr_min_db': %s," % _fmt(new['snr_min_db']),
+            "    'floor_max_dbfs': %s," % _fmt(new['floor_max_dbfs']),
+            "    'thdn_abs_db': %s," % _fmt(new['thdn_abs_db']),
+            "    'thdn_margin_db': %s," % _fmt(new['thdn_margin_db']),
+            "}"]
+    out = src[:i] + '\n'.join(body) + src[j + 2:]
+    try:
+        compile(out, path, 'exec')
+    except SyntaxError as exc:
+        return 'TABLE NOT REWRITTEN: the rewrite would not parse (%s)' % exc
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(out)
+    return ('TABLE REWRITTEN in %s. The comments above it -- including what makes each '
+            'number provisional -- are untouched; only the dict body is replaced. '
+            'Commit it: the table is the test.' % path)
 
 
 # ---------------------------------------------------------------------------
@@ -1599,7 +1988,22 @@ def handback(r):
     # DRIVEN high, not pulled: since S109 the pull no longer holds CS_M.
     r.pin('%d op dh' % CS_M_GPIO)
     notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
-    notes.append('AN_EN: %s' % r.an_en())
+    # AN_EN. The module never raises the rails except in AL1, which needs the
+    # TS482 and the microphone powered; a run that raised them puts them back,
+    # and one that found them up leaves them up for whoever owns them -- except
+    # that with matrix-app stopped for the whole session there IS no other
+    # owner, so `--al1-keep-rails` is the way to say "leave them".
+    cap = getattr(r, '_al1_an', None)
+    an_before = r.an_en()
+    if cap and cap.get('raised') and not r.a.al1_keep_rails:
+        r.pin('%d op dl' % AN_EN_GPIO)
+        notes.append('AN_EN: %s at entry, RAISED by AL1, LOWERED here -> %s'
+                     % (cap['an_start'].split('//')[0].strip(), r.an_en()))
+    elif cap and cap.get('raised'):
+        notes.append('AN_EN: %s at entry, RAISED by AL1, LEFT UP (--al1-keep-rails) -> %s'
+                     % (cap['an_start'].split('//')[0].strip(), an_before))
+    else:
+        notes.append('AN_EN: %s (not written by this run)' % an_before)
     if r.a.no_app_restart:
         # Driven from the standalone test display: matrix-app is deliberately
         # down for the whole session and starting it here would seize the DRM
@@ -1648,16 +2052,27 @@ def check_keys(path):
     have = set()
     by_num = {}
     numbered = False
+    # `num` is the WORKBOOK position, and since MERGED_KEYS (PW 2026-09-25) it
+    # is no longer the line number: a bench row that covers two workbook rows
+    # takes the first one's number and the second's is absent, so the export
+    # has a gap. What still has to hold -- and is what the check was for -- is
+    # that the numbers are unique and go up, so a `# NNN` comment resolves to
+    # exactly one row and a resorted file is caught.
+    last = 0
     with open(path, newline='') as fh:
         for i, row in enumerate(csv.DictReader(fh), start=1):
             have.add((row['board'], row['item']))
             n = (row.get('num') or '').strip()
-            if n:
-                numbered = True
-                if n != str(i):
-                    sys.exit('ERROR: %s: num %r is not the row position %d (%s | %s)'
-                             % (path, n, i, row['board'], row['item']))
-            by_num[i] = (row['board'], row['item'])
+            if not n:
+                by_num[i] = (row['board'], row['item'])
+                continue
+            numbered = True
+            if not n.isdigit() or int(n) <= last:
+                sys.exit('ERROR: %s: num %r at line %d is not above the previous '
+                         'row\'s %d (%s | %s)'
+                         % (path, n, i, last, row['board'], row['item']))
+            last = int(n)
+            by_num[last] = (row['board'], row['item'])
     missing = sorted(want - have)
     if missing:
         sys.exit('ERROR: %d key(s) not in the export -- board/item must match verbatim:\n%s'
@@ -1752,6 +2167,26 @@ def main():
     ap.add_argument('--soak-interval', type=int, default=60)
     ap.add_argument('--no-soak-wait', action='store_true',
                     help='harvest the HD0-2 soak as it stands instead of waiting for the window')
+    ap.add_argument('--al1-level', type=float, default=AL1_TONE_DBFS,
+                    metavar='DBFS',
+                    help='AL1: the 1 kHz tone level, dBFS PEAK, injected into '
+                         'strip %d. Default %g. HARD-CAPPED at %g: a bigger '
+                         'number is clamped and said out loud. PW drove this '
+                         'speaker to full scale by hand on 2026-09-25 and it '
+                         'was clean; an automated test still does not.'
+                         % (_SPKR_OSC_STRIP, AL1_TONE_DBFS, AL1_TONE_CAP_DBFS))
+    ap.add_argument('--al1-calibrate', action='store_true',
+                    help='AL1: re-measure the provisional windows on this unit '
+                         '(%s dBFS x %d reps) and REWRITE AL1_CAL in this file, '
+                         'printing every run and the old and new tables. Scores '
+                         'nothing. Run this after any change to the amp, the '
+                         'speaker or the mic.'
+                         % ('/'.join('%g' % l for l in AL1_CAL_LEVELS), AL1_CAL_REPS))
+    ap.add_argument('--al1-keep-rails', action='store_true',
+                    help='AL1: do NOT lower AN_EN at handback even if this run '
+                         'raised it. For a bench session that wants the rails '
+                         'left up for the next thing; the report says which '
+                         'way it went either way.')
     ap.add_argument('--no-app-restart', action='store_true',
                     help='stop matrix-app for the bus-exclusive sections as usual, but do NOT '
                          'start it again at handback. For a run driven from the standalone '
@@ -1766,6 +2201,12 @@ def main():
     a.section = set(x.strip().upper() for x in a.section.split(','))
     a.only = set(x.strip().upper() for x in a.only.split(',')) if a.only else None
     if a.only:
+        # A retired id runs the test it became, and says so rather than
+        # failing: `--only SP1` is in every report S102 onward.
+        hit = sorted(a.only & set(ALIASES))
+        if hit:
+            print('--only: %s' % ', '.join('%s -> %s' % (k, ALIASES[k]) for k in hit))
+            a.only = {ALIASES.get(x, x) for x in a.only}
         unknown = a.only - set(ITEMS)
         if unknown:
             sys.exit('ERROR: --only names no such test: %s' % ', '.join(sorted(unknown)))
@@ -1845,8 +2286,7 @@ def main():
             r.run('AS-ADC', lambda: t_asadc(r))
             r.run('AS-DAC', lambda: t_asdac(r))
             r.run('AS-PWR', lambda: t_aspwr(r))
-            r.run('MM1', lambda: t_mm1(r))
-            r.run('SP1', lambda: t_sp1(r))
+            r.run('AL1', lambda: t_al1(r))
     finally:
         if r.app_stopped:
             print('\n--- handback ---\n%s' % handback(r))

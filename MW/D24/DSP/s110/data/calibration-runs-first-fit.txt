@@ -1,0 +1,89 @@
+D24 self-test, section 1 -- sections C -- 2026-09-25T13:10:26Z
+matrix-app stopped; AN_EN at start: 26: op -- pd | hi // GPIO26 = output
+pair: /home/app/loopthd/s109 (--pair)
+total 1200
+lrwxrwxrwx 1 app app     28 Sep 25 14:10 afb_ref.py -> /home/app/dspboot/afb_ref.py
+-rw-rw-r-- 1 app app    754 Sep 25 14:10 al1-osc.json
+lrwxrwxrwx 1 app app     34 Sep 25 14:10 audio_verdict.py -> /home/app/dspboot/audio_verdict.py
+lrwxrwxrwx 1 app app     26 Sep 25 14:10 auxon.py -> /home/app/dspboot/auxon.py
+lrwxrwxrwx 1 app app     31 Sep 25 14
+ 10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+CHIP_ID verified: chip 1 = 1, chip 2 = 2
+
+--- config cycle 2 chip 1 ---
+wrote 53 registers to chip 1 (CS GPIO6)
+
+--- config cycle 2 chip 2 ---
+wrote 6 registers to chip 2 (CS GPIO24)
+
+--- inter-chip link gate (s89_signbit, exit 0) ---
+  lane 0 (SPORT 0)  MAIN L/R    sent bit31  37/ 64 (distinct 57)   received bit31  38/ 64 (distinct 61)
+  lane 1 (SPORT 1)  codec ret   sent bit31  33/ 64 (distinct 64)   received bit31  30/ 64 (distinct 64)
+  VERDICT lane 0 (SPORT 0)  MAIN L/R   CLEAN
+  VERDICT lane 1 (SPORT 1)  codec ret  CLEAN
+OVERALL: CLEAN
+
+AL1 ...
+  AL1 cal  -30.0 dBFS rep 1: base  -57.19  tone  -56.47  SNR   0.72  THD+N   -2.53 dB =  74.757 %
+  AL1 cal  -30.0 dBFS rep 2: base  -56.64  tone  -56.74  SNR  -0.10  THD+N   -2.71 dB =  73.218 %
+  AL1 cal  -30.0 dBFS rep 3: base  -57.10  tone  -57.44  SNR  -0.34  THD+N   -3.42 dB =  67.447 %
+  AL1 cal  -30.0 dBFS rep 4: base  -60.65  tone  -56.22  SNR   4.43  THD+N   -2.23 dB =  77.362 %
+  AL1 cal  -30.0 dBFS rep 5: base  -60.60  tone  -53.59  SNR   7.01  THD+N   -1.15 dB =  87.579 %
+  AL1 cal  -20.0 dBFS rep 1: base  -57.38  tone  -49.91  SNR   7.47  THD+N  -14.65 dB =  18.508 %
+  AL1 cal  -20.0 dBFS rep 2: base  -56.90  tone  -49.80  SNR   7.10  THD+N  -12.44 dB =  23.877 %
+  AL1 cal  -20.0 dBFS rep 3: base  -55.89  tone  -49.76  SNR   6.13  THD+N  -11.73 dB =  25.919 %
+  AL1 cal  -20.0 dBFS rep 4: base  -62.84  tone  -49.43  SNR  13.41  THD+N   -8.75 dB =  36.538 %
+  AL1 cal  -20.0 dBFS rep 5: base  -68.34  tone  -49.52  SNR  18.83  THD+N   -9.22 dB =  34.577 %
+  AL1 cal  -10.0 dBFS rep 1: base  -62.20  tone  -40.01  SNR  22.18  THD+N  -32.40 dB =   2.398 %
+  AL1 cal  -10.0 dBFS rep 2: base  -56.93  tone  -40.00  SNR  16.93  THD+N  -25.50 dB =   5.311 %
+  AL1 cal  -10.0 dBFS rep 3: base  -58.31  tone  -40.00  SNR  18.30  THD+N  -26.63 dB =   4.663 %
+  AL1 cal  -10.0 dBFS rep 4: base  -55.93  tone  -40.01  SNR  15.92  THD+N  -28.38 dB =   3.811 %
+  AL1 cal  -10.0 dBFS rep 5: base  -60.24  tone  -40.01  SNR  20.24  THD+N  -28.81 dB =   3.628 %
+
+--- every calibration run ---
+  drive    rep   baseline      tone        SNR     THD+N        THD+N     noise    on
+  dBFS           dBFS       dBFS        dB        dB           %      dBFS     s
+   -30.0     1     -57.19     -56.47       0.72     -2.53       74.757    -59.00   0.56
+   -30.0     2     -56.64     -56.74      -0.10     -2.71       73.218    -59.45   0.56
+   -30.0     3     -57.10     -57.44      -0.34     -3.42       67.447    -60.86   0.61
+   -30.0     4     -60.65     -56.22       4.43     -2.23       77.362    -58.45   0.56
+   -30.0     5     -60.60     -53.59       7.01     -1.15       87.579    -54.75   0.59
+   -20.0     1     -57.38     -49.91       7.47    -14.65       18.508    -64.56   0.60
+   -20.0     2     -56.90     -49.80       7.10    -12.44       23.877    -62.24   0.60
+   -20.0     3     -55.89     -49.76       6.13    -11.73       25.919    -61.49   0.57
+   -20.0     4     -62.84     -49.43      13.41     -8.75       36.538    -58.17   0.59
+   -20.0     5     -68.34     -49.52      18.83     -9.22       34.577    -58.74   0.62
+   -10.0     1     -62.20     -40.01      22.18    -32.40        2.398    -72.42   0.62
+   -10.0     2     -56.93     -40.00      16.93    -25.50        5.311    -65.49   0.60
+   -10.0     3     -58.31     -40.00      18.30    -26.63        4.663    -66.63   0.60
+   -10.0     4     -55.93     -40.01      15.92    -28.38        3.811    -68.38   0.57
+   -10.0     5     -60.24     -40.01      20.24    -28.81        3.628    -68.81   0.56
+  mean at  -30.0: tone -56.09 dBFS (spread 3.84 dB), baseline -58.44, SNR 2.34 dB, THD+N -2.41 dB = 75.794 %
+  mean at  -20.0: tone -49.68 dBFS (spread 0.48 dB), baseline -60.27, SNR 10.59 dB, THD+N -11.36 dB = 27.046 %
+  mean at  -10.0: tone -40.01 dBFS (spread 0.02 dB), baseline -58.72, SNR 18.72 dB, THD+N -28.34 dB = 3.827 %
+
+--- the table: old -> new ---
+  slope_db_per_db           1.000 ->        0.790   CHANGED
+  intercept_dbfs          -29.500 ->      -32.700   CHANGED
+  level_tol_db              6.000 ->        7.200   CHANGED
+  level_hi_tol_db           9.000 ->       10.200   CHANGED
+  snr_min_db                4.000 ->        3.100   CHANGED
+  floor_max_dbfs          -45.000 ->      -49.900   CHANGED
+  thdn_abs_db              -6.000 ->        1.800   CHANGED
+  thdn_margin_db            6.000 ->       12.600   CHANGED
+TABLE REWRITTEN in /home/peter/dsp/tools/pi/d24_selftest.py. The comments above it -- including what makes each number provisional -- are untouched; only the dict body is replaced. Commit it: the table is the test.
+  AL1       NO DATA  CALIBRATION, not a verdict: 15 runs over 3 levels; the table was rewritten
+
+--- handback ---
+SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 00 E0 FE 00 00 00 00 00 00 13 6E 20 00 00 00 00 00 E0 FE 00 00 00 00 00 00
+CS_M: 27: op -- pu | hi // GPIO27 = output
+AN_EN: 26: op -- pd | hi // GPIO26 = output (not written by this run)
+matrix-app: left stopped (--no-app-restart); the test display owns the screen
+MCU verify (whole log): not read -- the app was not restarted
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        NO DATA 
+------------------------------------------------------------------------------
+rows:  0 PASS / 0 FAIL / 2 NO DATA  (2 rows)
+items: 0 PASS / 0 FAIL / 2 NO DATA  (2 of 36 workbook rows covered)

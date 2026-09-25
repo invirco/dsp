@@ -34,6 +34,25 @@ it should be.
 Usage:
   dsp4_s49_osc.py [--strip N] [--freq HZ] [--level DBFS] [--meas N]
                   [--xsrc N] [--xdst N] [--windows N] [--off] [--symdir DIR]
+                  [--ramp-ms MS] [--then-off]
+
+THE RAMP (S110), and why a test that plays a tone out of a SPEAKER needs one.
+`OscOn 0` cuts the sine at whatever instant the write lands, and that step is a
+click with the full bandwidth of the converter behind it. Into the digital loop
+that is harmless; out of the panel speaker it is an audible tick, and it lands
+in the measurement window that follows -- the first tone-off baseline S110 took
+after an abrupt stop read -38.15 dBFS against a settled floor of -58, a 20 dB
+error made entirely by the harness. `--ramp-ms` fades OscLevel in equal dB
+steps into the target on the way up and away from it on the way down, so the
+speaker is never asked for a step. Default 0 = the old behaviour exactly, so
+every existing caller is unchanged.
+
+`--then-off` fades the tone out and leaves `OscOn 0` in the SAME session, and
+prints how long the oscillator was actually on. Two invocations -- one to play,
+one to stop -- cannot do that: the second one's interpreter start, link resync
+and chip check all happen with the tone still sounding, which on this unit adds
+two to four seconds of speaker to every measurement. A test that plays a tone
+out of a panel speaker states its on-time; this is how it gets one.
 """
 import argparse
 import json
@@ -121,6 +140,17 @@ def main():
                          '(SweepOn 1) with a period of STEPS x 1024 samples '
                          '(16 = one 16,384 capture). The windows then read '
                          'RMS only; analyse with dsp4_fft.py --chirp')
+    ap.add_argument('--ramp-ms', type=float, default=0.0, metavar='MS',
+                    help='fade OscLevel in (or, with --off, out) over MS '
+                         'milliseconds instead of stepping it. 0 = no ramp, '
+                         'the historical behaviour. Wanted whenever the tone '
+                         'leaves the box through the speaker: an abrupt stop '
+                         'is a click, and the click lands in the next '
+                         'measurement window (S110).')
+    ap.add_argument('--then-off', action='store_true',
+                    help='after the windows are read, fade out (honouring '
+                         '--ramp-ms) and leave the oscillator OFF, in this '
+                         'same session. Prints the measured on-time.')
     ap.add_argument('--symdir', default='/home/app/s49')
     ap.add_argument('--json', default=None, help='write the results here too')
     a = ap.parse_args(_ARGV)
@@ -166,19 +196,63 @@ def main():
         if not ok:
             raise SystemExit('write to %d did not land' % addr)
 
+    # THE RAMP. Equal dB steps: a linear fade of a float amplitude spends
+    # most of its time near the top and still steps audibly at the bottom,
+    # and what the ear (and the mic) answers to is dB.
+    RAMP_FLOOR_DB = -60.0        # where a fade starts and ends
+    RAMP_STEPS = 24
+    amp = 10.0 ** (a.level / 20.0)
+
+    def ramp(lo_amp, hi_amp, ms, up):
+        """Walk OscLevel between two amplitudes over `ms` milliseconds.
+        Written without the read-back `w()` does: 24 verified writes cost
+        24 x SETTLE of dead time inside a fade that is supposed to be
+        smooth, and the END of the ramp is verified by `w()` anyway."""
+        if ms <= 0 or lo_amp <= 0 or hi_amp <= 0:
+            return
+        dt = (ms / 1000.0) / RAMP_STEPS
+        for i in range(1, RAMP_STEPS + 1):
+            f = i / float(RAMP_STEPS)
+            if not up:
+                f = 1.0 - f
+            a_ = lo_amp * (hi_amp / lo_amp) ** f
+            sc.d.link.write(A_OSCLEVEL, f32(a_), 0)
+            time.sleep(max(dt, S.SETTLE))
+        print('    %-12s %s over %.0f ms in %d equal-dB steps'
+              % ('OscLevel', 'fade UP' if up else 'fade DOWN', ms, RAMP_STEPS))
+
+    floor_amp = amp * 10.0 ** (RAMP_FLOOR_DB / 20.0)
+
     print('')
     print('  arming:')
+    # A ramped STOP has to happen BEFORE the arming write that kills the
+    # oscillator, which is why this sits above `w(A_OSCON, 0)` and not with
+    # the fade-in below. The level it fades FROM is the one on the part, not
+    # one this invocation was told about.
+    if a.off and a.ramp_ms > 0:
+        cur = from_f32(sc.rd(A_OSCLEVEL))
+        if sc.rd(A_OSCON) and cur > 0:
+            ramp(cur * 10.0 ** (RAMP_FLOOR_DB / 20.0), cur, a.ramp_ms, False)
     w(A_OSCON, 0, 'OscOn')
     w(A_MEASCHAN, 0, 'MeasChan')
     w(A_XSRC, 0, 'XtalkSrc')
     w(A_XDST, 0, 'XtalkDst')
-    amp = 10.0 ** (a.level / 20.0)
     w(A_OSCFREQ, f32(a.freq), 'OscFreq')
-    w(A_OSCLEVEL, f32(amp), 'OscLevel')
+    # With a fade-in the oscillator is armed AT the floor, turned on there and
+    # walked up; without one it is armed at the target as it always was.
+    w(A_OSCLEVEL, f32(floor_amp if (a.ramp_ms > 0 and not a.off) else amp),
+      'OscLevel')
     w(A_OSCCHAN, a.strip, 'OscChan')
     w(A_XSRC, a.xsrc, 'XtalkSrc')
     w(A_XDST, a.xdst, 'XtalkDst')
     w(A_OSCON, 0 if a.off else 1, 'OscOn')
+    on_at = time.time()
+    if a.ramp_ms > 0 and not a.off:
+        ramp(floor_amp, amp, a.ramp_ms, True)
+        w(A_OSCLEVEL, f32(amp), 'OscLevel')       # the target, verified
+    # MeasChan LAST, so the first window the measurement node accumulates is
+    # one the tone is already at full level in -- a window opened during the
+    # fade would average the ramp and read low.
     w(A_MEASCHAN, meas, 'MeasChan')
     if a.sweep:
         # S60: SweepOn runs the periodic log chirp (the S49 stepped sweep
@@ -222,6 +296,24 @@ def main():
                  rms, thd, pct(thd), nse, xtk,
                  '   (TORN)' if s2 != s_ else ''))
 
+    if a.then_off and not a.off:
+        # Stop here, in this session. See the header: the alternative is a
+        # second invocation, and everything that one does before it can write
+        # OscOn happens with the speaker still sounding.
+        print('')
+        print('  stopping:')
+        ramp(floor_amp, amp, a.ramp_ms, False)
+        sc.d.link.write(A_OSCON, 0, 0)
+        time.sleep(S.SETTLE)
+        off_at = time.time()
+        got = sc.rd(A_OSCON)
+        print('    %-12s %5d <- 0x%08X   read 0x%08X  %s'
+              % ('OscOn', A_OSCON, 0, got, 'OK' if got == 0 else 'MISMATCH'))
+        if got != 0:
+            raise SystemExit('the oscillator did not stop')
+        on_s = off_at - on_at
+        print('    oscillator was ON for %.2f s' % on_s)
+
     good = [r for r in rows if not r['torn']]
     print('')
     if not good:
@@ -247,6 +339,9 @@ def main():
                        'level_dbfs_peak': a.level, 'off': a.off,
                        'xsrc': a.xsrc, 'xdst': a.xdst,
                        'window_samples': WIN_SAMPLES,
+                       'ramp_ms': a.ramp_ms, 'then_off': a.then_off,
+                       'on_seconds': (None if (a.off or not a.then_off)
+                                      else round(on_s, 3)),
                        'rows': rows}, f, indent=1)
         print('')
         print('  wrote %s' % a.json)
