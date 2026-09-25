@@ -1,3 +1,89 @@
+## HUB DISPATCH 2026-09-25 12:04Z — S109 follow-ups: aux flash, MEMS slot test tool, M MCU_S4, CS_M recipe   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S109 follow-ups: aux byte flash, MEMS slot test tool, M MCU_S4, CS_M recipe
+
+PW ruled 2026-09-25: "continue with steps 1-4" on your S109 report
+(`MW/D24/DSP/s109/cpld-io-fix-and-audit.md` §7, commits fd02799a/1a5a79e2). D32 is
+out of requirements (already applied). Read §7 again, then do these four. The hub
+handles S109-3 (the M_I2S pull-down ECO) itself in the mods PDF, not you.
+
+## 1. S109-1: get the aux-output byte onto the part
+
+`~/build-h1s1/Core/Inc/matrix.cs` `ak4619[]` index 21 is already 0x00 (your edit).
+That tree is not a git repo, so first CAPTURE the change: save the exact diff (and
+the current file) into this repo (e.g. `MW/D24/DSP/s109/h1s1/matrix.cs.patch`) so
+it is recorded. Then rebuild H1S1 and flash it. The known path (hub memory): source
+in `~/build-h1s1` on this machine (Dropbox mirror), flash via MH1 SWD-ch3 reset +
+`app cli loadfw`; S MCU firmware, CS_M is released; an all-zero chain readback means
+check CS_M first, not U2. Find the exact procedure in `dsp/findings.md`/`tasks.md`
+(S69, S37-era H1S1 sessions) rather than guessing.
+- The unit is rev C+ MW-D24-2 (rev A show unit MW-D24-1 is hands-off).
+- Do NOT raise AN_EN and do not start `matrix-app` (a dispatched session may not
+  raise the analog rails). Verify the flash by the firmware's own identity/hash
+  readback and by anything that answers without rails. The codec `12H` readback
+  needs matrix-app, so state plainly that it is still unverified and leave the exact
+  one-line check for PW ("with rails up, `s108_codec4619.py --read 12` must read
+  0x00").
+- Keep a rollback: copy the running firmware image aside and name it before flashing.
+- Flashing a board is a named action in the tasks.md block.
+
+## 2. S109-4: make the which-slot-is-the-mic test a thing PW can just run
+
+PW cannot dictate a bench session over chat; give them one command. Write
+`mems-slot-test.sh` (repo: `MW/D24/DSP/s109/`, and staged on the unit) that: checks
+`dsp4_logic_id.py --expect 4de0dd4a`, boots the slot-4 pair (`/home/app/loopthd/s109`)
+then the slot-5 pair (`/home/app/loopthd/s103`) in turn, and for each runs
+`dsp4_rxscan.py --symdir . --reps 32` for ~15 s while printing a plain countdown
+("TAP THE LEFT PANEL NEXT TO THE MIC NOW"), then prints a one-line verdict per slot
+(XIN_MEMS rms/peak during the tap vs a quiet baseline taken first) and says which
+slot moved with the sound. Include the CS_M `op dh` fix (item 4) and the double
+boot+config rule. No rails, no speaker, no audio played. Dry-run it as far as it can
+go without a person, prove the quiet-baseline part on the unit, then hand back the
+exact command line. Do not run the tap part yourself.
+
+## 3. S109-2: what does MH1 actually do with M MCU_S4?
+
+Answer (a) from the code: does `S4` (U8.11 on M MCU) belong to the M MCU's S0-S31
+signalling bus (so it is meant to move), or is it a free GPIO? Search the MH1
+firmware source available to this machine (`~/build-h1s1` and any MH1 tree; the
+earlier S104 or hardware-map docs may name it), the netlist, and `docs/` for
+`S4`/`M MCU_S4`. Report what drives it, when, and to what level; if it is
+signalling, say what message it carries. Then (b): with D32 gone, is the CPLD's
+weak pull-up on PIN_70 wanted, harmless, or wrong? PIN_70 is currently an
+unassigned input with weak pull-up. If it is wrong or risky for a live MCU line,
+fix it in the qsf (reserve it tri-stated with NO pull-up, same as pin `mhrx`'s S41
+exception) and rebuild/flash ONLY if the change is worth a flash; otherwise put it on
+the next CPLD build and say so. Do not guess: if the code does not settle it, say
+what one probe of U3.70 would show.
+
+## 4. S109-5: fold the CS_M fix into every live recipe
+
+`pinctrl set 27 ip pu` is no longer enough; `pinctrl set 27 op dh` is what worked
+(S109 §8). Find every LIVE occurrence (`dsp/tools/pi/*`, the S85/S86/S102-S109 scripts
+and gates, the boot/config runbook in tasks.md/findings.md, `test-catalog.csv` rows)
+and fix them to drive the pin, with the reason in a one-line comment. Leave archived
+and historical session logs alone (they record what was true then). Also check
+`mx26/scripts/cm4-setup-pi.sh` and the CM4 provisioning baseline for the same line
+(read only; report, do not edit mx26). One line in the runbook should say why: the
+pull no longer holds the pin against whatever sinks it.
+
+## Rules
+
+- Rev C+ only; MW-D24-1 hands-off. No AN_EN, no matrix-app start, no audio.
+- Name any board action (H1S1 flash, any CPLD flash) in the tasks.md block with the
+  design/firmware hash read back afterwards.
+- Never open a question dialog (PW 2026-09-19): 🔴 notes in the block, commit, push,
+  stop. Single trunk, pull first, push main. No AI attribution in commits or files.
+- Report: what landed per item, hashes, what is still unverified and exactly what
+  PW must run. Keep it short; the S109 report is the long form, append a §10
+  "Follow-ups" to it rather than a new document.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-25 10:38Z — CPLD I/O: fix all (MEMS pins, codec strap, aux, audit) - HIGHEST PRIORITY   [status: 🟢 done — **ALL THREE FAULTS FIXED, BUILT, FLASHED AND READ BACK OFF THE PART, AND THE MEMS LANE IS ALIVE ON THE BENCH.** `dsp4_logic.90e24de0dd4a` (`design_id 32'h4de0dd4a`, `cfg_bits 16'h0010`, SHIPPING) is on MW-D24-2, FLASH-OK on attempt 1 with `AN_EN` low, read back by `dsp4_logic_id.py --expect 4de0dd4a`; the part carried `d02d83b3cc22` at session start, confirmed by read-back before anything was written. **THE RESULT: `XIN_MEMS` went from `ffffffff` STATIC (1 distinct in 32) to CARRYING — 31 distinct, −64.76 dBFS RMS** — two rxscans twenty minutes apart, same DSP pair, same symbol map, all three controls `[ok]` in both, one variable between them. **AND THE WORD SHAPE PROVES THE FRAMING**: `fffb7fff fffc67ff fff067ff` — the ADAU7002's 20-bit payload exactly in the top 20 bits, the CPLD's own weak pull-up filling the low 12 during the bridge's tri-state tail. A frame one bit out could not make that boundary. Confirmed again on a SECOND, separately built DSP image reading the other slot (`/home/app/loopthd/s109`, `chip1.ldr` md5 `7f226919…`): 32/32 distinct, −71.51 dBFS, same shape. **MEMS (S106 closed, and S106-2 with it): `digital U13` is an ADAU7002, NOT an ADAU7302** — the datasheet's 8-ball map matches the netlist ball for ball, and farnell.com serves it over plain `curl` (HTTP 200) where analog.com is blocked. Table 6: `MEMS_CONFIG` to +3V3 through R42 = 47 kΩ = **TDM slots 5-6 ONE-BASED = 0-based slots 4 and 5**, so `slot-map.csv`'s `A_I7,5` was off by one and is now `A_I7,4` (the LEFT channel — `lswitch U3` IMP34DT05 has `LR` tied to GND, DS12725 Table 6). BCLK 256× LRCLK is on its supported list and it derives its own 3.072 MHz PDM clock, so **no re-framing is needed and `dsp4_pcm_reframe.v` is untouched**. `mems_bck`=PIN_119, `mems_fs`=PIN_120, `mems_i2s`=PIN_121, PIN_137 (the dead `LOGIC_MEMS` stub) unassigned. **THE ONE THING S106 COULD NOT HAVE GUESSED, AND IT IS WHY THE BITS LINE UP: the frame sync has to be DELAYED ONE BCK PERIOD.** The ADAU7002 is the only TDM device on this frame that is not I2S-justified — Figure 13 launches slot 1's MSB on the same BCLK falling edge LRCLK moved on, while the three AK5558s and the AK4619 (TDM256 I2S, `01H=0xAC`) wait a bit and `c1_rx_lanes_mfd` is set for them. One flop puts U13's slots exactly where the AK4619's already are, so **the DSP side changes by nothing but the slot number** — MFD untouched. A new `tb_logic_top` gate checks `mems_bck === bcki[0]` and `mems_fs` = fs8 delayed exactly one bck8 period every sysclk edge (counted in cycles, not `$realtime`: SYS_HALF is not representable on a 1 ps timescale). **CODEC STRAP — AND A NEW MEASUREMENT THAT MAKES S108-3 WORSE THAN IT READ.** `cdc_i = o_dspb[2]`, unconditional; `strap_d32` is not a port and PIN_70 is unassigned. The baseline scan on the SHIPPING bitstream read lane 5 (`XIN_SNK_01`) at **`0x00000000`, not the `0xFFFFFFFF` S106 and S108 both measured** — with `i_dspa[5] = strap_d32 ? snake_in : 1'b0` that means **`strap_d32` was LOW today and HIGH in the two previous sessions. The strap is not stuck, it is UNDEFINED and it has CHANGED STATE between sessions**, so the codec DAC was intermittently connected and a speaker test could have passed or failed on what MH1 left `U8.11` doing. **AUX (S108-2) CONFIRMED AGAINST THE DATASHEET AND APPLIED**: `12H` = `0 0 0 0 DAC2SEL DAC1SEL`; Table 18 gives `00`=SDIN1, `01`=SDIN2 (the reset default the init wrote back), SDIN2 is `U3.2` N/C and §9.3 says it is ignored in TDM mode anyway. `0x00` puts DAC2 on SDIN1 slots 2/3 = exactly where `C2_CODEC_AUX_OUT` sends `CODEC_OUT_3/4`. Applied to `~/build-h1s1/Core/Inc/matrix.cs` index 21 with the reasoning beside it — **H1S1 firmware, not in this repo, NEEDS A FLASH (🔴 S109-1)**; it could not be re-verified live because the codec read arm answers through `matrix-app`, which is inactive, and starting it would raise `AN_EN` (bench note 19). **THE AUDIT, ALL 144 PINS** (`MW/D24/DSP/s109/data/cpld-pin-audit.csv`, fitter pin report × `d24-cpld-fanout.csv` × the netlist, 33 Ω taps resolved to the far-side device). **§suspect 1, the 32 mic lanes: CLOSED and it was never a lane fault** — it was the `_buf_` symbol trap, S86 fixed the instrument, the pins audit clean to `analog U15.36/U39.36/U60.36` (the three AK5558s). **§suspect 2: CONFIRMED and the tooling now says so** — `dsp4_rxscan.py` carries a NO_SOURCE table, prints `static, NO SOURCE — expected`, excludes those 17 entries from the tally (`1 of 30 SCORED`), and flags an unsourced lane that starts moving; `XIN_CODEC_03` was found by the audit and added. **§suspect 3, 'there may be more reserved pins on real nets': THERE ARE NONE.** 47 reserved pins, 14 with an active device, and every one is a line this part must receive — BLINK (both SHARCs + M MCU), SPI0/SPI1/CS_L, BUSY, S5-S7, the UARTs. 119/120/121 were the whole of it. **§suspect 4, direction: ONE FAULT, and worse than S36 framed it** — `snake_out` (110) and `dac_main` (111) were OUTPUTS on `opt2 SLOT.A13 [NO7]` and `SLOT.A10 [NO4]`, which the board labels as the option CARD's OUTPUTS, and the strap meant to hold them high-Z read HIGH, so they were DRIVEN. Both removed; the pins take the global reservation. Also found: `da[1]` dead-ends at J18.48; `da[2]`, pins 89/95/125 all land on the `J33` D32-compat header and nothing else. **A GENERATED FILE HAD BEEN HAND-EDITED and this session's regenerate would have deleted it silently**: `sink=SPKR`/`sink=DNP` went into `dsp.csv` by hand in `19d948b9` (S102) and `gen_dsp_csv.py` has never emitted them — fixed in the GENERATOR (`output_params(sink=...)`), so `dsp.csv` now regenerates with them and the only line that differs is the MEMS slot. **COST: −1 logic element (881/1270, 69 %), +1 register, −2 pins (67/114), Fmax 65.78 MHz = 1.34× the 49.152 MHz sysclk.** STA gate PASS, sim gate PASS (5 testbenches). **The baseline was reproduced byte-identically first**: a clean build of the unmodified tree produced `dsp4_logic.d02d83b3cc22.pof` identical to the committed one, so the toolchain on this box is the one that made what is on the part. **CONTRACT: `defs.lock` UNMOVED at `defs-v2026.09.24.2`** — change class mapping, slot-map source hash `c4a3ca82…` → `265b4e1b…`, `./regenerate-dsp-contract.sh` clean, **no address moved** (D32 5780/5780, D24 3989/3989). Only `dsp.csv` (one line), `lane_config.c` (lane 7 mask `0x0020`→`0x0010`) and `C1_XIN_MEMS.asm` changed on the DSP side. **UNIT**: CPLD FLASHED and left on `90e24de0dd4a` — `logic_flash.sh`'s default rollback and the flash log both updated, and **the shipping label MOVES to it**; `AN_EN` never written (`op -- pd | lo` throughout); DSP pair booted twice per the post-flash runbook rule, `BOOT_STAGE 7 / BOOT_CFG 1`; 595 chain not written; codec registers not written; `d24-testui` active / `matrix-app` inactive as found. **`CS_M` WAS written and had to be (🟡 S109-5): `pinctrl set 27 ip pu` is NO LONGER ENOUGH after a Pi reboot** — the pin read `ip pu | hi` and the link still would not phase ("MAGIC never came back") with both SHARCs booting cleanly behind it; `pinctrl set 27 op dh` fixed it first try. That cost four failed boots and will cost the next session the same. Report `MW/D24/DSP/s109/cpld-io-fix-and-audit.md` with five artifacts.]   [model: opus]
 
 model: opus
