@@ -1,3 +1,72 @@
+## HUB DISPATCH 2026-09-25 14:58Z — AL1 fails on glass press (NO DATA, no tone): cold-start fix   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# AL1 fails when PW presses it on the glass: NO DATA, no tone. Find why and fix it so a cold press just works
+
+PW at the bench (MW-D24-2), 2026-09-25 ~15:56 BST: browsed the wizard to row 56 (QUEUE:
+ALL ROWS), pressed START TEST. It ran, no tone was heard, and the row ended UNTESTED (NO DATA).
+Your own on-glass verification at ~14:32 passed. This is the deployed S110 follow-up
+(`9907b1ec`, default -6 dBFS). Read the failing log on the unit:
+`/home/app/selftest/logs/2026-09-25T145551Z/AL1.txt` (copy it into `MW/D24/DSP/s110/data/`).
+
+## What the log shows (verify, do not just trust)
+
+- `AN_EN` raised by the run, `pair booted: /home/app/loopthd/s109 (pair.conf)` — that line is
+  only the pair's NAME from pair.conf; check whether AL1 actually BOOTS the pair or only
+  assumes it is already running (a `boot_pair(r)` exists at ~line 1957 of d24_selftest.py:
+  is AL1 calling it?). Your verification ran with the test-node pair already booted by the bench.
+- Then `dsp4_rxscan`: "no MEMS lane in the scan", and every `s89_set.py`/`dsp4_scope` call dies with
+  `OSError: cannot phase the parameter link: MAGIC never came back in either arrangement`
+  (dsp4_diag.py:234), so `PREREQUISITE: the route write failed -- nothing downstream would be
+  measured` and the verdict is NO DATA. Correct handling of a failed route, but the run should
+  never have got there.
+- State a few minutes later (by hand from an ssh shell, no boot): `dsp4_diag.py --chip 1 --rdy-gpio 8`
+  in `/home/app/loopthd/s109` answers `MAGIC 0xD5B40001 BOOT_STAGE 7 running`, CS_M reads
+  `27: op -- pd | hi`, AN_EN `lo`, `d24-testui` active (restarted 15:01:33), `matrix-app` inactive.
+  So the DSPs answer now but did not at 14:56Z. `d24-testui` restarted at 15:01 AFTER your deploy,
+  so PW's run could have started on DSPs left in a different state (shipping image loaded by the
+  app, or CS_M in the S109-5 state) than the test-node pair your on-glass run had.
+
+## Do this
+
+1. Reproduce it through the same press path PW used (touch inject / `d24_touch_inject.py`, the
+   wizard's START), starting from a COLD state on purpose: reboot `d24-testui` (as the app
+   restart does), do NOT pre-boot the pair, then press. Find what state the DSP link is in at
+   entry and why the phase fails. Check specifically: (a) does the press path stop the app and
+   leave the SPI bus / CS_M in a state where the link cannot phase (S109-5 says the pin must be
+   DRIVEN, `pinctrl set 27 op dh`, before the link talks); (b) do the DSPs at entry hold the
+   app's shipping image rather than the DSP4_TEST_NODES pair (the S49 TEST_OSC cells only exist
+   under the test-node image); (c) anything else you find.
+2. Fix it so a press from a COLD unit works with no pre-staging: AL1's prerequisite step must
+   check the link (read MAGIC), and if it does not answer or the pair is not the test-node image,
+   BOOT the pair itself with the standard recipe (CS_M driven `op dh`, double boot + config
+   for both chips, prove the lane reads, per the S109 §6a step 1), then continue. Name in the
+   evidence line whether the pair was already up or was booted by this run. Keep the total run
+   time in mind (PW cares about efficiency): the boot only happens when needed.
+3. Make sure the handback leaves the DSPs in a state the NEXT press also works from
+   (repeat the press three times in a row on the glass path and once after a `d24-testui`
+   restart; all four must give a real verdict with the tone audible).
+4. If any other "assumes the bench pre-staged it" prerequisite lurks in AL1 or in what the
+   wizard's START sequence calls, fix or list it. Also confirm the wizard does not treat a
+   NO DATA on this row as a normal outcome without telling the operator why (the on-glass tile
+   should name the prerequisite that failed; check what it says now).
+5. Redeploy (S105 procedure, md5 + rollback), then verify by pressing it through the glass path
+   again and capturing the passing tile.
+
+## Rules
+
+- PW is at the bench and expects to hear a -6 dBFS 1 kHz beep of about 0.6 s on each real run.
+  AN_EN: the run raises it and lowers it at handback; state it at start and end.
+- Rev C+ only; do not touch the CPLD or start matrix-app.
+- Never open a question dialog: 🔴 notes in the block, commit, push, stop. Single trunk, pull first,
+  push main. No AI attribution. Report short: root cause, fix, redeploy md5s, the four consecutive
+  passes.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-25 13:43Z — AL1 level: default -6 dBFS, cap -3, recalibrate, redeploy   [status: 🟢 done — default -6 dBFS / cap -3 dBFS in `AL1_TONE_DBFS`/`AL1_TONE_CAP_DBFS`; recalibrated on MW-D24-2 with the bracket moved to -12/-6/-3 dBFS x 5 reps (`AL1_CAL` rewritten, `--al1-calibrate`); verified PASS on the part at the new default (base -52.6 tone -36.0 SNR 16.6 dB THD+N -24.3 dB 6.1%); redeployed `d24_selftest.py` + regenerated `test-catalog.csv` (only row 56's remedy text changed, in mx26) via S105 (rollback copies, md5-verified, `d24-testui` confirms 202 rows loaded); mx26's stale "-20 dBFS is mostly noise" remedy line corrected to reflect the real distortion now measured at -6 dBFS. Follow-up note + raw calibration log in `MW/D24/DSP/s110/acoustic-loop-test.md` §10 / `data/calibration-runs-level-followup.txt`. Unit left: AN_EN lo, CS_M driven hi, 595 SAFE, matrix-app inactive, pair.conf unchanged, CPLD/H1S1 untouched, defs.lock unmoved -- no contract bump owed. dsp `9907b1ec`, mx26 `230cf50`.]   [model: sonnet]
 
 model: sonnet
