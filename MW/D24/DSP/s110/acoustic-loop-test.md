@@ -432,3 +432,162 @@ second `d24-testui` bounce right next to a live session.
 `pair.conf` unchanged at `/home/app/loopthd/s109`, CPLD and H1S1 not touched,
 `defs.lock` unmoved — no contract bump owed (no def CSV, slot map, wire table
 or generated artefact changed).
+
+## 11. Follow-up: the cold press (S111, 2026-09-25)
+
+PW pressed START TEST on row 56 from the glass at 14:55:51Z and the row came
+back **NO DATA (no tone)**; a second press at 15:10:23Z ran to the end and came
+back **FAIL, NO SOUND**. Both presses were on a unit that had rebooted at
+14:41Z. **There are three faults here, not one, and none of them is in the
+loop** — the loop measured within 0.1 dB of its calibration once they were out
+of the way.
+
+### 11.1 The first press: CS_M was never driven, so nothing could be read
+
+`27: ip pd | lo` is what GPIO27 reads on this unit right after a reboot (taken
+cold, with `matrix-app` and every test tool untouched), and GPIO24 — chip 2's
+select — reads `ip pd | lo` beside it. A LOW CS_M gates the U2 buffer onto the
+shared MISO, so **every read comes back as plausible zeros while every write
+still lands**. The whole failure follows from that one pin: `dsp4_boot.py`
+verified a CHIP_ID it could not see and refused ("Refusing to proceed: every
+measurement taken through this boot would be fiction"), `dsp4_diag.py` could
+not phase the parameter link ("MAGIC never came back in either arrangement"),
+`rxscan` saw no MEMS lane, the route write raised three tracebacks, and AL1
+reported the prerequisite it should: NO DATA. The runner's own hint was in the
+log the whole time — `If this is "cannot phase the parameter link", try:
+sudo pinctrl set 27 op dh`.
+
+**It failed on the FIRST press after a reboot only**, which is why the bench
+never saw it: `handback()` drives the pin at the end of every run, so the
+second press of the day inherits a driven CS_M from the first. The fix is one
+line in `pin_handback()` — CS_M DRIVEN high beside the two chip selects, before
+the first link transaction rather than only after the last one.
+
+Reproduced deliberately before the fix and after it: cold unit, real glass
+press through `d24_touch_inject.py` on the wizard's own START →
+`AL1 NO DATA the route write failed` (16:39 BST, log in
+`data/al1-fail-2026-09-25T145551Z.txt` for PW's original).
+
+### 11.2 The second press: nothing had initialised the AK4619
+
+With CS_M driven the run completes, and the speaker is silent. **The converter
+is initialised by H1S1's `StartAK4619()`, and the only thing that asks for it
+is the mixer coming up.** `matrix-app` is `Conflicts=` with `d24-testui`, so on
+a unit booted into the factory-test display it NEVER RUNS — after a reboot the
+AK4619 sits at its power-on defaults and `AOUT1L` is dead. Everything upstream
+looks perfect, which is what makes it expensive: the DSP graph carries the tone
+(measured on the part at MeasChan 20 and at the chip-1 MAIN bus, both exactly
+at the injected level), the route reads back cell by cell, the MEMS lane
+carries, and the mic measures the room.
+
+Taken on the part, cold, with rails up and nothing else touched:
+`codec4619.py --read-all` → **NO REPLY on all 21 registers**. After
+`--run --reinit` (register 0xFF = H1S1's "re-run `StartAK4619()`" sentinel) the
+same tone read **−35.84 dBFS against a predicted −35.82**, THD+N −16.9 dB.
+Nothing else changed between those two readings.
+
+The fix is `codec_init()` in the AL1 prerequisite: `--run --reinit`, every run,
+before the route write. `--reset` is NOT used — it re-runs `MainInit()` and
+would leave the 595 mic-pre chain at `micGainFull` (S80). It is unconditional
+because the read arm that could answer "is it already initialised?" is not
+dependable on a cold unit — it reported NO REPLY on all 21 registers with the
+rails up while the part was demonstrably taking writes.
+
+### 11.3 The verdict order: an SNR-first rule fails a working loop in a noisy room
+
+The 15:25Z run read the tone at **−35.8 dBFS against a predicted −35.8** with
+THD+N −13.7 dB — dead on the calibrated line — and was scored **NO SOUND**,
+because the room had come up ~10 dB since the calibration (floor −48.5 instead
+of −57 to −60) and left only 12.8 dB of SNR against `snr_min_db` 15.4.
+
+S110 said it in as many words — "the LEVEL window does the work and SNR only
+carries a label" — and then checked SNR first. `al1_verdict()` now asks
+`al1_tone_present()` first: **THD+N ≤ −6 dB** (the fundamental holds at least
+half the window, which a room cannot fake, and the same rule S110 chose for the
+calibration fit), **or** SNR ≥ `snr_min_db` as the second opinion. Only if
+neither holds is the verdict NO SOUND. Checked against the day's three real
+readings: PW's genuinely-silent 15:10Z press still scores NO SOUND (THD+N
+0.00 dB, SNR −1.2), the noisy-room reading scores PASS, the calibration reading
+scores PASS.
+
+### 11.4 Two leads tested and excluded, with the numbers
+
+- **AN_EN settle.** Measured, not assumed: rails down 10–15 s, then raised, then
+  the loop read repeatedly. The tone was **−35.82 dBFS at t = +1 s** and
+  −35.80…−35.87 over six further readings; the floor read −49.7, −47.9, −48.0,
+  −49.3, −49.8, −49.4, −50.1, −48.7 dBFS from +1 s to +6 s with **no trend**.
+  The speaker path passes audio within a second of the raise. The 1 s settle
+  already in the prerequisite is enough, and the cold press that now passes
+  raises the rails itself and beeps ~2 s later.
+- **The operator's hand near the mic.** Excluded twice over: PW confirms his
+  hands were nowhere near the panel, and every reading here — elevated floor
+  included — was taken with nobody at the glass and the presses injected
+  through `/dev/uinput`.
+
+The elevated floor (−47 to −48.5 dBFS against the −54 to −60 of the
+calibration) is real and is the room, not the unit: it is steady, it does not
+follow the rails, and the tone sits 12–13 dB above it. `floor_max_dbfs`
+(−48.3) already notes it in the evidence without failing the row.
+
+### 11.5 Also fixed: a press no longer pays for a boot it does not need
+
+`ensure_pair()` reads MAGIC and BOOT_STAGE off both chips (about two seconds)
+and boots the pair ONLY if it does not answer, for `--only AL1` runs — which is
+what the wizard's START launches. The evidence line says which happened: *"the
+pair was ALREADY UP (no boot by this run)"* or *"the pair did not answer, so
+THIS RUN BOOTED IT"*. A press now takes **23 s** end to end. Any other section-C
+selection still gets the unconditional boot it has always had.
+
+### 11.6 Proven on the glass: four presses, four real verdicts
+
+All four through `d24_touch_inject.py` on the wizard's own START button — the
+same path PW's finger takes through the app (it proves the skin, the store and
+the runner, not the ILITEK panel).
+
+| press | when | state at entry | verdict |
+|---|---|---|---|
+| 1 | 15:41:39Z | **COLD** — 70 s out of a reboot, `CS_M` `ip pd \| lo`, AK4619 uninitialised, `AN_EN` lo | **PASS** base −47.1 tone −35.8 SNR 11.3 dB THD+N −15.1 dB 17.5% |
+| 2 | 15:51:22Z | warm | **PASS** base −48.5 tone −35.7 SNR 12.8 dB THD+N −13.6 dB 20.9% |
+| 3 | 15:53:06Z | warm | **PASS** base −48.3 tone −35.8 SNR 12.5 dB THD+N −14.9 dB 18.0% |
+| 4 | 15:55:21Z | after a `d24-testui` restart | **PASS** base −48.1 tone −35.8 SNR 12.3 dB THD+N −15.3 dB 17.1% |
+
+The tone level repeats to **0.1 dB** across all four. Captures:
+`data/s111-row56-cold-press-pass.png` (the cold press's tile) and
+`data/s111-row56-pass-after-restart.png` (row 56 after press 4). Before-and-after
+on the same cold state: the unfixed runner on a cold unit, pressed the same way,
+returned `AL1 NO DATA the route write failed — nothing downstream would be
+measured`.
+
+**Deployed** per S105: rollback `d24_selftest.py.bak-s111-pre`
+(`7ec3e742eecd6517bb020cfec0393fe0`, the S110-level build), deployed
+`d24_selftest.py` **`4888906a861c46b659ae2ed462488cd8`**, md5-matched against
+the repo after scp and parsed on the unit. Only the runner changed — no catalog,
+no skin, no app rebuild.
+
+**Unit as left**: `AN_EN` `lo`, `CS_M` `op -- pd | hi` (DRIVEN), 595 chain SAFE
+`VERIFIED 200/200`, `matrix-app` **inactive** (never started), `d24-testui`
+active with row **56 selected and showing its PASS tile**, queue ALL ROWS,
+injector killed and its FIFO removed, CPLD and H1S1 **not** reflashed — the only
+H1S1 traffic was `S_RUN`/`S_TEST`/`reg 0xFF`, no `S_RESET` — `pair.conf`
+unchanged at `/home/app/loopthd/s109`, `defs.lock` unmoved: **no contract bump
+owed** (no def CSV, slot map, wire table or generated artefact changed).
+
+### 11.7 For the hub
+
+- 🔴 **Every other section-B/C row has the same two cold-start assumptions.**
+  AL1 now boots the pair when it must and initialises the converter; the rest of
+  the set still assumes the bench staged the unit. `boot_pair()` inherits the
+  CS_M fix so every boot path is safe, but nothing else calls `codec_init()`,
+  and any future row that listens to or drives the AK4619 on a factory-booted
+  unit will read a converter nobody configured. Worth a sweep as its own
+  dispatch.
+- 🟡 **The AK4619 read arm does not answer on a cold unit.** `--read-all`
+  returned NO REPLY on all 21 registers with the rails up and the MCUs
+  announcing on `S_TEST` (3 of 3), while writes through the same path landed.
+  It answers once the unit has been through a run. Not chased here; it makes
+  "is the codec configured?" unanswerable by reading, which is why
+  `codec_init()` is unconditional.
+- 🟡 **`MX_DRM_CAPTURE_PATH` re-renders continuously**, not once at startup as
+  S105 implied — the PNG is rewritten every second or so, which is how the live
+  captures above were taken without bouncing the display. Copy it on the unit
+  before fetching; an `scp` straight off it catches a half-written file.

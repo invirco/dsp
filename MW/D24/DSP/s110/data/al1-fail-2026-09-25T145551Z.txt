@@ -1,0 +1,58 @@
+=== 2026-09-25T14:56:34Z  NO DATA
+THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC injects at C1_IN_20 -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell (Chan020MainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code 54.
+
+AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it)
+pair booted: /home/app/loopthd/s109 (/home/app/selftest/pair.conf)
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): True
+--- MEMS lane, rxscan ---
+no MEMS lane in the scan
+--- the route write (exit 1) ---
+--- other strips off MAIN ---
+resync()
+    ~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 316, in resync
+    self.calibrate()
+    ~~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 234, in calibrate
+    raise IOError('cannot phase the parameter link: MAGIC never came '
+                  'back in either arrangement')
+OSError: cannot phase the parameter link: MAGIC never came back in either arrangement
+--- the route ---
+/home/app/s90/s89_set.py", line 34, in chip_for
+    if n not in chips: chips[n] = Chip(n)
+                                  ~~~~^^^
+  File "/home/app/s90/s89_set.py", line 23, in __init__
+    self.sc = S.Scope(n, symfile='%s/chip%d.sym.json' % (SYMDIR, n))
+              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/app/dspboot/dsp4_scope.py", line 71, in __init__
+    self.d.resync()
+    ~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 316, in resync
+    self.calibrate()
+    ~~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 234, in calibrate
+    raise IOError('cannot phase the parameter link: MAGIC never came '
+                  'back in either arrangement')
+OSError: cannot phase the parameter link: MAGIC never came back in either arrangement
+--- read back through the image's own dispatch table ---
+Traceback (most recent call last):
+  File "/home/app/s90/s89_set.py", line 50, in <module>
+    c, a = chip_for(name)
+           ~~~~~~~~^^^^^^
+  File "/home/app/s90/s89_set.py", line 34, in chip_for
+    if n not in chips: chips[n] = Chip(n)
+                                  ~~~~^^^
+  File "/home/app/s90/s89_set.py", line 23, in __init__
+    self.sc = S.Scope(n, symfile='%s/chip%d.sym.json' % (SYMDIR, n))
+              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/app/dspboot/dsp4_scope.py", line 71, in __init__
+    self.d.resync()
+    ~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 316, in resync
+    self.calibrate()
+    ~~~~~~~~~~~~~~^^
+  File "/home/app/dspboot/dsp4_diag.py", line 234, in calibrate
+    raise IOError('cannot phase the parameter link: MAGIC never came '
+                  'back in either arrangement')
+OSError: cannot phase the parameter link: MAGIC never came back in either arrangement
+PREREQUISITE: the route write failed -- nothing downstream would be measured

@@ -1466,7 +1466,19 @@ def _al1_prereq(r):
               % (AN_EN_GPIO, cap['an_start'].split('//')[0].strip(),
                  cap['an'].split('//')[0].strip(),
                  ' (RAISED by this run; handback lowers it)' if cap['raised'] else ''))
-    ev.append('pair booted: %s (%s)' % (r.pair, r.pair_why))
+    ev.append('pair staged: %s (%s)' % (r.pair, r.pair_why))
+
+    # THE TWO THINGS A COLD UNIT HAS NOT DONE FOR ITSELF, in the order they are
+    # needed: the converter's init image (H1S1), then the pair (the CM4). Both
+    # are cheap to check and both were assumed by S110, which only ever ran on a
+    # unit the bench had already staged by hand -- see codec_init/ensure_pair.
+    cap['codec_ok'], codec_txt = codec_init(r)
+    ev.append('--- AK4619 init (H1S1 StartAK4619; nothing else does it when '
+              'matrix-app never runs) ---\n%s' % codec_txt)
+    cap['link_ok'], link_txt, cap['booted'] = ensure_pair(r)
+    ev.append('--- the DSP pair ---\n%s' % link_txt)
+    if not cap['link_ok']:
+        return ('the DSP link does not answer (MAGIC) even after a boot', ev, cap)
 
     cap['testnodes'] = r.out(
         'cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
@@ -1545,6 +1557,14 @@ def al1_numbers(m, level):
     return n, None
 
 
+def al1_tone_present(n):
+    """Is the 1 kHz tone IN the window -- the one question a verdict of NO SOUND
+    answers no to. THD+N is the witness and SNR is the second opinion; see the
+    note in al1_verdict for why that order and not the other one."""
+    return (n['thdn_db'] <= AL1_FIT_THDN_MAX_DB
+            or n['snr_db'] >= AL1_CAL['snr_min_db'])
+
+
 def al1_verdict(n):
     """The four coarse outcomes the dispatch asked for, in order. Every number
     they lean on is in AL1_CAL and nowhere else."""
@@ -1554,7 +1574,21 @@ def al1_verdict(n):
     # The noise floor already in the reading sets how good THD+N could
     # possibly be; anything past THAT by the margin is distortion.
     n['thdn_ceiling_db'] = max(c['thdn_abs_db'], -n['snr_db'] + c['thdn_margin_db'])
-    if n['snr_db'] < c['snr_min_db']:
+    # IS THERE A TONE IN THE WINDOW: THD+N SAYS SO, SNR ONLY SUGGESTS IT.
+    # S111 -- the same reading that S110 made the calibration fit rule out of.
+    # THD+N at or under -6 dB means the fundamental holds at least half the
+    # window's energy, which a room cannot fake; SNR is a difference between
+    # two windows taken seconds apart and a person moving in the room shifts
+    # the baseline by 10 dB. An SNR-first verdict therefore answers NO SOUND
+    # on a loop that is working perfectly: PW's press read the tone at
+    # -35.8 dBFS against a predicted -35.8 -- dead on the calibrated line, and
+    # with THD+N -13.7 dB -- and was scored NO SOUND because the room had come
+    # up 10 dB since the calibration and left only 12.8 dB of SNR. The level
+    # window is the measurement (S110 said so in as many words: "the LEVEL
+    # window does the work and SNR only carries a label"); SNR is kept as the
+    # SECOND opinion, for the case where THD+N cannot see a fundamental either.
+    n['tone_present'] = al1_tone_present(n)
+    if not n['tone_present']:
         return FAIL, 'NO SOUND'
     if n['tone_dbfs'] < pred - c['level_tol_db']:
         return FAIL, 'LOW'
@@ -1581,11 +1615,11 @@ AL1_NO_SOUND_NOTE = (
 def t_al1(r):
     """The whole acoustic loop: tone out of the panel speaker, back in through
     the panel MEMS mic, in one press."""
-    lim = ('level within %.0f dB of the calibrated line (pred = %.3f x drive %+.2f dBFS), '
-           'SNR >= %.0f dB over the tone-off floor, THD+N under the ceiling '
-           '(PROVISIONAL -- %s)'
-           % (AL1_CAL['level_tol_db'], AL1_CAL['slope_db_per_db'],
-              AL1_CAL['intercept_dbfs'], AL1_CAL['snr_min_db'],
+    lim = ('a tone in the window (THD+N <= %.0f dB, or SNR >= %.1f dB over the tone-off '
+           'floor), level within %.0f dB of the calibrated line (pred = %.3f x drive '
+           '%+.2f dBFS), THD+N under the ceiling (PROVISIONAL -- %s)'
+           % (AL1_FIT_THDN_MAX_DB, AL1_CAL['snr_min_db'], AL1_CAL['level_tol_db'],
+              AL1_CAL['slope_db_per_db'], AL1_CAL['intercept_dbfs'],
               AL1_CAL['provisional']))
     blocker, ev, cap = _al1_prereq(r)
     r._al1_an = cap                      # handback reads this
@@ -1602,7 +1636,7 @@ def t_al1(r):
     if n is None:
         return NODATA, why, lim, '\n'.join(ev)
 
-    if (cap['mems_row'] or '').endswith('STATIC') and n['snr_db'] < AL1_CAL['snr_min_db']:
+    if (cap['mems_row'] or '').endswith('STATIC') and not al1_tone_present(n):
         return (NODATA,
                 'the MEMS lane reads STATIC and the tone did not move it -- nothing was '
                 'measured (base %.2f, tone %.2f dBFS)' % (n['base_dbfs'], n['tone_dbfs']),
@@ -1652,6 +1686,7 @@ def t_al1(r):
               'in-window noise  %8.2f dBFS\n'
               'floor afterwards %8.2f dBFS  (%+.2f dB)\n'
               'oscillator on    %8s s      (cap %.1f s)\n'
+              'tone in window   %8s        (THD+N <= %.1f dB, or SNR >= %.1f dB)\n'
               'VERDICT          %s (%s)'
               % (n['drive_dbfs'], n['base_dbfs'], n['tone_dbfs'], n['pred_dbfs'],
                  AL1_CAL['slope_db_per_db'], AL1_CAL['intercept_dbfs'],
@@ -1659,7 +1694,8 @@ def t_al1(r):
                  n['thdn_ceiling_db'], pct_of_db(n['thdn_ceiling_db']),
                  n['noise_dbfs'], n['back_dbfs'], n['return_db'],
                  ('%.2f' % n['on_seconds']) if n['on_seconds'] else '?',
-                 AL1_MAX_ON_S, word, verdict))
+                 AL1_MAX_ON_S, 'YES' if n['tone_present'] else 'NO',
+                 AL1_FIT_THDN_MAX_DB, AL1_CAL['snr_min_db'], word, verdict))
     if high:
         ev.append('\nNOTE: the level is %+.2f dB above the predicted line, past the '
                   '%.1f dB upper edge of the window. NOT scored (AL1_CAL[\'high_fails\'] '
@@ -1946,6 +1982,18 @@ def pin_handback(r):
     clocked and chip 2 comes up running chip1.ldr."""
     r.pin('7,9,10,11,22,23,25 a0')
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+    # CS_M, DRIVEN HIGH, AND IT BELONGS HERE RATHER THAN IN THE HANDBACK ALONE.
+    # A COLD CM4 LEAVES GPIO27 AN INPUT PULLED DOWN -- read off this unit right
+    # after a reboot: `27: ip pd | lo`, with GPIO24 (CS2) `ip pd | lo` beside it
+    # -- and a LOW CS_M gates the U2 buffer onto the shared MISO, so every read
+    # comes back as plausible zeros while every WRITE still lands. That is the
+    # S111 failure exactly: the images streamed, the chips reached BOOT_STAGE 7,
+    # and dsp4_boot.py's CHIP_ID verify refused, the parameter link could not
+    # phase ("MAGIC never came back in either arrangement"), rxscan saw no MEMS
+    # lane and AL1 reported NO DATA -- on the FIRST run after a reboot only,
+    # because the handback at the end of that run drives the pin and every later
+    # run inherits it. The pull is not enough (S109-5): it must be DRIVEN.
+    r.pin('%d op dh' % CS_M_GPIO)
     # `ip pd`, not bare `ip`: GPIO8 powers up pulled UP and GPIO12 pulled DOWN,
     # so a later `pinctrl get` of the two SPI_RDY lines was only readable on one
     # of them (S100). With the CM4's pull matching the card's 10K pulldown, a
@@ -1975,6 +2023,84 @@ def boot_pair(r):
     log.append('--- inter-chip link gate (s89_signbit, exit %d) ---\n%s'
                % (sb.returncode, sb.stdout + sb.stderr))
     return '\n'.join(log)
+
+
+def link_alive(r):
+    """Is the pair up and answering? (ok, evidence-text).
+
+    The cheap question, asked before the expensive answer: MAGIC and BOOT_STAGE
+    off both chips costs a couple of seconds, a boot costs forty. The CS lines
+    are driven first for the reason pin_handback gives -- asking this question
+    over a gated MISO gets "no" from a pair that is perfectly alive."""
+    r.pin('%d op dh' % CS_M_GPIO)
+    r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+    lines, ok = [], True
+    for c in (1, 2):
+        d = _diag(r, c)
+        mag, st = _field(d, 'MAGIC'), _field(d, 'BOOT_STAGE')
+        good = bool(mag and mag.startswith('0xD5B4') and st and int(st, 0) >= 7)
+        ok = ok and good
+        lines.append('chip %d: MAGIC %s BOOT_STAGE %s -> %s'
+                     % (c, mag, st, 'answering' if good else 'NOT answering'))
+    return ok, '\n'.join(lines)
+
+
+def ensure_pair(r):
+    """The pair up and running the staged image, booting it only if it is not.
+
+    A run that the wizard's START button launches has nothing behind it: the
+    unit may have been rebooted a minute ago, in which case NOTHING has booted
+    the SHARCs -- `matrix-app` is the only thing that does it unasked and the
+    factory-test display Conflicts= with it, so on a factory unit it never
+    runs. S111: PW pressed the button on a unit 14 minutes out of a reboot and
+    the row came back NO DATA. Returns (ok, evidence-text, booted?)."""
+    ok, ev = link_alive(r)
+    if ok:
+        return True, 'the pair was ALREADY UP (no boot by this run)\n' + ev, False
+    log = boot_pair(r)
+    ok2, ev2 = link_alive(r)
+    return (ok2,
+            'the pair did not answer, so THIS RUN BOOTED IT\n%s\n--- boot ---\n%s'
+            '\n--- after the boot ---\n%s' % (ev, log[-1200:], ev2), True)
+
+
+def codec_init(r):
+    """Make H1S1 write the AK4619's init image, which on a cold unit nothing
+    else has. (ok, evidence-text).
+
+    THE SPEAKER IS SILENT ON A COLD UNIT AND THE DSP SIDE LOOKS PERFECT (S111).
+    The AK4619 is initialised by H1S1's `StartAK4619()`, and the only thing that
+    asks for it on a running system is the mixer coming up -- `matrix-app`, which
+    the factory-test display Conflicts= with and which therefore never runs on a
+    unit booted into the test UI. So after a reboot the converter sits at its
+    power-on defaults: the DSP graph carries the tone to C2_MON_OUT slot 0, the
+    route reads back correct, the MEMS lane carries, and NOTHING COMES OUT OF
+    AOUT1L. The mic then measures the room and the verdict is NO SOUND -- which
+    is true, and blames the loop for a converter nobody configured.
+    `codec4619.py --reinit` is register 0xFF, H1S1's "re-run StartAK4619()"
+    sentinel; it writes the codec image and NOTHING ELSE. `--reset` would also
+    re-run MainInit and leave the 595 mic-pre chain at micGainFull (S80), so it
+    is not used here.
+
+    It is done every run rather than only when needed: the read arm that could
+    answer "is it already initialised" is not dependable on a cold unit (it
+    reported NO REPLY on all 21 registers on this one, with rails up, while the
+    part was demonstrably taking writes), and re-writing an image the part
+    already holds costs about a second and cannot make anything worse.
+
+    The matrix bus is H1S1's and shares SCK/MOSI with the CM4's SPI0, so this
+    must not run beside a DSP link tool -- hence its place in the prerequisite,
+    before the route write and before any measurement."""
+    c = r.rsh('cd %s && timeout 60 python3 codec4619.py --run --reinit 2>&1'
+              % DSPBOOT, timeout=120)
+    txt = (c.stdout + c.stderr).strip()
+    ok = 'StartAK4619() requested' in txt
+    # The bus write leaves nothing behind, but a codec tool run is the one place
+    # in this module that touches the H1S1 bus, so the CS lines are put back
+    # before the next link transaction rather than assumed.
+    r.pin('%d op dh' % CS_M_GPIO)
+    r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
+    return ok, txt
 
 
 def app_stop(r):
@@ -2283,7 +2409,16 @@ def main():
             for n in DC_SELECTS:
                 r.run('DC2-CS%d' % n, (lambda k: (lambda: t_dc2(r, k)))(n))
         elif 'C' in a.section:
-            print(boot_pair(r)[-600:])
+            # ONE ROW, ONE PRESS: a run the wizard's START launches for AL1
+            # alone does not need a forty-second boot of a pair that is already
+            # up and answering, and PW presses this button repeatedly. Anything
+            # else in section C still gets the boot it has always got -- the
+            # rows that read BOOT_STAGE are entitled to a boot they watched.
+            if a.only == {'AL1'}:
+                ok, ev, booted = ensure_pair(r)
+                print(ev[-600:])
+            else:
+                print(boot_pair(r)[-600:])
 
         if 'C' in a.section:
             r.run('AS-DSPA', lambda: t_asdspa(r))
