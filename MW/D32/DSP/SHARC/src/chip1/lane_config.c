@@ -32,7 +32,7 @@ const int c1_rx_lanes[32] = {
     4, 0x000F, 4, 512,   /* MFD 2 */
     5, 0x00FF, 8, 576,   /* MFD 2 */
     6, 0x0003, 2, 704,   /* MFD 1 */
-    7, 0x0020, 1, 736   /* MFD 2 */
+    7, 0x0010, 1, 736   /* MFD 2 */
 };
 
 const int c1_rx_region_words = 752;

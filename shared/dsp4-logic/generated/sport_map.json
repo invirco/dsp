@@ -1,6 +1,6 @@
 {
   "generated_by": "shared/dsp4-logic/gen_slot_map.py",
-  "source_hash": "c4a3ca82f956b9c587e80fbfdf3079bd0c8f12dd213e9ebdcd84414618477cdd",
+  "source_hash": "265b4e1b312ec227b7a4a07c1a5076d35607484a869d6235bf1278048e88338b",
   "sport_convention": "sport_id = DAI port index; I ports are RX, O ports are TX; chip1=DSPA, chip2=DSPB",
   "timing": {
     "sample_edge": "rising",
@@ -516,8 +516,7 @@
           "sport_id": 5,
           "format": "TDM8",
           "slot_count": 8,
-          "status": "ok",
-          "external_net": "SNAKE",
+          "status": "retired",
           "clock_pair": "CG2",
           "slots": [
             {
@@ -633,10 +632,10 @@
           "clock_pair": "CG2",
           "slots": [
             {
-              "slot": 5,
+              "slot": 4,
               "signal": "MEMS_TB",
               "scope": "BOTH",
-              "note": "ADAU7302 TDM8 slot 5 per 47K strap"
+              "note": "ADAU7002 (digital U13) TDM8 - MEMS_CONFIG strapped +3V3 via R42 47K = datasheet Rev.A Table 6 \"TDM Slot 5 to Slot 6\" 1-BASED = 0-based slots 4/5; slot 4 is the LEFT channel and lswitch U3 IMP34DT05 has L/R tied to GND = left - CORRECTED S109"
             }
           ]
         }
@@ -1365,7 +1364,7 @@
           "format": "TDM8",
           "slot_count": 8,
           "status": "ok",
-          "external_net": "CDC_I|SNAKE",
+          "external_net": "CDC_I",
           "clock_pair": "CG1",
           "slots": [
             {
@@ -1441,7 +1440,7 @@
           "format": "TDM8",
           "slot_count": 8,
           "status": "ok",
-          "external_net": "DAC_MAIN",
+          "external_net": "PI_RET",
           "clock_pair": "CG1",
           "slots": [
             {

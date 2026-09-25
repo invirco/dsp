@@ -1,0 +1,145 @@
+pin,rtl_name,fitter_dir,net,boards,active_devices_besides_U3,connector_pins
+1,no[1],output,LOGIC_NO1,dsp;digital;opt1,NONE,"dsp:J1.32, dsp:J2.32, digital:J1.A8, digital:J18.32, opt1:SLOT.A8"
+2,no[0],output,LOGIC_NO0,dsp;digital;opt1,NONE,"dsp:J1.31, dsp:J2.31, digital:J1.A9, digital:J18.31, opt1:SLOT.A9"
+3,ni[3],input,LOGIC_NI3,dsp;digital;opt1,NONE,"dsp:J1.30, dsp:J2.30, digital:J1.A10, digital:J18.30, opt1:SLOT.A10"
+4,ni[2],input,LOGIC_NI2,dsp;digital;opt1,NONE,"dsp:J1.29, dsp:J2.29, digital:J1.A11, digital:J18.29, opt1:SLOT.A11"
+5,ni[1],input,LOGIC_NI1,dsp;digital;opt1,NONE,"dsp:J1.28, dsp:J2.28, digital:J1.A12, digital:J18.28, opt1:SLOT.A12"
+6,ni[0],input,LOGIC_NI0,dsp;digital;opt1,NONE,"dsp:J1.27, dsp:J2.27, digital:J1.A13, digital:J18.27, opt1:SLOT.A13"
+7,test[3],output,LOGIC_TEST4,dsp;digital,NONE,"dsp:J1.20, dsp:J2.20, digital:J15.10, digital:J18.20"
+8,test[2],output,LOGIC_TEST3,dsp;digital,NONE,"dsp:J1.19, dsp:J2.19, digital:J15.8, digital:J18.19"
+9,VCCIO1,power,+3V3,dsp;digital,(rail),-
+10,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+11,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+12,test[1],output,LOGIC_TEST2,dsp;digital,NONE,"dsp:J1.18, dsp:J2.18, digital:J15.6, digital:J18.18"
+13,test[0],output,LOGIC_TEST1,dsp;digital,NONE,"dsp:J1.17, dsp:J2.17, digital:J15.4, digital:J18.17"
+14,fsi[0],output,FSI0,dsp,dsp:U6.53 (via dsp:R40),-
+15,fsi[1],output,FSI1,dsp,dsp:U6.56 (via dsp:R35),-
+16,fsi[2],output,FSI2,dsp,dsp:U6.66 (via dsp:R56),-
+17,GNDINT,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+18,fsi[3],output,FSI3,dsp,dsp:U6.64 (via dsp:R54),-
+19,VCCINT,power,+1V8.00179,dsp,dsp:U2.2; dsp:U5.7; dsp:U5.79; dsp:U6.7; dsp:U6.79,"dsp:C10.1, dsp:C103.1, dsp:C104.1, dsp:C105.1, dsp:C106.1, dsp:C107.1, dsp:C11.1, dsp:C146.1, dsp:C189.1, dsp:C190.1, dsp:C191.1, dsp:C192.1, dsp:C193.1, dsp:C60.1, dsp:C8.1, dsp:C9.1"
+20,bcki[0],output,BCKI0,dsp,dsp:U6.54 (via dsp:R39),-
+21,bcki[1],output,BCKI1,dsp,dsp:U6.55 (via dsp:R49),-
+22,bcki[2],output,BCKI2,dsp,dsp:U6.65 (via dsp:R55),-
+23,bcki[3],output,BCKI3,dsp,dsp:U6.63 (via dsp:R36),-
+24,i_dspa[0],output,I0,dsp,dsp:U6.41 (via dsp:R48),-
+25,VCCIO1,power,+3V3,dsp;digital,(rail),-
+26,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+27,i_dspa[1],output,I1,dsp,dsp:U6.43 (via dsp:R46),-
+28,i_dspa[2],output,I2,dsp,dsp:U6.47 (via dsp:R44),-
+29,i_dspa[3],output,I3,dsp,dsp:U6.49 (via dsp:R42),-
+30,fsi[4],output,FSI4,dsp,dsp:U5.53 (via dsp:R7),-
+31,fsi[5],output,FSI5,dsp,dsp:U5.56 (via dsp:R2),-
+32,fsi[6],output,FSI6,dsp,dsp:U5.66 (via dsp:R24),-
+33,TMS,input,PI_TMS,dsp;digital,NONE,"dsp:J3.22, dsp:J4.22, dsp:J6.18, digital:J17.22, digital:J24.41"
+34,TDI,input,PI_TDI,dsp;digital,NONE,"dsp:J3.21, dsp:J4.21, dsp:J6.16, digital:J17.21, digital:J24.47"
+35,TCK,input,PI_TCK,dsp;digital,NONE,"dsp:J3.19, dsp:J4.19, dsp:J6.22, digital:J17.19, digital:J24.37"
+36,TDO,output,LOGIC_TDO_,dsp,dsp:U1.2,-
+37,fsi[7],output,FSI7,dsp,dsp:U5.64 (via dsp:R21),-
+38,bcki[4],output,BCKI4,dsp,dsp:U5.54 (via dsp:R6),-
+39,bcki[5],output,BCKI5,dsp,dsp:U5.55 (via dsp:R16),-
+40,bcki[6],output,BCKI6,dsp,dsp:U5.65 (via dsp:R23),-
+41,bcki[7],output,BCKI7,dsp,dsp:U5.63 (via dsp:R3),-
+42,i_dspa[4],output,I4,dsp,dsp:U6.77 (via dsp:R64),-
+43,i_dspa[5],output,I5,dsp,dsp:U6.75 (via dsp:R62),-
+44,i_dspa[6],output,I6,dsp,dsp:U6.73 (via dsp:R60),-
+45,i_dspa[7],output,I7,dsp,dsp:U6.71 (via dsp:R58),-
+46,VCCIO4,power,+3V3,dsp;digital,(rail),-
+47,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+48,o_dspb[0],input,O0,dsp,dsp:U5.42 (via dsp:R14),-
+49,o_dspb[1],input,O1,dsp,dsp:U5.46 (via dsp:R12),-
+50,o_dspb[2],input,O2,dsp,dsp:U5.48 (via dsp:R10),-
+51,o_dspb[3],input,O3,dsp,dsp:U5.52 (via dsp:R8),-
+52,o_dspb[4],input,O4,dsp,dsp:U5.76 (via dsp:R31),-
+53,o_dspb[5],input,O5,dsp,dsp:U5.74 (via dsp:R29),-
+54,GNDINT,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+55,o_dspb[6],input,O6,dsp,dsp:U5.72 (via dsp:R27),-
+56,VCCINT,power,+1V8.00179,dsp,dsp:U2.2; dsp:U5.7; dsp:U5.79; dsp:U6.7; dsp:U6.79,"dsp:C10.1, dsp:C103.1, dsp:C104.1, dsp:C105.1, dsp:C106.1, dsp:C107.1, dsp:C11.1, dsp:C146.1, dsp:C189.1, dsp:C190.1, dsp:C191.1, dsp:C192.1, dsp:C193.1, dsp:C60.1, dsp:C8.1, dsp:C9.1"
+57,o_dspb[7],input,O7,dsp,dsp:U5.70 (via dsp:R25),-
+58,RESERVED_INPUT_WITH_WEAK_PULLUP,:,BLINK,dsp,dsp:U5.36; dsp:U6.36; dsp:U8.48,-
+59,blink_led,output,LOGIC_BLINK_LED,dsp,NONE,-
+60,RESERVED_INPUT_WITH_WEAK_PULLUP,:,SPI0,dsp;digital,dsp:U6.19** (via dsp:R73); dsp:U5.19** (via dsp:R76); dsp:U7.21; (rail) (via digital:R109),"dsp:J3.80, dsp:J4.80, dsp:J6.23, digital:J17.80"
+61,RESERVED_INPUT_WITH_WEAK_PULLUP,:,SPI1,dsp;digital;analog,dsp:U6.15** (via dsp:R74); dsp:U5.15** (via dsp:R77); dsp:U7.23; analog:U3.29 (via analog:R22); analog:U34.14,"dsp:J3.81, dsp:J4.81, dsp:J6.19, digital:J17.81, digital:J24.44, digital:J41.17, analog:J58.17"
+62,RESERVED_INPUT_WITH_WEAK_PULLUP,:,CS_L,dsp,dsp:U7.55,-
+63,pcm_din,output,PI_PCM_DIN,dsp;digital,NONE,"dsp:J3.25, dsp:J4.25, dsp:J6.38, digital:J17.25, digital:J24.27"
+64,VCCIO4,power,+3V3,dsp;digital,(rail),-
+65,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+66,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_BUSY,dsp;digital;rswitch;lswitch,(rail) (via dsp:R72); dsp:U7.59; dsp:U8.1; rswitch:U1.59; lswitch:U4.59,"dsp:J3.65, dsp:J4.65, digital:J12.19, digital:J13.19, digital:J17.65, rswitch:J1.19, lswitch:J1.19"
+67,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_S7,dsp,dsp:U8.16,-
+68,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_S6,dsp,dsp:U8.15,-
+69,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_S5,dsp,dsp:U8.12,-
+70,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_S4,dsp,dsp:U8.11,-
+71,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_P48,dsp;digital;rswitch;lswitch,dsp:U7.42; dsp:U8.14; dsp:U9.3; rswitch:U1.42; lswitch:U4.42,"dsp:J3.48, dsp:J4.48, digital:J12.13, digital:J13.13, digital:J17.48, rswitch:J1.13, lswitch:J1.13"
+72,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_P47,dsp;digital;rswitch;lswitch,dsp:U7.43; dsp:U9.4; rswitch:U1.43; lswitch:U4.43,"dsp:J3.47, dsp:J4.47, digital:J12.11, digital:J13.11, digital:J17.47, rswitch:J1.11, lswitch:J1.11"
+73,RESERVED_INPUT_WITH_WEAK_PULLUP,:,M MCU_P18,dsp;digital,dsp:U8.29,"dsp:J3.18, dsp:J4.18, dsp:J6.10, digital:J17.18, digital:J24.51"
+74,mhrx,input,M MCU_P17,dsp;digital,dsp:U8.32; digital:U34.6,"dsp:J3.17, dsp:J4.17, dsp:J6.8, digital:J17.17, digital:J24.55"
+75,RESERVED_INPUT_WITH_WEAK_PULLUP,:,STRX1,dsp,dsp:U7.54,-
+76,RESERVED_INPUT_WITH_WEAK_PULLUP,:,STRX0,dsp,dsp:U7.53,-
+77,RESERVED_INPUT_WITH_WEAK_PULLUP,:,PI_RX2,dsp;digital,NONE,"dsp:J3.16, dsp:J4.16, dsp:J6.28, digital:J17.16"
+78,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+79,pcm_fs,output,PI_PCM_FS,dsp;digital,NONE,"dsp:J3.26, dsp:J4.26, dsp:J6.35, digital:J17.26"
+80,pcm_clk,output,PI_PCM_CLK,dsp;digital,NONE,"dsp:J3.23, dsp:J4.23, dsp:J6.12, digital:J17.23, digital:J24.49"
+81,RESERVED_INPUT_WITH_WEAK_PULLUP,:,L1,dsp,NONE,-
+82,VCCIO3,power,+3V3,dsp;digital,(rail),-
+83,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+84,RESERVED_INPUT_WITH_WEAK_PULLUP,:,PI_TX2,dsp;digital,NONE,"dsp:J3.15, dsp:J4.15, dsp:J6.27, digital:J17.15"
+85,RESERVED_INPUT_WITH_WEAK_PULLUP,:,C2,dsp,NONE,-
+86,pcm_dout,input,PI_PCM_DOUT,dsp;digital,NONE,"dsp:J3.24, dsp:J4.24, dsp:J6.40, digital:J17.24"
+87,RESERVED_INPUT_WITH_WEAK_PULLUP,:,C0,dsp,NONE,-
+88,sysclk,input,LOGIC_SYSCLK,dsp,dsp:Y1.3,-
+89,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL1_0,dsp;digital,NONE,"dsp:J1.97, dsp:J2.97, digital:J18.97"
+90,VCCINT,power,+1V8.00179,dsp,dsp:U2.2; dsp:U5.7; dsp:U5.79; dsp:U6.7; dsp:U6.79,"dsp:C10.1, dsp:C103.1, dsp:C104.1, dsp:C105.1, dsp:C106.1, dsp:C107.1, dsp:C11.1, dsp:C146.1, dsp:C189.1, dsp:C190.1, dsp:C191.1, dsp:C192.1, dsp:C193.1, dsp:C60.1, dsp:C8.1, dsp:C9.1"
+91,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL1_1,dsp;digital,NONE,"dsp:J1.98, dsp:J2.98, digital:J18.98, digital:J33.3"
+92,GNDINT,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+93,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL1_2,dsp;digital,NONE,"dsp:J1.95, dsp:J2.95, digital:J18.95, digital:J33.4"
+94,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL1_3,dsp;digital,NONE,"dsp:J1.96, dsp:J2.96, digital:J18.96, digital:J33.5"
+95,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL2_0,dsp;digital,NONE,"dsp:J1.91, dsp:J2.91, digital:J18.91"
+96,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL2_1,dsp;digital,NONE,"dsp:J1.92, dsp:J2.92, digital:J18.92, digital:J33.8"
+97,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL2_2,dsp;digital,NONE,"dsp:J1.89, dsp:J2.89, digital:J18.89, digital:J33.9"
+98,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL2_3,dsp;digital,NONE,"dsp:J1.90, dsp:J2.90, digital:J18.90, digital:J33.10"
+99,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+100,VCCIO3,power,+3V3,dsp;digital,(rail),-
+101,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL3_0,dsp;digital;opt3,NONE,"dsp:J1.85, dsp:J2.85, digital:J18.85, digital:J3.A12, opt3:SLOT.A12"
+102,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL3_1,dsp;digital;opt3,NONE,"dsp:J1.86, dsp:J2.86, digital:J18.86, digital:J3.A13, opt3:SLOT.A13"
+103,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL3_2,dsp;digital;opt3,NONE,"dsp:J1.83, dsp:J2.83, digital:J18.83, digital:J3.A10, opt3:SLOT.A10"
+104,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL3_3,dsp;digital;opt3,NONE,"dsp:J1.84, dsp:J2.84, digital:J18.84, digital:J3.A11, opt3:SLOT.A11"
+105,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL4_0,dsp;digital;opt3,NONE,"dsp:J1.79, dsp:J2.79, digital:J18.79, digital:J3.A8, opt3:SLOT.A8"
+106,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL4_1,dsp;digital;opt3,NONE,"dsp:J1.80, dsp:J2.80, digital:J18.80, digital:J3.A9, opt3:SLOT.A9"
+107,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL4_2,dsp;digital;opt3,NONE,"dsp:J1.77, dsp:J2.77, digital:J18.77, digital:J3.A6, opt3:SLOT.A6"
+108,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL4_3,dsp;digital;opt3,NONE,"dsp:J1.78, dsp:J2.78, digital:J18.78, digital:J3.A7, opt3:SLOT.A7"
+109,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL5_0,dsp;digital;opt2,NONE,"dsp:J1.73, dsp:J2.73, digital:J18.73, digital:J2.A12, opt2:SLOT.A12"
+110,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL5_1,dsp;digital;opt2,NONE,"dsp:J1.74, dsp:J2.74, digital:J18.74, digital:J2.A13, opt2:SLOT.A13"
+111,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL5_2,dsp;digital;opt2,NONE,"dsp:J1.71, dsp:J2.71, digital:J18.71, digital:J2.A10, opt2:SLOT.A10"
+112,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL5_3,dsp;digital;opt2,NONE,"dsp:J1.72, dsp:J2.72, digital:J18.72, digital:J2.A11, opt2:SLOT.A11"
+113,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL6_0,dsp;digital;opt2,NONE,"dsp:J1.67, dsp:J2.67, digital:J18.67, digital:J2.A8, opt2:SLOT.A8"
+114,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL6_1,dsp;digital;opt2,NONE,"dsp:J1.68, dsp:J2.68, digital:J18.68, digital:J2.A9, opt2:SLOT.A9"
+115,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+116,VCCIO2,power,+3V3,dsp;digital,(rail),-
+117,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL6_2,dsp;digital;opt2,NONE,"dsp:J1.65, dsp:J2.65, digital:J18.65, digital:J2.A6, opt2:SLOT.A6"
+118,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL6_3,dsp;digital;opt2,NONE,"dsp:J1.66, dsp:J2.66, digital:J18.66, digital:J2.A7, opt2:SLOT.A7"
+119,mems_bck,output,LOGIC_PLL7_0,dsp;digital,digital:U13.B2,"dsp:J1.61, dsp:J2.61, digital:J18.61"
+120,mems_fs,output,LOGIC_PLL7_1,dsp;digital,digital:U13.C2,"dsp:J1.62, dsp:J2.62, digital:J18.62"
+121,mems_i2s,input,LOGIC_PLL7_2,dsp;digital,digital:U13.B1,"dsp:J1.59, dsp:J2.59, digital:J18.59"
+122,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL7_3,dsp;digital,NONE,"dsp:J1.60, dsp:J2.60, digital:J18.60"
+123,cdc_o,input,LOGIC_PLL8_0,dsp;digital;analog,analog:U3.31 (via analog:R19),"dsp:J1.55, dsp:J2.55, digital:J18.55, digital:J41.8, analog:J58.8"
+124,cdc_i,output,LOGIC_PLL8_1,dsp;digital,analog:U3.1 (via digital:R115),"dsp:J1.56, dsp:J2.56, digital:J18.56"
+125,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL8_2,dsp;digital,NONE,"dsp:J1.53, dsp:J2.53, digital:J18.53"
+126,VCCINT,power,+1V8.00178,dsp,dsp:U2.2,"dsp:C12.1, dsp:C4.1, dsp:C7.1"
+127,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_PLL8_3,dsp;digital,NONE,"dsp:J1.54, dsp:J2.54, digital:J18.54, digital:J33.12"
+128,GNDINT,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+129,da[3],output,LOGIC_DA3,dsp;digital,analog:U92.4** (via digital:R114),"dsp:J1.50, dsp:J2.50, digital:J18.50"
+130,da[2],output,LOGIC_DA2,dsp;digital,NONE,"dsp:J1.49, dsp:J2.49, digital:J18.49"
+131,da[1],output,LOGIC_DA1,dsp;digital,NONE,"dsp:J1.48, dsp:J2.48, digital:J18.48"
+132,da[0],output,LOGIC_DA0,dsp;digital,analog:U81.4** (via digital:R113),"dsp:J1.47, dsp:J2.47, digital:J18.47"
+133,ad[3],input,LOGIC_AD3,dsp;digital,NONE,"dsp:J1.46, dsp:J2.46, digital:J18.46, digital:J33.15"
+134,ad[2],input,LOGIC_AD2,dsp;digital;analog,analog:U60.36 (via analog:R1273),"dsp:J1.45, dsp:J2.45, digital:J18.45, digital:J41.6, analog:J58.6"
+135,GNDIO,gnd,GND,dsp;digital;analog;rswitch;lswitch;phonejack;minijack;hdmifpc;p1;opt1;opt2;opt3,(rail),-
+136,VCCIO2,power,+3V3,dsp;digital,(rail),-
+137,RESERVED_INPUT_WITH_WEAK_PULLUP,:,LOGIC_MEMS,dsp;digital,NONE,"dsp:J1.26, dsp:J2.26, digital:J18.26"
+138,ad[1],input,LOGIC_AD1,dsp;digital;analog,analog:U39.36 (via analog:R686),"dsp:J1.44, dsp:J2.44, digital:J18.44, digital:J41.4, analog:J58.4"
+139,ad[0],input,LOGIC_AD0,dsp;digital;analog,analog:U15.36 (via analog:R53),"dsp:J1.43, dsp:J2.43, digital:J18.43, digital:J41.2, analog:J58.2"
+140,dsp_clk,output,DSP_CLK,dsp,dsp:U5.5 (via dsp:R33); dsp:U6.5 (via dsp:R65),-
+141,conv_fs,output,L0,dsp;digital,analog:U98.2 (via digital:R112),"dsp:J1.38, dsp:J2.38, digital:J18.38"
+142,conv_bck,output,C1,dsp;digital,analog:U97.2 (via digital:R111),"dsp:J1.37, dsp:J2.37, digital:J18.37"
+143,no[3],output,LOGIC_NO3,dsp;digital;opt1,NONE,"dsp:J1.34, dsp:J2.34, digital:J1.A6, digital:J18.34, opt1:SLOT.A6"
+144,no[2],output,LOGIC_NO2,dsp;digital;opt1,NONE,"dsp:J1.33, dsp:J2.33, digital:J1.A7, digital:J18.33, opt1:SLOT.A7"

@@ -148,13 +148,21 @@ def input_params(signal, slot_count=1):
             f'signal={signal}')
 
 
-def output_params(signal, slot_count=1, scope=None):
+def output_params(signal, slot_count=1, scope=None, sink=None):
+    # `sink` names the physical thing on the far side of the lane, for the
+    # cases where the signal name alone does not say it. It is emitted HERE
+    # and not hand-added to dsp.csv: S102 wrote `sink=SPKR`/`sink=DNP`
+    # straight into the generated file, and the next run of this script
+    # (S109) silently deleted both. A generated file is regenerated, not
+    # edited -- so the fact has to live in the generator.
     e = sig_tx2(signal)
     p = (f'sport_id={e["sport_id"]};slot_start={e["slot"]};'
          f'slot_count={slot_count};sport_slots={e["sport_slots"]};'
          f'signal={signal}')
     if scope:
         p += f';scope={scope}'
+    if sink:
+        p += f';sink={sink}'
     return p
 
 
@@ -1072,7 +1080,8 @@ add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', 'C2_MON_OUT',
 p, a2 = c2_alloc.next(1)
 add('C2_MON_OUT', 2, 'OUTPUT_TDM', 'Monitor Out', 2, 'C2_MON_DLY', '',
     spi_page=p, spi_addr=a2,
-    params=output_params('CODEC_OUT_1', slot_count=2, scope='D24'))
+    params=output_params('CODEC_OUT_1', slot_count=2, scope='D24',
+                         sink='SPKR'))
 
 # --- USB / BT (Chip 2) ---
 p, a2 = c2_alloc.next(2)
@@ -1201,7 +1210,8 @@ p, a2 = c2_alloc.next(1)
 add('C2_CODEC_AUX_OUT', 2, 'OUTPUT_TDM', 'Codec Aux Out', 2,
     'C2_MAIN_DLY', '',
     spi_page=p, spi_addr=a2,
-    params=output_params('CODEC_OUT_3', slot_count=2, scope='D24'))
+    params=output_params('CODEC_OUT_3', slot_count=2, scope='D24',
+                         sink='DNP'))
 
 # Splice superset recv/aux-input rows after the bus RECV block so process
 # order is: bus recvs, superset recvs + aux inputs, aux buses, ... main mix.

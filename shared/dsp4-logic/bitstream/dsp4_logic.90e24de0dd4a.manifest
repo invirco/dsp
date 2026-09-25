@@ -1,0 +1,60 @@
+artifact: dsp4_logic.90e24de0dd4a.{pof,svf}
+SHIPPING: yes
+built: 2026-09-25T11:03:21Z
+config: loopback=0 pi_selftest=0 pi_maincap=0 pi_tdm8=0 drive_all=0 ad_retime=0 ad_from_cdc=0 lane_id=0 cfg_bits=16'h0010
+design_id: 32'h4de0dd4a
+cfg_bits: 16'h0010
+id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and
+  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames
+cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:
+  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}
+  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}
+  cdc_ones/toggles are per 48 kHz frame over 256 TDM8 bit periods;
+  the frame counter MUST advance between two knocks or the witness
+  is dead and its zeros mean nothing (S81)
+ad_witness: play {L=0xAD075E2<b>, R=~L} and record, 128 frames.
+  The knock's low three bits are the selector:
+    <b>[1:0]  lane 0, 1 or 2   (lane 3 is NOT a knock: no
+               converter on AD3, it falls through to audio)
+    <b>[2]    0 = counted on bck8_sample (bck8 rising, the edge
+               the DSP samples the lane on -- S84's only bank)
+               1 = counted on bck8_launch (bck8 falling), added
+               at S85 to measure the converter launch phase
+  So <b> = 0,1,2 are S84's three knocks unchanged, and 4,5,6 are
+  the same three lanes on the other edge. Six banks, all counting
+  the same pass at once; one knock answers about one of them.
+  L = {3'b0, bck_ratio_ok, edge, lane[1:0], ad_ones_last[8:0],
+       7'b0, ad_ones_max[8:0]}
+  R = {0xAD07, ad_toggles_last[8:0], frame_counter[15:9]}
+  Counts are per 48 kHz frame over 256 TDM8 bit periods.
+  bck_ratio_ok is 1 while every conv_fs frame since power-up has
+  held exactly 256 bck8 periods -- the generator's own ratio, not
+  arrival at any pin.
+  The frame counter is fs8 = conv_fs, which this part GENERATES:
+  it witnesses that the clock generator runs, NOT that the clock
+  arrives at the AK5558 pins. It MUST advance between two knocks
+  or the witness is dead and its zeros mean nothing (S81/S84).
+logic_elements: 881 / 1,270 ( 69 % )
+registers: 663 / 1,270 ( 52 % )
+pins: 67 / 114 ( 59 % )
+pi_link: 2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only
+slot_map: sha256:265b4e1b312ec227b7a4a07c1a5076d35607484a869d6235bf1278048e88338b
+sim_gate: PASS
+device: 5M1270ZT144C4
+fmax: 65.78 MHz
+adopted: SHIPPING from S109. The label moves from d02d83b3cc22 because the
+  LOGIC I/O fixes are in the shipping path, not behind a switch: the MEMS
+  bridge is clocked on pins 119/120 and read on 121 (PIN_137 was a dead
+  stub), cdc_i = o_dspb[2] with no strap in front of it, and PIN_70/109/110/
+  111 are unassigned because D32 is out of requirements (PW 2026-09-25, D11).
+  FLASHED to MW-D24-2 2026-09-25 and read back off the part:
+  design_id 32'h4de0dd4a, cfg_bits 16'h0010. logic_flash.sh's default
+  rollback and docs/d24-bench-logic-flash-log.md both point here now.
+  Bench result on this bitstream: the MEMS lane went from ffffffff STATIC to
+  CARRYING, 31 distinct in 32 reads, -64.76 dBFS, with the ADAU7002's 20-bit
+  payload exactly in the top 20 bits of the word.
+  Area cost against d02d83b3cc22, same tree otherwise: 881 vs 882 LE, 663 vs
+  662 registers, 67 vs 69 pins, Fmax 65.78 vs 66.58 MHz. The reproducibility
+  note on d02d83b3cc22 applies unchanged -- two builds of a label differ only
+  in the .svf's date comment, so identity rests on the design ID read off the
+  part.

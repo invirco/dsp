@@ -410,3 +410,30 @@ the noise floor with no correlation to a known stimulus) on this bench:
 
 Skipping straight to step 3, as S88 initially did, produced two full rounds of "the
 instrument must be lying" before the CPLD state was actually checked.
+
+---
+
+## S109 (2026-09-25) — one flash, and the shipping label MOVES
+
+FLASH-OK on attempt 1, `AN_EN` read low by `logic_flash.sh`'s own interlock,
+IDCODE `0x020a30dd` before and after, rollback `dsp4_logic.d02d83b3cc22.svf`
+staged and md5-checked before the first byte was written.
+
+| # | artifact | design_id | what it was for |
+|---|---|---|---|
+| 1 | `dsp4_logic.90e24de0dd4a` | `32'h4de0dd4a` | **the CPLD I/O fix — MEMS on pins 119/120/121, `cdc_i` unconditional, `strap_d32`/snake pins removed. Left on the part.** |
+
+**The part carried `dsp4_logic.d02d83b3cc22` (`32'h83b3cc22`) when this session
+opened**, confirmed by a `dsp4_logic_id.py --expect 83b3cc22` read-back before
+anything was written — the S88 procedure rule, met.
+
+**`logic_flash.sh`'s default rollback is updated to
+`dsp4_logic.90e24de0dd4a.svf`** — set from this table, after the flash, which
+is the rule the S84 entry spells out and the reason that line has been stale
+three times. `d02d83b3cc22` is no longer what the bench lives on.
+
+**The shipping label moves with it.** `90e24de0dd4a` is a SHIPPING build
+(`cfg_bits 16'h0010`, no non-shipping switch set, sim gate PASS, STA gate
+PASS); it is the shipping bitstream from S109 onwards and `d02d83b3cc22` is
+superseded. The post-flash DSP double boot+config was run and the pair reached
+`BOOT_STAGE 7 / BOOT_CFG 1` before any reading was taken.

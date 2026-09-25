@@ -51,7 +51,7 @@ A_I6,4,PI_PCM_5,BOTH,Pi CM4 TDM8 channel 5 (LOGIC regroups 4 Pi frames per DSP f
 A_I6,5,PI_PCM_6,BOTH,Pi CM4 TDM8 channel 6 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
 A_I6,6,PI_PCM_7,BOTH,Pi CM4 TDM8 channel 7 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
 A_I6,7,PI_PCM_8,BOTH,Pi CM4 TDM8 channel 8 (LOGIC regroups 4 Pi frames per DSP frame) - PW-DECIDED 2026-08-23
-A_I7,5,MEMS_TB,BOTH,ADAU7302 TDM8 slot 5 per 47K strap
+A_I7,4,MEMS_TB,BOTH,ADAU7002 (digital U13) TDM8 - MEMS_CONFIG strapped +3V3 via R42 47K = datasheet Rev.A Table 6 "TDM Slot 5 to Slot 6" 1-BASED = 0-based slots 4/5; slot 4 is the LEFT channel and lswitch U3 IMP34DT05 has L/R tied to GND = left - CORRECTED S109
 MIX_0,0,BUS_MAIN_L,BOTH,global mix slot 0 (= legacy sport7 slot 0)
 MIX_0,1,BUS_MAIN_R,BOTH,global mix slot 1
 MIX_0,2,BUS_SUB,BOTH,global mix slot 2

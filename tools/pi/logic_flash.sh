@@ -34,6 +34,9 @@
 #                      S84, which is the long one: the part stopped carrying
 #                      s41 at 2026-09-19T21:47:06Z and this line still named
 #                      it a day later, through every S77-S83 flash.
+#                      and d02d83b3cc22 until S109, which put the CPLD I/O
+#                      fix on the part and moved the shipping label to
+#                      90e24de0dd4a.
 #                      Set to 7a6a4529f29c at S84 and to d02d83b3cc22 at S85,
 #                      each time from the log AFTER the last flash of the
 #                      session -- which is the only order that cannot leave it
@@ -101,7 +104,7 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BENCH="${BENCH:-app@192.168.1.219}"
 BITDIR="${BITDIR:-$HERE/../../shared/dsp4-logic/bitstream}"
-ROLLBACK="dsp4_logic.d02d83b3cc22.svf"
+ROLLBACK="dsp4_logic.90e24de0dd4a.svf"
 DRYRUN=0; STOPAPP=0; RESTART=1; WAIVER=""; SELFTEST=""
 ARG=""
 

@@ -1,10 +1,11 @@
 # DSP4 architecture decisions
 
 Status: accepted 2026-07-29 (D1-D5); D6 added 2026-08-02; D7 2026-08-04;
-D8 2026-08-05; D10 2026-08-21. **D9 (2026-08-06) is a DRAFT awaiting
-sign-off — not binding; see its banner.**
-Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by D24 and
-D32; D6 extends scope to platform selection across the product range.
+D8 2026-08-05; D10 2026-08-21; **D11 2026-09-25 (D32 removed from
+requirements — it supersedes part of D3, read it first)**. **D9 (2026-08-06)
+is a DRAFT awaiting sign-off — not binding; see its banner.**
+Scope: DSP4 card (dual ADSP-21564 + MAX V LOGIC CPLD) as used by the D24;
+D6 extends scope to platform selection across the product range.
 These decisions are binding for work in this repo. Change them only by
 editing this file deliberately (record why), not by drifting in code.
 
@@ -45,6 +46,14 @@ Hardware ground truth: [MW/D24/HW/hardware-map.md](MW/D24/HW/hardware-map.md)
   material (same rule as CCES).
 
 ## D3 — One DSP4 firmware serves both D24 and D32
+
+> **SUPERSEDED IN PART BY D11 (PW, 2026-09-25): D32 IS REMOVED FROM
+> REQUIREMENTS.** Everything below that says "both products", "per-product
+> builds" or "D24 leaves 8 strips unused" now has one product on each side of
+> it. The clause that mattered operationally — ONE address map, product
+> differences at the contract layer and never as diverging address maps —
+> stands and is the reason nothing had to be renumbered. See D11.
+
 
 - Single card-level firmware image ("superset firmware + product config"),
   not per-product builds:
@@ -715,3 +724,35 @@ boot-stream shape. Owning the contract is cheaper, but only if it is
 written down and centralised — hence `c_abi.h` rather than four copies of
 the idiom. **Any new assembly that calls C, or C that calls assembly, uses
 those macros.**
+
+## D11 — D32 is removed from requirements; D24 is the only DSP4 personality
+
+Ruled by PW, 2026-09-25, during the S109 CPLD I/O work.
+
+- **There is no D32 product to serve.** The DSP4 card, the LOGIC CPLD and the
+  firmware are built for the D24 and for nothing else. No per-product
+  personality is read at runtime and none is selected at build time.
+- **`strap_d32` is gone.** It was `PIN_70` on net `M MCU_S4`, and it had never
+  had a defined level: no pull resistor on the net, MAX V offers a weak
+  pull-*up* only, and the only other pin on it is the M MCU's `U8.11`. It
+  measured HIGH in S106 and S108 and **LOW in S109**, which is to say it was
+  a live undefined input deciding whether the codec DAC was connected. The
+  LOGIC CPLD no longer has a personality input.
+- **`cdc_i = o_dspb[2]`, unconditional.** The codec DAC lane is not muxed.
+- **The snake lanes are gone from the CPLD**: `snake_in`/`snake_out`/
+  `dac_main` (PINs 109/110/111) are unassigned and fall to the global
+  unused-pin reservation. The netlist labels 110 and 111 as option-slot-2
+  *card outputs* (`J2.A13 [NO7]`, `J2.A10 [NO4]`), so the old D32 role also
+  had them driving into a card's output. `i_dspa[5]` is a hard zero.
+- **The one-bitstream-for-two-products rule in D3 lapses**, because there is
+  only one product. It is not replaced by per-product bitstreams; there is
+  one bitstream, for the D24.
+- **What does NOT change.** `MW/D32/DSP/SHARC/` remains the unified DSP4
+  source tree and the shared address map (D3's operational clause), and
+  `defs`' D32 product definitions are not this repo's to remove. The D32
+  rows still present in `shared/dsp4-logic/slot-map.csv` are inert
+  (`scope=D32`) and their lanes are marked `retired` in `tdm-lines.csv`;
+  `tools/pi/dsp4_rxscan.py` no longer scores them.
+- Recorded in: `MW/D24/DSP/s109/cpld-io-fix-and-audit.md`, and the bitstream
+  that implements it is `dsp4_logic.90e24de0dd4a` (`design_id 32'h4de0dd4a`).
+

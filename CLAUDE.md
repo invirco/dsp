@@ -35,9 +35,11 @@ dispatch and consumes the same submodule. `README.md` has the layout;
 - **DSP4 architecture decisions are binding** — see
   `dsp4-architecture-decisions.md`: Pi/CM4 masters DSP SPI directly (no MCU
   relay); LOGIC CPLD HDL lives in `shared/dsp4-logic/` with a single-sourced
-  TDM slot map; ONE DSP4 firmware + product config serves D24 and D32 with a
-  single shared DSP address map. Do not reintroduce per-product forks of
-  firmware, address maps, or slot tables. D6 platform split: SHARC DSP4
+  TDM slot map; ONE DSP4 firmware + product config with a single shared DSP
+  address map. Do not reintroduce per-product forks of firmware, address
+  maps, or slot tables. **D11 (PW 2026-09-25): D32 is REMOVED from
+  requirements — D24 is the only DSP4 personality. There is no `strap_d32`
+  and no snake lane; do not reintroduce either.** D6 platform split: SHARC DSP4
   card up to 32 ch @ 48 kHz; single-chip FPGA engine (see `fpga/`) for
   32 ch @ 96 kHz and above — no new multi-DSP MIXING engines above that
   line. D7: fabric-only FPGA baseline (no SoC; CM is sole control

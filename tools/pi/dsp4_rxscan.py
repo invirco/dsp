@@ -69,6 +69,32 @@ import dsp4_scope as S                                              # noqa: E402
 FRAME_COUNT = 0xE004
 INTERVAL = 0.0137
 
+# ---- LANES WITH NO FITTED SOURCE: STATIC IS THE CORRECT READING ----
+#
+# S109. `0xFFFFFFFF` on a CPLD input pin nobody drives, and `0x00000000` on
+# one the CPLD ties to a constant, are both "no source", not "dead lane" --
+# and this tool used to print STATIC beside them in the same column it uses
+# for a converter that has stopped, so every scan since S79 has carried a
+# handful of standing faults that were never faults. They are named here so
+# the verdict says so, and so the "n of m CARRYING" tally is taken over the
+# entries that HAVE a source. A lane in this table that starts CARRYING is
+# the interesting case and is called out rather than quietly passed.
+#
+# This is a bench tool and runs from /home/app with no repo beside it, so
+# the table is explicit rather than read out of slot-map.csv. Keep it in
+# step with shared/dsp4-logic/slot-map.csv + tdm-lines.csv.
+NO_SOURCE = {}
+for _n in range(25, 33):
+    NO_SOURCE['IN_%02d' % _n] = (
+        'A_I3 is the NET lane (ni[3], pin 3) and option slot 1 is empty; '
+        'there is no AD3 converter on this board')
+for _n in range(1, 9):
+    NO_SOURCE['XIN_SNK_%02d' % _n] = (
+        'D32 snake return. D32 is out of requirements (PW 2026-09-25): '
+        'pin 109 is unassigned and LOGIC ties i_dspa[5] to 0')
+NO_SOURCE['XIN_CODEC_03'] = (
+    'AK4619 ADC2 Lch (IN3) is not connected on rev C and has no consumer')
+
 
 def s32(v):
     v &= 0xFFFFFFFF
@@ -172,6 +198,7 @@ def scan(sc, reps=16, laneid=False, chip=1, log=print):
         r = {'entry': i, 'off': off, 'stride': stride, 'lane': lane,
              'lane_slot': slot_k, 'node': node, 'read': len(words),
              'words': ['%08x' % w for w in words[:8]]}
+        r['no_source'] = NO_SOURCE.get(node)
         if words:
             sv = [s32(w) for w in words]
             rms = math.sqrt(sum((x / 2.0 ** 31) ** 2 for x in sv) / len(sv))
@@ -252,17 +279,39 @@ def main():
         if not r.get('read'):
             print('%-14s %5d  UNREAD' % (r['node'], r['entry']))
             continue
+        if r['no_source']:
+            mark = ('CARRYING (!! an unsourced lane should not move)'
+                    if r['carrying'] else 'static, NO SOURCE — expected')
+        else:
+            mark = 'CARRYING' if r['carrying'] else 'STATIC'
         print('%-14s %5d %5d %5d %5d %5d %8d %9.2f %9.2f  %s  %s'
               % (r['node'], r['entry'], r['off'], r['lane'], r['lane_slot'],
                  r['read'], r['distinct'], r['rms_dbfs'], r['peak_dbfs'],
-                 ' '.join(r['words'][:3]),
-                 'CARRYING' if r['carrying'] else 'STATIC'))
+                 ' '.join(r['words'][:3]), mark))
         if a.laneid:
             print('%-14s %5s marks (pin, slot, bit offset): %s'
                   % ('', '', r.get('marks')))
 
-    live = [r for r in rows if r.get('carrying')]
-    print('\n%d of %d RX entries CARRYING SAMPLES' % (len(live), len(rows)))
+    scored = [r for r in rows if not r.get('no_source')]
+    unsourced = [r for r in rows if r.get('no_source')]
+    live = [r for r in scored if r.get('carrying')]
+    print('\n%d of %d SCORED RX entries CARRYING SAMPLES'
+          % (len(live), len(scored)))
+    if unsourced:
+        print('%d further entries have NO FITTED SOURCE and are not scored:'
+              % len(unsourced))
+        seen = set()
+        for r in unsourced:
+            if r['no_source'] in seen:
+                continue
+            seen.add(r['no_source'])
+            names = [q['node'] for q in unsourced
+                     if q['no_source'] == r['no_source']]
+            print('   %s: %s' % (', '.join(names), r['no_source']))
+        odd = [r['node'] for r in unsourced if r.get('carrying')]
+        if odd:
+            print('   !! CARRYING anyway, which needs explaining: %s'
+                  % ', '.join(odd))
     if a.json:
         json.dump({'tag': a.tag, 'meta': meta, 'lanes': rows},
                   open(a.json, 'w'), indent=1)

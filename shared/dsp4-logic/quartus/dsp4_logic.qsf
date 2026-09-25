@@ -2,7 +2,10 @@
 #
 # Pin assignments extracted 2026-07-31 from the rev C LOGIC sheet
 # (D24 DSP.pdf page 2/10, 300 DPI render, all four pin banks read).
-# PROVISIONAL assignments (X-logic parking, S4 personality) are marked.
+# The X-logic parking and S4 personality assignments this file used to
+# carry are GONE, not provisional: D32 is out of requirements (PW
+# 2026-09-25) and the S109 per-pin audit against the netlist settled
+# every one of them. See the notes at PIN_70, PIN_109-111 and PIN_137.
 set_global_assignment -name FAMILY "MAX V"
 set_global_assignment -name DEVICE 5M1270ZT144C4
 set_global_assignment -name TOP_LEVEL_ENTITY dsp4_logic_top
@@ -43,7 +46,14 @@ set_location_assignment PIN_140 -to dsp_clk
 # in rtl/dsp4_logic_top.v and the S34 write-up.
 set_location_assignment PIN_142 -to conv_bck
 set_location_assignment PIN_141 -to conv_fs
-set_location_assignment PIN_70  -to strap_d32
+
+# PIN_70 (net `M MCU_S4`) WAS `strap_d32` AND IS NOW UNASSIGNED (S109).
+# D32 is out of requirements (PW 2026-09-25), so there is no product
+# personality to read. The pin never had a defined level anyway: the net
+# has exactly two pins (U3.70 and the M MCU U8.11), no pull resistor, and
+# MAX V offers a weak pull-UP only -- so it floated HIGH on every D24 and
+# tied the codec DAC to zero (S108). It now falls to the global unused-pin
+# reservation, which leaves this end an input and cannot mute anything.
 
 # ---- DSP clock pairs ----
 set_location_assignment PIN_20  -to bcki[0]
@@ -101,29 +111,53 @@ set_location_assignment PIN_1   -to no[1]
 set_location_assignment PIN_144 -to no[2]
 set_location_assignment PIN_143 -to no[3]
 
-# ---- Codec / MEMS ----
+# ---- Codec ----
 set_location_assignment PIN_123 -to cdc_o
 set_location_assignment PIN_124 -to cdc_i
-set_location_assignment PIN_137 -to mems
 
-# ---- D32 snake / DAC MAIN parking (X-logic, PROVISIONAL) ----
+# ---- Panel MEMS mic, through the ADAU7002 PDM bridge (digital U13) ----
 #
-# All three are option-slot-2 A-row lanes as well as DSP-card nets
-# (G2666/G2667/G2668 = LOGIC_PLL5_0/1/2 -> opt2 SLOT.A12/A13/A10). The RTL
-# drives snake_out/dac_main only when strap_d32 is set, so on a D24 they are
-# high-Z and a card fitted to slot 2 owns its own lanes (S36).
+# PIN_137 (`LOGIC_MEMS`, G2637) WAS `mems` AND IS NOW UNASSIGNED. It is a
+# dead stub: U3.137 -> dsp J1.26/J2.26 -> digital J18.26 and nothing else,
+# no load on the far side (mx26 docs/d24-netlist-global.md:468-472, and
+# confirmed pin by pin in the S109 audit). Every bitstream from 3b48f468
+# onwards read the panel mic off that stub, which is why MM1 has never
+# passed anywhere.
 #
-# The weak pull-ups are the other half of that fix: with slot 2 empty, all
-# three pins float on a D24 -- snake_in always (it is an input), the other
-# two now that they are tri-stated -- and a floating CMOS input sits near
-# the switching threshold and draws crowbar current. The global
-# RESERVE_ALL_UNUSED_PINS does NOT cover them, because they are assigned.
-set_location_assignment PIN_109 -to snake_in
-set_location_assignment PIN_110 -to snake_out
-set_location_assignment PIN_111 -to dac_main
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to snake_in
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to snake_out
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to dac_main
+# The mic's data arrives on PIN_121, and U13 is a SLAVE that needs a bit
+# clock and a frame sync from this part. On M_BCK and M_FS the only active
+# device pins are U3.119/U3.120 and U13's own inputs, so U3 is the sole
+# driver of both and driving them fights nothing.
+set_location_assignment PIN_119 -to mems_bck
+set_location_assignment PIN_120 -to mems_fs
+set_location_assignment PIN_121 -to mems_i2s
+
+# WEAK PULL-UP ON THE DATA PIN, DELIBERATELY. The ADAU7002 TRI-STATES
+# SDATA outside the two slots it owns (datasheet Rev. A, Figures 15-18) --
+# six of eight slots plus the low 12 bits of its own two, because it emits
+# 20 bits into a 32-bit slot. `M_I2S` has no pull resistor on the board
+# (U3.121, J18.59 and U13.B1 are the whole net), so without this the pin
+# floats for most of every frame, which is the crowbar-current case the
+# snake pins already carry a pull-up for. The datasheet's Figure 11 asks
+# for a pull-DOWN instead; MAX V cannot do that, and an ECO is the only
+# way to get one (S109-3). A pull-up costs the lane nothing: the floating
+# bits are the low 12 of a 32-bit word, 2**-19 of full scale.
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to mems_i2s
+
+# ---- PIN_109/110/111: the D32 snake pins, now UNASSIGNED (S109) ----
+#
+# These were snake_in / snake_out / dac_main. D32 is out of requirements
+# (PW 2026-09-25) and the netlist says the outputs were pointed the wrong
+# way regardless: U3.110 = LOGIC_PLL5_1 = digital J2.A13 [NO7] = opt2
+# SLOT.A13 and U3.111 = LOGIC_PLL5_2 = digital J2.A10 [NO4] = opt2
+# SLOT.A10 -- the board labels both as the option CARD's outputs, and the
+# strap that was supposed to keep them high-Z read HIGH on every D24, so
+# they were driven the whole time. PIN_109 (NO6) was an input and was
+# direction-correct; it has no source now that the snake is gone.
+#
+# Unassigning all three gives them the global reservation -- input,
+# tri-stated, weak pull-up -- which is the state the explicit pull-ups
+# below used to buy, minus the strap that could undo it.
 
 # ---- Pi PCM (roles per hardware-map: 0=CLK 1=DOUT 2=DIN 3=FS) ----
 set_location_assignment PIN_80  -to pcm_clk
@@ -145,7 +179,8 @@ set_location_assignment PIN_7   -to test[3]
 # !BLINK (58), ISPI0/ISPI1/ICS_L (60,61,62 - provisioned S-MCU SPI),
 # BUSY (66), S5-S7 (69,68,67), UART pass-throughs SRX/MRX (72,71),
 # MHTX/MHRX (73,74), STRX1/STRX0 (75,76), PTRX1/PTRX0 (77,84),
-# PLL1-4 groups (89-108 X-logic), PLL5_3-PLL7_3 (112-122 X-logic).
+# PLL1-4 groups (89-108 X-logic), PLL5_0-PLL7_3 except 119/120/121
+# (109-118, 122 X-logic), strap PIN_70, MEMS stub PIN_137.
 
 # ---- MHRX (pin 74): reserved input, NO weak pull-up (S41, folded in S42) ----
 #

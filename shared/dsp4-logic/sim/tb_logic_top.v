@@ -28,16 +28,15 @@ module tb_logic_top;
     reg sysclk = 1'b0;
     always #(SYS_HALF) sysclk = ~sysclk;
 
-    reg        strap_d32 = 1'b0;
     reg  [7:0] o_dspb    = 8'h00;
     reg  [3:0] ad        = 4'h0;
     reg  [3:0] ni        = 4'h0;
     reg        cdc_o     = 1'b0;
-    reg        snake_in  = 1'b0;
-    reg        mems      = 1'b0;
+    reg        mems_i2s  = 1'b0;
     reg        pcm_dout  = 1'b0;
 
-    wire dsp_clk, cdc_i, snake_out, dac_main, blink_led;
+    wire dsp_clk, cdc_i, blink_led;
+    wire mems_bck, mems_fs;
     wire conv_bck, conv_fs;
     wire pcm_clk, pcm_fs, pcm_din;
     wire [7:0] bcki, fsi, i_dspa;
@@ -45,12 +44,11 @@ module tb_logic_top;
 
     dsp4_logic_top dut (
         .sysclk(sysclk), .conv_bck(conv_bck), .conv_fs(conv_fs),
-        .strap_d32(strap_d32), .dsp_clk(dsp_clk),
+        .dsp_clk(dsp_clk),
         .bcki(bcki), .fsi(fsi), .i_dspa(i_dspa), .o_dspb(o_dspb),
         .ad(ad), .da(da), .ni(ni), .no(no),
         .cdc_o(cdc_o), .cdc_i(cdc_i),
-        .snake_in(snake_in), .snake_out(snake_out), .dac_main(dac_main),
-        .mems(mems),
+        .mems_bck(mems_bck), .mems_fs(mems_fs), .mems_i2s(mems_i2s),
         .pcm_clk(pcm_clk), .pcm_fs(pcm_fs), .pcm_dout(pcm_dout),
         .pcm_din(pcm_din), .blink_led(blink_led), .test(test)
     );
@@ -185,35 +183,33 @@ module tb_logic_top;
     // ---- 2/3. static routing ----
     task check_routing;
         begin
-            // DSPA inputs. D24 and D32 both take lanes 0-2 from the ADCs
-            // and lane 3 from NET today (net_sel is fixed per product in
-            // RTL; the D32 personality is still TBD).
+            // DSPA inputs. Lanes 0-2 from the ADCs, lane 3 from NET
+            // (net_sel is fixed; there is no AD3 converter).
             check(i_dspa[0] === ad[0], "i_dspa[0] != AD0");
             check(i_dspa[1] === ad[1], "i_dspa[1] != AD1");
             check(i_dspa[2] === ad[2], "i_dspa[2] != AD2");
             check(i_dspa[3] === ni[3], "i_dspa[3] != NI3 (A_I3 is NET-only)");
             check(i_dspa[4] === cdc_o, "i_dspa[4] != codec return");
-            check(i_dspa[5] === (strap_d32 ? snake_in : 1'b0),
-                  "i_dspa[5] snake lane wrong for personality");
-            check(i_dspa[7] === mems, "i_dspa[7] != MEMS");
+            check(i_dspa[5] === 1'b0,
+                  "i_dspa[5] must be a hard zero (the D32 snake is gone)");
+            check(i_dspa[7] === mems_i2s,
+                  "i_dspa[7] != M_I2S (pin 121, the ADAU7002's SDATA)");
 
             // DSPB outputs.
             check(da[0] === o_dspb[0], "DA0 != B_O0");
             check(da[1] === 1'b0,      "DA1 driven (dead-ends at Digital J18)");
-            check(da[2] === 1'b0,      "DA2 driven (D32_COMPAT only)");
+            check(da[2] === 1'b0,      "DA2 driven (reaches J33 only)");
             check(da[3] === o_dspb[1], "DA3 != B_O1 (DA_LANE_B_O1)");
-            check(cdc_i === (strap_d32 ? 1'b0 : o_dspb[2]),
-                  "codec DAC lane wrong for personality");
-            // X-LOGIC PARKING (S36). Both pins are option-slot-2 A-row
-            // lanes, so on a D24 they must be HIGH-Z, not driven to a
-            // constant. `===` is the point of this check: it distinguishes
-            // 1'bz from 1'b0, which `==` would not. Driving them was the
-            // defect, so the wrong answer this gate has to fail on is a
-            // DRIVEN D24 pin, whatever value it carries.
-            check(snake_out === (strap_d32 ? o_dspb[2] : 1'bz),
-                  "snake_out must drive B_O2 on D32 and be high-Z on D24");
-            check(dac_main === (strap_d32 ? o_dspb[3] : 1'bz),
-                  "dac_main must drive B_O3 on D32 and be high-Z on D24");
+            // THE CODEC DAC LANE, UNCONDITIONAL (S108/S109). It used to
+            // be `strap_d32 ? 1'b0 : o_dspb[2]`, and the strap floated
+            // high on every D24, so the AK4619's SDIN1 was a constant
+            // zero in every bitstream ever flashed. There is no mux left.
+            check(cdc_i === o_dspb[2], "cdc_i != B_O2 (codec SDIN1)");
+            // snake_out (pin 110) and dac_main (pin 111) are GONE: the
+            // netlist labels both as option-slot-2 CARD outputs, so this
+            // part must not drive them at all. They are not ports any
+            // more, which is why there is nothing to check here -- the
+            // gate is the port list and the fitter pin report.
             check(no[0] === o_dspb[4], "NO0 != B_O4");
             check(no[1] === o_dspb[5], "NO1 != B_O5");
             check(no[2] === o_dspb[6], "NO2 != B_O6");
@@ -229,8 +225,7 @@ module tb_logic_top;
                 ad       = ~ad;
                 ni       = {~ni[3], ni[2:0]};
                 cdc_o    = ~cdc_o;
-                snake_in = ~snake_in;
-                mems     = ~mems;
+                mems_i2s = ~mems_i2s;
                 #3;
                 check_routing;
             end
@@ -240,6 +235,39 @@ module tb_logic_top;
             #3; check_routing;
         end
     endtask
+
+    // ---- MEMS bridge clocks (S109) ----
+    //
+    // U13 (ADAU7002) is a slave and this part is its only clock source.
+    // Two things have to hold or the bridge frames its two slots in the
+    // wrong place and every MEMS word arrives shifted:
+    //   mems_bck IS bck8 -- the same bit clock the converters run on;
+    //   mems_fs  IS fs8 DELAYED BY EXACTLY ONE BCK8 PERIOD, because the
+    //     ADAU7002 in TDM mode launches slot 1's MSB on the same BCLK
+    //     falling edge LRCLK moved on (datasheet Rev. A Figure 13), while
+    //     every other TDM device on this frame is I2S-justified and waits
+    //     a bit. Undelayed, its slots land one bck ahead of the AK4619's.
+    // The delay is checked in SYSCLK CYCLES, not in simulation time: one
+    // bck8 period is exactly 4 sysclk cycles, and SYS_HALF (10.1725 ns) is
+    // not representable on the 1 ps timescale, so a `$realtime` difference
+    // would fail on rounding rather than on the design.
+    reg [3:0] fs8_hist;
+    integer   memsfs_seen, memsfs_bad, memsbck_bad, warm;
+    initial begin
+        fs8_hist    = 4'b0;
+        memsfs_seen = 0; memsfs_bad = 0; memsbck_bad = 0; warm = 0;
+    end
+    always @(posedge sysclk) begin
+        fs8_hist <= {fs8_hist[2:0], fsi[0]};
+        if (warm < 8) warm = warm + 1;
+        else begin
+            // mems_fs now must be what fs8 was 4 sysclk cycles ago.
+            if (mems_fs !== fs8_hist[3]) memsfs_bad = memsfs_bad + 1;
+            if (mems_fs === 1'b1)        memsfs_seen = memsfs_seen + 1;
+        end
+    end
+    always @(posedge sysclk)
+        if (mems_bck !== bcki[0]) memsbck_bad = memsbck_bad + 1;
 
     initial begin
         if ($test$plusargs("vcd")) begin
@@ -260,16 +288,18 @@ module tb_logic_top;
         exp_div[0] = 4;  exp_div[1] = 2;  exp_div[2] = 4;  exp_div[3] = 2;
         exp_div[4] = 2;  exp_div[5] = 4;  exp_div[6] = 2;  exp_div[7] = 4;
 
-        strap_d32 = 1'b0;              // D24 personality
-        sweep_routing;
-        strap_d32 = 1'b1;              // D32 personality
-        sweep_routing;
+        sweep_routing;                 // D24 is the only personality
 
         #(1024.0 * 2.0 * SYS_HALF * 2.5);   // let the clock checks run
 
         check(conv_samples > 100, "converter clock check never ran");
         check(conv_mismatch == 0,
               "conv_bck/conv_fs are not the TDM8 pair (bcki[0]/fsi[0])");
+
+        check(memsfs_seen > 1, "mems_fs never pulsed");
+        check(memsfs_bad == 0,
+              "mems_fs is not fs8 delayed by exactly one bck8 period");
+        check(memsbck_bad == 0, "mems_bck is not bck8 (bcki[0])");
 
         check(dsp_edges > 100, "dsp_clk is not toggling");
         check(dsp_bad_period == 0, "dsp_clk period is not 2 sysclk cycles");

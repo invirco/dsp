@@ -14,7 +14,7 @@
 
 /* RampProfile: Instant (default — no ramp) */
 
-/* INPUT_TDM: Read from SPORT7 TDM slot 5 */
+/* INPUT_TDM: Read from SPORT7 TDM slot 4 */
 
 #include "blk_pool.h"
 

@@ -10,18 +10,23 @@
 //  - There is NO reset input: MAX V registers power up cleared.
 //
 // Slot map (generated/dsp4_slot_map.vh, hash-pinned): DSPA in — I0-I3
-// = AD0-2 / NET (AD3 lane is NET-only on D24), I4 = codec return,
-// I5 = snake (D32), I6 = Pi PCM (re-framed), I7 = MEMS. DSPB out —
-// O0 -> DA0, O1 -> DA3 (DA1/DA2 spare on D24), O2 -> codec (D24) /
-// snake (D32), O3 -> DAC MAIN (no D24 sink by design; parked on an
-// X-logic pin), O4-7 -> NO0-3.
+// = AD0-2 / NET (AD3 lane is NET-only), I4 = codec return, I5 = tied
+// low (see below), I6 = Pi PCM (re-framed), I7 = MEMS. DSPB out —
+// O0 -> DA0, O1 -> DA3 (DA1/DA2 have no sink), O2 -> codec, O3 has no
+// pin, O4-7 -> NO0-3.
 //
-// Input-lane source selection is FIXED per product (D24: lanes 0-2
-// ADC, lane 3 NET; input patching is a DSP-side product-config
-// concern). Runtime lane muxing, if ever needed, arrives via the
-// provisioned S-MCU SPI interface (ISPI0/ISPI1/ICS_L pins) — not
-// implemented. Product personality via the S4 line (S-MCU driven,
-// PROVISIONAL until the S-MCU firmware defines it).
+// D24 IS THE ONLY PERSONALITY (PW ruling 2026-09-25). D32 is removed
+// from requirements, and with it the `strap_d32` product strap on
+// PIN_70, the snake lanes on PIN_109/110/111 and the one-bitstream-
+// for-two-products rule this file used to carry. There is no runtime
+// personality input any more: every lane below is wired for the D24
+// unconditionally. Pins 70/109/110/111/137 fall back to the qsf's
+// global unused-pin reservation (input, tri-stated, weak pull-up).
+//
+// Input-lane source selection is FIXED (lanes 0-2 ADC, lane 3 NET;
+// input patching is a DSP-side product-config concern). Runtime lane
+// muxing, if ever needed, arrives via the provisioned S-MCU SPI
+// interface (ISPI0/ISPI1/ICS_L pins) — not implemented.
 //
 // UART pass-through pins (SRX/MRX/MHRX/MHTX/STRX/PTRX) and the H1S2
 // harness are TODO(uart-passthrough) — routing matrix not yet defined.
@@ -61,7 +66,6 @@ module dsp4_logic_top (
     // RESERVE_ALL_UNUSED_PINS leaves them tri-stated with a weak pull-up.
     output wire        conv_bck,    // pin 142 (C1): 12.288 MHz, TDM8
     output wire        conv_fs,     // pin 141 (L0): 48 kHz frame sync
-    input  wire        strap_d32,   // S4: product personality (PROV.)
 
     output wire        dsp_clk,     // pin 140 -> both DSPs' SYS_CLKIN0
 
@@ -81,11 +85,23 @@ module dsp4_logic_top (
     input  wire        cdc_o,       // PLL8_0: codec ADC -> DSPA I4
     output wire        cdc_i,       // PLL8_1: DSPB O2 -> codec (D24)
 
-    input  wire        snake_in,    // D32 snake return (X-logic, PROV.)
-    output wire        snake_out,   // D32 snake out    (X-logic, PROV.)
-    output wire        dac_main,    // B_O3 lane, parked (X-logic, PROV.)
-
-    input  wire        mems,        // ADAU7302 TDM8 (slot 5)
+    // ---- Panel MEMS talkback mic, through the PDM bridge (S109) ----
+    //
+    // `digital U13` is an ADAU7002 (mx26 src/hw/d24-hw-ics.csv:12 is
+    // right; tdm-lines.csv used to say ADAU7302 and was wrong). It is a
+    // PDM-to-TDM bridge and it is a SLAVE: it needs a bit clock and a
+    // frame sync from here or it does not run at all, and it had never
+    // been given either. `MEMS_CONFIG` (U13.D2) is strapped to +3V3
+    // through R42 = 47 kOhm, which datasheet Rev. A Table 6 makes
+    // "TDM Slot 5 to Slot 6 Used/Driven, 32-Bit Slots" -- 1-BASED, so
+    // 0-based slots 4 and 5 of the TDM8 frame.
+    //
+    // The pin the design used to read, `mems` on PIN_137 (LOGIC_MEMS),
+    // is a dead stub: four connector pins and no load (S106). It is
+    // dropped, not re-purposed.
+    output wire        mems_bck,    // pin 119, M_BCK  -> U13.B2 (BCLK)
+    output wire        mems_fs,     // pin 120, M_FS   -> U13.C2 (LRCLK)
+    input  wire        mems_i2s,    // pin 121, M_I2S  <- U13.B1 (SDATA)
 
     // Pi PCM (LOGIC masters; roles per hardware-map: PCM0=CLK,
     // PCM1=DOUT (Pi->LOGIC), PCM2=DIN (LOGIC->Pi), PCM3=FS)
@@ -523,10 +539,9 @@ module dsp4_logic_top (
         .ad_edge     (ad_edge)
     );
 
-    // ---- Input-lane sources (fixed per product) ----
-    // D24: lanes 0-2 = ADC8s, lane 3 = NET (no AD3 converter).
-    // D32: personality TBD with the D32 board work.
-    wire [3:0] net_sel = strap_d32 ? 4'b1000 : 4'b1000;
+    // ---- Input-lane sources (fixed) ----
+    // Lanes 0-2 = ADC8s, lane 3 = NET (there is no AD3 converter).
+    wire [3:0] net_sel = 4'b1000;
 
 `ifdef DSP4_DRIVE_ALL
     // ---- NON-SHIPPING MEASUREMENT BUILD: the driven-capacity stimulus ----
@@ -778,9 +793,14 @@ module dsp4_logic_top (
     // lane -- so it is not retimed and stays as it was.
     assign i_dspa[3] = net_sel[3] ? ni[3] : ad[3];
     assign i_dspa[4] = cdc_o;
-    assign i_dspa[5] = strap_d32 ? snake_in : 1'b0;
+    // Lane 5 was the D32 snake return. D32 is out of requirements, so it
+    // is a hard zero -- the same constant lane 6 reads as when the Pi is
+    // quiet, and a reading of 0x00000000 here now means "no source by
+    // design", not "an input pin nobody drives" (which is what the old
+    // 0xFFFFFFFF was: PIN_109's weak pull-up).
+    assign i_dspa[5] = 1'b0;
     assign i_dspa[6] = pcm_tdm;
-    assign i_dspa[7] = mems;
+    assign i_dspa[7] = mems_i2s;
 `endif
 `endif
 
@@ -789,39 +809,30 @@ module dsp4_logic_top (
     assign da[1] = 1'b0;                            // spare (Digital J18)
     assign da[2] = 1'b0;                            // D32_COMPAT only
     assign da[3] = o_dspb[1];                       // DAC 9-16 (DA_LANE_B_O1)
-    assign cdc_i = strap_d32 ? 1'b0 : o_dspb[2];    // D24 codec DAC
+    // THE CODEC DAC. This was `strap_d32 ? 1'b0 : o_dspb[2]`, and the
+    // strap on PIN_70 floated HIGH on every D24 ever built (no pull
+    // resistor on `M MCU_S4`, and MAX V has no weak pull-down), so the
+    // AK4619's SDIN1 was tied to a constant zero in every bitstream this
+    // bench has carried -- S108's root cause for "no signal at U3.22".
+    // With D32 out of requirements there is no mux left to get wrong.
+    assign cdc_i = o_dspb[2];                       // -> AK4619 SDIN1
 
-    // ---- X-logic parking: DRIVEN ON D32, HIGH-Z ON D24 (S36) ----
+    // ---- X-logic parking: the pins are GONE, not parked (S109) ----
     //
-    // snake_out (pin 110) and dac_main (pin 111) are not spare pads. Each
-    // is a three-board net: U3.110 = LOGIC_PLL5_1 = G2667 reaches
-    // `opt2: SLOT.A13` as well as `digital: J18.74 / J2.A13 [NO7]`, and
-    // U3.111 = LOGIC_PLL5_2 = G2668 reaches `opt2: SLOT.A10` as well as
-    // `digital: J18.71 / J2.A10 [NO4]`. On a D24 both had a CONSTANT
-    // driver here -- snake_out a hard 1'b0, dac_main the live B_O3 TDM8
-    // lane -- so the day an option card is fitted to slot 2 and drives its
-    // own A-row, two CMOS outputs meet with no series resistance. That is
-    // a fight, not a contention the 33R taps can absorb, and it is on
-    // COPPER THAT ALREADY EXISTS: nothing has to be added to the board for
-    // it to happen, only a card fitted.
+    // snake_out (pin 110) and dac_main (pin 111) used to be outputs here.
+    // The netlist says both are option-slot-2 lanes that the board labels
+    // as the CARD's outputs -- U3.110 = LOGIC_PLL5_1 = digital J2.A13
+    // [NO7] = opt2 SLOT.A13, U3.111 = LOGIC_PLL5_2 = digital J2.A10
+    // [NO4] = opt2 SLOT.A10 -- so driving them was driving into a fitted
+    // card's output, which is the fight S36 described. The strap that was
+    // meant to hold them high-Z read HIGH on every D24, so they were in
+    // fact DRIVEN the whole time.
     //
-    // The fix is to drive them only on the product that uses them. On D32
-    // (strap_d32 = 1) they are the snake send and the main DAC lane and
-    // must drive; on D24 they carry nothing this design needs -- the Pi
-    // capture reads o_dspb[3] INTERNALLY as `tdm_in`, never through the
-    // pin -- so high-Z costs the D24 nothing and hands slot 2 its own
-    // lanes back.
-    //
-    // WHY NOT MOVE THE PINS. Pins 81/85/87 (L1/C2/C0) really are dead:
-    // the hub's fan-out table gives all three `(nothing - single-pin net)`
-    // on the dsp board alone, so parking a driven output there would reach
-    // nobody. But ONE bitstream serves D24 and D32 (strap_d32 is a runtime
-    // strap, not a build switch -- dsp4-architecture-decisions.md), so
-    // moving snake_out/dac_main to dead pads would forfeit the D32 role
-    // that these pins exist for. Tri-stating keeps both products correct
-    // in one image.
-    assign snake_out = strap_d32 ? o_dspb[2] : 1'bz;
-    assign dac_main  = strap_d32 ? o_dspb[3] : 1'bz;
+    // They are not tri-stated here any more; the ports are removed, which
+    // hands both pins (and PIN_109, the matching NO6 input) to the qsf's
+    // global RESERVE_ALL_UNUSED_PINS -- input, tri-stated, weak pull-up.
+    // That is the same electrical state the explicit pull-ups gave them
+    // and it cannot be undone by a strap.
     assign no[0] = o_dspb[4];                       // NET 1-8
     assign no[1] = o_dspb[5];
     assign no[2] = o_dspb[6];
@@ -841,6 +852,56 @@ module dsp4_logic_top (
     // converters with it -- see the S34 write-up.
     assign conv_bck = bck8;
     assign conv_fs  = fs8;
+
+    // ---- MEMS bridge clocks (U13, ADAU7002) ----
+    //
+    // BIT CLOCK: the same bck8 everything else runs on. The ADAU7002
+    // wants BCLK >= 64x LRCLK and lists 64/128/192/256/384/512x as the
+    // supported ratios; 12.288 MHz / 48 kHz = 256x is on that list. It
+    // detects the ratio itself and makes its own PDM_CLK at 64x LRCLK =
+    // 3.072 MHz, inside its 256 kHz - 6.144 MHz range. Nothing to set.
+    //
+    // FRAME SYNC: fs8 DELAYED BY ONE BCK8 PERIOD, and the delay is the
+    // whole point. The ADAU7002 is the only TDM device on this frame that
+    // is NOT I2S-justified. Its Figure 13 draws both cases side by side:
+    // in TDM mode slot 1's MSB is launched on the SAME BCLK falling edge
+    // LRCLK moved on, and the separate "I2S justified" trace is the one
+    // that waits a bit. Every other device on this frame -- the three
+    // AK5558s and the AK4619 in TDM256 I2S mode (01H = 0xAC) -- is the
+    // justified kind, and the DSP's per-lane frame delay
+    // (lane_config.c `c1_rx_lanes_mfd`, 2 on the converter and codec
+    // lanes) is set for them.
+    //
+    // So handing U13 the raw fs8 would place its slots one bck period
+    // EARLIER than the codec's, and every MEMS word would arrive shifted
+    // by a bit. Delaying its frame sync by one period puts the ADAU7002's
+    // slot boundaries exactly where the AK4619's already are, which is
+    // the one alignment on this board that is proven by measurement
+    // (lane 4 has carried correct codec audio since S70/S72). The MEMS
+    // lane therefore keeps the same MFD as the rest of them -- nothing
+    // changes on the DSP side but the slot number.
+    //
+    // WHAT WOULD DISPROVE IT: a lane that carries but reads one bit out
+    // (values doubled or halved with the top bit wrapped). The remedy is
+    // this constant -- delay by 0 or by 2 periods instead of 1 -- and it
+    // is a one-line change plus a rebuild.
+    //
+    // With the delay: U13's LRCLK edge lands at the start of bck period
+    // 0, its 1-based slots 5/6 occupy bck periods 128-191, and those are
+    // the DSP's 0-based slots 4 and 5. `slot-map.csv` carries MEMS_TB at
+    // 0-based slot 4 -- the LEFT channel, because the panel mic (lswitch
+    // U3, IMP34DT05) has L/R tied to GND, which per its DS12725 Table 6
+    // drives DOUT during CLK-low and tri-states during CLK-high, i.e. the
+    // channel the ADAU7002 latches on the rising edge and puts in the
+    // FIRST of its two slots.
+    reg mems_fs_d;
+    initial mems_fs_d = 1'b0;
+    always @(posedge sysclk)
+        if (bck8_launch)
+            mems_fs_d <= fs8;
+
+    assign mems_bck = bck8;
+    assign mems_fs  = mems_fs_d;
 
     // ---- Bring-up test points ----
     // Existing clkgen nets only, so LE count is unchanged (156); the

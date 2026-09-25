@@ -1,0 +1,61 @@
+symbol map: /home/app/loopthd/s109/chip1.sym.json (6452 symbols)  tag=S109-slot4-image
+
+  control MUST MOVE      FRAME_COUNT +6666  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01      12 reads, 1 distinct, 0x00000000  [ok]
+  control MUST NOT MOVE  _buf_C1_IN_01          12 reads, 1 distinct, 0x00000000  [ok]
+
+node           entry   off  lane  lidx  read distinct  rms dBFS   pk dBFS  first words
+IN_04              0     0     0     0    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_16              1     1     0     1    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_03              2     2     0     2    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_15              3     3     0     3    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_14              4     4     0     4    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_02              5     5     0     5    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_13              6     6     0     6    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_01              7     7     0     7    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_08              8   128     1     0    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_20              9   129     1     1    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_07             10   130     1     2    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_19             11   131     1     3    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_18             12   132     1     4    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_06             13   133     1     5    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_17             14   134     1     6    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_05             15   135     1     7    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_12             16   256     2     0    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_24             17   257     2     1    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_11             18   258     2     2    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_23             19   259     2     3    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_22             20   260     2     4    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_10             21   261     2     5    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_21             22   262     2     6    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_09             23   263     2     7    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+IN_25             24   384     3     0    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_26             25   385     3     1    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_27             26   386     3     2    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_28             27   387     3     3    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_29             28   388     3     4    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_30             29   389     3     5    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_31             30   390     3     6    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_32             31   391     3     7    32        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+XIN_CODEC_01      32   512     4     0    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_CODEC_02      33   513     4     1    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_CODEC_03      34   514     4     2    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_CODEC_04      35   515     4     3    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_SNK_01        36   576     5     0    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_02        37   577     5     1    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_03        38   578     5     2    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_04        39   579     5     3    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_05        40   580     5     4    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_06        41   581     5     5    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_07        42   582     5     6    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_08        43   583     5     7    32        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_PI_L          44   704     6     0    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_PI_R          45   705     6     1    32        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_MEMS          46   736     7     0    32       32    -71.51    -65.62  fff5dfff 00001fff fff727ff  CARRYING
+
+1 of 30 SCORED RX entries CARRYING SAMPLES
+17 further entries have NO FITTED SOURCE and are not scored:
+   IN_25, IN_26, IN_27, IN_28, IN_29, IN_30, IN_31, IN_32: A_I3 is the NET lane (ni[3], pin 3) and option slot 1 is empty; there is no AD3 converter on this board
+   XIN_CODEC_03: AK4619 ADC2 Lch (IN3) is not connected on rev C and has no consumer
+   XIN_SNK_01, XIN_SNK_02, XIN_SNK_03, XIN_SNK_04, XIN_SNK_05, XIN_SNK_06, XIN_SNK_07, XIN_SNK_08: D32 snake return. D32 is out of requirements (PW 2026-09-25): pin 109 is unassigned and LOGIC ties i_dspa[5] to 0
+wrote /home/app/s109_rx_slot4.json
