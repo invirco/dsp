@@ -380,6 +380,69 @@ C1_XIN_MEMS.asm       "Read from SPORT7 TDM slot 5" -> "slot 4"
 5780/5780 and D24 3989/3989 mapped cells still carry an address, and the SPI
 allocator lands on the same page/addr as before. Change class: **mapping**.
 
+## 6a. The speaker check — prepared for PW, not run
+
+No audio was played this session and `AN_EN` was never written. The dispatch
+asks for the recipe rather than the run, and it is worth more now than when
+S106 wrote it: until today `cdc_i` was decided by an undefined strap, so a
+negative result would have meant nothing. On `90e24de0dd4a` the codec's SDIN1
+carries `B_O2` unconditionally, so **this test now has a defined meaning
+either way.**
+
+It needs PW at the bench, because it raises the analog rails and makes sound.
+
+```bash
+# 0. PREREQUISITES PW OWNS: the analog rails (AN_EN / GPIO26) must be up, and
+#    matrix-app must have run MainInit() at least once so H1S1 has written the
+#    AK4619's init image and the 595 chain. A dispatched session may do
+#    neither. Confirm the CPLD first -- it must be the fix, not the old one:
+cd /home/app/loopthd/s109
+python3 dsp4_logic_id.py --expect 4de0dd4a        # 32'h4de0dd4a, cfg_bits 0x0010
+
+# 1. boot the test-node pair (twice; stage 7 lands on cycle 2)
+pinctrl set 27 op dh                               # CS_M -- driven, not pulled (S109-5)
+pinctrl set 7,9,10,11,22,23,25 a0 ; pinctrl set 8,12 ip
+for i in 1 2; do
+  pinctrl set 6,24 op dh ; python3 dsp4_boot.py --dir .
+  pinctrl set 6,24 op dh ; python3 dsp4_config.py --product d24 --chip 1
+  pinctrl set 6,24 op dh ; python3 dsp4_config.py --product d24 --chip 2
+done
+python3 dsp4_diag.py --chip 1 --rdy-gpio 8 | head -5     # BOOT_STAGE 7 / BOOT_CFG 1
+
+# 2. the proven route (S102/S103): strip 20 -> main -> monitor -> codec DAC1
+python3 s89_set.py . $(for s in $(seq -w 1 32); do [ "$s" = 020 ] || echo Chan${s}MainOn001=0; done)
+python3 s89_set.py . Chan020MainOn001=1 Chan020Mute001=0 Chan020Level001=f1.0:4     Chan020Pan001=f0.5:4 Chan020CompOn001=0 Chan020GateOn001=0     Chan020TubeOn001=0 Chan020EqOn001=0 Main001Level001=f1.0:4 Main001Mute001=0     Mon001Level001=f1.0:4 Mon001Level002=f1.0:4
+
+# 3. PW listens at the panel speaker. START AT -40 dBFS, not -20.
+python3 dsp4_s49_osc.py --strip 20 --freq 1000 --level -40 --symdir .
+python3 dsp4_s49_osc.py --off --symdir .
+```
+
+S103 measured that injection back at −23.01 dBFS RMS, 0.00016 % THD+N, so the
+DSP half is proven and what is under test is
+`analog U3.22 → C23 → SPKR → analog J59.12 = digital J42.12 → C82 → TS482
+(digital U32) → SPKR0/SPKR1 → lswitch J1.6/7 → J2.1/2`. **Start at −40 dBFS**
+— S106's recipe says −20, which was written when the lane was known to be
+silent; it no longer is, and the TS482 drives a panel speaker.
+
+**The thirty-second version, if a scope is to hand and PW would rather not
+make a noise:** `analog U3.1` (`CDC_I`/SDIN1) now carries TDM data instead of
+sitting flat at logic 0 while LRCK and BICK run. That single reading confirms
+the strap fix on the analog side without the rails, without the tone, and
+without the speaker.
+
+## 6b. The two catalog rows are NOT moved here
+
+`MW/D24/DSP/accept/item-status.csv` is untouched: moving a verdict is the
+hub's call, as S108 recorded. What can be said is that both rows' text is now
+wrong in a way worth fixing when someone does move them.
+
+- **`MM1` FAIL** sends a technician to the panel ribbon. The lane was never
+  wired up; it is wired up now and it carries. The row needs re-running, not
+  re-reading, and the honest re-run is 🔴 S109-4's tap-the-panel test.
+- **`SP1` NO DATA** was correct because its only instrument was `MM1`. That
+  reason has gone away.
+
 ## 7. 🔴 Items for the hub
 
 ### 🔴 S109-1 — the aux-output fix needs an H1S1 flash, which this session cannot do
@@ -450,7 +513,7 @@ four failed boots and it will cost the next one the same.
 | 595 chain | **not written** — no `--reset`, no `--reinit`, `MainInit()` did not run |
 | codec registers | **not written.** The read arm answers through `matrix-app`, which is inactive; all 21 reads returned `NO REPLY` and nothing was sent |
 | services | `d24-testui` active, `matrix-app` inactive — as found |
-| staged | `/home/app/loopthd/s103/dsp4_rxscan.py` replaced with this session's version; `/home/app/s109_rx_before.json`, `/home/app/s109_rx_after.json` added; `/home/app/loopthd/s109/` added. **`/home/app/loopthd/s103`'s image, symbol maps and other tools untouched** |
+| staged | `/home/app/loopthd/s103/dsp4_rxscan.py` replaced with this session's version; `/home/app/s109_rx_before.json`, `s109_rx_after.json`, `s109_rx_slot4.json` added; **`/home/app/loopthd/s109/` added** — the slot-4 pair (`chip1.ldr` md5 `7f226919a5d181410c3804d92678da19`, `chip2.ldr` `6f11a1ddc6efd45ec30f536cef295292`, both verified on the bench after the copy), its symbol maps, `input_patch.json`, the boot/config/diag/scan tools, and `s89_set.py` + `dsp4_s49_osc.py` copied from `s103` so §6a's recipe runs as written. **`/home/app/loopthd/s103`'s image, symbol maps and other tools untouched** (its `chip1.ldr` md5 re-read after staging, unchanged) |
 | `defs.lock` | unmoved at `defs-v2026.09.24.2` |
 
 ## 9. Artifacts
