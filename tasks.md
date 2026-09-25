@@ -1,3 +1,40 @@
+## HUB DISPATCH 2026-09-25 16:07Z — S112: rebuild+deploy test app, wizard stays on row after PASS   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# Rebuild and deploy the test app: the wizard now stays on a row after PASS
+
+PW (2026-09-25, at the bench with MW-D24-2): after a row passes, the wizard used to
+jump to the next row by itself, so the operator never saw the PASS tile and the
+numbers. The hub has changed `mx26 src/sw/app/Core/TestSkinStore.cs` (`ReapRun()`:
+a PASS now stays on the row exactly like a FAIL does; `AdvanceAfterPass()` deleted;
+NEXT/PREV unchanged). Commit is on mx26 `main` (pull it in `~/mx26` on this machine).
+Nothing else changed. Your job is the build and the deploy, the S107 way
+(`MW/D24/DSP/s107/deploy-title-stamp.md`): `dotnet test src/sw/app.Tests` must stay
+green (fix a test only if it asserts the old auto-advance; say so), then
+`dotnet publish src/sw/app/app.csproj -c Release -r linux-arm64 --self-contained true
+-p:PublishSingleFile=true -o src/sw/app/bin/Publish/linux-arm64/single-selfcontained`,
+deploy the binary to `/home/app/app` on the unit with a named rollback copy
+(`app.bak-s112-pre`) and md5s recorded, restart `d24-testui`, confirm it loads the
+202-row catalog.
+
+Then prove it on the glass through the wizard's own START (`d24_touch_inject.py`,
+as S111 did): press START TEST on row 56 (AL1, it passes from cold now, S111). After the
+run the display must STAY on row 56 showing the green PASS tile and the result line;
+capture it (copy `MX_DRM_CAPTURE_PATH` on the unit first, it re-renders continuously).
+Then inject NEXT and confirm it moves to the next row. Also press a row that FAILs or
+gives NO DATA if one is cheap to reach, to show that behaviour is unchanged.
+
+Rules: rev C+ only; do not touch CPLD/H1S1/pair.conf; AN_EN is raised and lowered by
+AL1 itself, state it at start and handback; leave the unit as S111 left it (row 56
+selected). Never open a question dialog (🔴 notes in the block, commit, push, stop).
+Single trunk, pull first, push main, no AI attribution. Report: test result, md5s
+(old/new), the two captures, and the handback state. Short.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-25 14:58Z — AL1 fails on glass press (NO DATA, no tone): cold-start fix   [status: 🟢 done — **THREE FAULTS, ALL COLD-START, NONE IN THE LOOP; FOUR GLASS PRESSES IN A ROW NOW PASS, THE FIRST OF THEM 70 s OUT OF A REBOOT.** (1) **CS_M was never driven on the way IN.** Cold, this unit reads `27: ip pd | lo` (and GPIO24 `ip pd | lo` beside it); a low CS_M gates the U2 buffer onto MISO so **every read is plausible zeros while every write lands** — `dsp4_boot.py` refused on CHIP_ID, the link could not phase, rxscan saw no MEMS lane, NO DATA. It bit the FIRST press after a reboot ONLY, because `handback()` drives the pin at the END of every run and the next press inherits it. Fix: CS_M `op dh` in `pin_handback()`, before the first transaction. (2) **Nothing had initialised the AK4619.** `StartAK4619()` is H1S1's, and the only thing that asks for it is the mixer coming up — `matrix-app` is `Conflicts=` with `d24-testui`, so on a factory-booted unit it NEVER RUNS and `AOUT1L` is dead while everything upstream looks perfect (tone measured on the part at MeasChan 20 and at the chip-1 MAIN bus, route reads back, MEMS lane carries, mic hears the room). Cold `codec4619.py --read-all` → **NO REPLY on all 21 registers**; after `--run --reinit` the same tone read **−35.84 dBFS against a predicted −35.82**, nothing else changed. Fix: `codec_init()` in AL1's prerequisite (reg 0xFF; NOT `--reset`, which would leave the 595 chain at micGainFull). (3) **The verdict order failed a working loop.** A reading dead on the calibrated line (−35.8 vs −35.8, THD+N −13.7 dB) scored NO SOUND because the room is ~10 dB up on the calibration and left 12.8 dB of SNR against snr_min 15.4. `al1_verdict()` now asks THD+N ≤ −6 dB (a fundamental holding half the window) OR SNR ≥ snr_min FIRST; PW's genuinely silent 15:10Z press still scores NO SOUND. **Both hub leads tested and excluded with numbers**: AN_EN settle — tone −35.82 dBFS at **t = +1 s** after the raise and flat over six more readings, floor −47.9…−50.1 with no trend; the operator's hand — PW confirms hands off, and every reading was taken with nobody at the glass. The elevated floor (−47 to −48.5) is the room, steady and 12–13 dB below the tone. **Prerequisite now checks MAGIC and boots only if the pair does not answer** (`ensure_pair()`), and the evidence line names which: a press is **23 s**. **Reproduced cold before the fix on the real press path** (injector on the wizard's own START): `AL1 NO DATA the route write failed`. **After**: press 1 **PASS** (COLD, 70 s post-reboot, CS_M `ip pd | lo`, codec uninitialised) base −47.1 tone −35.8 SNR 11.3 THD+N −15.1 dB; press 2 **PASS** −48.5/−35.7/12.8/−13.6; press 3 **PASS** −48.3/−35.8/12.5/−14.9; press 4 **PASS after a `d24-testui` restart** −48.1/−35.8/12.3/−15.3. Tone repeats to **0.1 dB**. Tile captures in `s110/data/s111-*.png`; PW's two failing logs copied to `s110/data/al1-fail-*.txt`; write-up is `s110/acoustic-loop-test.md` §11. Deployed per S105: rollback `d24_selftest.py.bak-s111-pre` `7ec3e742…`, deployed `4888906a861c46b659ae2ed462488cd8`, md5-matched after scp. Runner only — no catalog, skin or app rebuild. **Unit as left**: AN_EN `lo`, CS_M `op -- pd | hi` DRIVEN, 595 SAFE `VERIFIED 200/200`, matrix-app inactive (never started), d24-testui active on row **56 showing its PASS tile**, injector killed and FIFO removed, CPLD/H1S1 not reflashed (only S_RUN/S_TEST/reg 0xFF), `pair.conf` unchanged, `defs.lock` unmoved — no contract bump owed. 🔴 **For the hub: every other section-B/C row still carries the same two cold-start assumptions** — `boot_pair()` inherits the CS_M fix, but nothing but AL1 calls `codec_init()`; a sweep of the set is worth its own dispatch. 🟡 The AK4619 read arm answers NO REPLY on a cold unit while writes land, so "is the codec configured?" cannot be settled by reading — that is why `codec_init()` is unconditional.]   [model: opus]
 
 model: opus
