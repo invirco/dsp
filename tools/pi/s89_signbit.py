@@ -29,10 +29,12 @@ NW = int(_A[1]) if len(_A) > 1 else 32
 # CS_M/U2 defect: GPIO27 comes back from a Pi reboot as `ip pd` and enables U2
 # on MISO) exits 1 and reads to the caller as FOLDED. The boot wrapper then
 # rebooted the pair six times against a fault a one-line pinctrl fixes.
+# That one line is `op dh`, not `ip pu`, since S109: the pull no longer holds
+# the pin against whatever sinks it, so it has to be DRIVEN high.
 def _unreadable(msg):
     print('CANNOT READ THE PART: %s' % msg)
     print('  If this is "cannot phase the parameter link", try:  '
-          'sudo pinctrl set 27 ip pu')
+          'sudo pinctrl set 27 op dh')
     sys.exit(2)
 GROUPS = (('lane 0 (SPORT 0)  MAIN L/R', (0, 1)),
           ('lane 1 (SPORT 1)  codec ret', (25, 26)))

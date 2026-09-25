@@ -400,7 +400,7 @@ the noise floor with no correlation to a known stimulus) on this bench:
 1. **CPLD design-ID readback first** (`dsp4_logic_id.py`) — rules out or confirms the
    cheapest, most totalizing fault (wrong bitstream in flash) before touching anything else.
 2. **AN_EN / 595 chain / DMA-alive checks** — GPIO26 state, a 595 chain readback (pass-2 =
-   current state; CS_M should read `op pu|hi`, driven, once anything has written the chain),
+   current state; CS_M should read `op dh` / `op -- pu|hi`, DRIVEN high -- since S109 a pull-up alone no longer holds it, so `ip pu|hi` is not a pass),
    and confirm the RX DMA engine is actually running (`_rx_active_buf` ping-ponging,
    `FRAME_COUNT` advancing) — these separate "no rails/no chain/no DMA" from "wrong data."
 3. **Only then `dsp4_rxscan.py`** (the S86-proven RX-DMA-region instrument, not `TEST_MEAS`

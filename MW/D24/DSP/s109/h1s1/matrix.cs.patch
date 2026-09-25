@@ -1,0 +1,25 @@
+--- Core/Inc/matrix.cs (pre-S109)
++++ Core/Inc/matrix.cs (S109)
+@@ -67,11 +67,21 @@
+    the question by measurement instead of by reading, with no reflash. */
+ unsigned char codecReadCmd = 0x43;
+ unsigned char codecReadGuard = 0;
++/* Index 21 is register 12H (bytes 0-2 are the SPI write header, so 00H is
++   index 3). It was 0x04, the part's reset default, which is DAC1SEL=00
++   (SDIN1) and DAC2SEL=01 (SDIN2). SDIN2 is AK4619 pin 2, N/C on this board
++   (netlist G3619), and datasheet 200900082-E-00 9.3 says SDIN2 is IGNORED
++   in TDM mode anyway - so DAC2, i.e. AOUT2L/R = CODEC_OUT_3/4 = the aux
++   outputs, was fed from nothing and would have stayed silent even after
++   the CPLD stopped tying SDIN1 low (S108-2 / S109).
++   0x00 sets DAC2SEL=00 = SDIN1 (Table 18), which in TDM256 SLOT=1 puts
++   DAC2L/R on SDIN1 slots 2/3 - exactly where C2_CODEC_AUX_OUT sends
++   CODEC_OUT_3/4 (dsp.csv slot_start=2, slot_count=2). DAC1 is unchanged. */
+ char ak4619[24] = { //0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00, 
+                     0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00,
+                     0xBB, 0xBB, 0x30, 0x30, 0x30, 0x30, 0x00, 
+                     0x00, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 
+-                    0x04, 0x05, 0x0A };
++                    0x00, 0x05, 0x0A };
+ 
+ // typedef
+ GPIO_InitTypeDef GPIO_InitStruct = { 0 };           // hal gpio

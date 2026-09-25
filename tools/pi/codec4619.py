@@ -42,8 +42,10 @@ phantom off, MUTED), which is what MW/D24/DSP/s70/tools/s70_handback.py writes, 
 
 So anything that cares about the mic-pre image must restore it afterwards, and
 "afterwards" means writing the SAFE image, not assuming a reset produced one. Writing
-it drives CS_M (GPIO 27) and CS_M must be put back to `ip pu` after (it gates the U2
-MISO buffer; a CS_M left low looks exactly like a DSP link phase fault).
+it drives CS_M (GPIO 27) and CS_M must be DRIVEN back high -- `pinctrl set 27 op dh`
+-- after (it gates the U2 MISO buffer; a CS_M left low looks exactly like a DSP link
+phase fault). `ip pu` was the recipe until S109 and is no longer enough: the pull no
+longer holds the pin against whatever sinks it.
 
   codec4619.py --reg 05 --val B2            reg 05H := 0xB2 (MGN2L +27 dB, MGN2R 0 dB)
   codec4619.py --mgn2r 5                    MGN2R code 5 only, MGN2L left at its current value

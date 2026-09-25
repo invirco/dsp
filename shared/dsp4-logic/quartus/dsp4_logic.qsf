@@ -47,13 +47,47 @@ set_location_assignment PIN_140 -to dsp_clk
 set_location_assignment PIN_142 -to conv_bck
 set_location_assignment PIN_141 -to conv_fs
 
-# PIN_70 (net `M MCU_S4`) WAS `strap_d32` AND IS NOW UNASSIGNED (S109).
+# PIN_70 (net `M MCU_S4`) WAS `strap_d32` AND IS NOW RESERVED WITH NO
+# PULL-UP (S109, then S109-2).
+#
 # D32 is out of requirements (PW 2026-09-25), so there is no product
-# personality to read. The pin never had a defined level anyway: the net
-# has exactly two pins (U3.70 and the M MCU U8.11), no pull resistor, and
-# MAX V offers a weak pull-UP only -- so it floated HIGH on every D24 and
-# tied the codec DAC to zero (S108). It now falls to the global unused-pin
-# reservation, which leaves this end an input and cannot mute anything.
+# personality to read, and S109 left the pin to the global unused-pin
+# reservation. S109-2 then read the M MCU's own source and the net is not
+# a strap at all: `M MCU_S4` is U8's PUSH-PULL RESET OUTPUT for slave slot
+# 2, and this board wires that slot's whole quad to the CPLD --
+#
+#   S4 = PIN_70  reset      S5 = PIN_69  boot0
+#   S6 = PIN_68  ready      S7 = PIN_67  send-data
+#
+# -- because the M MCU's slave inventory names slot 2 "MW D24 DSP4 LOGIC"
+# (MH1 `pcbName[1]`). The CPLD implements none of that protocol, so the
+# quad reaches a part that can never answer it, and the level is a live
+# function of the M MCU's handshake state: `ResetAllSlaves()` drives S4
+# LOW and `StartAllSlaves()` (on the host's S_RUN) drives it HIGH. That is
+# exactly why S106/S108 measured the old strap HIGH and S109 measured it
+# LOW -- the net was never stuck, it was reporting whether MH1 had been
+# told to run.
+#
+# So the weak pull-up the global reservation puts here is HARMLESS but
+# WRONG, for the same reason as `mhrx` below: a CPLD pull-up has no
+# business on a line another part drives push-pull and this part does not
+# read. It cannot fight U8 (the driver wins in both directions) and it
+# costs only ~130 uA while S4 is asserted, so this is NOT worth a flash on
+# its own -- it rides the next CPLD build. Taking it off by name also
+# means that if a future bitstream ever DOES read the quad, it reads U8
+# and not a resistor.
+#
+# S5/S6/S7 (PIN_69/68/67) are LEFT on the global reservation here, and that
+# is a scope call, not a judgement that they are different. S6 is an INPUT
+# at the M MCU end (MH1 GPIO init), so this end's pull-up is the only thing
+# defining that net and taking it off would leave it floating -- it must
+# stay. S5 and S7 are push-pull OUTPUTS of U8 exactly like S4, so the same
+# argument applies to them; they are not changed because S109-2 asked about
+# PIN_70 and a three-pin change is a wider un-benched delta than the one
+# the finding covers. Fold them in with any other qsf work (🔴 S109-2b).
+set_location_assignment PIN_70 -to m_mcu_s4
+set_instance_assignment -name RESERVE_PIN "AS INPUT TRI-STATED" -to m_mcu_s4
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR OFF -to m_mcu_s4
 
 # ---- DSP clock pairs ----
 set_location_assignment PIN_20  -to bcki[0]

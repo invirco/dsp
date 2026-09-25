@@ -290,10 +290,19 @@ analog source (NET only); the LOGIC slot map must route DSPB O1 → DA3.
     forcing GPIO9 `a0 pu` vs `a0 pd` changes nothing (MISO is driven, not
     floating); and replies are **byte-identical with either DSP chip select
     asserted or deasserted**, which is what proves the SHARC is not the
-    source. **Fix: GPIO27 as an input with a pull-UP** — CS_M high, U2
-    tri-stated — after which the link answers `0xD5B40001` first try.
-  - **Rev-D line.** CS_M's idle state is currently a CM4 pull resistor with no
-    owner: H1S1 no longer drives it and the CM4 does not drive it either. It
+    source. **Fix: GPIO27 DRIVEN high, `pinctrl set 27 op dh`** — CS_M high,
+    U2 tri-stated — after which the link answers `0xD5B40001` first try.
+    **The pull-UP form (`ip pu`) was the fix until 2026-09-25 and is no longer
+    enough (S109-5):** after that day's Pi reboot the pin read `ip pu | hi`,
+    the documented fix apparently applied, and the link still would not phase
+    over four boots with both SHARCs healthy behind it; `op dh` fixed it first
+    try. So the pull no longer holds the pin against whatever sinks it, and the
+    rev-D line below is no longer a precaution — it has happened.
+  - **Rev-D line — NOW OVERTAKEN BY EVENTS (S109-5, 2026-09-25).** CS_M's idle
+    state was a CM4 pull resistor with no owner: H1S1 no longer drives it and
+    the CM4 did not drive it either. A pull is no longer sufficient, so every
+    live recipe now DRIVES GPIO27 (`op dh`) and the CM4 is the owner in
+    practice, by script rather than by design. It
     needs a defined idle — a hard pull-up at the buffer, or CS_M moved onto a
     CM4 line that is driven rather than pulled (the spare-stack-CS plan in
     `dsp4-architecture-decisions.md` already contemplates this). Until then

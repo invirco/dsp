@@ -40,8 +40,10 @@ WHAT THIS RUNNER WILL NOT DO, and each is a bench rule rather than a limitation:
   * it hands the 595 chain back to the SAFE image LAST, after the final DSP boot,
     because a boot clocks half a megabyte through the chain and only a CS_M edge
     decides what gets latched (S70-7);
-  * it puts GPIO27 back to `ip pu` -- CS_M left low gates the U2 MISO buffer and
-    looks exactly like a DSP link phase fault;
+  * it DRIVES GPIO27 `op dh` -- CS_M left low gates the U2 MISO buffer and looks
+    exactly like a DSP link phase fault, and since S109 a weak pull-up no longer
+    holds the pin against whatever sinks it (`ip pu` read `hi` and the link still
+    would not phase; `op dh` fixed it first try);
   * it restarts `matrix-app` and reads the MCU verdict from the WHOLE of
     `/home/app/logs/log`, because the app rewrites that file on start.
 
@@ -1594,7 +1596,8 @@ def handback(r):
     a CS_M edge decides what gets latched (S70-7)."""
     notes = []
     notes.append('SAFE image: %s' % _chain(r, SAFE_IMAGE))
-    r.pin('%d ip pu' % CS_M_GPIO)
+    # DRIVEN high, not pulled: since S109 the pull no longer holds CS_M.
+    r.pin('%d op dh' % CS_M_GPIO)
     notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
     notes.append('AN_EN: %s' % r.an_en())
     if r.a.no_app_restart:
