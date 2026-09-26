@@ -1,3 +1,51 @@
+## HUB DISPATCH 2026-09-26 14:57Z — S119: retire the meter station from RUN ALL; deploy the corrected catalog   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S119 — Retire the meter station from RUN ALL; deploy the corrected catalog
+
+## 1. The meter station comes out of the factory unit test (PW ruling 2026-09-26)
+
+PW: component and assembly faults are the assembler's QC job (feeder/reel verification, AOI, X-ray,
+flying-probe test, a current-limited first power-up, first-article inspection, a pilot build) — "QC will
+have more impact on efficiency and product quality than adding extra manual steps". The unit test stays
+HARDWARE PROOF of the assembled unit, fastest and with the fewest manual steps. So station 6, "Meter
+checks, lid off" (24 rows: analog J11/J56; DSP J1-J4/J6; digital J4-J7, J10, J14, J15, J20-J27, J31,
+J32), is removed from RUN ALL:
+- no operator dialog, no lid-off step, no rails for it (so S117's Q1 disappears);
+- each of the 24 rows is reported, never dropped, as either **"covered by <test>"** where an automatic
+  test already proves the connector (e.g. the DSP power/link headers by the processor boot and link
+  tests, the CM4 module connectors by the unit running at all — name the test, the same mechanism as
+  partner-row stamping, one-way) or **"board-level test at the assembler"** for the rest (plain wording
+  on the report's human page; no designators beyond what the row already names);
+- catalog: those rows move to a new `group` value (e.g. `QC`) with `order` unchanged elsewhere; no row
+  renumbered or removed; `d24_runall.py` and the app need no new dialog.
+Prove: a RUN ALL on MW-D24-2 walks one fewer station, the report still has 202 rows, every one of the 24
+carries its new wording, and the operator never sees a meter or lid-off card.
+
+## 2. Deploy the corrected catalog (S117-1, fixed hub-side)
+
+mx26 `7bb7c84` fixed the pass-criterion off-by-one at its cause (spec row citations shifted by CS5's
+retirement; 34 citations corrected; `build-d24-test-skin.py --check` = 0 violations over 202 rows). It
+also corrected `explain` / `manual` / `spec_section` / `short`, which came from the same citations.
+Regenerate with
+`tools/d24/build-d24-test-skin.py --keys <build-d24-connector-status.py --export-keys> --spec
+docs/spec-d24-selftest.md --runner tools/pi/d24_selftest.py --out <staging>` (mx26 main, pull it), carry
+over S116/S117's `group`/`order` and `covers` columns (diff every column: only the five corrected ones
+may change, plus part 1's `group`), commit it as the new catalog here, deploy it to
+`/home/app/selftest/test-catalog.csv` (rollback kept, md5s), and show rows 133, 134, 198 and 202 on the
+glass DETAIL page with their own criteria. Note: `covers` (16 rows) and `remedy` (2 rows) already
+differed between mx26's generator and S116 before this fix — reconcile them, and say which is right.
+
+## Bench, deliverables
+
+MW-D24-2 as S118 hands it back; silent handback. Report `MW/D24/DSP/s119/meter-retired.md` with the row
+table (row, connector, new wording, covering test). Questions = 🔴 note, commit, stop — no dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 14:22Z — S118: S115-2 — chip-1 → chip-2 MAIN receive stuck at full scale (trace, reproduce, fix, detection row)   [status: 🔴 done, NOT REPRODUCED — **the path is traced end to end and the desk work KILLS the two mechanisms that were on the table, the state did not recur under five deliberate perturbations, and what ships is a 0.7 s gate that will answer the question in one read next time.** **THE FABRIC HAS NO GAIN AND NO CONVERSION IN IT** (S118-1): `_gather_chip1` writes Q4.28 straight to the DMA half and `_scatter_chip2` reads it straight out — the `Q1.31<->Q4.28` shifts are on the CONVERTER lanes only — so a LOST CONVERSION cannot be the fault, and a SLOT ROTATION cannot be it either because all 41 fabric slots carry chip-1 buses and chip 1's graph was quiet, so a rotation swaps one silence for another. `tdm-lines.csv` also rules out a CPLD loopback (MIX_0..2 are DSPA O0..O2 -> DSPB I0..I2, nothing returns to chip 2). Healthy behaviour MEASURED under a -6 dBFS tone: the two ends of MAIN agree to **0.03-0.08 dB** and decay together to -115 dBFS when the tone stops. 🔴 **S118-2, the one hypothesis that explains the ARITHMETIC: the four DMA halves are contiguous and chip 2's Q1.31 TRANSMIT halves sit directly above its inter-chip RECEIVE halves** — read off the part, IC RX ping `0xB4770` / pong `0xB4A00` (+656), TX ping `0xB4C90` / pong `0xB4F10` (+640). A receive-side read one region high lands in `_gather_chip2`'s output, Q1.31 saturated at `0x7FFFFFFF`, and reports it as Q4.28: **x8, saturating, sustained, chip 1 silent, surviving a commit and cleared by a boot** — S115-2's signature exactly, including the factor of 8 hiding in `+18.06 dBFS` and in `0x7FFFFEE0`, which is `0x0FFFFFDC << 3`, a 0 dBFS Q4.28 word in Q1.31 position. The generated tables cannot reach there (max 655 of 656), so it needs `_ic_rx_active_buf` itself to be wrong; `s118_probe.py` now prints all four pointer words every run, so the next occurrence decides it in ONE read. **NOT REPRODUCED, and here is what was tried, each ending in a full 41-slot survey of both ends:** a -6 dBFS tone on then off (no latch, so no armed feedback loop); config commits on a running pair; the two chips booted **10 s apart** (`!RST_D` resets BOTH — there is no per-chip reset — so this is the only staggered case that exists); **a CM4 reboot with the pair left running** (the literal history — the pair survived it, FRAME_COUNT climbed straight through, fabric still a wire); and **six self-test passes**, one full `--section A,B,C` (51 rows, 34 PASS, `AL1 PASS base -60.2 tone -35.0 SNR 25.2 dB THD 2.58%`) plus **five later `--only AL1` presses that did NOT boot the pair — the exact S117-3 condition — all `AL1 PASS`, SNR 12.9 to 33.1 dB**. The unit was also found CLEAN at 15:25 with every stage of the chain at exact digital zero. No root cause is claimed; §2 of the report ranks six hypotheses with the one experiment that decides each. 🟢 **WHAT SHIPS: `IC1`, and it is a COMPARISON, not a threshold.** New `tools/pi/dsp4_icrecv.py` asks the one thing the fabric's construction guarantees — *what chip 2 receives on MAIN == what chip 1 sent* — so it needs NO setup, writes nothing, has nothing to put back, and is true at digital silence, under a tone and with the rails up (a 'MAIN must be quiet' rule would need a setup and would still be wrong the moment a press legitimately opens a strip). Limits: c2 no more than **+12 dB** over c1 above **-40 dBFS**, and never above **0 dBFS** — against a measured 0.03-0.08 dB on a healthy part and a 133 dB step in the fault. **Cost 0.706 s.** 🟢 **THE S117-3 DECISION, TAKEN: the guard is in `ensure_pair()`, not in RUN ALL.** `link_alive()` asks MAGIC and BOOT_STAGE, both of which a pinned pair answers perfectly — which is why S117's second pass did not boot. It now also asks whether the fabric is a wire and **boots on a `no`**, so the 40 s is paid only when the state is present; `d24_runall.py` is UNCHANGED and no catalog row moved. A forced boot is still reported as an `IC1` **FAIL** (`Rig.ic_forced_boot`), so repairing a unit cannot silently turn it into a clean report. Gate asked once per press (cached on the `Rig`, invalidated by a boot): an `--only AL1` press measured **41 s against 39-41 s on the S118-pre rollback**. **EVERY ARM PROVEN ON THE PART, with limits moved onto a healthy part's own reading rather than a fault faked:** PASS (`c1 -21.7 -> c2 -21.7 dBFS`); FAIL on the ceiling rule (`--ceiling -30`); FAIL on the comparison rule (`--gain-tol -1`); NO DATA with `!RST_D` held (`SPI_RDY never asserted`); and the **forced boot end to end** through the runner (`--ic1-ceiling -110` -> `ensure_pair end (booted=True)` -> `IC1 FAIL the fabric was NOT A WIRE when this run found the unit`). 🟡 **S118-3: S115-2's `_buf_C2_RECV_MAIN_L` read spanned three variables** — under block kernels that symbol is a SCALAR staging word and the block is `_blk_C2_RECV_MAIN_L`; the 16 words read covered the scalar, three of padding and 12 of the NEXT node's `_rx_ic_slot`, so the `+18.06 dBFS` peak may belong to MAIN_R. Every tool written here reads `_blk_`. 🟡 **S118-4: a CM4 reboot leaves THREE pin traps, and two are not the known one** — GPIO27 back to `ip pd | lo` (the U2/MISO trap) AND GPIO6/GPIO24 back in ALT, so both chip selects sit asserted and the link answers as **'CHIP 3'**; only `pin_handback()`'s three writes make a healthy pair readable. 🟡 **S118-Q1 for the hub, ONE line in mx26's generator:** `IC1` has no workbook row (`ITEMS['IC1'] = []`, the `USB-HUB` precedent) because rows 139/140 are the LINKS and already belong to AS-DSPA/AS-DSPB, and taking them would let an IC1 PASS overwrite an AS-DSPB FAIL; nothing was invented in this tree (S117-1's rule). Give it one by APPENDING an `Inter-board links` item *Inter-chip mix fabric (dig-dsp-a -> dig-dsp-b audio)* — its number lands above every existing one so **nothing renumbers** — with `tests = IC1`, `automation = 1`, `group = A4`. Until then the gate is fully effective inside `ensure_pair()`. **Deployed** `/home/app/selftest/`: `d24_selftest.py` `bfcafe0f97866963de2bf446bd3734c3` (rollback `.bak-s118-pre` = `34de17cbda23b731fdd718947792a807`, S117's), `dsp4_icrecv.py` `21581bca121c3734fa47f2bc52f6236c` (new, in `STAGE_TOOLS`), `s118_probe.py` `72d464f992711d174aef6bf3aac95335` (new). Catalog, app, CPLD, H1S1 and `pair.conf` NOT touched; `defs.lock` unmoved, **no contract bump owed**. **Unit as left:** `matrix-app` inactive, `d24-testui` active, AN_EN lo, CS_M `op dh` DRIVEN, chain SAFE 200/200, monitor bus 0, every MainOn 0, `MainL001Mtr001` 0.000000, `IC1 PASS` at exact digital zero. Report `MW/D24/DSP/s118/main-recv.md`, logs `s118/logs/`, findings S118-1..6 + S118-Q1. **Why 🔴 and not 🟢: the fault has no root cause yet.** The gate detects it and stops a run being scored in it, but the defect is still live in the product — decide S118-Q1, and re-dispatch if the state reappears (the instruments will name the stage in one read).]   [model: opus]
 
 model: opus
