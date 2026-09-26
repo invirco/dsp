@@ -1,0 +1,208 @@
+=== 2026-09-26T13:10:50Z  PASS
+--- boot cycle 1 ---
+pins: 6,24 op dh, 8,12 ip, 7,9,10,11,22,23,25 a0
+!RST_D pulsed (GPIO16), 0.500s settle
+  chip 1: attempt 1/2 OK — 434176 bytes sent on CS1 (GPIO6), RDY on GPIO8, 583.1 ms (100% unsynced collision risk)
+  chip 2: attempt 1/2 OK — 368640 bytes sent on CS2 (GPIO24), RDY on GPIO12, 497.6 ms (100% unsynced collision risk)
+booted 2 chip(s) at 10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+CHIP_ID verified: chip 1 = 1, chip 2 = 2
+
+--- config cycle 1 chip 1 ---
+wrote 53 registers to chip 1 (CS GPIO6)
+
+--- config cycle 1 chip 2 ---
+wrote 6 registers to chip 2 (CS GPIO24)
+
+--- boot cycle 2 ---
+pins: 6,24 op dh, 8,12 ip, 7,9,10,11,22,23,25 a0
+!RST_D pulsed (GPIO16), 0.500s settle
+  chip 1: attempt 1/2 OK — 434176 bytes sent on CS1 (GPIO6), RDY on GPIO8, 582.7 ms (100% unsynced collision risk)
+  chip 2: attempt 1/2 OK — 368640 bytes sent on CS2 (GPIO24), RDY on GPIO12, 496.8 ms (100% unsynced collision risk)
+booted 2 chip(s) at 10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+CHIP_ID verified: chip 1 = 1, chip 2 = 2
+
+--- config cycle 2 chip 1 ---
+wrote 53 registers to chip 1 (CS GPIO6)
+
+--- config cycle 2 chip 2 ---
+wrote 6 registers to chip 2 (CS GPIO24)
+
+--- inter-chip link gate (s89_signbit, exit 0) ---
+  lane 0 (SPORT 0)  MAIN L/R    sent bit31  41/ 64 (distinct 58)   received bit31   0/ 64 (distinct 58)
+  lane 1 (SPORT 1)  codec ret   sent bit31  37/ 64 (distinct 62)   received bit31   0/ 64 (distinct 64)
+  VERDICT lane 0 (SPORT 0)  MAIN L/R   FOLDED
+  VERDICT lane 1 (SPORT 1)  codec ret  FOLDED
+OVERALL: FOLDED
+
+--- chip1 ---
+=== DSP4 chip 1 diagnostics ===
+  MAGIC          0xD5B40001
+  CHIP_ID        1   (DSPA/U6)
+  BOOT_STAGE     7   running
+  BOOT_CFG       1
+  FRAME_COUNT    5735
+  TICKS          1448
+  SEC_COUNT      5737
+  LAST_CSID      37   SPORT0_A_DMA (block clock)
+  UNK_CSID       0
+  UNK_COUNT      0
+  BLK_OVERRUN    2784
+  SPI_RX_COUNT   510
+  SPI_ERR_COUNT  0
+  SPI_STAT       0x00540001
+  SPI_STAT_STK   0x00144023
+  RESP_DROP      0
+  PRODUCT_ID     1
+  LED_MODE       0
+  SPORT0_ERR_A   0x00000000
+  DMA0_STAT      0x00006200
+  SPI_CTL        0x0001A501
+  SPI_RXCTL      0x00040001
+  SPI_TXCTL      0x00000001
+  BUILD_ID       0x20260812   (2026-08-12)
+  CFG_PHASE      0
+  CGU_FAIL       0
+  CGU_IT1        0
+  CGU_IT2        0
+  CGU_IT3        0
+  CGU_IT4        0
+  SPI_PART_FIX   0
+  SPI_PART_TICKS 0
+  SPI_PART_SEEN  0
+  SPI_PART_SKIP  0
+  SPI_REQ_WORD   0x00000000
+  BUILD_CFG      0xCF45FF10
+                 BLOCK 16
+                 CCLK 983.040 MHz
+                 BLOCK_MASK 7
+                 on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+                 off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+                 budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+  BUILD_CFG2     0xE3018E6F
+                 DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+                 DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+                   ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+                 on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TEST_NODES, DSP4_TALK_INVERT
+                 off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH
+                 NOT SHIPPING: DSP4_TEST_NODES = 1, shipping is 0
+
+  ISSUES
+    - BLK_OVERRUN = 2784 — the main loop missed that many blocks; audio was dropped.
+    - SPI_STAT sticky bits: TUR  transmit underrun; FCS  flow-control stall
+--- chip2 ---
+=== DSP4 chip 2 diagnostics ===
+  MAGIC          0xD5B40001
+  CHIP_ID        2   (DSPB/U5)
+  BOOT_STAGE     7   running
+  BOOT_CFG       1
+  FRAME_COUNT    5207
+  TICKS          1390
+  SEC_COUNT      5210
+  LAST_CSID      37   SPORT0_A_DMA (block clock)
+  UNK_CSID       0
+  UNK_COUNT      0
+  BLK_OVERRUN    2083
+  SPI_RX_COUNT   463
+  SPI_ERR_COUNT  0
+  SPI_STAT       0x00540001
+  SPI_STAT_STK   0x00144023
+  RESP_DROP      0
+  PRODUCT_ID     1
+  LED_MODE       0
+  SPORT0_ERR_A   0x00000000
+  DMA0_STAT      0x00006200
+  SPI_CTL        0x0001A501
+  SPI_RXCTL      0x00040001
+  SPI_TXCTL      0x00000001
+  BUILD_ID       0x20260812   (2026-08-12)
+  CFG_PHASE      0
+  CGU_FAIL       0
+  CGU_IT1        0
+  CGU_IT2        0
+  CGU_IT3        0
+  CGU_IT4        0
+  SPI_PART_FIX   0
+  SPI_PART_TICKS 0
+  SPI_PART_SEEN  0
+  SPI_PART_SKIP  0
+  SPI_REQ_WORD   0x00000000
+  BUILD_CFG      0xCF45FF10
+                 BLOCK 16
+                 CCLK 983.040 MHz
+                 BLOCK_MASK 7
+                 on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+                 off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+                 budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+  BUILD_CFG2     0xE3018E6F
+                 DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+                 DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+                   ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+                 on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TEST_NODES, DSP4_TALK_INVERT
+                 off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH
+                 NOT SHIPPING: DSP4_TEST_NODES = 1, shipping is 0
+
+  ISSUES
+    - BLK_OVERRUN = 2083 — the main loop missed that many blocks; audio was dropped.
+    - SPI_STAT sticky bits: TUR  transmit underrun; FCS  flow-control stall
+--- rxscan ---
+symbol map: /home/app/s90/chip1.sym.json (6452 symbols)  tag=
+
+  control MUST MOVE      FRAME_COUNT +3923  [ok]
+  control MUST NOT MOVE  _rx_slot_C1_IN_01      12 reads, 1 distinct, 0x00000000  [ok]
+  control MUST NOT MOVE  _buf_C1_IN_01          12 reads, 1 distinct, 0x00000000  [ok]
+
+node           entry   off  lane  lidx  read distinct  rms dBFS   pk dBFS  first words
+IN_04              0     0     0     0    16       13   -114.43   -109.85  ffffea00 00000a00 00000300  CARRYING
+IN_16              1     1     0     1    16       12   -115.86   -108.37  00000600 00000d00 fffffc00  CARRYING
+IN_03              2     2     0     2    16       14   -116.36   -110.87  00001500 00000d00 fffffc00  CARRYING
+IN_15              3     3     0     3    16       16   -115.53   -109.23  fffff000 fffff900 ffffea00  CARRYING
+IN_14              4     4     0     4    16       13   -114.01   -105.41  fffff300 fffffb00 00000a00  CARRYING
+IN_02              5     5     0     5    16       14   -116.68   -107.11  00000200 00000600 00000000  CARRYING
+IN_13              6     6     0     6    16       13   -118.21   -110.51  fffff500 ffffe700 fffff700  CARRYING
+IN_01              7     7     0     7    16       13   -115.63   -109.23  fffffa00 00001d00 fffff700  CARRYING
+IN_08              8   128     1     0    16       13   -116.40   -110.51  00000400 00000200 ffffff00  CARRYING
+IN_20              9   129     1     1    16       14   -116.99   -112.90  00000400 fffff200 00001300  CARRYING
+IN_07             10   130     1     2    16       12   -116.69   -109.53  fffff300 fffffa00 00000200  CARRYING
+IN_19             11   131     1     3    16       12   -114.99   -111.24  00000a00 ffffea00 00001700  CARRYING
+IN_18             12   132     1     4    16       13   -114.90   -108.37  00000100 fffff300 fffff300  CARRYING
+IN_06             13   133     1     5    16       13   -117.97   -112.90  fffff000 00001200 00000400  CARRYING
+IN_17             14   134     1     6    16       14   -115.19   -108.93  fffffe00 00000c00 fffffc00  CARRYING
+IN_05             15   135     1     7    16       15   -116.59   -111.63  00000c00 fffffd00 fffffd00  CARRYING
+IN_12             16   256     2     0    16       14   -115.80   -108.93  00001500 ffffef00 fffffc00  CARRYING
+IN_24             17   257     2     1    16       14   -118.90   -112.45  ffffec00 fffffd00 00000600  CARRYING
+IN_11             18   258     2     2    16       14   -117.26   -111.63  fffff800 fffff000 00000500  CARRYING
+IN_23             19   259     2     3    16       14   -115.55   -109.23  fffff600 00001d00 ffffed00  CARRYING
+IN_22             20   260     2     4    16       15   -115.34   -107.84  fffffd00 00000100 00000900  CARRYING
+IN_10             21   261     2     5    16       13   -115.06   -108.37  00000000 ffffff00 ffffe000  CARRYING
+IN_21             22   262     2     6    16       14   -115.57   -110.17  00000200 00001000 fffffa00  CARRYING
+IN_09             23   263     2     7    16       15   -114.23   -107.11  00001800 ffffdb00 fffff500  CARRYING
+IN_25             24   384     3     0    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_26             25   385     3     1    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_27             26   386     3     2    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_28             27   387     3     3    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_29             28   388     3     4    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_30             29   389     3     5    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_31             30   390     3     6    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+IN_32             31   391     3     7    16        1   -186.64   -186.64  ffffffff ffffffff ffffffff  static, NO SOURCE — expected
+XIN_CODEC_01      32   512     4     0    16       16    -72.63    -68.03  0002a800 fffcc700 fff48100  CARRYING
+XIN_CODEC_02      33   513     4     1    16       16    -78.43    -71.77  fffc2100 00014d00 00001b00  CARRYING
+XIN_CODEC_03      34   514     4     2    16       14    -98.03    -89.38  00006900 00003600 00000e00  CARRYING (!! an unsourced lane should not move)
+XIN_CODEC_04      35   515     4     3    16       16    -89.47    -83.12  00015700 00024a00 00001d00  CARRYING
+XIN_SNK_01        36   576     5     0    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_02        37   577     5     1    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_03        38   578     5     2    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_04        39   579     5     3    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_05        40   580     5     4    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_06        41   581     5     5    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_07        42   582     5     6    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_SNK_08        43   583     5     7    16        1   -336.00   -336.00  00000000 00000000 00000000  static, NO SOURCE — expected
+XIN_PI_L          44   704     6     0    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_PI_R          45   705     6     1    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_MEMS          46   736     7     0    16       16    -15.96    -10.24  f33407ff f51267ff edce87ff  CARRYING
+
+28 of 30 SCORED RX entries CARRYING SAMPLES
+17 further entries have NO FITTED SOURCE and are not scored:
+   IN_25, IN_26, IN_27, IN_28, IN_29, IN_30, IN_31, IN_32: A_I3 is the NET lane (ni[3], pin 3) and option slot 1 is empty; there is no AD3 converter on this board
+   XIN_CODEC_03: AK4619 ADC2 Lch (IN3) is not connected on rev C and has no consumer
+   XIN_SNK_01, XIN_SNK_02, XIN_SNK_03, XIN_SNK_04, XIN_SNK_05, XIN_SNK_06, XIN_SNK_07, XIN_SNK_08: D32 snake return. D32 is out of requirements (PW 2026-09-25): pin 109 is unassigned and LOGIC ties i_dspa[5] to 0
+   !! CARRYING anyway, which needs explaining: XIN_CODEC_03

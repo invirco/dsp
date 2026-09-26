@@ -1,0 +1,8 @@
+=== 2026-09-26T13:10:41Z  PASS
+before: FRAME_COUNT 6713 -> 10726
+after the pulse:
+ERROR: SPI_RDY never asserted — DSP held in reset, not booted, or the RDY polarity is inverted (try --rdy-active-low)
+=== DSP4 chip 1 diagnostics ===
+---
+ERROR: SPI_RDY never asserted — DSP held in reset, not booted, or the RDY polarity is inverted (try --rdy-active-low)
+=== DSP4 chip 1 diagnostics ===

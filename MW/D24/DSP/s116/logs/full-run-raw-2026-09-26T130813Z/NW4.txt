@@ -1,0 +1,19 @@
+=== 2026-09-26T13:09:39Z  NO DATA
+driving host 192.168.1.211: iface lo, link 0 Mb/s
+--- unit receiving (host -> unit) ---
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec  13.6 GBytes  11667 Mbits/sec    0            sender
+[  5]   0.00-10.00  sec  13.6 GBytes  11665 Mbits/sec                  receiver
+
+iperf Done.
+
+--- unit sending (unit -> host, -R) ---
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec  9.99 GBytes  8578 Mbits/sec    0            sender
+[  5]   0.00-10.00  sec  9.99 GBytes  8577 Mbits/sec                  receiver
+
+iperf Done.
+
+PREREQUISITE: a gigabit path between the unit and the driving host. The unit's own link is 1000Mb/s Full (NW1); the dsp machine's lo is at 0 Mb/s, which caps this measurement below the bar whatever the unit does. Re-run from a gigabit-attached host, or move the unit and that host onto the same gigabit switch port pair.

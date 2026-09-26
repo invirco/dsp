@@ -1,0 +1,2 @@
+=== 2026-09-26T13:10:28Z  NO DATA
+PREREQUISITE: BOOT0/NRST drive from H1S1 (spec prereq 6). No BOOT0, NRST, S9 or S13 anywhere in ~/build-h1s1; H1S1's entire GPIO set is CS1-8, RST_C, CS_M, CS_C, BLINK, BUSY, S2, S3 (Core/Inc/main.h:59-91).

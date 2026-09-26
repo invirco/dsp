@@ -1,0 +1,3 @@
+=== 2026-09-26T13:10:23Z  PASS
+{"mode": "stest", "window_ms": 3016.1, "mcus": {"H1S1": "// H1S1 DSP", "H1S4": "// H1S4 SW Left", "H1S3": "// H1S3 SW Right"}, "raw": "+\n.\n:\n.\n:\n.\n:\n.\n+\n// H1S1 DSP\n// H1S4 SW Left\n// H1S3 SW Right\n:\n.\n:\n.\n:\n.\n:\n.\n:\n.\n:\n.\n"}
+--- matrix-app /home/app/logs/log ---

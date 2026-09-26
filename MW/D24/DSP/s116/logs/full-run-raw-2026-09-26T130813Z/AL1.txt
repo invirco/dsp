@@ -1,0 +1,234 @@
+=== 2026-09-26T13:11:43Z  PASS
+THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC injects at C1_IN_20 -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell (Chan020MainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code 54.
+
+AN_EN (GPIO26): 26: op -- pd | hi (raised this session, held up)
+pair staged: /home/app/loopthd/s109 (/home/app/selftest/pair.conf)
+--- AK4619 init (H1S1 StartAK4619; nothing else does it when matrix-app never runs) ---
+S_RUN   -> b'+\n.\n:\n.\n:\n.\n:\n'
+re-init: StartAK4619() requested (reg 0xFF)
+--- the DSP pair ---
+the pair was ALREADY UP (no boot by this run)
+chip 1: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+chip 2: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): True
+--- MEMS lane, rxscan (cached -- already confirmed since this pair was staged) ---
+XIN_MEMS          46   736     7     0    16       16    -56.69    -55.21  ffdcbfff ffdd7fff ffda87ff  CARRYING
+--- the route write (exit 0) ---
+--- other strips off MAIN ---
+inOn001           chip1 addr 3396   0x00000000  0.000000
+Chan025MainOn001           NOT IN CONTRACT
+Chan026MainOn001           NOT IN CONTRACT
+Chan027MainOn001           NOT IN CONTRACT
+Chan028MainOn001           NOT IN CONTRACT
+Chan029MainOn001           NOT IN CONTRACT
+Chan030MainOn001           NOT IN CONTRACT
+Chan031MainOn001           NOT IN CONTRACT
+Chan032MainOn001           NOT IN CONTRACT
+--- the route ---
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+Chan020Mute001             chip1 addr 2818   0x00000000  0.000000
+Chan020Level001            chip1 addr 2816   0x3F800000  1.000000
+Chan020Pan001              chip1 addr 2817   0x3F000000  0.500000
+Chan020CompOn001           chip1 addr 2792   0x00000000  0.000000
+Chan020GateOn001           chip1 addr 2776   0x00000000  0.000000
+Chan020TubeOn001           chip1 addr 2812   0x00000000  0.000000
+Chan020EqOn001             chip1 addr 2773   0x00000000  0.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Main001Mute001             chip2 addr 1381   0x00000000  0.000000
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+--- read back through the image's own dispatch table ---
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+Chan020Mute001             chip1 addr 2818   0x00000000  0.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Chan020Level001            chip1 addr 2816   0x3F800000  1.000000
+Chan020Pan001              chip1 addr 2817   0x3F000000  0.500000
+Chan020CompOn001           chip1 addr 2792   0x00000000  0.000000
+Chan020GateOn001           chip1 addr 2776   0x00000000  0.000000
+Chan020TubeOn001           chip1 addr 2812   0x00000000  0.000000
+Chan020EqOn001             chip1 addr 2773   0x00000000  0.000000
+
+--- the speaker path, torn down (AL1; exit 0, read-back SILENT) ---
+the route was live for 4.09 s of this press
+Mon001Level001             chip2 addr 1789   0x00000000  0.000000
+Mon001Level002             chip2 addr 1790   0x00000000  0.000000
+Chan020MainOn001           chip1 addr 2820   0x00000000  0.000000
+Chan020Mute001             chip1 addr 2818   0x00000001  0.000000
+--- baseline (tone off) ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : strip 5   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak (OFF)
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscFreq       4976 <- 0x447A0000   read 0x447A0000  OK
+    OscLevel      4977 <- 0x3F004DCE   read 0x3F004DCE  OK
+    OscChan       4978 <- 0x00000005   read 0x00000005  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 0; waiting for 3 more
+    seq      1   RMS   -55.87 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -55.87 dBFS   xtalk     0.00 dB
+    seq      2   RMS   -56.65 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -56.65 dBFS   xtalk     0.00 dB
+    seq      3   RMS   -55.92 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -55.92 dBFS   xtalk     0.00 dB
+
+  coherent capture of _buf_C1_XIN_MEMS:
+    1024 samples (dsp4_bulk (one streamed transfer)), 21.3 ms, fill 0.090 s read 0.105 s
+    capture RMS   -54.94 dBFS   quarters -55.0 -55.7 -55.0 -54.2   spread 1.52 dB
+    fundamental 994.7 Hz at -78.06 dBFS (cmath (stdlib) engine, 46.9 Hz bins, +-375 Hz bands)
+    THD (h2..h10)     -7.16 dB = 43.87303 %
+    THD+N (FFT)      -0.16 dB = 98.15800 %   noise -79.19 dBFS   SNR 1.13 dB
+    instrument THD floor -12.55 dB = 23.57924 % (the noise inside the harmonic bands)
+      h2    1968.8 Hz     -8.60 dBc    -86.66 dBFS
+      h3    3000.0 Hz    -18.10 dBc    -96.16 dBFS
+      h4    3984.4 Hz    -21.04 dBc    -99.11 dBFS
+      h5    4968.8 Hz    -22.80 dBc   -100.87 dBFS
+      h6    5953.1 Hz    -24.63 dBc   -102.69 dBFS
+      h7    6984.4 Hz    -22.75 dBc   -100.81 dBFS
+      h8    7968.8 Hz    -21.93 dBc    -99.99 dBFS
+      h9    8953.1 Hz    -21.39 dBc    -99.45 dBFS
+      h10   9937.5 Hz    -24.64 dBc   -102.71 dBFS
+
+  SETTLED (seq 3):
+    RmsResult      -55.92 dBFS
+    ThdResult        0.00 dB   = 100.00000 %
+    NoiseResult    -55.92 dBFS
+    XtalkResult      0.00 dB
+
+  wrote /home/app/s90/al1-osc.json
+--- tone at -6.0 dBFS ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : strip 20   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak 
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscFreq       4976 <- 0x447A0000   read 0x447A0000  OK
+    OscLevel      4977 <- 0x3A03621B   read 0x3A03621B  OK
+    OscChan       4978 <- 0x00000014   read 0x00000014  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscOn         4975 <- 0x00000001   read 0x00000001  OK
+    OscLevel     fade UP over 150 ms in 24 equal-dB steps
+    OscLevel      4977 <- 0x3F004DCE   read 0x3F004DCE  OK
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 10; waiting for 3 more
+    seq     11   RMS   -40.70 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -40.70 dBFS   xtalk     0.00 dB
+    seq     12   RMS   -35.13 dBFS   THD+N    -8.63 dB = 37.03341 %   noise   -43.76 dBFS   xtalk     0.00 dB
+    seq     13   RMS   -34.80 dBFS   THD+N    -7.02 dB = 44.54721 %   noise   -41.82 dBFS   xtalk     0.00 dB
+
+  coherent capture of _buf_C1_XIN_MEMS:
+    1024 samples (dsp4_bulk (one streamed transfer)), 21.3 ms, fill 0.085 s read 0.095 s
+    capture RMS   -34.64 dBFS   quarters -34.8 -34.6 -34.4 -34.7   spread 0.37 dB
+    fundamental 1000.0 Hz at -35.76 dBFS (cmath (stdlib) engine, 46.9 Hz bins, +-375 Hz bands)
+    THD (h2..h10)    -31.63 dB = 2.62230 %
+    THD+N (FFT)     -31.47 dB = 2.66942 %   noise -81.79 dBFS   SNR 46.03 dB
+    instrument THD floor -53.75 dB = 0.20538 % (the noise inside the harmonic bands)
+      h2    2015.6 Hz    -45.20 dBc    -80.96 dBFS
+      h3    3000.0 Hz    -32.03 dBc    -67.79 dBFS
+      h4    3984.4 Hz    -59.27 dBc    -95.03 dBFS
+      h5    5015.6 Hz    -46.37 dBc    -82.13 dBFS
+      h6    6000.0 Hz    -52.40 dBc    -88.16 dBFS
+      h7    6984.4 Hz    -66.65 dBc   -102.41 dBFS
+      h8    8015.6 Hz    -66.45 dBc   -102.21 dBFS
+      h9    9000.0 Hz    -64.68 dBc   -100.44 dBFS
+      h10   9984.4 Hz    -64.04 dBc    -99.80 dBFS
+
+  stopping:
+    OscLevel     fade DOWN over 150 ms in 24 equal-dB steps
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    oscillator was ON for 0.76 s
+
+  SETTLED (seq 13):
+    RmsResult      -34.80 dBFS
+    ThdResult       -7.02 dB   = 44.54721 %
+    NoiseResult    -41.82 dBFS
+    XtalkResult      0.00 dB
+
+    injected peak -6.00 dBFS -> a sine of that peak has RMS -9.01 dBFS
+    measured RMS is -25.79 dB from it (the strip's own gain through the path)
+
+  wrote /home/app/s90/al1-osc.json
+--- tone off again ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : strip 5   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak (OFF)
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscFreq       4976 <- 0x447A0000   read 0x447A0000  OK
+    OscLevel      4977 <- 0x3F004DCE   read 0x3F004DCE  OK
+    OscChan       4978 <- 0x00000005   read 0x00000005  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 21; waiting for 3 more
+    seq     22   RMS   -54.47 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -54.47 dBFS   xtalk     0.00 dB
+    seq     23   RMS   -55.67 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -55.67 dBFS   xtalk     0.00 dB
+    seq     24   RMS   -55.07 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -55.07 dBFS   xtalk     0.00 dB
+
+  SETTLED (seq 24):
+    RmsResult      -55.07 dBFS
+    ThdResult        0.00 dB   = 100.00000 %
+    NoiseResult    -55.07 dBFS
+    XtalkResult      0.00 dB
+
+  wrote /home/app/s90/al1-osc.json
+
+--- the numbers ---
+drive               -6.00 dBFS peak
+baseline (off)     -55.92 dBFS
+tone (on)          -34.80 dBFS   predicted -35.82 (1.029 x drive -29.65)
+SNR                 21.12 dB    (tone on minus tone off)
+THD  h2..h10       -31.63 dB  = 2.622 %   ceiling -28.50 dB = 3.758 %   <-- THE VERDICT
+THD floor (inst)   -53.75 dB      the noise inside the harmonic bands
+THD+N (node)        -7.02 dB  = 44.547 %   ceiling -10.32 dB = 30.478 %   INFORMATIONAL
+THD+N (capture)    -31.47 dB  = 2.669 %   INFORMATIONAL, the same window transformed
+in-window noise    -41.82 dBFS  (node)     -81.79 dBFS (capture, between the bands)
+floor afterwards   -55.07 dBFS  (+0.85 dB)
+oscillator on        0.76 s      (cap 3.0 s)
+tone in window        YES        (THD+N <= -6.0 dB, or SNR >= 15.4 dB)
+VERDICT          PASS (PASS)
+
+--- the coherent capture (_buf_C1_XIN_MEMS, 1024 samples = 21.3 ms) ---
+capture RMS        -34.64 dBFS
+quarters (RMS)   -34.81 -34.58 -34.43 -34.73 dBFS   spread 0.37 dB
+fundamental        1000.0 Hz at -35.76 dBFS   (commanded 1000.0 Hz)
+FFT says a tone is present: True
+harmonics (dBc): h2 -45.2  h3 -32.0  h4 -59.3  h5 -46.4  h6 -52.4  h7 -66.6  h8 -66.5  h9 -64.7  h10 -64.0
+
+THE WINDOWS ARE PROVISIONAL (until the speaker supplier datasheet -- NOT a spec limit). They live in ONE place, AL1_CAL at the top of the AL1 section of this file, and `--only AL1 --al1-calibrate` re-measures and rewrites them.

@@ -1,0 +1,23 @@
+chip 2: raw 0xCF45FF10
+        BLOCK 16
+        CCLK 983.040 MHz
+        BLOCK_MASK 7
+        on:  DSP4_BLOCK_KERNELS, DSP4_BLK_LATCH, DSP4_CHAN_MASK, DSP4_SCOPE_GATE, DSP4_BQ_FLOAT, DSP4_GAIN_FLOAT, DSP4_BQ_ROUNDONCE
+        off: DSP4_BISECT, DSP4_TXPROBE, DSP4_PROFILE_SIGNAL, DSP4_BQ_GUARD
+        budget 327680 cycles/block (983.040 MHz x 16 / 48000)
+          == the shipping configuration
+          raw2 0xE3018E6F
+          DSP4_TX_EARLY 2 (chip 2 TX) — outputs written a half ahead; +1 block of output latency per chip
+          DSP4_SHARED_KERNELS 3 (COMP, TUBE) — that class runs ONE body for all 32 strips
+            ^ TWO BITS ONLY: GATE (bit 2) and FILT (bit 3) are NOT carried in DIAG_BUILD_CFG2, so this value does not distinguish shipping.config.s21 from .s26 (S27-3). DIAG_BUILD_CFG3 bits 15..8 carry the whole mask (S80) -- read it there; fall back to the image md5 only on a pre-S80 image, where CFG3 is unmapped.
+          on2:  DSP4_STRIP_FUSED, DSP4_SIMD_DYN, DSP4_SIMD_GRAPH, DSP4_SIMD_STRIPS, DSP4_GATHER_FIRST, DSP4_DYN_LUT, DSP4_GATE_LINTHR, DSP4_TEST_NODES, DSP4_TALK_INVERT
+          off2: DSP4_SCOPE_BLK_TAP, DSP4_FX_TYPE_DECLARED, DSP4_C2_BQ_GRAPH
+          NOT THE SHIPPING KERNEL CONFIGURATION:
+            DSP4_TEST_NODES = 1, shipping is 0
+          raw3 0xC47C0FA6
+          DSP4_TX_DEFER 2 (chip 2 TX) — the block gather runs at a FIXED point in the block period (right after the block interrupt, before the row is advanced) instead of wherever the node graph finishes, so which transmit row is safe no longer depends on the graph's cycle count. S89e; without it a fast enough graph overwrites the row the DDE is still reading (S88-1, the DAC fold)
+          DSP4_AUXIN_BYPASS — the chip-2 off-aux park gate is in: an AUX_INPUT whose `on` cell is 0 is not called at all
+          DSP4_SHARED_KERNELS 15 (COMP, TUBE, GATE, FILT) — the WHOLE eight-class mask, which is what CFG2 could not say (S27-3)
+          DSP4_DYN_INLINE 2
+          on3:  DSP4_AUXIN_BYPASS, MTX_GATE, DSP4_SPI_PARTIAL_FIX2, DSP4_C2_XPAIR, DSP4_DLY_SPLIT, DSP4_GAIN_SIMD, DSP4_RTG_FABRIC
+          off3: DSP4_EXTRAM, DSP4_CUE, DSP4_RTA, DSP4_DYN_TABLES, INSTRUMENT

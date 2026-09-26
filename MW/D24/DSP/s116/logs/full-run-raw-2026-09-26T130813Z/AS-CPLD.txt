@@ -1,0 +1,15 @@
+=== 2026-09-26T13:11:20Z  NO DATA
+config.txt: 74:dtoverlay=dsp4-pcm-slave
+--- logic_id ---
+design_id: 32'h4de0dd4a   cfg_bits: 16'h0010   SHIPPING
+  reply frames 2175 of 144000 captured, 1 distinct reply words
+--- blk window, both chips over ONE shared 10 s (S114) ---
+--- chip1 ---
+chip1: BOOT_STAGE 7->7  SEC_COUNT 74324
+chip1: 31816 blocks in 10.0 s = 3182/s (bar 3000/s at BLOCK=16)
+chip1: BLK_OVERRUN 2690 -> 2690 (delta 0)   SPORT0_ERR_A 0x00000000
+--- chip2 ---
+chip2: BOOT_STAGE 7->7  SEC_COUNT 73829
+chip2: 31974 blocks in 10.0 s = 3197/s (bar 3000/s at BLOCK=16)
+chip2: BLK_OVERRUN 2103 -> 2103 (delta 0)   SPORT0_ERR_A 0x00000000
+PREREQUISITE: dsp4_logic_id.py needs the DUPLEX PCM overlay. Under dsp4-pcm-slave it answers "no reply" for EVERY bitstream (bench note 12), so its silence carries no information. Flipping the overlay is a config.txt edit plus a reboot, which is not "the unit as found", so it was not done. The overrun half of the test ran and is reported.

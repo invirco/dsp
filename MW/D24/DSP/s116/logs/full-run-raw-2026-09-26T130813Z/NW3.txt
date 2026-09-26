@@ -1,0 +1,26 @@
+=== 2026-09-26T13:09:16Z  FAIL
+--- bench host 192.168.1.211, pass 1/3 ---
+--- 192.168.1.211 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20786ms
+rtt min/avg/max/mdev = 0.317/0.415/0.571/0.046 ms
+--- gateway 192.168.1.254, pass 1/3 ---
+--- 192.168.1.254 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20749ms
+rtt min/avg/max/mdev = 0.343/0.819/8.765/0.591 ms
+--- bench host 192.168.1.211, pass 2/3 ---
+--- 192.168.1.211 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20791ms
+rtt min/avg/max/mdev = 0.307/0.431/0.543/0.046 ms
+--- gateway 192.168.1.254, pass 2/3 ---
+--- 192.168.1.254 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20795ms
+rtt min/avg/max/mdev = 0.314/0.787/3.922/0.263 ms
+--- bench host 192.168.1.211, pass 3/3 ---
+--- 192.168.1.211 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20776ms
+rtt min/avg/max/mdev = 0.306/0.423/0.641/0.046 ms
+--- gateway 192.168.1.254, pass 3/3 ---
+--- 192.168.1.254 ping statistics ---
+200 packets transmitted, 188 received, 6% packet loss, time 20788ms
+rtt min/avg/max/mdev = 0.501/0.796/2.000/0.106 ms
+Loss appears toward BOTH targets, including the unit's own gateway one switch hop away, so it is not a property of the driving host's path alone.

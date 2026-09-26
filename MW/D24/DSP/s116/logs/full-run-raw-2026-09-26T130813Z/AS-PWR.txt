@@ -1,0 +1,2 @@
+=== 2026-09-26T13:11:26Z  NO DATA
+PREREQUISITE: a reader for the power MCU over MHRX. Nothing in this repo reads the power MCU's state word, PWR_FAIL or its AN_EN view; src/fw/d24-pwr-mcu-def.csv is not in this tree (it is mx26's). AN_EN is not an MCU word at all -- it is CM4 GPIO26, read here as: 26: op -- pd | hi // GPIO26 = output

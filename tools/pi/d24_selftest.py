@@ -62,6 +62,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -110,6 +111,22 @@ KNOWN_IMAGE = [((g & 63) << 2) | 1 for g in range(1, 25)] + [0x00]
 SHIPPING_CPLD = 'd02d83b3cc22'
 SIGNED_TRIPLE = ('0xCF45FF10', '0xE2018E6F', '0xC47C0F26')   # the S82-signed pair
 
+# THE FACTORY-TEST IMAGE (PW ruling, S116 Q3): the DSP4_TEST_NODES=1 pair this
+# whole automated set runs on -- AL1 and AS-DAC need TEST_OSC, and S113 §4
+# showed every other verdict in the set is image-agnostic, so the session
+# never swaps images. Named and versioned rather than left as "whatever
+# pair.conf happens to point at": `factory-test-v1` is the pair staged at
+# `/home/app/loopthd/s109` on MW-D24-2, read off the part with
+# `dsp4_buildcfg.py` (both chips, identical) and recorded in the accept
+# manifest (`MW/D24/DSP/accept/manifest.json`) beside the shipping triple.
+# `_check_factory_image()` asserts every DSP-touching press is actually
+# running this pair, not a silent substitute.
+FACTORY_TEST_IMAGE_NAME = 'factory-test-v1'
+FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s109'
+FACTORY_TEST_BUILD_CFG = ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6')
+FACTORY_TEST_LDR_MD5 = {'chip1.ldr': '7f226919a5d181410c3804d92678da19',
+                        'chip2.ldr': '6f11a1ddc6efd45ec30f536cef295292'}
+
 # ---------------------------------------------------------------------------
 # The key table. `board`/`item` are the workbook's strings verbatim; the number
 # in the comment is the workbook row (the --export-keys line number minus the
@@ -123,10 +140,10 @@ B_LSW = 'Left Switch PCBA'
 
 ITEMS = {
     # A -- from the CM4
+    # HD0-2 (the 3600 s dropout soak) is RETIRED (PW ruling, S116 Q2): the
+    # factory test is hardware proof, not a continuity soak.
     'HD0-1':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),        # 127
                 (B_ASM, 'TFT display')],                                  # 203
-    'HD0-2':   [('HDMI FPC (rev B)', 'Display link HDMI0 → TFT'),
-                (B_ASM, 'TFT display')],
     'HD-PWR':  [(B_LINK, "Link 'hdmi-pwr'")],                             # 151
     'NW1':     [('Digital', 'Ethernet (RJ45)')],                          # 128
     'NW2':     [('Digital', 'Ethernet (RJ45)')],
@@ -199,7 +216,7 @@ for _c, _n in RDY_SELECT.items():
     ITEMS['DY1-RDY%d' % _c] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
 
 SECTION = {}
-for _t in ('HD0-1', 'HD0-2', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
+for _t in ('HD0-1', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
     SECTION[_t] = 'A'
 for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
            'MC1', 'MC2', 'MC3', 'CC1', 'CC2'):
@@ -218,6 +235,11 @@ for _c in RDY_SELECT:
 PAIR_TESTS_B = ({'DR1', 'DR2'} | {'DY1-RDY%d' % c for c in RDY_SELECT}
                 | {'DC1-CS%d' % n for n in DC_SELECTS}
                 | {'DC2-CS%d' % n for n in DC_SELECTS})
+
+# Every test that reads the SHARC pair, section B or C -- the set
+# `_check_factory_image()`'s verdict gates in `Rig.run()` (S116 Q3: "make
+# RUN ALL / every press assert it is the loaded pair").
+PAIR_DEPENDENT = PAIR_TESTS_B | {'AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AL1'}
 
 
 # ---------------------------------------------------------------------------
@@ -322,6 +344,18 @@ class Rig:
             return
         if self.a.only and test not in self.a.only:
             return
+        # THE FACTORY-TEST IMAGE, ASSERTED (S116 Q3). `_check_factory_image()`
+        # runs once, the first time the pair is confirmed up
+        # (`boot_pair()`/`ensure_pair()`); every later pair-dependent test in
+        # THIS press is gated on its verdict rather than running against
+        # whatever pair actually answered. Not a silent run: the reason is in
+        # both the console line and the recorded evidence.
+        bad = getattr(self, '_image_bad', None)
+        if bad and test in PAIR_DEPENDENT:
+            print('%s ... SKIPPED: %s' % (test, bad))
+            self.record(test, NODATA, 'wrong image loaded',
+                        'the factory-test-v1 pair (%s)' % (FACTORY_TEST_BUILD_CFG,), bad)
+            return
         print('%s ...' % test, flush=True)
         try:
             v, m, lim, ev = fn()
@@ -338,6 +372,12 @@ class Rig:
 # A -- read from the CM4
 # ---------------------------------------------------------------------------
 def t_hd01(r):
+    """PASS is the connector reporting connected -- nothing else gates (PW
+    ruling, S116 Q2). The 3600 s dropout soak (HD0-2) is RETIRED: the factory
+    test is hardware proof taken once, not a continuity soak. EDID parse and
+    the native-mode-active check stay in the evidence as INFORMATIONAL lines,
+    because they are still useful to a reader chasing a bad connector -- they
+    just never turn a connected display into a FAIL."""
     status = r.out('cat %s/status' % CONN)
     edid = r.out('edid-decode < %s/edid 2>&1 | head -40' % CONN)
     modes = r.out('cat %s/modes' % CONN)
@@ -345,60 +385,18 @@ def t_hd01(r):
     mfr = re.search(r'Manufacturer:\s*(\S+)', edid)
     prod = re.search(r'Model:\s*(\S+)', edid)
     native = modes.splitlines()[0] if modes else ''
-    raw = ('status=%s\n--- edid-decode ---\n%s\n--- modes ---\n%s\n--- kmsprint ---\n%s'
-           % (status, edid, modes, active))
-    if status != 'connected':
-        return FAIL, 'status=%s' % status, 'connected', raw
-    if not (mfr and prod):
-        return NODATA, 'EDID did not parse', 'manufacturer + product code', raw
     # The native mode is `modes`' first line; "is the active mode" is decided
     # against kmsprint's CRTC line, which carries the mode string verbatim.
     act = bool(native) and native in active
-    v = PASS if act else FAIL
-    return (v, 'HDMI-A-1 connected, %s %s, native %s, active=%s'
-            % (mfr.group(1), prod.group(1), native, act),
-            'connected + EDID mfr/product + native mode active', raw)
-
-
-def t_hd02(r):
-    """The dropout soak. A sampler was started at the top of the run; this
-    harvests it. The window is whatever actually elapsed and is reported as
-    such -- the spec asks >= 1 h (24 h for a shipping proof), so a shorter
-    window is NO DATA naming its own length, never a PASS on a soak that was
-    not run."""
-    log = r.out('cat /tmp/d24_hdsoak.log 2>/dev/null')
-    # udevadm monitor's banner is two lines and the SECOND of them begins
-    # "UDEV - the event which udev sends out...", so `grep -c "^UDEV"` counts a
-    # banner as a hotplug and reports a dropout on a display that never moved.
-    # A real event line is `UDEV  [12345.6] change /devices/...`, so the
-    # bracketed timestamp is what the match hangs on.
-    uev = r.out('{ grep -cE "^UDEV +\\[" /tmp/d24_hdsoak.uevents 2>/dev/null '
-                '|| echo 0; } | head -1')
-    lines = [x for x in log.splitlines() if x.strip()]
-    if not lines:
-        return NODATA, 'no soak samples', 'status never leaves connected', log
-    states = sorted({x.split()[-1] for x in lines})
-    # The duration is what the LOG spans, read off its own timestamps. Deriving
-    # it from the sample count times the interval assumes every sleep landed,
-    # which is the kind of assumption a soak exists to avoid.
-    try:
-        t0 = datetime.datetime.strptime(lines[0].split()[0], '%Y-%m-%dT%H:%M:%SZ')
-        t1 = datetime.datetime.strptime(lines[-1].split()[0], '%Y-%m-%dT%H:%M:%SZ')
-        dur = int((t1 - t0).total_seconds())
-    except (ValueError, IndexError):
-        dur = (len(lines) - 1) * r.a.soak_interval
-    raw = ('samples=%d interval=%ds duration=%ds states=%s drm_uevents=%s\n'
-           'first: %s\nlast:  %s' % (len(lines), r.a.soak_interval, dur, states,
-                                      uev, lines[0], lines[-1]))
-    if states != ['connected']:
-        return FAIL, 'states seen %s over %d s' % (states, dur), \
-            'status never leaves connected', raw
-    m = 'connected on %d of %d samples over %d s, drm hotplug uevents %s' % (
-        len(lines), len(lines), dur, uev)
-    if dur < 3600:
-        return NODATA, m + ' (window short of the spec)', \
-            '>= 3600 s, no state change, hotplug count unchanged', raw
-    return PASS, m, '>= 3600 s, no state change, hotplug count unchanged', raw
+    info = ('EDID %s, native %s, active=%s (informational, not gating)'
+            % ('%s %s' % (mfr.group(1), prod.group(1)) if (mfr and prod) else 'did not parse',
+               native or '(none)', act))
+    raw = ('status=%s\n--- edid-decode ---\n%s\n--- modes ---\n%s\n--- kmsprint ---\n%s'
+           % (status, edid, modes, active))
+    if status != 'connected':
+        return FAIL, 'status=%s; %s' % (status, info), 'connector reports connected', raw
+    return (PASS, 'HDMI-A-1 connected; %s' % info,
+            'connector reports connected', raw)
 
 
 def t_hdpwr(r):
@@ -497,30 +495,50 @@ def t_nw3(r):
     scheduler happened to hand it, and re-running until it passes is not a
     measurement. The test therefore takes `--nw3-runs` passes per target and
     scores the WORST, which makes the reading reproducible in the only sense
-    that counts: it does not improve if you run it again."""
+    that counts: it does not improve if you run it again.
+
+    THE INTERVAL AND THE TWO TARGETS (PW ruling, S116 Q1, S113's option (e)
+    plus (b)): `-i 0.1` still sends all 200 packets, in half the wall clock,
+    and the bench-vs-old-interval table proving that halving the interval
+    does not itself cost packets lives in `MW/D24/DSP/s116/`. The two targets
+    run CONCURRENTLY -- one thread each -- instead of one after the other;
+    `--nw3-runs` and the worst-of-N-per-target scoring are unchanged."""
     def ping(target):
-        txt = r.out('ping -c 200 -i 0.2 %s 2>&1 | tail -3' % target, timeout=200)
+        txt = r.out('ping -c 200 -i 0.1 %s 2>&1 | tail -3' % target, timeout=200)
         loss = re.search(r'([\d.]+)% packet loss', txt)
         rtt = re.search(r'=\s*([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+)\s*ms', txt)
         return txt, (float(loss.group(1)) if loss else None), \
             (float(rtt.group(3)) if rtt else None)
 
     gw = r.out("ip route | awk '/default/{print $3; exit}'")
+    targets = [(label, target) for label, target in
+               (('bench host %s' % BENCH_HOST_SELF, BENCH_HOST_SELF),
+                ('gateway %s' % gw, gw)) if target]
     logs, worst = [], {}
-    for label, target in (('bench host %s' % BENCH_HOST_SELF, BENCH_HOST_SELF),
-                          ('gateway %s' % gw, gw)):
-        if not target:
-            continue
-        losses, maxes = [], []
-        for i in range(r.a.nw3_runs):
-            txt, loss, mx = ping(target)
+    losses_by = {label: [] for label, _ in targets}
+    maxes_by = {label: [] for label, _ in targets}
+    for i in range(r.a.nw3_runs):
+        pass_result = {}
+
+        def worker(label, target):
+            pass_result[label] = ping(target)
+
+        threads = [threading.Thread(target=worker, args=(label, target))
+                   for label, target in targets]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        for label, _ in targets:
+            txt, loss, mx = pass_result[label]
             logs.append('--- %s, pass %d/%d ---\n%s' % (label, i + 1, r.a.nw3_runs, txt))
             if loss is None:
                 continue
-            losses.append(loss)
-            maxes.append(mx if mx is not None else float('nan'))
-        if losses:
-            worst[label] = (max(losses), max(maxes), losses)
+            losses_by[label].append(loss)
+            maxes_by[label].append(mx if mx is not None else float('nan'))
+    for label, _ in targets:
+        if losses_by[label]:
+            worst[label] = (max(losses_by[label]), max(maxes_by[label]), losses_by[label])
     raw = '\n'.join(logs)
     if not worst:
         return NODATA, 'ping did not summarise', '0% loss, max RTT < 5 ms', raw
@@ -911,21 +929,27 @@ def t_dc1(r, n):
 
 
 def t_dc2(r, n):
-    """The identity of the part behind the select."""
+    """The identity of the part behind the select.
+
+    The evidence names the FACTORY-TEST image (S116 Q3), not the shipping
+    S82-signed pair: this session runs the whole set on the DSP4_TEST_NODES=1
+    pair (S113 §4), so a match against `SIGNED_TRIPLE` here would always read
+    False and say nothing true about the part. Loading/verifying the shipping
+    image is a separate, later step -- not this test."""
     if n not in (1, 2):
         return t_dc1(r, n)
     txt = r.out('cd %s && python3 dsp4_buildcfg.py --chip %d 2>&1' % (r.a.stage, n), timeout=90)
-    trip = re.findall(r'0x[0-9A-Fa-f]{8}', txt)
+    trip = tuple(re.findall(r'0x[0-9A-Fa-f]{8}', txt)[:3])
     cfg = _diag(r, n)
     cid = _field(cfg, 'CHIP_ID')
     bid = _field(cfg, 'BUILD_ID')
     raw = '%s\n--- diag ---\n%s' % (txt, cfg)
     if not bid:
         return NODATA, 'no BUILD_ID from CS%d' % n, 'id matches the declared part', raw
-    match = all(t in trip for t in SIGNED_TRIPLE)
+    match = trip == FACTORY_TEST_BUILD_CFG
     return ((PASS if (cid and int(cid, 0) == n) else FAIL),
-            'CS%d: CHIP_ID %s BUILD_ID %s, build cfg triple %s (S82-signed: %s)'
-            % (n, cid, bid, trip[:3], match),
+            'CS%d: CHIP_ID %s BUILD_ID %s, build cfg triple %s (%s: %s)'
+            % (n, cid, bid, trip, FACTORY_TEST_IMAGE_NAME, match),
             'id answers behind the select; fw.csv Dsp%d declares a pin and net, not a part '
             'number, so there is nothing on the wire to match it against' % n, raw)
 
@@ -1569,25 +1593,38 @@ def al1_silence(r, why=None):
                cap.get('speaker_live_s', '?'), txt))
 
 
-def al1_rails_down(r):
-    """AN_EN back down as soon as the windows are read, not at handback.
+def rails_up(r):
+    """Raise AN_EN once for the WHOLE SESSION, not once per test that wants it
+    (PW ruling, S116 Q4: "the rails may be raised whenever a test requires
+    them... raised ONCE, after the last DSP pair boot or CPLD flash of the
+    session, held until handback -- never up through a pair reset/boot").
 
-    The rails are wanted for the measurement and for nothing after it; leaving
-    them up until handback added seconds of powered analog front end to every
-    press for no reading. Handback still reports AN_EN and still lowers it if
-    this never ran."""
-    cap = getattr(r, '_al1_an', None)
-    if cap is None or not cap.get('raised') or cap.get('lowered'):
-        return None
-    if r.a.al1_keep_rails:
-        return None
-    r.pin('%d op dl' % AN_EN_GPIO)
-    cap['lowered'] = True
-    cap['an_down_at'] = time.time()
-    if cap.get('an_up_at'):
-        cap['rails_up_s'] = round(cap['an_down_at'] - cap['an_up_at'], 2)
-    return ('--- the analog rails, back down ---\nAN_EN: %s   (up for %s s of this press)'
-            % (r.an_en().split('//')[0].strip(), cap.get('rails_up_s', '?')))
+    Idempotent and rig-level: AS-ADC's prereq (group A5) and AL1's own prereq
+    both call this, and the second call is a cheap re-read, not a second
+    write. `handback()` is the ONLY place that ever lowers AN_EN again --
+    see its own AN_EN block, keyed on this same `r._rails` cap."""
+    cap = getattr(r, '_rails', None)
+    if cap is not None:
+        return ('AN_EN (GPIO%d): %s (%s)'
+                % (AN_EN_GPIO, cap['an'].split('//')[0].strip(),
+                   'raised this session, held up' if cap['raised']
+                   else 'found up at entry, not written by this run'))
+    an_start = r.an_en()
+    cap = {'an_start': an_start, 'raised': False, 'an_up_at': time.time()}
+    if 'hi' not in an_start:
+        r.pin('%d op dh' % AN_EN_GPIO)
+        cap['an_up_at'] = time.time()
+        # NO SLEEP HERE (S115): see _al1_prereq's own note -- codec_init and
+        # the link/route checks that follow already give the rails their
+        # settle time by construction.
+        cap['raised'] = True
+    cap['an'] = r.an_en()
+    r._rails = cap
+    return ('AN_EN (GPIO%d): at entry %s; now %s%s'
+            % (AN_EN_GPIO, an_start.split('//')[0].strip(),
+               cap['an'].split('//')[0].strip(),
+               ' (RAISED by this run; handback lowers it once, at the end)'
+               if cap['raised'] else ''))
 
 
 def _set(r, cells, timeout=300):
@@ -1761,31 +1798,12 @@ def al1_level(r):
 
 def _al1_prereq(r):
     """Everything that has to be true before a tone is worth playing, as
-    (blocker-or-None, evidence-lines, capture-dict). The rails are RAISED here
-    when they are down -- PW lifted the dispatched-session bar on 2026-09-24 --
-    and the fact is recorded so handback can put them back."""
+    (blocker-or-None, evidence-lines, capture-dict). The rails are raised by
+    `rails_up()` -- shared with AS-ADC's own prereq, S116 Q4 -- which is a
+    no-op here when a press's own AS-ADC/AS-DAC step already raised them."""
     ev = ['%s\n' % SPKR_ROUTE_NOTE]
-    cap = {'an_start': r.an_en(), 'raised': False, 'an_up_at': time.time()}
-    if 'hi' not in cap['an_start']:
-        # The two gates that still apply: the digital clocks are stable (the
-        # pair is booted and its lanes read, which section C has already
-        # established by the time AL1 runs) and the 595 chain is loaded SAFE.
-        r.pin('%d op dh' % AN_EN_GPIO)
-        cap['an_up_at'] = time.time()
-        # NO SLEEP HERE (S115). The 1 s this used to wait was a settle for the
-        # analog rails before the first measurement window -- and between this
-        # line and that window the run does codec_init (2.0 s measured, and
-        # unconditional by design), a link check and the route write, 4 s or
-        # more on every press. The settle is therefore already there by
-        # construction and waiting for it twice is 1 s of every press. If a
-        # future change ever moves the measurement closer to this line, the
-        # sleep comes back with it.
-        cap['raised'] = True
-    cap['an'] = r.an_en()
-    ev.append('AN_EN (GPIO%d): at entry %s; now %s%s'
-              % (AN_EN_GPIO, cap['an_start'].split('//')[0].strip(),
-                 cap['an'].split('//')[0].strip(),
-                 ' (RAISED by this run; handback lowers it)' if cap['raised'] else ''))
+    ev.append(rails_up(r))
+    cap = dict(r._rails)
     ev.append('pair staged: %s (%s)' % (r.pair, r.pair_why))
 
     # THE TWO THINGS A COLD UNIT HAS NOT DONE FOR ITSELF, in the order they are
@@ -2046,13 +2064,13 @@ AL1_NO_SOUND_NOTE = (
 
 
 def _al1_stand_down(r, ev):
-    """Speaker silent, rails down, evidence appended -- in that order.
-
-    The order is the point: the monitor levels go to zero while the rails are
-    still up, so nothing is switched under a live amplifier."""
-    for txt in (al1_silence(r), al1_rails_down(r)):
-        if txt:
-            ev.append('\n%s' % txt)
+    """Speaker silent, evidence appended. The rails are NOT dropped here any
+    more (S116 Q4, PW ruling): they stay up -- AS-ADC may still need them in
+    this same press, or a later one before handback -- and come down exactly
+    once, in `handback()`, keyed on `r._rails`."""
+    txt = al1_silence(r)
+    if txt:
+        ev.append('\n%s' % txt)
 
 
 def t_al1(r):
@@ -2612,10 +2630,42 @@ def pin_handback(r):
     r.pin('%d,%d ip pd' % (RDY_GPIO[1], RDY_GPIO[2]))
 
 
+def _check_factory_image(r):
+    """The pair that just answered IS the factory-test image (S116 Q3), not
+    silently whatever happened to be staged. Cached on the rig: a press that
+    touches several pair-dependent tests pays the one `dsp4_buildcfg.py` read
+    once. `Rig.run()` reads `r._image_bad` and turns it into NO DATA 'wrong
+    image loaded' for every test in `PAIR_DEPENDENT`, rather than letting a
+    substituted pair produce silent verdicts against the wrong build."""
+    if hasattr(r, '_image_bad'):
+        return
+    txt = r.out('cd %s && python3 dsp4_buildcfg.py --chip 1 2>&1' % r.a.stage, timeout=90)
+    trip = tuple(re.findall(r'0x[0-9A-Fa-f]{8}', txt)[:3])
+    if trip == FACTORY_TEST_BUILD_CFG:
+        r._image_bad = None
+    else:
+        r._image_bad = ('wrong image loaded: chip 1 build-cfg triple %s, expected %s '
+                        "(%s, the factory-test image this set is written against)"
+                        % (trip or 'no reply', FACTORY_TEST_BUILD_CFG, FACTORY_TEST_IMAGE_NAME))
+        print('  *** %s ***' % r._image_bad)
+
+
 def boot_pair(r):
     """Boot and configure both chips TWICE. The config commit desyncs the
     parameter link on the first pass every time -- pre-existing, reproduces on
-    the original image -- and the pair reaches BOOT_STAGE 7 on the second."""
+    the original image -- and the pair reaches BOOT_STAGE 7 on the second.
+
+    REFUSES to run at all while AN_EN is high (S116 Q4, PW 09-10: analog last
+    up, first down) -- a reset/boot with the rails raised is exactly the
+    ordering violation the rails-once rule exists to prevent, and finding out
+    from a bad reading afterwards is worse than a loud stop here."""
+    an = r.an_en()
+    if 'hi' in an:
+        raise RuntimeError(
+            'refusing to boot the DSP pair with AN_EN (GPIO%d) HIGH (%s) -- the rails must '
+            'be down before any pair reset/boot (PW 09-10: analog last up, first down; '
+            'S116 Q4: raised once, after the last boot of the session, held until '
+            'handback). Lower them first.' % (AN_EN_GPIO, an.split('//')[0].strip()))
     r._booted_this_run = True
     # A boot's config commit rewrites the cells AL1's standing route sets, so
     # the marker that says "the standing route is still asserted" stops being
@@ -2637,6 +2687,7 @@ def boot_pair(r):
                % (r.a.stage, r.a.stage), timeout=180)
     log.append('--- inter-chip link gate (s89_signbit, exit %d) ---\n%s'
                % (sb.returncode, sb.stdout + sb.stderr))
+    _check_factory_image(r)
     return '\n'.join(log)
 
 
@@ -2671,6 +2722,7 @@ def ensure_pair(r):
     the row came back NO DATA. Returns (ok, evidence-text, booted?)."""
     ok, ev = link_alive(r)
     if ok:
+        _check_factory_image(r)
         return True, 'the pair was ALREADY UP (no boot by this run)\n' + ev, False
     log = boot_pair(r)
     ok2, ev2 = link_alive(r)
@@ -2782,24 +2834,21 @@ def handback(r):
     # DRIVEN high, not pulled: since S109 the pull no longer holds CS_M.
     r.pin('%d op dh' % CS_M_GPIO)
     notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
-    # AN_EN. The module never raises the rails except in AL1, which needs the
-    # TS482 and the microphone powered; a run that raised them puts them back,
-    # and one that found them up leaves them up for whoever owns them -- except
-    # that with matrix-app stopped for the whole session there IS no other
-    # owner, so `--al1-keep-rails` is the way to say "leave them".
-    cap = getattr(r, '_al1_an', None)
+    # AN_EN. Raised ONCE for the whole session by `rails_up()` (AS-ADC and/or
+    # AL1, S116 Q4) and lowered exactly once, HERE -- never mid-session, never
+    # per-test -- except that with matrix-app stopped for the whole session
+    # there is no other owner, so `--al1-keep-rails` is the way to say "leave
+    # them" (a bench session that wants the rails up for the next thing).
+    cap = getattr(r, '_rails', None)
     an_before = r.an_en()
-    if cap and cap.get('lowered'):
-        notes.append('AN_EN: %s at entry, RAISED by AL1, LOWERED as soon as the '
-                     'windows were read (up for %s s of this press) -> %s'
-                     % (cap['an_start'].split('//')[0].strip(),
-                        cap.get('rails_up_s', '?'), an_before))
-    elif cap and cap.get('raised') and not r.a.al1_keep_rails:
+    if cap and cap.get('raised') and not r.a.al1_keep_rails:
         r.pin('%d op dl' % AN_EN_GPIO)
-        notes.append('AN_EN: %s at entry, RAISED by AL1, LOWERED here -> %s'
-                     % (cap['an_start'].split('//')[0].strip(), r.an_en()))
+        notes.append('AN_EN: %s at entry, RAISED this session, LOWERED here (up for %s s) -> %s'
+                     % (cap['an_start'].split('//')[0].strip(),
+                        round(time.time() - cap['an_up_at'], 2) if cap.get('an_up_at') else '?',
+                        r.an_en()))
     elif cap and cap.get('raised'):
-        notes.append('AN_EN: %s at entry, RAISED by AL1, LEFT UP (--al1-keep-rails) -> %s'
+        notes.append('AN_EN: %s at entry, RAISED this session, LEFT UP (--al1-keep-rails) -> %s'
                      % (cap['an_start'].split('//')[0].strip(), an_before))
     else:
         notes.append('AN_EN: %s (not written by this run)' % an_before)
@@ -2962,10 +3011,13 @@ def main():
     ap.add_argument('--nw3-runs', type=int, default=3,
                     help='ping passes per target for NW3; the verdict is the WORST, because a '
                          'single 200-packet run does not settle a 0%% bar on this bench')
-    ap.add_argument('--soak-seconds', type=int, default=3600)
-    ap.add_argument('--soak-interval', type=int, default=60)
     ap.add_argument('--no-soak-wait', action='store_true',
-                    help='harvest the HD0-2 soak as it stands instead of waiting for the window')
+                    help='DEPRECATED, ignored (S116 Q2: HD0-2, the 3600 s soak this once '
+                         'controlled, is retired -- the factory test is hardware proof, not '
+                         'a continuity soak). Accepted so the wizard\'s existing invocation '
+                         'string (TestSkinStore.cs:1070) does not break a live press before '
+                         'the hub drops it there; a future dispatch should remove this once '
+                         'that lands.')
     ap.add_argument('--al1-level', type=float, default=AL1_TONE_DBFS,
                     metavar='DBFS',
                     help='AL1: the 1 kHz tone level, dBFS PEAK, injected into '
@@ -3022,21 +3074,6 @@ def main():
     r = Rig(a)
     print('D24 self-test, section 1 -- sections %s -- %s'
           % (','.join(sorted(a.section)), stamp()))
-
-    soak = 'A' in a.section and (not a.only or {'HD0-2'} & a.only)
-    if soak:
-        # The soak is passive and long, so it starts first and is harvested last.
-        r.rsh("rm -f /tmp/d24_hdsoak.log /tmp/d24_hdsoak.done /tmp/d24_hdsoak.uevents; "
-              # seq 0..N, not 1..N: N samples at interval I SPAN (N-1)*I, so a
-              # 3600 s window asked for as 60 samples of 60 s observes only 3540 s
-              # and reports itself short. One extra sample makes the span the
-              # window that was asked for.
-              "nohup sh -c 'for i in $(seq 0 %d); do echo \"$(date -u +%%FT%%TZ) "
-              "$(cat %s/status)\" >> /tmp/d24_hdsoak.log; sleep %d; done; "
-              "touch /tmp/d24_hdsoak.done' >/dev/null 2>&1 &"
-              % (max(1, a.soak_seconds // a.soak_interval), CONN, a.soak_interval))
-        r.rsh("nohup timeout %d stdbuf -oL udevadm monitor --udev --subsystem-match=drm "
-              "> /tmp/d24_hdsoak.uevents 2>/dev/null &" % a.soak_seconds)
 
     if 'A' in a.section:
         r.run('HD0-1', lambda: t_hd01(r))
@@ -3121,6 +3158,29 @@ def main():
             r.run('AS-DSPA', lambda: t_asdspa(r))
             r.run('AS-DSPB', lambda: t_asdspb(r))
             r.run('AS-CPLD', lambda: t_ascpld(r))
+            # THE RAILS, RAISED ONCE (PW ruling, S116 Q4): AS-ADC needs AN_EN
+            # up to score at all (group A5, S113 §7 item 3) and AL1 needs it
+            # for the acoustic loop -- so they are raised here, ONCE, ahead of
+            # both, and held up until handback rather than each test raising
+            # and dropping its own. Gated on the selection so a press that
+            # wants neither (e.g. `--only AS-DSPA`) never touches AN_EN.
+            #
+            # `ensure_pair()` runs FIRST, while AN_EN is still down: `boot_pair()`
+            # now REFUSES while the rails are up (S116 Q4's own guard), so the
+            # pair's last boot of the session has to be confirmed BEFORE the
+            # raise, not after. This matters for a cold `--only AL1` press,
+            # where section B never touches the pair at all (AL1 is not in
+            # `PAIR_TESTS_B`) and this is the first thing to ask. A pair
+            # already up (the common case) makes this the same cheap
+            # link-alive check `_al1_prereq` already pays a second time.
+            if not a.only or ({'AS-ADC', 'AS-DAC', 'AL1'} & a.only):
+                _tick('rails ensure_pair start')
+                ok, ev, booted = ensure_pair(r)
+                _tick('rails ensure_pair end (booted=%s)' % booted)
+                print(ev[-400:])
+                _tick('rails_up start')
+                print(rails_up(r))
+                _tick('rails_up end')
             r.run('AS-ADC', lambda: t_asadc(r))
             r.run('AS-DAC', lambda: t_asdac(r))
             r.run('AS-PWR', lambda: t_aspwr(r))
@@ -3131,15 +3191,6 @@ def main():
             print('\n--- handback ---\n%s' % handback(r))
             _tick('handback end')
 
-    if soak:
-        if not a.no_soak_wait:
-            print('\nwaiting for the HD0-2 soak window (%d s)...' % a.soak_seconds, flush=True)
-            deadline = time.time() + a.soak_seconds + 120
-            while time.time() < deadline:
-                if r.out('test -f /tmp/d24_hdsoak.done && echo done'):
-                    break
-                time.sleep(30)
-        r.run('HD0-2', lambda: t_hd02(r))
     if 'A' in a.section:
         r.run('HD-PWR', lambda: t_hdpwr(r))
 

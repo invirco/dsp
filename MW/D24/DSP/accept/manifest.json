@@ -26,6 +26,21 @@
    "DSP4_STRIP_FUSED": 1
   }
  },
+ "factory_test_image": {
+  "name": "factory-test-v1",
+  "note": "S116 ruling (PW, S113 Q3): the whole automated self-test set runs on this DSP4_TEST_NODES=1 pair for the whole session -- AL1 and AS-DAC need TEST_OSC, and every other verdict in the set is image-agnostic (S113 test-order.md §4), so the session never swaps to the shipping pair. tools/pi/d24_selftest.py asserts every DSP-touching press against this record (_check_factory_image); a mismatch is NO DATA 'wrong image loaded', never a silent run. Loading/verifying the SHIPPING image (dsp.build_cfg above) is a separate, later step and not part of this test.",
+  "pair_dir": "/home/app/loopthd/s109",
+  "build_cfg": [
+   "0xCF45FF10",
+   "0xE3018E6F",
+   "0xC47C0FA6"
+  ],
+  "ldr_md5": {
+   "chip1.ldr": "7f226919a5d181410c3804d92678da19",
+   "chip2.ldr": "6f11a1ddc6efd45ec30f536cef295292"
+  },
+  "measured_on": "MW-D24-2, 2026-09-26 (S116)"
+ },
  "findings": [
   "the factory T1 reference (per-code mean stage gain) is not in defs: common/tables/mic-gain-law.csv carries only its target codes (no 8/16/32); averaged here from MW/D24/DSP/s55/law.csv",
   "topology node aux.comp has no cell binding (no cells on D24)",
