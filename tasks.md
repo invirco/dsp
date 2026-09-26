@@ -1,3 +1,88 @@
+## HUB DISPATCH 2026-09-26 10:35Z — S114: compact AL1 (repeat press 23 s to ~10 s) + section-B/C runners + cold-start sweep   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S114 — Compact AL1: a repeat press from 23 s to ~10 s, then the same discipline on every section-B/C runner
+
+PW 2026-09-25: "anything to make the testing faster is good". Item (a) of the 09-26
+self-test speed plan (mx26 pipeline.md). S113 (dsp 4e2b8695, `MW/D24/DSP/s113/test-order.md`)
+is your brief: §6.2 ranks what comes out of AL1, §6.1 ranks the whole run, §7 names the
+code changes. Read it before touching code.
+
+## Bench
+
+MW-D24-2 is yours for this dispatch (rev C bench unit; PW powers it). Take the bench
+lock the S80-12 way. Unit as S112 handed it back: AN_EN lo, CS_M driven, 595 SAFE, row 56
+PASS on the glass. Hand it back the same way. NEVER `--reset` the codec (leaves the 595
+chain at full gain); `codec_init()` is `--run --reinit`, reg 0xFF.
+
+## The 23 s (S110/S111 measured)
+
+One AL1 press = ~10 separate Python processes over SSH, each re-syncing the DSP link
+(~1 s each); a fixed 2 s codec-init sleep; a redundant `rxscan` pre-check; three separate
+S49 measurement sessions (baseline / tone / baseline-again); a full 595 rewrite plus a
+200-read verify at handback.
+
+## Do
+
+1. STOPWATCH FIRST: instrument the current AL1 path per step (process spawn, link sync,
+   codec init, rxscan, each S49 session, tone, handback) and record a BEFORE table from
+   three real presses on the glass — total and per step.
+2. Compact AL1 per S113 §6.2, in its rank order: (1) `stage_setup()` skips the re-copy
+   when the staged md5s match the pair's (`:1922-1949`, the md5s are already computed at
+   `:1948`); (2) `app_stop()` gated on `systemctl is-active`, the 2 s sleep only when
+   something was actually stopped (`:2106-2112`); (3) the route write reads the four probe
+   cells FIRST and re-writes only on a mismatch — the probe itself stays, it is the
+   evidence (`:1494-1501`); (4) handback's SAFE chain write skipped when this session last
+   wrote SAFE and nothing armed the chain since (`:2119`); (5) `rxscan` once per session,
+   not per press (`:1487`). Collapse the separate processes into one process and ONE link
+   sync where the code allows. DO NOT REMOVE: `codec_init()` (unconditional by design,
+   `:2085-2089`), `link_alive()`, the second baseline (`:1524-1534`). Measure the codec's
+   real settle after `codec_init()` and replace any fixed sleep with it only if the
+   measurement supports it — record the number. KEEP the beep (1 kHz, -6 dBFS default,
+   cap -3, ~0.6 s), BOTH 85 ms silent baselines, the S111 verdict rule (tone-present =
+   THD+N <= -6 dB OR SNR >= min) and the S110 limits — this dispatch changes time, not
+   judgement.
+3. AFTER table: three presses on the glass, cold (>= 60 s after a reboot) and warm;
+   same numbers as BEFORE. Target: a repeat press <= ~10 s (S113's floor with every criterion kept); a cold press will be higher — report both. Level repeat within 0.1 dB of S111's readings.
+   All PASS, or the report says why.
+4. Then the timing-only changes S113 names that need no ruling: §7 item 1 (`:2399`
+   pre-DR1 `boot_pair()` conditional on a DR/DY/DC test being selected, −9 s) and item 2
+   (`:2421` section-C selections use `ensure_pair()` like `--only AL1`, −9 s); §6.1 rank 3
+   (AS-CPLD's two 10 s `dsp4_blk30.py` windows run concurrently, `:1104-1105`) and rank 2
+   (NW2's 30 s idle control kept, but no longer blocking — only if it can move without
+   changing what it measures; otherwise leave it and say why). Apply the same rules to the
+   other section-B/C runners (one process, one link sync, no unmeasured fixed sleeps, hand
+   back only what changed) AND the S111 cold-start sweep — every row drives CS_M in before
+   its first link transaction and calls `codec_init()` if it depends on the AK4619.
+   Per runner: before/after stopwatch from real runs where runnable on this bench without
+   a fixture; code-only where a fixture is missing (say so).
+   OUT OF SCOPE, awaiting PW (do NOT change): NW3's passes/interval (S113 Q1), NW4's iperf
+   duration, the HD0-2 sampler (Q2 / §7 item 4), the image choice (Q3), AS-ADC with the
+   rails up (Q4 / §7 item 3), per-row de-duplication of the nine shared-test pairs (Q5).
+5. Rebuild + deploy the S107 way (rollback copy kept, md5 of the deployed runner in the
+   report); restart `d24-testui`; prove AL1 from the glass after deploy.
+
+## Deliverables (`MW/D24/DSP/s114/`)
+
+`al1-timing.md` — BEFORE/AFTER per-step tables, the three-press repeatability, measured
+codec settle, what each dropped check is now covered by. `runners-timing.csv` — one row
+per section-B/C runner: before_s, after_s, cold_start_fixed (y/n), measured|estimated.
+Deployed md5s and rollback names. Predicted RUN ALL total = S113's grouped order (435 s) re-priced
+with the AFTER numbers (one number, arithmetic shown). Findings S114-1.. for anything
+that changed a verdict (there should be none).
+
+## Acceptance
+
+AL1 repeat press <= ~10 s on the glass (cold press number reported), three consecutive PASS cold and warm, levels within
+0.1 dB of S111; no limit or verdict rule changed; every touched runner has a before/after
+row; unit handed back as found; `git diff --stat` = tools/pi runners + s114/ + tasks.md.
+Any question for PW = 🔴 note in the block, commit, stop — no dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 10:18Z — S113: test-order analysis for batched self-test setup (desk study)   [status: 🟢 done — **automated set 1025 s (17.1 min, 34 presses) BEFORE → 435 s (7.2 min, ONE press) AFTER, −590 s / −58 %**; setup collapses 578 s → 20 s and the 34 presses collapse to 5 groups (A1 CM4-reads app-up · A2 matrix-bus mixer-stopped, NO boot needed · A3 the pair: reset/boot/selects · A4 the pair read, no new state · A5 rails up + acoustic). Manual set: 8 stations, **39 station changeovers → 13** (≈119 → ≈91 min on stated, never-stopwatched operator assumptions). Deliverables in `MW/D24/DSP/s113/`: `setup-state.csv` (34 pressable rows, a `file:line` citation per test), `setup-state-no-runner.csv` (the other 168), `run-order.csv` (all 202 rows once, with transition notes), `test-catalog.csv` (s110 + **two appended columns, `group` and `order`** — 202 rows, 17 original columns byte-identical, no renumbering), `test-order.md`, `build-run-order.py` (regenerates all three). Cost model anchored on the S111 23 s AL1 stopwatch and on record-stamp deltas in `s90/logs/2026-09-22T185954Z`. **Biggest single cost is NW3: 246 s of the 435 s (57 %)** — 3 passes × 2 targets × 40 s. S114 ranking inside AL1 (23 s for a 0.6 s beep): stage_setup 5 s, app_stop 3 s, route re-write 2 s, handback SAFE write 2 s, rxscan 1 s = **13 s removable, a repeat press 23 s → ~10 s**; codec_init, link_alive and the second baseline must stay. Four code changes named for RUN ALL (b): make `:2399`'s boot_pair conditional, let section C use `ensure_pair()` (`:2421`), move AS-ADC after the rails so it can score instead of NO DATA, start the HD0-2 sampler once per session. **Defect found by reading**: every press naming HD0-2 wipes the soak log (`:2350-2364`) and then harvests it with `--no-soak-wait`, so rows 127/203 can only ever return 'no soak samples'. 🔴 **Five questions for PW in `test-order.md` §9** (Q1 NW3's 246 s — recommend concurrent targets + `-i 0.1` → ~62 s with no loss of packets or passes; Q2 what RUN ALL does about the ≥3600 s HD0-2 soak; Q3 confirm the whole session runs on the test-node pair — only DC2's 'S82-signed' evidence line is lost, no verdict is; Q4 may the rails be up for AS-ADC; Q5 de-duplicate the nine row pairs driven by the same test id). Desk only — MW-D24-2, the bench, the CPLD, the 595 chain and the app were not touched.]   [model: opus]
 
 model: opus
