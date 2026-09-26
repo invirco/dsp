@@ -1,3 +1,81 @@
+## HUB DISPATCH 2026-09-26 12:39Z — S116: the five PW rulings on S113 (NW3, HDMI, factory image, rails once, no redundant tests)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S116 — The five PW rulings on S113 applied: NW3, HDMI, fixed factory image, rails once, no redundant tests
+
+PW ruled all five S113 questions on 2026-09-26 (mx26 pipeline.md, "Q1 RULED" … "Q5 RULED").
+Governing principle, PW 09-26: **the factory test is HARDWARE PROOF.** It runs on its own
+stable factory-test image; the shipping software image is a separate production step; a
+real fault shows itself during the test, so no continuity soaks; and no test runs twice for
+the same proof. S114 (6c3cd126) and S115 (AL1 THD-only) are on main — build on them.
+
+## Bench
+
+MW-D24-2, bench lock the S80-12 way, handed back as S115 left it (AN_EN lo, CS_M driven, 595 SAFE, speaker path silent,
+pair booted+configured, runner 421ceec0). Never `--reset` the codec. Every run hands back SILENT (S115's `al1_silence()`
+/ handback rule: the graph boots with the monitor bus at unity, so any run that boots the pair must silence it).
+
+## The five changes (cite S113 `MW/D24/DSP/s113/test-order.md` line refs where they apply)
+
+1. **NW3 (Q1).** `ping -i 0.1` (same `-c 200`), the two targets (bench host, gateway) run
+   CONCURRENTLY, `--nw3-runs` stays 3, verdict stays worst-of-three per target. Proviso:
+   prove the faster interval does not itself lose packets — run the new NW3 five times on
+   the bench and the old one five times, same session, table both; if -i 0.1 loses where
+   -i 0.2 does not, stop and write it up as a 🔴 note (do not ship it). Target ~62 s.
+2. **HDMI (Q2).** HD0-2 (the 3600 s soak) RETIRED: removed from the `tests` of rows 127 and
+   203, from RUN ALL, and from the runner — the sampler, its per-press wipe (`:2350-2364`),
+   `--soak-seconds/--soak-interval/--no-soak-wait` and the soak wait (`:2437`) deleted;
+   the app's `--no-soak-wait` argument (mx26 `TestSkinStore.cs:1070`) noted for the hub to
+   drop. HD0-1's PASS = the HDMI0 connector reports `connected`. EDID parse and native mode
+   stay in the result as an INFORMATIONAL evidence line, never gating. Update the rows'
+   `pass_when`/`short` text to match.
+3. **Fixed factory-test image (Q3).** The test-node DSP pair (`DSP4_TEST_NODES=1`, the one
+   the unit already runs, `/home/app/loopthd/s109`) becomes the FACTORY-TEST IMAGE: give it
+   a name and version (`factory-test-v1`), record its build-cfg triple and both .ldr md5s in
+   the accept manifest as the factory image, and make RUN ALL / every press assert it is the
+   loaded pair (mismatch = one clear NO DATA "wrong image loaded", not a silent run). No
+   image swap anywhere in a session. Rows 103/104: drop the `S82-signed` line; record the
+   factory-image name + triple instead. Loading/verifying the shipping image is NOT part of
+   this test — say so in the catalog explain text for 103/104.
+4. **Rails (Q4).** PW: after the initial proof of analog-rail function, the rails may be
+   raised whenever a test requires them. Placement rule: raised ONCE, after the last DSP
+   pair boot or CPLD flash of the session, held until handback — never up through a pair
+   reset/boot (PW 09-10: analog last up, first down). AS-ADC moves into group A5 after the
+   raise (S113 §7 item 3), so rows 198 and 141 score instead of NO DATA. Encode the rule in
+   the runner (a guard that refuses a pair boot while AN_EN is high) and in the catalog
+   `group`/`order` columns; the manual set's analog stations ordered after the digital ones.
+5. **No redundant tests (Q5).** A test runs once per session; its verdict is written to
+   EVERY catalog row it fully covers — on a single-row press exactly as in RUN ALL (the nine
+   pairs: 127/203, 102/202, 125→143, 126→144, 112/199, 139/194, 140/195, 141/198, 142/197).
+   Guard: a partner row is stamped only when ALL of that row's tests just ran (125 covers
+   143, 143 does not cover 125; same for 126/144). The stamped row's evidence names the row
+   whose press produced it. Also fold in S113 §7 items 1-2 if S114 did not already
+   (conditional pre-DR1 `boot_pair()`, section C via `ensure_pair()`).
+
+## Deliverables (`MW/D24/DSP/s116/`)
+
+`rulings-applied.md` — one section per ruling: what changed (file:line), the evidence it
+works on the bench, before/after seconds. `test-catalog.csv` — S113's catalog with the
+changed `tests`/`pass_when`/`short`/`explain`/`group`/`order` cells only (diff table in the
+report; no renumbering, no row removed). NW3 old-vs-new table. A full RUN ALL-equivalent
+`--section` run of the automated set on the bench, timed, against S113's 435 s prediction
+and S114's re-price. Deploy the S107 way (rollback kept, md5s); list every mx26 app change
+the hub must make (at least: drop `--no-soak-wait`; read `group`/`order`; partner-row
+stamping on the glass).
+
+## Acceptance
+
+NW3 proven on the bench (or 🔴 with the table); HD0-2 gone from catalog, runner and
+options; factory image named, recorded, asserted; no pair boot possible with AN_EN high;
+rows 198/141 give verdicts; a single press of 139 stamps 194, of 125 stamps 143 but not the
+reverse; the timed automated run reported against 435 s; unit handed back as found.
+Questions for PW = 🔴 note in the block, commit, stop — no dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 11:39Z — S115: AL1 — explain today's fails, bandpass THD in place of THD+N, silent handback   [status: 🟢 done — **AL1's verdict is on BANDPASS THD; the 45 % is the S49 node's `ThdResult` and nothing else, reproduced on a PASSING press: same window, same lane, `THD h2..h10 -31.83 dB = 2.562 %` (ceiling -28.50 dB = 3.758 %) against `THD+N (node) -6.51 dB = 47.244 %`, which is OVER its own old ceiling — the pre-S115 code scores that press FAIL CLIP.** The tone was present across the WHOLE capture window (four quarters within 0.38 dB), the fundamental is at 1000.0 Hz, and the same 21.3 ms window transformed on the host has total-minus-fundamental at -31.75 dB — i.e. over 21 ms that lane holds essentially nothing but the tone and its harmonics, and the node's 85 ms quadrature fit is reporting 25 dB of residual that a transform of the same lane cannot find. Distortion is REAL but it is 2.6 %, dominated by h3 at -32.2 dBc, stable to 0.1 dB over 30-odd presses and rising monotonically with drive (1.0 / 2.6 / 4.0 % at -12 / -6 / -3 dBFS). **Two independent 15-run calibration grids three minutes apart: bandpass THD repeated to 0.05 dB; `ThdResult` moved up to 6.5 dB at the same drive, was non-monotonic, and its two WORST readings of the session (34.5 %, 35.1 %) came from the two QUIETEST baselines (-74.7, -78.9 dBFS).** Ceiling `thd_abs_db -28.500 dB = 3.758 %` + a 6 dB instrument-floor guard, derived with the new `--al1-calibrate-thd` so the printed diff has exactly TWO changed rows and nine unchanged — no other limit moved. **Window placement RULED OUT, a level/scale change RULED OUT** (tone -34.6 to -35.8 dBFS all day against S111's 09-25 -35.8). **The cold LOW does NOT reproduce, on either copy of the runner**: three cold presses >=75 s after a reboot read -35.8 dBFS PASS on S115, and a cold press on the UNTOUCHED rollback (`c16264a7f96b6fee50f4c9944e6057eb`, S114's exact code) read -35.7 dBFS PASS; its warm press read -35.8 PASS too. So both S114 fail modes were the unit's STATE, not the code. Worth knowing: that healthy rollback press read THD+N -17.1 dB against its `thdn_abs_db` ceiling of -16.7 — **the old verdict sat 0.4 dB inside its own limit on a good unit.** **The state, measured (findings S115-2 🔴):** the chip-2 MAIN bus was pinned at +17.0 to +18.1 dBFS — the product's own `MainL001Mtr001` and a coherent capture of `_buf_C2_MIX_MAIN_L` agree — arriving via `_buf_C2_RECV_MAIN_L` at Q4.28 saturation (`0x7FFFFEE0`) while chip 1's own MAIN block read -117.8 dBFS, with EVERY strip's `MainOn` at 0 and the chain SAFE. `dsp4_config.py` did NOT clear it; a full boot + config twice did (-106 dBFS after). Controls rule out routing, rails and preamp gain (-107 dBFS with every strip on MAIN at unity and the chain SAFE, -74 dBFS at micGainFull, exactly ZERO with every strip closed). Not reproducible on demand, so no root cause claimed — but an AL1 press taken in that state is fiction: the 12:47:42Z press read `base -15.9 tone -18.7 SNR -2.8 dB THD+N -0.4 dB 95.8%`, a 41 dB rise on the MEMS lane caused purely by asserting the route into that bus. **THE NOISE STEP, NAMED AND ROOT-CAUSED DEEPER THAN ADDENDUM 1 (findings S115-1 🔴):** it is not only that AL1 never tore its route down — straight after `dsp4_boot.py` + `dsp4_config.py`, with nothing else written, `Mon001Level001/002 = 1.0`, `Main001Level001 = 1.0` and `Chan001/002/012/020/024MainOn001 = 1` at `Level001 = 1.0`. `defs` declares `C2_MON` at `level_l_db=0.0` (unity), so **THERE IS NO SILENT RESTING VALUE IN THE GRAPH AND THE SPEAKER IS LIVE FROM THE MOMENT THE PAIR BOOTS** — pressing DR1 or DR2 is enough. Hence 'strip 20 off MAIN' changing nothing and `Mon001Level=0` being what PW heard stop. **Fixed:** `al1_silence()` writes `Mon001Level001/002=0`, `Chan020MainOn001=0`, `Chan020Mute001=1` and checks the read-back `s89_set.py` prints for each, as soon as the last window is read; `handback` repeats it for a blocker path AND for any run that BOOTED the pair even with no AL1, asking `link_alive()` first because DR1 leaves the pair in reset (no graph, nothing to silence, and 'NOT SILENT' there would be wrong). `al1_rails_down()` drops AN_EN at the same point. `dsp4_loop_thd.sh` gets the same four-cell write. Proven: `--only DR1,DR2` both PASS and handback reads *'torn down (a boot in this run left the monitor bus at the graph default, which is unity; exit 0, read-back SILENT)'*. **Rails-up / speaker-live per press: unbounded (until power-off) -> 4.10-4.16 s speaker, ~14 s -> 7.82-7.98 s rails**, both printed in every press's evidence. Writers of the speaker path listed in the report; `dsp4_family_verify.py:375` left alone with a reason. Per addendum 4 nothing further invested in the strip-20 route — S117 deletes it. **Repeatability: THD -31.9 / -31.8 / -31.7 dB (2.55 / 2.58 / 2.60 %), spread 0.2 dB** over three warm presses; 0.5 dB over all nine this session spanning a re-boot and two runner versions. **🔴 Timing miss, stated not rounded: the repeat press is 9.0-9.1 s, not the ~7 s asked for** (S114 was 7.1). Arithmetic in the report: +1.4 s the silence write, +1.4 s the ENABLE route write now needed every press because the handback zeroes those cells, +0.4 s two captures, -1.0 s the redundant 1 s AN_EN settle (codec_init's 2 s and the route write already give the rails 4 s+), -0.2 s the second baseline's capture. To stop it being 19 s the route write is split into a marker-gated STANDING group (31-strip CLOSE list, level, pan, processors, main level — only a boot moves them) and the four ENABLE cells: **full write 10.0 s, ENABLE write 1.4 s**, marker cleared by `boot_pair()` and by a re-stage. First press after a boot 17.8-19.1 s, `--section C` 34.3 -> 36.3 s. **Bug found and fixed on the way:** S114's pair-md5 gate meant the repo-only tools were never refreshed in the stage dir — the first S115 press answered `unrecognized arguments: --cap-node` on all three legs. `stage_tools()` md5-gates them on themselves now (`dsp4_bulk.py`/`dsp4_fft.py` added). Deployed `d24_selftest.py` `421ceec0461d50c8373c1bfbf3efdeaa` (rollback `.bak-s115-pre` = `c16264a7f96b6fee50f4c9944e6057eb`, matched pre-dispatch `main`), `dsp4_s49_osc.py` `098f95ba0a9bd5899f26a9e10810a5cf`, `dsp4_bulk.py` `6b236080707608435b3106bf674ebb56`, `dsp4_fft.py` `41a6fc694b45c19d8bcb7949a7e70c22`, `dsp4_loop_thd.sh` `69281877e58d2cf2cffaf082bdbc3ae8`. `--keys` clean. `--section C` after deploy 7 PASS / 0 FAIL / 4 NO DATA, same shape as S114. Unit handed back AN_EN lo, CS_M driven, CS1/CS2 high, 595 SAFE (verified 200/200), speaker path silent and read back, pair booted+configured, `d24-testui` active; codec never `--reset`. Report `MW/D24/DSP/s115/al1-thd.md`, findings S115-1..4, two surviving logs in `MW/D24/DSP/s115/logs/`. **🔴 Gap:** no touch-injection proof (same reason as S114 — the wizard's invocation string is byte-identical and this dispatch touched neither the app nor the touch wiring; row-56 coordinates still unrecorded). Also the first calibration grid's and the 12:47 press's logs lived in `/tmp/logs` and were lost to the two reboots the cold arms needed — their output is transcribed verbatim in the report.]   [model: opus]
 
 > **HUB ADDENDUM 12:42 BST — THE POST-TONE NOISE, FOUND AND STOPPED BY THE HUB (one cell).** PW: the noise had been running continuously for a while with no test running. Read-only on the unit at 12:41: no runner process, AN_EN (GPIO26) LO, CS_M (27) HI, d24-testui active; the AL1 route STILL ASSERTED from the last press — `Chan020MainOn001=1`, `Chan020Mute001=0`, `Main001Level001=1.0`, `Mon001Level001/002=1.0`. So with the rails DOWN, strip 20's input (an unpowered analog front end) is digitised noise going MAIN → monitor → speaker, i.e. the speaker amp and codec output are NOT on AN_EN. The hub wrote `Chan020MainOn001=0` at 12:42:24 (read back 0) to silence it; your next AL1 press will see the probe mismatch and re-write the route (S114 rank 3), which is fine. For step 3 of your brief this is the named step: **handback never tears the route down**. Fix: handback restores the route cells to their pre-press values (at least strip 20 off MAIN, or muted) so the unit is silent after every press; and state in the report which rail the speaker amp/codec output ARE on.
