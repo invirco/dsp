@@ -1,3 +1,108 @@
+## HUB DISPATCH 2026-09-26 17:30Z — S123: the factory patch screen - one instruction, live status, progress, nothing else   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S123 — The factory patch screen: one instruction, live status, progress. Nothing else.
+
+**PW 2026-09-26, at the bench, after trying the S121 quick pass on the product display:**
+"it should say aux 5 to mic 5 on the product display. let's stop, remove all the clutter, add some
+realtime activity and progress indicator, ie what it's currently doing, simple, simple, simple, for a
+factory worker who knows nothing about the product, but can follow instructions."
+
+This is the top dsp priority (PW 09-26: the hardware test suite — simplest, fastest, most efficient).
+S122's bench items wait behind it (see the end).
+
+## What PW saw (hub, 18:21–18:30 BST)
+
+- The hub ran S121's station on MW-D24-2 against a hub-derived quick list,
+  `/home/app/selftest/s121-quick/` (MIC 1-4 and 13-16 left out as known dead; mini-jacks left out,
+  not fitted; the TRS-output patches read on MIC 5; AUX 2-4 moved onto MIC 17-19 — 55 patches). The
+  hub's generator for it is `/tmp/hub-quicklist.py` on this machine; the list itself is on the unit.
+- First run with `--stdin`: prompts went to the terminal and the glass kept its old page.
+- Second run without it: the glass drew the station card — "Step 1 of 3 - the microphone inputs /
+  Take lead K1: the XLR lead / 17 patches at this step / …" with READY / skip / ignore / pause — inside
+  RUN ALL's row page (row number, class, workbook status and the rest). The progress line read
+  "RUN ALL, finished — floors: 17 lanes…" because the app only counts a run as live when it is the
+  `d24-runall` unit. The hub relaunched it under `systemd-run --unit=d24-runall`. PW expected the
+  screen to say **AUX 5 to MIC 5**, and wants the whole screen redone.
+- The app polls `runall/` on a 2 s tick, so the glass lags every step by up to 2 s.
+- **The standalone station never prepares the analog side.** The hub did it by hand: AN_EN up
+  (`sudo pinctrl set 26 op dh`), then the 595 chain to 24×`0x00` + `0x00` (unmuted, phantom off, gain
+  code 0) via `s55_chain.py`, `VERIFIED 200/200`. The noise block needs gain 63 (24×`0xFC` + `0x00`),
+  which the station has no step for. Handback by hand at 18:3x: `d24-runall` stopped with SIGINT (the
+  station's teardown ran), AN_EN low FIRST, then SAFE (24×`0x01` + `0x00`, VERIFIED), oscillator and
+  monitor levels read 0, `runall/prompt.json` removed, `/home/app/s90/.chain_last` removed (unknown =
+  rewrite). **Unit as the hub left it: rails down, chain SAFE, speaker silent, `d24-testui` active,
+  `matrix-app` inactive.**
+
+## Do
+
+1. **The operator screen (app, mx26 `src/sw/app`, the D24 test skin — `~/mx26` on this machine is
+   the checkout; pull first, push to main).** While a manual loop is running the display shows ONLY:
+   - **The instruction, big, in panel names:** "Plug AUX 5 into MIC 5". The lead in plain words, not a
+     code: "the XLR lead", "the XLR-to-jack lead", "the jack-to-XLR lead", "the 150 Ω plug". A lead
+     change is folded into the first instruction of its block ("Pick up the XLR-to-jack lead. Plug
+     AUX 1 into the jack socket of MIC 5.") — **no separate READY card and no press to start a block**;
+     the lead going in is the acknowledgement.
+   - **One live status line — what the tester is doing right now, in plain words:** "Waiting for the
+     lead…" → "Signal found — checking…" → **PASS** (green, large) or **FAIL** (red, large) with ONE
+     plain action ("Push the lead in firmly", "The lead is in MIC 6 — move it to MIC 5"). A small
+     activity indicator that visibly moves while the tester is working, so a still screen never means
+     "is it stuck?".
+   - **Progress:** "3 of 39" and a bar; smaller, "lead 1 of 3".
+   - **One button: PAUSE.** Skip / ignore / reasons leave the operator screen (supervisor view or the
+     end review — your call, keep it out of the worker's way).
+   - **The end:** "Finished — 37 passed, 2 failed", the failed patches listed in panel names, "Give
+     this unit to the supervisor."
+   - **Never on this screen:** row numbers, classes, workbook status, catalog text, lead codes (K1…),
+     lanes, dBFS, cell names, internal vocabulary. Large type readable at arm's length on the D24's
+     1920×1080 panel; colour only for pass/fail.
+   Design it so the S120 panel loop can use the same screen later (instruction / live status /
+   progress / PAUSE) — do not build that now.
+2. **Realtime.** The runner writes one small live status file on every state change (state,
+   instruction, n of N, lead n of M, last verdict, heartbeat); the app watches it at ≤ 200 ms
+   (FileSystemWatcher or a fast tick while a run is live). Target: the screen shows "Signal found"
+   within 0.5 s of the lead going in. Measure it.
+3. **Live means live.** The display shows the run as running however the station was launched — the
+   status file's heartbeat decides, not only the `d24-runall` unit.
+4. **The station owns its analog prep and handback** (standalone AND inside RUN ALL): rails up once
+   with `d24_selftest.rails_up` semantics (AN_EN last up, first down; PW's rails-once rule); the chain
+   image per block — tone blocks 24×`0x00` + `0x00`, the noise block 24×`0xFC` + `0x00` — each
+   read-back verified and written to the chain marker; on finish, PAUSE, SIGINT or crash: AN_EN low
+   FIRST, then SAFE, then oscillator off and monitor 0. A PAUSE must leave the unit safe.
+5. **Quick lists are generated, not hand-made.** Add an exclude option to the patch-list generator
+   (inputs and/or leads, e.g. `--exclude MIC1-4,MIC13-16 --exclude-lead mini-jack`) that re-homes
+   exactly as the hub did: outputs whose only test used an excluded input move to a working one; the
+   TRS-output block reads on the first working input. Regenerate the quick list with it and check it
+   equals the hub's (55 patches). PW will run quick lists on this unit until the bad channels are
+   fixed.
+6. **Starting it.** One START on the factory screen for the patch test, with the quick list
+   selectable (or the list chosen by a setting) — the worker must never need a terminal.
+7. **Prove it on MW-D24-2** (the unit is released to THIS session for S123 — see the hold note under
+   S122, which this supersedes for S123 only). You cannot plug a lead: walk the screen through every
+   state (waiting, signal found, PASS, FAIL with each action, wrong socket, lead change, PAUSE,
+   finished) — inject the states through the runner, and capture each screen as a PNG with the app's
+   own capture path (`App.axaml.cs` RenderTargetBitmap) or any faithful method. Put the PNGs in
+   `MW/D24/DSP/s123/screens/` and name them by state. The hub puts them in front of PW.
+8. **Deploy** the app (rollback `app.bak-s123-pre`) and the runner, the way S117 did; state every
+   deployed file's md5. Leave the unit ready for PW's next quick pass: rails DOWN, chain SAFE, the
+   START on the factory screen armed with the quick list. Tell the hub the exact thing PW presses.
+
+## Then, S122's bench items
+
+After S123 is deployed and the unit is handed back safe, run S122's queued bench list (its
+dispatch block) on the part, in the same session, and report it as S122's bench section.
+
+## Report
+
+Screens (PNG), measured insertion→screen latency, deployed md5s, unit as left, the one thing PW
+presses. Findings numbered S123-n. Keep every operator-facing string plain and check it with
+`--check-md`.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 16:41Z — S122: the haptic speaker path - the panel speaker leaves every mixer signal path   [status: 🟢 done DESK-SIDE, 🔴 EVERY BENCH ITEM IS QUEUED — the hub put MW-D24-2 on hold for PW's patch pass part-way through and nothing here is proved on the part. **THE SPEAKER IS OFF EVERY MIXER PATH AND THE GENERATOR NOW REFUSES TO PUT IT BACK.** `C2_HPT_01` (new node type `HAPTIC`, chip 2, **no inputs**, eight SPI words at page 1 addr **2175-2182**) feeds `C2_SPKR_OUT` — `C2_MON_OUT` renamed, **the same SPI word 1796**, `slot_count` 2→1 — on codec slot 0 = `CODEC_OUT_1` = AK4619 `AOUT1L`, the only codec DAC output fitted on a D24. It plays a stored click on a trigger, a stored 1 kHz period for the acoustic self-test, and **digital zero otherwise**. **THE SEPARATION IS ENFORCED, NOT CONVENTIONAL**: `dsp_validate.py::check_speaker_slot` and `dsp_codegen.py::_speaker_slot_guard` (called from `gen_block_io`, on the node set that becomes the TX lane table) both refuse a graph in which anything but a `HAPTIC` node reaches a `sink=SPKR` output, in which the haptic source itself has an input, or in which a second `OUTPUT_TDM` writes the speaker's slot, plus a third check in `gen_dsp_csv.py` for the one case neither of those can catch (the DECLARATION being removed — both are correctly silent on a graph with no speaker, because both run on fragments and on chip 1) — **all four arms fired on scratch mutants, seven refusals for seven**; neither guard has the slot number typed into it, both read `sink=SPKR` (S102's declaration), so moving the speaker moves the checks. **🔴 S122-1, AND IT CHANGED THE DESIGN: the auditioned clicks are EXPONENTIALLY DECAYING TONES, NOT GATED BURSTS.** The dispatch (and the pipeline note behind it) says "gated 2.5 kHz bursts, 4/8/15 ms"; PW's six files say otherwise. All six are on the unit at `/home/app/*.wav` and every tonal one is `A.exp(-n/tau).sin(2.pi.f.n/fs)` — **1500 Hz tau 3.000 ms, 2500 Hz tau 2.500 ms, 4000 Hz tau 2.000 ms, 3000 Hz tau 1.800 ms**, fitted log-linearly to each file's own per-half-cycle peaks and reproducing it to 0.0001 (0.0054 for the 2k5). Building the dispatch's description would have produced a click PW has never heard. **So the stored set IS the audition, and that is measured, not asserted**: three clicks generated from four numbers each (2500/2.5 ms press, 3000/1.8 ms release, 1500/3.0 ms spare; **which is which is PW's ruling, not made here**), truncated at -60 dB and raised-cosine faded to exactly zero over the last 1 ms, and `MW/D24/DSP/s122/check_click_model.py` reads the Q4.28 words out of the GENERATED assembly (not the generator) and compares them with the WAVs sample for sample: **max |stored - file| = 0.00098 of full scale on all three, MATCH**; the 1 kHz test tone is 48 samples, exact to 1.9e-09. **🔴 S122-2: that audition existed ONLY in a bench unit's home directory** — the whole record of a decision PW signed off by ear. Copied to `_Matrix/Products/D24/dsp/audition-20260925/` with a README and the fit table. **ZERO ADDRESSES MOVED, PROVED**: after `./regenerate-dsp-contract.sh`, `dsp_address_map.md` (5,827 rows), **all four** `MW/*/MX/_matrix.csv`, `ghost_cells.h` and `chip1/dsp_params.asm` are **byte-identical**; the only contract artefact that moves is `chip2/dsp_params.asm` (+6 dispatch entries +2 spares at `0x087F..0x0886`, table 2,176→2,184). `check-sharc-codegen-drift.sh` passed, `defs.lock` unmoved at `defs-v2026.09.24.2`, nothing written into `defs/`, **no contract bump owed**. **CHIP 1 REBUILDS BYTE-IDENTICAL** (`1be74e042cff134c7085dfb08dade517`, against this session's own `git archive HEAD` baseline built with the same script and config) — the check that the change did not reach past chip 2; chip 2 367,056→**377,864 B** `a4eb1f1ab9288dd8cbd28566ad6ea79d`, code 58.2→58.5 % (+664 B), DM 74.4→77.1 % (+10,144 B, of which 10,016 is table), 86 kB of DM still free. The `DSP4_TEST_NODES=1` pair AL1 needs also builds clean (chip1 `7f226919…` 433,508 B, chip2 `9e8a1a9e…` 379,424 B) and is **NOT deployed**. Hand-written SHARC assembly, assembled and linked first time in both configurations. **Cycles (STATIC counts off the emitted text, not measured): 15 instructions on an idle block** — 0.005 % of chip 2's 327,680-cycle budget, under the ~2,000-cycle cross-boot spread the instrument itself has — and ~265 while sounding (0.08 %), only for the 12-21 ms a click lasts; the zero-fill is latched the way `DSP4_AUXIN_BYPASS` latches a parked aux input. **AL1 RETARGETED**: `dsp4_s49_osc.py --haptic` drives the haptic test tone (chip-2 scope, refuses an image with no `_hpt_test_on_C2_HPT_01`, writes `OscOn 0`/`OscChan 0` explicitly so "the oscillator is not the stimulus" is a write and not an assumption, same 24-step equal-dB fade, same `--then-off`), and `d24_selftest.py` **loses the 43-cell route write, the 31-strip CLOSE list, the standing marker, both target tables and the route probe** — 0 cells written to set up where it was 43 cold / 4 repeat, 2 reads to prove the state where it was a 12-cell probe, 2 words to tear down where it was 4. **A press that dies half way can no longer leave the speaker live, and neither can a boot**: the graph has no resting value that sounds, which is what S115's teardown existed to paper over. `s89_set.py` gains a `c2@ADDR` form (same dispatch path, never a peek) because the cells are proposed and not landed. **🔴 S122-3**: the haptic words are InstantCtl with no ramp companions, so a RAMPED write walks the three words above the one addressed — and above `Level` sits `TestOn`; every writer here passes ramp 0 and says why. **🔴 S122-5, FOR PW AND NOT A RE-ASK**: the monitor bus now reaches **no converter output on a D24 at all**. No routing was invented — the rear Monitor jacks are `DAC_15/16` = `MainCtr`/`MainSub` (S121-6), the Centre/LF XLR is `DAC_14` off aux 12 and the headphone jack is `DAC_09/10` off aux 9-10, with D24 declaring aux 1-8 (S121-5). **The monitor bus is a FOURTH item in that one open question**; report §2.3 gives the three ways to close it (give it the rear Monitor jacks, give it the headphone jack, or retire the chain the way S1-1 retired the sub). The chain costs ~1,100 cycles/block to leave running, which is the price of not guessing. **🟡 S122-4**: `C2_CODEC_AUX_OUT` is now the ONLY mixer path left on the AK4619 (`AOUT2L/R`, both DNP, fed from an `SDIN2` the part ignores in TDM) — one fact added to S102-2, still the hub's call. **NO `DSP4_HAPTIC` BUILD FLAG, and the reason is stated**: no cell is emitted so nothing in the image depends on the proposed names, and S82's rule means a new switch costs a `shipping.config` line, a CFG3 bit and a mirror entry — while a default-off arm would leave the speaker dead and AL1 unrunnable. If PW wants it anyway it is CFG3 bit 24 (free) plus two lines. **🔴 WHAT IS OWED ON THE PART, all eight items with recipes in report §9** and none of them done: the speaker slot reading **exact zero** with every mixer bus driven hard (the headline proof — `s89_slotcap.py 2 _tx_out_slot_C2_SPKR_OUT 256` with a strip at full scale on MAIN and `Mon001Level001/002 = 1.0`, plus a click playing as the positive control), a click audible on trigger, the **latency** from the cell write to sound (the DSP's own contribution is bounded at ~1 ms — ≤1 block to see the trigger at BLOCK=16, then a fixed gather under `DSP4_TX_DEFER=2`; the unmeasured part is the host write), AL1 PASS through the new path, **`--al1-calibrate` (the old level law was fitted through a strip and two bus faders that are no longer in the path, so it is stale by construction)**, and a capacity row against the 84.34 % standing figure. **BENCH CONTACT THIS SESSION, stated exactly**: three read-only ssh reads (`hostname`/`uptime`/`systemctl is-active`, a directory listing) and an `scp` of the six audition WAVs — all **before** the hold, no write, no pin, no DSP link, no deploy, nothing staged. Report `MW/D24/DSP/s122/haptic-path.md`, proposal `proposals/CONTRACT-PROPOSAL-S122.md` (six cells, PW rules the names), app-side list `MW/D24/DSP/s122/app-side.md`, model check `MW/D24/DSP/s122/check_click_model.py`, findings S122-1..5.]   [model: opus]
 
 > **HUB HOLD — THE UNIT IS PW's (bench patch pass, 2026-09-26 evening).** PW is running a quick manual patch pass on MW-D24-2 (`/home/app/selftest/s121-quick/`, a hub-derived copy of the S121 list — do not edit it). **Do NOT touch 192.168.1.219** — no ssh writes, no DSP boot, no cell writes, no deploy — until the hub posts a release note here. Carry on with everything desk-side (code, generator, build, dry runs); queue the bench steps and say so in your status.
