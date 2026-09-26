@@ -419,7 +419,40 @@ MONO_TRS_OUTS = [('MONITOR L', 'xover:ctr', TONE_HZ,
 
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',
-           'level_ref', 'polarity', 'rows', 'prompt', 'note')
+           'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park')
+
+# ---------------------------------------------------------------------------
+# THE ORDER (PW 2026-09-26)
+# ---------------------------------------------------------------------------
+# "Test all XLR outputs first, in a line, as they flow on the mixer. If there
+# is no detection, move the input to the next one until a working loop is
+# established; then check all XLR outs in a row first, then all XLR ins in a
+# row second -- faster, and it saves cross-patching to find combinations that
+# may or may not work."
+#
+# So every patch has ONE END PARKED and the other end moving, and the parked
+# end is a socket that has already been proved. That is what makes a fail mean
+# something: a patch with a known-good input and a moving output fails BECAUSE
+# OF THE OUTPUT, with nothing to hunt.
+#
+# The parked end is not decided here. It cannot be: which input is good is a
+# fact about the unit in front of the operator, and this list is generated
+# before anybody plugs anything in. So the `park` column says WHICH END is
+# parked and the runner binds it at run time to the socket the first step
+# found:
+#
+#   find   the first patch of all. The output end sits on the first XLR
+#          output; the input end WALKS until the tone arrives, and the input
+#          it stops on becomes the reference for everything after it.
+#   in     the input end is parked on the reference input; the output moves.
+#   out    the output end is parked on the reference output; the input moves.
+#   ''     neither: the patch names both ends itself.
+#
+# The cost of this order, stated plainly, is about ten extra hand moves: the
+# old list proved an output and an input with the same patch, and this one
+# does not. What it buys is that no fail ever needs a second patch to
+# interpret.
+PARK_FIND, PARK_IN_END, PARK_OUT_END = 'find', 'in', 'out'
 
 
 # ---------------------------------------------------------------------------
