@@ -1,3 +1,66 @@
+## HUB DISPATCH 2026-09-26 14:22Z — S118: S115-2 — chip-1 → chip-2 MAIN receive stuck at full scale (trace, reproduce, fix, detection row)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S118 — S115-2: the chip-1 → chip-2 MAIN receive stuck at full scale while chip 1 sends silence
+
+PW 2026-09-26: queued straight after RUN ALL (S117). The hardware test is dsp's top priority; this
+fault matters because in the product a stuck-at-full-scale MAIN receive puts a full-scale signal on the
+main outputs, and nothing in the self-test detects it today.
+
+## The finding (dsp findings.md S115-2, as measured 12:41-12:47 BST 09-26)
+
+`MainL001Mtr001` +17.0…+18.1 dBFS sustained; `_buf_C2_MIX_MAIN_L` +16.6 dBFS; `_buf_C2_RECV_MAIN_L`
++15.3 dBFS with words at `0x7FFFFEE0` (Q4.28 saturation) — while `_buf_C1_BUS_MAIN_L`, chip 1's own
+MAIN block, read −117.8 dBFS, every strip's `MainOn` was 0 and the 595 chain SAFE. `dsp4_config.py` on
+both chips did NOT clear it; `dsp4_boot.py` + config twice did (−106 dBFS after). Controls after the
+boot: every strip on MAIN at unity −107 dBFS (chain SAFE), −74 dBFS at micGainFull, every strip closed
+exactly zero. Not reproduced on demand. Context: the unit had been through many S114 presses, reboots
+of the CM4 without a pair reset, and pair boots — S114 made the pre-DR1 `boot_pair()` conditional and
+section C use `ensure_pair()`, so the pair can now live across many runs without a reset.
+
+**NEW, S117-3 (f35b2986, same day): it happened AGAIN and was MEASURED.** Both RUN ALL passes read the
+acoustic loop `base -18.0` / `-15.9` = NO SOUND; a reset+boot (`--only DR1,DR2`) then `--only AL1`
+immediately read `PASS base -55.5 tone -34.8 SNR 20.6 dB THD 2.53 %`. So the state recurs on this unit
+within a session, and a reset+boot clears it. Structural consequence found by S117: a later RUN ALL pass
+does NOT boot the pair when the link is alive (S114's saving), so a unit in that state carries a fictional
+acoustic verdict through every later pass — S117 flagged a one-line fix (boot per pass, or on detection)
+and did not take it because it changes the automatic set's cost. Decide it here with the detection row:
+the cheapest correct rule (e.g. the detection row runs first in every pass and forces a reset+boot on a
+hit, so the cost is paid only when the state is present).
+
+## Do
+
+1. **Desk first: the path.** Trace `C1_BUS_MAIN_L/R` → the inter-chip link → `C2_RECV_MAIN_L/R` →
+   `C2_MIX_MAIN`: which SPORT/TDM lane and slot, the DMA/ring and its pointer handling, the Q4.28 (or
+   other) packing and any sign-extension/scaling on receive, and what state survives a config commit but
+   not a boot (DMA descriptors, ring phase, SPORT framing, a latched word, a slot offset). List every
+   mechanism that could make RECV read a constant near-full-scale word while C1 sends zero — e.g. a
+   receive slot/lane offset landing on a different signal or a framing word, a stale ring after a
+   partial reset, a half-word/byte misalignment turning small values into saturation, a desync between
+   chip-2's receive and chip-1's transmit after one chip was re-booted and the other not.
+2. **Reproduce it deliberately.** Using the list, try the states the unit went through today: boot one
+   chip without the other, CM4 reboot with the pair left running, config-only commits after a boot,
+   repeated `ensure_pair()`/`boot_pair()` sequences, AN_EN transitions, the S62 SPI_RDY/EN cycle. Read
+   `_buf_C2_RECV_MAIN_L/R` raw words and `MainL001Mtr001` after each. A reproduction recipe is the goal.
+3. **Fix + guard.** If reproduced, fix it at the cause (boot/config sequencing, receive resync, a
+   framing check) and prove it: the recipe no longer produces it. Whatever the cause, add a SELF-TEST
+   ROW that detects it cheaply (MAIN receive at digital silence with every MainOn 0 — a few reads, no
+   audio) so a factory run can never pass a unit in this state; follow the S113/S116 grouping and the
+   "simplest, fastest" rule. Numbered and placed per S107 (never renumber).
+4. If it cannot be reproduced in a bounded effort, say so, ship the detection row anyway, and write the
+   ranked hypotheses with the one experiment that would decide each.
+
+## Bench
+
+MW-D24-2 as S117 hands it back (runner + d24_runall.py deployed, app b61a190c); silent handback (the monitor bus boots at unity — S115-1); AN_EN
+rules per S116. Report `MW/D24/DSP/s118/main-recv.md`, findings S118-1…. Questions = 🔴 note, commit,
+stop — no dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 13:17Z — S117: RUN ALL — one START, auto pipelined, manual stepped, one report (simplest/fastest)   [status: 🟢 done — **RUN ALL is built and proven on MW-D24-2 through the panel's own touch path: ONE press of START ALL ran the whole automatic set with no further input (210 s), the operator set was then stepped station by station, and ONE complete report covers all 202 rows.** Architecture, chosen for PW's simplest/fastest/least-code bar: ONE new file, `tools/pi/d24_runall.py` (1 300 lines), owns every decision — the category split, the station order, the rails rule, IGNORE, the pass arithmetic, the report — and the wizard is a THIN CLIENT that tails `runall/progress.txt`, draws `runall/prompt.json` and writes `runall/answer.json`. The dialog's buttons are SLOTS: a prompt names the buttons it offers and six `ACT1..ACT6` controls take their labels from that list, so a new dialog needs no skin change and no C# change. The automatic set is NOT reimplemented — one `d24_selftest.py --only <owed>` per pass in the catalog's own group/order, so the mixer stops once, the pair boots once and the rails rise once, exactly as S116 left it. **Proven, in this order, every press through `d24_touch_inject.py` on `/dev/uinput`:** START ALL at (656, 970) → `TESTSKIN: press TESTACT 'STARTALL' at 456,920` → 210 s untouched; stations walked 3→4→5→6 (analog last, S116 Q4); checks 130/131 MEASURED by the runner after `Done` (*nothing on port 3 / port 4*, NO DATA — honest, no stick plugged); **BACK proven** (133 → back → 131 answered again → 133 again); **PAUSE proven** (state `{phase:manual, step:6, row:1}`, unit inactive); **RESUME ACROSS AN APP RESTART proven** — `d24-testui` restarted and START ALL came back reading `RESUME: CHECK 1`, one press carried on; **IGNORE round trip proven on the glass** (owed 93→92, `ignored.csv` carries serial+reason+catalog md5) and `--unignore` restores the previous verdict (IGNORED → back to SKIPPED); **NO REDUNDANT TESTS measured**: pass 1 asked for 39 tests over 34 rows (210 s), pass 2 asked for **22 over 16 (179 s)** — every row that passed was left alone. Pass 1: 18 PASS / 2 FAIL / 16 NO DATA / 75 skipped / 91 not tested, 202 rows, 463 s. The report pair's `.md` holds **202 rows, 202 distinct numbers, none missing** and is CLEAN under `d24_runall.py --check-md`, the acceptance grep (bench test ids, cell names, firmware-table names, node ids, run-group codes, session tags, tool names, repo paths). Row names on the human page are plain English (`main control processor link`, `audio processor select line 6`, `panel microphone and speaker`); panel items keep the workbook's own words. **Deployed:** `/home/app/app` `b61a190c6b1655346378acc75b2e4432` (rollback `.bak-s117-pre` = `432ae0fcba2400e74e9916e979103720`, S112's), `D24TEST.mxs` `d0448ca4f0cb03cbd0434a1d2b0c9706` (rollback `.bak-s117-pre` = `f517539d6a7c2b3ac72a65d35267f8da`), `d24_runall.py` `d46962b528106612fa0c66f6f0d6737b` (new), and **S116's catalog, which had never been deployed** — the unit was still on the 25 September file with no `group`/`order` columns, the two RUN ALL orders by — `96694c1357912229ad6e5b4feaf33884` (rollback `.bak-s117-pre` = `fd4de54e1f60aa89a43ffde47536c45a`). `dotnet test src/sw/app.Tests` 163/163. mx26 commit `8a3dae8`. **All five S116 §9 app changes are done** (`--no-soak-wait` dropped; corrected `tests` read live; partner-row stamping with the one-way guard — pressing the two-test row stamps the one-test row and never the reverse; rows 103/104 read live; `group`/`order` read). Also fixed a defect RUN ALL surfaced: the row identity line has wrapped onto the line below it on long-section rows since S110 and now ellipsises. **Unit handed back** AN_EN lo, CS_M driven hi, `d24-testui` active, `matrix-app` inactive, speaker path torn down and read back SILENT by the runner's own handback, injector and its FIFO removed, `pair.conf` unchanged. **🔴 Three findings.** **S117-1: the catalog's PASS criterion is ONE ROW OUT OF STEP for 75 consecutive rows (128→202)** — row 133 (mains inlet) carries the second screen socket's criterion, 134 (power switch) carries the inlet's, 198 (ADC) carries the DAC's, 202 carries ML-M's; the leading tag of each row's `pass_when` matches the `tests` of the row ABOVE it. S116 found the same shift on 127/203, fixed those two and left the rest flagged. The wizard's DETAIL page prints this column, so 75 rows tell a technician the wrong criterion today, and it is why S117 builds its dialog text from `board`/`item`/`class`/`group` and publishes the generated wording in `s117/manual-dialogs.csv` for review instead. Fix belongs in mx26's generator. **S117-2: row 148 is `automation 1` and in the analog-loopback station** — printed as a warning on every run rather than resolved silently. **S117-3: the acoustic loop's NO SOUND today is S115-2's pinned MAIN bus, MEASURED** — both passes read `base -18.0` / `-15.9` NO SOUND; a reset+boot (`--only DR1,DR2`) then `--only AL1` immediately read `PASS base -55.5 tone -34.8 SNR 20.6 dB THD -32.0 dB 2.53 %`. Structural consequence for RUN ALL: a later pass does not boot the pair when the link is alive (S114's saving), so a unit in that state carries a fictional acoustic verdict through every later pass. The one-line fix is flagged, not taken — it changes the automatic set's cost. **🔴 Four questions for PW, flagged not decided (report §8):** (Q1, the dispatch's own) **the meter station is lid-off and its card says the analog supplies are LIVE — is that the right order, or must it run rails-down?** No rails went up in this session (neither analog station had its fixture). (Q2) **Stations 1 and 2 — the two switch panels, 50 rows — are ALL `not tested`** because the host has no per-control read and no per-indicator drive, and the firmware table declares a matrix cell for exactly one panel switch (`FxMute`). Nothing was invented. **Does the panel firmware light a button's own indicator locally when the button is pressed?** If yes, one dialog per button grades the switch row AND its indicator row with the operator judging and no host capability at all, and all 50 become gradeable; if no, a per-control read is a dispatch of its own. (Q3) the report's reading/limit columns still carry the instrument's own words and hardware designators — say the word and they are paraphrased too. (Q4) no export drop folder is configured because none has been named. **Gaps, stated:** the reason pick-list has no free text (no on-screen keyboard on this page); the scrollable non-PASS list is the wizard's existing `QUEUE: EVERY UNPASSED` walk rather than a new widget (deliberate, same information); both bench passes print a dash for their automatic seconds because both were resumed after a pause and the carry landed after them (desk-proven at 207 s; the real figures, 210 s and 179 s, are in `runall.log`). Report `MW/D24/DSP/s117/run-all.md`, dialogs `s117/manual-dialogs.csv`, reports+ignores `s117/accept/`, eleven glass captures in `s117/`, findings S117-1..3.]   [model: opus]
 
 model: opus
