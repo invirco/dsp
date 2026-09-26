@@ -572,9 +572,20 @@ class Builder:
         return ' '.join(sorted(set(out), key=int))
 
     def route(self, donor, drive):
+        """The route id, and BOTH donors for it.
+
+        The runner binds a parked end at run time -- it cannot know before the
+        operator plugs anything in which input is good -- and the donor
+        depends on the input being measured (the oscillator cannot be injected
+        into the strip under test). So every drive this list uses gets a route
+        for both donors, and a rebound patch can never name one that is not
+        there.
+        """
         rid = '%s@%d' % (drive.replace(':', '').replace('+', 'p'), donor)
-        if rid not in self.routes:
-            self.routes[rid] = route_cells(donor, drive, AUXES)
+        for d in (DONOR_DEFAULT, DONOR_ALT):
+            alt = '%s@%d' % (drive.replace(':', '').replace('+', 'p'), d)
+            if alt not in self.routes:
+                self.routes[alt] = route_cells(d, drive, AUXES)
         return rid
 
     def add(self, **kw):
@@ -583,6 +594,7 @@ class Builder:
         self.n += 1
         kw.setdefault('sub', '')
         kw.setdefault('note', '')
+        kw.setdefault('park', '')
         kw.setdefault('prompt', '')
         kw.setdefault('freq_hz', TONE_HZ)
         kw.setdefault('level_dbfs', TONE_DBFS)
@@ -628,31 +640,54 @@ class Builder:
         return keep
 
     # -- the blocks ---------------------------------------------------------
-    def block_k1(self):
-        """The mic paths and the talkback: a balanced XLR output into a
-        balanced XLR input, which is the reference every other reading on that
-        lane is judged against."""
-        plan = []
+    def block_k1_outputs(self):
+        """Every XLR output in a row, into one input (PW 2026-09-26).
+
+        The FIRST patch is the one that finds the loop: its output end is the
+        first XLR output and its input end walks until the tone arrives. The
+        input it stops on is the reference for the whole pass, and every
+        patch after this one in this block is that same input with the output
+        end moving -- so a fail here is the OUTPUT and nothing else.
+        """
+        ref_in, ref_strip = self.park_in()
         for i, (out, drive) in enumerate(XLR_OUTS):
-            plan.append((out, drive, 'MIC %d' % (i + 1), i + 1))
-        for mic in range(len(XLR_OUTS) + 1, 25):
-            plan.append((PARK_OUT, PARK_DRIVE, 'MIC %d' % mic, mic))
-        plan = self.rehome(plan)
-        for out, drive, inp, strip in plan:
             self.new_patch()
-            self.add(lead='K1', block='the microphone inputs', out=out, in_=inp,
-                     drive=drive, lane=strip, donor=donor_for(strip),
+            self.add(lead='K1', block='the outputs', out=out, in_=ref_in,
+                     drive=drive, lane=ref_strip, donor=donor_for(ref_strip),
                      expect='tone', level_ref='ref', polarity='ref',
-                     rows=self.rows_for(out, inp),
-                     prompt='Patch %s to %s' % (out, inp))
+                     rows=self.rows_for(out, ref_in),
+                     prompt='Patch %s to %s' % (out, ref_in),
+                     park=(PARK_FIND if i == 0 else PARK_IN_END),
+                     note=('the first patch of the pass: the input end walks '
+                           'until the tone arrives, and the input it stops on '
+                           'is the reference for every patch after it'
+                           if i == 0 else ''))
+
+    def block_k1_inputs(self):
+        """Every XLR input in a row, from one output (PW 2026-09-26).
+
+        The output end is parked on the output the loop was found with, so a
+        fail here is the INPUT and nothing else. Inputs the first step already
+        walked past are recorded there and are not walked again.
+        """
+        for strip in self.strips():
+            inp = 'MIC %d' % strip
+            self.new_patch()
+            self.add(lead='K1', block='the inputs', out=PARK_OUT, in_=inp,
+                     drive=PARK_DRIVE, lane=strip, donor=donor_for(strip),
+                     expect='tone', level_ref='ref', polarity='ref',
+                     rows=self.rows_for(PARK_OUT, inp),
+                     prompt='Patch %s to %s' % (PARK_OUT, inp),
+                     park=PARK_OUT_END)
         if self.out_in('TALKBACK'):
             return
         self.new_patch()
-        self.add(lead='K1', block='the microphone inputs', out=PARK_OUT,
+        self.add(lead='K1', block='the inputs', out=PARK_OUT,
                  in_='TALKBACK', drive=PARK_DRIVE, lane=LANE_TALKBACK,
                  donor=DONOR_DEFAULT, expect='tone', level_ref='info',
                  polarity='info', rows=self.rows_for(PARK_OUT, 'TALKBACK'),
                  prompt='Patch %s to TALKBACK' % PARK_OUT,
+                 park=PARK_OUT_END,
                  note='the talkback XLR is on the AK4619 codec, not the mic '
                       'preamps: a different gain law and about 23 dB more noise '
                       '(S70), so its level is reported and not judged until PW '
@@ -668,6 +703,7 @@ class Builder:
                      polarity='-', level_dbfs='', freq_hz='',
                      rows=self.rows_for('MIC %d' % strip),
                      prompt='Fit the 150 ohm terminator in MIC %d' % strip,
+                     park='',
                      note='EIN at the gain the 2026-09-16 survey used; the '
                           'window is limits.csv t4b_ein_max_dbu')
 
@@ -692,6 +728,7 @@ class Builder:
                      polarity='normal', rows='',
                      prompt='Patch %s to the TRS centre of MIC %d'
                             % (PARK_OUT, strip),
+                     park=PARK_OUT_END,
                      note='no catalog row declares the combo TRS line path, and '
                           'nothing in defs says how it is selected: level '
                           'reported, tone presence judged')
@@ -708,13 +745,15 @@ class Builder:
                      drive=drive, lane=park_strip, donor=DONOR_DEFAULT,
                      freq_hz=hz, expect='tone', level_ref='info',
                      polarity='normal', rows=self.rows_for(name, park_in),
-                     prompt='Patch %s to %s' % (name, park_in), note=why)
+                     prompt='Patch %s to %s' % (name, park_in), note=why,
+                     park=PARK_IN_END)
         for jack, la, ra in STEREO_TRS_OUTS:
             self.new_patch()
             base = dict(lead='K2', block='the TRS outputs', out=jack,
                         in_=park_in, lane=park_strip, donor=DONOR_DEFAULT,
                         rows=self.rows_for('%s L' % jack, park_in),
-                        prompt='Patch %s to %s' % (jack, park_in))
+                        prompt='Patch %s to %s' % (jack, park_in),
+                        park=PARK_IN_END)
             self.add(sub='L', drive='aux:%d' % la, expect='tone',
                      level_ref='single', polarity='normal',
                      note='tip alone: one leg of aux %d into a balanced input' % la,
@@ -752,7 +791,8 @@ class Builder:
                         in_=jack, drive=PARK_DRIVE, donor=DONOR_DEFAULT,
                         rows=self.rows_for('%s L' % jack),
                         prompt='Patch %s to %s, with MINI-JACK %d empty'
-                               % (PARK_OUT, jack, other))
+                               % (PARK_OUT, jack, other),
+                        park=PARK_OUT_END)
             self.add(sub='L', lane=lane_l, expect='tone', level_ref='single',
                      polarity='info',
                      note='pin 2 reaches the tip, so the left lane carries the '
@@ -770,7 +810,11 @@ class Builder:
                                     reason=why))
 
     def build(self):
-        blocks = [('K1', self.block_k1), ('K5', self.block_k5),
+        # THE ORDER IS PW'S, AND IT IS THE POINT: find a loop, then every
+        # output in a row against it, then every input in a row against a
+        # known-good output. Each block moves ONE end.
+        blocks = [('K1', self.block_k1_outputs), ('K1', self.block_k1_inputs),
+                  ('K5', self.block_k5),
                   ('K4', self.block_k4), ('K2', self.block_k2),
                   ('K3', self.block_k3)]
         for lead, fn in blocks:
@@ -827,6 +871,11 @@ HEAD_PATHS = """\
 #               info   = measured and reported, not judged (no window ruled yet)
 #   polarity    ref = sets the lane's reference phase; normal/inverted = against it;
 #               info = reported only; - = not applicable
+#   park        which end of the lead is PARKED on a socket already proved, and so
+#               which end the runner binds at run time: find = the first patch of
+#               all, whose input end walks until the tone arrives; in = the input
+#               end is the reference input; out = the output end is the reference
+#               output; empty = the patch names both ends itself
 """ % (SINGLE_ENDED_DB, NULL_MAX_DB)
 
 HEAD_ROUTES = """\
