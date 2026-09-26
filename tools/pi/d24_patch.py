@@ -924,9 +924,139 @@ def _q(s):
 
 
 # ---------------------------------------------------------------------------
+# ENTER, from a keyboard nobody has to configure
+# ---------------------------------------------------------------------------
+# PW 2026-09-26: "let me plug in the cable, then hit Enter." ENTER is two
+# things -- a button on the glass, which the display writes into the command
+# file, and the Enter key of a USB keyboard plugged into the unit. The
+# keyboard is read HERE, in the runner, rather than through the display, for
+# two reasons: a station started from a terminal has no display to read it,
+# and the framebuffer backend's keyboard support is not something to bet a
+# factory bench on. Reading the device directly needs no configuration and no
+# window focus -- the `app` user is already in the `input` group.
+#
+# HOT-PLUG IS THE NORMAL CASE. The keyboard is a thing somebody carries to a
+# bench, so the device list is re-read every few seconds and a keyboard that
+# appears mid-pass starts working without a restart.
+EV_KEY = 0x01
+KEY_ENTER = 28
+KEY_KPENTER = 96
+INPUT_EVENT_SIZE = 24                      # 64-bit: 2x8 timeval + 2 + 2 + 4
+KBD_RESCAN_S = 5.0
+
+
+def keyboards():
+    """Every input device that has an Enter key, by its /dev/input node.
+
+    Read off /proc/bus/input/devices rather than by ioctl so this needs no
+    extension module: each device block carries a `B: KEY=` bitmask and a
+    `H: Handlers=` line, and a device with bit 28 set has an Enter key.
+    """
+    out = []
+    name = handlers = keybits = None
+    try:
+        lines = open('/proc/bus/input/devices').read().splitlines()
+    except OSError:
+        return out
+    for line in lines + ['']:
+        if line.startswith('N: Name='):
+            name, handlers, keybits = line[8:].strip('"'), None, None
+        elif line.startswith('H: Handlers='):
+            handlers = line[12:].split()
+        elif line.startswith('B: KEY='):
+            keybits = line[7:].split()
+        elif not line.strip():
+            if handlers and keybits:
+                words = [int(w, 16) for w in keybits]
+                mask = 0
+                for i, w in enumerate(reversed(words)):
+                    mask |= w << (64 * i)
+                if (mask >> KEY_ENTER) & 1:
+                    for h in handlers:
+                        if h.startswith('event'):
+                            out.append(('/dev/input/' + h, name))
+            name = handlers = keybits = None
+    return out
+
+
+class KeyWatch:
+    """A latch that goes true when somebody presses Enter.
+
+    One reader thread per device, all of them daemon threads, all of them
+    setting the same latch. Nothing here ever blocks the loop: the loop asks
+    `pressed()`, which takes the latch and clears it.
+    """
+
+    def __init__(self, enabled=True, log=None):
+        self.enabled = bool(enabled)
+        self.log = log or (lambda s: None)
+        self._hit = False
+        self._open = set()
+        self._stop = False
+        self._t = None
+        if self.enabled:
+            import threading
+            self._t = threading.Thread(target=self._scan, daemon=True)
+            self._t.start()
+
+    def pressed(self):
+        if not self._hit:
+            return False
+        self._hit = False
+        return True
+
+    def stop(self):
+        self._stop = True
+
+    # -- the threads -------------------------------------------------------
+    def _scan(self):
+        import threading
+        while not self._stop:
+            for path, name in keyboards():
+                if path in self._open:
+                    continue
+                self._open.add(path)
+                self.log('reading the Enter key from %s (%s)' % (path, name))
+                threading.Thread(target=self._read, args=(path,),
+                                 daemon=True).start()
+            time.sleep(KBD_RESCAN_S)
+
+    def _read(self, path):
+        import struct
+        try:
+            fh = open(path, 'rb', buffering=0)
+        except OSError as e:
+            self.log('cannot read %s (%s)' % (path, e))
+            self._open.discard(path)
+            return
+        try:
+            while not self._stop:
+                b = fh.read(INPUT_EVENT_SIZE)
+                if not b or len(b) < INPUT_EVENT_SIZE:
+                    break
+                _s, _us, typ, code, val = struct.unpack('qqHHi', b)
+                if typ == EV_KEY and val == 1 and code in (KEY_ENTER,
+                                                           KEY_KPENTER):
+                    self._hit = True
+        except OSError:
+            pass
+        finally:
+            try:
+                fh.close()
+            except OSError:
+                pass
+            self._open.discard(path)          # unplugged: let the scan re-find it
+
+
+# ---------------------------------------------------------------------------
 # The loop
 # ---------------------------------------------------------------------------
 MIC_STRIPS = tuple(range(1, 25))
+# How long a step waits. With auto-advance the tone ends the step, so the
+# timeout is the list's own. With ENTER the step waits for a PERSON, and a
+# person who has gone to find a lead is not a fault: the same number, but
+# many times over, so a station left running still gives up eventually.
+ENTER_PATIENCE = 30
 # How many times a patch is offered again before it is recorded as NO DATA. A
 # wrong patch is a prompt and not a fail (PW 2026-09-26), but a prompt that
 # repeats for ever is a station that has stopped, so the loop bounds itself and
@@ -947,7 +1077,8 @@ class Station:
     """
 
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
-                 blocks=None, live=None, analog=None):
+                 blocks=None, live=None, analog=None, auto_advance=False,
+                 keys=None):
         self.L = plist
         self.u = unit
         self.p = patcher
@@ -961,6 +1092,11 @@ class Station:
         self.floors = {}
         self.live = live or LV.Live(None, enabled=False)
         self.an = analog or Analog(enabled=False)
+        # PW 2026-09-26: the step is CONFIRMED by the operator, not advanced
+        # under their hands. Auto-advance is the same loop with this on, and
+        # it is off unless somebody asks for it.
+        self.auto = bool(auto_advance)
+        self.keys = keys or KeyWatch(enabled=False)
         self.where = {}          # patch id -> (n of N, lead n of M, lead)
         self.passed = 0
         self.failed = 0
@@ -1056,7 +1192,10 @@ class Station:
         rise = self.lim['detect_rise_db']
         drop = self.lim['detect_drop_db']
         t0 = now()
-        deadline = t0 + self.lim['detect_timeout_s']
+        # A step that waits for a PERSON cannot use the list's tone timeout:
+        # somebody who has walked off to find the right lead has not failed.
+        deadline = t0 + self.lim['detect_timeout_s'] * (1 if self.auto
+                                                        else ENTER_PATIENCE)
         # THE BASELINE IS NOT prepare()'s READING, and this is the one place
         # that matters. When the prompt goes up the PREVIOUS patch's lead is
         # still in the unit -- the operator has not pulled it yet -- so a
@@ -1067,25 +1206,44 @@ class Station:
         # that produces, and it needs no knowledge of what came before.
         lo = hi = None
         while now() < deadline:
-            # The screen is alive while this loop runs, and the one button is
-            # polled in the same breath as the meter -- so PAUSE lands within
-            # one poll of the press wherever the loop is waiting.
+            # The screen is alive while this loop runs, and both buttons are
+            # polled in the same breath as the meter -- so ENTER and PAUSE
+            # land within one poll of the press wherever the loop is waiting.
             self.live.beat()
-            if self.paused_by_screen():
+            cmd = self.live.command()
+            if cmd == 'pause':
                 return ('glass', dict(button='pause', reason='the screen'),
                         now() - t0)
+            entered = (cmd == 'enter') or self.keys.pressed()
             ans = self.p.poll(token)
             if ans is not None:
-                return ('glass', ans, now() - t0)
+                # DONE on the old dialog, and Enter on a terminal, mean the
+                # same thing as the ENTER button: the operator says the lead
+                # is in. Anything else is a decision and goes back to the loop.
+                if ans.get('button') in ('done', 'ack', 'retry'):
+                    entered = True
+                else:
+                    return ('glass', ans, now() - t0)
+            met = False
             lvl = self.watch(lane)
             if lvl is not None and math.isfinite(lvl):
                 lo = lvl if lo is None else min(lo, lvl)
                 hi = lvl if hi is None else max(hi, lvl)
-                if r['expect'] == 'noise':
-                    if hi - lvl >= drop:
-                        return ('drop', None, now() - t0)
-                elif lvl - lo >= rise:
-                    return ('rise', None, now() - t0)
+                # NOT STICKY, and that is what makes ENTER honest: the test is
+                # against the level RIGHT NOW, so a lead that went in and came
+                # out again reads as out.
+                met = ((hi - lvl >= drop) if r['expect'] == 'noise'
+                       else (lvl - lo >= rise))
+            if met and self.auto:
+                return (('drop' if r['expect'] == 'noise' else 'rise'),
+                        None, now() - t0)
+            if entered:
+                return (('enter-ok' if met else 'enter-no'), None, now() - t0)
+            # The hint. It says what the tester can see and never advances.
+            if not self.auto and met != self._hinted:
+                self._hinted = met
+                self.live.set(status=(LV.SIGNAL_SEEN if met
+                                      else LV.status_words(LV.WAITING)))
             nap(0.05)
         return ('timeout', None, now() - t0)
 
@@ -1181,12 +1339,14 @@ class Station:
                         self.p.done(tok)
                         self.finish_early(rows, ans)
                         return self.rows_out
-                    if how != 'timeout':
+                    if how in ('rise', 'drop', 'enter-ok'):
                         t1 = now()
                         self.live.set(state=LV.CHECKING)
                         raw = self.acquire(rows, prep)
                         break
-                    # A wrong patch is a prompt, never a fail: find the lead,
+                    # ENTER with nothing on the expected input, or -- with
+                    # auto-advance on -- the tone never arriving at all. A
+                    # wrong patch is a prompt, never a fail: find the lead,
                     # say where it is, and offer the same patch again.
                     sweep = self.u.meter_sweep(MIC_STRIPS)
                     where = self.where_is_it(int(rows[0]['lane']), sweep,
@@ -1240,13 +1400,15 @@ class Station:
         n, lead_n, lead_total = self.where.get(pid, (0, 0, 0))
         r = rows[0]
         lead_line, self._lead_line = self._lead_line, ''
+        self._hinted = None
         # A lead the instruction already names does not need picking up in a
         # sentence of its own: "Pick up the 150 ohm plug. Put the 150 ohm plug
         # into MIC 1." is one sentence too many for somebody holding it.
         if lead_line and LV.lead_words(r['lead']) in LV.instruction_for(r):
             lead_line = ''
         extra = LV.extra_for(r) or LV.hold_note(len(rows))
-        self.live.set(state=LV.WAITING, instruction=LV.instruction_for(r),
+        self.live.set(state=LV.WAITING,
+                      instruction=LV.instruction_for(r, confirm=not self.auto),
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
 
@@ -1318,8 +1480,8 @@ class Station:
                                    'prompting again' % (where, r['in'])) if where
                              else ('nothing reached %s -- prompting again'
                                    % r['in'])))
-        action = (LV.action_wrong_socket(where, r['in']) if where
-                  else LV.action_no_signal())
+        action = (LV.action_wrong_socket(where, r['in'], confirm=not self.auto)
+                  if where else LV.action_no_signal(confirm=not self.auto))
         prep = self.prepare(rows)
         tok = self.p.connect(pid, rows, self.g)
         self.announce(pid, rows)
@@ -1619,15 +1781,24 @@ class SimGlass:
         self.log(text)
 
 
-class SimPatcher(ManualPatcher):
-    """The operator's hands: a fixed number of seconds, then the lead is in."""
+# The reach for the ENTER button, after the lead is in. It is not the hand
+# move -- that is `--hand` -- it is the second action PW's ruling adds, and it
+# is a parameter because it is a fact about a person and not about this code.
+PRESS_S = 0.8
 
-    def __init__(self, glass, world, hand_s, log):
+
+class SimPatcher(ManualPatcher):
+    """The operator's hands: a fixed number of seconds, then the lead is in,
+    and then -- since PW's ruling of 2026-09-26 -- a reach for ENTER."""
+
+    def __init__(self, glass, world, hand_s, log, press_s=PRESS_S):
         ManualPatcher.__init__(self, glass)
         self.w = world
         self.hand_s = hand_s
+        self.press_s = press_s
         self.log = log
         self.at = None
+        self.press_at = None
 
     def connect(self, patch, rows, glass):
         tok = ManualPatcher.connect(self, patch, rows, glass)
@@ -1636,6 +1807,7 @@ class SimPatcher(ManualPatcher):
         self.pending = (r['out'], r['in'],
                         sorted({int(x['lane']) for x in rows}), patch)
         self.at = now() + self.hand_s
+        self.press_at = None
         return tok
 
     def poll(self, token):
@@ -1649,6 +1821,10 @@ class SimPatcher(ManualPatcher):
             else:
                 self.w.plug(out, inp, lanes)
             self.at = None
+            self.press_at = now() + self.press_s
+        if self.press_at is not None and now() >= self.press_at:
+            self.press_at = None
+            return dict(button='done', reason='')
         return None
 
 
@@ -1686,11 +1862,15 @@ def time_table(station, plist, hand_s):
     return by_lead
 
 
-def print_time_table(by_lead, hand_s, plist, out=sys.stdout):
+def print_time_table(by_lead, hand_s, plist, out=sys.stdout, press_s=0.0):
+    # THE OPERATOR'S SECONDS ARE TWO ACTIONS NOW, not one: the hand move and
+    # the reach for ENTER (PW 2026-09-26). Both are the operator's, so both
+    # are counted here and neither is hidden in the machine column.
+    per_hand = hand_s + press_s
     tot_m = sum(d['machine'] for d in by_lead.values())
     tot_n = sum(d['n'] for d in by_lead.values())
-    out.write('\n  lead  patches  checks   machine s   per patch   hand s @ %.0f s\n'
-              % hand_s)
+    out.write('\n  lead  patches  checks   machine s   per patch   hand s @ %.1f s\n'
+              % per_hand)
     out.write('  ' + '-' * 62 + '\n')
     for lead in ('K1', 'K5', 'K4', 'K2', 'K3'):
         d = by_lead.get(lead)
@@ -1698,13 +1878,15 @@ def print_time_table(by_lead, hand_s, plist, out=sys.stdout):
             continue
         out.write('  %-4s  %7d  %6d  %10.1f  %10.2f  %12.0f\n'
                   % (lead, d['n'], d['subs'], d['machine'],
-                     d['machine'] / d['n'], d['n'] * hand_s))
+                     d['machine'] / d['n'], d['n'] * per_hand))
     out.write('  ' + '-' * 62 + '\n')
     out.write('  all   %7d  %6d  %10.1f  %10.2f  %12.0f\n'
               % (tot_n, sum(d['subs'] for d in by_lead.values()), tot_m,
-                 tot_m / max(tot_n, 1), tot_n * hand_s))
-    out.write('\n  projected pass: %.0f s hands + %.0f s machine = %.1f min\n'
-              % (tot_n * hand_s, tot_m, (tot_n * hand_s + tot_m) / 60.0))
+                 tot_m / max(tot_n, 1), tot_n * per_hand))
+    out.write('\n  projected pass: %.0f s hands (%.0f s moving the lead + '
+              '%.0f s pressing ENTER) + %.0f s machine = %.1f min\n'
+              % (tot_n * per_hand, tot_n * hand_s, tot_n * press_s, tot_m,
+                 (tot_n * per_hand + tot_m) / 60.0))
 
 
 # ---------------------------------------------------------------------------
@@ -1731,10 +1913,14 @@ def cmd_simulate(a, plist):
     world = World(faults=a.fault or ())
     glass = SimGlass(log)
     unit = SimUnit(world)
-    patcher = SimPatcher(glass, world, a.hand, log)
-    live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live)
+    patcher = SimPatcher(glass, world, a.hand, log, press_s=a.press)
+    live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live,
+                   confirm=not a.auto_advance)
+    # The dry run has no hands to press ENTER with, so the simulated operator
+    # presses it: SimPatcher answers `done` the moment its virtual hand has
+    # made the connection, which is the same message the button sends.
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
-                 blocks=a.block, live=live)
+                 blocks=a.block, live=live, auto_advance=a.auto_advance)
     rows = st.run()
     counts = {}
     for r in rows:
@@ -1748,7 +1934,8 @@ def cmd_simulate(a, plist):
             if r['verdict'] != PASS:
                 print('    %-5s %-22s %-9s %s'
                       % (r['patch'], r['in'], r['verdict'], r['why']))
-    print_time_table(time_table(st, plist, a.hand), a.hand, plist)
+    print_time_table(time_table(st, plist, a.hand), a.hand, plist,
+                     press_s=0.0 if a.auto_advance else a.press)
     if a.out:
         print('\nwrote %s' % write_results(a.out, rows))
     if a.strings:
@@ -1818,38 +2005,40 @@ def screen_walk(plist):
         ('03-lead-change', at(first, 1, state=LV.WAITING,
                               lead_line=LV.pick_up(first['lead']))),
         ('04-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
-        ('05-signal-found', at(tone, 5, state=LV.CHECKING, lead_line='')),
-        ('06-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
+        ('05-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
+                               status=LV.SIGNAL_SEEN)),
+        ('06-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
+        ('07-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
                        banner_line=LV.patch_words(tone), passed=5, failed=0)),
-        ('07-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
+        ('08-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
                                banner='CHECK THE LEAD', banner_line='',
                                action=LV.action_wrong_socket('MIC 6',
                                                              tone['in']))),
-        ('08-no-signal', at(tone, 6, state=LV.CHECKLEAD,
+        ('09-no-signal', at(tone, 6, state=LV.CHECKLEAD,
                             banner='CHECK THE LEAD', banner_line='',
                             action=LV.action_no_signal())),
-        ('09-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
+        ('10-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
                        banner_line=LV.patch_words(tone),
                        action=LV.action_failed(), passed=5, failed=1)),
-        ('10-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
+        ('11-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
                                   lead_line='')),
-        ('11-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
+        ('12-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
                             lead_line=LV.pick_up(line['lead']))),
-        ('12-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
+        ('13-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
                                   lead_line=LV.pick_up(trs['lead']),
                                   extra=LV.hold_note(3))),
-        ('13-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
+        ('14-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
                            lead_line='', extra='',
                            status='Paused - the unit is safe. '
                                   'Press START to run the test again.',
                            passed=28, failed=1,
                            failures=[LV.patch_words(tone)])),
-        ('14-finished', dict(state=LV.FINISHED, n=total, total=total,
+        ('15-finished', dict(state=LV.FINISHED, n=total, total=total,
                              instruction='', lead_line='', extra='',
                              status=LV.finished_words(total, 0),
                              action=LV.HANDOVER, passed=total, failed=0,
                              failures=[])),
-        ('15-finished-with-failures',
+        ('16-finished-with-failures',
          dict(state=LV.FINISHED, n=total, total=total, instruction='',
               lead_line='', extra='',
               status=LV.finished_words(total - 2, 2), action=LV.HANDOVER,
@@ -1898,8 +2087,14 @@ def cmd_screens(a, plist):
                 if state is not None:
                     live.beat()
                 time.sleep(0.1)
+                # THE FRAME HAS TO HAVE BEEN RENDERED AFTER THE CHANGE, not
+                # merely written after it: the display re-renders on its own
+                # cadence, so a file touched 0.4 s later can still carry the
+                # picture it drew before. One whole capture period of margin
+                # is what stops two different states photographing the same
+                # screen -- which is exactly what happened on the first walk.
                 if (cap and os.path.exists(cap)
-                        and os.path.getmtime(cap) > t_set + 0.4):
+                        and os.path.getmtime(cap) > t_set + a.capture_period):
                     b = _whole_png(cap)
                     if b:
                         got = b
@@ -1923,12 +2118,15 @@ def cmd_run(a, plist):
     import signal
     glass = RA.Glass(a.dir, stdin=a.stdin)
     live = LV.Live(a.live or a.dir, run='patch',
-                   enabled=not a.no_live)
+                   enabled=not a.no_live, confirm=not a.auto_advance)
     unit = Unit(symdir=a.symdir)
     patcher = pick_patcher(glass, a.back_end)
     an = Analog(enabled=not a.no_analog, log=glass.progress)
+    keys = KeyWatch(enabled=not (a.auto_advance or a.no_keyboard),
+                    log=glass.progress)
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
-                 log=glass.progress, blocks=a.block, live=live, analog=an)
+                 log=glass.progress, blocks=a.block, live=live, analog=an,
+                 auto_advance=a.auto_advance, keys=keys)
 
     # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
     # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
@@ -1954,7 +2152,8 @@ def cmd_run(a, plist):
             pass
     out = a.out or os.path.join(a.dir, 'patch-results.csv')
     print('wrote %s' % write_results(out, rows))
-    print_time_table(time_table(st, plist, a.hand), a.hand, plist)
+    print_time_table(time_table(st, plist, a.hand), a.hand, plist,
+                     press_s=0.0 if a.auto_advance else a.press)
     return 0
 
 
@@ -1972,6 +2171,8 @@ def main(argv=None):
                          'mispatch:<in>, swap:<jack>, nonull:<jack>, edge:<in>')
     ap.add_argument('--hand', type=float, default=5.0,
                     help='seconds per hand move, for the projection')
+    ap.add_argument('--press', type=float, default=PRESS_S,
+                    help='seconds to reach for ENTER after the lead is in')
     ap.add_argument('--out', help='write the per-path results here')
     ap.add_argument('--strings',
                     help='dump every operator-facing string, for --check-md')
@@ -1982,6 +2183,12 @@ def main(argv=None):
                          '(default: the glass directory)')
     ap.add_argument('--no-live', action='store_true',
                     help='do not drive the factory screen at all')
+    ap.add_argument('--auto-advance', action='store_true',
+                    help='end each step on the tone instead of on ENTER. OFF '
+                         'by default: PW ruled on 2026-09-26 that the operator '
+                         'plugs the lead in and then presses ENTER')
+    ap.add_argument('--no-keyboard', action='store_true',
+                    help='do not read the Enter key off a USB keyboard')
     ap.add_argument('--no-analog', action='store_true',
                     help='do not touch the rails or the mic-pre chain: for a '
                          'run on a unit somebody else has already set up')
@@ -1991,6 +2198,10 @@ def main(argv=None):
                          'photographed')
     ap.add_argument('--dwell', type=float, default=2.5,
                     help='seconds to hold each screen in --screens')
+    ap.add_argument('--capture-period', type=float, default=1.3,
+                    help='the display\'s own capture cadence, in seconds: a '
+                         'frame is only accepted once a whole period has '
+                         'passed since the screen changed')
     ap.add_argument('--capture', default='/home/app/selftest/s105-wizard.png',
                     help='the display\'s own capture file, copied out after '
                          'each screen in --screens')

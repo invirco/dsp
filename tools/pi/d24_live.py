@@ -114,17 +114,24 @@ def socket_words(name):
     return name
 
 
-def instruction_for(row):
+def instruction_for(row, confirm=True):
     """The one big line: what to plug into what.
 
     `row` is a patch-paths.csv row. The CSV's own `prompt` column says "Patch
     AUX 5 to MIC 5", which is the list's voice; this is the operator's.
+
+    PW, 2026-09-26, having watched a pass advance under their hands: "I like
+    it, but let me plug in the cable, then hit Enter." So the instruction is
+    two things a person does in order, and it says both -- the step does not
+    end until the second one.
     """
     into = socket_words(row.get('in'))
     out = (row.get('out') or '').strip()
     if not out:                                  # the terminator rows: no source
-        return 'Put %s into %s.' % (lead_words(row.get('lead')), into)
-    return 'Plug %s into %s.' % (out, into)
+        line = 'Put %s into %s' % (lead_words(row.get('lead')), into)
+    else:
+        line = 'Plug %s into %s' % (out, into)
+    return line + (', then press ENTER.' if confirm else '.')
 
 
 def extra_for(row):
@@ -160,10 +167,15 @@ def patch_words(row):
 STATUS_WORDS = {
     STARTING: 'Getting the unit ready...',
     WAITING: 'Waiting for the lead...',
-    CHECKING: 'Signal found - checking...',
+    CHECKING: 'Checking...',
     PAUSED: 'Paused - the unit is safe.',
     STOPPING: 'Putting the unit back safe...',
 }
+
+
+# The hint, and it is ONLY a hint: the tester can see the signal arrive and
+# says so, but the step still waits for ENTER (PW 2026-09-26).
+SIGNAL_SEEN = 'Signal found - press ENTER.'
 
 
 def status_words(state):
@@ -172,12 +184,15 @@ def status_words(state):
 
 # The one plain action a red screen offers. Exactly one, always something the
 # person can do with their hands.
-def action_wrong_socket(actual, wanted):
-    return 'The lead is in %s - move it to %s.' % (actual, socket_words(wanted))
+def action_wrong_socket(actual, wanted, confirm=True):
+    return ('The lead is in %s - move it to %s%s'
+            % (actual, socket_words(wanted),
+               ', then press ENTER.' if confirm else '.'))
 
 
-def action_no_signal():
-    return 'Push the lead in firmly at both ends.'
+def action_no_signal(confirm=True):
+    return ('Push the lead in firmly at both ends%s'
+            % (', then press ENTER again.' if confirm else '.'))
 
 
 def action_failed():
@@ -202,19 +217,35 @@ def every_string(rows=()):
     instructions and not just the fixed furniture.
     """
     out = list(STATUS_WORDS.values())
-    out += [action_no_signal(), action_failed(), HANDOVER,
+    out += [SIGNAL_SEEN,
+            action_no_signal(), action_no_signal(False), action_failed(),
+            HANDOVER, 'ENTER', 'PAUSE', 'START',
             finished_words(55, 0), finished_words(53, 2),
             'PASS', 'FAIL']
     for lead in sorted(LEAD_WORDS):
         out.append(pick_up(lead))
     for r in rows:
         out.append(instruction_for(r))
+        out.append(instruction_for(r, confirm=False))
         if extra_for(r):
             out.append(extra_for(r))
         out.append(patch_words(r))
         out.append(action_wrong_socket('MIC 6', r.get('in')))
+        out.append(action_wrong_socket('MIC 6', r.get('in'), confirm=False))
     out.append(hold_note(3))
     return [s for s in out if s]
+
+
+# The buttons on the glass, per state. The screen draws what it is given and
+# owns no rule about when a button exists: PW's ENTER is only offered where
+# pressing it means something, PAUSE is offered wherever a run can be stopped,
+# and START is what replaces both once the pass is over.
+def buttons_for(state, confirm=True):
+    if state in (PAUSED, FINISHED):
+        return ['start']
+    if confirm and state in (WAITING, CHECKLEAD):
+        return ['enter', 'pause']
+    return ['pause']
 
 
 # ---------------------------------------------------------------------------
@@ -229,19 +260,26 @@ class Live:
     patch list is.
     """
 
-    def __init__(self, dirpath, run='patch', total=0, enabled=True):
+    def __init__(self, dirpath, run='patch', total=0, enabled=True,
+                 confirm=True):
         self.dir = dirpath
         self.enabled = bool(enabled and dirpath)
         self.path = os.path.join(dirpath or '.', LIVE_NAME)
         self.cmd_path = os.path.join(dirpath or '.', COMMAND_NAME)
         self.seq = 0
         self.t0 = time.time()
+        # `confirm` is PW's ruling of 2026-09-26: the operator plugs the lead
+        # in and presses ENTER, and the step does not end until they do. It is
+        # what puts the ENTER button on the screen; auto-advance is the same
+        # loop with this off.
+        self.confirm = bool(confirm)
         self.d = dict(
             v=1, run=run, seq=0, state=STARTING, stamp='', heartbeat=0.0,
             instruction='', lead_line='', extra='', status=status_words(STARTING),
             busy=True, banner='', banner_line='', action='',
             n=0, total=int(total), lead_n=0, lead_total=0,
-            passed=0, failed=0, failures=[], can_pause=True)
+            passed=0, failed=0, failures=[], can_pause=True,
+            buttons=buttons_for(STARTING, confirm))
         if self.enabled:
             os.makedirs(dirpath, exist_ok=True)
             self._flush()
@@ -269,6 +307,7 @@ class Live:
                 raise AssertionError('%r is not a screen state' % state)
             kw.setdefault('status', status_words(state))
             kw.setdefault('busy', state in BUSY_STATES)
+            kw.setdefault('buttons', buttons_for(state, self.confirm))
             if state != VERDICT and state != CHECKLEAD:
                 kw.setdefault('banner', '')
                 kw.setdefault('banner_line', '')
@@ -324,4 +363,4 @@ class Live:
         if float(c.get('stamp', 0)) < self.t0:
             return None                      # left over from a previous run
         cmd = c.get('command')
-        return cmd if cmd in ('pause',) else None
+        return cmd if cmd in ('pause', 'enter') else None
