@@ -1,3 +1,71 @@
+## HUB DISPATCH 2026-09-26 11:39Z — S115: AL1 — explain today's fails, bandpass THD in place of THD+N, silent handback   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S115 — AL1: why every press fails today, bandpass THD in place of THD+N, and a silent handback
+
+Three PW inputs on 2026-09-26, all at the bench with MW-D24-2 (they are also recorded as
+HUB ADDENDUM 1-3 in the S114 block, committed in 6c3cd126 — read them):
+
+1. **The failure.** Every AL1 press today fails. S114 confirmed it identically on the pre-S114
+   runner (S114 report §S5): warm presses CLIP (tone −34.6/−34.7 dBFS, THD+N −6.5…−7.5 dB ≈ 45 %),
+   the first press after a reboot LOW (tone −44.7…−45.4 dBFS) then recovering to the warm CLIP;
+   not tracking room noise. On 09-25 PW's four presses PASSED (tone −35.8, THD+N −16.7 dB = 15 %).
+2. **PW's ears:** "the tone was clear, then it stopped, then noise started later." A clean tone
+   by ear against a 45 % reading says the NUMBER is wrong, not the speaker — until proven
+   otherwise. And noise that starts AFTER the tone means some later step leaves the speaker
+   path live and noisy.
+3. **PW ruling:** AL1 reports BANDPASS THD ONLY, not THD+N. The S49 node's ThdResult is THD+N
+   (total RMS minus the fundamental's quadrature fit): room noise, hiss and any tone-free part
+   of the window all count as "distortion".
+
+## Bench
+
+MW-D24-2, bench lock the S80-12 way, handed back as S114 left it (AN_EN lo, CS_M driven, 595
+SAFE, d24-testui active, deployed runner c16264a7…). Never `--reset` the codec. PW may be at
+the bench: if a step needs ears or hands (listen for the noise, reseat a lead), write a 🔴 note
+with the exact question, commit, stop — no dialog.
+
+## Do, in this order
+
+1. **Bandpass THD (the ruling).** During the tone take a COHERENT contiguous capture of the MEMS
+   lane with the existing path (`s89_slotcap.py` / `_scope_record`, read with `dsp4_bulk.py`),
+   ~4096 samples, short — the press stays ~7 s. Analyse with `dsp4_fft.analyse()`: THD =
+   harmonics h2..h10, each in its own narrow band; the noise between the bands excluded and
+   reported separately. AL1's verdict uses THD in place of THD+N, reported in dB AND percent;
+   tone level, SNR and both baselines unchanged; THD+N stays as an INFORMATIONAL evidence line.
+   The THD ceiling is new: derive it with `--al1-calibrate` on this unit (all AL1 limits stay
+   PROVISIONAL until the speaker datasheet); never reuse the THD+N number.
+2. **Explain today with it.** Re-take the S114 BEFORE/AFTER conditions (cold after reboot, then
+   warm ×3) and table THD, THD+N, noise, tone level, and whether the tone filled the capture
+   window (tone present across all of it, onset/offset inside it or not). Say which of these
+   explains the 45 %: window placement vs the ~0.6 s tone, noise inside the window, a level or
+   scale change since 09-25, or real distortion. Explain the cold-press LOW (−10 dB): what is
+   different on the first press after a reboot. Compare line by line with S111's 09-25 PASS
+   evidence. Hardware is the LAST explanation, reached only when the measurement is cleared.
+3. **The noise after the tone.** Find the step that leaves the speaker making noise after the
+   tone: second baseline, handback, AN_EN dropping with strip 20 still routed to MAIN, the codec
+   left in a state, or a later runner. Use the run timestamps; if you need PW's ears to confirm
+   which moment the noise starts, 🔴 note + stop. Fix it: the press must HAND BACK SILENT, and
+   the rails and the route are live ONLY for the measurement windows (baseline / tone /
+   baseline). Report rails-up seconds per press before and after.
+4. Deploy the S107 way (rollback kept, md5s), `--keys` clean, and a repeat press still ~7 s.
+
+## Deliverables (`MW/D24/DSP/s115/`)
+
+`al1-thd.md`: the method, the new ceiling and its calibration run, the explanation table with a
+named cause for the 45 % and for the cold LOW, the noise step named and fixed, rails-up seconds
+before/after, repeatability (3 warm presses within 0.5 dB THD). Every AL1 figure in dB and %.
+
+## Acceptance
+
+AL1's verdict is on bandpass THD; today's failure explained with evidence (or stopped on a 🔴 PW
+hand question); the press hands back silent; no limit other than the new THD ceiling changed.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 10:35Z — S114: compact AL1 (repeat press 23 s to ~10 s) + section-B/C runners + cold-start sweep   [status: 🟢 done, with one 🔴 unrelated finding and one 🔴 gap — **repeat AL1 press 17.0-17.1 s → 7.1-7.2 s (measured, beats the ~10 s target); cold press (>=60 s post-reboot) also 7.1 s** because the stage-md5 and chain-SAFE caches are disk files that survive a CM4 reboot (the SHARC pair itself is on its own power/reset domain and a CM4-only reboot never touches it). Five AL1 changes per S113 §6.2 rank order, all with a safe fallback: `stage_setup()` md5-compares the staged pair before copying; `app_stop()` skips its 2 s sleep when `systemctl is-active` was already false (ALWAYS true under `d24-testui`); the route write probes its four cells first and only re-writes on a mismatch; `handback`'s SAFE chain write is skipped only when a disk marker says SAFE **and nothing in this run called `boot_pair()`** (a boot disturbs the chain, S70-7, so this forces the real write regardless of the marker); `rxscan` is cached to a marker cleared only on a real re-stage. Plus the four RUN-ALL-adjacent changes S113 named needing no ruling: `:2399`'s `boot_pair()` now conditional on a DR/DY/DC test being selected (`ML1` 11.2s→2.0s, `CC1,CC2` 11.4s→3.9s, `MC1,MC2,MC3` 10.3s→1.1s, `ML-P1` 14.5s→5.3s, measured); `:2421`'s section-C-only branch always uses `ensure_pair()` now, not just `--only AL1` (`AS-DSPA` 13.8s→4.9s, full `--section C` 61.8s→34.3s, measured); AS-CPLD's two 10 s `dsp4_blk30.py` windows made concurrent **safely** — not as two real OS processes (which could assert both chips' CS at once with no cross-process lock and contend on the shared MISO line) but as one shared 10 s wall-clock window bracketing two sequential, complete register snapshots (33.5s→15.8s, measured, same NO DATA verdict); NW2's 30 s idle control left blocking — it COULD move into the A1→A2 transition without changing what it measures, but that is a control-flow change to `main()`'s section boundary, not a mechanical cache-and-skip, and was judged to need its own dispatch rather than ride along in an already-large diff. **Correctness fix rides along**: `CC1`/`CC2` now get `codec_init()` before them (S111's cold-start lesson, generalised — closes the same gap for the codec register readback that S111 closed for AL1's tone). **Every verdict matched the pre-deploy rollback copy row for row** on `--section B`, `--section C`, and every changed `--only` set — confirmed not a regression. Predicted RUN ALL total (S113's 435 s, same groups/order) re-priced at **~419 s** (−16 s: −3 app_stop −5 stage_setup +2 codec_init(new) −10 AS-CPLD, arithmetic in the report). Deployed `d24_selftest.py` `c16264a7f96b6fee50f4c9944e6057eb` (rollback `d24_selftest.py.bak-s114-pre` = `4888906a861c46b659ae2ed462488cd8`, matched pre-dispatch `main`); `--keys` cross-check clean post-deploy. Report `MW/D24/DSP/s114/al1-timing.md`, per-runner table `MW/D24/DSP/s114/runners-timing.csv`. **🔴 Unrelated finding, NOT this dispatch's doing (confirmed identical on the rollback copy)**: the acoustic loop is not currently passing on this unit — warm presses read CLIP (THD+N −6.5 to −7.5 dB, vs S112's clean −16.4 dB 24h ago) and the FIRST press after a reboot reads LOW (tone ~10 dB under the calibrated line, though clean) before recovering to the warm CLIP reading; neither tracks room noise (THD+N got worse while the room got quieter across three presses). No verdict rule or calibration constant touched to chase it — recommend PW check the acoustic path (TS482 supply/warm-up, H1 harness seating, or the speaker) next time at the bench. **🔴 Gap, stated not hidden**: no touch-injection ("on the glass") proof this session — the wizard's own invocation string was run directly (byte-identical to what START spawns) rather than through `d24_touch_inject.py`, because neither the app nor the touch-to-runner wiring was touched by this dispatch and re-deriving row-56's tap coordinates blind, with no visual feedback, was judged not worth the risk for a wiring path this diff never changed; if the hub wants the touch path itself re-verified, do it eyes-on next time at the bench. Housekeeping note: mid-session cleared `/home/app/selftest/logs/*` without checking first that every entry was this session's own (it was, checked after the fact) — flagged in the report so it isn't repeated.]   [model: sonnet]
 
 > **HUB ADDENDUM 2026-09-26 12:18 BST (read before your next step):** (1) EVERY AL1 press today has FAILED, including your untouched BEFORE presses at 11:52 (CLIP, THD+N -6.5 to -6.9 dB, about 46 %), where PW's four presses on 09-25 PASSED at THD+N -16.7 dB (15 %) with the tone at a similar level. A 3x distortion rise with no code change points at the speaker path, not S114. Your AFTER numbers mean nothing until this is explained: pause the timing work, find why (compare today's AL1 evidence with S111's 09-25 PASS evidence line by line: speaker, amp, tone level, route, room) and say in the block whether the unit changed. Do NOT touch the limits or the verdict rule. If it needs PW's hands or ears at the bench, write a red note and stop. (2) PW heard it at the bench: a short tone, then a LONG hiss from the speaker on each press. The route puts strip 20 on MAIN with the rails up for about 15 s of every press. Once the fault is understood, keep AN_EN high and the route live ONLY for the measurement windows (baseline / tone / baseline) and minimise hiss exposure per press; report rails-up seconds per press before and after.
