@@ -1,3 +1,62 @@
+## HUB DISPATCH 2026-09-26 15:25Z — S120: the panel loop — fast press → LED round trip for the switch-panel stations   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S120 — The panel loop: a fast press → LED round trip for the two switch-panel stations
+
+PW 2026-09-26: the hardware test is dsp's top priority (simplest, fastest suite). The two switch-panel
+stations (S113 M1 left 14 rows, M2 right 36 rows; S117 found all 50 "not tested" because the host has
+no per-control read and no per-indicator drive, and the firmware table declares a matrix cell for only
+one panel switch, FxMute) become ONE LOOP. PW: "operator pushed button will send a message to tester,
+tester will then light the correct LED, then operator will press next button, tester lights correct LED,
+etc, until loop is complete — we need to find a fast response method for this."
+
+## The path that exists (netlist, mx26 docs/d24-signals-index.md MX_BUS_*)
+
+Both panel MCUs (STM32F030R8: right = H1S3 / fw.csv SW_RIGHT, left = H1S4 / SW_LEFT) share one UART
+bus: their MCU_TX → digital MRX → DSP-board M MCU U8.14 and CPLD U3.71; SRX (master → panels) is the
+net 'M MCU_P47' reaching the panels' MCU_RX and also DSP J3/J4.47 = digital J17.47 (the CM4 stack
+connector), U3.72, U7.43 (S MCU) and U9.4; a shared BUSY line (LOGIC_BUSY / MCU_BUSY). The panel wire
+protocol (UART framing over SRX/MRX, BUSY semantics) exists only in firmware (errata "write it down").
+Firmware sources: panel H1S3/H1S4, M MCU (MH1), S MCU (H1S1: peters-mbp ~/build-h1s1) — find them.
+
+## Do
+
+1. **Map the chain, measured:** how a key event travels today (panel MCU → which master → CM4 → app/
+   cell), how an LED is commanded back, and the latency of each hop — measure on MW-D24-2 (press a
+   button, timestamp at each point you can see; command an LED, time to light if observable) or bound
+   it from the protocol if a hop can't be observed. Write the panel protocol down (the errata item), as
+   a defs candidate.
+2. **Rank the fast-path options** by press→LED round-trip, firmware changes and risk, e.g.: (a) the
+   runner on the CM4 talks to the panel bus directly (if J17.47 is a usable CM4 UART and MRX can be
+   reached — say whether it can, electrically, without contending with the M MCU); (b) a test mode in
+   the M MCU (or S MCU) that forwards key events up to the CM4 as they happen (event-driven — interrupt
+   /BUSY or a push, never slow polling) and accepts LED commands; (c) the product's own cell path if
+   it already carries every key and LED. Target: < 50 ms press→LED (feels instant); report the
+   measured or bounded number for the chosen option.
+3. **Build it into RUN ALL as ONE station per panel** (or one for both), TESTER-LED MODE: the tester
+   lights the LED of the next button to press; the operator presses the lit button; the tester checks
+   the key code it receives (wrong key = mapping/switch fault, recorded automatically), marks the row
+   and lights the next; a "not lit" button on the glass is the operator's only judgement (an LED that
+   does not light). Every switch row AND its indicator row graded by the loop; buttons with no LED are
+   pressed on a prompt and judged by the key code alone. Order the loop so the hand travels the panel
+   in a sweep. Rows by catalog number / cell names (never addresses); partner-row stamping as S117.
+4. Implement the chosen fast path (firmware changes only where needed, behind a test mode that the
+   product never enters; flashed per the existing recipes, hashes recorded, rollback kept), prove the
+   round-trip number on the glass, and walk a full loop on MW-D24-2 (PW or the session at the bench —
+   if a human must press, write a 🔴 note with the exact steps and stop; the runner side can be proven
+   with an injected key stream first).
+
+## Deliverables (`MW/D24/DSP/s120/`)
+
+`panel-loop.md` (the chain map with latencies, the protocol write-up, options ranked, the chosen
+design, the measured round trip, the station as built), code/firmware changes, deployed md5s/rollbacks.
+Every question for PW = 🔴 note, commit, stop — no dialog. Silent handback.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 14:57Z — S119: retire the meter station from RUN ALL; deploy the corrected catalog   [status: 🟢 done — meter station retired (`STATIONS` drops M7; its 24 rows classified NOT RUN under new `group=QC`, 8 "covered by <plain-English test>", 16 "board-level test at the assembler"); corrected catalog (mx26 7bb7c84, 0 violations/202 rows) regenerated and deployed, `covers`/`remedy` reconciled (fresh generator right on both — the S116 "nine pairs" never fired, and its HDMI remedy text was stale from before HD0-2's own retirement); proved on MW-D24-2 over 3 RUN ALL passes (202 rows, one fewer station, `--check-md` clean); two real bugs found and fixed along the way (S119-1): a `classify()` order bug that misrouted row 153, and a pre-existing `State.put()` rank-gate bug that pins a row's stale SKIPPED verdict forever once it is reclassified NOT RUN — fixed with a `force=True` path used only by `record_not_run()`. Silent handback, same shape as S118.]   [model: sonnet]
 
 model: sonnet
