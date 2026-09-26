@@ -6,6 +6,83 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PANEL SPEAKER IS NOT A MIXER OUTPUT (2026-09-26, session 122)
+
+Hub dispatch `tasks.md` 2026-09-26 16:41Z. Report: `MW/D24/DSP/s122/haptic-path.md`,
+proposal `proposals/CONTRACT-PROPOSAL-S122.md`, app-side list
+`MW/D24/DSP/s122/app-side.md`. DESK ONLY — the bench was PW's from part-way
+through the session (hub hold) and every bench item is listed in the report
+with its recipe.
+
+**S122-1 THE AUDITIONED CLICKS ARE DECAYING TONES, NOT GATED BURSTS.** The
+dispatch and the pipeline note behind it describe PW's 2026-09-25 audition as
+"gated 2.5 kHz full-scale bursts (4/8/15 ms)". The files say otherwise. All six
+candidates are on the bench unit at `/home/app/*.wav` (48 kHz, 32-bit, 330 ms,
+one burst at 150 ms, peak 0.94) and every tonal one is
+`A.exp(-n/tau).sin(2.pi.f.n/fs)`: 1500 Hz tau 3.000 ms, 2500 Hz tau 2.500 ms,
+4000 Hz tau 2.000 ms, 3000 Hz tau 1.800 ms — a log-linear fit to each file's own
+per-half-cycle peaks, reproducing each file to within 0.0054 of full scale
+(0.0001 for three of the four). `4_tick_noise` is noise and
+`5_thump_plus_click` is a 217 Hz thump with modulation; neither is modelled.
+Building the dispatch's description would have produced a click PW has never
+heard. **What is stored instead is the model**, generated from four numbers per
+click, and `MW/D24/DSP/s122/check_click_model.py` reads the Q4.28 words out of
+the GENERATED assembly and compares them with the WAVs sample for sample:
+**max |stored - file| = 0.00098 of full scale (-60 dB) on all three.**
+
+**S122-2 THE AUDITION EXISTED ONLY IN A BENCH UNIT'S HOME DIRECTORY.** Six WAV
+files in `/home/app/` were the entire record of a design decision PW signed off
+by ear. Copied to `_Matrix/Products/D24/dsp/audition-20260925/` with a README
+and the fit table. Nothing there is a build input; the DSP tables are generated
+from the fitted numbers, and the check script is what ties the two together.
+
+**S122-3 THE HAPTIC WORDS ARE InstantCtl AND A RAMPED WRITE WOULD WALK THREE
+WORDS ABOVE THE ONE ADDRESSED.** The eight-word block has no
+`_target_`/`_step_`/`_frames_` companions, and above `Level` sits `TestOn`. Every
+writer added in S122 passes ramp 0 and says why at the point of the write
+(`dsp4_s49_osc.py::w2`, `d24_selftest.py`, the proposal's §3). A ramped haptic
+level means growing the node's companion words first; it is not a host-side
+choice.
+
+**S122-4 THE MIXER'S LAST PATH ONTO THE CODEC IS `C2_CODEC_AUX_OUT`, AND IT
+REACHES NO FITTED PART.** Not caused here; one fact added to S102-2. It writes
+`CODEC_OUT_3/4` = `AOUT2L/R` from `C2_MAIN_DLY`; `C21`/`C22` are DNP
+(`mx26 tools/netlist/parts.csv:67`) and S108-2 records that `DAC2SEL` selects
+`SDIN2`, which TDM mode ignores. With the monitor bus off `CODEC_OUT_1`, this is
+now the ONLY mixer signal path left on the AK4619 — retiring it would take the
+mixer off the codec entirely. Hub's call, as it was.
+
+**S122-5 THE MONITOR BUS NOW REACHES NO CONVERTER OUTPUT ON A D24 — FOR PW, AND
+NOT A RE-ASK.** `C2_MON` -> `C2_MON_DLY` keeps its nodes, addresses and cells
+(`Mon001InputSel001`, `Mon001Level001/002`, `Mon001Delay001`) and ends on a block
+nothing reads. No routing was invented: the rear Monitor jacks are `DAC_15/16` =
+`MainCtr`/`MainSub` (S121-6, measured), the Centre/LF XLR is `DAC_14` off aux 12
+and the headphone jack is `DAC_09/10` off aux 9-10, with D24 declaring aux 1-8
+(S121-5). The monitor bus is a FOURTH item in that one open question, and the
+report's section 2.3 lists the three ways to close it. The chain costs about
+1,100 cycles a block (0.3 % of chip 2) to leave running, which is the price of
+leaving a question open rather than guessing.
+
+**WHAT WAS BUILT.** `C2_HPT_01` (new node type `HAPTIC`, chip 2, no inputs,
+eight SPI words at page 1 addr 2175-2182) feeds `C2_SPKR_OUT` (`C2_MON_OUT`
+renamed, same SPI word, `slot_count` 2 -> 1) on codec slot 0. It plays stored
+clicks on a trigger, a stored 1 kHz period for the acoustic self-test, and
+digital zero otherwise — 15 instructions on an idle block, about 265 while
+sounding, 2,504 words of DM. **The separation is ENFORCED, not conventional**:
+`dsp_validate.py::check_speaker_slot` and `dsp_codegen.py::_speaker_slot_guard`
+both refuse a graph in which anything but a `HAPTIC` node reaches a `sink=SPKR`
+output, in which the haptic source itself has an input, or in which a second
+`OUTPUT_TDM` writes the speaker's slot. Both arms of both guards were fired on
+scratch mutants. **ZERO ADDRESSES MOVED, proved**: `dsp_address_map.md`, all four
+`_matrix.csv` and `ghost_cells.h` byte-identical out of
+`./regenerate-dsp-contract.sh`; `chip1.ldr` rebuilds BYTE-IDENTICAL
+(`1be74e042cff134c7085dfb08dade517`), which is the check that the change did not
+reach further than chip 2. `check-sharc-codegen-drift.sh` passed. `defs.lock`
+unmoved; **no contract bump owed**. AL1 drives the haptic test tone now and its
+43-cell route write, 31-strip CLOSE list, standing marker and two target tables
+are gone; `--al1-calibrate` is OWED on the part, because the old level law was
+fitted through a strip and two bus faders that are no longer in the path.
+
 ## THE PANEL LOOP WAS ALREADY IN THE FIRMWARE (2026-09-26, session 120)
 
 Hub dispatch `tasks.md` 2026-09-26 15:25Z. Report: `MW/D24/DSP/s120/panel-loop.md`,
