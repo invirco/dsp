@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
- * Monitor Out (OUTPUT_TDM)
- * Node ID:    C2_MON_OUT
+ * Panel Speaker Out (OUTPUT_TDM)
+ * Node ID:    C2_SPKR_OUT
  * Chip:       2
- * Channels:   2
+ * Channels:   1
  * SPI Page:   1
  * SPI Addr:   1796
  * RampProfile: (none)
@@ -15,7 +15,7 @@
 /* OUTPUT_TDM: Write to SPORT2 slot 0 */
 
 .section/dm seg_dmda;
-.extern _buf_C2_MON_DLY;
+.extern _buf_C2_HPT_01;
 #if DSP4_BLOCK_KERNELS
 /* _gather_chip2 indexes the TX slot BY SAMPLE under block kernels
  * (`r5 = r5 + r0`), so a scalar here is not merely decimated -- the
@@ -24,43 +24,43 @@
  * That has been true of every chip-2 block-kernel build since the
  * gather was taught to index, and it is review finding D16's other
  * half. */
-.global _tx_out_slot_C2_MON_OUT;
-.var _tx_out_slot_C2_MON_OUT[DSP4_BLOCK_SIZE];
-.global _blk_C2_MON_OUT;
-.var _blk_C2_MON_OUT[DSP4_BLOCK_SIZE];
-.extern _blk_C2_MON_DLY;
+.global _tx_out_slot_C2_SPKR_OUT;
+.var _tx_out_slot_C2_SPKR_OUT[DSP4_BLOCK_SIZE];
+.global _blk_C2_SPKR_OUT;
+.var _blk_C2_SPKR_OUT[DSP4_BLOCK_SIZE];
+.extern _blk_C2_HPT_01;
 #else
-.global _tx_out_slot_C2_MON_OUT;
-.var _tx_out_slot_C2_MON_OUT;
+.global _tx_out_slot_C2_SPKR_OUT;
+.var _tx_out_slot_C2_SPKR_OUT;
 #endif
-.global _buf_C2_MON_OUT;
-.var _buf_C2_MON_OUT;
+.global _buf_C2_SPKR_OUT;
+.var _buf_C2_SPKR_OUT;
 
 .section/pm seg_pmco;
-.global _C2_MON_OUT_process;
-_C2_MON_OUT_process:
+.global _C2_SPKR_OUT_process;
+_C2_SPKR_OUT_process:
 #if DSP4_BLOCK_KERNELS
     l0 = 0;
     l1 = 0;
     l2 = 0;
     l3 = 0;
-    i0 = _blk_C2_MON_DLY;
-    i1 = _tx_out_slot_C2_MON_OUT;
-    i2 = _blk_C2_MON_OUT;
-    lcntr = DSP4_BLOCK_SIZE, do .otk_C2_MON_OUT until lce;
+    i0 = _blk_C2_HPT_01;
+    i1 = _tx_out_slot_C2_SPKR_OUT;
+    i2 = _blk_C2_SPKR_OUT;
+    lcntr = DSP4_BLOCK_SIZE, do .otk_C2_SPKR_OUT until lce;
         r0 = dm(i0, 1);
         dm(i1, 1) = r0;
-    .otk_C2_MON_OUT: dm(i2, 1) = r0;
+    .otk_C2_SPKR_OUT: dm(i2, 1) = r0;
     /* _buf_ keeps the last sample: it is the scalar the
      * per-sample build publishes and nothing under block kernels
      * reads it, but leaving it stale would make a host peek at this
      * node lie about which build it is looking at. */
-    dm(_buf_C2_MON_OUT) = r0;
+    dm(_buf_C2_SPKR_OUT) = r0;
     rts;
 #else
-    r0 = dm(_buf_C2_MON_DLY);
-    dm(_tx_out_slot_C2_MON_OUT) = r0;
-    dm(_buf_C2_MON_OUT) = r0;
+    r0 = dm(_buf_C2_HPT_01);
+    dm(_tx_out_slot_C2_SPKR_OUT) = r0;
+    dm(_buf_C2_SPKR_OUT) = r0;
     rts;
 #endif
-_C2_MON_OUT_process.end:
+_C2_SPKR_OUT_process.end:

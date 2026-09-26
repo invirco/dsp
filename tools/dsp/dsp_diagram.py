@@ -24,6 +24,7 @@ except ImportError:
 TYPE_COLORS = {
     'INPUT_TDM':      '#4CAF50',  # green
     'OUTPUT_TDM':     '#F44336',  # red
+    'HAPTIC':         '#FF7043',  # deep orange -- the speaker's only source
     'GAIN':           '#2196F3',  # blue
     'EQ_BIQUAD':      '#9C27B0',  # purple
     'EQ_MASTER':      '#9C27B0',

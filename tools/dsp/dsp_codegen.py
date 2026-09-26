@@ -6822,6 +6822,476 @@ def gen_test_meas(node):
 
 
 # ===========================================================================
+# HAPTIC — THE PANEL SPEAKER'S ONLY SOURCE (S122)
+# ===========================================================================
+#
+# PW ruling 2026-09-26: "the spkr feed is for screen button haptics only, and
+# should be completely separate from all mixer signal paths."
+#
+# The D24 panel speaker is the AK4619's AOUT1L — `CODEC_OUT_1`, codec TDM
+# slot 0, the ONE codec DAC output fitted on a D24 (S102) — through C23, the
+# SPKR net, C82 and the TS482 bridged amplifier (digital U32) on the DIGITAL
+# board's always-on 5 V. It is audible whenever the unit is powered,
+# independent of AN_EN, which is why what writes that slot matters more than
+# what writes any other.
+#
+# WHAT THIS NODE IS: a one-shot player of stored clicks, a steady test tone
+# for the acoustic self-test, and DIGITAL ZERO the rest of the time. It has
+# NO INPUTS — that is what makes the separation checkable in one hop, and
+# both dsp_validate.py::check_speaker_slot and _speaker_slot_guard() below
+# refuse a graph in which anything else reaches a `sink=SPKR` output.
+#
+# WHAT AN IDLE BLOCK COSTS: FIFTEEN INSTRUCTIONS, counted off the emitted
+# text -- three loop-length clears, and four two-instruction tests (trigger,
+# busy, test tone, already-zeroed) each ending in a branch. The zero-fill is
+# LATCHED (`_hpt_zero_`) exactly as DSP4_AUXIN_BYPASS latches a parked aux
+# input, so the block buffer is written once on the way into silence and not
+# again. A SOUNDING block costs the block loop: 14 instructions a sample, so
+# about 240 of chip 2's 327,680 cycles at BLOCK=16 -- 0.07 %, and only while
+# something is actually sounding. Both are STATIC counts from this generator's
+# own output, not measurements on the part.
+#
+# THE STORED SET IS PW'S OWN AUDITION, MODELLED AND NOT APPROXIMATED.
+# PW auditioned six candidates on 2026-09-25 and said "ticks are working".
+# The files are on the bench unit at `/home/app/*.wav` (48 kHz, 32-bit, 330 ms,
+# one burst each at 150 ms) and they are NOT gated bursts -- every tonal one is
+# an EXPONENTIALLY DECAYING SINE:
+#
+#     x[n] = A . exp(-n/tau) . sin(2.pi.f.n/fs)
+#
+# fitted off the files themselves (log-linear fit to the per-half-cycle peaks),
+# which gives round numbers and reproduces each file to within the error noted:
+#
+#     1_click_1k5        1500 Hz  tau 3.000 ms   max|model-file| 0.0001
+#     2_click_2k5        2500 Hz  tau 2.500 ms   max|model-file| 0.0054
+#     3_click_4k         4000 Hz  tau 2.000 ms   max|model-file| 0.0001
+#     6_release_3k       3000 Hz  tau 1.800 ms   max|model-file| 0.0001
+#     4_tick_noise       noise, not a tone -- not modelled here
+#     5_thump_plus_click 217 Hz + modulation  -- not modelled here
+#
+# all normalised to a peak of 0.94. So the stored clicks are not "something
+# like what PW heard": they are that waveform, generated from its own two
+# numbers. THREE are stored -- 2500 (press, the one the dispatch names), 3000
+# (release, the one the file names) and 1500 (spare) -- and WHICH IS WHICH IS
+# PW'S RULING, not this generator's; the proposal says so
+# (proposals/CONTRACT-PROPOSAL-S122.md).
+#
+# EACH ONE ENDS AT EXACTLY ZERO. The tail is truncated where the envelope
+# passes `click_end_db` below the peak and the last millisecond is faded out
+# with a raised cosine, so the stored table's final sample is 0 whatever the
+# decay is and the amplifier is never handed a step -- which is the one thing
+# a stored waveform can get wrong that a live oscillator cannot.
+HAPTIC_FS = 48000.0
+
+
+def _haptic_click_table(freqs, taus_ms, peak, end_db, amp):
+    """(offsets, lengths, samples) for the stored decaying clicks.
+
+    `amp` is Q4.28 full scale; `peak` is the audition's own normalisation
+    (0.94). The fade is a raised cosine over the last millisecond, or over the
+    whole click if it is shorter than that.
+    """
+    import math
+    if len(freqs) != len(taus_ms):
+        raise ValueError('HAPTIC: %d click frequencies and %d decay times -- '
+                         'click_hz and click_tau_ms are parallel lists'
+                         % (len(freqs), len(taus_ms)))
+    offs, lens, samples = [], [], []
+    for f, tau_ms in zip(freqs, taus_ms):
+        tau = tau_ms / 1000.0 * HAPTIC_FS
+        n = int(math.ceil(tau * (-end_db / 20.0) * math.log(10.0)))
+        fade = min(n, int(round(HAPTIC_FS / 1000.0)))
+        x = []
+        for k in range(n):
+            e = math.exp(-k / tau)
+            if k >= n - fade:
+                e *= 0.5 * (1.0 + math.cos(math.pi * (k - (n - fade)) / fade))
+            x.append(e * math.sin(2.0 * math.pi * f * k / HAPTIC_FS))
+        # NORMALISED TO ITS OWN PEAK, the way the audition files were. The
+        # decay has already eaten a little of the sine's first crest by the
+        # time it arrives -- 2.5 kHz peaks at sample 5, where exp(-5/120) has
+        # taken 0.4 dB -- so scaling the ENVELOPE to `peak` would leave the
+        # waveform below it by a different amount for every click. Scaling the
+        # waveform puts all three at the same peak, which is what `peak` is
+        # for and what makes the stored table match the file.
+        top = max(abs(v) for v in x) or 1.0
+        offs.append(len(samples))
+        lens.append(n)
+        samples.extend(int(round(v / top * peak * amp)) for v in x)
+    return offs, lens, samples
+
+
+def _haptic_tone_table(tone_hz, amp):
+    """One exact period of `tone_hz`, in samples, or an error saying why not."""
+    import math
+    per = HAPTIC_FS / tone_hz
+    if abs(per - round(per)) > 1e-9:
+        raise ValueError(
+            'HAPTIC: the test tone must be a whole number of samples per '
+            'period so one stored period loops seamlessly; %g Hz at %g Hz '
+            'gives %g.' % (tone_hz, HAPTIC_FS, per))
+    n = int(round(per))
+    return [int(round(math.sin(2.0 * math.pi * k / n) * amp))
+            for k in range(n)]
+
+
+def _hex32(v):
+    return '0x%08X' % (v & 0xFFFFFFFF)
+
+
+def _haptic_words(name, vals, per_line=8):
+    L = ['.var %s[%d] =' % (name, len(vals))]
+    for i in range(0, len(vals), per_line):
+        chunk = vals[i:i + per_line]
+        end = ',' if i + per_line < len(vals) else ';'
+        L.append('    ' + ', '.join(_hex32(v) for v in chunk) + end)
+    return L
+
+
+def gen_haptic(node):
+    """HAPTIC — the panel speaker's click/test-tone source (S122)."""
+    nid = node['id']
+    p = node['params']
+    rc = ramp_comment(node['ramp_profile'])
+
+    freqs = [float(x) for x in str(p['click_hz']).split(':')]
+    taus_ms = [float(x) for x in str(p['click_tau_ms']).split(':')]
+    peak = float(p['click_peak'])
+    end_db = float(p['click_end_db'])
+    tone_hz = float(p['tone_hz'])
+    # FULL SCALE IS 2^28 - 1, NOT 2^28. Q4.28 1.0 is 0x10000000, and the TX
+    # gather converts Q4.28 -> Q1.31 with `ashift by 3`: 0x10000000 shifts to
+    # 0x80000000, which is -1.0, so the gather's saturation check catches it
+    # and clamps. Storing 0x0FFFFFFF is the same level to within one part in
+    # 2^28 and never enters that branch.
+    amp = (1 << 28) - 1
+    offs, lens, click = _haptic_click_table(freqs, taus_ms, peak, end_db, amp)
+    tone = _haptic_tone_table(tone_hz, amp)
+    nsamp = len(tone)
+    if BLOCK > nsamp:
+        raise ValueError(
+            'HAPTIC: the tone period is %d samples and the block is %d. The '
+            'phase bookkeeping wraps with ONE conditional subtract, which '
+            'needs BLOCK <= the period.' % (nsamp, BLOCK))
+    nclick = len(lens)
+
+    L = []
+    A = L.append
+    A(rc)
+    A('')
+    A('/* HAPTIC -- the panel speaker\'s ONLY source (S122).')
+    A(' *')
+    A(' * PW ruling 2026-09-26: the speaker feed is screen-button haptics')
+    A(' * only and is separate from every mixer signal path. This node has')
+    A(' * NO INPUTS; it writes digital zero unless a click was triggered or')
+    A(' * the test tone is on.')
+    A(' *')
+    A(' * Clicks: PW\'s 2026-09-25 audition, modelled -- a decaying sine')
+    A(' *         A.exp(-n/tau).sin(2.pi.f.n/fs) at peak %g, truncated at' % peak)
+    A(' *         %g dB and faded to exactly zero over the last 1 ms:' % end_db)
+    for f_, t_, n_, o_ in zip(freqs, taus_ms, lens, offs):
+        A(' *           %6.0f Hz  tau %4.2f ms  %4d samples (%5.2f ms)  '
+          'offset %4d' % (f_, t_, n_, 1000.0 * n_ / HAPTIC_FS, o_))
+    A(' * Tone:   %g Hz, one exact %d-sample period, looped.' % (tone_hz, nsamp))
+    A(' */')
+    A('/* SPI page=%s addr=%s */' % (node['spi_page'], node['spi_addr']))
+    A('')
+    A('#include "dsp_block.h"')
+    A('')
+    A('.section/dm seg_dmda;')
+    A('/* ---- THE CONTRACT WORDS (host-written; eight consecutive SPI')
+    A(' * addresses from the node base). They are declared')
+    A(' * UNCONDITIONALLY and outside every build guard, because')
+    A(' * gen_dsp.py dispatches SPI addresses straight at these symbols')
+    A(' * and a dispatch entry naming a symbol that exists only under a')
+    A(' * flag does not link. */')
+    A('.var _hpt_trig_%s        = %d;   /* host writes 1 = play one shot;' % (nid, int(float(p['trig']))))
+    A('                                     * the kernel consumes it */')
+    A('.var _hpt_sample_%s      = %d;   /* 1..%d, which stored click */'
+      % (nid, int(float(p['sample'])), nclick))
+    A('.var _hpt_level_%s       = %r;   /* FLOAT linear; 1.0 = as stored */'
+      % (nid, float(p['level'])))
+    A('.var _hpt_test_on_%s     = %d;   /* steady test tone on/off */'
+      % (nid, int(float(p['test_on']))))
+    A('.var _hpt_test_level_%s  = %r;   /* FLOAT linear tone amplitude */'
+      % (nid, float(p['test_level'])))
+    A('.var _hpt_busy_%s        = 0;      /* DSP -> host: 1 while playing */' % nid)
+    A('.var _hpt_spare0_%s      = 0;' % nid)
+    A('.var _hpt_spare1_%s      = 0;' % nid)
+    A('')
+    A('/* ---- runtime state ---- */')
+    A('.var _hpt_pos_%s   = 0;   /* ADDRESS of the next click sample */' % nid)
+    A('.var _hpt_rem_%s   = 0;   /* samples of the click still to play */' % nid)
+    A('.var _hpt_tph_%s   = 0;   /* tone phase, 0..%d */' % (nid, nsamp - 1))
+    A('.var _hpt_zero_%s  = 0;   /* 1 = _blk_ already holds silence */' % nid)
+    A('')
+    A('/* ---- the stored waveforms, Q4.28, GENERATED from click_hz /')
+    A(' * click_ms / tone_hz -- never typed. %d words of DM. ---- */'
+      % (len(click) + nsamp + 2 * nclick))
+    for ln in _haptic_words('_hpt_off_%s' % nid, offs, per_line=8):
+        A(ln)
+    for ln in _haptic_words('_hpt_len_%s' % nid, lens, per_line=8):
+        A(ln)
+    for ln in _haptic_words('_hpt_tab_%s' % nid, click):
+        A(ln)
+    for ln in _haptic_words('_hpt_tone_%s' % nid, tone):
+        A(ln)
+    A('')
+    A('#if DSP4_BLOCK_KERNELS')
+    A('.var _blk_%s[DSP4_BLOCK_SIZE];' % nid)
+    A('#endif')
+    A('.var _buf_%s = 0;' % nid)
+    A('')
+    A('.section/pm seg_pmco;')
+    A('')
+    A('.global _%s_process;' % nid)
+    A('_%s_process:' % nid)
+    A('#if DSP4_BLOCK_KERNELS')
+    A('    l0 = 0;')
+    A('    l1 = 0;')
+    A('    l2 = 0;')
+    A('')
+    A('    /* ---- the trigger, consumed exactly once ---- */')
+    A('    r0 = dm(_hpt_trig_%s);' % nid)
+    A('    r0 = pass r0;')
+    A('    if eq jump (pc, .hpt_ntrig_%s);' % nid)
+    A('    r1 = 0;')
+    A('    dm(_hpt_trig_%s) = r1;' % nid)
+    A('    r2 = dm(_hpt_sample_%s);' % nid)
+    A('    r3 = 1;')
+    A('    r2 = r2 - r3;                 /* 1..%d -> 0..%d */' % (nclick, nclick - 1))
+    A('    r3 = 0;')
+    A('    comp(r2, r3);')
+    A('    if lt r2 = r3;                /* clamp: an out-of-range sample */')
+    A('    r3 = %d;' % (nclick - 1))
+    A('    comp(r2, r3);')
+    A('    if gt r2 = r3;                /*   plays the nearest one */')
+    A('    m1 = r2;')
+    A('    i2 = _hpt_off_%s;' % nid)
+    A('    modify(i2, m1);')
+    A('    r4 = dm(i2, 0);               /* offset into the table */')
+    A('    i2 = _hpt_len_%s;' % nid)
+    A('    modify(i2, m1);')
+    A('    r5 = dm(i2, 0);               /* its length in samples */')
+    A('    m1 = r4;')
+    A('    i2 = _hpt_tab_%s;' % nid)
+    A('    modify(i2, m1);')
+    A('    r4 = i2;                      /* -> an ADDRESS, not an offset */')
+    A('    dm(_hpt_pos_%s) = r4;' % nid)
+    A('    dm(_hpt_rem_%s) = r5;' % nid)
+    A('    r1 = 1;')
+    A('    dm(_hpt_busy_%s) = r1;' % nid)
+    A('.hpt_ntrig_%s:' % nid)
+    A('    r7 = dm(_hpt_busy_%s);' % nid)
+    A('    r7 = pass r7;')
+    A('    if eq jump (pc, .hpt_nclick_%s);' % nid)
+    A('')
+    A('    /* ================= A CLICK IS PLAYING ================= */')
+    A('    f1 = dm(_hpt_level_%s);' % nid)
+    A('    r4 = 0x4D800000;              /* 2^28 as a float */')
+    A('    f2 = r4;')
+    A('    f1 = f1 * f2;')
+    A('    r12 = fix f1;                 /* level as a Q4.28 coefficient */')
+    A('    i0 = dm(_hpt_pos_%s);' % nid)
+    A('    i1 = _blk_%s;' % nid)
+    A('    r5 = dm(_hpt_rem_%s);' % nid)
+    A('    r6 = DSP4_BLOCK_SIZE;')
+    A('    comp(r5, r6);')
+    A('    if lt r6 = r5;                /* n = min(remaining, BLOCK); the')
+    A('                                   * busy flag guarantees n >= 1, and')
+    A('                                   * a hardware loop with lcntr = 0')
+    A("                                   * runs 2^32 times, so that is the")
+    A('                                   * invariant this rests on */')
+    A('    r7 = 0x08000000;              /* 2^27, the round half */')
+    A('    r13 = 1;')
+    A('    r10 = 0x7FFFFFFF;')
+    A('    lcntr = r6, do .hpt_clp_%s until lce;' % nid)
+    A('        r0 = dm(i0, 1);')
+    A('        mrf = r0 * r12 (ssi);')
+    A('        mrf = mrf + r7 * r13 (ssi);')
+    A('        r8 = mr0f;')
+    A('        r2 = mr1f;')
+    A('        r8 = lshift r8 by -28;')
+    A('        r9 = lshift r2 by 4;')
+    A('        r0 = r8 or r9;')
+    A('        r8 = ashift r2 by -28;')
+    A('        r9 = ashift r0 by -31;')
+    A('        r11 = ashift r2 by -31;')
+    A('        r11 = r10 xor r11;')
+    A('        comp(r8, r9);')
+    A('        if ne r0 = r11;')
+    A('    .hpt_clp_%s: dm(i1, 1) = r0;' % nid)
+    A('    r4 = i0;')
+    A('    dm(_hpt_pos_%s) = r4;' % nid)
+    A('    r5 = r5 - r6;')
+    A('    dm(_hpt_rem_%s) = r5;' % nid)
+    A('    r5 = pass r5;')
+    A('    if ne jump (pc, .hpt_ctail_%s);' % nid)
+    A('    r4 = 0;')
+    A('    dm(_hpt_busy_%s) = r4;        /* the click has finished */' % nid)
+    A('.hpt_ctail_%s:' % nid)
+    A('    /* whatever is left of the block is silence, in the SAME block --')
+    A('     * a click that ends mid-block must not leave stale samples on')
+    A('     * the wire. */')
+    A('    r4 = DSP4_BLOCK_SIZE;')
+    A('    r4 = r4 - r6;')
+    A('    r4 = pass r4;')
+    A('    if eq jump (pc, .hpt_cdone_%s);' % nid)
+    A('    r0 = 0;')
+    A('    lcntr = r4, do .hpt_czl_%s until lce;' % nid)
+    A('    .hpt_czl_%s: dm(i1, 1) = r0;' % nid)
+    A('.hpt_cdone_%s:' % nid)
+    A('    r4 = 0;')
+    A('    dm(_hpt_zero_%s) = r4;' % nid)
+    A('    dm(_buf_%s) = r0;' % nid)
+    A('    rts;')
+    A('')
+    A('.hpt_nclick_%s:' % nid)
+    A('    r7 = dm(_hpt_test_on_%s);' % nid)
+    A('    r7 = pass r7;')
+    A('    if eq jump (pc, .hpt_silent_%s);' % nid)
+    A('')
+    A('    /* ================= THE STEADY TEST TONE ================= */')
+    A('    /* One exact period in a circular buffer: the wrap costs nothing')
+    A('     * and the phase is continuous across blocks, so the tone the')
+    A('     * acoustic self-test measures has no seam to fit. */')
+    A('    f1 = dm(_hpt_test_level_%s);' % nid)
+    A('    r4 = 0x4D800000;')
+    A('    f2 = r4;')
+    A('    f1 = f1 * f2;')
+    A('    r12 = fix f1;')
+    A('    i1 = _blk_%s;' % nid)
+    A('    l2 = %d;' % nsamp)
+    A('    b2 = _hpt_tone_%s;            /* sets i2 = the base */' % nid)
+    A('    m1 = dm(_hpt_tph_%s);' % nid)
+    A('    modify(i2, m1);               /* ... + the running phase */')
+    A('    r7 = 0x08000000;')
+    A('    r13 = 1;')
+    A('    r10 = 0x7FFFFFFF;')
+    A('    lcntr = DSP4_BLOCK_SIZE, do .hpt_tlp_%s until lce;' % nid)
+    A('        r0 = dm(i2, 1);')
+    A('        mrf = r0 * r12 (ssi);')
+    A('        mrf = mrf + r7 * r13 (ssi);')
+    A('        r8 = mr0f;')
+    A('        r2 = mr1f;')
+    A('        r8 = lshift r8 by -28;')
+    A('        r9 = lshift r2 by 4;')
+    A('        r0 = r8 or r9;')
+    A('        r8 = ashift r2 by -28;')
+    A('        r9 = ashift r0 by -31;')
+    A('        r11 = ashift r2 by -31;')
+    A('        r11 = r10 xor r11;')
+    A('        comp(r8, r9);')
+    A('        if ne r0 = r11;')
+    A('    .hpt_tlp_%s: dm(i1, 1) = r0;' % nid)
+    A('    l2 = 0;')
+    A('    /* phase = (phase + BLOCK) mod %d -- one conditional subtract,' % nsamp)
+    A('     * which is why BLOCK may not exceed the period. */')
+    A('    r4 = dm(_hpt_tph_%s);' % nid)
+    A('    r5 = DSP4_BLOCK_SIZE;')
+    A('    r4 = r4 + r5;')
+    A('    r5 = %d;' % nsamp)
+    A('    comp(r4, r5);')
+    A('    if ge r4 = r4 - r5;')
+    A('    dm(_hpt_tph_%s) = r4;' % nid)
+    A('    r4 = 0;')
+    A('    dm(_hpt_zero_%s) = r4;' % nid)
+    A('    dm(_buf_%s) = r0;' % nid)
+    A('    rts;')
+    A('')
+    A('.hpt_silent_%s:' % nid)
+    A('    /* ================= SILENCE, WRITTEN ONCE ================= */')
+    A('    r4 = dm(_hpt_zero_%s);' % nid)
+    A('    r4 = pass r4;')
+    A('    if ne rts;                    /* the whole idle path is fifteen')
+    A('                                   * instructions, every block, for')
+    A('                                   * ever */')
+    A('    r0 = 0;')
+    A('    i1 = _blk_%s;' % nid)
+    A('    lcntr = DSP4_BLOCK_SIZE, do .hpt_zlp_%s until lce;' % nid)
+    A('    .hpt_zlp_%s: dm(i1, 1) = r0;' % nid)
+    A('    dm(_buf_%s) = r0;' % nid)
+    A('    r4 = 1;')
+    A('    dm(_hpt_zero_%s) = r4;' % nid)
+    A('    rts;')
+    A('#else')
+    A('    /* PER-SAMPLE BUILD (DSP4_BLOCK_KERNELS=0): a measurement control')
+    A('     * arm that has never shipped. The speaker is SILENT on it, and')
+    A('     * saying so here is cheaper and more honest than a second')
+    A('     * hand-written kernel no product would ever run. */')
+    A('    r0 = 0;')
+    A('    dm(_buf_%s) = r0;' % nid)
+    A('    rts;')
+    A('#endif')
+    A('_%s_process.end:' % nid)
+    A('')
+    return '\n'.join(L)
+
+
+# ---------------------------------------------------------------------------
+# THE SPEAKER-SLOT GUARD (S122) — the build-time half
+# ---------------------------------------------------------------------------
+def _speaker_slot_guard(chip_nodes):
+    """Refuse to emit a chip whose speaker slot is reachable from the mixer.
+
+    The declaration is `sink=SPKR` (S102) and the rule is PW's 2026-09-26
+    ruling. dsp_validate.py checks the same thing on dsp.csv; this is the
+    check on the node set that actually becomes the TX lane table, which is
+    the one that decides what goes on the wire.
+    """
+    by_id = {n['id']: n for n in chip_nodes}
+    spk = [n for n in chip_nodes
+           if n['type'] == 'OUTPUT_TDM' and n['params'].get('sink') == 'SPKR']
+    if not spk:
+        return
+    for node in spk:
+        sport = int(node['params'].get('sport_id', '-1'))
+        start = int(node['params'].get('slot_start', '-1'))
+        count = int(node['params'].get('slot_count', '1'))
+        slots = set(range(start, start + count))
+        srcs = [s for s in node['inputs'] if s]
+        if not srcs:
+            raise ValueError(
+                '%s declares sink=SPKR and has no input: the D24 panel '
+                'speaker would carry whatever the TX buffer last held.'
+                % node['id'])
+        for src in srcs:
+            styp = by_id.get(src, {}).get('type', '(off-chip)')
+            if styp != 'HAPTIC':
+                raise ValueError(
+                    'THE PANEL SPEAKER IS NOT A MIXER OUTPUT. %s (sink=SPKR, '
+                    'SPORT%d slot %s) is fed by %s, a %s node. PW ruling '
+                    '2026-09-26: the speaker feed is screen-button haptics '
+                    'only and is completely separate from every mixer signal '
+                    'path, so only a HAPTIC node may reach it. Route %s to an '
+                    'output that is not the speaker, or give the speaker its '
+                    'own source (see MW/D24/DSP/s122/haptic-path.md).'
+                    % (node['id'], sport, sorted(slots), src, styp, src))
+            up = [u for u in by_id.get(src, {}).get('inputs', []) if u]
+            if up:
+                raise ValueError(
+                    'THE PANEL SPEAKER IS NOT A MIXER OUTPUT. %s reaches it '
+                    'through %s, which feeds %s (sink=SPKR). The speaker '
+                    'source takes NO input.'
+                    % (', '.join(up), src, node['id']))
+        for other in chip_nodes:
+            if other is node or other['type'] != 'OUTPUT_TDM':
+                continue
+            if int(other['params'].get('sport_id', '-1')) != sport:
+                continue
+            ostart = int(other['params'].get('slot_start', '-1'))
+            ocount = int(other['params'].get('slot_count', '1'))
+            clash = slots & set(range(ostart, ostart + ocount))
+            if clash:
+                raise ValueError(
+                    'THE PANEL SPEAKER IS NOT A MIXER OUTPUT. %s writes '
+                    'SPORT%d slot(s) %s, which is the speaker slot %s owns. '
+                    'Two nodes writing one TDM slot is a race whichever way '
+                    'it is resolved.'
+                    % (other['id'], sport, sorted(clash), node['id']))
+
+
+# ===========================================================================
 # Generator dispatch
 # ===========================================================================
 GENERATORS = {
@@ -6853,6 +7323,7 @@ GENERATORS = {
     'NOISE_GEN':      gen_noise_gen,
     'TEST_OSC':       gen_test_osc,
     'TEST_MEAS':      gen_test_meas,
+    'HAPTIC':         gen_haptic,
 }
 
 
@@ -7507,6 +7978,9 @@ def gen_block_io(chip_label, chip_nodes):
         ic_lanes_c, ic_map_c = lane_layout(ic_specs_c, mfd=MFD_FABRIC)
 
         # --- TX: OUTPUT_TDM nodes, full-window lanes (MCPDE=0) ---
+        # THE SPEAKER SLOT IS CHECKED HERE, on the node set that becomes the
+        # lane table -- not in a comment and not in a convention (S122).
+        _speaker_slot_guard(chip_nodes)
         output_nodes = [n for n in chip_nodes if n['type'] == 'OUTPUT_TDM']
         tx_sport_slots = {int(n['params'].get('sport_slots', '8'))
                           for n in output_nodes} or {8}
@@ -16610,6 +17084,10 @@ FIXED_GENERATORS = {
     'LIMITER': gen_limiter_fixed,
     'GATE': gen_gate_fixed,
     'FX_ENGINE': gen_fx_engine_fixed,
+    # The haptic node is fixed-point by construction: its tables are
+    # stored Q4.28 and its only arithmetic is the level multiply, so the
+    # float and fixed arms are the same kernel.
+    'HAPTIC': gen_haptic,
 }
 
 

@@ -387,6 +387,14 @@ _UNREACHED_REASONS = [
     (re.compile(r'^C2_MAIN_LIM$'),
      'old model: dynamics on the stereo mix bus; replaced by '
      'C2_MAIN_OLIM_01..04, one per output strip.'),
+    # S122. The panel speaker's source. Its eight words ARE reachable by
+    # address and the host writes them; what does not exist yet is the CELL
+    # FAMILY, because cell names are forever and PW rules them --
+    # proposals/CONTRACT-PROPOSAL-S122.md is the proposal, not the landing.
+    (re.compile(r'^C2_HPT_\d+$'),
+     'the haptic cell family is PROPOSED, not landed (S122, '
+     'proposals/CONTRACT-PROPOSAL-S122.md): PW rules the names. The eight '
+     'words are dispatched and host-writable by address in the meantime.'),
 ]
 
 
@@ -1349,6 +1357,30 @@ def expand_output_tdm(node, cat, inst):
     add_dispatch(chip, mo_base + 1, f'_out_mute_{nid}', f'{nid} output mute')
 
 
+# ── HAPTIC (S122) ────────────────────────────────────────────────
+def expand_haptic(node, cat, inst):
+    """The panel speaker's click/tone source: DISPATCH ONLY, no cells.
+
+    Eight words, every one of them answerable over the parameter link, and
+    NOT ONE CELL -- because the cell family is proposed and not landed
+    (proposals/CONTRACT-PROPOSAL-S122.md; cell names are forever, Bible
+    ch 7, and PW rules them). A dispatch entry with no cell is the shape
+    `_mon_source_C2_MON` has always had: the address answers, the host
+    reaches it by address, and the day PW rules the names the cells are two
+    lines here and no address moves.
+    """
+    chip, pg, base, nid, ramp = _parse_node(node)
+    add_dispatch(chip, base + 0, f'_hpt_trig_{nid}',       f'{nid} trigger (write 1 = play)')
+    add_dispatch(chip, base + 1, f'_hpt_sample_{nid}',     f'{nid} stored click select')
+    add_dispatch(chip, base + 2, f'_hpt_level_{nid}',      f'{nid} click level (float)')
+    add_dispatch(chip, base + 3, f'_hpt_test_on_{nid}',    f'{nid} test tone on')
+    add_dispatch(chip, base + 4, f'_hpt_test_level_{nid}', f'{nid} test tone level (float)')
+    add_dispatch(chip, base + 5, f'_hpt_busy_{nid}',       f'{nid} busy (DSP writes)')
+    for off in range(6, 8):
+        add_dispatch(chip, base + off, None, f'{nid} spare')
+
+
+
 # ── AUX_INPUT (USB/BT) ──────────────────────────────────────────────────
 def expand_aux_input(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
@@ -1444,6 +1476,7 @@ NODE_EXPANDERS = {
     'FX_ENGINE':      expand_fx_engine,
     'CROSSOVER':      expand_crossover,
     'MONITOR':        expand_monitor,
+    'HAPTIC':         expand_haptic,
     'AUX_INPUT':      expand_aux_input,
     'DCA':            expand_dca,
     'MIX_BUS':        expand_mix_bus,
@@ -1566,7 +1599,11 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_FX_(?:ENG|FDR)_(\d+)$'),        lambda m: ('Fx', int(m.group(1)))),
     # Monitor
     (re.compile(r'^C2_MON(?:_DLY)?$'),                 lambda m: ('Mon', 1)),
-    (re.compile(r'^C2_MON_OUT$'),                      lambda m: None),
+    # S122: the codec speaker slot's output node and its source. Neither
+    # reaches a master cell -- the output never did (it was C2_MON_OUT), and
+    # the haptic family is proposed, not landed.
+    (re.compile(r'^C2_SPKR_OUT$'),                     lambda m: None),
+    (re.compile(r'^C2_HPT_\d+$'),                      lambda m: None),
     # USB / BT
     (re.compile(r'^C2_USB_IN$'),                       lambda m: ('Usb', 1)),
     (re.compile(r'^C2_BT_IN$'),                        lambda m: ('Bt', 1)),

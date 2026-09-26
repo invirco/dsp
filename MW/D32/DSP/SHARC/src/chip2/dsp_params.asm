@@ -8,7 +8,7 @@
  * indexes this table to route parameter writes directly to node
  * coefficient variables.
  *
- * 2176 entries (SPI addresses 0x0000–0x087E)
+ * 2184 entries (SPI addresses 0x0000–0x0886)
  *======================================================================*/
 
 .section/dm seg_dmda;
@@ -577,6 +577,12 @@
 .extern _geq_gains_C2_GRP_GEQ_03;
 .extern _geq_gains_C2_GRP_GEQ_04;
 .extern _geq_gains_C2_MAIN_GEQ;
+.extern _hpt_busy_C2_HPT_01;
+.extern _hpt_level_C2_HPT_01;
+.extern _hpt_sample_C2_HPT_01;
+.extern _hpt_test_level_C2_HPT_01;
+.extern _hpt_test_on_C2_HPT_01;
+.extern _hpt_trig_C2_HPT_01;
 .extern _lim_attack_C2_AUX_LIM_01;
 .extern _lim_attack_C2_AUX_LIM_02;
 .extern _lim_attack_C2_AUX_LIM_03;
@@ -721,11 +727,11 @@
 
 /* ---- Table size for the SPI handler bounds check ---- */
 .global _spi_dispatch_c2_size;
-.var _spi_dispatch_c2_size = 2176;
+.var _spi_dispatch_c2_size = 2184;
 
-/* ---- Chip 2 SPI dispatch table (2176 entries) ---- */
+/* ---- Chip 2 SPI dispatch table (2184 entries) ---- */
 .global _spi_dispatch_c2;
-.var _spi_dispatch_c2[2176] =
+.var _spi_dispatch_c2[2184] =
     _fdr_level_C2_AUX_FDR_01,    /* 0x0000: C2_AUX_FDR_01 level */
     _fdr_pan_C2_AUX_FDR_01,    /* 0x0001: C2_AUX_FDR_01 pan */
     _fdr_mute_C2_AUX_FDR_01,    /* 0x0002: C2_AUX_FDR_01 mute */
@@ -2901,9 +2907,17 @@
     _out_mute_C2_MAIN_OUT_03,    /* 0x087C: C2_MAIN_OUT_03 output mute */
     _out_level_C2_MAIN_OUT_04,    /* 0x087D: C2_MAIN_OUT_04 output level */
     _out_mute_C2_MAIN_OUT_04,    /* 0x087E: C2_MAIN_OUT_04 output mute */
-    0;  /* 0x087F */
+    _hpt_trig_C2_HPT_01,    /* 0x087F: C2_HPT_01 trigger (write 1 = play) */
+    _hpt_sample_C2_HPT_01,    /* 0x0880: C2_HPT_01 stored click select */
+    _hpt_level_C2_HPT_01,    /* 0x0881: C2_HPT_01 click level (float) */
+    _hpt_test_on_C2_HPT_01,    /* 0x0882: C2_HPT_01 test tone on */
+    _hpt_test_level_C2_HPT_01,    /* 0x0883: C2_HPT_01 test tone level (float) */
+    _hpt_busy_C2_HPT_01,    /* 0x0884: C2_HPT_01 busy (DSP writes) */
+    0,  /* 0x0885: C2_HPT_01 spare */
+    0,  /* 0x0886: C2_HPT_01 spare */
+    0;  /* 0x0887 */
 
-/* ---- Chip 2 ramp-stride table (2176 entries) ---- */
+/* ---- Chip 2 ramp-stride table (2184 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0      -- no ramp state; the SPI handler writes the word directly
@@ -2917,7 +2931,7 @@
  * 170 ramped entries; strides {1: 98, 6: 72}
  */
 .global _spi_dispatch_c2_stride;
-.var _spi_dispatch_c2_stride[2176] =
+.var _spi_dispatch_c2_stride[2184] =
     1,  /* 0x0000: C2_AUX_FDR_01 level */
     1,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -5093,9 +5107,17 @@
     0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
     1,  /* 0x087D: C2_MAIN_OUT_04 output level */
     0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
-    0;  /* 0x087F */
+    0,  /* 0x087F: C2_HPT_01 trigger (write 1 = play) */
+    0,  /* 0x0880: C2_HPT_01 stored click select */
+    0,  /* 0x0881: C2_HPT_01 click level (float) */
+    0,  /* 0x0882: C2_HPT_01 test tone on */
+    0,  /* 0x0883: C2_HPT_01 test tone level (float) */
+    0,  /* 0x0884: C2_HPT_01 busy (DSP writes) */
+    0,  /* 0x0885: C2_HPT_01 spare */
+    0,  /* 0x0886: C2_HPT_01 spare */
+    0;  /* 0x0887 */
 
-/* ---- Chip 2 wire-unit conversion table (2176 entries) ---- */
+/* ---- Chip 2 wire-unit conversion table (2184 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  * The SPI handler applies this to the incoming word BEFORE
@@ -5113,10 +5135,10 @@
  * kernel word gets a conversion, and every address that
  * family reaches carries it.
  *
- * 0 of 2176 addresses carry a conversion.
+ * 0 of 2184 addresses carry a conversion.
  */
 .global _spi_dispatch_c2_convert;
-.var _spi_dispatch_c2_convert[2176] =
+.var _spi_dispatch_c2_convert[2184] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -7292,9 +7314,17 @@
     0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
     0,  /* 0x087D: C2_MAIN_OUT_04 output level */
     0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
-    0;  /* 0x087F */
+    0,  /* 0x087F: C2_HPT_01 trigger (write 1 = play) */
+    0,  /* 0x0880: C2_HPT_01 stored click select */
+    0,  /* 0x0881: C2_HPT_01 click level (float) */
+    0,  /* 0x0882: C2_HPT_01 test tone on */
+    0,  /* 0x0883: C2_HPT_01 test tone level (float) */
+    0,  /* 0x0884: C2_HPT_01 busy (DSP writes) */
+    0,  /* 0x0885: C2_HPT_01 spare */
+    0,  /* 0x0886: C2_HPT_01 spare */
+    0;  /* 0x0887 */
 
-/* ---- Chip 2 recompute (dirty) table (2176 entries) ---- */
+/* ---- Chip 2 recompute (dirty) table (2184 entries) ---- */
 /*
  * Companion to the dispatch table above, same indexing.
  *   0   -- the written word IS the kernel word; nothing more
@@ -7310,10 +7340,10 @@
  * gain arrived, instead of comparing every band against a
  * shadow on every block of every node.
  *
- * 757 of 2176 addresses raise a flag; 30 distinct flags.
+ * 757 of 2184 addresses raise a flag; 30 distinct flags.
  */
 .global _spi_dispatch_c2_dirty;
-.var _spi_dispatch_c2_dirty[2176] =
+.var _spi_dispatch_c2_dirty[2184] =
     0,  /* 0x0000: C2_AUX_FDR_01 level */
     0,  /* 0x0001: C2_AUX_FDR_01 pan */
     0,  /* 0x0002: C2_AUX_FDR_01 mute */
@@ -9489,7 +9519,15 @@
     0,  /* 0x087C: C2_MAIN_OUT_03 output mute */
     0,  /* 0x087D: C2_MAIN_OUT_04 output level */
     0,  /* 0x087E: C2_MAIN_OUT_04 output mute */
-    0;  /* 0x087F */
+    0,  /* 0x087F: C2_HPT_01 trigger (write 1 = play) */
+    0,  /* 0x0880: C2_HPT_01 stored click select */
+    0,  /* 0x0881: C2_HPT_01 click level (float) */
+    0,  /* 0x0882: C2_HPT_01 test tone on */
+    0,  /* 0x0883: C2_HPT_01 test tone level (float) */
+    0,  /* 0x0884: C2_HPT_01 busy (DSP writes) */
+    0,  /* 0x0885: C2_HPT_01 spare */
+    0,  /* 0x0886: C2_HPT_01 spare */
+    0;  /* 0x0887 */
 
 /* Samples per millisecond, IEEE-754 float32 bits (48 at 48000 Hz). */
 .global _spi_dispatch_c2_spms;

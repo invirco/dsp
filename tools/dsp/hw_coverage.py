@@ -55,7 +55,7 @@ for _f in ('GATE', 'COMPRESSOR', 'LIMITER', 'TUBE_SAT', 'DELAY',
            'FADER_PAN', 'ROUTING', 'METER'):
     REFERENCE[_f] = 'fixed_ref (fixed arm, bit-exact)'
 for _f in ('FX_ENGINE', 'DCA', 'AUX_INPUT', 'TALKBACK', 'MONITOR',
-           'NOISE_GEN', 'TEST_OSC', 'TEST_MEAS'):
+           'NOISE_GEN', 'TEST_OSC', 'TEST_MEAS', 'HAPTIC'):
     REFERENCE[_f] = 'none declared'
 
 

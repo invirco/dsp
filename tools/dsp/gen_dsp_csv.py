@@ -216,11 +216,13 @@ def fabric_params(signal):
 #
 # WHAT IT DOES NOT SETTLE, and is a defs candidate, not a decision made
 # here (see MW/D24/DSP/dsp4-dac-lane-xlr-20260913.md):
-#   * Main Out 3/4 stay on DAC_15/16, which are the MONITOR jacks, and
-#     C2_MON_OUT stays on the codec's talkback-speaker pair. Which of the
-#     crossover's four outputs a D24 rear panel is meant to carry — and
-#     whether the Sub XLR is fed by C2_SUB_OUT (today on NET_OUT_01) —
-#     is a product decision.
+#   * Main Out 3/4 stay on DAC_15/16, which are the rear MONITOR jacks —
+#     so those jacks carry the crossover's centre and sub legs, not the
+#     monitor bus (S121-6, measured). Which of the crossover's four
+#     outputs a D24 rear panel is meant to carry — and whether the Sub XLR
+#     is fed by C2_SUB_OUT (today on NET_OUT_01) — is a product decision.
+#     The codec's talkback-speaker pair is NO LONGER a mixer destination
+#     at all: S122 gave it its own source (C2_HPT_01 -> C2_SPKR_OUT).
 #   * Aux 11/12 take the two slots Main Out 1/2 vacate (DAC_13 = the
 #     unconnected channel, DAC_14 = the Sub XLR). A D24 has eight aux
 #     connectors, so aux 9-12 have no rear panel either way; this keeps
@@ -1061,10 +1063,33 @@ for f in range(1, NUM_FX + 1):
         params='level_db=-6.0;mute=0;host_cells=Dca,DcaOn',
         ramp_profile='GainFast')
 
-# --- MONITOR / PHONES (Chip 2) ---
-# Output patch: monitor → codec DAC ch1/2 (D24 talkback SPKR path;
-# B_O2 is D32 SNAKE — D32 monitor/snake output patch TBD with the
-# product-config output layer)
+# --- MONITOR (Chip 2) ---
+#
+# THE MONITOR BUS NO LONGER REACHES A CONVERTER SLOT (S122, PW ruling
+# 2026-09-26: "the spkr feed is for screen button haptics only, and should
+# be completely separate from all mixer signal paths").
+#
+# It used to end on `C2_MON_OUT`, which wrote `CODEC_OUT_1` -- the AK4619's
+# AOUT1L, the ONE codec DAC output fitted on a D24, and the panel speaker's
+# feed through the TS482 on the digital board. So "monitor level" WAS
+# "speaker level": the graph default (`level_l_db=0.0`, i.e. unity) left
+# the speaker playing whatever the main bus carried, for as long as the
+# unit stayed powered, and every self-test press that raised it left it up
+# (S115, and the S110/S114 hiss PW heard). Zeroing the two monitor cells
+# was the only thing that silenced it.
+#
+# `C2_MON_OUT` is now `C2_SPKR_OUT` and the haptic node feeds it; the
+# monitor chain ENDS HERE, at `C2_MON_DLY`, publishing a block nothing
+# reads. That is not an omission dressed up as a design: a D24 has NO
+# connector for the monitor bus. The rear "Monitor Out" jacks are the main
+# crossover's centre and sub legs (`MainCtr`/`MainSub` on DAC_15/16, S121-6),
+# the headphone jack is DAC_09/10 off aux buses 9-10 and the Centre/LF XLR
+# is DAC_14 off aux bus 12 -- and D24 declares aux 1-8, so no cell reaches
+# any of them (S121-5). Those three sockets are ONE open PW question already
+# on the board; where the monitor bus lands is part of it, and this file
+# does not invent an answer. The nodes, their addresses and their cells
+# (`Mon001Level001/002`, `Mon001InputSel001`) are UNCHANGED and unmoved --
+# what changed is that writing them can no longer make a sound.
 p, a2 = c2_alloc.next(6)
 add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MAIN_FDR', 'C2_MON_DLY',
     spi_page=p, spi_addr=a2,
@@ -1072,15 +1097,28 @@ add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MAIN_FDR', 'C2_MON_DLY',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(2)
-add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', 'C2_MON_OUT',
+add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', '',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
     ramp_profile='InstantCtl')
 
+# --- THE PANEL SPEAKER (Chip 2) ---
+#
+# The same SPI word `C2_MON_OUT` held, the same lane, the same slot -- a
+# rename and a new source, so NO ADDRESS MOVES. slot_count drops 2 -> 1:
+# slot 1 is `CODEC_OUT_2` = AOUT1R, whose C20 is DNP (mx26
+# tools/netlist/parts.csv:67), so it reached no fitted part and is now not
+# written at all.
+#
+# ITS ONLY INPUT IS THE HAPTIC NODE, and that is ENFORCED, not conventional:
+# `dsp_validate.py::check_speaker_slot` and `dsp_codegen.py::
+# _speaker_slot_guard` both refuse a graph in which any other node reaches
+# the slot a `sink=SPKR` output writes. `sink=SPKR` is the single
+# declaration both read.
 p, a2 = c2_alloc.next(1)
-add('C2_MON_OUT', 2, 'OUTPUT_TDM', 'Monitor Out', 2, 'C2_MON_DLY', '',
+add('C2_SPKR_OUT', 2, 'OUTPUT_TDM', 'Panel Speaker Out', 1, 'C2_HPT_01', '',
     spi_page=p, spi_addr=a2,
-    params=output_params('CODEC_OUT_1', slot_count=2, scope='D24',
+    params=output_params('CODEC_OUT_1', slot_count=1, scope='D24',
                          sink='SPKR'))
 
 # --- USB / BT (Chip 2) ---
@@ -1435,6 +1473,62 @@ for out_n in range(1, 5):
     p, a2 = c2_alloc.next(2)
     _mo_rows[f'C2_MAIN_OUT_{out_n:02d}']['params'] += f';mo_page={p};mo_addr={a2}'
 
+# ===========================================================================
+# CHIP 2 — THE PANEL HAPTIC NODE (S122)
+# ===========================================================================
+#
+# PW ruling 2026-09-26: "the spkr feed is for screen button haptics only,
+# and should be completely separate from all mixer signal paths." This is
+# the source that replaces the monitor bus on `CODEC_OUT_1`, and it is the
+# ONLY node in the graph that may reach that slot.
+#
+# WHAT IT IS. A one-shot player of stored clicks plus a steady test tone,
+# and silence otherwise — it writes DIGITAL ZERO on every block in which
+# nothing was asked for, and the zero-fill is latched, so an idle block
+# costs five instructions and no memory traffic (the DSP4_AUXIN_BYPASS
+# idiom). A press writes `trig`; the kernel consumes the write, plays the
+# selected burst to the end and clears `busy`. Nothing in the mixer can
+# reach it: the node has NO inputs.
+#
+# THE STORED SET IS PW'S OWN AUDITION (2026-09-25, "ticks are working"),
+# modelled rather than approximated. The six candidates are WAV files on the
+# bench unit (`/home/app/*.wav`) and the tonal ones are DECAYING SINES, not
+# gated bursts: a log-linear fit to each file's own per-half-cycle peaks
+# gives `A . exp(-n/tau) . sin(2.pi.f.n/fs)` at a peak of 0.94, and the
+# model reproduces each file to within 0.0054 of full scale. So what is
+# stored is 2500 Hz / tau 2.5 ms (`2_click_2k5`, the one this dispatch
+# names), 3000 Hz / 1.8 ms (`6_release_3k`, the one the file names) and
+# 1500 Hz / 3.0 ms (`1_click_1k5`) as a spare. WHICH IS PRESS AND WHICH IS
+# RELEASE IS PW'S RULING -- proposals/CONTRACT-PROPOSAL-S122.md proposes
+# 1 = press, 2 = release, 3 = spare and does not land it.
+#
+# THE TEST TONE is 1 kHz — exactly 48 samples at 48 kHz, so one stored
+# period loops seamlessly for nothing. It is 1 kHz and not 2.5 kHz because
+# AL1's whole calibration (level law, bandpass-THD ceiling, the S115 MEMS
+# measurement) was taken at 1 kHz through this loop; changing the frequency
+# would have thrown away the only acoustic reference this unit has.
+#
+# ADDRESSES ARE ALLOCATED HERE, after every other chip-2 allocation
+# including the main outputs' Level/Mute, so this ADDS eight words and
+# MOVES none.
+#
+# NO CELLS ARE EMITTED. The haptic cell family is PROPOSED, not landed
+# (cell names are forever — Bible ch 7 — and PW rules them), so the eight
+# words are dispatched-but-uncelled: reachable by address, named by no
+# contract cell, exactly as `_mon_source_C2_MON` has always been.
+p, a2 = c2_alloc.next(8)
+add('C2_HPT_01', 2, 'HAPTIC', 'Panel Haptic', 1, '', 'C2_SPKR_OUT',
+    spi_page=p, spi_addr=a2,
+    params='trig=0;sample=1;level=1.0;test_on=0;test_level=0.0;'
+           'click_hz=2500:3000:1500;click_tau_ms=2.5:1.8:3.0;'
+           'click_peak=0.94;click_end_db=-60.0;tone_hz=1000.0;scope=D24',
+    ramp_profile='InstantCtl')
+
+# The row RUNS just before the output it feeds; only its ADDRESS is last.
+_hpt_row = rows.pop()
+_at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_SPKR_OUT')
+rows[_at:_at] = [_hpt_row]
+
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #
 # The FX engines and returns are ADDED late (their SPI addresses are
@@ -1462,6 +1556,32 @@ assert len(_moved) == len(_pre_aux), 'a spliced row is missing from rows'
 rows[:] = [r for r in rows if r['id'] not in _pre_aux_set]
 _at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_AUX_FDR_01')
 rows[_at:_at] = _moved
+
+# ===========================================================================
+# THE SPEAKER IS DECLARED, AND IT IS THE HAPTIC NODE'S (S122)
+# ===========================================================================
+# PW ruling 2026-09-26. `dsp_validate.py` and `dsp_codegen.py` both refuse a
+# graph in which anything but a HAPTIC node reaches a `sink=SPKR` output --
+# but neither can refuse a graph with NO `sink=SPKR` output at all, because
+# both are run on fragments and on graphs that are not a D24's. This is the
+# one place that knows it is building the shipping graph, so this is where
+# "the speaker did not quietly stop being declared" is checked.
+_spk = [r for r in rows if r['type'] == 'OUTPUT_TDM'
+        and ';sink=SPKR' in (';' + r['params'])]
+if len(_spk) != 1:
+    raise SystemExit(
+        'ERROR: %d OUTPUT_TDM nodes declare sink=SPKR and the graph must have '
+        'exactly one. The D24 panel speaker is CODEC_OUT_1 (AK4619 AOUT1L) and '
+        'the declaration is what both speaker-slot guards read.' % len(_spk))
+_spk_src = [x for x in _spk[0]['inputs'].split(';') if x]
+_by_id = {r['id']: r for r in rows}
+_bad = [x for x in _spk_src if _by_id.get(x, {}).get('type') != 'HAPTIC']
+if not _spk_src or _bad:
+    raise SystemExit(
+        'ERROR: %s declares sink=SPKR and is fed by %s. PW ruling 2026-09-26: '
+        'the panel speaker carries haptics only and is separate from every '
+        'mixer signal path.'
+        % (_spk[0]['id'], ', '.join(_bad) or 'nothing'))
 
 # ===========================================================================
 # Write CSV

@@ -381,7 +381,7 @@
 .extern _tx_out_slot_C2_AUX_OUT_12;
 .extern _tx_out_slot_C2_MAIN_OUT_03;
 .extern _tx_out_slot_C2_MAIN_OUT_04;
-.extern _tx_out_slot_C2_MON_OUT;
+.extern _tx_out_slot_C2_SPKR_OUT;
 .extern _tx_out_slot_C2_CODEC_AUX_OUT;
 .extern _tx_out_slot_C2_MAIN_ST_OUT;
 .extern _tx_out_slot_C2_SUB_OUT;
@@ -460,7 +460,7 @@
     _tx_out_slot_C2_AUX_OUT_12,
     _tx_out_slot_C2_MAIN_OUT_03,
     _tx_out_slot_C2_MAIN_OUT_04,
-    _tx_out_slot_C2_MON_OUT,
+    _tx_out_slot_C2_SPKR_OUT,
     _tx_out_slot_C2_CODEC_AUX_OUT,
     _tx_out_slot_C2_MAIN_ST_OUT,
     _tx_out_slot_C2_SUB_OUT,

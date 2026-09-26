@@ -343,6 +343,13 @@ def process_node(node, state, node_states, nodes):
                    'AUX_INPUT', 'DCA', 'TEST_OSC', 'TEST_MEAS'):
         state['buf'] = get_input()
 
+    elif ntype == 'HAPTIC':
+        # The panel speaker's source (S122). It has no input and it is
+        # SILENT unless the host triggers it, which no simulation of the
+        # audio graph does -- so silence is the right model here, and it is
+        # the whole point of the node: nothing in the mix reaches it.
+        state['buf'] = np.zeros(BLOCK_SIZE)
+
     elif ntype == 'METER':
         state['buf'] = get_input()   # passthrough; caller reads RMS from buf
 

@@ -41,7 +41,7 @@ REQUIRED_COLUMNS = {'id', 'chip', 'type', 'ch_count', 'inputs', 'outputs',
 VALID_TYPES = {
     'ANTI_FB', 'AUX_INPUT', 'COMPRESSOR', 'CROSSOVER', 'DCA', 'DELAY',
     'EQ_BIQUAD', 'FADER_PAN', 'FX_ENGINE', 'GAIN', 'GATE', 'GEQ',
-    'HPF_LPF', 'INPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND', 'LIMITER',
+    'HAPTIC', 'HPF_LPF', 'INPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND', 'LIMITER',
     'METER', 'MIX_BUS', 'MONITOR', 'NOISE_GEN', 'OUTPUT_TDM', 'ROUTING',
     'TALKBACK', 'TEST_MEAS', 'TEST_OSC', 'TUBE_SAT',
 }
@@ -80,6 +80,15 @@ REQUIRED_PARAMS = {
     # reference, because nothing else in the graph can tell it.
     'TEST_OSC':       {'on', 'freq_hz', 'level', 'chan'},
     'TEST_MEAS':      {'meas_chan', 'osc_src'},
+    # THE PANEL HAPTIC (S122). `click_hz` / `click_tau_ms` (parallel lists),
+    # `click_peak`, `click_end_db` and `tone_hz` are the DESIGN of the stored
+    # waveforms -- the generator builds the tables from them and from nothing
+    # else -- so they are required, not optional: a haptic node that does not
+    # say what it stores stores whatever the generator's last default was,
+    # which is the shape this tree calls a defect.
+    'HAPTIC':         {'trig', 'sample', 'level', 'test_on', 'test_level',
+                       'click_hz', 'click_tau_ms', 'click_peak',
+                       'click_end_db', 'tone_hz'},
 }
 
 # Types that legitimately have no SPI address
@@ -162,10 +171,106 @@ EXTRA_PARAMS = {
     # not a property of the TALKBACK type.
     'TALKBACK':       {'hpf_on', 'invert_opt'},
     'TUBE_SAT':       {'on'},
+    'HAPTIC':         {'scope'},
 }
 
 ALLOWED_PARAMS = {t: REQUIRED_PARAMS.get(t, set()) | EXTRA_PARAMS.get(t, set())
                    for t in VALID_TYPES}
+
+
+# ---------------------------------------------------------------------------
+# THE SPEAKER SLOT (S122)
+# ---------------------------------------------------------------------------
+# PW ruling 2026-09-26: "the spkr feed is for screen button haptics only, and
+# should be completely separate from all mixer signal paths." The D24 panel
+# speaker is the AK4619's AOUT1L -- `CODEC_OUT_1`, the ONE codec DAC output
+# fitted (S102) -- and until S122 the MONITOR bus wrote it, so the graph's own
+# default left the speaker playing the main mix.
+SPEAKER_SOURCE_TYPES = {'HAPTIC'}
+
+
+def check_speaker_slot(rows):
+    """Every slot a `sink=SPKR` output writes is fed by a HAPTIC node and by
+    nothing else. Returns a list of formatted error strings (never raises):
+    the caller folds them into its own error list so one run reports every
+    violation rather than the first."""
+    out = []
+    parsed = []
+    for r in rows:
+        parsed.append(((r.get('id') or '').strip(),
+                       (r.get('type') or '').strip(),
+                       parse_params(r.get('params', '')),
+                       parse_id_list(r.get('inputs', ''))))
+    by_id = {nid: (ntype, prm, inp) for nid, ntype, prm, inp in parsed}
+
+    spk = [(nid, prm, inp) for nid, ntype, prm, inp in parsed
+           if ntype == 'OUTPUT_TDM' and prm.get('sink') == 'SPKR']
+    if not spk:
+        # NOT AN ERROR HERE, and deliberately so: this validator is run on
+        # fragments and on graphs that are not a D24's, and a graph with no
+        # speaker has nothing to separate. That the SHIPPING graph declares
+        # one is asserted where the shipping graph is built --
+        # gen_dsp_csv.py, at the bottom of the file -- which is the only
+        # place that can tell "no speaker" from "the speaker went missing".
+        return out
+    if len(spk) > 1:
+        out.append('  [speaker slot]: %d nodes declare sink=SPKR (%s). '
+                   'The speaker has one feed.'
+                   % (len(spk), ', '.join(n for n, _, _ in spk)))
+
+    ok_types = '/'.join(sorted(SPEAKER_SOURCE_TYPES))
+    for nid, prm, inputs in spk:
+        try:
+            sport = int(prm.get('sport_id', '-1'))
+            start = int(prm.get('slot_start', '-1'))
+            count = int(prm.get('slot_count', '1'))
+        except ValueError:
+            out.append('  [speaker slot] %s: sport_id/slot_start/slot_count '
+                       'are not integers' % nid)
+            continue
+        slots = set(range(start, start + count))
+
+        # (a) WHO FEEDS IT
+        if not inputs:
+            out.append('  [speaker slot] %s: has no input. The panel speaker '
+                       'must be fed by a %s node.' % (nid, ok_types))
+        for src in inputs:
+            styp, _, sinp = by_id.get(src, ('(undeclared)', {}, []))
+            if styp not in SPEAKER_SOURCE_TYPES:
+                out.append(
+                    '  [speaker slot] %s is fed by %s, a %s node. PW ruling '
+                    '2026-09-26: the panel speaker carries HAPTICS ONLY and '
+                    'is separate from every mixer signal path -- only a %s '
+                    'node may reach a sink=SPKR output. Give the speaker its '
+                    'own source, or send %s to an output that is not the '
+                    'speaker.' % (nid, src, styp, ok_types, src))
+            # a source that is itself fed by something is the same defect
+            # one hop further out: the speaker's source takes no input.
+            for up in sinp:
+                out.append(
+                    '  [speaker slot] %s reaches the speaker through %s. The '
+                    'speaker source takes NO input -- that is what makes the '
+                    'separation checkable in one hop.' % (up, src))
+
+        # (b) WHO ELSE IS ON THE SLOT
+        for onid, otyp, oprm, _ in parsed:
+            if onid == nid or otyp != 'OUTPUT_TDM':
+                continue
+            try:
+                osport = int(oprm.get('sport_id', '-1'))
+                ostart = int(oprm.get('slot_start', '-1'))
+                ocount = int(oprm.get('slot_count', '1'))
+            except ValueError:
+                continue
+            if osport != sport:
+                continue
+            clash = slots & set(range(ostart, ostart + ocount))
+            if clash:
+                out.append(
+                    '  [speaker slot] %s writes SPORT%d slot(s) %s, which is '
+                    "the panel speaker's (%s). No node but the haptic feed "
+                    'may write it.' % (onid, sport, sorted(clash), nid))
+    return out
 
 
 def validate(csv_path):
@@ -336,6 +441,21 @@ def validate(csv_path):
         for nid in ids:
             if state.get(nid, 0) == 0:
                 _visit(nid, [nid])
+
+    # ── Check 12: THE SPEAKER SLOT BELONGS TO THE HAPTIC NODE ──────────
+    #
+    # PW ruling 2026-09-26 (S122): "the spkr feed is for screen button
+    # haptics only, and should be completely separate from all mixer signal
+    # paths." That is a property of the GRAPH, so it is checked on the
+    # graph, and it fails rather than relying on anyone remembering it. The
+    # same rule is enforced a second time, inside
+    # dsp_codegen.py::_speaker_slot_guard, on the node set that actually
+    # becomes the TX lane table -- two instruments, one declaration.
+    #
+    # THE DECLARATION IS `sink=SPKR` (S102) and nothing else. Which slot the
+    # speaker is on is READ OFF IT, never typed here, so moving the speaker
+    # to another slot moves this check with it.
+    errors.extend(check_speaker_slot(rows))
 
     # ── Report ───────────────────────────────────────────────────────────────
     print(f"Validated {len(rows)} nodes in {os.path.basename(csv_path)}")
