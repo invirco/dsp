@@ -1,0 +1,169 @@
+num,item,runner,automation,class,requires_fixture,requires_press,requires_meter,spec_section
+1,MIC 1,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+2,MIC 2,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only / A. Read from the CM4 (Linux)"
+3,MIC 3,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+4,MIC 4,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+5,MIC 13,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+6,MIC 14,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+7,MIC 15,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+8,MIC 16,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+9,MIC 5,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+10,MIC 6,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+11,MIC 9,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+12,MIC 10,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+13,MIC 11,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+14,MIC 12,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+15,MIC 17,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+16,MIC 18,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+17,MIC 19,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+18,MIC 21,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+19,MIC 22,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+20,MIC 23,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only / 4a. LEDs and displays — an eye (28 rows)"
+21,MIC 24,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+22,MIC 7,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+23,MIC 8,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+24,MIC 20,no runner,2+4,analog input,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+25,Aux Out A1 (doubles as Monitor 1),no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+26,Aux Out A2,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+27,Aux Out A3,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+28,Aux Out A4,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+29,Aux Out A5,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+30,Aux Out A6,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+31,Aux Out A7,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+32,Aux Out A8,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+33,Main Out L,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+34,Main Out R,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+35,Center/LF Out,no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+36,"Monitor Out L (TRS, unbalanced)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+37,"Monitor Out R (TRS, unbalanced)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+38,Talkback TB (XLR),no runner,2+4,analog input (codec path),the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+39,"Aux Out A 1-2 (TRS, Phone Jack sub-assembly)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+40,"Aux Out A 3-4 (TRS, Phone Jack sub-assembly)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+41,"Aux Out A 5-6 (TRS, Phone Jack sub-assembly)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+42,"Aux Out A 7-8 (TRS, Phone Jack sub-assembly)",no runner,2+4,analog output,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+43,MONO AUX (fw.csv MonoAux) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+44,MONO AUX (fw.csv MonoAux) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+45,STEREO AUX (fw.csv StereoAux) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+46,STEREO AUX (fw.csv StereoAux) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+47,FX (fw.csv Fx) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+48,FX (fw.csv Fx) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+49,EQ (fw.csv Eq) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+50,EQ (fw.csv Eq) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+51,AUX ON FADERS (fw.csv AuxOnFaders) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+52,AUX ON FADERS (fw.csv AuxOnFaders) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+53,OVERVIEW (fw.csv Overview) button,no runner,3,panel switch,the operator at the left panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+54,OVERVIEW (fw.csv Overview) button LEDs (white pair),no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+55,"BOOT0 indicator LED (red, fw.csv BootLed)",no runner,4,panel LED,the operator at the left panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+58,Pedal UART through-path,no runner,2,panel control,the operator at the left panel; no fixture,no,no,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+59,FX MUTE (fw.csv FxMute) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+60,FX MUTE (fw.csv FxMute) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+61,FX MUTE (fw.csv FxMute) red LEDs,no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+62,HOME (fw.csv Home) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+63,HOME (fw.csv Home) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+64,MENU (fw.csv Menu) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+65,MENU (fw.csv Menu) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+66,+48 (fw.csv Phantom48) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+67,+48 (fw.csv Phantom48) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+68,FEEDBACK (fw.csv Feedback) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+69,FEEDBACK (fw.csv Feedback) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+70,MUTE (fw.csv 'Nute' — typo) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+71,MUTE (fw.csv 'Nute' — typo) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+72,SCENE (fw.csv Scene) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+73,SCENE (fw.csv Scene) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+74,L (fw.csv L) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+75,L (fw.csv L) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+76,C (fw.csv C) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+77,C (fw.csv C) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+78,C (fw.csv C) red LED,no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+79,CH ASSIGN (fw.csv ChanAssign) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+80,CH ASSIGN (fw.csv ChanAssign) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+81,R (fw.csv R) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+82,R (fw.csv R) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+83,MONITOR (fw.csv Monitor) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+84,MONITOR (fw.csv Monitor) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+85,REC/PLY (fw.csv RecPlay) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+86,REC/PLY (fw.csv RecPlay) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+87,REC/PLY (fw.csv RecPlay) red LEDs,no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+88,STUDIO CTL (fw.csv Studio) button,no runner,3,panel switch,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+89,STUDIO CTL (fw.csv Studio) button LEDs (white pair),no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+90,Encoder ring,no runner,3,panel encoder,the operator at the right panel; no fixture,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+91,"Encoder ring LEDs (8 white singles, fw.csv Enc1–Enc8)",no runner,4,panel LED,the operator at the right panel; no fixture,no,yes,4a. LEDs and displays — an eye (28 rows)
+92,Talkback switch + LEDs (pass-through),no runner,3+4,panel control,the operator at the right panel; no fixture,yes,yes,"4a. LEDs and displays — an eye (28 rows) / Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+93,Mini-jack insertion sense (pass-through),no runner,2+3,panel control,the operator at the right panel; no fixture,yes,no,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146) / Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+94,TEMP / BLOWER / FAN sense (pass-through),no runner,2+4,panel control,the operator at the right panel; no fixture,no,yes,"4d. The section-4 halves of section-2 rows (5 rows) / 2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+95,"Mini-jack 1 (3.5 mm, Mini Jack sub-assembly)",no runner,2+4,analog input (mini-jack),the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+96,"Mini-jack 2 (3.5 mm, Mini Jack sub-assembly)",no runner,2+4,analog input (mini-jack),the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+97,Phones 1 (headphone jack),no runner,2+4,analog output (phones),the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4b. Analog grade — a dScope (45 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+98,Footswitch 1,no runner,3,pedal switch,the P1 pedal plugged in,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+99,Footswitch 2,no runner,3,pedal switch,the P1 pedal plugged in,yes,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+100,7-segment display + LEDs,no runner,4,pedal LED,the P1 pedal plugged in,no,yes,4a. LEDs and displays — an eye (28 rows)
+101,Pedal link + 9 V,no runner,2+4,control,the P1 pedal plugged in,no,yes,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146) / 4d. The section-4 halves of section-2 rows (5 rows)"
+113,PSU monitor ADC PAD0 (fw.csv Psu1),no runner,—,psu monitor,none: these rows are not scheduled,no,no,B. Read through H1S1 over the matrix bus
+114,PSU monitor ADC PAD1 (fw.csv Psu2),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+115,PSU monitor ADC PAD2 (fw.csv Psu3),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+116,PSU monitor ADC PAD3 (fw.csv Psu4),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+117,PSU monitor ADC PAD4 (fw.csv Psu5),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+118,PSU monitor ADC PAD5 (fw.csv Psu6),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+119,PSU monitor ADC PAD6 (fw.csv Psu7),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+120,PSU monitor ADC PAD7 (fw.csv Psu8),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+121,PSU monitor ADC PAD8 (fw.csv Psu9),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+122,PSU monitor ADC PAD9 (fw.csv Psu10),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+123,PSU monitor ADC PAD10 (fw.csv Psu11),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+124,PSU monitor ADC PAD11 (fw.csv Psu12),no runner,—,psu monitor,none: these rows are not scheduled,no,no,out of scope
+129,P1 Foot Pedal (RJ45),no runner,2+4,control,the P1 pedal plugged in,no,yes,A. Read from the CM4 (Linux)
+130,"USB A (dual jack, hub port 3)",no runner,2+4,USB-A,"a USB stick, an HDMI sink and the mains lead in hand",no,yes,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146) / 4d. The section-4 halves of section-2 rows (5 rows)"
+131,"USB A (dual jack, hub port 4)",no runner,2+4,USB-A,"a USB stick, an HDMI sink and the mains lead in hand",no,yes,"4c. Rails, continuity and presence — a meter (31 rows) / 2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+132,HDMI 1 (placeholder),no runner,4,HDMI,"a USB stick, an HDMI sink and the mains lead in hand",no,yes,"4c. Rails, continuity and presence — a meter (31 rows) / 2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+133,IEC Power Inlet,no runner,4,power,"a USB stick, an HDMI sink and the mains lead in hand",no,yes,4a. LEDs and displays — an eye (28 rows)
+134,Power Switch,no runner,3,power,"a USB stick, an HDMI sink and the mains lead in hand",yes,no,"4c. Rails, continuity and presence — a meter (31 rows)"
+135,USB-C Multitrack/DAW,no runner,2,digital audio,a slot-1 card fitted (none exists),no,no,"Section 3 — needs a press (SPECIFICATION ONLY, not built, not run)"
+136,Link 'opt1',no runner,4,board-to-board link,a slot-1 card fitted (none exists),no,yes,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+137,Link 'opt2',no runner,4,board-to-board link,a slot-1 card fitted (none exists),no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+138,Link 'opt3',no runner,4,board-to-board link,a slot-1 card fitted (none exists),no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+145,Link 'pedal',no runner,2,board-to-board link,the P1 pedal plugged in,no,no,B. Read through H1S1 over the matrix bus
+146,Link 'phones',no runner,2+4,board-to-board link,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+147,Link 'minijack',no runner,2+4,board-to-board link,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,yes,"4d. The section-4 halves of section-2 rows (5 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only"
+148,Link 'hdmi-fpc',no runner,1,board-to-board link,the H1 self-cable loopback harness on the analog I/O (BLOCKED: the harness does not exist yet),no,no,"4d. The section-4 halves of section-2 rows (5 rows) / 2B — the analog loopback (47 rows: 1–42, 95, 96, 97, 147, 148) — PW-1 ruled 2026-09-24; now gated on the H1 harness only / 2A — no rails, no analog (9 rows: 58, 93, 94, 101, 130, 131, 132, 136, 146)"
+149,Link 'd32compat',no runner,4,board-to-board link,a slot-1 card fitted (none exists),no,yes,🔴 Proposed corrections to section 1's coverage
+150,Link 'analog-12v',no runner,—,board-to-board link,a slot-1 card fitted (none exists),no,no,"4c. Rails, continuity and presence — a meter (31 rows)"
+152,Link 'fan',no runner,4,board-to-board link,a slot-1 card fitted (none exists),no,yes,A. Read from the CM4 (Linux)
+153,J11 (power link / header),no runner,—,power link / header,a DMM and the lid off,no,no,4d. The section-4 halves of section-2 rows (5 rows)
+154,J12 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+155,J13 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+156,J14 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+157,J23 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+158,J24 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+159,J33 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+160,J34 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+161,J43 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+162,J44 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+163,J56 (board header),no runner,4,board header,a DMM and the lid off,no,yes,
+164,J1 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+165,J2 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+166,J3 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+167,J4 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+168,J6 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+169,J4 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+170,J5 (board header),no runner,4,board header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+171,J6 (board header),no runner,4,board header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+172,J7 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+173,J10 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+174,J14 (debug / test header),no runner,4,debug / test header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+175,J15 (debug / test header),no runner,4,debug / test header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+176,J19 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+177,J20 (board header),no runner,4,board header,a DMM and the lid off,no,yes,
+178,J21 (board header),no runner,4,board header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+179,J22 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+180,J23 (debug / test header),no runner,4,debug / test header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+181,J24 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+182,J25 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+183,J26 (board header),no runner,4,board header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+184,J27 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+185,J30 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+186,J31 (power link / header),no runner,4,power link / header,a DMM and the lid off,no,yes,
+187,J32 (debug / test header),no runner,4,debug / test header,a DMM and the lid off,no,yes,"4c. Rails, continuity and presence — a meter (31 rows)"
+188,J35 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+189,J36 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+190,J37 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+191,J38 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
+192,J39 (power link / header),no runner,—,power link / header,none: these rows are not scheduled,no,no,out of scope
