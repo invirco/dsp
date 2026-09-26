@@ -180,6 +180,38 @@ ISOLATION_MIN_DB = 40.0
 TONE_HZ = 1000.0
 TONE_DBFS = -12.0
 
+# THE GAIN STEPS ARE DRIVEN 18 dB QUIETER, AND IT IS THE DIFFERENCE BETWEEN A
+# TEST AND A PLACEBO (S125). The station judges a gain step off the
+# measurement node's level, and that reading SATURATES above about -24 dBFS.
+# Measured on MW-D24-2 2026-09-26, commanding the test oscillator down in 6 dB
+# steps and reading the node and the strip meter together:
+#
+#   commanded   node RMS   node coherent   strip meter
+#      -6.0      -18.65        -15.63         -6.00     <- 9.6 dB compressed
+#     -12.0      -20.14        -17.13        -12.00     <- 5.1 dB compressed
+#     -18.0      -21.64        -18.63        -18.00     <- 0.6 dB compressed
+#     -24.0      -27.01        -24.00        -24.00        exact
+#     -30.0      -33.01        -30.00        -30.00        exact
+#      ...                                                 exact to -96.0
+#
+# The meter is exact everywhere; the node's level is exact only below about
+# -24 dBFS. At the -12 dBFS the steps used to be driven at, a step SHORT by
+# the smallest element the station has to catch -- 6.552 dB -- read only
+# 1.649 dB low, inside the 3 dB tolerance, and PASSED. At -30 dBFS the same
+# short element reads 6.554 dB low, error +0.002 dB, spread 0.021 over five
+# reps. Every element from 6.552 to 12.845 dB reads to within 0.011 dB there.
+#
+# -30 and not -24: six decibels below the knee, and the tone is still 84 dB
+# over this unit's measured converter floor (-114 dBFS), where the station
+# only asks for 40. The lowest drive this produces is -78.05 dBFS for code 32
+# and the oscillator and the node are both exact 1:1 down to -96 dBFS
+# (measured, same run).
+#
+# THIS APPLIES TO THE GAIN STEPS ONLY. Every other level reading the station
+# takes is still driven at TONE_DBFS through the same compressed instrument --
+# see the S125 report; re-levelling the whole ruled stimulus is PW's call.
+GAIN_TONE_DBFS = -30.0
+
 
 # ---------------------------------------------------------------------------
 # Reading the sources
@@ -201,21 +233,37 @@ def load_cells():
     return names
 
 
-def load_chain_index():
+def load_send_pos():
     """Which byte of the 25-byte 595 image belongs to which panel input.
 
-    Straight off `defs/products/d24/inputs.csv`. The chain does NOT run in
-    panel order -- MIC 1 is byte 1 and MIC 2 is byte 3 -- so a station that
-    assumed it did would put every gain step on the wrong preamp.
+    `send_pos`, off `defs/products/d24/inputs.csv`, ZERO-BASED, and it is the
+    index into the array of bytes that goes out of the shift register -- the
+    thing `s55_chain.py` and `d24_chain.py` take.
+
+    NOT `chain_index`, WHICH IS A DIFFERENT COLUMN OF THE SAME TABLE AND WAS
+    WHAT THIS READ UNTIL S125. `chain_index` is the preamp's position along
+    the physical daisy chain; `send_pos` is its byte in the transmitted image,
+    and the two orders are not the same -- MIC 5 is chain position 9 and tx
+    byte 15. Reading the wrong one put EVERY gain step on the wrong preamp:
+    measured on MW-D24-2 2026-09-26, walking one position at a time at gain 63
+    and watching which lane's own noise rose 33 dB, all fourteen gain-step
+    inputs in the generated list addressed a byte that does not drive their
+    lane -- six of them drove another input's preamp and eight addressed the
+    bytes of the mics this unit has no front end for, so they moved nothing at
+    all. `send_pos + 1` matched the measurement on 16 of 16 populated inputs
+    and `chain_index` on 0 of 16.
     """
     out = {}
     for r in read_csv(DEFS_INPUTS, comment='#'):
         m = re.match(r'^MIC\s+(\d+)$', r['panel'].strip())
         if m:
-            out[int(m.group(1))] = int(r['chain_index'])
+            out[int(m.group(1))] = int(r['send_pos'])
     if len(out) != len(STRIPS):
-        raise SystemExit('inputs.csv gave %d mic chain positions, expected %d'
+        raise SystemExit('inputs.csv gave %d mic send positions, expected %d'
                          % (len(out), len(STRIPS)))
+    if sorted(out.values()) != list(range(len(STRIPS))):
+        raise SystemExit('inputs.csv send_pos is not a 0..%d permutation: %s'
+                         % (len(STRIPS) - 1, sorted(out.values())))
     return out
 
 
@@ -497,7 +545,7 @@ MONO_TRS_OUTS = [('MONITOR L', 'xover:ctr', TONE_HZ,
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',
            'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park',
-           'gain_code', 'chain_index')
+           'gain_code', 'send_pos')
 
 # ---------------------------------------------------------------------------
 # THE ORDER (PW 2026-09-26)
@@ -641,7 +689,7 @@ def parse_lead_excludes(specs):
 class Builder:
     def __init__(self, ports, cells, excl_inputs=(), excl_leads=()):
         self.ports, self.cells = ports, cells
-        self.chain_at = load_chain_index()
+        self.send_at = load_send_pos()
         self.gain_seen, self.gain_k, self.gain_resid = load_gain_law()
         self.paths, self.routes, self.missing = [], {}, []
         self.n = 0
@@ -708,7 +756,7 @@ class Builder:
         kw.setdefault('note', '')
         kw.setdefault('park', '')
         kw.setdefault('gain_code', '')
-        kw.setdefault('chain_index', '')
+        kw.setdefault('send_pos', '')
         kw.setdefault('prompt', '')
         kw.setdefault('freq_hz', TONE_HZ)
         kw.setdefault('level_dbfs', TONE_DBFS)
@@ -765,7 +813,7 @@ class Builder:
         """
         for strip in self.strips():
             inp = 'MIC %d' % strip
-            pos = self.chain_at[strip]
+            pos = self.send_at[strip]
             self.new_patch()
             for step in GAIN_STEPS:
                 db, _src = gain_db(step, self.gain_seen, self.gain_k)
@@ -774,8 +822,8 @@ class Builder:
                          expect='tone',
                          level_ref=('ref' if step == 0 else 'gain'),
                          polarity=('ref' if step == 0 else '-'),
-                         sub='g%d' % step, gain_code=step, chain_index=pos,
-                         level_dbfs=round(TONE_DBFS - db, 2),
+                         sub='g%d' % step, gain_code=step, send_pos=pos,
+                         level_dbfs=round(GAIN_TONE_DBFS - db, 2),
                          rows=self.rows_for(PARK_OUT, inp),
                          prompt='Patch %s to %s' % (PARK_OUT, inp),
                          park=PARK_OUT_END,
@@ -792,7 +840,7 @@ class Builder:
                      drive='none', lane=strip, donor=donor_for(strip),
                      expect='noise', level_ref='ein', polarity='-',
                      level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
-                     chain_index=pos, rows=self.rows_for(inp),
+                     send_pos=pos, rows=self.rows_for(inp),
                      prompt='Fit the 150 ohm terminator in %s' % inp,
                      note='the input noise, at the gain the 2026-09-16 survey '
                           'used; the window is limits.csv t4b_ein_max_dbu')
@@ -1025,7 +1073,10 @@ HEAD_GAIN = """\
 #             and this step is the fit's value. Worst residual over the measured
 #             codes: %.3f dB.
 # `drive_dbfs` is what the oscillator is set to for this step, so the converter sees
-# about the same level at every gain and nothing clips.
+# about the same level at every gain and nothing clips. That level is
+# GAIN_TONE_DBFS = %.1f dBFS and NOT the station's own -12: the measurement node's
+# level reading saturates above about -24 dBFS, and at -12 a step short by the
+# smallest element (6.552 dB) read only 1.649 dB low and passed. See the generator.
 """
 
 
@@ -1033,14 +1084,14 @@ def write_gain_steps(out, b):
     path = os.path.join(out, 'patch-gain-steps.csv')
     with open(path, 'w', newline='') as fh:
         fh.write(HEAD_GAIN % (len([c for c in b.gain_seen if c > 0]),
-                              b.gain_resid))
+                              b.gain_resid, GAIN_TONE_DBFS))
         w = csv.writer(fh)
         w.writerow(('step', 'code', 'byte', 'expected_db', 'source',
                     'drive_dbfs'))
         for i, code in enumerate(GAIN_STEPS):
             db, src = gain_db(code, b.gain_seen, b.gain_k)
             w.writerow((i, code, '0x%02X' % ((code & 63) << 2), '%.3f' % db,
-                        src, '%.2f' % (TONE_DBFS - db)))
+                        src, '%.2f' % (GAIN_TONE_DBFS - db)))
         db, src = gain_db(EIN_GAIN_CODE, b.gain_seen, b.gain_k)
         w.writerow(('ein', EIN_GAIN_CODE, '0x%02X' % ((EIN_GAIN_CODE & 63) << 2),
                     '%.3f' % db, src, ''))

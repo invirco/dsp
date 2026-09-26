@@ -1,0 +1,94 @@
+[
+ {
+  "code": 0,
+  "verdict": "PASS",
+  "why": "the tone arrived on MIC 7 and nowhere else",
+  "notes": [
+   "this reading is now MIC 7's balanced reference: 0.00 dB, -0.0 deg",
+   "THD+N -133.86 dB = 0.000 %"
+  ],
+  "rms": -33.0124332194167,
+  "meter_db": -30.004330844923235,
+  "drive_dbfs": -30.0,
+  "expected_db": 0.0,
+  "secs": 0.4503970146179199
+ },
+ {
+  "code": 1,
+  "verdict": "PASS",
+  "why": "gain element 1 adds 12.8 dB, -0.0 dB from expected",
+  "notes": [
+   "gain element 1: measured +12.84 dB, expected +12.85 dB (measured), drive -42.8 dBFS, lane -33.01 dBFS (the meter, which is not what this is judged on, read -30.00)"
+  ],
+  "rms": -33.012271881103516,
+  "meter_db": -29.99716657517949,
+  "drive_dbfs": -42.84,
+  "expected_db": 12.845,
+  "secs": 0.1787099838256836
+ },
+ {
+  "code": 2,
+  "verdict": "PASS",
+  "why": "gain element 2 adds 19.5 dB, 0.0 dB from expected",
+  "notes": [
+   "gain element 2: measured +19.47 dB, expected +19.46 dB (measured), drive -49.5 dBFS, lane -33.00 dBFS (the meter, which is not what this is judged on, read -30.00)"
+  ],
+  "rms": -33.00301742553711,
+  "meter_db": -29.996990638332093,
+  "drive_dbfs": -49.46,
+  "expected_db": 19.463,
+  "secs": 0.1806046962738037
+ },
+ {
+  "code": 4,
+  "verdict": "PASS",
+  "why": "gain element 3 adds 26.9 dB, 0.0 dB from expected",
+  "notes": [
+   "gain element 3: measured +26.90 dB, expected +26.89 dB (measured), drive -56.9 dBFS, lane -33.01 dBFS (the meter, which is not what this is judged on, read -30.00)"
+  ],
+  "rms": -33.00558853149414,
+  "meter_db": -30.00016111671259,
+  "drive_dbfs": -56.89,
+  "expected_db": 26.892,
+  "secs": 0.18050599098205566
+ },
+ {
+  "code": 8,
+  "verdict": "PASS",
+  "why": "gain element 4 adds 34.3 dB, -0.0 dB from expected",
+  "notes": [
+   "gain element 4: measured +34.28 dB, expected +34.28 dB (fitted), drive -64.3 dBFS, lane -33.01 dBFS (the meter, which is not what this is judged on, read -30.00)"
+  ],
+  "rms": -33.01427459716797,
+  "meter_db": -30.001334865740255,
+  "drive_dbfs": -64.28,
+  "expected_db": 34.283,
+  "secs": 0.18126392364501953
+ },
+ {
+  "code": 16,
+  "verdict": "PASS",
+  "why": "gain element 5 adds 41.5 dB, 0.0 dB from expected",
+  "notes": [
+   "gain element 5: measured +41.50 dB, expected +41.49 dB (fitted), drive -71.5 dBFS, lane -33.00 dBFS (the meter, which is not what this is judged on, read -30.00)"
+  ],
+  "rms": -33.00202941894531,
+  "meter_db": -29.996008730678028,
+  "drive_dbfs": -71.49,
+  "expected_db": 41.494,
+  "secs": 0.1794109344482422
+ },
+ {
+  "code": 32,
+  "verdict": "FAIL",
+  "why": "MIC 7 gain step 6 is wrong: it adds 0.0 dB and should add 48.0 dB",
+  "notes": [
+   "gain element 6: measured +0.01 dB, expected +48.05 dB (fitted), drive -78.0 dBFS, lane -81.06 dBFS (the meter, which is not what this is judged on, read -30.03)"
+  ],
+  "rms": -81.0560073852539,
+  "meter_db": -30.032933151600623,
+  "drive_dbfs": -78.05,
+  "expected_db": 48.046,
+  "secs": 0.22240066528320312
+ }
+]

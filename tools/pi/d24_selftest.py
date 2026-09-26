@@ -314,6 +314,24 @@ class Rig:
         # thing that must force a full SAFE rewrite regardless of the marker
         # _chain() leaves (S114 rank 4).
         self._booted_this_run = False
+        # What each test cost, in seconds. Instrumentation only: nothing
+        # scores on it.
+        self.secs = {}
+        # The `stest` probe's one answer for the whole press (S125).
+        self._stest = None
+        # The codec's init image, written once a session (S125).
+        self._codec = None
+        # The open end of the BLK_OVERRUN window (S125): (when, snapshots).
+        self._blk_open = None
+        # Bumped by anything that resets or re-boots the pair. `link_alive()`
+        # is asked once per epoch and remembered (S125).
+        self._link_epoch = 0
+        self._link_seen = None
+        # (when, FRAME_COUNT) per chip, stamped by every diag read, so a
+        # heartbeat delta can come out of snapshots already taken (S125).
+        self._fc = {1: [], 2: []}
+        # SPI_RDY levels captured from DR1's and DR2's own events, for DY1.
+        self._rdy = {}
 
     # -- transport ----------------------------------------------------------
     def sh(self, cmd, timeout=120):
@@ -360,6 +378,18 @@ class Rig:
     def pin(self, spec):
         return self.out('sudo pinctrl set %s' % spec)
 
+    def new_link_epoch(self):
+        """The pair has been reset or re-booted (S125).
+
+        Everything this run remembers ABOUT THE RUNNING PAIR -- whether the
+        link answered, and the FRAME_COUNT samples a heartbeat is subtracted
+        from -- stops being true at a reset, so the epoch number that tags
+        them is bumped here and nothing from before it is ever used again.
+        Called from `boot_pair()` and from the two places that pulse !RST_D.
+        """
+        self._link_epoch += 1
+        self._link_seen = None
+
     # -- recording ----------------------------------------------------------
     def record(self, test, verdict, measured, limit, evidence):
         assert verdict in (PASS, FAIL, NODATA), verdict
@@ -394,6 +424,7 @@ class Rig:
                                               FACTORY_TEST_BUILD_CFG), bad)
             return
         print('%s ...' % test, flush=True)
+        t0 = time.time()
         try:
             v, m, lim, ev = fn()
         except Exception as exc:                      # noqa: BLE001 -- see below
@@ -403,11 +434,21 @@ class Rig:
             # NO DATAs.
             # S124: the TRACEBACK, not just the repr. A runner error whose
             # evidence is one line of `TypeError(...)` costs a whole re-run to
-            # locate, and the re-run may not reproduce it (NW3's does not fire
-            # unless the network is actually losing packets).
+            # locate, and the re-run may not reproduce it -- S125 found NW3's
+            # by reading rather than by re-running, and it fires only on the
+            # PASS branch, which is the one a lossy bench never reaches.
             v, m, lim, ev = (NODATA, 'runner error', '',
                              'RUNNER ERROR: %r\n%s'
                              % (exc, traceback.format_exc()))
+        # PER-TEST SECONDS, on their own line (S125). The before/after of a
+        # speed change has to be read off the run that made it, not re-derived
+        # from record()'s one-second stamps -- two tests in the same second are
+        # ordinary and the stamp cannot separate them. `record()`'s output is
+        # untouched: d24_runall.py parses the `TEST ...` start line and the
+        # wizard reads the CSV, and neither sees this.
+        secs = time.time() - t0
+        self.secs[test] = secs
+        print('-- %s %s took %.1f s' % (stamp(), test, secs))
         self.record(test, v, m, lim, ev)
 
 
@@ -592,11 +633,21 @@ def t_nw3(r):
         return NODATA, m, '0% loss, max RTT < 5 ms', raw
     h_loss, h_max, _ = worst[host_key]
     if h_loss == 0.0 and h_max < 5.0:
-        return PASS, m, '0% loss, max RTT < 5 ms (worst of %d passes)' % r.a.nw3_runs, raw
+        # `0%%`, NOT `0%`, AND THIS IS S124-5. A bare `0% loss` inside a
+        # %-formatted string is not prose: Python reads `% lo` as a conversion
+        # (space flag, `l` length modifier, `o` octal), it eats `nw3_runs`, and
+        # the `%d` that follows has no argument left -- TypeError, 'not enough
+        # arguments for format string'. The line is on the PASS branch and
+        # NOWHERE ELSE, so the crash fired only when the network was PERFECT:
+        # NW3 could report FAIL and NO DATA but has never been able to report
+        # PASS on this bench. Found by reading, reproduced in one line, and the
+        # whole tree scanned for the same shape (this was the only one).
+        return (PASS, m, '0%% loss, max RTT < 5 ms (worst of %d passes)'
+                % r.a.nw3_runs, raw)
     gw_key = [k for k in worst if k != host_key]
     if gw_key and worst[gw_key[0]][0] == 0.0:
         return (NODATA, m, '0% loss, max RTT < 5 ms',
-                raw + '\nThe unit\'s own link passed its control on every pass -- 0 %% loss to '
+                raw + '\nThe unit\'s own link passed its control on every pass -- 0 % loss to '
                       'the gateway, one switch hop away, over none of the driving host\'s '
                       'cabling -- while the path to the bench host did not. The loss is not '
                       'attributed to the unit and this is NO DATA rather than FAIL. Re-take '
@@ -726,6 +777,26 @@ def _bus(r, mode, extra=''):
         return None, txt
 
 
+def _stest(r):
+    """The `stest` probe, run ONCE per press (S125, review §2.6).
+
+    ML-M, ML-P1 and ML-P2 each ran their own probe and each one returned ALL
+    THREE identities -- three 5 s windows for one 5 s answer (measured on
+    MW-D24-2, 2026-09-26: 5.1 / 5.3 / 5.3 s). The probe is a passive listen on
+    the matrix bus for the MCUs' own S_TEST lines; it writes nothing, so a
+    second window cannot tell a reader anything the first did not, and the
+    three tests still score their own identity out of the one answer.
+
+    NOT cached across anything that could change the answer: H1S1 is not reset
+    or reflashed inside a press, and the one other thing on this bus --
+    `codec_init()` -- writes to the codec and never to the panel MCUs. A reset
+    of H1S1 would need a new press, which gets a new Rig and a new cache.
+    """
+    if r._stest is None:
+        r._stest = _bus(r, 'stest')
+    return r._stest
+
+
 def t_ml1(r):
     j, raw = _bus(r, 'cell', '--reps 3')
     if not j:
@@ -753,7 +824,7 @@ def t_ml2(r):
 
 
 def t_mlm(r):
-    j, raw = _bus(r, 'stest')
+    j, raw = _stest(r)
     mcus = (j or {}).get('mcus', {})
     ml1 = r.results.get('ML1')
     m = 'ML1=%s; S_TEST identities: %s' % (ml1, mcus)
@@ -765,7 +836,7 @@ def t_mlm(r):
 
 
 def _panel(r, tag, name):
-    j, raw = _bus(r, 'stest')
+    j, raw = _stest(r)
     mcus = (j or {}).get('mcus', {})
     applog = r.out('grep "MCU verified" /home/app/logs/log | tail -6')
     ev = '%s\n--- matrix-app /home/app/logs/log ---\n%s' % (raw, applog)
@@ -797,8 +868,21 @@ def t_mlb0(r):
 
 
 def _diag(r, chip, timeout=90):
-    return r.out('cd %s && python3 dsp4_diag.py --chip %d --cs-gpio %d --rdy-gpio %d 2>&1'
-                 % (r.a.stage, chip, CS_GPIO[chip], RDY_GPIO[chip]), timeout=timeout)
+    txt = r.out('cd %s && python3 dsp4_diag.py --chip %d --cs-gpio %d --rdy-gpio %d 2>&1'
+                % (r.a.stage, chip, CS_GPIO[chip], RDY_GPIO[chip]), timeout=timeout)
+    # EVERY DIAG READ IS A HEARTBEAT SAMPLE (S125, review §2.6). A diag run
+    # already carries FRAME_COUNT and a press takes a dozen of them; stamping
+    # each one here is what lets `_heartbeat()` subtract two readings the run
+    # had ALREADY taken instead of sleeping a second to manufacture a pair.
+    # The stamp is taken after the read comes back, so the interval it feeds
+    # is never shorter than the real one.
+    fc = _field(txt, 'FRAME_COUNT')
+    if fc is not None and chip in getattr(r, '_fc', {}):
+        try:
+            r._fc[chip].append((time.time(), int(fc, 0), r._link_epoch))
+        except ValueError:
+            pass
+    return txt
 
 
 def _field(txt, name):
@@ -884,6 +968,12 @@ def _dc_nodata(n):
 # both chips because !RST_D resets both parts together, so the cycle runs once
 # per session and both DY1 rows read it.
 RDY_SETTLE_S = 0.3
+# HOW LONG DR1 HOLDS !RST_D LOW. 50 ms was enough for the heartbeat half and
+# is not enough to read two GPIOs over a shell inside it; 200 ms is the figure
+# `_rdy_cycle` already used for exactly that read, so the fold (S125) takes
+# DR1's pulse up to it. The criterion is unchanged -- the heartbeat has to
+# stop, and it stops in one block period (~0.33 ms) either way.
+DR1_DIP_MS = 200.0
 
 
 def _rdy_parse(raw):
@@ -903,9 +993,50 @@ def _rdy_levels(r):
     return _rdy_parse(raw), raw
 
 
+def _rdy_capture(r, when):
+    """Stash one SPI_RDY reading under `when`, for DY1 to report later.
+
+    THIS IS THE FOLD (S125, review §2.6). DY1's characterisation is a level
+    with the part in reset and a level with the part running, and BOTH of the
+    events it needs already happen in this press: DR1 pulses !RST_D and DR2
+    boots the pair. It used to dip and boot AGAIN, a third pair boot for two
+    readings the run had just walked past. The reads are the same reads, the
+    criterion is the same criterion, and a press that does not run DR1 and DR2
+    still gets the old self-contained cycle (`_rdy_cycle`).
+    """
+    lv, raw = _rdy_levels(r)
+    r._rdy[when] = lv
+    r._rdy.setdefault('raw', {})[when] = raw
+    return lv
+
+
+def _rdy_folded(r):
+    """DY1's triple out of DR1's and DR2's own events, or None if this press
+    did not run them."""
+    d = getattr(r, '_rdy', {})
+    if not all(k in d for k in ('run', 'rst', 'post')) or 'stage' not in d:
+        return None
+    raws = d.get('raw', {})
+    return {'run': d['run'], 'rst': d['rst'], 'post': d['post'],
+            'stage': d['stage'],
+            'raw': ('--- 1. after the prep boot, part running (CM4 pull-down '
+                    'forced) ---\n%s\n'
+                    '--- 2. !RST_D (GPIO%d) held low %.0f ms -- DR1\'s OWN pulse, '
+                    'read inside it ---\n%s\n'
+                    '--- 3. after DR2\'s boot ---\n%s\nBOOT_STAGE %s/%s\n'
+                    '(folded into DR1/DR2 -- no boot of DY1\'s own, S125)'
+                    % (raws.get('run', ''), RST_GPIO, DR1_DIP_MS,
+                       raws.get('rst', ''), raws.get('post', ''),
+                       d['stage'].get(1), d['stage'].get(2)))}
+
+
 def _rdy_cycle(r):
-    """Run the characterisation once and cache it on the rig."""
-    cached = getattr(r, '_rdy_cycle', None)
+    """Run the characterisation once and cache it on the rig.
+
+    THE FALLBACK. A press that runs DR1 and DR2 gets the folded triple above
+    and never reaches this; a press that names only DY1 still has to make its
+    own reset and its own boot, which is what this does."""
+    cached = getattr(r, '_rdy_cycle_cache', None)
     if cached is not None:
         return cached
     run, raw_run = _rdy_levels(r)
@@ -914,6 +1045,7 @@ def _rdy_cycle(r):
     dip = r.out('sudo pinctrl set %d op dl; sleep 0.2; pinctrl get %d,%d; '
                 'sudo pinctrl set %d op dh'
                 % (RST_GPIO, RDY_GPIO[1], RDY_GPIO[2], RST_GPIO))
+    r.new_link_epoch()
     rst = _rdy_parse(dip)
     log = boot_pair(r)
     post, raw_post = _rdy_levels(r)
@@ -927,13 +1059,13 @@ def _rdy_cycle(r):
                    '--- boot log ---\n%s'
                    % (raw_run, RST_GPIO, dip, raw_post,
                       stage[1], stage[2], log[-1200:]))}
-    r._rdy_cycle = out
+    r._rdy_cycle_cache = out
     return out
 
 
 def t_dy1(r, chip):
     """SPI_RDY must follow the part: LOW in reset, HIGH once it is running."""
-    c = _rdy_cycle(r)
+    c = _rdy_folded(r) or _rdy_cycle(r)
     g, cs = RDY_GPIO[chip], RDY_SELECT[chip]
     lim = ('SPI_RDY (CS%d, GPIO%d) reads LOW with !RST_D held low and HIGH with the '
            'part at BOOT_STAGE 7, the CM4 pin pulled DOWN for both reads' % (cs, g))
@@ -999,35 +1131,77 @@ def t_dc2(r, n):
 
 def t_dr1(r):
     """Pulse !RST_D and watch the heartbeat stop. The pulse is the CM4's
-    GPIO16, not H1S1's -- see the spec correction in the report."""
-    a1 = _field(_diag(r, 1), 'FRAME_COUNT')
-    time.sleep(1.0)
-    a2 = _field(_diag(r, 1), 'FRAME_COUNT')
-    r.pin('%d op dl' % RST_GPIO)
-    time.sleep(0.05)
-    r.pin('%d op dh' % RST_GPIO)
+    GPIO16, not H1S1's -- see the spec correction in the report.
+
+    THE 'BEFORE' PAIR IS NOT MANUFACTURED (S125). This used to read
+    FRAME_COUNT, sleep a second and read it again to establish that the
+    heartbeat WAS advancing. The prep boot that runs immediately before this
+    test reads the same counter several times over several seconds, so the
+    earlier reading is taken from that record when there is one; the sleep is
+    paid only when there is not. The reading after the pulse is unchanged --
+    it is the one that decides the verdict and it is taken fresh."""
+    # A QUARTER OF A SECOND IS ENOUGH FOR *THIS* HALF, and that is the whole
+    # of what the 'before' pair has to show: that the counter was moving at
+    # all. At the measured ~3,000 blocks/s a 0.25 s gap is some 750 counts,
+    # and the verdict is `a1 != a2`. The RATE figure AS-DSPA reports is a
+    # different question and keeps HEARTBEAT_MIN_S.
+    hist = [x for x in r._fc.get(1, []) if x[2] == r._link_epoch]
+    a1 = a2 = None
+    if hist and time.time() - hist[-1][0] >= 0.25:
+        # The newest sample this epoch as the EARLIER half, and one fresh read
+        # as the later one. The fresh read is a diag this test was going to
+        # pay for anyway; what goes is the second of sleep between them.
+        a1 = '%d' % hist[-1][1]
+        a2 = _field(_diag(r, 1), 'FRAME_COUNT')
+    if a1 is None or a2 is None or a1 == a2:
+        a1 = _field(_diag(r, 1), 'FRAME_COUNT')
+        time.sleep(HEARTBEAT_MIN_S)
+        a2 = _field(_diag(r, 1), 'FRAME_COUNT')
+    # ONE REMOTE COMMAND, so the window is timed on the CM4 and not across
+    # three ssh round trips -- and SPI_RDY is read INSIDE it, which is DY1's
+    # whole 'in reset' half taken from the pulse this test was making anyway
+    # (S125). `_rdy_levels`' pull-down is already on both pins: `pin_handback`
+    # sets it at every boot cycle.
+    dip = r.out('sudo pinctrl set %d op dl; sleep %.3f; pinctrl get %d,%d; '
+                'sudo pinctrl set %d op dh'
+                % (RST_GPIO, DR1_DIP_MS / 1000.0,
+                   RDY_GPIO[1], RDY_GPIO[2], RST_GPIO))
+    r._rdy['rst'] = _rdy_parse(dip)
+    r._rdy.setdefault('raw', {})['rst'] = dip
+    # THE COUNTER RESTARTS HERE, so every sample taken before this point
+    # belongs to a different epoch and must never be subtracted from one taken
+    # after it (S125). Bumping the epoch is also what makes `link_alive()`'s
+    # cached answer stale, which it now is.
+    r.new_link_epoch()
     time.sleep(0.5)
     b1 = _diag(r, 1)
     time.sleep(1.0)
     b2 = _diag(r, 1)
     f_b1, f_b2 = _field(b1, 'FRAME_COUNT'), _field(b2, 'FRAME_COUNT')
-    raw = ('before: FRAME_COUNT %s -> %s\nafter the pulse:\n%s\n---\n%s'
-           % (a1, a2, b1, b2))
+    raw = ('before: FRAME_COUNT %s -> %s\n--- the pulse, and SPI_RDY read '
+           'inside it (DY1\'s "in reset" half, S125) ---\n%s\n'
+           'after the pulse:\n%s\n---\n%s'
+           % (a1, a2, dip, b1, b2))
     if a1 is None or a2 is None or a1 == a2:
         return NODATA, 'heartbeat was not advancing before the pulse (%s -> %s)' % (a1, a2), \
             'heartbeat stops within one block period', raw
     stopped = (f_b1 is None or f_b2 is None or f_b1 == f_b2)
     return ((PASS if stopped else FAIL),
-            'FRAME_COUNT %s -> %s advancing; after !RST_D (GPIO%d) low 50 ms: %s -> %s'
-            % (a1, a2, RST_GPIO, f_b1, f_b2),
+            'FRAME_COUNT %s -> %s advancing; after !RST_D (GPIO%d) low %.0f ms: %s -> %s'
+            % (a1, a2, RST_GPIO, DR1_DIP_MS, f_b1, f_b2),
             'heartbeat stops within one block period', raw)
 
 
 def t_dr2(r):
     """The boot+config recipe, and the lane read that proves the slots."""
     log = boot_pair(r)
+    # DY1's 'part running' half, off THIS boot (S125). One `pinctrl get` with
+    # the CM4's own pull forced down; DY1 reports it, this test does not score
+    # on it.
+    _rdy_capture(r, 'post')
     d1, d2 = _diag(r, 1), _diag(r, 2)
     st1, st2 = _field(d1, 'BOOT_STAGE'), _field(d2, 'BOOT_STAGE')
+    r._rdy['stage'] = {1: st1, 2: st2}
     b1, b2 = _field(d1, 'BUILD_ID'), _field(d2, 'BUILD_ID')
     lanes = rxscan(r)
     carrying = lanes.count('CARRYING')
@@ -1159,9 +1333,38 @@ def _lane_rows(txt):
     return rows
 
 
+HEARTBEAT_MIN_S = 1.0
+
+
 def _heartbeat(r, chip):
+    """Is the block loop advancing? (delta, (before, after)).
+
+    A HEARTBEAT NEEDS TWO READINGS AND AN INTERVAL, NOT A SLEEP (S125). This
+    used to read FRAME_COUNT, sleep a second and read it again -- twice in
+    group C (AS-DSPA, AS-DSPB) plus twice in DR1, four seconds of a factory
+    worker's time spent waiting for a counter that was already being read.
+    Every `_diag()` in this press has stamped one, so the earlier reading is
+    taken from the record when there is one at least HEARTBEAT_MIN_S old IN
+    THE SAME LINK EPOCH; otherwise the sleep is paid as before.
+
+    The epoch matters: a reset or a boot restarts FRAME_COUNT at zero, and
+    subtracting across one would report a huge NEGATIVE delta and call a
+    healthy part dead. Samples from an earlier epoch are therefore never used.
+    """
+    now = time.time()
+    older = [x for x in r._fc.get(chip, [])
+             if x[2] == r._link_epoch and now - x[0] >= HEARTBEAT_MIN_S]
+    if older:
+        t_a, v_a, _ = older[-1]
+        b = _field(_diag(r, chip), 'FRAME_COUNT')
+        if b is None:
+            return None, ('%d' % v_a, b)
+        # Per second, then scaled back to the one-second figure the criterion
+        # and every recorded evidence line are written in.
+        span = max(time.time() - t_a, HEARTBEAT_MIN_S)
+        return int(round((int(b, 0) - v_a) / span)), ('%d' % v_a, b)
     a = _field(_diag(r, chip), 'FRAME_COUNT')
-    time.sleep(1.0)
+    time.sleep(HEARTBEAT_MIN_S)
     b = _field(_diag(r, chip), 'FRAME_COUNT')
     if a is None or b is None:
         return None, (a, b)
@@ -1183,7 +1386,7 @@ def _as_dsp(r, chip):
     ok = (int(cid, 0) == chip and delta and delta > 0 and st and int(st, 0) >= 7)
     carrying = sum(1 for x in lanes if x.endswith('CARRYING'))
     return ((PASS if ok else FAIL),
-            'CHIP_ID %s BUILD_ID %s BOOT_STAGE %s, FRAME_COUNT %s->%s (delta %s)%s'
+            'CHIP_ID %s BUILD_ID %s BOOT_STAGE %s, FRAME_COUNT %s->%s (%s blocks/s)%s'
             % (cid, bid, st, pair[0], pair[1], delta,
                ', %d/%d lanes CARRYING' % (carrying, len(lanes)) if lanes else ''),
             'heartbeat advancing + build id answers + BOOT_STAGE 7', raw)
@@ -1208,6 +1411,25 @@ def _blk_snap(r, chip):
             ('FRAME_COUNT', 'BLK_OVERRUN', 'SPORT0_ERR_A', 'BOOT_STAGE', 'SEC_COUNT')}
 
 
+AS_CPLD_WINDOW_S = 10.0
+
+
+def _blk_open(r):
+    """Open AS-CPLD's overrun window HERE, at the last boot (S125).
+
+    AS-CPLD asks whether the block loop overran while the audio clock was
+    running, and it used to buy that window with a dedicated `sleep(10)` --
+    ten seconds of a factory worker's time to watch two counters that had been
+    running since the boot and go on running until the handback. The opening
+    snapshot is taken at the boot instead, and AS-CPLD closes the window when
+    it runs. It is the SAME two reads of the SAME two counters over a window
+    that is longer, never shorter: if less than AS_CPLD_WINDOW_S has passed by
+    the time AS-CPLD runs, the rest is slept for, so the criterion can never
+    be met by a shorter look than it used to get.
+    """
+    r._blk_open = (time.time(), {c: _blk_snap(r, c) for c in (1, 2)})
+
+
 def _blk_window(r, seconds=10):
     """The blk30 bar for BOTH chips over ONE shared window (S114 rank 3),
     not two serial ones -- AS-CPLD historically ran chip1's 10 s window then
@@ -1217,8 +1439,17 @@ def _blk_window(r, seconds=10):
     /dev/spidev0.0 with no cross-process lock could assert both chips' CS
     at once and contend on the shared MISO line, which BLK_OVERRUN's own
     10 s is not worth risking."""
-    a = {c: _blk_snap(r, c) for c in (1, 2)}
-    time.sleep(seconds)
+    opened = getattr(r, '_blk_open', None)
+    if opened is not None:
+        t_open, a = opened
+        # Never a shorter look than the dedicated sleep gave.
+        short = seconds - (time.time() - t_open)
+        if short > 0:
+            time.sleep(short)
+        seconds = time.time() - t_open
+    else:
+        a = {c: _blk_snap(r, c) for c in (1, 2)}
+        time.sleep(seconds)
     b = {c: _blk_snap(r, c) for c in (1, 2)}
     rate_txt = r.out('cd %s && python3 -c "from dsp4_block import BLOCK, BLOCK_RATE; '
                      'print(BLOCK, BLOCK_RATE)" 2>&1' % r.a.stage)
@@ -1227,6 +1458,7 @@ def _blk_window(r, seconds=10):
     except ValueError:
         block, block_rate = '?', '?'
     out = {}
+    out['seconds'] = seconds
     for c in (1, 2):
         av, bv = a[c], b[c]
         if av['FRAME_COUNT'] is None or bv['FRAME_COUNT'] is None:
@@ -1248,10 +1480,11 @@ def t_ascpld(r):
     """Two halves, and only one of them can answer on this unit as found."""
     overlay = r.out('grep -n "dtoverlay=dsp4-pcm" /boot/firmware/config.txt')
     idtxt = r.out('cd %s && python3 dsp4_logic_id.py 2>&1 | tail -6' % DSPBOOT, timeout=120)
-    win = _blk_window(r, seconds=10)
-    blk1, blk2 = win[1], win[2]
+    win = _blk_window(r, seconds=AS_CPLD_WINDOW_S)
+    blk1, blk2, span = win[1], win[2], win['seconds']
     raw = ('config.txt: %s\n--- logic_id ---\n%s\n'
-           '--- blk window, both chips over ONE shared 10 s (S114) ---\n'
+           '--- blk window, both chips over ONE shared window, opened at the '
+           'last boot and closed here (S114, S125) ---\n'
            '--- chip1 ---\n%s\n--- chip2 ---\n%s' % (overlay, idtxt, blk1, blk2))
     ov_slave = 'slave' in overlay
     d1 = re.search(r'BLK_OVERRUN\s+(\d+)\s*->\s*(\d+)\s*\(delta\s+(-?\d+)', blk1)
@@ -1259,7 +1492,8 @@ def t_ascpld(r):
     ovr = 'chip1 %s chip2 %s' % (d1.group(3) if d1 else '?', d2.group(3) if d2 else '?')
     if ov_slave:
         return (NODATA,
-                'design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 10 s: %s' % ovr,
+                'design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta '
+                'over %.0f s: %s' % (span, ovr),
                 'id = %s and zero overrun delta' % SHIPPING_CPLD,
                 raw + '\nPREREQUISITE: dsp4_logic_id.py needs the DUPLEX PCM overlay. Under '
                       'dsp4-pcm-slave it answers "no reply" for EVERY bitstream (bench note 12), '
@@ -1353,26 +1587,61 @@ def t_asadc(r):
     return FAIL, m, 'U39 and U60 lanes alive and not stuck-at', raw
 
 
+# RETIRED AS A MEASUREMENT (S124-4, ruled by measurement in S125).
+#
+# WHAT IT USED TO DO, AND WHY IT COULD NEVER HAVE WORKED. It captured 256
+# samples of `_tx_out_slot_C2_SPKR_OUT` and looked for the slot to be
+# non-constant. That is a TX SLOT: the words the DSP hands the output port.
+# NOTHING ON THIS UNIT READS AN AK4458 OUTPUT BACK -- the eight-channel DACs
+# on DA0 and DA3 drive the line-out sockets and there is no return path -- so
+# a slot read proves the DSP wrote words and says nothing whatever about
+# whether a converter converted them. It was never a DAC test; the missing
+# stimulus it reported as its prerequisite was not the thing standing between
+# it and a verdict.
+#
+# AND SINCE S122 THE SLOT IT READS IS ZERO BY DESIGN. The panel speaker is fed
+# by C2_HPT_01 and by nothing else; S124 measured that slot at EXACT ZERO,
+# 256 words of 256, with every mixer bus open. So the capture is now
+# structurally constant, which is the one thing the old criterion called a
+# failure, and its stated reason named two parts that are not in the path.
+#
+# WHERE THE DACS ARE ACTUALLY PROVED, and it is not here:
+#   * the sixteen AK4458 line outputs -- the patch pass, through a lead, end
+#     to end: DAC, socket, lead, mic preamp, ADC, one verdict per output. The
+#     full list carries sixteen of them (AUX 1-8, the four stereo TRS jacks,
+#     MAIN L/R, MONITOR L/R).
+#   * the codec DAC -- AL1, with no hands at all: the tone leaves the codec's
+#     own output, drives the panel speaker and comes back through the MEMS
+#     microphone. That is a converter proved acoustically in one press, and
+#     AL1 already owns it.
+#   * the two sockets NEITHER can reach -- Centre/LF and the headphone jack --
+#     are on converter lanes this product has no cell for, so nothing the host
+#     can write puts a signal on them. The patch list records that by name
+#     (PATCH_UNREACHED) and re-pointing this test at them would not help: the
+#     obstacle is the same missing cell.
+#
+# So there is no converter path the automated set can prove without a lead
+# that something else does not already prove, and the row stays NO DATA -- but
+# with the true reason, and without a 5 s capture of a slot that is zero on
+# purpose.
 def t_asdac(r):
-    """The read path exists and is exercised; the stimulus the spec's criterion
-    needs does not exist on the image under test, so the slot reading is
-    evidence and not a verdict."""
-    cap = r.out('cd %s && python3 s89_slotcap.py %s 2 _tx_out_slot_C2_SPKR_OUT 256 2>&1 | tail -6'
-                % (r.a.stage, r.a.stage), timeout=180)
-    osc = r.out('cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
-                'print(\'_osc_blk_q_C1_TEST_OSC\' in j)"' % r.a.stage, timeout=60)
-    raw = ('--- coherent capture of _tx_out_slot_C2_SPKR_OUT (256 samples) ---\n%s\n'
-           'chip1 carries _osc_blk_q_C1_TEST_OSC: %s' % (cap, osc))
+    """Retired: a TX slot read cannot prove a converter. See the note above."""
     return (NODATA,
-            'TX slot read (see evidence); no stimulus on this image (TEST_NODES symbol: %s)' % osc,
-            'slots non-constant while TEST_OSC runs, correct level in dBFS',
-            raw + '\nPREREQUISITE: a stimulus. The spec\'s criterion is "non-constant WHILE '
-                  'TEST_OSC runs into an output"; TEST_OSC exists only under DSP4_TEST_NODES=1 '
-                  'and the pair under test is the shipping pair. dsp4_s49_osc.py refuses such '
-                  'an image by symbol check rather than printing four zeros that would look '
-                  'like a measurement. With nothing driving the output, neither a constant nor '
-                  'a varying slot separates a working DAC path from a silent one, so the '
-                  'capture is recorded and the verdict is NO DATA.')
+            'retired: a TX slot read cannot prove a converter -- the outputs '
+            'are proved by the patch pass and AL1',
+            'the DAC outputs carry the signal written to them',
+            'RETIRED (S124-4, by measurement in S125). This test captured the '
+            'words the DSP hands its output port and called a varying slot a '
+            'working DAC. Nothing on this unit reads an AK4458 output back, so '
+            'that reading could never separate a working converter from a dead '
+            'one, with or without a stimulus -- and since S122 the slot it read '
+            '(_tx_out_slot_C2_SPKR_OUT) is exact zero by design, because the '
+            'panel speaker is fed by the haptic node alone. The sixteen line '
+            'outputs are proved by the analog patch pass, through a lead, one '
+            'verdict each; the codec DAC is proved by AL1, acoustically, with '
+            'no hands. The Centre/LF and headphone sockets are proved by '
+            'neither, for the same reason this test cannot reach them: they '
+            'are on converter lanes this product has no cell for.')
 
 
 def t_aspwr(r):
@@ -1593,9 +1862,13 @@ AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 #
 # THE THD CEILING (`thd_abs_db` / `thd_margin_db`, S115) IS A DIFFERENT NUMBER
 # FROM THE THD+N ONE AND THE TWO ARE NEVER INTERCHANGEABLE. The verdict is on
-# BANDPASS THD (PW 2026-09-26); `thdn_abs_db` / `thdn_margin_db` stay for the
-# informational line and can NEVER be reused as the ceiling the verdict
-# applies. `thd_margin_db` sits on top of the capture's OWN THD floor, so a
+# BANDPASS THD (PW 2026-09-26). THERE IS NO THD+N CEILING AT ALL ANY MORE
+# (S124-2, built S125): `thdn_abs_db` and `thdn_margin_db` are gone, because
+# the only thing they ever fed was an informational line whose number stopped
+# being real when the chip-1 oscillator left the speaker path. THD+N survives
+# as one reading off the coherent capture, with one threshold
+# (AL1_FIT_THDN_MAX_DB), and its only job is to say whether a tone is in the
+# window. `thd_margin_db` sits on top of the capture's OWN THD floor, so a
 # reading taken in a loud room raises the ceiling instead of failing the unit.
 AL1_CAL = {
     'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
@@ -1610,14 +1883,11 @@ AL1_CAL = {
     'high_fails': False,
     'snr_min_db': 13.700,
     'floor_max_dbfs': -40.300,
-    'thdn_abs_db': 3.000,
-    'thdn_margin_db': 22.800,
     'thd_abs_db': -22.500,
     'thd_margin_db': 6.000,
 }
 AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
                         'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
-                        'thdn_abs_db', 'thdn_margin_db',
                         'thd_abs_db', 'thd_margin_db')
 
 
@@ -1963,10 +2233,25 @@ def al1_numbers(m, level):
          'base_dbfs': m['base']['rms_dbfs'],
          'tone_dbfs': m['tone']['rms_dbfs'],
          'back_dbfs': m['back']['rms_dbfs'],
-         'thdn_db': m['tone']['thd_db'],
          'noise_dbfs': m['tone']['noise_dbfs'],
          'on_seconds': m['tone'].get('on_seconds')}
-    n['thdn_pct'] = pct_of_db(n['thdn_db'])
+    # THE NODE'S OWN THD+N IS GONE (S124-2, ruled 2026-09-26; built S125).
+    # Since S122 the speaker is fed by the haptic node and the chip-1
+    # oscillator is not in the path, so TEST_MEAS has no stimulus frequency to
+    # subtract and `ThdResult` reads 0.00 dB = 100 % on every run, with
+    # `NoiseResult` equal to `RmsResult`. It was carried as an informational
+    # line and `--al1-calibrate` fitted a ceiling to it -- +3.0 dB = 187 %,
+    # which nothing can exceed. Two numbers where one is real is worse than
+    # one number, so the line, the limit and the ceiling are all removed.
+    #
+    # WHAT IT WAS ALSO DOING, WHICH THE RULING DOES NOT MENTION AND S125
+    # FOUND: `al1_tone_present()` and the calibration's own fit filter both
+    # read it. Left alone, removing the line would have left the NO SOUND
+    # gate resting on SNR ALONE -- the exact thing S111 proved wrong, where a
+    # working loop scored NO SOUND because the room had come up 10 dB. Both
+    # now read the COHERENT CAPTURE's THD+N (`fft_thdn_db`), which measures
+    # the same quantity -- how much of the window is the fundamental -- off
+    # the same tap, host-side, and is a real number.
     n['snr_db'] = n['tone_dbfs'] - n['base_dbfs']
     n['return_db'] = n['back_dbfs'] - n['base_dbfs']
 
@@ -1988,7 +2273,8 @@ def al1_numbers(m, level):
     n['thd_floor_db'] = f.get('thd_floor_db')
     n['fft_fund_hz'] = f['fund_hz']
     n['fft_fund_dbfs'] = f['fund_dbfs']
-    n['fft_thdn_db'] = f['thdn_db']
+    n['thdn_db'] = f['thdn_db']          # the capture's, and the only one
+    n['thdn_pct'] = pct_of_db(n['thdn_db'])
     n['fft_noise_dbfs'] = f['noise_dbfs']
     n['fft_snr_db'] = f['snr_db']
     n['fft_tone'] = f['tone']
@@ -2016,11 +2302,6 @@ def al1_verdict(n):
     c = AL1_CAL
     pred = c['slope_db_per_db'] * n['drive_dbfs'] + c['intercept_dbfs']
     n['pred_dbfs'] = pred
-    # The noise floor already in the reading sets how good THD+N could
-    # possibly be; anything past THAT by the margin is distortion. KEPT, and
-    # kept INFORMATIONAL: since S115 the verdict is on bandpass THD and this
-    # pair is printed beside it so the two instruments can be compared.
-    n['thdn_ceiling_db'] = max(c['thdn_abs_db'], -n['snr_db'] + c['thdn_margin_db'])
     # THE CEILING THE VERDICT USES. The same two-term shape for the same
     # reason: `thd_abs_db` is what a healthy loop measured on this unit, and
     # the second term is the instrument's own floor -- each harmonic band
@@ -2165,10 +2446,8 @@ def t_al1(r):
               'THD  h2..h10     %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%'
               '   <-- THE VERDICT\n'
               'THD floor (inst) %8s dB      the noise inside the harmonic bands\n'
-              'THD+N (node)     %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%'
-              '   INFORMATIONAL\n'
-              'THD+N (capture)  %8.2f dB  = %.3f %%   INFORMATIONAL, the same '
-              'window transformed\n'
+              'THD+N            %8.2f dB  = %.3f %%   off the same capture; '
+              'it is what says a tone is in the window at all\n'
               'in-window noise  %8.2f dBFS  (node)   %8s dBFS (capture, '
               'between the bands)\n'
               'floor afterwards %8.2f dBFS  (%+.2f dB)\n'
@@ -2182,8 +2461,6 @@ def t_al1(r):
                  n['thd_ceiling_db'], pct_of_db(n['thd_ceiling_db']),
                  ('%.2f' % n['thd_floor_db']) if n.get('thd_floor_db') is not None else '?',
                  n['thdn_db'], n['thdn_pct'],
-                 n['thdn_ceiling_db'], pct_of_db(n['thdn_ceiling_db']),
-                 n['fft_thdn_db'], pct_of_db(n['fft_thdn_db']),
                  n['noise_dbfs'],
                  ('%.2f' % n['fft_noise_dbfs']) if n.get('fft_noise_dbfs') is not None else '?',
                  n['back_dbfs'], n['return_db'],
@@ -2363,8 +2640,16 @@ def al1_fit(grid, r):
     c = dict(AL1_CAL)
     use = [g for g in grid if g['thdn_db'] <= AL1_FIT_THDN_MAX_DB
            and g['snr_db'] >= AL1_FIT_SNR_MIN_DB]
+    # THE ESCAPE HATCH SAYS SO NOW (S125). A calibration whose quality filter
+    # admits nothing falls back to the whole grid rather than refusing, which
+    # is right -- but it used to do it in silence, and the table it wrote then
+    # claimed "n fitted, 0 excluded as not measuring a tone", which is exactly
+    # backwards. S124 fitted fifteen points this way, through a THD+N reading
+    # that had become a constant 0.00 dB, and nothing said a word.
+    c['fit_fell_back'] = False
     if len(use) < 2 or len(set(g['drive_dbfs'] for g in use)) < 2:
         use = list(grid)
+        c['fit_fell_back'] = True
     xs = [g['drive_dbfs'] for g in use]
     ys = [g['tone_dbfs'] for g in use]
     n = float(len(xs))
@@ -2394,14 +2679,11 @@ def al1_fit(grid, r):
     at_def = [g for g in use if abs(g['drive_dbfs'] - AL1_TONE_DBFS) < 0.01] or use
     worst_snr = min(g['snr_db'] for g in at_def)
     c['snr_min_db'] = round(max(3.0, worst_snr - 3.0), 1)
-    # THD+N. Two ceilings, and the reason there are two is in the table's own
-    # comment: over this loop THD+N is mostly NOISE at the safe drive level.
-    # `thdn_abs_db` comes from the points at the level the test actually runs
-    # at; `thdn_margin_db` is how far past what the measured SNR already
-    # explains a healthy loop went, worst case.
-    excess = [g['thdn_db'] - (-g['snr_db']) for g in use]
-    c['thdn_margin_db'] = round(max(excess) + 3.0, 1)
-    c['thdn_abs_db'] = round(max(g['thdn_db'] for g in at_def) + 3.0, 1)
+    # THD+N HAS NO CEILING TO FIT ANY MORE (S124-2, built S125). It was two
+    # numbers, and the only thing they fed was an informational line; the
+    # threshold THD+N still has -- AL1_FIT_THDN_MAX_DB, "is there a tone in
+    # this window at all" -- is a constant and not something a good unit's
+    # own reading should be allowed to move.
     # BANDPASS THD (S115). The verdict's ceiling, derived from the THD readings
     # alone -- never from the THD+N pair above, which over this loop is
     # dominated by noise and sits 10-30 dB worse. The absolute number is the
@@ -2425,15 +2707,24 @@ def al1_fit(grid, r):
     c['stamp'] = stamp()
     c['pair'] = str(r.pair)
     lo = min(g['drive_dbfs'] for g in use)
+    fell = c.pop('fit_fell_back', False)
     c['runs'] = ('%s%d runs at %s dBFS x %d reps; %d fitted, %d excluded as not '
                  'measuring a tone (THD+N > %g dB); lowest drive that read: '
-                 '%g dBFS; default drive %g dBFS'
+                 '%g dBFS; default drive %g dBFS%s'
                  % ('THD ceiling only (--al1-calibrate-thd); every other limit '
                     'left as it was: ' if r.a.al1_calibrate_thd else '',
                     len(grid), '/'.join('%g' % l for l in sorted(set(g['drive_dbfs']
                                                                     for g in grid))),
                     AL1_CAL_REPS, len(use), len(grid) - len(use),
-                    AL1_FIT_THDN_MAX_DB, lo, AL1_TONE_DBFS))
+                    AL1_FIT_THDN_MAX_DB, lo, AL1_TONE_DBFS,
+                    '; **THE QUALITY FILTER ADMITTED NOTHING and the fit fell '
+                    'back to every point in the grid -- read this table as '
+                    'provisional and find out why before trusting it**'
+                    if fell else ''))
+    if fell:
+        print('  *** the calibration fit fell back to the whole grid: no point '
+              'met THD+N <= %g dB and SNR >= %g dB ***'
+              % (AL1_FIT_THDN_MAX_DB, AL1_FIT_SNR_MIN_DB))
     return c
 
 
@@ -2466,8 +2757,6 @@ def al1_write_table(new):
             "    'high_fails': %r," % new['high_fails'],
             "    'snr_min_db': %s," % _fmt(new['snr_min_db']),
             "    'floor_max_dbfs': %s," % _fmt(new['floor_max_dbfs']),
-            "    'thdn_abs_db': %s," % _fmt(new['thdn_abs_db']),
-            "    'thdn_margin_db': %s," % _fmt(new['thdn_margin_db']),
             "    'thd_abs_db': %s," % _fmt(new['thd_abs_db']),
             "    'thd_margin_db': %s," % _fmt(new['thd_margin_db']),
             "}"]
@@ -2697,6 +2986,7 @@ def boot_pair(r):
             'S116 Q4: raised once, after the last boot of the session, held until '
             'handback). Lower them first.' % (AN_EN_GPIO, an.split('//')[0].strip()))
     r._booted_this_run = True
+    r.new_link_epoch()
     # A boot's config commit rewrites the cells AL1's standing route sets, so
     # the marker that says "the standing route is still asserted" stops being
     # true here (S115). AL1 then does the full close + route write again.
@@ -2721,6 +3011,11 @@ def boot_pair(r):
     # A boot invalidates the cached fabric reading: this is the one event that
     # can change the answer inside a press (DR2 calls this directly).
     r.ic_gate = None
+    # AND IT RE-OPENS AS-CPLD'S OVERRUN WINDOW (S125). A boot restarts both
+    # counters at zero, so a snapshot from before it can never be subtracted
+    # from one after it -- the window always runs from the LAST boot, which is
+    # what makes it the longest honest one available.
+    _blk_open(r)
     return '\n'.join(log)
 
 
@@ -2730,7 +3025,18 @@ def link_alive(r):
     The cheap question, asked before the expensive answer: MAGIC and BOOT_STAGE
     off both chips costs a couple of seconds, a boot costs forty. The CS lines
     are driven first for the reason pin_handback gives -- asking this question
-    over a gated MISO gets "no" from a pair that is perfectly alive."""
+    over a gated MISO gets "no" from a pair that is perfectly alive.
+
+    ONCE PER EPOCH (S125, review §2.6). A full press asks this three times --
+    section entry, the rails raise, AL1's own prerequisite -- and the answer
+    cannot change between them without a reset or a boot, which is exactly
+    what `new_link_epoch()` marks. A YES is therefore remembered and reused; a
+    NO is not, because the caller that got it goes on to boot the pair and the
+    next caller must see the new state."""
+    if r._link_seen is not None:
+        ok, ev = r._link_seen
+        return ok, (ev + '\n(asked once this epoch -- nothing has reset or '
+                         'booted the pair since)')
     r.pin('%d op dh' % CS_M_GPIO)
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
     lines, ok = [], True
@@ -2741,7 +3047,10 @@ def link_alive(r):
         ok = ok and good
         lines.append('chip %d: MAGIC %s BOOT_STAGE %s -> %s'
                      % (c, mag, st, 'answering' if good else 'NOT answering'))
-    return ok, '\n'.join(lines)
+    ev = '\n'.join(lines)
+    if ok:
+        r._link_seen = (ok, ev)
+    return ok, ev
 
 
 def _ic_cmd(r):
@@ -2840,6 +3149,10 @@ def codec_init(r):
     The matrix bus is H1S1's and shares SCK/MOSI with the CM4's SPI0, so this
     must not run beside a DSP link tool -- hence its place in the prerequisite,
     before the route write and before any measurement."""
+    if r._codec is not None:
+        ok, txt = r._codec
+        return ok, txt + ('\n(written once this session -- nothing since has '
+                          'reset H1S1 or the converter)')
     c = r.rsh('cd %s && timeout 60 python3 codec4619.py --run --reinit 2>&1'
               % DSPBOOT, timeout=120)
     txt = (c.stdout + c.stderr).strip()
@@ -3065,6 +3378,16 @@ def summary(r):
                     for x in r.rows)]
     if errs:
         print('\n*** RUNNER ERRORS (not honest NO DATAs): %s' % ', '.join(sorted(errs)))
+    if r.secs:
+        # THE MACHINE TIME, PER TEST, LONGEST FIRST (S125). The set's own cost
+        # is a thing the set measures about itself, so a speed change is read
+        # off the run that made it.
+        print('\n%-10s %8s' % ('TEST', 'SECONDS'))
+        print('-' * 20)
+        for t, v in sorted(r.secs.items(), key=lambda kv: -kv[1]):
+            print('%-10s %8.1f' % (t, v))
+        print('%-10s %8.1f  (the tests alone; staging, boots and the handback '
+              'are outside them)' % ('total', sum(r.secs.values())))
 
 
 def main():
@@ -3217,6 +3540,9 @@ def main():
             if not a.only or (PAIR_TESTS_B & a.only):
                 _tick('boot_pair start')
                 print(boot_pair(r)[-600:])
+                # DY1's 'part running' half, off the boot that was happening
+                # anyway (S125).
+                _rdy_capture(r, 'run')
                 _tick('boot_pair end')
             r.run('DR1', lambda: t_dr1(r))
             r.run('DR2', lambda: t_dr2(r))
@@ -3239,6 +3565,9 @@ def main():
             # treatment now).
             _tick('ensure_pair start')
             ok, ev, booted = ensure_pair(r)
+            if r._blk_open is None:
+                # The pair was already up, so no boot opened the window.
+                _blk_open(r)
             _tick('ensure_pair end (booted=%s)' % booted)
             print(ev[-600:])
 

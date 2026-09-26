@@ -109,6 +109,25 @@ SETTLE_WINDOWS = 4
 READ_WINDOWS = 2
 ROUTE_SETTLE_WINDOWS = 6
 
+# THE GAIN STEP'S OWN READING (S125). Measured on MW-D24-2, 2026-09-26, by
+# stepping a known level and reading the node at every settle length, five
+# times each -- and by taking the same reading with the level there and with
+# it gone, which is what an open or shorted element looks like to the lane:
+#
+#   settle windows   cost      live reading        dead reading    separation
+#            0, 1    0.034 s   -61.02 (the window BEFORE the change)  wrong
+#            1, 1    0.078 s   -26.78 +/-3.49      -23.68 +/-2.22    -3.10 dB
+#            2, 1    0.167 s   -21.64 +/-0.02     -116.28 +/-0.46    94.64 dB
+#            2, 2    0.245 s   -21.64 +/-0.01     -116.33 +/-0.30    94.68 dB
+#            4, 2    0.422 s   -21.64 +/-0.01     -116.23 +/-0.45    94.58 dB
+#
+# Two settle windows is where the node stops reporting the window the change
+# happened in; one read window after that is already exact to 0.02 dB, and
+# nothing past it buys anything. So the step pays 167 ms and gets 95 dB of
+# separation between a working element and a dead one.
+GAIN_SETTLE_WINDOWS = 2
+GAIN_READ_WINDOWS = 1
+
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 MISPATCH = 'MISPATCH'
 
@@ -269,6 +288,14 @@ class Unit:
         self.cells = json.load(open(landed))['cells']
         self._chips = {}
         self._meas_addr = {}
+        # WHEN SOMETHING LAST MOVED ON THE WIRE (S125). A settle window exists
+        # because the node's fit reads a window in which anything changed as
+        # distortion -- so it is owed from the CHANGE, not from the call. The
+        # last written value of every cell is kept here so a write that lands
+        # on the value already there is not counted as a change: `matrix-app`
+        # is down for the whole session and this object is the only writer.
+        self._last = {}
+        self.moved_at = now()
         self.check_factory_image()
 
     def chip(self, n):
@@ -303,6 +330,29 @@ class Unit:
             raise KeyError('%s is not in the contract' % name)
         return e[0], e[2]
 
+    def mark_moved(self):
+        """Something changed on the wire just now. See `settle_owed`."""
+        self.moved_at = now()
+
+    def settle_owed(self, full):
+        """How many of `full` settle windows are STILL owed (S125).
+
+        `measure()` counts its settle from the call. Every window it waits is
+        a window the operator waits too, and it is only owed while the change
+        that caused it is still inside the node's integration. The route for a
+        patch is written before the prompt goes up and the operator then takes
+        seconds to fit a lead, so by the time the reading is taken the wire has
+        been still for tens of windows and NOTHING is owed -- the run just did
+        not know that. It does now.
+
+        The clock starts at the change, not the call, and a reading that
+        arrives before the windows are up still pays the remainder.
+        """
+        if self.moved_at is None:
+            return 0
+        spent = (now() - self.moved_at) / WIN_S
+        return max(0, int(math.ceil(full - spent)))
+
     def write(self, specs, verify=True):
         """Write `name=value` specs. Returns the names that did not read back."""
         want = {}
@@ -310,6 +360,9 @@ class Unit:
             name, _, val = spec.partition('=')
             w = f32(val[1:]) if val.startswith('f') else int(val, 0)
             n, a = self.addr(name)
+            if self._last.get(name) != (w & 0xFFFFFFFF):
+                self.mark_moved()
+            self._last[name] = w & 0xFFFFFFFF
             self.chip(n).d.link.write(a, w & 0xFFFFFFFF, 0)
             want[name] = w & 0xFFFFFFFF
         if not verify:
@@ -754,16 +807,23 @@ class Scorer:
         same lead and the same output, so the loop's own gain, the drive and
         the converter all cancel and what is left is what the element added.
         The expected value is the list's, out of defs' gain law.
+
+        BOTH READINGS ARE THE NODE'S RMS (S125). They have to be the same
+        quantity, because the arithmetic is a subtraction: the meter cannot
+        supply either of them honestly (see `gain_step`) and a step read off
+        one instrument against a reference read off the other would be a
+        number with no meaning at all.
         """
         want = meas.get('expected_db')
-        here = meas.get('meter_db')
+        here = meas.get('rms')
         ref = None
         for sib in siblings:
             if sib.get('gain_code') == 0:
-                ref = sib.get('meter_db')
+                ref = sib.get('rms')
                 break
         code = meas.get('gain_code')
-        if here is None or ref is None or want is None:
+        if (here is None or ref is None or want is None
+                or not math.isfinite(here) or not math.isfinite(ref)):
             return NODATA, ('the gain step at code %s could not be read'
                             % code), notes
         # The drive was dropped by the step's own expected gain so the
@@ -779,9 +839,13 @@ class Scorer:
             got += drive_ref - meas['drive_dbfs']
         tol = self.lim['gain_step_tol_db']
         notes.append('gain element %d: measured %+.2f dB, expected %+.2f dB '
-                     '(%s), drive %+.1f dBFS'
+                     '(%s), drive %+.1f dBFS, lane %.2f dBFS (the meter, which '
+                     'is not what this is judged on, read %s)'
                      % (int(code).bit_length(), got, want,
-                        meas.get('source') or '?', meas.get('drive_dbfs') or 0.0))
+                        meas.get('source') or '?', meas.get('drive_dbfs') or 0.0,
+                        here,
+                        ('%.2f' % meas['meter_db'])
+                        if meas.get('meter_db') is not None else '--'))
         if abs(got - want) <= tol:
             return PASS, ('gain element %d adds %.1f dB, %.1f dB from expected'
                           % (int(code).bit_length(), got, got - want)), notes
@@ -899,13 +963,24 @@ def _selftest_consts():
 class Analog:
     """The rails and the mic-pre chain, for the length of one pass."""
 
-    def __init__(self, enabled=True, log=None, stage=STAGE_DIR, s55=S55_DIR):
+    def __init__(self, enabled=True, log=None, stage=STAGE_DIR, s55=S55_DIR,
+                 own_rails=False):
         self.enabled = bool(enabled)
         self.log = log or (lambda s: None)
         self.stage = stage
         self.s55 = s55
         self.an_en, self.cs_m, self.safe_image = _selftest_consts()
         self.raised = False          # this run raised AN_EN, so this run lowers it
+        # THE RAILS BELONG TO THE SESSION, NOT TO A PROCESS (S125). PW's rule
+        # is that they go up ONCE, after the last DSP boot, and come down at
+        # the handback. Under RUN ALL the self-test's group C raises them and
+        # is told to LEAVE them up (`--al1-keep-rails`), so by the time this
+        # station starts they are already high and `up()` would record that it
+        # did not raise them -- and `down()` would then leave a unit live on
+        # the shelf. `own_rails` says this process is the one that closes the
+        # session, so it lowers them whoever put them up. A standalone patch
+        # run does not set it and still leaves the unit exactly as found.
+        self.own_rails = bool(own_rails)
         self.image = None            # the chain image currently on the part
         self.done = False
         self.fast = None             # the lean writer, opened on first use
@@ -925,7 +1000,14 @@ class Analog:
 
     # -- up ----------------------------------------------------------------
     def up(self):
-        """CS_M high, then the rails. Idempotent: a second call re-reads."""
+        """CS_M high, then the rails. Idempotent: a second call re-reads.
+
+        RAISED ONCE PER SESSION (PW, S116 Q4). Finding them already up is the
+        NORMAL case under RUN ALL, not a surprise: the self-test's group C
+        raised them after the last DSP boot and was told to leave them, which
+        is the whole point -- a second raise would be a second edge on a rail
+        the rule says has one.
+        """
         if not self.enabled or self.raised:
             return
         self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
@@ -934,7 +1016,8 @@ class Analog:
             self.sh('sudo -n pinctrl set %d op dh' % self.an_en)
             self.raised = True
         self.log('the analog rails are up%s'
-                 % ('' if self.raised else ' (they were already up)'))
+                 % ('' if self.raised else
+                    ' (already up -- raised once, earlier in this session)'))
 
     # -- the chain ---------------------------------------------------------
     def open_fast(self):
@@ -1000,19 +1083,24 @@ class Analog:
         self.log('mic-pre chain %s: %s' % (what, why))
         return ok
 
-    def step_image(self, chain_index, code, quiet=0x01):
+    def step_image(self, send_pos, code, quiet=0x01):
         """The image for ONE gain step: the input under test at this code,
         unmuted and phantom off; every other channel quiet and known.
 
-        The chain does NOT run in panel order, so the position comes out of
-        the list (which took it from defs' own input table) and never from
-        the strip number.
+        `send_pos` IS THE TX BYTE, ZERO-BASED, and it comes out of the list,
+        which took it from `send_pos` in defs' own input table. It is NOT the
+        preamp's position along the daisy chain and it is NOT the strip
+        number: all three orders differ, and defs carries two of them in
+        adjacent columns of the same row. Until S125 the list carried
+        `chain_index` here and every gain step wrote a byte that drove some
+        other input's preamp, or none at all -- see `load_send_pos()` in
+        tools/accept/gen_patch_paths.py for the measurement that caught it.
         """
         img = [quiet] * 24 + [0x00]
-        i = int(chain_index) - 1
+        i = int(send_pos)
         if not 0 <= i < 24:
-            raise AssertionError('chain position %r is not on the chain'
-                                 % chain_index)
+            raise AssertionError('send position %r is not on the chain'
+                                 % send_pos)
         img[i] = CH.byte(mute=0, phantom=0, gain=int(code))
         return img
 
@@ -1038,9 +1126,12 @@ class Analog:
         if not self.enabled or self.done:
             return
         self.done = True
-        if self.raised:
+        if self.raised or self.own_rails:
             self.sh('sudo -n pinctrl set %d op dl' % self.an_en)
-            self.log('the analog rails are down')
+            self.log('the analog rails are down%s'
+                     % ('' if self.raised else
+                        ' (raised earlier in this session, lowered here -- '
+                        'this station closes it)'))
         else:
             self.log('the analog rails were not raised by this run; left as found')
         self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
@@ -1320,11 +1411,13 @@ class Station:
         # The preamp gain this patch starts at. A gain-step patch starts at
         # code 0 (its own reference); the noise patch starts at full gain,
         # which is also what makes the terminator's insertion visible.
-        if str(r.get('gain_code') or '') != '' and r.get('chain_index'):
+        if str(r.get('gain_code') or '') != '' and r.get('send_pos') != '':
             self.an.image = None
-            self.an.chain(self.an.step_image(r['chain_index'],
+            self.an.chain(self.an.step_image(r['send_pos'],
                                              int(r['gain_code'])),
                           '%s at gain code %s' % (r['in'], r['gain_code']))
+            if self.an.wrote:
+                self.u.mark_moved()
         freq = float(r['freq_hz']) if r['freq_hz'] else None
         lvl = float(r['level_dbfs']) if r['level_dbfs'] else None
         if r['expect'] == 'noise':
@@ -1366,6 +1459,7 @@ class Station:
         rise = self.lim['detect_rise_db']
         drop = self.lim['detect_drop_db']
         t0 = now()
+        self._met_at = None
         # A step that waits for a PERSON cannot use the list's tone timeout:
         # somebody who has walked off to find the right lead has not failed.
         deadline = t0 + self.lim['detect_timeout_s'] * (1 if self.auto
@@ -1408,6 +1502,16 @@ class Station:
                 # out again reads as out.
                 met = ((hi - lvl >= drop) if r['expect'] == 'noise'
                        else (lvl - lo >= rise))
+            if met and self._met_at is None:
+                # THE LEAD WENT IN. A physical connection is a change on the
+                # wire the node cannot tell from a cell write, so the settle
+                # clock starts here too (S125). On the ENTER path this is
+                # about a second before the reading and nothing is owed; on
+                # auto-advance the step ends at once and the remainder is
+                # paid, which is what stops a window with a half-seated
+                # connector in it being read as the measurement.
+                self._met_at = now()
+                self.u.mark_moved()
             if met and self.auto:
                 return (('drop' if r['expect'] == 'noise' else 'rise'),
                         None, now() - t0)
@@ -1424,12 +1528,35 @@ class Station:
     def gain_step(self, r):
         """One of PW's seven gain steps: chain, drive, settle, level.
 
-        LEVEL ONLY, AND OFF THE METER. A gain step asks one question -- how
-        much did this element add -- and the meter answers it in one peek with
-        no integration window at all, where the measurement node would cost a
-        settle and two windows (about half a second) to also report a THD
-        nobody asked for at this step. The code-0 step is the exception: it is
-        also the patch's tone reference, so it is read properly.
+        LEVEL ONLY, AND OFF THE MEASUREMENT NODE. It used to be off the strip
+        meter, one peek 50 ms after the two writes, and S125 measured what
+        that reads. The meter LATCHES peaks and decays at 6.52 dB/s (measured;
+        S121 estimated 6), and 50 ms of that is 0.35 dB, so:
+
+          * the transient between the two writes -- the old drive at the NEW
+            gain -- is the loudest thing in the window and the meter holds it.
+            Driven with a 12.845 dB step, the settled level is -18.00 dBFS and
+            the meter read -5.51: 12.49 dB of a 12.845 dB transient still
+            standing at the peek.
+          * a step whose element is DEAD reads the level that is no longer
+            there. Measured: live -18.00 dBFS, then the stimulus removed
+            entirely, and 50 ms later the meter still read -18.39 while the
+            node read -23.8 and falling. 0.39 dB is not a test; the tolerance
+            is 3 dB.
+          * and with no lead in at all, the seven steps read -62, -64, -66,
+            -69, -71, -73, -75, -77 dBFS -- a clean 2.2 dB per step, which is
+            6.52 dB/s times the 0.34 s a step takes. That is the meter's own
+            tail draining, and it looks exactly like a gain law.
+
+        So the step now reads the node, at the shortest window that is
+        honest (GAIN_SETTLE_WINDOWS / GAIN_READ_WINDOWS, 167 ms measured,
+        95 dB of live-against-dead separation). The meter peek is KEPT and
+        recorded beside it as `meter_db`, informational: it is what the
+        auto-advance detector watches, and a reader chasing a bad step should
+        be able to see the two instruments disagree.
+
+        The code-0 step is still read in full -- it is also the patch's tone
+        reference, so it owes a polarity and a distortion reading as well.
         """
         code = int(r['gain_code'])
         spec = self.L.gain.get(code) or {}
@@ -1437,11 +1564,14 @@ class Station:
                  else spec.get('drive_dbfs'))
         t0 = now()
         self.an.image = None
-        self.an.chain(self.an.step_image(r['chain_index'], code),
+        self.an.chain(self.an.step_image(r['send_pos'], code),
                       'gain step, %s at code %d' % (r['in'], code))
+        if self.an.wrote:
+            # A preamp gain change is a change on the wire like any other, and
+            # the node cannot tell where it came from.
+            self.u.mark_moved()
         if drive is not None:
             self.u.osc(level_dbfs=drive)
-        nap(self.lim.get('gain_step_settle_s', 0.05))
         lvl = self.watch(int(r['lane']))
         m = dict(gain_code=code, drive_dbfs=drive, meter_db=lvl,
                  expected_db=spec.get('expected_db'), source=spec.get('source'))
@@ -1458,12 +1588,25 @@ class Station:
             # where they are for as long as the operator took to plug a lead
             # in, which is seconds. The settle is paid when the chain write
             # for this step actually moved the wire, and not otherwise.
-            settle = SETTLE_WINDOWS if self.an.wrote else READ_WINDOWS
+            # The same clock (S125). `an.wrote` says the chain moved; the
+            # unit's own `moved_at` says when any cell last did. Whichever is
+            # later is what the settle is owed from.
+            if self.an.wrote:
+                self.u.mark_moved()
+            settle = self.u.settle_owed(SETTLE_WINDOWS)
             m.update(self.u.measure(float(r['freq_hz']) if r['freq_hz'] else None,
                                     drive if drive is not None else 0.0,
                                     settle=settle))
         else:
-            m['rms'] = lvl
+            # The honest reading, and the one the verdict is on. `freq` is
+            # passed so the coherent pair comes back too -- it costs nothing
+            # extra, the windows are already being taken -- but the level the
+            # scorer uses is the node's RMS, which is the quantity the
+            # live-against-dead separation above was measured on.
+            m.update(self.u.measure(float(r['freq_hz']) if r['freq_hz'] else None,
+                                    drive if drive is not None else 0.0,
+                                    windows=GAIN_READ_WINDOWS,
+                                    settle=GAIN_SETTLE_WINDOWS))
         self.cost('gain steps', now() - t0)
         return m
 
@@ -1497,9 +1640,15 @@ class Station:
             # because the coherent fit reads a changed window as distortion;
             # an RMS of a terminated input is an RMS, and six windows of it
             # is five windows of a factory worker waiting.
-            m = self.u.measure(freq, lvl,
-                               settle=(READ_WINDOWS if r['expect'] == 'noise'
-                                       else ROUTE_SETTLE_WINDOWS))
+            # SETTLE FROM THE EVENT (S125, review §2.4). A noise row has no
+            # fit to settle; a tone row owes the route window only while the
+            # route change is still inside the node's integration, and by the
+            # first row of a patch the route has been up since before the
+            # prompt -- seconds, which is tens of windows. What is still owed
+            # is what is paid.
+            settle = (READ_WINDOWS if r['expect'] == 'noise'
+                      else self.u.settle_owed(ROUTE_SETTLE_WINDOWS))
+            m = self.u.measure(freq, lvl, settle=settle)
             self.cost('settled readings', now() - tm)
             sweep = (self.u.meter_sweep(MIC_STRIPS)
                      if int(r['lane']) in MIC_STRIPS and r['expect'] == 'tone'
@@ -1520,6 +1669,7 @@ class Station:
             sibs.append(dict(level_ref=r['level_ref'], h_db=m.get('h_db'),
                              h_deg=m.get('h_deg'),
                              gain_code=m.get('gain_code'),
+                             rms=m.get('rms'),
                              meter_db=m.get('meter_db'),
                              drive_dbfs=m.get('drive_dbfs')))
             scored.append(dict(path=r['path'], patch=r['patch'], lead=r['lead'],
@@ -2032,11 +2182,22 @@ class SimUnit:
         self.osc_level = -12.0
         self.lane = 0
         self.writes = 0
+        self.moved_at = now()
 
     # -- the same surface as Unit -----------------------------------------
+    def mark_moved(self):
+        self.moved_at = now()
+
+    def settle_owed(self, full):
+        if self.moved_at is None:
+            return 0
+        return max(0, int(math.ceil(full - (now() - self.moved_at) / WIN_S)))
+
     def write(self, specs, verify=True):
         for spec in specs:
             name, _, val = spec.partition('=')
+            if self.route.get(name) != val:
+                self.mark_moved()
             self.route[name] = val
             self.writes += 1
             nap(CELL_WRITE_S)
@@ -2049,16 +2210,26 @@ class SimUnit:
         # the hundred and forty-four element steps in a pass.
         specs = 0
         if chan is not None:
+            if self.osc_chan != chan:
+                self.mark_moved()
             self.osc_chan = chan; specs += 1
         if freq is not None:
+            if self.osc_freq != freq:
+                self.mark_moved()
             self.osc_freq = freq; specs += 1
         if level_dbfs is not None:
+            if self.osc_level != level_dbfs:
+                self.mark_moved()
             self.osc_level = level_dbfs; specs += 1
         if on is not None:
+            if self.osc_on != on:
+                self.mark_moved()
             self.osc_on = on; specs += 1
         nap(CELL_WRITE_S * specs)
 
     def meas_chan(self, lane):
+        if self.lane != lane:
+            self.mark_moved()
         self.lane = lane
         nap(CELL_WRITE_S)
 
@@ -2133,22 +2304,23 @@ class World:
     thd = -72.0
 
     gain_table = {}
-    chain_pos = {}
+    send_pos = {}
     chain = None
 
     def preamp_db(self, lane):
         """What this lane's preamp is adding, from the image on the chain.
 
-        The chain does not run in panel order, so the position comes from the
-        same map the station uses; a lane with no position (the codec return
+        The image does not run in panel order, so the tx byte comes from the
+        same map the station uses -- `send_pos`, zero-based, NOT the daisy
+        chain position (S125) -- and a lane with no byte (the codec return
         lanes) has no preamp and adds nothing.
         """
         if not self.chain or not self.gain_table:
             return 0.0
-        pos = self.chain_pos.get(int(lane))
+        pos = self.send_pos.get(int(lane))
         if pos is None:
             return 0.0
-        code = (self.chain[pos - 1] >> 2) & 63
+        code = (self.chain[pos] >> 2) & 63
         # A DEAD GAIN ELEMENT. `gain:MIC 7:3` opens element 3 on that input:
         # the bit is written, the resistor is not there, so the step reads as
         # if the element were off. That is what an open FET or a missing part
@@ -2221,11 +2393,11 @@ class SimAnalog(Analog):
     """The rails and the chain, in arithmetic. It writes nothing anywhere; it
     tells the world what image is on the part so the preamps can be modelled."""
 
-    def __init__(self, world, gain, chain_pos, log=None):
+    def __init__(self, world, gain, send_pos, log=None):
         Analog.__init__(self, enabled=False, log=log)
         self.w = world
         self.w.gain_table = gain
-        self.w.chain_pos = chain_pos
+        self.w.send_pos = send_pos
 
     def chain(self, image, what):
         self.w.chain = list(image)
@@ -2454,11 +2626,11 @@ def cmd_simulate(a, plist):
     glass = SimGlass(log)
     unit = SimUnit(world)
     patcher = SimPatcher(glass, world, a.hand, log, press_s=a.press)
-    chain_pos = {}
+    send_pos = {}
     for r in plist.paths:
-        if r.get('chain_index') and str(r['lane']).isdigit():
-            chain_pos[int(r['lane'])] = int(r['chain_index'])
-    an = SimAnalog(world, plist.gain, chain_pos, log=log)
+        if r.get('send_pos') != '' and str(r['lane']).isdigit():
+            send_pos[int(r['lane'])] = int(r['send_pos'])
+    an = SimAnalog(world, plist.gain, send_pos, log=log)
     live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live,
                    confirm=not a.auto_advance)
     # The dry run has no hands to press ENTER with, so the simulated operator
@@ -2677,7 +2849,8 @@ def cmd_run(a, plist):
                    enabled=not a.no_live, confirm=not a.auto_advance)
     unit = Unit(symdir=a.symdir)
     patcher = pick_patcher(glass, a.back_end)
-    an = Analog(enabled=not a.no_analog, log=glass.progress)
+    an = Analog(enabled=not a.no_analog, log=glass.progress,
+                own_rails=a.own_rails)
     keys = KeyWatch(enabled=not (a.auto_advance or a.no_keyboard),
                     log=glass.progress)
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
@@ -2746,6 +2919,12 @@ def main(argv=None):
                          'plugs the lead in and then presses ENTER')
     ap.add_argument('--no-keyboard', action='store_true',
                     help='do not read the Enter key off a USB keyboard')
+    ap.add_argument('--own-rails', action='store_true',
+                    help='lower AN_EN at the handback even if this run did '
+                         'not raise it. RUN ALL passes it: the self-test '
+                         'raises the rails after the last DSP boot and keeps '
+                         'them up (--al1-keep-rails), so this station is what '
+                         'closes the session')
     ap.add_argument('--no-analog', action='store_true',
                     help='do not touch the rails or the mic-pre chain: for a '
                          'run on a unit somebody else has already set up')

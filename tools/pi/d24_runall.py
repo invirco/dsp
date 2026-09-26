@@ -308,6 +308,7 @@ STATIONS = [
 ]
 STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
 STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
+STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
 
 # What a step asks for.
 #   measure  the runner takes the reading after the operator says Done
@@ -323,6 +324,26 @@ MEASURE, JUDGE, BLOCKED, FIXTURE, LOOP = ('measure', 'judge', 'blocked',
 # The two stations that are ONE LOOP rather than a walk of dialogs (S120), and
 # which side of the front panel each one is.
 PANEL_STATIONS = {'M1': 'left', 'M2': 'right'}
+
+# STATIONS THAT SHARE ONE CARD (S125, review §2.5). A station card is the
+# operator picking up what the next stretch of work needs and walking to it.
+# The two switch panels need the same thing -- a finger and an eye at the
+# front panel -- and the operator is already standing there, so the second
+# card was a press that asked them to walk where they were. One card, both
+# panels, the SAME presses after it.
+#
+# Keyed by the station that leads the group; a group's stations must be
+# adjacent in STATIONS, which is checked below.
+CARD_GROUPS = {'M1': ('M1', 'M2')}
+CARD_GROUP_NAME = {'M1': 'Front panel switches'}
+CARD_GROUP_HAND = {'M1': 'a finger and an eye, at the front panel'}
+CARD_OF = dict((st, lead) for lead, group in CARD_GROUPS.items()
+               for st in group)
+for _lead, _group in CARD_GROUPS.items():
+    _at = [STATION_ORDER.index(x) for x in _group]
+    if _at != list(range(_at[0], _at[0] + len(_at))):
+        raise AssertionError('the stations sharing one card must be adjacent '
+                             'in STATIONS: %r is at %r' % (_group, _at))
 
 # The analog station is ONE LOOP as well (S121), for the same reason the panel
 # stations are: the operator's hands are the slow part, and a dialog per row
@@ -658,6 +679,9 @@ def write_ignore(path, serial, num, reason, catalog_md5):
 # ---------------------------------------------------------------------------
 # The glass: one prompt file out, one answer file in
 # ---------------------------------------------------------------------------
+ANSWER_POLL_S = 0.05
+
+
 class Glass:
     """The operator, whether they are behind the unit's own display or behind a
     terminal. `ask()` blocks until an answer comes back, which is the whole
@@ -792,6 +816,12 @@ class Glass:
                     return dict(button=b,
                                 reason=parts[1].strip() if len(parts) > 1 else '')
                 print('   ? one of %s' % ', '.join(btns), flush=True)
+        # 50 ms, NOT 300 (S125). This is the other half of a dialog's latency:
+        # the glass writes answer.json the instant the worker presses, and the
+        # runner used to take up to 0.3 s to notice -- 0.15 s on average, a
+        # dozen times a pass, on top of the second the app's own 2 s tick cost
+        # before the fast path went in. The read is one open of a small file on
+        # a tmpfs-backed path and costs nothing worth counting.
         while True:
             try:
                 with open(self.answer_path) as fh:
@@ -800,7 +830,7 @@ class Glass:
                     return a
             except (OSError, ValueError, TypeError):
                 pass
-            time.sleep(0.3)
+            time.sleep(ANSWER_POLL_S)
 
 
 class Paused(Exception):
@@ -830,7 +860,7 @@ def auto_plan(rows, state, ignored):
     return owed, tests
 
 
-def run_auto(a, rows, state, ignored, glass, csv_path):
+def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False):
     """One `d24_selftest.py` for the whole owed auto set, and its verdicts read
     back out of the results CSV it appends to."""
     owed, tests = auto_plan(rows, state, ignored)
@@ -842,6 +872,19 @@ def run_auto(a, rows, state, ignored, glass, csv_path):
     total = sum(COST.get(t, 5) for t in tests)
     cmd = [sys.executable, os.path.join(a.tools, 'd24_selftest.py'), '--local',
            '--csv', csv_path, '--section', 'A,B,C', '--only', ','.join(tests)]
+    # THE RAILS GO UP ONCE, AND THIS IS WHERE THEY GO UP (S125, review flag B;
+    # PW's rule, S116 Q4: raised once, after the last DSP boot, held until the
+    # handback). The self-test's group C raises them after its last boot; left
+    # to itself it lowers them again at ITS handback and the patch station
+    # raises them a second time minutes later. There is only one session and
+    # one handback, so the self-test is told to leave them and the patch
+    # station -- which is what ends the session -- takes them down.
+    #
+    # Only when a patch station is actually coming. A RUN ALL whose manual set
+    # is finished, or one the operator stops after the auto set, must not
+    # leave a unit on the bench with its rails up.
+    if patch_to_come:
+        cmd.append('--al1-keep-rails')
     if a.no_app_restart:
         cmd.append('--no-app-restart')
     if a.stage:
@@ -995,15 +1038,21 @@ def run_manual(a, rows, state, ignored, glass, passno):
         state.d['current'] = {'phase': 'manual', 'step': i, 'pass': passno,
                              'row': r.num}
         state.save()
-        if st not in carded:
-            card_ans = station_card(st, steps, glass, i)
-            carded.add(st)
+        card = CARD_OF.get(st, st)
+        if card not in carded:
+            card_ans = station_card(card, steps, glass, i)
+            carded.add(card)
             if card_ans['button'] == 'pause':
                 raise Paused()
             if card_ans['button'] in ('skip', 'ignore'):
+                # Skipping the card skips everything it covers, which for a
+                # shared card is both panels -- the operator said they are not
+                # doing this stretch of work, not that they are doing half of
+                # it (S125).
+                covered = set(CARD_GROUPS.get(card, (card,)))
                 reason = card_ans.get('reason') or 'station skipped'
                 for j in range(i, len(steps)):
-                    if steps[j][0] != st:
+                    if steps[j][0] not in covered:
                         break
                     verdict = IGNORED if card_ans['button'] == 'ignore' else SKIPPED
                     record_manual(a, state, steps[j][1], verdict, reason, passno,
@@ -1019,8 +1068,7 @@ def run_manual(a, rows, state, ignored, glass, passno):
         need_rails = dict((k, rl) for k, _n, _h, rl in STATIONS)[st]
         if need_rails and not rails_up:
             rails_up = True
-            glass.progress('the analog rails are raised once here, for the '
-                           'analog stations')
+            glass.progress('the analog supplies are live for this station')
         if st in PATCH_STATIONS:
             # One loop for the whole station as well (S121). It comes AFTER the
             # rails block above on purpose: this is the only station that needs
@@ -1042,7 +1090,7 @@ def run_manual(a, rows, state, ignored, glass, passno):
         i += 1
     state.d['current'] = None
     if rails_up:
-        glass.progress('the analog rails are lowered again')
+        glass.progress('the analog supplies are off again')
     return time.time() - t0
 
 
@@ -1191,8 +1239,10 @@ def patch_station(a, st, rows, state, ignored, glass, passno):
     limits = PT.Limits.load(plist.dir)
     unit = PT.Unit(symdir=a.patch_symdir)
     patcher = PT.pick_patcher(glass)
+    an = PT.Analog(enabled=True, log=glass.progress,
+                   own_rails=bool(getattr(a, 'keep_rails_from_auto', False)))
     station = PT.Station(plist, unit, patcher, glass, limits,
-                         log=glass.progress)
+                         log=glass.progress, analog=an)
     try:
         results = station.run()
     finally:
@@ -1285,17 +1335,27 @@ def panel_encoder(bus, glass, st, timeout):
     return NODATA, 'the encoder sent no ring position within %.0f s' % timeout
 
 
-def station_card(st, steps, glass, i):
-    name = STATION_NAME[st]
-    hand = dict((k, h) for k, _n, h, _r in STATIONS)[st]
-    rails = dict((k, rl) for k, _n, _h, rl in STATIONS)[st]
-    n = sum(1 for s, _r in steps[i:] if s == st)
+def station_card(card, steps, glass, i):
+    """The card the operator reads before a stretch of hand work.
+
+    ONE CARD MAY COVER MORE THAN ONE STATION (S125). The two switch panels are
+    the same piece of front panel and the same thing in hand, so they share a
+    card and the checks are counted across both. The presses after it are
+    unchanged; only the walk-to-the-station screen is.
+    """
+    group = CARD_GROUPS.get(card, (card,))
+    name = CARD_GROUP_NAME.get(card) or STATION_NAME[card]
+    hand = (CARD_GROUP_HAND.get(card)
+            or dict((k, h) for k, _n, h, _r in STATIONS)[card])
+    rails = any(dict((k, rl) for k, _n, _h, rl in STATIONS)[st] for st in group)
+    n = sum(1 for s, _r in steps[i:] if s in group)
     lines = ['What you need in hand: %s.' % hand,
              '%d check%s at this station.' % (n, '' if n == 1 else 's')]
     if rails:
         lines.append('The analog supplies are LIVE for this station.')
-    return glass.ask('station', 'Station %d - %s' % (STATION_NUM[st], name),
-                     lines, ['ack'], station=st, station_num=STATION_NUM[st])
+    return glass.ask('station', 'Station %d - %s' % (STATION_NUM[card], name),
+                     lines, ['ack'], station=card,
+                     station_num=STATION_NUM[card])
 
 
 def one_step(a, r, glass, i, total):
@@ -1653,15 +1713,26 @@ def dump_dialogs(rows, path):
     meets them, plus every row that is NOT RUN and the reason. One file, so the
     wording is reviewed once rather than a screen at a time."""
     hand = dict((k, h) for k, _n, h, _r in STATIONS)
+    rail = dict((k, rl) for k, _n, _h, rl in STATIONS)
     with open(path, 'w', newline='') as fh:
         w = csv.DictWriter(fh, fieldnames=DIALOG_COLS)
         w.writeheader()
         for st, name, _h, rails in STATIONS:
             mine = [r for r in rows if r.group == st]
-            card = ('What you need in hand: %s. %d check(s) at this station.%s'
-                    % (hand[st], sum(1 for r in mine if r.category == 'manual'),
+            # THE CARD THE OPERATOR ACTUALLY SEES (S125), which for a station
+            # that shares one -- the two switch panels -- is the group's card
+            # and its count across both, not this station's own.
+            card_id = CARD_OF.get(st, st)
+            group = CARD_GROUPS.get(card_id, (card_id,))
+            covered = [r for r in rows if r.group in group]
+            card = ('Station %d - %s | What you need in hand: %s. %d check(s) '
+                    'at this station.%s'
+                    % (STATION_NUM[card_id],
+                       CARD_GROUP_NAME.get(card_id) or STATION_NAME[card_id],
+                       CARD_GROUP_HAND.get(card_id) or hand[card_id],
+                       sum(1 for r in covered if r.category == 'manual'),
                        ' The analog supplies are LIVE for this station.'
-                       if rails else ''))
+                       if any(rail[x] for x in group) else ''))
             for r in sorted(mine, key=lambda x: x.num):
                 s = r.step or {}
                 w.writerow(dict(
@@ -1717,16 +1788,30 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
         # than printing a dash for work that was done.
         timing['auto'] = (state.d.get('pass_timing') or {}).get('auto')
         timing['resumed'] = True
+        # The auto set of THIS pass ran before the pause and was told then
+        # whether to keep the rails up. The state remembers, so a resumed pass
+        # hands back the same way an unbroken one would.
+        a.keep_rails_from_auto = bool((state.d.get('pass_timing') or {})
+                                      .get('keep_rails'))
     else:
         state.d['current'] = {'phase': 'auto', 'pass': passno}
         state.save()
         if a.manual_only:
             timing['auto'] = None
         else:
+            # Is an analog station still owed in this pass? If it is, the auto
+            # set leaves the rails up for it and the station lowers them --
+            # one raise, one lower, per PW's rule (S125, review flag B).
+            patch_to_come = (not a.auto_only
+                             and any(manual_rows_for(st, rows, state, ignored)
+                                     for st in PATCH_STATIONS))
+            a.keep_rails_from_auto = patch_to_come
             secs_auto, results, _owed = run_auto(a, rows, state, ignored, glass,
-                                                 csv_path)
+                                                 csv_path,
+                                                 patch_to_come=patch_to_come)
             timing['auto'] = secs_auto
-            state.d['pass_timing'] = {'auto': secs_auto, 'pass': passno}
+            state.d['pass_timing'] = {'auto': secs_auto, 'pass': passno,
+                                      'keep_rails': patch_to_come}
             stamped = stamp_auto(rows, state, results, passno)
             if stamped:
                 print('   partner rows stamped: %s'
