@@ -1,3 +1,71 @@
+## HUB DISPATCH 2026-09-26 16:41Z — S122: the haptic speaker path - the panel speaker leaves every mixer signal path   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S122 — The haptic speaker path: the panel speaker leaves every mixer signal path
+
+**PW ruling 2026-09-26:** "the spkr feed is for screen button haptics only, and should be
+completely separate from all mixer signal paths." Also PW 09-26: no rev D mod — in the product
+the speaker is silent unless a tone/click is sent to the AK4619. Background (mx26 pipeline.md
+09-25 13:59): the speaker is `codec DAC → U32 (TS482, bridged, on the digital board's 5 V,
+always powered) → panel speaker`; PW auditioned gated 2.5 kHz full-scale bursts (4/8/15 ms) and
+"ticks are working"; the product plan was a click stored on the DSP and triggered from the touch
+event, sharing the sample-playback engine the drum-replacement feature will need.
+
+**Today's conflict:** `C2_MON_OUT` (the monitor bus, `Mon001Level001/002`) drives the codec's
+talkback-speaker pair (S42 §2.5 listed it as an open product question; this ruling closes it).
+On 09-26 the AL1 route (strip 20 → MAIN → monitor → speaker) was left asserted and the speaker
+hissed continuously with the rails down until the hub zeroed the monitor levels.
+
+## Do (design first, then build and prove)
+
+1. **Map it from the code and the netlist:** which AK4619 DAC channel(s) / TDM slot(s) on the
+   DSPB→codec lane (CODEC_OUT_1..4; `docs/d24-signals-index.md` CODEC_DAC) reach U32 and the
+   speaker, and what else shares that lane (aux out L/R). What `C2_MON_OUT` feeds today.
+2. **Disconnect:** no mixer node (MAIN, monitor, cue, talkback, any strip or bus) may write the
+   speaker slot(s) — enforced in the generator, not by convention: a build that routes a mixer
+   node to the speaker slot fails with a named error. Say where the monitor bus goes instead on
+   the D24 (S42's open list: Monitor Out jacks carry MAIN_OUT_03/04, headphones have no DSP
+   source) — if it has no D24 destination, say so as a 🔴 PW question, do not invent one.
+3. **The click source:** a chip-2 haptic node that writes ONLY the speaker slot(s): plays a short
+   stored click (start from the 09-25 audition: 2.5 kHz gated burst, 4-15 ms, full scale; room for
+   a 2-3 sample set: press / release) when triggered by a cell write; also able to play a steady
+   test tone for the self-test. Silent otherwise (writes digital zero). Price its cycles and
+   memory on chip 2 against the S65/S79 capacity figures, and say how it would share the future
+   drum-sample engine. Latency from the cell write to sound, measured on the part.
+4. **Cells:** propose the haptic cell family for defs (trigger, sample select, level, test-tone
+   on/level) as a defs proposal in the S82 contract-proposal form — cell NAMES are forever (Bible
+   ch 7), so propose, do not land; PW rules the names. Build against the proposal behind a flag.
+5. **AL1 retargeted:** the self-test drives the speaker through the haptic node's test tone, not
+   through a mixer route; the S115 bandpass-THD MEMS measurement stays; the old route write and
+   its handback go away (so a press cannot leave the speaker live). Recalibrate with
+   `--al1-calibrate`.
+6. **Prove on MW-D24-2:** click audible on trigger; speaker digitally silent with every mixer bus
+   driven hard (a strip at full scale on MAIN, monitor levels 1.0: the speaker slot reads exact
+   zero); AL1 PASS through the new path; capacity delta; latency.
+
+## Deliverables (`MW/D24/DSP/s122/`)
+
+`haptic-path.md` (map, design, the generator guard, cycles/memory, latency, AL1 before/after),
+the defs proposal, the app-side list for the hub (touch event → trigger cell write). Every
+question for PW = 🔴 note in the block, commit, stop — no dialog.
+
+## Hub note at dispatch (after S121 landed, 2026-09-26)
+
+S121 found the same routing facts from the other end (MW/D24/DSP/s121/patch-loop.md, S121-5/-6):
+the Centre/LF XLR is `DAC_14` fed from aux bus 12, the headphone jack is `DAC_09/10` fed from aux
+buses 9-10 (D24 declares aux 1-8, so no cell reaches any of them), and the rear Monitor jacks are
+the main crossover's centre and sub legs (`MainCtr`/`MainSub`), not the monitor bus. Those three
+sources are ONE open PW question already on the board — do not re-ask it, do not invent a routing
+for them; build the haptic node and the speaker disconnect, and state in the report where the
+monitor bus lands once it leaves the speaker (if nowhere on D24, say so plainly). S121 left the
+unit with all 24 strips opened/bypassed and bus masters at unity (assigns shut, oscillator off,
+monitor at zero); the S121 station silences the speaker before driving MAIN — keep that working.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 15:56Z — S121: the audio patch loop — one path list, manual fallback now, harness back end stub   [status: 🟢 done, NOTHING HAS BEEN PATCHED YET — **the loop is built and everything up to the connector is proved on the part; the connector needs a hand and this session had none.** **81 patches, 91 measurements, five standard off-the-shelf leads, four lead changes**, and it grades **45 of the analog station's 48 catalog rows** against the forty-eight that said "fixture not built". **NOBODY PRESSES ENTER**: the prompt goes up with the tone already running and the step ends when the lane it is meant to reach changes — a rise for a tone row, a DROP for a noise row, because fitting the 150 Ω plug quiets an open mic input. The next patch is prepared and prompted BEFORE the last is scored. **78 s of machine in a whole pass** — projected end to end **5.4 min at 3 s per hand move, 8.1 at 5 s, 12.1 at 8 s**; the machine is 13 % of it, so hand time is the only thing left worth optimising, which is why the parked ends and the lead order matter more than the code. Inside every block but the first ONE END STAYS PUT. **Measured on MW-D24-2:** detector poll **1.3 ms**, threshold fires **1 ms** after a tone starts, settled reading **436 ms**, route assert **112 ms**, 24-lane meter sweep **32 ms**; the standing write is **567 cells in 5.4 s with 0 failing read-back** (every cell name the generated list uses is real and every write landed); all **27 lanes** floor-measured including the three codec return lanes nothing else can reach; **every route reaches its bus at −15.01 dBFS with THD+N at the digital floor** and a hard-panned main reads an exact digital zero on the other side. Polarity is a MEASURED and RELATIVE item — the coherent fit's signed in-phase/quadrature amplitudes give a phase, the first block measures each lane's balanced reference phase, later readings are judged against it, and a reading on the decision boundary is reported UNCALLED rather than quietly passed. PW's stereo rule implemented as ruled: every stereo TRS jack, in or out, is ONE patch — an output gets L alone / R alone / both-in-phase-nulls, an input reads both lanes off one balanced drive and an inverted LEFT is scored as a SWAP. **The dry run walks all 81 patches with no unit and reaches every outcome** (clean, wrong socket, dead path, swapped stereo pair, a null that does not null, a phase too near the boundary to call); every operator-facing string is clean under --check-md. **THREE DEFECTS THE BENCH FOUND AND THE DESK COULD NOT: 🔴 S121-1** MeasChan taps a strip POST-FADER, so a muted strip reads an exact zero — MIC 20 read **−336 dBFS** against every other lane's −116 because the acoustic-loop teardown leaves `Chan020Mute001`=1 and nothing puts it back; every strip under test is now opened and bypassed. **🔴 S121-2** the oscillator REPLACES a strip's input, so the donor strip is the loudest lane on the unit for the whole pass (−12.0 dBFS vs a real path's −15) and left in the isolation check it would have made EVERY patch report a mis-patch; skipped now, and the dry-run model reproduces it. **🔴 S121-3** two settling windows is not enough and it looks like distortion — the same three routes read THD+N −19.21/−24.74/**−3.75 dB** at settle 2 and −115…−116 dB at 4/6/12 while the LEVEL read −15.01 dBFS in every one; four windows is the floor, six after a route change. Plus: the strip meters decay at about **6 dB/s**, so the isolation check now asks whether a lane ROSE during this patch, not whether it is lit. **🔴 S121-5, A PRODUCT QUESTION NOT A TEST ONE: three rear sockets have NO host-reachable source on a D24** — the Centre/LF XLR is `DAC_14` (fed from aux bus 12) and the headphone jack is `DAC_09/10` (aux buses 9 and 10), and D24 declares aux buses 1-8 only, so no cell can open any of them; rows 35 and 97 are NOT RUN with that reason rather than failed. (PW's pot question: there is no potentiometer anywhere in the analog board inventory and the stage is two summing op-amps — the pot is not the problem, the source is.) **🟡 S121-6** the rear Monitor jacks are the crossover's CENTRE and SUB legs (`MainCtr`/`MainSub`), not the monitor bus, so Monitor R is tested at **100 Hz**. **🟡 S121-7** the two mini-jacks share one codec lane. **🟡 S121-8** nothing in this repo says how the combo line path is selected (`InputSel` is `mcu`), so the 24 line patches judge tone presence and REPORT the level. **🟡 S121-9** row 148 is a screen link in the analog group and the classifier already warns; rows 146/147 are partner-stamped. **🔴 S121-4 the one window that rests on topology and not a measurement:** single-ended = balanced − 6.02 dB is a ratio, an older note claims the TRS pair and its XLR agree within ±1.0 dB, and the two have never been reconciled — TWO PATCHES ON A GOOD UNIT SETTLE IT and they are the first thing in the bench script. Harness back end DECLARED NOT BUILT, per PW 2026-09-26; the list, the loop and the scoring are already back-end agnostic. **Deployed** `/home/app/selftest/`: `d24_patch.py` `a65697a97aa39a215f9342f06e038dc1` (new), `d24_runall.py` `fc5f3a68b8e451672dbab639b4336c83` (rollback `.bak-s121-pre` = `5536b590b7926a935c534b27b34b9550`, S120's), `s121/patch-paths.csv` `2e148b7261985c85927c6b2e4014a223`, `s121/patch-routes.csv` `1864e8fca7c7a614b7551798407f3eb2`, `s121/patch-limits.csv` `c74b33ef98a8384717573188cb7e250b`. No catalog, no app, no firmware, no CPLD; `defs.lock` unmoved, **no contract bump owed**. **Unit as left, stated exactly:** oscillator off, every strip's assigns shut, monitor bus at zero (the panel speaker is silent), `matrix-app` inactive, `d24-testui` active; the only thing this session drove is the DSP parameter link. But the standing write DID change the unit's parameter state and it was not undone: 567 cells — all 24 strips opened and bypassed, every bus master at unity. That includes `Chan020Mute001`, which this session found at 1 (S121-1) and left at 0, so the unit is now in a BETTER state than it was found in rather than an identical one. Nothing there survives the next boot + config commit. Report `MW/D24/DSP/s121/patch-loop.md`, one-page bench script `s121/pw-bench-script.md`, generated list `s121/patch-{paths,routes,limits}.csv` + `patch-plan.md`, logs `s121/logs/`, findings S121-1..9.]   [model: opus]
 
 > **HUB ADDENDUM — PW RULING on STEREO TRS outputs (read before you design the path list).** PW: "when testing stereo TRS signals, a SINGLE XLR-to-TRS cable is used, and signals must be manipulated (only left or right tested at a time), and the XLR will receive either a single unbalanced or out-of-phase signal." The lead: TRS tip → XLR pin 2, ring → pin 3, sleeve → pin 1; the XLR input measures tip − ring. So every STEREO TRS output (the four phones / "Aux Out A" pairs, and the analog-board phones jack) is ONE patch with THREE sub-tests: (1) drive LEFT only → tone present, NORMAL polarity, level ≈ 6 dB below a balanced drive (single-ended into a balanced input — derive the exact window from the output stage, don't assume); (2) drive RIGHT only → tone present, INVERTED polarity, same level as (1) within a tight window; (3) drive BOTH in phase → a deep NULL (proves L/R level match and that they are not swapped/crossed) — set the null window from a good unit. POLARITY becomes a measured pass/fail item (sign of the tone against the oscillator reference — correlation sign, not just level). Balanced mono TRS outputs (Monitor L/R: tip hot, ring cold) use the same lead and read as a normal balanced signal. This REPLACES the harness plan's K3 Y-lead (TRS → 2 × XLR) in the MANUAL kit — one XLR input per stereo jack, fewer patches; recompute the patch count. The harness back end may still tap L and R separately; the runner must support both (sub-tests per path).
