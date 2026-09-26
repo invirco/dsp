@@ -6,6 +6,58 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CATALOG'S PASS CRITERION IS ONE ROW OUT OF STEP FOR 75 CONSECUTIVE ROWS (2026-09-26, session 117)
+
+Hub dispatch `tasks.md` 2026-09-26 13:17Z. Report: `MW/D24/DSP/s117/run-all.md`.
+
+**S117-1 🔴 `pass_when` ON ROW N CARRIES THE CRITERION OF ROW N−1, FROM ROW 128
+TO ROW 202.** Not a handful of rows and not new: S116 found the same shift on
+rows 127/203, fixed those two by hand and left the rest flagged. Read across the
+catalog the shift is unmistakable — row 128, the Ethernet socket, carries the
+screen link's criterion (127's); row 133, the mains inlet, carries the second
+HDMI socket's (132's); row 134, the power switch, carries the inlet's; row 140,
+the DSP-B link, carries AS-DSPA's; row 198, the ADC, carries AS-DAC's; row 202,
+the H1S1 MCU, carries ML-M's. The leading tag of each row's `pass_when` matches
+the `tests` of the row ABOVE it for every row in that range.
+
+Three consequences. The wizard's DETAIL page prints **PASS WHEN** straight out
+of this column, so 75 rows tell a technician the wrong criterion today. A
+generated INSTRUCT dialog built from it would tell an OPERATOR to do the wrong
+thing, which is why S117 builds its manual dialog text from `board` / `item` /
+`class` / `group` and publishes the generated wording in
+`MW/D24/DSP/s117/manual-dialogs.csv` for review instead. And no manual row has a
+usable numeric limit, so the meter station's question has to be "does it read
+what the build sheet gives for it?" until the catalog carries limits belonging
+to their own rows. The fix is in the hub's generator (mx26
+`tools/d24/build-d24-test-skin.py`, `scrape_spec`/`build_catalog`); this repo
+consumes the catalog and must not patch it here.
+
+**S117-2 🟡 ROW 148 IS `automation 1` AND IN THE ANALOG-LOOPBACK STATION.** RUN
+ALL orders by `group`, so it is stepped as an operator check and the disagreement
+is printed on every run rather than resolved silently. One of the two columns is
+wrong; the generator owns both.
+
+**S117-3 🔴 THE ACOUSTIC LOOP'S `NO SOUND` ON MW-D24-2 IS S115-2's PINNED MAIN
+BUS, AND A LATER PASS CANNOT CLEAR IT.** Both RUN ALL passes read `NO SOUND base
+-18.0 tone -21.0 SNR -3.0 dB` and `base -15.9 tone -18.9 SNR -3.0 dB`; the same
+check on the same unit at 13:33 the same afternoon read `base -55.4 tone -35.8
+THD -31.8 dB 2.56 %` and PASSED. A base 37 dB high on the MEMS lane is exactly
+the state S115 recorded (finding S115-2): the chip-2 MAIN bus pinned near full
+scale, which makes the loop's SNR meaningless. S115 measured that a full boot +
+configure twice clears it and that a configure alone does not. **S117 measured
+the clearing directly**: straight after the second pass, `--section B --only
+DR1,DR2` (reset + boot, BOOT_STAGE 7/7, 31 lanes carrying) followed by
+`--section C --only AL1` read `PASS base -55.5 tone -34.8 SNR 20.6 dB THD -32.0
+dB 2.53 %` — a base 37 dB lower and the distortion figure S115's ceiling was
+calibrated against. **The RUN ALL
+consequence is structural, not incidental:** a pass after the first does not
+boot the pair when the link is alive (S114's saving, right for every other
+check), so a unit in this state carries a fictional acoustic verdict through
+every later pass. The one-line fix — the acoustic check asks for a boot when it
+is owed on a later pass — is flagged for PW rather than taken, because it
+changes the automatic set's cost and this dispatch's bar was to leave that set
+alone.
+
 ## THE PANEL SPEAKER IS LIVE FROM THE MOMENT THE PAIR BOOTS (2026-09-26, session 115)
 
 Hub dispatch `tasks.md` 2026-09-26 11:39Z and its addenda. Report:
