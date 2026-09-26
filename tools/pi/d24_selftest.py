@@ -54,6 +54,7 @@ WHAT THIS RUNNER WILL NOT DO, and each is a bench rule rather than a limitation:
 """
 import argparse
 import csv
+import hashlib
 import datetime
 import json
 import os
@@ -1340,6 +1341,21 @@ def t_aspwr(r):
 # a distortion number has to come from. rxscan is still read here, once, for
 # the one thing it is good at: saying whether the MEMS lane is CARRYING at all.
 #
+# THE VERDICT IS ON BANDPASS THD, NOT ON THD+N (PW ruling 2026-09-26, S115).
+# `ThdResult` above is THD+N: the window's total RMS minus the fundamental's
+# quadrature fit, so room noise, amplifier hiss and any tone-free part of the
+# window all count as "distortion". Over this loop at a safe drive level that
+# number is MOSTLY NOISE -- which is how a tone PW called clean by ear came to
+# read 45 %. Harmonics can only be told from noise in the frequency domain, so
+# the same session that plays the tone also takes a COHERENT capture of the same
+# lane (1,024 contiguous samples through `_scope_record`, read back in one
+# streamed `dsp4_bulk` transfer, 0.19 s) and `dsp4_fft.analyse()` integrates
+# harmonics 2..10 each in its own narrow band with the noise between the bands
+# left out. THAT is the number the ceiling is applied to. THD+N stays -- both
+# the node's and the capture's -- as informational evidence, and as the
+# tone-present witness it always was, because a fit residual over half the
+# window's energy is something a room cannot fake.
+#
 # WHERE THE MIC IS: MeasChan 54, NOT A STRIP. The dispatch asked for "the strip
 # that carries XIN_MEMS" and there is none -- `C1_XIN_MEMS` feeds `C1_TALK_02`,
 # a TALKBACK node whose output is a per-block scalar nothing downstream reads
@@ -1357,6 +1373,14 @@ _SPKR_OSC_STRIP = 20              # S89's donor strip, for the same reason
 _SPKR_FREQ_HZ = 1000.0
 _OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
 AL1_MEAS_CHAN = 54                # C1_XIN_MEMS -- see above, not a strip
+# THE SAME LANE, AS A BLOCK THE SCOPE CAN RECORD (S115). MeasChan 54 and this
+# symbol are two instruments on ONE tap: the node accumulates RMS/THD+N over a
+# 4,096-sample window on the part, and `_scope_record` copies 1,024 contiguous
+# samples of the same block out for a transform on the host. It has to be a
+# non-strip converter lane for that to be readable at all -- strip node buffers
+# live in the block pool and alias each other (`dsp4_s49_osc.capture`).
+AL1_CAP_NODE = '_buf_C1_XIN_MEMS'
+AL1_CAP_SAMPLES = 1024            # _scope_buf's length; 21.3 ms at 48 kHz
 
 # THE TONE IS SAFE BY DEFAULT AND CANNOT BE MADE LOUD BY ACCIDENT.
 # PW drove this speaker to full scale by hand on 2026-09-25 and heard no
@@ -1396,12 +1420,28 @@ AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 # loop. When PW adds amp gain, one command re-measures and rewrites this
 # block: `d24_selftest.py --only AL1 --al1-calibrate`, which prints the old
 # table and the new one side by side and says what moved.
+#
+# THE THD CEILING (`thd_abs_db` / `thd_margin_db`, S115) IS A DIFFERENT NUMBER
+# FROM THE THD+N ONE AND THE TWO ARE NEVER INTERCHANGEABLE. PW ruled
+# 2026-09-26 that the verdict is on BANDPASS THD -- harmonics h2..h10, each
+# integrated in its own narrow band, the noise between the bands left out.
+# Over this loop THD+N is mostly noise: measured on this unit at the default
+# drive, the node's THD+N reads -15.5 dB (16.9 %) on the SAME window whose
+# bandpass THD is -31.7 dB (2.6 %), a 16 dB difference that is all noise and
+# fit residual. So `thdn_abs_db` / `thdn_margin_db` stay for the informational
+# line and can NEVER be reused as the ceiling the verdict applies.
+# `thd_abs_db` is the worst THD this unit's own calibration measured at the
+# drive the test runs at, plus headroom. `thd_margin_db` is how far past the
+# INSTRUMENT'S OWN THD FLOOR -- the noise inside the harmonic bands, which no
+# reading can beat however clean the speaker is -- a healthy loop went, worst
+# case, so a capture taken in a loud room raises the ceiling instead of
+# failing the unit.
 AL1_CAL = {
     'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
     'unit': 'MW-D24-2 (rev C+)',
-    'stamp': '2026-09-25T13:46:11Z',
+    'stamp': '2026-09-26T12:17:59Z',
     'pair': '/home/app/loopthd/s109',
-    'runs': '15 runs at -12/-6/-3 dBFS x 5 reps; 15 fitted, 0 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -12 dBFS; default drive -6 dBFS',
+    'runs': 'THD ceiling only (--al1-calibrate-thd); every other limit left as it was: 15 runs at -12/-6/-3 dBFS x 5 reps; 15 fitted, 0 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -12 dBFS; default drive -6 dBFS',
     'slope_db_per_db': 1.029,
     'intercept_dbfs': -29.650,
     'level_tol_db': 4.000,
@@ -1411,10 +1451,13 @@ AL1_CAL = {
     'floor_max_dbfs': -48.300,
     'thdn_abs_db': -16.700,
     'thdn_margin_db': 10.800,
+    'thd_abs_db': -28.500,
+    'thd_margin_db': 6.000,
 }
 AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
                         'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
-                        'thdn_abs_db', 'thdn_margin_db')
+                        'thdn_abs_db', 'thdn_margin_db',
+                        'thd_abs_db', 'thd_margin_db')
 
 
 def pct_of_db(db):
@@ -1449,29 +1492,39 @@ def _route_cells():
     return close, route
 
 
-def _set(r, cells, timeout=300):
-    c = r.rsh('cd %s && python3 s89_set.py %s %s 2>&1'
-              % (r.a.stage, r.a.stage, ' '.join(cells)), timeout=timeout)
-    return c.returncode, (c.stdout + c.stderr).strip()
+# THE SPEAKER PATH, TORN BACK DOWN (S115). The route write above is what makes
+# the panel speaker live, and until S115 NOTHING ever undid it: every AL1 press
+# left `Chan020MainOn001=1`, `Main001Level001=1.0` and `Mon001Level001/002=1.0`
+# on the part, and the speaker amplifier (TS482, digital U32) runs from the 5 V
+# on the DIGITAL board -- always on while the unit is up, independent of AN_EN
+# (PW 2026-09-26). So the speaker played whatever the monitor bus carried, for
+# as long as the unit stayed powered, with no test running. PW heard it as a
+# short tone and then a long hiss on every press, and then as continuous noise.
+#
+# WHAT IT WAS CARRYING, measured (S115): the chip-2 MAIN bus sits at +17 to
+# +18 dBFS -- 17 dB past converter full scale -- with every strip's MainOn at 0,
+# so it is not strip 20 and closing strip 20 does not silence it (the hub tried
+# that first, PW: still there). `Mon001Level001/002 = 0` DID silence it (PW:
+# "gone"), which is why those two cells are in this list and are the ones that
+# matter.
+#
+# WHY ZERO AND NOT THE GRAPH DEFAULT: `defs` declares C2_MON with
+# `level_l_db=0.0;level_r_db=0.0`, i.e. unity, so "the default" is exactly the
+# 1.0 that makes the speaker live. There is no resting value in the graph that
+# is silent. Until S117 gives the speaker its own haptic node, off the mixer
+# buses altogether (PW ruling 2026-09-26), a self-test hands the monitor back
+# at ZERO, which is the state PW confirmed silent on the bench.
+def _silence_cells():
+    osc = '%03d' % _SPKR_OSC_STRIP
+    return ['Mon001Level001=f0.0:4', 'Mon001Level002=f0.0:4',
+            'Chan%sMainOn001=0' % osc, 'Chan%sMute001=1' % osc]
 
 
-def _route_probe(r):
-    """The four cells the route write's own evidence has always read back
-    through the image's dispatch table (S102) -- a read, never a write, so
-    calling it costs nothing and tells whether the write below is needed."""
-    return r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
-                 'Main001Level001 Chan%03dMainOn001 2>&1'
-                 % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
-
-
-def _route_probe_ok(txt):
-    """True only if EVERY probed cell's raw word already equals the route
-    write's target (S114 rank 3) -- a partial match is not the route
-    asserted, it is a write that failed halfway on some earlier press."""
-    want = {'Mon001Level001': 0x3F800000,     # f1.0
-            'Mon001Level002': 0x3F800000,     # f1.0
-            'Main001Level001': 0x3F800000,    # f1.0
-            'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 1}
+def _silence_ok(txt):
+    """True only when every cell that makes the speaker live reads back OFF."""
+    want = {'Mon001Level001': 0, 'Mon001Level002': 0,
+            'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 0,
+            'Chan%03dMute001' % _SPKR_OSC_STRIP: 1}
     for name, need in want.items():
         m = re.search(r'^%s\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})' % re.escape(name),
                       txt, re.M)
@@ -1480,23 +1533,164 @@ def _route_probe_ok(txt):
     return True
 
 
-def _al1_osc(r, level=None, timeout=300):
-    """One S49 window measurement of the MEMS lane.
+def al1_silence(r):
+    """Take the speaker path down and PROVE it, once per run.
+
+    Idempotent and cheap: called as soon as the last measurement window has
+    been read, and again from handback in case a blocker returned before the
+    measurement ever happened. The read-back is the evidence -- a write that
+    did not land would leave the unit hissing for however long it stays
+    powered, which is the exact defect this exists to end."""
+    cap = getattr(r, '_al1_an', None)
+    if cap is None:
+        return None
+    if cap.get('silenced'):
+        return None
+    # s89_set reads every cell back as it writes it, so the write's own output
+    # IS the read-back evidence; a separate probe pass would cost another 1.5 s
+    # of a press that is being kept short.
+    rc, txt = _set(r, _silence_cells())
+    ok = rc == 0 and _silence_ok(txt)
+    cap['silenced'] = True
+    cap['silent_ok'] = ok
+    cap['silent_at'] = time.time()
+    if cap.get('route_at'):
+        cap['speaker_live_s'] = round(cap['silent_at'] - cap['route_at'], 2)
+    return ('--- the speaker path, torn down (exit %d, read-back %s) ---\n'
+            'the route was live for %s s of this press\n%s'
+            % (rc, 'SILENT' if ok else 'NOT SILENT -- the unit may still be audible',
+               cap.get('speaker_live_s', '?'), txt))
+
+
+def al1_rails_down(r):
+    """AN_EN back down as soon as the windows are read, not at handback.
+
+    The rails are wanted for the measurement and for nothing after it; leaving
+    them up until handback added seconds of powered analog front end to every
+    press for no reading. Handback still reports AN_EN and still lowers it if
+    this never ran."""
+    cap = getattr(r, '_al1_an', None)
+    if cap is None or not cap.get('raised') or cap.get('lowered'):
+        return None
+    if r.a.al1_keep_rails:
+        return None
+    r.pin('%d op dl' % AN_EN_GPIO)
+    cap['lowered'] = True
+    cap['an_down_at'] = time.time()
+    if cap.get('an_up_at'):
+        cap['rails_up_s'] = round(cap['an_down_at'] - cap['an_up_at'], 2)
+    return ('--- the analog rails, back down ---\nAN_EN: %s   (up for %s s of this press)'
+            % (r.an_en().split('//')[0].strip(), cap.get('rails_up_s', '?')))
+
+
+def _set(r, cells, timeout=300):
+    c = r.rsh('cd %s && python3 s89_set.py %s %s 2>&1'
+              % (r.a.stage, r.a.stage, ' '.join(cells)), timeout=timeout)
+    return c.returncode, (c.stdout + c.stderr).strip()
+
+
+# THE ROUTE, SPLIT IN TWO (S115). Everything the route write sets falls into
+# one of two groups, and the difference is what keeps a repeat press fast now
+# that handback tears the speaker down.
+#
+#   ENABLE: the four cells that decide whether the speaker is LIVE. These are
+#   the ones al1_silence() takes back to zero after every press, so they are
+#   the ones a repeat press has to re-write -- four writes, one s89_set call,
+#   about 1.5 s.
+#
+#   STANDING: the level, the pan, the four processors off, the main level, and
+#   the 31-strip CLOSE list. Nothing tears these down, so a repeat press finds
+#   them already set and writes none of them. The 43-cell write took 10.0 s on
+#   the bench (s89_set reads every cell back as it writes it, ~0.25 s each),
+#   which is why it is worth not repeating.
+#
+# A cell outside the ENABLE group that does NOT match still forces the full
+# close + route write. A partial match is not the route asserted, it is a write
+# that failed halfway on some earlier press.
+_ENABLE_TARGETS = {
+    'Mon001Level001': 0x3F800000,                  # f1.0
+    'Mon001Level002': 0x3F800000,                  # f1.0
+    'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 1,
+    'Chan%03dMute001' % _SPKR_OSC_STRIP: 0,
+}
+_STANDING_TARGETS = {
+    'Main001Level001': 0x3F800000,                 # f1.0
+    'Chan%03dLevel001' % _SPKR_OSC_STRIP: 0x3F800000,
+    'Chan%03dPan001' % _SPKR_OSC_STRIP: 0x3F000000,   # f0.5, centre
+    'Chan%03dCompOn001' % _SPKR_OSC_STRIP: 0,
+    'Chan%03dGateOn001' % _SPKR_OSC_STRIP: 0,
+    'Chan%03dTubeOn001' % _SPKR_OSC_STRIP: 0,
+    'Chan%03dEqOn001' % _SPKR_OSC_STRIP: 0,
+}
+
+
+def _enable_cells():
+    osc = '%03d' % _SPKR_OSC_STRIP
+    return ['Mon001Level001=f1.0:4', 'Mon001Level002=f1.0:4',
+            'Chan%sMainOn001=1' % osc, 'Chan%sMute001=0' % osc]
+
+
+def _route_probe(r):
+    """Every cell the route write targets, read back through the image's own
+    dispatch table (S102) -- a read, never a write, so calling it costs nothing
+    and tells which of the two writes below is needed."""
+    names = list(_ENABLE_TARGETS) + list(_STANDING_TARGETS)
+    return r.out('cd %s && python3 s89_set.py %s %s 2>&1'
+                 % (r.a.stage, r.a.stage, ' '.join(names)), timeout=300)
+
+
+def _probe_reads(txt):
+    """{cell: raw word} out of an s89_set read-back."""
+    out = {}
+    for m in re.finditer(r'^(\S+)\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})',
+                         txt, re.M):
+        out[m.group(1)] = int(m.group(2), 16)
+    return out
+
+
+def _route_probe_ok(txt):
+    """True only if EVERY probed cell already equals the route write's target."""
+    got = _probe_reads(txt)
+    want = dict(_ENABLE_TARGETS, **_STANDING_TARGETS)
+    return all(got.get(k) == v for k, v in want.items())
+
+
+def _standing_ok(txt):
+    """True when every STANDING cell is set. Not on the fast path -- that is
+    marker-gated, see the route write -- but kept because it is the question
+    the marker is a cheap stand-in for, and a reader checking the marker's
+    claim by hand wants it spelled out."""
+    got = _probe_reads(txt)
+    return all(got.get(k) == v for k, v in _STANDING_TARGETS.items())
+
+
+def _al1_osc(r, level=None, timeout=300, cap=True):
+    """One S49 window measurement of the MEMS lane, with a coherent capture.
 
     `level=None` is the tone-OFF leg: the oscillator is stopped and the window
     reads the lane's own floor. Otherwise the tone is faded in, three windows
     are taken, and the tone is faded out IN THE SAME SESSION (`--then-off`),
     which is what keeps the on-time under a second.
 
+    `cap` adds the S115 coherent capture of the SAME lane inside the SAME
+    session -- 1,024 contiguous samples through `_scope_record`, read back in
+    one streamed transfer, transformed on the unit. It is what the BANDPASS THD
+    verdict is computed from; the node's own ThdResult is THD+N and stays as an
+    informational line. Measured cost 0.19 s, so it is taken on every leg: the
+    tone leg is the verdict and the two baselines give the noise spectrum the
+    tone is read against.
+
     Returns (dict-or-None, raw text). The dict is the settled window plus the
-    on-time; None means the tool refused or the JSON did not come back, and
-    the raw text says why."""
+    on-time and the capture; None means the tool refused or the JSON did not
+    come back, and the raw text says why."""
     j = '%s/al1-osc.json' % r.a.stage
     if level is None:
         args = '--off'
     else:
         args = ('--strip %d --level %g --ramp-ms %g --then-off'
                 % (_SPKR_OSC_STRIP, level, AL1_RAMP_MS))
+    if cap:
+        args += ' --cap-node %s --cap %d' % (AL1_CAP_NODE, AL1_CAP_SAMPLES)
     # The CS lines are re-driven before every tool call: a boot or a stray
     # reset leaves them somewhere else and the link then reads plausible
     # zeros rather than failing (bench recipe, and S109 on CS_M).
@@ -1520,6 +1714,13 @@ def _al1_osc(r, level=None, timeout=300):
     w['on_seconds'] = d.get('on_seconds')
     w['level_dbfs_peak'] = d.get('level_dbfs_peak')
     w['off'] = d.get('off')
+    w['cap'] = d.get('cap')
+    # The 1,024 raw words are the biggest thing in this dict and nothing
+    # downstream reads them; the numbers derived from them are all kept. They
+    # stay in the JSON on the unit, which is where a re-analysis would start.
+    if isinstance(w['cap'], dict):
+        w['cap'] = {k: v for k, v in w['cap'].items() if k != 'samples'}
+    w['all_windows'] = d.get('rows')
     return w, txt
 
 
@@ -1557,13 +1758,21 @@ def _al1_prereq(r):
     when they are down -- PW lifted the dispatched-session bar on 2026-09-24 --
     and the fact is recorded so handback can put them back."""
     ev = ['%s\n' % SPKR_ROUTE_NOTE]
-    cap = {'an_start': r.an_en(), 'raised': False}
+    cap = {'an_start': r.an_en(), 'raised': False, 'an_up_at': time.time()}
     if 'hi' not in cap['an_start']:
         # The two gates that still apply: the digital clocks are stable (the
         # pair is booted and its lanes read, which section C has already
         # established by the time AL1 runs) and the 595 chain is loaded SAFE.
         r.pin('%d op dh' % AN_EN_GPIO)
-        time.sleep(1.0)
+        cap['an_up_at'] = time.time()
+        # NO SLEEP HERE (S115). The 1 s this used to wait was a settle for the
+        # analog rails before the first measurement window -- and between this
+        # line and that window the run does codec_init (2.0 s measured, and
+        # unconditional by design), a link check and the route write, 4 s or
+        # more on every press. The settle is therefore already there by
+        # construction and waiting for it twice is 1 s of every press. If a
+        # future change ever moves the measurement closer to this line, the
+        # sleep comes back with it.
         cap['raised'] = True
     cap['an'] = r.an_en()
     ev.append('AN_EN (GPIO%d): at entry %s; now %s%s'
@@ -1612,19 +1821,45 @@ def _al1_prereq(r):
                   % (cap['mems_row'] or 'no MEMS lane in the scan'))
     _tick('AL1 rxscan end')
 
-    # The route write, PROBED FIRST (S114 rank 3): a repeat press finds the
-    # route still asserted from the last one, so the 31-cell CLOSE list and
-    # the 12-cell route are only re-written on a mismatch. The probe itself
-    # is unconditional either way -- it is the evidence that the S102 loop
-    # actually measures the asserted route rather than the default
-    # configuration, which is the exact trap this file's history warns about.
+    # The route write, IN TWO GROUPS (S114 rank 3, re-cut by S115). A repeat
+    # press finds the STANDING route still asserted from the last one -- the
+    # 31-cell CLOSE list, the level, the pan, the four processors off, the main
+    # level -- and re-writes none of it; the four ENABLE cells that decide
+    # whether the speaker is LIVE were deliberately zeroed by the last press's
+    # handback and always go back on. Every cell written is read back through
+    # the image's own dispatch table, and on the full path the standing cells
+    # are probed as well: that read-back is the evidence that the S102 loop
+    # measures the ASSERTED route and not the default configuration, which is
+    # the exact trap this file's history warns about.
     _tick('AL1 route start')
     close, route = _route_cells()
-    cap['probe'] = _route_probe(r)
-    if _route_probe_ok(cap['probe']):
-        cap['route_rc'] = 0
-        ev.append('--- the route write (skipped -- probe already matches) ---\n'
-                  '--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
+    marker = os.path.join(r.a.stage, '.al1_route_standing')
+    standing = (r.out('test -f %s && echo yes' % shlex.quote(marker)) == 'yes'
+                and not r._booted_this_run)
+    if standing:
+        # THE NORMAL REPEAT PRESS SINCE S115. The four ENABLE cells were zeroed
+        # by the last press's handback, so they ALWAYS have to be re-written and
+        # probing them first would be pure cost; s89_set reads each one back as
+        # it writes it, and that read-back IS the evidence -- the thing the
+        # probe was ever for. The standing route -- level, pan, the four
+        # processors off, the main level and the 31-strip CLOSE list -- is only
+        # ever moved by a boot's config commit, so a marker written when it last
+        # verified, plus "nothing booted the pair in this run", is what says it
+        # does not need re-writing. Same shape as the SAFE-chain marker in
+        # handback (S114 rank 4) and for the same reason.
+        rc, tx = _set(r, _enable_cells())
+        got = _probe_reads(tx)
+        bad = (rc or 'Traceback' in tx or 'NOT IN CONTRACT' in tx
+               or any(got.get(k) != v for k, v in _ENABLE_TARGETS.items()))
+        cap['route_rc'] = 1 if bad else 0
+        cap['route_how'] = 'ENABLE group only (the standing route was still set)'
+        cap['probe'] = tx
+        ev.append('--- the route write, ENABLE group only (exit %d) ---\n'
+                  'the standing route was verified for this stage (marker %s) and '
+                  'nothing booted the pair in this run, so it was NOT re-written; '
+                  'only the four cells the handback zeroes were. Each is read back '
+                  'below through the image\'s own dispatch table.\n%s'
+                  % (cap['route_rc'], marker, tx[-900:]))
     else:
         rc1, t1 = _set(r, close)
         rc2, t2 = _set(r, route)
@@ -1633,10 +1868,17 @@ def _al1_prereq(r):
         bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
             or 'NOT IN CONTRACT' in t2
         cap['route_rc'] = 1 if bad else 0
+        cap['route_how'] = 'full close + route'
         ev.append('--- the route write (exit %d) ---\n--- other strips off MAIN ---\n%s'
                   '\n--- the route ---\n%s' % (cap['route_rc'], t1[-400:], t2[-800:]))
         cap['probe'] = _route_probe(r)
         ev.append('--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
+        if _route_probe_ok(cap['probe']):
+            r.rsh('touch %s' % shlex.quote(marker))
+        else:
+            r.rsh('rm -f %s' % shlex.quote(marker))
+            cap['route_rc'] = 1
+    cap['route_at'] = time.time()
     _tick('AL1 route end')
 
     if cap['route_rc']:
@@ -1666,8 +1908,12 @@ def al1_measure(r, level):
     base, t0 = _al1_osc(r, None)
     _tick('AL1 tone start')
     tone, t1 = _al1_osc(r, level)
+    # NO CAPTURE ON THE SECOND BASELINE. The first one gives the noise spectrum
+    # the tone is read against and the tone leg gives the verdict; the second
+    # baseline's job is to say the floor came back, which its RMS answers on its
+    # own. 0.19 s of every press (S115).
     _tick('AL1 second baseline start')
-    back, t2 = _al1_osc(r, None)
+    back, t2 = _al1_osc(r, None, cap=False)
     _tick('AL1 measure end')
     return {'base': base, 'tone': tone, 'back': back,
             'raw': '--- baseline (tone off) ---\n%s\n--- tone at %.1f dBFS ---\n%s'
@@ -1690,6 +1936,36 @@ def al1_numbers(m, level):
     n['thdn_pct'] = pct_of_db(n['thdn_db'])
     n['snr_db'] = n['tone_dbfs'] - n['base_dbfs']
     n['return_db'] = n['back_dbfs'] - n['base_dbfs']
+
+    # THE BANDPASS NUMBERS, off the coherent capture of the SAME lane in the
+    # SAME session (S115, PW's ruling). No fallback to THD+N: a THD-shaped
+    # ceiling applied to a THD+N number is how a clean loop came to read 45 %,
+    # so a capture that did not come back is NO DATA and says so.
+    cap = m['tone'].get('cap') or {}
+    f = cap.get('fft') or {}
+    if not f:
+        return None, ('the coherent capture of %s did not come back (%s), and '
+                      'the verdict is on BANDPASS THD -- THD+N cannot stand in '
+                      'for it'
+                      % (AL1_CAP_NODE,
+                         cap.get('error') or cap.get('fft_error')
+                         or 'no capture in the tool\'s JSON'))
+    n['thd_db'] = f['thd_db']
+    n['thd_pct'] = pct_of_db(n['thd_db'])
+    n['thd_floor_db'] = f.get('thd_floor_db')
+    n['fft_fund_hz'] = f['fund_hz']
+    n['fft_fund_dbfs'] = f['fund_dbfs']
+    n['fft_thdn_db'] = f['thdn_db']
+    n['fft_noise_dbfs'] = f['noise_dbfs']
+    n['fft_snr_db'] = f['snr_db']
+    n['fft_tone'] = f['tone']
+    n['fft_harmonics'] = f.get('harmonics') or []
+    n['cap_rms_dbfs'] = cap.get('rms_dbfs')
+    n['cap_quarters'] = cap.get('quarter_rms_dbfs') or []
+    n['cap_quarter_spread_db'] = cap.get('quarter_spread_db')
+    n['cap_n'] = cap.get('n')
+    base_f = ((m['base'].get('cap') or {}).get('fft') or {})
+    n['base_floor_bin_dbfs'] = base_f.get('floor_bin_dbfs')
     return n, None
 
 
@@ -1708,8 +1984,21 @@ def al1_verdict(n):
     pred = c['slope_db_per_db'] * n['drive_dbfs'] + c['intercept_dbfs']
     n['pred_dbfs'] = pred
     # The noise floor already in the reading sets how good THD+N could
-    # possibly be; anything past THAT by the margin is distortion.
+    # possibly be; anything past THAT by the margin is distortion. KEPT, and
+    # kept INFORMATIONAL: since S115 the verdict is on bandpass THD and this
+    # pair is printed beside it so the two instruments can be compared.
     n['thdn_ceiling_db'] = max(c['thdn_abs_db'], -n['snr_db'] + c['thdn_margin_db'])
+    # THE CEILING THE VERDICT USES. The same two-term shape for the same
+    # reason: `thd_abs_db` is what a healthy loop measured on this unit, and
+    # the second term is the instrument's own floor -- each harmonic band
+    # integrates the noise in (2*half_lobe+1) bins, so no THD reading can be
+    # better than that however clean the speaker is. A capture taken in a loud
+    # room therefore raises the ceiling instead of failing the unit.
+    if n.get('thd_floor_db') is not None:
+        n['thd_ceiling_db'] = max(c['thd_abs_db'],
+                                  n['thd_floor_db'] + c['thd_margin_db'])
+    else:
+        n['thd_ceiling_db'] = c['thd_abs_db']
     # IS THERE A TONE IN THE WINDOW: THD+N SAYS SO, SNR ONLY SUGGESTS IT.
     # S111 -- the same reading that S110 made the calibration fit rule out of.
     # THD+N at or under -6 dB means the fundamental holds at least half the
@@ -1728,10 +2017,11 @@ def al1_verdict(n):
         return FAIL, 'NO SOUND'
     if n['tone_dbfs'] < pred - c['level_tol_db']:
         return FAIL, 'LOW'
-    if n['thdn_db'] > n['thdn_ceiling_db']:
-        # 'CLIP' and not 'CLIP/DISTORTED': the word leads a line the glass cuts
-        # at 70 characters and the long form costs ten of them. The evidence
-        # below spells out that it is clipping OR any other distortion.
+    if n['thd_db'] > n['thd_ceiling_db']:
+        # BANDPASS THD, not THD+N (PW 2026-09-26). 'CLIP' and not
+        # 'CLIP/DISTORTED': the word leads a line the glass cuts at 70
+        # characters and the long form costs ten of them. The evidence below
+        # spells out that it is clipping OR any other distortion.
         return FAIL, 'CLIP'
     if c['high_fails'] and n['tone_dbfs'] > pred + c['level_hi_tol_db']:
         return FAIL, 'HIGH'
@@ -1748,25 +2038,46 @@ AL1_NO_SOUND_NOTE = (
     'probe U3.22 for the tone to split the loop in half.')
 
 
+def _al1_stand_down(r, ev):
+    """Speaker silent, rails down, evidence appended -- in that order.
+
+    The order is the point: the monitor levels go to zero while the rails are
+    still up, so nothing is switched under a live amplifier."""
+    for txt in (al1_silence(r), al1_rails_down(r)):
+        if txt:
+            ev.append('\n%s' % txt)
+
+
 def t_al1(r):
     """The whole acoustic loop: tone out of the panel speaker, back in through
     the panel MEMS mic, in one press."""
     lim = ('a tone in the window (THD+N <= %.0f dB, or SNR >= %.1f dB over the tone-off '
            'floor), level within %.0f dB of the calibrated line (pred = %.3f x drive '
-           '%+.2f dBFS), THD+N under the ceiling (PROVISIONAL -- %s)'
+           '%+.2f dBFS), BANDPASS THD (h2..h10) under %.1f dB = %.3f %% '
+           '(PROVISIONAL -- %s)'
            % (AL1_FIT_THDN_MAX_DB, AL1_CAL['snr_min_db'], AL1_CAL['level_tol_db'],
               AL1_CAL['slope_db_per_db'], AL1_CAL['intercept_dbfs'],
+              AL1_CAL['thd_abs_db'], pct_of_db(AL1_CAL['thd_abs_db']),
               AL1_CAL['provisional']))
     blocker, ev, cap = _al1_prereq(r)
     r._al1_an = cap                      # handback reads this
     if blocker:
+        # The route write happens BEFORE the last three prerequisite gates, so
+        # a blocker can leave the speaker live. Take it down here too.
+        _al1_stand_down(r, ev)
         return NODATA, blocker, lim, '\n'.join(ev) + '\nPREREQUISITE: ' + blocker
 
-    if r.a.al1_calibrate:
-        return al1_calibrate(r, ev)
+    if r.a.al1_calibrate or r.a.al1_calibrate_thd:
+        out = al1_calibrate(r, ev)
+        _al1_stand_down(r, ev)
+        return out[0], out[1], out[2], '\n'.join(ev)
 
     level = al1_level(r)
     m = al1_measure(r, level)
+    # THE SPEAKER GOES QUIET HERE, not at handback: the last window has been
+    # read and nothing after this point measures anything. Everything below is
+    # arithmetic on numbers already in hand (S115).
+    _al1_stand_down(r, ev)
     ev.append(m['raw'])
     n, why = al1_numbers(m, level)
     if n is None:
@@ -1806,32 +2117,67 @@ def t_al1(r):
     # oscillator on-time -- is in the evidence below, which the CSV keeps in
     # full. S110 found this by reading the glass after the first press, where
     # the old long form was cut off at "tone -49.36 dBFS (p...".
-    measured = ('%s base %.1f tone %.1f SNR %.1f dB THD+N %.1f dB %.1f%%'
+    measured = ('%s base %.1f tone %.1f SNR %.1f dB THD %.1f dB %.2f%%'
                 % (word, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
-                   n['thdn_db'], n['thdn_pct']))
+                   n['thd_db'], n['thd_pct']))
     if len(measured) > 70:                       # never let the glass cut it
-        measured = ('%s %.0f/%.0f SNR %.0f THD+N %.0f dB %.0f%%'
+        measured = ('%s %.0f/%.0f SNR %.0f THD %.0f dB %.1f%%'
                     % (word, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
-                       n['thdn_db'], n['thdn_pct']))
+                       n['thd_db'], n['thd_pct']))
     ev.append('\n--- the numbers ---\n'
               'drive            %8.2f dBFS peak\n'
               'baseline (off)   %8.2f dBFS\n'
               'tone (on)        %8.2f dBFS   predicted %.2f (%.3f x drive %+.2f)\n'
               'SNR              %8.2f dB    (tone on minus tone off)\n'
-              'THD+N            %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%\n'
-              'in-window noise  %8.2f dBFS\n'
+              'THD  h2..h10     %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%'
+              '   <-- THE VERDICT\n'
+              'THD floor (inst) %8s dB      the noise inside the harmonic bands\n'
+              'THD+N (node)     %8.2f dB  = %.3f %%   ceiling %.2f dB = %.3f %%'
+              '   INFORMATIONAL\n'
+              'THD+N (capture)  %8.2f dB  = %.3f %%   INFORMATIONAL, the same '
+              'window transformed\n'
+              'in-window noise  %8.2f dBFS  (node)   %8s dBFS (capture, '
+              'between the bands)\n'
               'floor afterwards %8.2f dBFS  (%+.2f dB)\n'
               'oscillator on    %8s s      (cap %.1f s)\n'
               'tone in window   %8s        (THD+N <= %.1f dB, or SNR >= %.1f dB)\n'
               'VERDICT          %s (%s)'
               % (n['drive_dbfs'], n['base_dbfs'], n['tone_dbfs'], n['pred_dbfs'],
                  AL1_CAL['slope_db_per_db'], AL1_CAL['intercept_dbfs'],
-                 n['snr_db'], n['thdn_db'], n['thdn_pct'],
+                 n['snr_db'],
+                 n['thd_db'], n['thd_pct'],
+                 n['thd_ceiling_db'], pct_of_db(n['thd_ceiling_db']),
+                 ('%.2f' % n['thd_floor_db']) if n.get('thd_floor_db') is not None else '?',
+                 n['thdn_db'], n['thdn_pct'],
                  n['thdn_ceiling_db'], pct_of_db(n['thdn_ceiling_db']),
-                 n['noise_dbfs'], n['back_dbfs'], n['return_db'],
+                 n['fft_thdn_db'], pct_of_db(n['fft_thdn_db']),
+                 n['noise_dbfs'],
+                 ('%.2f' % n['fft_noise_dbfs']) if n.get('fft_noise_dbfs') is not None else '?',
+                 n['back_dbfs'], n['return_db'],
                  ('%.2f' % n['on_seconds']) if n['on_seconds'] else '?',
                  AL1_MAX_ON_S, 'YES' if n['tone_present'] else 'NO',
                  AL1_FIT_THDN_MAX_DB, AL1_CAL['snr_min_db'], word, verdict))
+    # THE CAPTURE'S OWN EVIDENCE, and the one line that answers "was the tone
+    # there for the whole window": four quarters of 256 samples each. A tone
+    # whose onset or offset falls inside the capture puts one quarter tens of
+    # dB below the others; a steady tone holds them within a fraction of a dB.
+    ev.append('\n--- the coherent capture (%s, %s samples = %.1f ms) ---\n'
+              'capture RMS      %8s dBFS\n'
+              'quarters (RMS)   %s dBFS   spread %s dB\n'
+              'fundamental      %8s Hz at %s dBFS   (commanded %.1f Hz)\n'
+              'FFT says a tone is present: %s\n'
+              'harmonics (dBc): %s'
+              % (AL1_CAP_NODE, n.get('cap_n'),
+                 1000.0 * (n.get('cap_n') or 0) / 48000.0,
+                 ('%.2f' % n['cap_rms_dbfs']) if n.get('cap_rms_dbfs') is not None else '?',
+                 ' '.join('%.2f' % v for v in n.get('cap_quarters') or []) or '?',
+                 ('%.2f' % n['cap_quarter_spread_db'])
+                 if n.get('cap_quarter_spread_db') is not None else '?',
+                 ('%.1f' % n['fft_fund_hz']) if n.get('fft_fund_hz') else '?',
+                 ('%.2f' % n['fft_fund_dbfs']) if n.get('fft_fund_dbfs') is not None else '?',
+                 _SPKR_FREQ_HZ, n.get('fft_tone'),
+                 '  '.join('h%d %.1f' % (h['n'], h['dbc'])
+                           for h in n.get('fft_harmonics') or []) or 'none'))
     if high:
         ev.append('\nNOTE: the level is %+.2f dB above the predicted line, past the '
                   '%.1f dB upper edge of the window. NOT scored (AL1_CAL[\'high_fails\'] '
@@ -1850,6 +2196,19 @@ def t_al1(r):
 # --- calibration ------------------------------------------------------------
 AL1_CAL_LEVELS = (-12.0, -6.0, -3.0)   # brackets AL1_TONE_DBFS (S110 follow-up)
 AL1_CAL_REPS = 5
+# THE INSTRUMENT-FLOOR GUARD, and why it is a constant and not fitted (S115).
+# `thd_margin_db` sits on top of the capture's OWN THD floor -- the noise inside
+# the harmonic bands, which no reading can beat -- so its only job is to keep a
+# reading that is already at the floor from failing. Fitting it to "how far past
+# the floor a healthy loop went" gets it wrong by 30 dB: this speaker genuinely
+# distorts more at -3 dBFS than at -12, so the widest gap between a reading and
+# its floor is the measure of REAL distortion, and using that as a margin would
+# lift the ceiling 7 dB above the absolute one and stop it biting at all
+# (measured: the first S115 calibration produced thd_margin_db 34.4 and a
+# run-time ceiling of -21.6 dB where the absolute was -28.7). 6 dB is enough to
+# clear the floor and small enough that the absolute ceiling governs whenever
+# the room is not the limit -- on this unit the floor sits 24 dB below it.
+AL1_THD_FLOOR_GUARD_DB = 6.0
 
 
 def al1_calibrate(r, ev):
@@ -1872,8 +2231,10 @@ def al1_calibrate(r, ev):
             n['rep'] = k + 1
             grid.append(n)
             print('  AL1 cal %6.1f dBFS rep %d: base %7.2f  tone %7.2f  SNR %6.2f  '
-                  'THD+N %7.2f dB = %7.3f %%'
+                  'THD %7.2f dB = %6.3f %%  (floor %6s)  THD+N %7.2f dB = %7.3f %%'
                   % (lv, k + 1, n['base_dbfs'], n['tone_dbfs'], n['snr_db'],
+                     n['thd_db'], n['thd_pct'],
+                     ('%.2f' % n['thd_floor_db']) if n.get('thd_floor_db') is not None else '?',
                      n['thdn_db'], n['thdn_pct']))
     if len(grid) < 4:
         return (NODATA, 'calibration got %d usable runs' % len(grid),
@@ -1906,23 +2267,33 @@ def _fmt(v):
 
 
 def al1_table(grid):
-    head = ('  drive    rep   baseline      tone        SNR     THD+N        THD+N   '
-            '  noise    on\n  dBFS           dBFS       dBFS        dB        dB     '
-            '      %      dBFS     s')
+    head = ('  drive    rep   baseline      tone        SNR       THD        THD'
+            '     floor     THD+N        THD+N     noise    on\n'
+            '  dBFS           dBFS       dBFS        dB        dB          %'
+            '        dB        dB            %      dBFS     s')
     lines = [head]
     for g in grid:
-        lines.append('  %6.1f %5d %10.2f %10.2f %10.2f %9.2f %12.3f %9.2f %6s'
+        lines.append('  %6.1f %5d %10.2f %10.2f %10.2f %9s %10s %9s %9.2f %12.3f %9.2f %6s'
                      % (g['drive_dbfs'], g['rep'], g['base_dbfs'], g['tone_dbfs'],
-                        g['snr_db'], g['thdn_db'], g['thdn_pct'], g['noise_dbfs'],
+                        g['snr_db'],
+                        ('%.2f' % g['thd_db']) if g.get('thd_db') is not None else '?',
+                        ('%.3f' % g['thd_pct']) if g.get('thd_pct') is not None else '?',
+                        ('%.2f' % g['thd_floor_db']) if g.get('thd_floor_db') is not None else '?',
+                        g['thdn_db'], g['thdn_pct'], g['noise_dbfs'],
                         ('%.2f' % g['on_seconds']) if g['on_seconds'] else '?'))
     for lv in sorted(set(g['drive_dbfs'] for g in grid)):
         at = [g for g in grid if g['drive_dbfs'] == lv]
         t = [g['tone_dbfs'] for g in at]
+        th = [g['thd_db'] for g in at if g.get('thd_db') is not None]
         lines.append('  mean at %6.1f: tone %.2f dBFS (spread %.2f dB), baseline %.2f, '
-                     'SNR %.2f dB, THD+N %.2f dB = %.3f %%'
+                     'SNR %.2f dB, THD %s dB = %s %% (spread %s dB), '
+                     'THD+N %.2f dB = %.3f %%'
                      % (lv, sum(t) / len(t), max(t) - min(t),
                         sum(g['base_dbfs'] for g in at) / len(at),
                         sum(g['snr_db'] for g in at) / len(at),
+                        ('%.2f' % (sum(th) / len(th))) if th else '?',
+                        ('%.3f' % pct_of_db(sum(th) / len(th))) if th else '?',
+                        ('%.2f' % (max(th) - min(th))) if th else '?',
                         sum(g['thdn_db'] for g in at) / len(at),
                         pct_of_db(sum(g['thdn_db'] for g in at) / len(at))))
     return '\n'.join(lines)
@@ -1943,6 +2314,9 @@ def al1_table(grid):
 # -- 88 % and 77 % -- and no gate on THD+N of any plausible value admits them.
 AL1_FIT_THDN_MAX_DB = -6.0
 AL1_FIT_SNR_MIN_DB = 3.0
+
+
+AL1_THD_ONLY_KEYS = ('thd_abs_db', 'thd_margin_db')
 
 
 def al1_fit(grid, r):
@@ -1995,13 +2369,35 @@ def al1_fit(grid, r):
     excess = [g['thdn_db'] - (-g['snr_db']) for g in use]
     c['thdn_margin_db'] = round(max(excess) + 3.0, 1)
     c['thdn_abs_db'] = round(max(g['thdn_db'] for g in at_def) + 3.0, 1)
+    # BANDPASS THD (S115). The verdict's ceiling, derived from the THD readings
+    # alone -- never from the THD+N pair above, which over this loop is
+    # dominated by noise and sits 10-30 dB worse. The absolute number is the
+    # worst THD a healthy loop showed AT THE DRIVE THE TEST RUNS AT (the -12 and
+    # -3 dBFS points bracket the line and are not the ceiling: this speaker's
+    # THD is a function of level, 1.0 % at -12, 2.6 % at -6, 3.9 % at -3). The
+    # margin is the instrument-floor guard, a constant -- see
+    # AL1_THD_FLOOR_GUARD_DB for why fitting it is wrong.
+    thds = [g['thd_db'] for g in at_def if g.get('thd_db') is not None]
+    if thds:
+        c['thd_abs_db'] = round(max(thds) + 3.0, 1)
+    c['thd_margin_db'] = AL1_THD_FLOOR_GUARD_DB
+    if r.a.al1_calibrate_thd:
+        # ONLY THE THD CEILING MOVES. Asked for explicitly, because a session
+        # told to change one limit must be able to prove it changed one limit:
+        # the diff the calibrator prints then has exactly two CHANGED rows.
+        keep = dict(AL1_CAL)
+        for k in AL1_THD_ONLY_KEYS:
+            keep[k] = c[k]
+        c = keep
     c['stamp'] = stamp()
     c['pair'] = str(r.pair)
     lo = min(g['drive_dbfs'] for g in use)
-    c['runs'] = ('%d runs at %s dBFS x %d reps; %d fitted, %d excluded as not '
+    c['runs'] = ('%s%d runs at %s dBFS x %d reps; %d fitted, %d excluded as not '
                  'measuring a tone (THD+N > %g dB); lowest drive that read: '
                  '%g dBFS; default drive %g dBFS'
-                 % (len(grid), '/'.join('%g' % l for l in sorted(set(g['drive_dbfs']
+                 % ('THD ceiling only (--al1-calibrate-thd); every other limit '
+                    'left as it was: ' if r.a.al1_calibrate_thd else '',
+                    len(grid), '/'.join('%g' % l for l in sorted(set(g['drive_dbfs']
                                                                     for g in grid))),
                     AL1_CAL_REPS, len(use), len(grid) - len(use),
                     AL1_FIT_THDN_MAX_DB, lo, AL1_TONE_DBFS))
@@ -2039,6 +2435,8 @@ def al1_write_table(new):
             "    'floor_max_dbfs': %s," % _fmt(new['floor_max_dbfs']),
             "    'thdn_abs_db': %s," % _fmt(new['thdn_abs_db']),
             "    'thdn_margin_db': %s," % _fmt(new['thdn_margin_db']),
+            "    'thd_abs_db': %s," % _fmt(new['thd_abs_db']),
+            "    'thd_margin_db': %s," % _fmt(new['thd_margin_db']),
             "}"]
     out = src[:i] + '\n'.join(body) + src[j + 2:]
     try:
@@ -2060,6 +2458,56 @@ def _pair_names(md5_txt):
     pair directory's own files regardless of which directory name each line
     carries."""
     return [ln.split()[0] for ln in md5_txt.splitlines() if ln.strip()]
+
+
+# THE TOOLS THAT LIVE ONLY IN THIS REPO, and the trap S115 walked into.
+#
+# None of these is in `/home/app/dspboot`, so `stage_setup`'s symlink loop
+# cannot find them -- which is the trap that made `loopthd.sh`'s first run
+# measure the default configuration and report PASS on a route it never
+# asserted. They were therefore scp'd into the stage directory by hand.
+#
+# S114 then made the stage copy conditional on the PAIR's md5 (rank 1), and the
+# tool copies sat inside that branch. So a repeat press -- the normal case --
+# skipped them too, and a NEW version of one of these tools could be deployed
+# to `/home/app/selftest`, be correct there, and never reach the directory the
+# run actually calls it from. S115 hit it immediately: `dsp4_s49_osc.py` gained
+# `--cap-node`, the runner passed it, and the stage dir still held yesterday's
+# copy, which answered `unrecognized arguments` on all three legs.
+#
+# So the tools are md5-gated ON THEMSELVES, independently of the pair: one
+# `md5sum` over the stage copies, then a copy of only the ones that differ. A
+# repeat press with nothing changed pays one `md5sum`.
+STAGE_TOOLS = ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py',
+               's89_set.py', 'dsp4_s49_osc.py', 'dsp4_bulk.py', 'dsp4_fft.py')
+
+
+def stage_tools(r, s):
+    """Refresh the repo-only tools in the stage dir, md5-gated. Evidence text."""
+    want = {}
+    for name in STAGE_TOOLS:
+        src = os.path.join(HERE, name)
+        if not os.path.exists(src):
+            continue
+        with open(src, 'rb') as fh:
+            want[name] = hashlib.md5(fh.read()).hexdigest()
+    if not want:
+        return 'tools: none of %s found beside the runner' % ', '.join(STAGE_TOOLS)
+    got = {}
+    for ln in r.out('cd %s && md5sum %s 2>/dev/null'
+                    % (s, ' '.join(want))).splitlines():
+        bits = ln.split()
+        if len(bits) == 2:
+            got[os.path.basename(bits[1])] = bits[0]
+    stale = [n for n, h in want.items() if got.get(n) != h]
+    for name in stale:
+        r.rsh('rm -f %s/%s' % (s, name))              # never scp onto a symlink
+        r.put(os.path.join(HERE, name), s)
+    if not stale:
+        return ('tools: %d repo-only tools already current in %s (md5)'
+                % (len(want), s))
+    return ('tools: copied %s into %s (md5 differed); %d already current'
+            % (', '.join(sorted(stale)), s, len(want) - len(stale)))
 
 
 def stage_setup(r):
@@ -2084,28 +2532,22 @@ def stage_setup(r):
     if staged and staged == current:
         return ('pair: %s (%s) -- already staged in %s, md5 matches, copy skipped\n'
                 % (r.pair, r.pair_why, s)
-                + r.out('md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s)))
+                + r.out('md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s))
+                + '\n' + stage_tools(r, s))
     r.rsh("mkdir -p %s && cp %s/chip1.ldr %s/chip2.ldr "
           "%s/chip1.sym.json %s/chip2.sym.json %s/" % (s, p, p, p, p, s), timeout=120)
     r.rsh("for f in %s/*.py; do ln -sfn \"$f\" %s/$(basename \"$f\"); done; "
           "ln -sfn %s/input_patch.json %s/input_patch.json" % (DSPBOOT, s, DSPBOOT, s),
           timeout=120)
-    # s89_set.py and dsp4_s49_osc.py are the S102 speaker route's own two tools
-    # and NEITHER is in /home/app/dspboot -- the symlink loop above cannot find
-    # them, which is exactly the trap that made loopthd.sh's first run measure
-    # the default configuration and report PASS on a route it never asserted.
-    for name in ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py',
-                 's89_set.py', 'dsp4_s49_osc.py'):
-        src = os.path.join(HERE, name)
-        if os.path.exists(src):
-            r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
-            r.put(src, s)
+    # The repo-only tools go on after the symlink loop, never before it: an scp
+    # onto a symlink writes THROUGH it into /home/app/dspboot. See STAGE_TOOLS.
     # A fresh copy invalidates anything the SAME stage dir cached about the
     # PREVIOUS pair -- the MEMS rxscan result (S114 rank 5) is about physical
     # cabling, not the pair, but tying its cache to the same trigger as the
     # copy keeps one rule instead of two.
-    r.rsh('rm -f %s/.rxscan_mems' % s)
+    r.rsh('rm -f %s/.rxscan_mems %s/.al1_route_standing' % (s, s))
     return ('pair: %s (%s)\n' % (r.pair, r.pair_why)
+            + stage_tools(r, s) + '\n'
             + r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s)))
 
 
@@ -2168,6 +2610,10 @@ def boot_pair(r):
     parameter link on the first pass every time -- pre-existing, reproduces on
     the original image -- and the pair reaches BOOT_STAGE 7 on the second."""
     r._booted_this_run = True
+    # A boot's config commit rewrites the cells AL1's standing route sets, so
+    # the marker that says "the standing route is still asserted" stops being
+    # true here (S115). AL1 then does the full close + route write again.
+    r.rsh('rm -f %s' % shlex.quote(os.path.join(r.a.stage, '.al1_route_standing')))
     log = []
     for cycle in (1, 2):
         pin_handback(r)
@@ -2285,6 +2731,21 @@ def handback(r):
     final DSP boot, because a boot clocks half a megabyte through it and only
     a CS_M edge decides what gets latched (S70-7)."""
     notes = []
+    # THE SPEAKER FIRST (S115). AL1 stands its own route down as soon as the
+    # last window is read, so this is normally a no-op that says so; it is here
+    # for the paths that do not reach that point -- a prerequisite blocker, an
+    # exception, a future runner that asserts the route and forgets. A unit that
+    # goes back on the shelf with the monitor bus at unity hisses until it is
+    # unplugged: the amplifier is on the digital 5 V, not on AN_EN.
+    sil = al1_silence(r)
+    if sil:
+        notes.append(sil)
+    else:
+        cap0 = getattr(r, '_al1_an', None)
+        if cap0 is not None:
+            notes.append('speaker path: already torn down by AL1 (%s, live %s s)'
+                         % ('SILENT' if cap0.get('silent_ok') else 'NOT SILENT',
+                            cap0.get('speaker_live_s', '?')))
     want_safe = ' '.join('%02X' % b for b in SAFE_IMAGE)
     marker = r.out('cat %s 2>/dev/null' % shlex.quote(_chain_marker(r)))
     if marker == want_safe and not r._booted_this_run:
@@ -2308,7 +2769,12 @@ def handback(r):
     # owner, so `--al1-keep-rails` is the way to say "leave them".
     cap = getattr(r, '_al1_an', None)
     an_before = r.an_en()
-    if cap and cap.get('raised') and not r.a.al1_keep_rails:
+    if cap and cap.get('lowered'):
+        notes.append('AN_EN: %s at entry, RAISED by AL1, LOWERED as soon as the '
+                     'windows were read (up for %s s of this press) -> %s'
+                     % (cap['an_start'].split('//')[0].strip(),
+                        cap.get('rails_up_s', '?'), an_before))
+    elif cap and cap.get('raised') and not r.a.al1_keep_rails:
         r.pin('%d op dl' % AN_EN_GPIO)
         notes.append('AN_EN: %s at entry, RAISED by AL1, LOWERED here -> %s'
                      % (cap['an_start'].split('//')[0].strip(), r.an_en()))
@@ -2488,6 +2954,15 @@ def main():
                          'speaker to full scale by hand on 2026-09-25 and it '
                          'was clean; an automated test still does not.'
                          % (_SPKR_OSC_STRIP, AL1_TONE_DBFS, AL1_TONE_CAP_DBFS))
+    ap.add_argument('--al1-calibrate-thd', action='store_true',
+                    help='S115: the same calibration runs, but ONLY the bandpass'
+                         '-THD ceiling (thd_abs_db / thd_margin_db) is written. '
+                         'Every other limit -- the level line, the level window, '
+                         'snr_min_db, floor_max_dbfs and the THD+N pair -- is '
+                         'left exactly as it was. This is what a session that '
+                         'was asked to change the THD ceiling AND NOTHING ELSE '
+                         'uses; `--al1-calibrate` on its own still re-fits the '
+                         'whole table, which is what an amp-gain change wants.')
     ap.add_argument('--al1-calibrate', action='store_true',
                     help='AL1: re-measure the provisional windows on this unit '
                          '(%s dBFS x %d reps) and REWRITE AL1_CAL in this file, '

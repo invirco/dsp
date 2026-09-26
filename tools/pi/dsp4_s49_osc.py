@@ -34,7 +34,7 @@ it should be.
 Usage:
   dsp4_s49_osc.py [--strip N] [--freq HZ] [--level DBFS] [--meas N]
                   [--xsrc N] [--xdst N] [--windows N] [--off] [--symdir DIR]
-                  [--ramp-ms MS] [--then-off]
+                  [--ramp-ms MS] [--then-off] [--cap-node SYM] [--cap N]
 
 THE RAMP (S110), and why a test that plays a tone out of a SPEAKER needs one.
 `OscOn 0` cuts the sine at whatever instant the write lands, and that step is a
@@ -46,6 +46,21 @@ error made entirely by the harness. `--ramp-ms` fades OscLevel in equal dB
 steps into the target on the way up and away from it on the way down, so the
 speaker is never asked for a step. Default 0 = the old behaviour exactly, so
 every existing caller is unchanged.
+
+THE COHERENT CAPTURE (S115), and why the tone's own session has to take it.
+PW ruled on 2026-09-26 that the acoustic loop reports BANDPASS THD, not the
+`ThdResult` this node publishes: `ThdResult` is THD+N -- the window's total RMS
+minus the fundamental's quadrature fit -- so room noise, amplifier hiss and any
+tone-free part of the window are all counted as "distortion", and a loop that
+sounds clean to the ear reads 45 %. Harmonics can only be separated from noise
+in the frequency domain, which needs CONTIGUOUS samples. `--cap-node SYM`
+records `SYM`'s block through `_scope_record` (1,024 samples = 21.3 ms of real
+audio, [[dsp4-peek-is-not-a-block]]) and reads it back with `dsp4_bulk.py` in
+ONE streamed transfer, then hands it to `dsp4_fft.analyse()`. It happens
+between the last window and the fade-out, INSIDE this session, for the same
+reason `--then-off` exists: a second invocation would spend seconds starting up
+with the speaker still sounding. Measured cost on MW-D24-2: 0.09 s to fill,
+0.10 s to read.
 
 `--then-off` fades the tone out and leaves `OscOn 0` in the SAME session, and
 prints how long the oscillator was actually on. Two invocations -- one to play,
@@ -65,6 +80,19 @@ _ARGV = sys.argv[1:]
 sys.argv = ['s']
 sys.path.insert(0, '/home/app/dspboot')
 import dsp4_scope as S                                       # noqa: E402
+
+# Both live beside this tool in the stage directory, and neither is needed
+# unless --cap-node is asked for: a missing one degrades the capture rather
+# than failing the tone, which is what keeps the verdict this tool feeds
+# answerable on an older stage.
+try:
+    import dsp4_bulk as BULK                                  # noqa: E402
+except ImportError:
+    BULK = None
+try:
+    import dsp4_fft as FFT                                    # noqa: E402
+except ImportError:
+    FFT = None
 
 # ---- the S49 address block (chip 1, page 1) ------------------------------
 MEAS_BASE = 4967
@@ -118,6 +146,104 @@ def pct(db):
     return '%.5f %%' % (100.0 * 10.0 ** (db / 20.0))
 
 
+def _q28(words):
+    """Raw DM words as Q4.28, where 1.0 is converter full scale."""
+    out = []
+    for w in words:
+        w &= 0xFFFFFFFF
+        out.append(((w - (1 << 32)) if w & 0x80000000 else w) / float(1 << 28))
+    return out
+
+
+def _rms_dbfs(x):
+    ms = sum(v * v for v in x) / len(x) if x else 0.0
+    return 10.0 * math.log10(ms) if ms > 0 else float('-inf')
+
+
+def capture(sc, node, n, quarters=4):
+    """One COHERENT capture of `node`'s block, analysed.
+
+    `_scope_record` stores `_scope_src[_sample_idx]` once per sample, so this
+    is contiguous audio and an FFT of it means something. `inj` is 0: the
+    stimulus is the TEST_OSC node, already running, and arming the scope's own
+    injector as well would put a step on top of the tone.
+
+    ONLY A NODE WITH ITS OWN BLOCK CAN BE READ THIS WAY. Strip node buffers
+    live in the block pool (`gen_input_tdm`: "the pool is for strip inputs
+    only"), so `_buf_C1_FDR_nn` aliases whatever the pool last held -- three
+    different strips read bit-identically on the bench, which is how that was
+    caught. The taps that DO have their own block are the buses and the
+    non-strip converter lanes, `C1_XIN_MEMS` among them, which is the one this
+    is used for.
+
+    The quarters are how "was the tone there for the whole window" gets
+    answered rather than assumed: a tone whose onset or offset falls inside the
+    capture shows up as one quarter tens of dB below the others.
+    """
+    sym = node if node.startswith('_') else '_buf_%s' % node
+    if sym not in sc.sym:
+        return {'node': sym, 'error': '%s is not in the running image\'s map' % sym}
+    t0 = time.time()
+    sc.arm(src=sc.sym[sym], inj=0, amp=0, mode=0)
+    sc.wait(timeout=8.0)
+    t1 = time.time()
+    if BULK is not None and BULK.available(sc):
+        words, info = BULK.read(sc, sc.sym['_scope_buf'], n)
+        how = 'dsp4_bulk (one streamed transfer)'
+    else:
+        words = sc.fetch(n)
+        how = 'peek, word at a time (dsp4_bulk unavailable)'
+    t2 = time.time()
+    x = _q28(words)
+    cap = {'node': sym, 'n': len(words), 'scale': 'q4.28', 'fs': 48000,
+           'how': how, 'fill_s': round(t1 - t0, 3), 'read_s': round(t2 - t1, 3),
+           'rms_dbfs': _rms_dbfs(x), 'nonzero': sum(1 for v in x if v),
+           'samples': words}
+    q = len(x) // quarters
+    cap['quarter_rms_dbfs'] = [_rms_dbfs(x[i * q:(i + 1) * q])
+                               for i in range(quarters)]
+    cap['quarter_spread_db'] = (max(cap['quarter_rms_dbfs'])
+                                - min(cap['quarter_rms_dbfs']))
+    if FFT is None:
+        cap['fft_error'] = 'dsp4_fft.py is not beside this tool'
+        return cap
+    try:
+        a = FFT.analyse(x, 48000)
+    except SystemExit as e:
+        cap['fft_error'] = str(e)
+        return cap
+    # THE BANDPASS NUMBERS. `thd_db` is harmonics 2..N_HARMONICS only, each
+    # integrated over its own +-half_lobe band; everything between the bands
+    # is NOISE and is reported apart from it. `thdn_db` here is the same
+    # window's total-minus-fundamental -- the FFT's own THD+N, kept so the
+    # node's ThdResult can be checked against an independent instrument.
+    cap['fft'] = {
+        'engine': a['engine'], 'n': a['n'], 'bin_hz': a['bin_hz'],
+        'band_hz': a['band_hz'], 'n_harmonics': FFT.N_HARMONICS,
+        'fund_hz': a['fund_hz'], 'fund_dbfs': a['fund_dbfs'],
+        'thd_db': a['thd_db'], 'thdn_db': a['thdn_db'],
+        'noise_dbfs': a['noise_dbfs'], 'snr_db': a['snr_db'],
+        'floor_bin_dbfs': a['floor_bin_dbfs'], 'dc_dbfs': a['dc_dbfs'],
+        'total_dbfs': a['total_dbfs'], 'tone': a['tone'],
+        'crowded': a['crowded'],
+        'harmonics': [{'n': h['n'], 'hz': h['hz'], 'dbc': h['dbc'],
+                       'dbfs': h['dbfs']} for h in a['harmonics']],
+        'spurs': a['spurs'][:4],
+    }
+    # THE INSTRUMENT'S OWN THD FLOOR. Each harmonic band integrates
+    # (2*half_lobe+1) bins of whatever noise is in the capture, and there are
+    # N_HARMONICS-1 of them, so no THD reading can be better than that however
+    # clean the loop is. Reported so a ceiling can be set above it rather than
+    # under it.
+    bins = 2 * FFT.TONE_BAND + 1
+    nh = max(1, len(a['harmonics']))
+    if a['floor_bin_dbfs'] > float('-inf') and a['fund_dbfs'] > float('-inf'):
+        cap['fft']['thd_floor_db'] = (a['floor_bin_dbfs']
+                                      + 10.0 * math.log10(nh * bins)
+                                      - a['fund_dbfs'])
+    return cap
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--strip', type=int, default=5,
@@ -151,6 +277,16 @@ def main():
                     help='after the windows are read, fade out (honouring '
                          '--ramp-ms) and leave the oscillator OFF, in this '
                          'same session. Prints the measured on-time.')
+    ap.add_argument('--cap-node', default=None, metavar='SYM',
+                    help='S115: also take a COHERENT capture of this node\'s '
+                         'block (node id or _buf_ symbol) while the tone is '
+                         'at level, and analyse it for BANDPASS THD. Only a '
+                         'node with its own block -- a bus or a non-strip '
+                         'converter lane -- can be read this way; see '
+                         'capture().')
+    ap.add_argument('--cap', type=int, default=1024, metavar='N',
+                    help='samples in the capture (<= 1024, the _scope_buf '
+                         'length). 1,024 = 21.3 ms at 48 kHz.')
     ap.add_argument('--symdir', default='/home/app/s49')
     ap.add_argument('--json', default=None, help='write the results here too')
     a = ap.parse_args(_ARGV)
@@ -296,6 +432,41 @@ def main():
                  rms, thd, pct(thd), nse, xtk,
                  '   (TORN)' if s2 != s_ else ''))
 
+    # THE CAPTURE, while the tone is still at level and before the fade-out.
+    cap = None
+    if a.cap_node:
+        print('')
+        print('  coherent capture of %s:' % a.cap_node)
+        cap = capture(sc, a.cap_node, min(a.cap, S.SCOPE_MAX))
+        if cap.get('error'):
+            print('    NOT TAKEN: %s' % cap['error'])
+        else:
+            print('    %d samples (%s), %.1f ms, fill %.3f s read %.3f s'
+                  % (cap['n'], cap['how'], 1000.0 * cap['n'] / 48000.0,
+                     cap['fill_s'], cap['read_s']))
+            print('    capture RMS %8.2f dBFS   quarters %s   spread %.2f dB'
+                  % (cap['rms_dbfs'],
+                     ' '.join('%.1f' % v for v in cap['quarter_rms_dbfs']),
+                     cap['quarter_spread_db']))
+            f = cap.get('fft')
+            if f:
+                print('    fundamental %.1f Hz at %.2f dBFS (%s engine, %.1f Hz '
+                      'bins, +-%.0f Hz bands)'
+                      % (f['fund_hz'], f['fund_dbfs'], f['engine'],
+                         f['bin_hz'], f['band_hz']))
+                print('    THD (h2..h%d)  %8.2f dB = %s'
+                      % (f['n_harmonics'], f['thd_db'], pct(f['thd_db'])))
+                print('    THD+N (FFT)   %8.2f dB = %s   noise %.2f dBFS   '
+                      'SNR %.2f dB' % (f['thdn_db'], pct(f['thdn_db']),
+                                       f['noise_dbfs'], f['snr_db']))
+                if 'thd_floor_db' in f:
+                    print('    instrument THD floor %.2f dB = %s (the noise inside '
+                          'the harmonic bands)'
+                          % (f['thd_floor_db'], pct(f['thd_floor_db'])))
+                for h in f['harmonics']:
+                    print('      h%-2d %8.1f Hz  %8.2f dBc  %8.2f dBFS'
+                          % (h['n'], h['hz'], h['dbc'], h['dbfs']))
+
     if a.then_off and not a.off:
         # Stop here, in this session. See the header: the alternative is a
         # second invocation, and everything that one does before it can write
@@ -342,6 +513,8 @@ def main():
                        'ramp_ms': a.ramp_ms, 'then_off': a.then_off,
                        'on_seconds': (None if (a.off or not a.then_off)
                                       else round(on_s, 3)),
+                       'cap_node': a.cap_node,
+                       'cap': cap,
                        'rows': rows}, f, indent=1)
         print('')
         print('  wrote %s' % a.json)
