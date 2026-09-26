@@ -1,0 +1,28 @@
+runner,before_s,after_s,cold_start_fixed,measured_or_estimated,note
+tools/pi/d24_selftest.py --section C --only AL1,17.1,7.2,n,measured,"repeat warm press; cold press (post-reboot) also 7.1 s -- the stage dir and chain marker survive a CM4 reboot, see al1-timing.md S4"
+tools/pi/d24_selftest.py --section A --only HD0-1,HD0-2,-,-,n,unchanged,section A code not touched by S114
+tools/pi/d24_selftest.py --section A --only AS-CM4,-,-,n,unchanged,section A code not touched by S114
+tools/pi/d24_selftest.py --section A --only HD-PWR,-,-,n,unchanged,section A code not touched by S114
+tools/pi/d24_selftest.py --section A --only NW1,NW2,NW3,NW4,-,-,n,unchanged,section A code not touched by S114
+tools/pi/d24_selftest.py --section B --only ML1,ML2,11.2,2.0,n,measured,boot_pair skipped (no DR/DY/DC in --only)
+tools/pi/d24_selftest.py --section B --only ML-M,10.3,1.1,n,estimated,same shape as MC1-3 (no pair needed); MC1-3 measured at this delta
+tools/pi/d24_selftest.py --section B --only ML-P1,14.5,5.3,n,measured,boot_pair skipped
+tools/pi/d24_selftest.py --section B --only ML-P2,14.5,5.3,n,estimated,same runner shape as ML-P1 (measured)
+tools/pi/d24_selftest.py --section B --only ML-B0,ML-P1,14.5,5.3,n,estimated,same runner shape as ML-P1 (measured)
+tools/pi/d24_selftest.py --section B --only ML-B0,ML-P2,14.5,5.3,n,estimated,same runner shape as ML-P1 (measured)
+tools/pi/d24_selftest.py --section B --only CC1,CC2,11.4,3.9,y,measured,"codec_init() ADDED before CC1/CC2 (cold-start fix); boot_pair skipped. NB: the S81 H1S1 read arm itself is NOT answering on this bench right now (pre-existing, unrelated -- see al1-timing.md S5); CC1/CC2 read NO DATA either way, confirmed identical on the rollback copy"
+tools/pi/d24_selftest.py --section B --only MC1,MC2,MC3,10.3,1.1,n,measured,boot_pair skipped; handback's own SAFE-skip does not apply mid-run (MC2 always writes SAFE itself)
+tools/pi/d24_selftest.py --section B --only DR1,DR2,22.8,19.9,n,measured,"boot_pair still required (DR/DY/DC need a watched boot); saving is stage_setup/app_stop caching only"
+tools/pi/d24_selftest.py --section B --only DY1-RDY1,22.8,19.9,n,estimated,same runner shape as DR1,DR2 (measured); still in PAIR_TESTS_B
+tools/pi/d24_selftest.py --section B --only DY1-RDY2,22.8,19.9,n,estimated,same runner shape as DR1,DR2 (measured); still in PAIR_TESTS_B
+tools/pi/d24_selftest.py --section B --only DC1-CS1,DC2-CS1,10.7,7.8,n,measured,still in PAIR_TESTS_B; boot_pair not skipped
+tools/pi/d24_selftest.py --section B --only DC1-CS2,DC2-CS2,10.7,7.8,n,estimated,same runner shape as DC1-CS1,DC2-CS1 (measured)
+tools/pi/d24_selftest.py --section B --only DC1-CS6,DC2-CS6,10.7,7.8,n,estimated,same runner shape as DC1-CS1,DC2-CS1 (measured)
+tools/pi/d24_selftest.py --section B --only DC1-CS7,DC2-CS7,10.7,7.8,n,estimated,same runner shape as DC1-CS1,DC2-CS1 (measured)
+tools/pi/d24_selftest.py --section B --only DC1-CS8,DC2-CS8,10.7,7.8,n,estimated,same runner shape as DC1-CS1,DC2-CS1 (measured)
+tools/pi/d24_selftest.py --section C --only AS-DSPA,13.8,4.9,n,measured,section-C-only now always uses ensure_pair() instead of a forced boot_pair()
+tools/pi/d24_selftest.py --section C --only AS-DSPB,13.8,4.9,n,estimated,same runner shape as AS-DSPA (measured)
+tools/pi/d24_selftest.py --section C --only AS-CPLD,33.5,15.8,n,measured,"ensure_pair() (-9 s, as AS-DSPA) PLUS the two 10 s blk30 windows sharing one 10 s wall-clock window instead of two serial ones (-10 s), safely -- see al1-timing.md S3"
+tools/pi/d24_selftest.py --section C --only AS-ADC,13.8,4.9,n,estimated,same runner shape as AS-DSPA (measured)
+tools/pi/d24_selftest.py --section C --only AS-DAC,13.8,4.9,n,estimated,same runner shape as AS-DSPA (measured)
+tools/pi/d24_selftest.py --section C --only AS-PWR,13.8,4.9,n,estimated,same runner shape as AS-DSPA (measured); AS-PWR itself is a static NO DATA read, cost is all prologue

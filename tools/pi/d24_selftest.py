@@ -58,6 +58,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -210,12 +211,26 @@ for _n in DC_SELECTS:
 for _c in RDY_SELECT:
     SECTION['DY1-RDY%d' % _c] = 'B'
 
+# The section-B tests that actually read the DSP link -- everything else in B
+# (ML*, CC*, MC*) is an H1S1 bus transaction and does not need the pair up at
+# all (S114 rank -- main()'s pre-DR1 boot_pair(), :2399 historically).
+PAIR_TESTS_B = ({'DR1', 'DR2'} | {'DY1-RDY%d' % c for c in RDY_SELECT}
+                | {'DC1-CS%d' % n for n in DC_SELECTS}
+                | {'DC2-CS%d' % n for n in DC_SELECTS})
+
 
 # ---------------------------------------------------------------------------
 # plumbing
 # ---------------------------------------------------------------------------
 def stamp():
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def _tick(label):
+    """A wall-clock marker on stdout, precise to the second -- so a repeat
+    press's per-phase timing (S113/S114) can be read straight off its own
+    log instead of re-derived from record()'s stamps."""
+    print('-- %s %s' % (stamp(), label))
 
 
 class Rig:
@@ -235,6 +250,11 @@ class Rig:
         self.an_en_at_start = None
         self.pair = None
         self.pair_why = None
+        # Whether THIS run booted the pair -- the one thing that can disturb
+        # the 595 chain (S70-7) behind handback's back, so it is the one
+        # thing that must force a full SAFE rewrite regardless of the marker
+        # _chain() leaves (S114 rank 4).
+        self._booted_this_run = False
 
     # -- transport ----------------------------------------------------------
     def sh(self, cmd, timeout=120):
@@ -950,9 +970,20 @@ def t_dr2(r):
             'both SHARCs boot and answer; BOOT_STAGE 7', raw)
 
 
+def _chain_marker(r):
+    return os.path.join(r.a.stage, '.chain_last')
+
+
 def _chain(r, image):
     hexes = ' '.join('0x%02X' % b for b in image)
-    return r.out('cd /home/app/s55 && sudo -n python3 s55_chain.py %s 2>&1' % hexes, timeout=60)
+    txt = r.out('cd /home/app/s55 && sudo -n python3 s55_chain.py %s 2>&1' % hexes, timeout=60)
+    want = ' '.join('%02X' % b for b in image)
+    mk = shlex.quote(_chain_marker(r))
+    if txt.startswith('VERIFIED 200/200') and want in txt:
+        r.rsh('printf %s > %s' % (shlex.quote(want), mk))
+    else:
+        r.rsh('rm -f %s' % mk)     # an unverified write is not a known state
+    return txt
 
 
 def t_mc1(r):
@@ -1098,14 +1129,62 @@ def t_asdspb(r):
     return _as_dsp(r, 2)
 
 
+def _blk_snap(r, chip):
+    d = _diag(r, chip)
+
+    def fld(name):
+        v = _field(d, name)
+        return int(v, 0) if v is not None else None
+
+    return {k: fld(k) for k in
+            ('FRAME_COUNT', 'BLK_OVERRUN', 'SPORT0_ERR_A', 'BOOT_STAGE', 'SEC_COUNT')}
+
+
+def _blk_window(r, seconds=10):
+    """The blk30 bar for BOTH chips over ONE shared window (S114 rank 3),
+    not two serial ones -- AS-CPLD historically ran chip1's 10 s window then
+    chip2's, 20 s total. Safe because each chip's snapshot is one COMPLETE
+    dsp4_diag.py run (its own CS asserted, read, CS released) before the
+    next chip's begins: two actually-concurrent OS processes sharing
+    /dev/spidev0.0 with no cross-process lock could assert both chips' CS
+    at once and contend on the shared MISO line, which BLK_OVERRUN's own
+    10 s is not worth risking."""
+    a = {c: _blk_snap(r, c) for c in (1, 2)}
+    time.sleep(seconds)
+    b = {c: _blk_snap(r, c) for c in (1, 2)}
+    rate_txt = r.out('cd %s && python3 -c "from dsp4_block import BLOCK, BLOCK_RATE; '
+                     'print(BLOCK, BLOCK_RATE)" 2>&1' % r.a.stage)
+    try:
+        block, block_rate = (int(x) for x in rate_txt.split())
+    except ValueError:
+        block, block_rate = '?', '?'
+    out = {}
+    for c in (1, 2):
+        av, bv = a[c], b[c]
+        if av['FRAME_COUNT'] is None or bv['FRAME_COUNT'] is None:
+            out[c] = 'chip%d: UNKNOWN -- link never answered' % c
+            continue
+        blocks = bv['FRAME_COUNT'] - av['FRAME_COUNT']
+        over = bv['BLK_OVERRUN'] - av['BLK_OVERRUN']
+        rate = blocks / float(seconds)
+        out[c] = ('chip%d: BOOT_STAGE %s->%s  SEC_COUNT %s\n'
+                  'chip%d: %d blocks in %.1f s = %.0f/s (bar %s/s at BLOCK=%s)\n'
+                  'chip%d: BLK_OVERRUN %s -> %s (delta %d)   SPORT0_ERR_A 0x%08X'
+                  % (c, av['BOOT_STAGE'], bv['BOOT_STAGE'], bv['SEC_COUNT'],
+                     c, blocks, float(seconds), rate, block_rate, block,
+                     c, av['BLK_OVERRUN'], bv['BLK_OVERRUN'], over, bv['SPORT0_ERR_A'] or 0))
+    return out
+
+
 def t_ascpld(r):
     """Two halves, and only one of them can answer on this unit as found."""
     overlay = r.out('grep -n "dtoverlay=dsp4-pcm" /boot/firmware/config.txt')
     idtxt = r.out('cd %s && python3 dsp4_logic_id.py 2>&1 | tail -6' % DSPBOOT, timeout=120)
-    blk1 = r.out('cd %s && python3 dsp4_blk30.py 1 10 2>&1 | tail -4' % r.a.stage, timeout=120)
-    blk2 = r.out('cd %s && python3 dsp4_blk30.py 2 10 2>&1 | tail -4' % r.a.stage, timeout=120)
-    raw = ('config.txt: %s\n--- logic_id ---\n%s\n--- blk30 chip1 ---\n%s\n--- blk30 chip2 ---\n%s'
-           % (overlay, idtxt, blk1, blk2))
+    win = _blk_window(r, seconds=10)
+    blk1, blk2 = win[1], win[2]
+    raw = ('config.txt: %s\n--- logic_id ---\n%s\n'
+           '--- blk window, both chips over ONE shared 10 s (S114) ---\n'
+           '--- chip1 ---\n%s\n--- chip2 ---\n%s' % (overlay, idtxt, blk1, blk2))
     ov_slave = 'slave' in overlay
     d1 = re.search(r'BLK_OVERRUN\s+(\d+)\s*->\s*(\d+)\s*\(delta\s+(-?\d+)', blk1)
     d2 = re.search(r'BLK_OVERRUN\s+(\d+)\s*->\s*(\d+)\s*\(delta\s+(-?\d+)', blk2)
@@ -1376,6 +1455,31 @@ def _set(r, cells, timeout=300):
     return c.returncode, (c.stdout + c.stderr).strip()
 
 
+def _route_probe(r):
+    """The four cells the route write's own evidence has always read back
+    through the image's dispatch table (S102) -- a read, never a write, so
+    calling it costs nothing and tells whether the write below is needed."""
+    return r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
+                 'Main001Level001 Chan%03dMainOn001 2>&1'
+                 % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
+
+
+def _route_probe_ok(txt):
+    """True only if EVERY probed cell's raw word already equals the route
+    write's target (S114 rank 3) -- a partial match is not the route
+    asserted, it is a write that failed halfway on some earlier press."""
+    want = {'Mon001Level001': 0x3F800000,     # f1.0
+            'Mon001Level002': 0x3F800000,     # f1.0
+            'Main001Level001': 0x3F800000,    # f1.0
+            'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 1}
+    for name, need in want.items():
+        m = re.search(r'^%s\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})' % re.escape(name),
+                      txt, re.M)
+        if not m or int(m.group(1), 16) != need:
+            return False
+    return True
+
+
 def _al1_osc(r, level=None, timeout=300):
     """One S49 window measurement of the MEMS lane.
 
@@ -1472,10 +1576,14 @@ def _al1_prereq(r):
     # needed: the converter's init image (H1S1), then the pair (the CM4). Both
     # are cheap to check and both were assumed by S110, which only ever ran on a
     # unit the bench had already staged by hand -- see codec_init/ensure_pair.
+    _tick('AL1 codec_init start')
     cap['codec_ok'], codec_txt = codec_init(r)
+    _tick('AL1 codec_init end')
     ev.append('--- AK4619 init (H1S1 StartAK4619; nothing else does it when '
               'matrix-app never runs) ---\n%s' % codec_txt)
+    _tick('AL1 ensure_pair start')
     cap['link_ok'], link_txt, cap['booted'] = ensure_pair(r)
+    _tick('AL1 ensure_pair end (booted=%s)' % cap['booted'])
     ev.append('--- the DSP pair ---\n%s' % link_txt)
     if not cap['link_ok']:
         return ('the DSP link does not answer (MAGIC) even after a boot', ev, cap)
@@ -1486,26 +1594,50 @@ def _al1_prereq(r):
     ev.append('DSP4_TEST_NODES pair (%s in chip1.sym.json): %s'
               % (_OSC_SYM, cap['testnodes']))
 
-    # rxscan, once, for the one thing it is good at: is the lane carrying.
-    rows = _lane_rows(rxscan(r))
-    cap['mems_row'] = _mems_row(rows)
-    ev.append('--- MEMS lane, rxscan ---\n%s'
-              % (cap['mems_row'] or 'no MEMS lane in the scan'))
+    # rxscan, once PER STAGED PAIR rather than once per press (S114 rank 5):
+    # a MEMS lane that was carrying 20 s ago has not vanished, and re-staging
+    # (a real pair swap) already clears this marker itself.
+    _tick('AL1 rxscan start')
+    mems_marker = os.path.join(r.a.stage, '.rxscan_mems')
+    cached = r.out('test -f %s && cat %s' % (shlex.quote(mems_marker), shlex.quote(mems_marker)))
+    if cached:
+        cap['mems_row'] = None if cached == 'NONE' else cached
+        ev.append('--- MEMS lane, rxscan (cached -- already confirmed since this pair was staged) ---\n%s'
+                  % (cap['mems_row'] or 'no MEMS lane in the scan'))
+    else:
+        rows = _lane_rows(rxscan(r))
+        cap['mems_row'] = _mems_row(rows)
+        r.rsh('printf %s > %s' % (shlex.quote(cap['mems_row'] or 'NONE'), shlex.quote(mems_marker)))
+        ev.append('--- MEMS lane, rxscan ---\n%s'
+                  % (cap['mems_row'] or 'no MEMS lane in the scan'))
+    _tick('AL1 rxscan end')
 
+    # The route write, PROBED FIRST (S114 rank 3): a repeat press finds the
+    # route still asserted from the last one, so the 31-cell CLOSE list and
+    # the 12-cell route are only re-written on a mismatch. The probe itself
+    # is unconditional either way -- it is the evidence that the S102 loop
+    # actually measures the asserted route rather than the default
+    # configuration, which is the exact trap this file's history warns about.
+    _tick('AL1 route start')
     close, route = _route_cells()
-    rc1, t1 = _set(r, close)
-    rc2, t2 = _set(r, route)
-    # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it walks
-    # strips 1-32 and a D24 has 24, so 25-32 have no cells.
-    bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
-        or 'NOT IN CONTRACT' in t2
-    cap['route_rc'] = 1 if bad else 0
-    ev.append('--- the route write (exit %d) ---\n--- other strips off MAIN ---\n%s'
-              '\n--- the route ---\n%s' % (cap['route_rc'], t1[-400:], t2[-800:]))
-    cap['probe'] = r.out('cd %s && python3 s89_set.py %s Mon001Level001 Mon001Level002 '
-                         'Main001Level001 Chan%03dMainOn001 2>&1'
-                         % (r.a.stage, r.a.stage, _SPKR_OSC_STRIP), timeout=120)
-    ev.append('--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
+    cap['probe'] = _route_probe(r)
+    if _route_probe_ok(cap['probe']):
+        cap['route_rc'] = 0
+        ev.append('--- the route write (skipped -- probe already matches) ---\n'
+                  '--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
+    else:
+        rc1, t1 = _set(r, close)
+        rc2, t2 = _set(r, route)
+        # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it
+        # walks strips 1-32 and a D24 has 24, so 25-32 have no cells.
+        bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
+            or 'NOT IN CONTRACT' in t2
+        cap['route_rc'] = 1 if bad else 0
+        ev.append('--- the route write (exit %d) ---\n--- other strips off MAIN ---\n%s'
+                  '\n--- the route ---\n%s' % (cap['route_rc'], t1[-400:], t2[-800:]))
+        cap['probe'] = _route_probe(r)
+        ev.append('--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
+    _tick('AL1 route end')
 
     if cap['route_rc']:
         return 'the route write failed -- nothing downstream would be measured', ev, cap
@@ -1530,9 +1662,13 @@ def al1_measure(r, level):
     floor the tone is compared against. The second baseline is what says the
     floor came back and the reading was the tone rather than something in the
     room."""
+    _tick('AL1 baseline start')
     base, t0 = _al1_osc(r, None)
+    _tick('AL1 tone start')
     tone, t1 = _al1_osc(r, level)
+    _tick('AL1 second baseline start')
     back, t2 = _al1_osc(r, None)
+    _tick('AL1 measure end')
     return {'base': base, 'tone': tone, 'back': back,
             'raw': '--- baseline (tone off) ---\n%s\n--- tone at %.1f dBFS ---\n%s'
                    '\n--- tone off again ---\n%s' % (t0, level, t1, t2)}
@@ -1919,6 +2055,13 @@ def al1_write_table(new):
 # ---------------------------------------------------------------------------
 # bench choreography
 # ---------------------------------------------------------------------------
+def _pair_names(md5_txt):
+    """`md5sum`'s hash column only -- so a staged copy compares equal to the
+    pair directory's own files regardless of which directory name each line
+    carries."""
+    return [ln.split()[0] for ln in md5_txt.splitlines() if ln.strip()]
+
+
 def stage_setup(r):
     """A stage directory of our own, populated the way the bench scripts do it.
 
@@ -1926,9 +2069,22 @@ def stage_setup(r):
     from -- the candidate pair is staged there and must stay byte-identical --
     so the images are COPIED here. And the tools that exist only in this repo
     are scp'd AFTER the symlink loop and only for names the loop did not link,
-    because an scp onto a symlink writes THROUGH it into /home/app/dspboot."""
+    because an scp onto a symlink writes THROUGH it into /home/app/dspboot.
+
+    A repeat press pays for none of this: the run already md5s the staged
+    pair at the end of a copy (below), so a press that finds the SAME pair
+    already staged compares md5s and skips the re-copy, the symlink loop and
+    the five scp's entirely (S114 rank 1). A pair swap (`--pair`, or a new
+    PAIR_CONF) always shows up as a mismatch, never a stale stage."""
     s = r.a.stage
     p = pair_dir(r)
+    staged = _pair_names(r.out(
+        'md5sum %s/chip1.ldr %s/chip2.ldr 2>/dev/null' % (s, s)))
+    current = _pair_names(r.out('md5sum %s/chip1.ldr %s/chip2.ldr' % (p, p)))
+    if staged and staged == current:
+        return ('pair: %s (%s) -- already staged in %s, md5 matches, copy skipped\n'
+                % (r.pair, r.pair_why, s)
+                + r.out('md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s)))
     r.rsh("mkdir -p %s && cp %s/chip1.ldr %s/chip2.ldr "
           "%s/chip1.sym.json %s/chip2.sym.json %s/" % (s, p, p, p, p, s), timeout=120)
     r.rsh("for f in %s/*.py; do ln -sfn \"$f\" %s/$(basename \"$f\"); done; "
@@ -1944,6 +2100,11 @@ def stage_setup(r):
         if os.path.exists(src):
             r.rsh('rm -f %s/%s' % (s, name))          # never scp onto a symlink
             r.put(src, s)
+    # A fresh copy invalidates anything the SAME stage dir cached about the
+    # PREVIOUS pair -- the MEMS rxscan result (S114 rank 5) is about physical
+    # cabling, not the pair, but tying its cache to the same trigger as the
+    # copy keeps one rule instead of two.
+    r.rsh('rm -f %s/.rxscan_mems' % s)
     return ('pair: %s (%s)\n' % (r.pair, r.pair_why)
             + r.out('ls -l %s | head -20; md5sum %s/chip1.ldr %s/chip2.ldr' % (s, s, s)))
 
@@ -2006,6 +2167,7 @@ def boot_pair(r):
     """Boot and configure both chips TWICE. The config commit desyncs the
     parameter link on the first pass every time -- pre-existing, reproduces on
     the original image -- and the pair reaches BOOT_STAGE 7 on the second."""
+    r._booted_this_run = True
     log = []
     for cycle in (1, 2):
         pin_handback(r)
@@ -2104,11 +2266,18 @@ def codec_init(r):
 
 
 def app_stop(r):
+    """Stop the mixer -- always, as the safety belt -- but only pay the 2 s
+    settle when something was actually running to settle from (S114 rank 2).
+    Under `d24-testui` matrix-app is `Conflicts=` and never running, so most
+    presses in a factory session find it already down."""
     r.an_en_at_start = r.an_en()
+    was_active = r.out('systemctl is-active matrix-app') == 'active'
     r.rsh('sudo systemctl stop matrix-app', timeout=90)
-    time.sleep(2)
+    if was_active:
+        time.sleep(2)
     r.app_stopped = True
-    print('matrix-app stopped; AN_EN at start: %s' % r.an_en_at_start)
+    print('matrix-app stopped (was %s); AN_EN at start: %s'
+          % ('active' if was_active else 'already inactive', r.an_en_at_start))
 
 
 def handback(r):
@@ -2116,7 +2285,19 @@ def handback(r):
     final DSP boot, because a boot clocks half a megabyte through it and only
     a CS_M edge decides what gets latched (S70-7)."""
     notes = []
-    notes.append('SAFE image: %s' % _chain(r, SAFE_IMAGE))
+    want_safe = ' '.join('%02X' % b for b in SAFE_IMAGE)
+    marker = r.out('cat %s 2>/dev/null' % shlex.quote(_chain_marker(r)))
+    if marker == want_safe and not r._booted_this_run:
+        # AL1 never arms the chain (S114 rank 4): if the marker this SAME
+        # stage dir left already says SAFE, and nothing in THIS run booted
+        # the pair (the one thing that can disturb it behind our back,
+        # S70-7), re-writing and re-verifying it is a no-op. Any boot at
+        # all, or no marker (a fresh stage, or an unverified write last
+        # time), falls through to the real write below.
+        notes.append('SAFE image: already SAFE (marker %s, no boot this run) -- write skipped'
+                     % want_safe)
+    else:
+        notes.append('SAFE image: %s' % _chain(r, SAFE_IMAGE))
     # DRIVEN high, not pulled: since S109 the pull no longer holds CS_M.
     r.pin('%d op dh' % CS_M_GPIO)
     notes.append('CS_M: %s' % r.out('pinctrl get %d' % CS_M_GPIO))
@@ -2374,15 +2555,29 @@ def main():
         r.run('NW2', lambda: t_nw2(r))
 
     if {'B', 'C'} & a.section:
+        _tick('app_stop start')
         app_stop(r)
+        _tick('app_stop end')
 
     try:
         if {'B', 'C'} & a.section:
             # INSIDE the try. Staging does an scp with check=True, and a failure
             # there used to leave `matrix-app` stopped with no handback -- the one
             # way this leg could break "the unit as found" while reporting nothing.
+            _tick('stage_setup start')
             print(stage_setup(r)[:400])
+            _tick('stage_setup end')
         if 'B' in a.section:
+            # CC1/CC2 read the AK4619 through H1S1 and score against the
+            # StartAK4619 image (0xBB); nothing but the mixer coming up ever
+            # writes that image, and the mixer is stopped for this whole
+            # section (S111's cold-start lesson, generalised -- a press that
+            # names only CC1/CC2 on a unit fresh out of a reboot would
+            # otherwise read the converter's power-on defaults and FAIL a
+            # part that is not at fault).
+            if not a.only or {'CC1', 'CC2'} & a.only:
+                cok, ctxt = codec_init(r)
+                print('codec init (for CC1/CC2): %s' % ('ok' if cok else 'NO REPLY: ' + ctxt[-200:]))
             r.run('ML1', lambda: t_ml1(r))
             r.run('ML2', lambda: t_ml2(r))
             r.run('ML-M', lambda: t_mlm(r))
@@ -2394,9 +2589,15 @@ def main():
             r.run('MC1', lambda: t_mc1(r))
             r.run('MC2', lambda: t_mc2(r))
             r.run('MC3', lambda: t_mc3(r))
-            # DR/DC need the pair up, so the prep boot runs before DR1 pulses
-            # the reset out from under it.
-            print(boot_pair(r)[-600:])
+            # DR/DY/DC need the pair up, so the prep boot runs before DR1
+            # pulses the reset out from under it -- but ONLY when one of them
+            # is actually selected (S114 rank 1, :2399 historically): a press
+            # that names only ML1 or CC1 never touches the DSP link at all and
+            # paid a 9 s boot for nothing.
+            if not a.only or (PAIR_TESTS_B & a.only):
+                _tick('boot_pair start')
+                print(boot_pair(r)[-600:])
+                _tick('boot_pair end')
             r.run('DR1', lambda: t_dr1(r))
             r.run('DR2', lambda: t_dr2(r))
             # DY1 dips !RST_D itself and boots the pair back with boot_pair(),
@@ -2409,16 +2610,17 @@ def main():
             for n in DC_SELECTS:
                 r.run('DC2-CS%d' % n, (lambda k: (lambda: t_dc2(r, k)))(n))
         elif 'C' in a.section:
-            # ONE ROW, ONE PRESS: a run the wizard's START launches for AL1
-            # alone does not need a forty-second boot of a pair that is already
-            # up and answering, and PW presses this button repeatedly. Anything
-            # else in section C still gets the boot it has always got -- the
-            # rows that read BOOT_STAGE are entitled to a boot they watched.
-            if a.only == {'AL1'}:
-                ok, ev, booted = ensure_pair(r)
-                print(ev[-600:])
-            else:
-                print(boot_pair(r)[-600:])
+            # ONE ROW, ONE PRESS: a section-C-only press does not need a
+            # forty-second boot of a pair that is already up and answering --
+            # none of AS-DSPA/B/CPLD/ADC/DAC/AL1 WATCH the boot itself, they
+            # only need BOOT_STAGE 7 by the time they read (S114 rank 2,
+            # :2421 historically: this used to be `--only AL1` alone; every
+            # section-C-only press gets the same cheap-question-first
+            # treatment now).
+            _tick('ensure_pair start')
+            ok, ev, booted = ensure_pair(r)
+            _tick('ensure_pair end (booted=%s)' % booted)
+            print(ev[-600:])
 
         if 'C' in a.section:
             r.run('AS-DSPA', lambda: t_asdspa(r))
@@ -2430,7 +2632,9 @@ def main():
             r.run('AL1', lambda: t_al1(r))
     finally:
         if r.app_stopped:
+            _tick('handback start')
             print('\n--- handback ---\n%s' % handback(r))
+            _tick('handback end')
 
     if soak:
         if not a.no_soak_wait:
