@@ -305,6 +305,14 @@ def cells_bus_masters(auxes):
         out += ['Aux%03dLevel001=f1.0' % a, 'Aux%03dMute001=0' % a,
                 'Aux%03dEqOn001=0' % a, 'Aux%03dLimiterOn001=0' % a,
                 'Aux%03dAntiFbOn001=0' % a, 'Aux%03dDelay001=0' % a]
+    # THE PANEL SPEAKER, SILENCED FIRST (S115). The monitor bus feeds the
+    # codec's talkback-speaker pair, the speaker amplifier runs from the
+    # digital board's 5 V and is live whenever the unit is up, and `defs`
+    # declares C2_MON at unity -- so every boot leaves the speaker wide open
+    # whether a test asked for it or not. This station drives the MAIN bus at
+    # full level for ten of its patches. Without these two writes it would
+    # play a 1 kHz tone out of the panel speaker for the length of the pass.
+    out += ['Mon001Level001=f0.0', 'Mon001Level002=f0.0']
     out += ['Main001Level001=f1.0', 'Main001Mute001=0', 'Main001Delay001=0',
             'MainL001Level001=f1.0', 'MainL001Mute001=0',
             'MainR001Level001=f1.0', 'MainR001Mute001=0',
