@@ -32,8 +32,8 @@ operator's hands, and every machine cost is pushed out of their way:
 
 WHAT IT MEASURES, and with what. The stimulus is the DSP's own TEST_OSC; the
 instrument is TEST_MEAS. Both need a DSP4_TEST_NODES=1 image, which is what the
-factory already runs (PW ruling S116 Q3: `factory-test-v1`, the pair at
-/home/app/loopthd/s109) -- d24_selftest.py asserts it and so does this file.
+factory already runs (PW ruling S116 Q3: `factory-test-v2`, the pair at
+/home/app/loopthd/s122) -- d24_selftest.py asserts it and so does this file.
 Per path:
 
   level      the COHERENT loop gain: TEST_MEAS fits the lane against the
@@ -113,7 +113,7 @@ PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 MISPATCH = 'MISPATCH'
 
 # The factory-test pair, the same constants d24_selftest.py asserts against.
-FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s109'
+FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s122'
 OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
 
 

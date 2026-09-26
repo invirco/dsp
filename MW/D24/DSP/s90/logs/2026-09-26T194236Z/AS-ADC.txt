@@ -1,0 +1,33 @@
+=== 2026-09-26T19:46:24Z  PASS
+AN_EN (GPIO26) = 26: op -- pd | hi // GPIO26 = output
+IN_04              0     0     0     0    16       14   -115.94   -109.23  00001d00 00000b00 fffff900  CARRYING
+IN_16              1     1     0     1    16       15   -118.02   -112.90  fffff500 fffff800 00001300  CARRYING
+IN_03              2     2     0     2    16       14   -114.63   -111.24  ffffee00 00000b00 00000000  CARRYING
+IN_15              3     3     0     3    16       14   -113.74   -105.22  00000000 00000100 00000d00  CARRYING
+IN_14              4     4     0     4    16       16   -117.93   -113.37  00000d00 00000700 fffff200  CARRYING
+IN_02              5     5     0     5    16       14   -114.53   -107.59  fffff600 00000000 ffffef00  CARRYING
+IN_13              6     6     0     6    16       14   -114.36   -109.23  fffff600 fffff700 ffffef00  CARRYING
+IN_01              7     7     0     7    16       13   -117.81   -111.63  00000500 00000a00 00000600  CARRYING
+IN_08              8   128     1     0    16       15   -110.71   -105.41  00000300 00002000 00001000  CARRYING
+IN_20              9   129     1     1    16       14   -112.35   -107.11  ffffdb00 00000800 00000200  CARRYING
+IN_07             10   130     1     2    16       13   -113.52   -106.22  fffff700 fffff600 00000300  CARRYING
+IN_19             11   131     1     3    16       13   -112.87   -107.35  00002300 00001700 fffff800  CARRYING
+IN_18             12   132     1     4    16       15   -113.96   -107.84  00001a00 00000600 00000e00  CARRYING
+IN_06             13   133     1     5    16       12   -111.01   -106.65  00000d00 00002700 ffffff00  CARRYING
+IN_17             14   134     1     6    16       16   -113.23   -108.10  00000400 00001200 ffffdf00  CARRYING
+IN_05             15   135     1     7    16       15   -115.33   -108.37  00000e00 fffffd00 fffffc00  CARRYING
+IN_12             16   256     2     0    16       15   -110.96   -105.03  00002900 ffffff00 00001600  CARRYING
+IN_24             17   257     2     1    16       15   -114.09   -109.85  00000d00 fffffb00 fffffe00  CARRYING
+IN_11             18   258     2     2    16       14   -115.98   -110.87  00000e00 00000100 00001600  CARRYING
+IN_23             19   259     2     3    16       13   -113.72   -107.84  00000e00 fffff800 00000600  CARRYING
+IN_22             20   260     2     4    16       16   -111.67   -104.85  00000700 00001900 00000a00  CARRYING
+IN_10             21   261     2     5    16       13   -116.64   -109.53  00000300 fffffd00 00000e00  CARRYING
+IN_21             22   262     2     6    16       14   -109.83   -103.06  00001600 00000000 fffff600  CARRYING
+IN_09             23   263     2     7    16       14   -113.02   -106.43  fffffe00 00000000 00001500  CARRYING
+XIN_CODEC_01      32   512     4     0    16       16    -74.74    -67.91  fffe1500 000d2d00 ffff5400  CARRYING
+XIN_CODEC_02      33   513     4     1    16       16    -76.73    -72.04  fff92f00 00023600 fff7ce00  CARRYING
+XIN_CODEC_04      35   515     4     3    16       16    -86.65    -79.64  ffffff00 00003a00 fffdf800  CARRYING
+XIN_PI_L          44   704     6     0    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_PI_R          45   705     6     1    16        1   -336.00   -336.00  00000000 00000000 00000000  STATIC
+XIN_MEMS          46   736     7     0    16       16    -47.42    -47.07  008ca7ff 008ac7ff 008b7fff  CARRYING
+U15 (lane 0) has no front end fitted on MW-D24-2 -- panel mics 1-4 and 13-16, XLRs J15-J22, preamps U17-U31, measured S86. Its lanes are reported and not scored; the CONVERTER is fine, the front end is absent.

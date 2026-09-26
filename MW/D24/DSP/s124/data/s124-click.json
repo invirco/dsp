@@ -1,0 +1,73 @@
+{
+ "click_1": {
+  "n": 1024,
+  "nonzero": 796,
+  "peak": 0.804072879254818,
+  "rms_dbfs": -16.683406677913666,
+  "model": "2500 Hz tau 2.5 ms",
+  "expect_words": 829,
+  "sample": 1,
+  "onset_idx": 0,
+  "last_nonzero_idx": 812,
+  "hz": 2503.8167938931297,
+  "arm_pair_ms": 0.47649399857618846,
+  "length_samples": 813,
+  "length_ms": 16.9375
+ },
+ "click_2": {
+  "n": 1024,
+  "nonzero": 508,
+  "peak": 0.7810933627188206,
+  "rms_dbfs": -18.506068445925276,
+  "model": "3000 Hz tau 1.8 ms",
+  "expect_words": 597,
+  "sample": 2,
+  "onset_idx": 1,
+  "last_nonzero_idx": 580,
+  "hz": 3007.6726342710995,
+  "arm_pair_ms": 0.40767999962554313,
+  "length_samples": 580,
+  "length_ms": 12.083333333333334
+ },
+ "click_3": {
+  "n": 1024,
+  "nonzero": 917,
+  "peak": 0.84114895388484,
+  "rms_dbfs": -15.565404839665554,
+  "model": "1500 Hz tau 3.0 ms",
+  "expect_words": 995,
+  "sample": 3,
+  "onset_idx": 1,
+  "last_nonzero_idx": 978,
+  "hz": 1500.0,
+  "arm_pair_ms": 0.4059210004925262,
+  "length_samples": 978,
+  "length_ms": 20.375
+ },
+ "mems_quiet": {
+  "n": 1024,
+  "nonzero": 1024,
+  "peak": 0.004364963620901108,
+  "rms_dbfs": -47.60351087831008
+ },
+ "mems_click": {
+  "n": 1024,
+  "nonzero": 1024,
+  "peak": 0.07119274511933327,
+  "rms_dbfs": -38.63372643503988,
+  "onset_idx": 0,
+  "hz": 2563.106796116505,
+  "trig_to_arm_ms": 0.38840200068079866
+ },
+ "mems_quiet_after": {
+  "n": 1024,
+  "nonzero": 1024,
+  "peak": 0.0046195946633815765,
+  "rms_dbfs": -47.06179098212289
+ },
+ "handback": {
+  "trig": 0,
+  "test_on": 0,
+  "busy": 0
+ }
+}

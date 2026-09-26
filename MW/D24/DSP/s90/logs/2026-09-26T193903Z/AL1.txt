@@ -1,0 +1,212 @@
+=== 2026-09-26T19:39:23Z  PASS
+THE PATH, named (S102) and then SEPARATED (S122). The speaker is codec TDM slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). UPSTREAM IT IS ONE NODE AND NO MIXER AT ALL (PW ruling 2026-09-26): C2_HPT_01, a chip-2 HAPTIC node with no inputs, -> C2_SPKR_OUT slot 0. It plays stored 2.5 kHz clicks for the screen buttons and, for this test, a stored 1 kHz tone; it writes digital zero the rest of the time. The monitor bus reached this slot until S122 and no longer reaches any converter slot at all. MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_SPKR_OUT, sink=DNP on C2_CODEC_AUX_OUT, and BOTH generators refuse a graph in which anything but a HAPTIC node reaches a sink=SPKR output. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code 54.
+
+AN_EN (GPIO26): 26: op -- pd | hi (raised this session, held up)
+pair staged: /home/app/loopthd/s122 (/home/app/selftest/pair.conf)
+--- AK4619 init (H1S1 StartAK4619; nothing else does it when matrix-app never runs) ---
+S_RUN   -> b'+\n:\n.\n:\n.\n:\n.\n'
+re-init: StartAK4619() requested (reg 0xFF)
+--- the DSP pair ---
+the pair was ALREADY UP (no boot by this run)
+chip 1: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+chip 2: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+--- inter-chip fabric ---
+IC1 PASS  MAIN_L c1 -101.1 -> c2 -99.3 dBFS, MAIN_R c1 -100.7 -> c2 -101.0 dBFS  [tol +12.0 dB over -40.0 dBFS, ceiling 0.0 dBFS]
+chip1 FRAME_COUNT 4859872 -> 4861093   chip2 4858346 -> 4859567
+  set 0 MAIN_L  c1  -102.77 dBFS  c2  -103.13 dBFS  delta   -0.36
+  set 1 MAIN_L  c1  -101.09 dBFS  c2   -99.29 dBFS  delta   +1.80
+    c1 words 00000220 000001D0 FFFFF740 FFFFFF00 FFFFFC90 00000220 00000340 FFFFF6C0
+    c2 words 00000090 00000220 000001A0 00000440 FFFFF580 FFFFFF60 00000290 FFFFFC00
+  set 0 MAIN_R  c1  -101.95 dBFS  c2  -101.76 dBFS  delta   +0.19
+  set 1 MAIN_R  c1  -100.69 dBFS  c2  -100.97 dBFS  delta   -0.28
+    c1 words FFFFFD80 FFFFF900 FFFFFBC0 FFFFFEE0 000009B0 FFFFFA50 FFFFFDF0 FFFFFA10
+    c2 words FFFFFB60 FFFFFF70 FFFFFA80 00000280 000005D0 FFFFFB10 00000900 FFFFF9A0
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): True
+--- MEMS lane, rxscan (cached -- already confirmed since this pair was staged) ---
+XIN_MEMS          46   736     7     0    16       15    -46.86    -46.66  009127ff 0096a7ff 0092e7ff  CARRYING
+the chip-2 image carries the haptic node (_hpt_test_on_C2_HPT_01 in chip2.sym.json): True
+--- the speaker's two words, read back through the image's own dispatch table BEFORE anything is played ---
+c2@2178                    chip2 addr 2178   0x00000000  0.000000
+c2@2179                    chip2 addr 2179   0x00000000  0.000000
+speaker silent at entry: True
+
+--- the speaker stimulus, stopped (AL1; exit 0, read-back SILENT) ---
+the tone could have been live for 5.79 s of this press
+c2@2178                    chip2 addr 2178   0x00000000  0.000000
+c2@2179                    chip2 addr 2179   0x00000000  0.000000
+--- baseline (tone off) ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : CHIP-2 HAPTIC test tone (S122)   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak (OFF)   [stored 1 kHz table; --freq is a declaration]
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscChan       4978 <- 0x00000000   read 0x00000000  OK
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK  (chip 2)
+    HptTestLevel  2179 <- 0x3F004DCE   read 0x3F004DCE  OK  (chip 2)
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK  (chip 2)
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 17131; waiting for 3 more
+    seq  17132   RMS   -47.51 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -47.51 dBFS   xtalk     0.00 dB
+    seq  17133   RMS   -47.11 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -47.11 dBFS   xtalk     0.00 dB
+    seq  17134   RMS   -47.10 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -47.10 dBFS   xtalk     0.00 dB
+
+  coherent capture of _buf_C1_XIN_MEMS:
+    1024 samples (dsp4_bulk (one streamed transfer)), 21.3 ms, fill 0.085 s read 0.095 s
+    capture RMS   -46.25 dBFS   quarters -46.3 -46.3 -46.3 -46.1   spread 0.23 dB
+    fundamental 1770.7 Hz at -90.46 dBFS (cmath (stdlib) engine, 46.9 Hz bins, +-375 Hz bands)
+    THD (h2..h10)      1.10 dB = 113.50015 %
+    THD+N (FFT)       6.49 dB = 211.02382 %   noise -85.46 dBFS   SNR -5.00 dB
+    instrument THD floor -0.56 dB = 93.71016 % (the noise inside the harmonic bands)
+      h2    3562.5 Hz    -10.16 dBc   -100.62 dBFS
+      h3    5296.9 Hz     -7.27 dBc    -97.73 dBFS
+      h4    7078.1 Hz     -7.23 dBc    -97.69 dBFS
+      h5    8859.4 Hz     -7.18 dBc    -97.64 dBFS
+      h6   10640.6 Hz     -8.67 dBc    -99.13 dBFS
+      h7   12375.0 Hz    -10.47 dBc   -100.93 dBFS
+      h8   14156.2 Hz     -7.23 dBc    -97.69 dBFS
+      h9   15937.5 Hz    -11.18 dBc   -101.65 dBFS
+      h10  17718.8 Hz     -8.79 dBc    -99.25 dBFS
+
+  SETTLED (seq 17134):
+    RmsResult      -47.10 dBFS
+    ThdResult        0.00 dB   = 100.00000 %
+    NoiseResult    -47.10 dBFS
+    XtalkResult      0.00 dB
+
+  wrote /home/app/s90/al1-osc.json
+--- tone at -6.0 dBFS ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : CHIP-2 HAPTIC test tone (S122)   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak    [stored 1 kHz table; --freq is a declaration]
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscChan       4978 <- 0x00000000   read 0x00000000  OK
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK  (chip 2)
+    HptTestLevel  2179 <- 0x3A03621B   read 0x3A03621B  OK  (chip 2)
+    HptTestOn     2178 <- 0x00000001   read 0x00000001  OK  (chip 2)
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    HptTestLevel fade UP over 150 ms in 24 equal-dB steps
+    HptTestLevel  2179 <- 0x3F004DCE   read 0x3F004DCE  OK  (chip 2)
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 17149; waiting for 3 more
+    seq  17150   RMS   -35.45 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -35.45 dBFS   xtalk     0.00 dB
+    seq  17151   RMS   -29.74 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -29.74 dBFS   xtalk     0.00 dB
+    seq  17152   RMS   -29.75 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -29.75 dBFS   xtalk     0.00 dB
+
+  coherent capture of _buf_C1_XIN_MEMS:
+    1024 samples (dsp4_bulk (one streamed transfer)), 21.3 ms, fill 0.085 s read 0.095 s
+    capture RMS   -29.80 dBFS   quarters -29.9 -29.6 -29.8 -29.9   spread 0.33 dB
+    fundamental 1000.0 Hz at -29.84 dBFS (cmath (stdlib) engine, 46.9 Hz bins, +-375 Hz bands)
+    THD (h2..h10)    -25.38 dB = 5.38140 %
+    THD+N (FFT)     -25.38 dB = 5.38567 %   noise -83.20 dBFS   SNR 53.37 dB
+    instrument THD floor -61.40 dB = 0.08515 % (the noise inside the harmonic bands)
+      h2    2015.6 Hz    -40.05 dBc    -69.89 dBFS
+      h3    3000.0 Hz    -26.06 dBc    -55.89 dBFS
+      h4    3984.4 Hz    -51.77 dBc    -81.61 dBFS
+      h5    5015.6 Hz    -36.37 dBc    -66.21 dBFS
+      h6    6000.0 Hz    -47.40 dBc    -77.24 dBFS
+      h7    6984.4 Hz    -42.15 dBc    -71.99 dBFS
+      h8    8015.6 Hz    -62.16 dBc    -92.00 dBFS
+      h9    9000.0 Hz    -68.93 dBc    -98.76 dBFS
+      h10   9984.4 Hz    -68.87 dBc    -98.71 dBFS
+
+  stopping:
+    HptTestLevel fade DOWN over 150 ms in 24 equal-dB steps
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK
+    oscillator was ON for 0.77 s
+
+  SETTLED (seq 17152):
+    RmsResult      -29.75 dBFS
+    ThdResult        0.00 dB   = 100.00000 %
+    NoiseResult    -29.75 dBFS
+    XtalkResult      0.00 dB
+
+    injected peak -6.00 dBFS -> a sine of that peak has RMS -9.01 dBFS
+    measured RMS is -20.74 dB from it (the strip's own gain through the path)
+
+  wrote /home/app/s90/al1-osc.json
+--- tone off again ---
+S49 — self-test oscillator and measurement
+  symbols: /home/app/s90
+  inject : CHIP-2 HAPTIC test tone (S122)   measure: strip 54
+  tone   : 1000.000 Hz at -6.00 dBFS peak (OFF)   [stored 1 kHz table; --freq is a declaration]
+  window : 4096 samples, 85.3 ms
+
+  the map places all 14 self-test symbols. The SPI addresses are
+  dispatch-table indices, a different thing from a DM address --
+  they are proven below by write and read-back, not by the map.
+
+  arming:
+    OscOn         4975 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000000   read 0x00000000  OK
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    OscChan       4978 <- 0x00000000   read 0x00000000  OK
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK  (chip 2)
+    HptTestLevel  2179 <- 0x3F004DCE   read 0x3F004DCE  OK  (chip 2)
+    HptTestOn     2178 <- 0x00000000   read 0x00000000  OK  (chip 2)
+    XtalkSrc      4971 <- 0x00000000   read 0x00000000  OK
+    XtalkDst      4972 <- 0x00000000   read 0x00000000  OK
+    MeasChan      4967 <- 0x00000036   read 0x00000036  OK
+
+  window serial at arm: 17168; waiting for 3 more
+    seq  17169   RMS   -46.31 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -46.31 dBFS   xtalk     0.00 dB
+    seq  17170   RMS   -46.71 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -46.71 dBFS   xtalk     0.00 dB
+    seq  17171   RMS   -47.06 dBFS   THD+N     0.00 dB = 100.00000 %   noise   -47.06 dBFS   xtalk     0.00 dB
+
+  SETTLED (seq 17171):
+    RmsResult      -47.06 dBFS
+    ThdResult        0.00 dB   = 100.00000 %
+    NoiseResult    -47.06 dBFS
+    XtalkResult      0.00 dB
+
+  wrote /home/app/s90/al1-osc.json
+
+--- the numbers ---
+drive               -6.00 dBFS peak
+baseline (off)     -47.10 dBFS
+tone (on)          -29.75 dBFS   predicted -29.82 (0.948 x drive -24.13)
+SNR                 17.35 dB    (tone on minus tone off)
+THD  h2..h10       -25.38 dB  = 5.381 %   ceiling -22.50 dB = 7.499 %   <-- THE VERDICT
+THD floor (inst)   -61.40 dB      the noise inside the harmonic bands
+THD+N (node)         0.00 dB  = 100.000 %   ceiling 5.45 dB = 187.383 %   INFORMATIONAL
+THD+N (capture)    -25.38 dB  = 5.386 %   INFORMATIONAL, the same window transformed
+in-window noise    -29.75 dBFS  (node)     -83.20 dBFS (capture, between the bands)
+floor afterwards   -47.06 dBFS  (+0.04 dB)
+oscillator on        0.77 s      (cap 3.0 s)
+tone in window        YES        (THD+N <= -6.0 dB, or SNR >= 13.7 dB)
+VERDICT          PASS (PASS)
+
+--- the coherent capture (_buf_C1_XIN_MEMS, 1024 samples = 21.3 ms) ---
+capture RMS        -29.80 dBFS
+quarters (RMS)   -29.89 -29.57 -29.82 -29.90 dBFS   spread 0.33 dB
+fundamental        1000.0 Hz at -29.84 dBFS   (commanded 1000.0 Hz)
+FFT says a tone is present: True
+harmonics (dBc): h2 -40.0  h3 -26.1  h4 -51.8  h5 -36.4  h6 -47.4  h7 -42.1  h8 -62.2  h9 -68.9  h10 -68.9
+
+THE WINDOWS ARE PROVISIONAL (until the speaker supplier datasheet -- NOT a spec limit). They live in ONE place, AL1_CAL at the top of the AL1 section of this file, and `--only AL1 --al1-calibrate` re-measures and rewrites them.

@@ -1,0 +1,22 @@
+=== 2026-09-26T19:56:26Z  NO DATA
+RUNNER ERROR: RuntimeError('refusing to boot the DSP pair with AN_EN (GPIO26) HIGH (26: op -- pd | hi) -- the rails must be down before any pair reset/boot (PW 09-10: analog last up, first down; S116 Q4: raised once, after the last boot of the session, held until handback). Lower them first.')
+Traceback (most recent call last):
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 398, in run
+    v, m, lim, ev = fn()
+                    ~~^^
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 3280, in <lambda>
+    r.run('AL1', lambda: t_al1(r))
+                         ~~~~~^^^
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 2095, in t_al1
+    blocker, ev, cap = _al1_prereq(r)
+                       ~~~~~~~~~~~^^^
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 1860, in _al1_prereq
+    cap['link_ok'], link_txt, cap['booted'] = ensure_pair(r)
+                                              ~~~~~~~~~~~^^^
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 2802, in ensure_pair
+    log = boot_pair(r)
+  File "/home/peter/dsp/tools/pi/d24_selftest.py", line 2694, in boot_pair
+    raise RuntimeError(
+    ...<3 lines>...
+        'handback). Lower them first.' % (AN_EN_GPIO, an.split('//')[0].strip()))
+RuntimeError: refusing to boot the DSP pair with AN_EN (GPIO26) HIGH (26: op -- pd | hi) -- the rails must be down before any pair reset/boot (PW 09-10: analog last up, first down; S116 Q4: raised once, after the last boot of the session, held until handback). Lower them first.

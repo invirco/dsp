@@ -62,6 +62,7 @@ import re
 import shlex
 import subprocess
 import sys
+import traceback
 import threading
 import time
 
@@ -115,17 +116,24 @@ SIGNED_TRIPLE = ('0xCF45FF10', '0xE2018E6F', '0xC47C0F26')   # the S82-signed pa
 # whole automated set runs on -- AL1 and AS-DAC need TEST_OSC, and S113 §4
 # showed every other verdict in the set is image-agnostic, so the session
 # never swaps images. Named and versioned rather than left as "whatever
-# pair.conf happens to point at": `factory-test-v1` is the pair staged at
-# `/home/app/loopthd/s109` on MW-D24-2, read off the part with
-# `dsp4_buildcfg.py` (both chips, identical) and recorded in the accept
-# manifest (`MW/D24/DSP/accept/manifest.json`) beside the shipping triple.
-# `_check_factory_image()` asserts every DSP-touching press is actually
+# pair.conf happens to point at": the pair is staged on MW-D24-2, read off the
+# part with `dsp4_buildcfg.py` (both chips, identical) and recorded in the
+# accept manifest (`MW/D24/DSP/accept/manifest.json`) beside the shipping
+# triple. `_check_factory_image()` asserts every DSP-touching press is actually
 # running this pair, not a silent substitute.
-FACTORY_TEST_IMAGE_NAME = 'factory-test-v1'
-FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s109'
+#
+# v2 (S124, 2026-09-26) -- S122's haptic path. CHIP 1 IS BYTE-IDENTICAL TO v1
+# and only chip 2 moves (6f11a1dd -> 9e8a1a9e): the panel speaker leaves every
+# mixer signal path and `C2_HPT_01` becomes its only source, which is what AL1
+# now drives. THE BUILD-CFG TRIPLE IS UNCHANGED between v1 and v2 -- the flags
+# did not move, the graph did -- so the triple alone cannot tell the two pairs
+# apart and the `.ldr` md5 below is the only thing that can. That is why the
+# md5 pin exists.
+FACTORY_TEST_IMAGE_NAME = 'factory-test-v2'
+FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s122'
 FACTORY_TEST_BUILD_CFG = ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6')
 FACTORY_TEST_LDR_MD5 = {'chip1.ldr': '7f226919a5d181410c3804d92678da19',
-                        'chip2.ldr': '6f11a1ddc6efd45ec30f536cef295292'}
+                        'chip2.ldr': '9e8a1a9edf19a90ce7ac3df1586c00f6'}
 
 # ---------------------------------------------------------------------------
 # The key table. `board`/`item` are the workbook's strings verbatim; the number
@@ -382,7 +390,8 @@ class Rig:
         if bad and test in PAIR_DEPENDENT:
             print('%s ... SKIPPED: %s' % (test, bad))
             self.record(test, NODATA, 'wrong image loaded',
-                        'the factory-test-v1 pair (%s)' % (FACTORY_TEST_BUILD_CFG,), bad)
+                        'the %s pair (%s)' % (FACTORY_TEST_IMAGE_NAME,
+                                              FACTORY_TEST_BUILD_CFG), bad)
             return
         print('%s ...' % test, flush=True)
         try:
@@ -392,7 +401,13 @@ class Rig:
             # recorded as NO DATA with the exception in `evidence` and shouted
             # about in the summary rather than quietly folded in with the honest
             # NO DATAs.
-            v, m, lim, ev = NODATA, 'runner error', '', 'RUNNER ERROR: %r' % (exc,)
+            # S124: the TRACEBACK, not just the repr. A runner error whose
+            # evidence is one line of `TypeError(...)` costs a whole re-run to
+            # locate, and the re-run may not reproduce it (NW3's does not fire
+            # unless the network is actually losing packets).
+            v, m, lim, ev = (NODATA, 'runner error', '',
+                             'RUNNER ERROR: %r\n%s'
+                             % (exc, traceback.format_exc()))
         self.record(test, v, m, lim, ev)
 
 
@@ -1556,6 +1571,69 @@ AL1_TONE_CAP_DBFS = -3.0
 AL1_RAMP_MS = 150.0
 AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 
+# ===========================================================================
+# THE WINDOWS AND CEILINGS -- ONE TABLE, PROVISIONAL
+# ===========================================================================
+# RESTORED, S124. S122 removed the AL1 route write and took this table out
+# with it (the whole `AL1_CAL` block and `AL1_CAL_KEYS_NUMERIC` are in the
+# deleted hunk of 42d09d1b), so every AL1 press after that commit raised
+# `NameError: name 'AL1_CAL' is not defined` and scored NO DATA "runner
+# error". Found by running it on the part -- S124-1.
+#
+# PROVISIONAL until the speaker supplier's datasheet arrives, and provisional
+# again until PW's planned amp-gain change (a resistor in parallel with R97)
+# lands. These are NOT spec limits. They are set to catch a fault -- no sound,
+# a quiet path, a distorting one -- on a small speaker in an ordinary room.
+#
+# THE LEVEL WINDOW IS RELATIVE, WHICH IS THE POINT: the expected mic level is
+# a straight line in the injected level (`pred = slope * drive + intercept`),
+# so the table survives a change in what is between the two ends of the loop.
+# `--only AL1 --al1-calibrate` re-measures it, prints old against new and
+# rewrites this block in place.
+#
+# THE THD CEILING (`thd_abs_db` / `thd_margin_db`, S115) IS A DIFFERENT NUMBER
+# FROM THE THD+N ONE AND THE TWO ARE NEVER INTERCHANGEABLE. The verdict is on
+# BANDPASS THD (PW 2026-09-26); `thdn_abs_db` / `thdn_margin_db` stay for the
+# informational line and can NEVER be reused as the ceiling the verdict
+# applies. `thd_margin_db` sits on top of the capture's OWN THD floor, so a
+# reading taken in a loud room raises the ceiling instead of failing the unit.
+AL1_CAL = {
+    'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
+    'unit': 'MW-D24-2 (rev C+)',
+    'stamp': '2026-09-26T19:38:14Z',
+    'pair': '/home/app/loopthd/s122',
+    'runs': '15 runs at -12/-6/-3 dBFS x 5 reps; 15 fitted, 0 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -12 dBFS; default drive -6 dBFS',
+    'slope_db_per_db': 0.948,
+    'intercept_dbfs': -24.130,
+    'level_tol_db': 4.000,
+    'level_hi_tol_db': 7.000,
+    'high_fails': False,
+    'snr_min_db': 13.700,
+    'floor_max_dbfs': -40.300,
+    'thdn_abs_db': 3.000,
+    'thdn_margin_db': 22.800,
+    'thd_abs_db': -22.500,
+    'thd_margin_db': 6.000,
+}
+AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
+                        'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
+                        'thdn_abs_db', 'thdn_margin_db',
+                        'thd_abs_db', 'thd_margin_db')
+
+
+def pct_of_db(db):
+    """A ratio in dB as percent. PW's standing rule (2026-09-16): every
+    THD/THD+N figure is printed in dB AND in percent, never one alone.
+
+    RESTORED, S124, with AL1_CAL above -- see that comment."""
+    return 100.0 * 10.0 ** (db / 20.0)
+
+
+def _mems_row(rows):
+    """RESTORED, S124, with AL1_CAL above -- see that comment."""
+    hit = [x for x in rows if 'MEMS' in x]
+    return hit[0] if hit else None
+
 
 def _silence_cells():
     """The one word that can make the speaker sound, turned off."""
@@ -2572,12 +2650,33 @@ def _check_factory_image(r):
         return
     txt = r.out('cd %s && python3 dsp4_buildcfg.py --chip 1 2>&1' % r.a.stage, timeout=90)
     trip = tuple(re.findall(r'0x[0-9A-Fa-f]{8}', txt)[:3])
-    if trip == FACTORY_TEST_BUILD_CFG:
+    # THE TRIPLE IS NOT ENOUGH, AND S124 IS WHY. factory-test-v2 carries S122's
+    # haptic path: the graph moved, no build flag did, so v1 and v2 read the
+    # IDENTICAL build-cfg triple and this check passed on either. The .ldr md5s
+    # have been in the record since S116 (and in the accept manifest) and
+    # nothing read them; they are read here, off the staged pair, because they
+    # are the only thing that tells two graphs apart at the same flags.
+    md = r.out('cd %s && md5sum chip1.ldr chip2.ldr 2>&1' % r.a.stage, timeout=60)
+    got = dict((n, h) for h, n in
+               (ln.split()[:2] for ln in md.splitlines()
+                if len(ln.split()) >= 2 and ln.split()[1].endswith('.ldr')))
+    bad_md5 = sorted(k for k, v in FACTORY_TEST_LDR_MD5.items() if got.get(k) != v)
+    if trip == FACTORY_TEST_BUILD_CFG and not bad_md5:
         r._image_bad = None
-    else:
+    elif trip != FACTORY_TEST_BUILD_CFG:
         r._image_bad = ('wrong image loaded: chip 1 build-cfg triple %s, expected %s '
                         "(%s, the factory-test image this set is written against)"
                         % (trip or 'no reply', FACTORY_TEST_BUILD_CFG, FACTORY_TEST_IMAGE_NAME))
+    else:
+        r._image_bad = ('wrong image loaded: %s in %s %s, expected %s (%s, the '
+                        'factory-test image this set is written against). The '
+                        'build-cfg triple matched -- two graphs can share one set '
+                        'of flags, which is why the md5 is checked.'
+                        % (', '.join(bad_md5), r.a.stage,
+                           [got.get(k, 'not found') for k in bad_md5],
+                           [FACTORY_TEST_LDR_MD5[k] for k in bad_md5],
+                           FACTORY_TEST_IMAGE_NAME))
+    if r._image_bad:
         print('  *** %s ***' % r._image_bad)
 
 

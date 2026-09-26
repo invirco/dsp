@@ -1499,7 +1499,7 @@ def write_report(a, rows, state, ignored, stale, timing):
         import d24_selftest as S
         img = (S.FACTORY_TEST_IMAGE_NAME, S.FACTORY_TEST_BUILD_CFG)
     except Exception:                                   # noqa: BLE001
-        img = ('factory-test-v1', ())
+        img = ('factory-test-v2', ())
 
     def line_for(r):
         e = state.row(r.num) or {}

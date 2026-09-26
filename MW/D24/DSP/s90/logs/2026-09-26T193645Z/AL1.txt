@@ -1,0 +1,72 @@
+=== 2026-09-26T19:38:15Z  NO DATA
+THE PATH, named (S102) and then SEPARATED (S122). The speaker is codec TDM slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). UPSTREAM IT IS ONE NODE AND NO MIXER AT ALL (PW ruling 2026-09-26): C2_HPT_01, a chip-2 HAPTIC node with no inputs, -> C2_SPKR_OUT slot 0. It plays stored 2.5 kHz clicks for the screen buttons and, for this test, a stored 1 kHz tone; it writes digital zero the rest of the time. The monitor bus reached this slot until S122 and no longer reaches any converter slot at all. MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_SPKR_OUT, sink=DNP on C2_CODEC_AUX_OUT, and BOTH generators refuse a graph in which anything but a HAPTIC node reaches a sink=SPKR output. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code 54.
+
+AN_EN (GPIO26): 26: op -- pd | hi (raised this session, held up)
+pair staged: /home/app/loopthd/s122 (/home/app/selftest/pair.conf)
+--- AK4619 init (H1S1 StartAK4619; nothing else does it when matrix-app never runs) ---
+S_RUN   -> b'+\n.\n:\n.\n:\n.\n:\n'
+re-init: StartAK4619() requested (reg 0xFF)
+--- the DSP pair ---
+the pair was ALREADY UP (no boot by this run)
+chip 1: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+chip 2: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+--- inter-chip fabric ---
+IC1 PASS  MAIN_L c1 -98.6 -> c2 -106.3 dBFS, MAIN_R c1 -96.7 -> c2 -108.1 dBFS  [tol +12.0 dB over -40.0 dBFS, ceiling 0.0 dBFS]
+chip1 FRAME_COUNT 4447884 -> 4449059   chip2 4446358 -> 4447533
+  set 0 MAIN_L  c1  -100.86 dBFS  c2  -101.33 dBFS  delta   -0.47
+  set 1 MAIN_L  c1   -98.56 dBFS  c2  -106.32 dBFS  delta   -7.76
+    c1 words 00000280 00000290 00000180 FFFFFFE0 FFFFFCB0 000001A0 FFFFFB70 FFFFFBE0
+    c2 words 00000270 FFFFFBF0 FFFFFE60 FFFFFBF0 000002C0 FFFFFEC0 FFFFFDA0 FFFFFC60
+  set 0 MAIN_R  c1  -103.13 dBFS  c2  -103.67 dBFS  delta   -0.54
+  set 1 MAIN_R  c1   -96.75 dBFS  c2  -108.10 dBFS  delta  -11.36
+    c1 words 000000C0 00000240 000001E0 00000110 FFFFFD50 FFFFFF80 00000210 FFFFFCC0
+    c2 words 00000280 FFFFFBE0 FFFFFD60 00000090 000001C0 FFFFFDC0 FFFFFD20 000000B0
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): True
+--- MEMS lane, rxscan (cached -- already confirmed since this pair was staged) ---
+XIN_MEMS          46   736     7     0    16       15    -46.86    -46.66  009127ff 0096a7ff 0092e7ff  CARRYING
+the chip-2 image carries the haptic node (_hpt_test_on_C2_HPT_01 in chip2.sym.json): True
+--- the speaker's two words, read back through the image's own dispatch table BEFORE anything is played ---
+c2@2178                    chip2 addr 2178   0x00000000  0.000000
+c2@2179                    chip2 addr 2179   0x00000000  0.000000
+speaker silent at entry: True
+
+--- every calibration run ---
+  drive    rep   baseline      tone        SNR       THD        THD     floor     THD+N        THD+N     noise    on
+  dBFS           dBFS       dBFS        dB        dB          %        dB        dB            %      dBFS     s
+   -12.0     1     -47.15     -35.50      11.65    -32.12      2.478    -54.79      0.00      100.000    -35.50   0.80
+   -12.0     2     -46.82     -35.52      11.30    -32.12      2.478    -55.57      0.00      100.000    -35.52   0.77
+   -12.0     3     -47.55     -35.55      12.00    -32.01      2.510    -54.97      0.00      100.000    -35.55   0.77
+   -12.0     4     -47.20     -35.52      11.68    -31.98      2.518    -56.69      0.00      100.000    -35.52   0.79
+   -12.0     5     -47.02     -35.55      11.47    -32.01      2.510    -55.35      0.00      100.000    -35.55   0.79
+    -6.0     1     -46.95     -29.75      17.20    -25.45      5.339    -61.43      0.00      100.000    -29.75   0.77
+    -6.0     2     -46.75     -29.74      17.00    -25.46      5.334    -61.61      0.00      100.000    -29.74   0.82
+    -6.0     3     -46.72     -29.75      16.97    -25.52      5.299    -61.07      0.00      100.000    -29.75   0.82
+    -6.0     4     -46.48     -29.75      16.73    -25.54      5.284    -60.22      0.00      100.000    -29.75   0.82
+    -6.0     5     -46.95     -29.72      17.23    -25.51      5.301    -61.21      0.00      100.000    -29.72   0.82
+    -3.0     1     -46.74     -27.01      19.74    -22.29      7.686    -62.96      0.00      100.000    -27.01   0.77
+    -3.0     2     -46.32     -27.00      19.32    -22.29      7.682    -62.96      0.00      100.000    -27.00   0.77
+    -3.0     3     -46.82     -27.01      19.81    -22.30      7.671    -62.10      0.00      100.000    -27.01   0.77
+    -3.0     4     -46.34     -27.02      19.32    -22.32      7.655    -62.57      0.00      100.000    -27.02   0.77
+    -3.0     5     -46.36     -27.04      19.32    -22.33      7.649    -62.55      0.00      100.000    -27.04   0.82
+  mean at  -12.0: tone -35.53 dBFS (spread 0.05 dB), baseline -47.15, SNR 11.62 dB, THD -32.05 dB = 2.499 % (spread 0.14 dB), THD+N 0.00 dB = 100.000 %
+  mean at   -6.0: tone -29.74 dBFS (spread 0.03 dB), baseline -46.77, SNR 17.03 dB, THD -25.50 dB = 5.311 % (spread 0.09 dB), THD+N 0.00 dB = 100.000 %
+  mean at   -3.0: tone -27.02 dBFS (spread 0.03 dB), baseline -46.52, SNR 19.50 dB, THD -22.31 dB = 7.668 % (spread 0.04 dB), THD+N 0.00 dB = 100.000 %
+
+--- the table: old -> new ---
+  slope_db_per_db           1.029 ->        0.948   CHANGED
+  intercept_dbfs          -29.650 ->      -24.130   CHANGED
+  level_tol_db              4.000 ->        4.000
+  level_hi_tol_db           7.000 ->        7.000
+  snr_min_db               15.400 ->       13.700   CHANGED
+  floor_max_dbfs          -48.300 ->      -40.300   CHANGED
+  thdn_abs_db             -16.700 ->        3.000   CHANGED
+  thdn_margin_db           10.800 ->       22.800   CHANGED
+  thd_abs_db              -28.500 ->      -22.500   CHANGED
+  thd_margin_db             6.000 ->        6.000
+
+TABLE REWRITTEN in /home/peter/dsp/tools/pi/d24_selftest.py. The comments above it -- including what makes each number provisional -- are untouched; only the dict body is replaced. Commit it: the table is the test.
+
+--- the speaker stimulus, stopped (AL1; exit 0, read-back SILENT) ---
+the tone could have been live for 75.12 s of this press
+c2@2178                    chip2 addr 2178   0x00000000  0.000000
+c2@2179                    chip2 addr 2179   0x00000000  0.000000
