@@ -257,6 +257,15 @@ XOVER_SLOPE = 6
 SUB_TONE_HZ = 100.0
 
 
+def socket_sort(names):
+    """MIC 2 before MIC 13. A plain sort puts them the other way round, which
+    is fine for a machine and wrong on a page a person reads."""
+    def key(s):
+        m = re.match(r'^(.*?)(\d+)$', s.strip())
+        return (m.group(1), int(m.group(2))) if m else (s, 0)
+    return sorted(names, key=key)
+
+
 def fmt(v):
     """A cell value the way s89_set.py spells it: floats as f<x>, ints bare."""
     return ('f%g' % v) if isinstance(v, float) else str(int(v))
@@ -537,7 +546,7 @@ class Builder:
         self.notrun = []
         self.excl_in = set(excl_inputs)
         self.excl_lead = set(excl_leads)
-        self.rehomed = []            # (output, input it moved to, why)
+        self.rehomed = []            # (what moved, where to, why)
         self.dropped = 0             # patches the exclusions removed
 
     # -- exclusions ---------------------------------------------------------
@@ -609,36 +618,6 @@ class Builder:
         self.patch += 1
         return 'P%d' % self.patch
 
-    def rehome(self, plan):
-        """Drop the excluded inputs, and move any output that lost its only
-        test onto an input that was carrying nothing but the parked output.
-
-        The order is what makes this safe: the dead inputs go first, so the
-        list of still-working PARKED inputs is known before anything is moved,
-        and an output is only ever moved onto one of those. An input with a
-        test of its own is never taken, because taking it would drop the
-        output that test was there to prove.
-        """
-        keep = [(o, d, i, st) for (o, d, i, st) in plan if not self.out_in(i)]
-        self.dropped += len(plan) - len(keep)
-        if not self.excl_in:
-            return keep
-        proved = {o for (o, _d, _i, _st) in keep}
-        orphans = [(o, d) for (o, d) in XLR_OUTS if o not in proved]
-        free = [k for k, (o, _d, _i, _st) in enumerate(keep) if o == PARK_OUT]
-        for (o, d) in orphans:
-            if not free:
-                self.notrun.append(dict(
-                    port=o, row=self.ports.get(o, {}).get('catalog_row', ''),
-                    reason='its own input is excluded and no parked input is '
-                           'left to move it to'))
-                continue
-            k = free.pop(0)
-            _o, _d, inp, st = keep[k]
-            keep[k] = (o, d, inp, st)
-            self.rehomed.append((o, inp, 'its own input is excluded'))
-        return keep
-
     # -- the blocks ---------------------------------------------------------
     def block_k1_outputs(self):
         """Every XLR output in a row, into one input (PW 2026-09-26).
@@ -695,6 +674,7 @@ class Builder:
 
     def block_k5(self):
         """The input noise rows: a 150 ohm terminator and no tone at all."""
+        self.dropped += len(STRIPS) - len(self.strips())
         for strip in self.strips():
             self.new_patch()
             self.add(lead='K5', block='the input noise rows', out='',
@@ -928,17 +908,17 @@ def write_plan(out, b):
               'sockets left out on purpose. Nothing here was edited by hand.',
               '',
               '* left out: %s'
-              % ', '.join(sorted(b.excl_in)
+              % ', '.join(socket_sort(b.excl_in)
                           + sorted('every path that needs the %s'
                                    % LEADS[k]['name'] for k in b.excl_lead)),
               '* patches the exclusions removed: %d' % b.dropped]
         for out, inp, why in b.rehomed:
             L.append('* %s now reads on %s (%s)' % (out, inp, why))
         L += ['',
-              'An output whose only test used a socket that was left out is '
-              'MOVED onto an input that was carrying nothing but the parked '
-              'output, so leaving an input out never quietly stops proving an '
-              'output.', '']
+              'Leaving an input out never quietly stops proving an OUTPUT: '
+              'every output is tested against the reference input, whichever '
+              'input that turns out to be, so the outputs are covered whatever '
+              'is left out of the input row.', '']
     L += ['## The kit', '',
          '| lead | what it is | how it is wired | patches |',
          '|---|---|---|---|']

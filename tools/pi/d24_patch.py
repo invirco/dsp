@@ -395,6 +395,16 @@ class Unit:
         return peek_settled(sc, sc.sym['_meas_seq_C1_TEST_MEAS'])
 
 
+def donor_for(strip):
+    return DONOR_ALT if int(strip) == DONOR_DEFAULT else DONOR_DEFAULT
+
+
+def route_id(drive, donor):
+    """The route id the generator spells, rebuilt so a run-time rebind can
+    name one. Both donors exist for every drive the list uses."""
+    return '%s@%d' % (str(drive).replace(':', '').replace('+', 'p'), int(donor))
+
+
 def fold(rows):
     """Average the windows. Levels in dB average in power; phase averages as a
     unit vector, because 179 deg and -179 deg are half a degree apart and their
@@ -1052,6 +1062,15 @@ class KeyWatch:
 # The loop
 # ---------------------------------------------------------------------------
 MIC_STRIPS = tuple(range(1, 25))
+# The donor strip, the same two numbers the generator uses: TEST_OSC REPLACES
+# a strip's input, so the strip carrying the oscillator cannot be the strip
+# being measured, and the list moves the donor out of the way when its own
+# input is under test.
+DONOR_DEFAULT = 24
+DONOR_ALT = 1
+# How many inputs in a row may hear nothing before the OUTPUT becomes the
+# suspect (PW 2026-09-26, step 1). Three is PW's number.
+MAX_DEAF_IN_A_ROW = 3
 # How long a step waits. With auto-advance the tone ends the step, so the
 # timeout is the list's own. With ENTER the step waits for a PERSON, and a
 # person who has gone to find a lead is not a fault: the same number, but
@@ -1103,6 +1122,12 @@ class Station:
         self.failures = []
         self.paused = False
         self._lead_line = ''     # folded into the next instruction, then cleared
+        # The parked ends, bound by the first step and not before it (S123
+        # addendum 3). Until the loop is found there is no such thing as a
+        # known-good socket, so there is nothing to park on.
+        self.ref_in = None       # (panel name, strip)
+        self.ref_out = None      # (panel name, drive)
+        self.dead_in = {}        # strip -> why, from the find-a-loop walk
 
     # -- setup -------------------------------------------------------------
     def standing(self):
@@ -1322,6 +1347,32 @@ class Station:
             self.lead_card(lead, block, patches, bi + 1, len(seq))
             self.an.for_block(lead)
             for pi, (pid, rows) in enumerate(patches):
+                rows = self.rebind(rows)
+                # STEP 1: FIND A WORKING LOOP. Until this patch is done there
+                # is no reference socket to park anything on, so nothing after
+                # it has been prepared and the pipeline starts empty.
+                if (rows[0].get('park') or '') == 'find':
+                    found = self.find_loop(pid, rows)
+                    if found == 'stopped':
+                        return self.rows_out
+                    if found is None:
+                        self.no_loop()
+                        return self.rows_out
+                    frow, fprep = found
+                    t1 = now()
+                    self.record(self.score_patch([frow], fprep,
+                                                 self.acquire([frow], fprep)))
+                    self.timing.append(dict(patch=pid, lead=lead, hand_s=0.0,
+                                            machine_s=now() - t1, subs=1))
+                    continue
+                # An input the find-a-loop walk already went past is recorded
+                # there, not walked again (PW 2026-09-26, step 3). ONLY in the
+                # XLR input block: a dead mic path says nothing about the LINE
+                # path through the same combo socket, and nothing about the
+                # noise reading either.
+                if self.walked_past(rows, block):
+                    self.record(self.nodata(rows, None))
+                    continue
                 if prepared is None:
                     prepared = self.prepare(rows)
                     token = self.p.connect(pid, rows, self.g)
@@ -1366,9 +1417,13 @@ class Station:
                 # so the only thing the operator waits for is the reading.
                 nxt = self.next_patch(seq, bi, pi)
                 if nxt is not None:
-                    prepared = self.prepare(nxt[1])
-                    token = self.p.connect(nxt[0], nxt[1], self.g)
-                    self.announce(nxt[0], nxt[1])
+                    nrows = self.rebind(nxt[1])
+                    if self.walked_past(nrows, block):
+                        nxt = None           # scored without a prompt, next pass
+                    else:
+                        prepared = self.prepare(nrows)
+                        token = self.p.connect(nxt[0], nrows, self.g)
+                        self.announce(nxt[0], nrows)
                 self.record(self.score_patch(rows, prep, raw))
                 self.timing.append(dict(patch=pid, lead=lead, hand_s=t_hand,
                                         machine_s=now() - t1,
@@ -1376,6 +1431,137 @@ class Station:
                 self.report_last(pid)
         self.finish()
         return self.rows_out
+
+    # -- the parked end -----------------------------------------------------
+    def rebind(self, rows):
+        """Bind this patch's PARKED end to the socket the first step found.
+
+        The list is generated before anybody plugs anything in, so it cannot
+        know which input is good; it says WHICH END is parked and this binds
+        it. A patch that names both ends itself is returned untouched.
+        """
+        park = (rows[0].get('park') or '').strip()
+        if park in ('', 'find'):
+            return rows
+        if park == 'in' and self.ref_in is None:
+            return rows
+        if park == 'out' and self.ref_out is None:
+            return rows
+        out = []
+        for r in rows:
+            r = dict(r)
+            if park == 'in':
+                name, strip = self.ref_in
+                r['in'], r['lane'] = name, str(strip)
+                r['donor'] = str(donor_for(strip))
+                r['route'] = route_id(r['drive'], r['donor'])
+                r['prompt'] = 'Patch %s to %s' % (r['out'], name)
+            else:
+                name, drive = self.ref_out
+                r['out'], r['drive'] = name, drive
+                r['route'] = route_id(drive, r['donor'])
+                r['prompt'] = 'Patch %s to %s' % (name, r['in'])
+            out.append(r)
+        return out
+
+    def walked_past(self, rows, block):
+        """This patch's input was already found silent while the loop was
+        being looked for, so there is nothing to ask the operator for."""
+        if block != 'the inputs':
+            return False
+        lane = str(rows[0]['lane'])
+        return lane.isdigit() and int(lane) in self.dead_in
+
+    def loop_candidates(self):
+        """The outputs to try, and the inputs to walk, both in panel order and
+        both taken from the list rather than invented here."""
+        outs, ins = [], []
+        for (_lead, block), patches in self.L.blocks():
+            if block == 'the outputs' and not outs:
+                outs = [(rr[0]['out'], rr[0]['drive']) for _p, rr in patches]
+            elif block == 'the inputs' and not ins:
+                for _p, rr in patches:
+                    lane = str(rr[0]['lane'])
+                    if lane.isdigit() and int(lane) in MIC_STRIPS:
+                        ins.append((rr[0]['in'], int(lane)))
+        return outs, ins
+
+    def bind_row(self, base, out, drive, name, strip):
+        r = dict(base)
+        r['out'], r['drive'] = out, drive
+        r['in'], r['lane'] = name, str(strip)
+        r['donor'] = str(donor_for(strip))
+        r['route'] = route_id(drive, r['donor'])
+        r['prompt'] = 'Patch %s to %s' % (out, name)
+        return r
+
+    def find_loop(self, pid, rows):
+        """Step 1 (PW 2026-09-26): find a working loop before judging anything.
+
+        The output end starts on the first XLR output and the input end walks
+        until the tone arrives. Three deaf inputs in a row and the OUTPUT
+        becomes the suspect, so the output end moves on and the walk starts
+        again. Nothing here is a verdict about a socket except the inputs the
+        walk went past, which are recorded so the input block does not walk
+        them a second time.
+
+        On the glass it is four ordinary instructions -- plug this in, move
+        the lead to the next one -- and never a diagnosis.
+        """
+        outs, ins = self.loop_candidates()
+        if not outs or not ins:
+            return None
+        base = rows[0]
+        first = True
+        for out, drive in outs:
+            misses = 0
+            for name, strip in ins:
+                if strip in self.dead_in:
+                    continue
+                row = self.bind_row(base, out, drive, name, strip)
+                prep = self.prepare([row])
+                tok = self.p.connect(pid, [row], self.g)
+                if first:
+                    self.announce(pid, [row])
+                    first = False
+                else:
+                    self.live.set(state=LV.WAITING,
+                                  instruction=(LV.move_input(name,
+                                                             not self.auto)
+                                               if misses else
+                                               LV.move_output(out, name,
+                                                              not self.auto)),
+                                  lead_line='', extra='', status=LV.LOOKING)
+                how, ans, _dt = self.detect([row], prep, tok)
+                self.p.done(tok)
+                if how == 'glass' and ans.get('button') in ('pause', 'skip',
+                                                            'ignore'):
+                    self.finish_early([row], ans)
+                    return 'stopped'
+                if how in ('rise', 'drop', 'enter-ok'):
+                    self.ref_in = (name, strip)
+                    self.ref_out = (out, drive)
+                    self.log('the loop is %s into %s: that input is the '
+                             'reference for the pass' % (out, name))
+                    self.live.set(state=LV.CHECKING)
+                    return (row, prep)
+                self.dead_in[strip] = ('no tone arrived while the loop was '
+                                       'being found')
+                misses += 1
+                if misses >= MAX_DEAF_IN_A_ROW:
+                    break                    # the output is the suspect now
+        return None
+
+    def no_loop(self):
+        """Nothing anywhere. That is a whole-unit fault and one sentence, not
+        forty fails (PW 2026-09-26)."""
+        self.log('no output reached any input: the pass stops here')
+        self.live.set(state=LV.STOPPING)
+        self.teardown()
+        self.live.set(state=LV.FINISHED, instruction='', lead_line='', extra='',
+                      status=LV.NO_LOOP, action=LV.HANDOVER,
+                      passed=self.passed, failed=self.failed,
+                      failures=list(self.failures))
 
     # -- the screen ---------------------------------------------------------
     def index(self, seq):
@@ -1490,6 +1676,15 @@ class Station:
         return prep, tok
 
     def nodata(self, rows, where, tries=0):
+        strip = str(rows[0]['lane'])
+        if (not where and strip.isdigit() and int(strip) in self.dead_in
+                and not tries):
+            why = self.dead_in[int(strip)]
+            return [dict(path=r['path'], patch=r['patch'], lead=r['lead'],
+                         out=r['out'], **{'in': r['in']}, sub=r['sub'],
+                         rows=r['rows'], verdict=NODATA, why=why, detail='',
+                         h_db=None, h_deg=None, thd_db=None, noise_db=None,
+                         rms_db=None) for r in rows]
         why = ('the lead was in %s and never in %s' % (where, rows[0]['in'])
                if where else 'no tone reached %s' % rows[0]['in'])
         if tries:
@@ -2004,46 +2199,54 @@ def screen_walk(plist):
                                   lead_n=0, lead_total=4)),
         ('03-lead-change', at(first, 1, state=LV.WAITING,
                               lead_line=LV.pick_up(first['lead']))),
-        ('04-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
-        ('05-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
+        ('04-walk-to-the-next-input',
+         at(tone, 1, state=LV.WAITING, lead_line='',
+            instruction=LV.move_input('MIC %d' % (int(tone['lane']) + 1)),
+            status=LV.LOOKING)),
+        ('05-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
+        ('06-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
                                status=LV.SIGNAL_SEEN)),
-        ('06-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
-        ('07-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
+        ('07-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
+        ('08-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
                        banner_line=LV.patch_words(tone), passed=5, failed=0)),
-        ('08-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
+        ('09-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
                                banner='CHECK THE LEAD', banner_line='',
                                action=LV.action_wrong_socket('MIC 6',
                                                              tone['in']))),
-        ('09-no-signal', at(tone, 6, state=LV.CHECKLEAD,
+        ('10-no-signal', at(tone, 6, state=LV.CHECKLEAD,
                             banner='CHECK THE LEAD', banner_line='',
                             action=LV.action_no_signal())),
-        ('10-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
+        ('11-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
                        banner_line=LV.patch_words(tone),
                        action=LV.action_failed(), passed=5, failed=1)),
-        ('11-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
+        ('12-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
                                   lead_line='')),
-        ('12-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
+        ('13-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
                             lead_line=LV.pick_up(line['lead']))),
-        ('13-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
+        ('14-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
                                   lead_line=LV.pick_up(trs['lead']),
                                   extra=LV.hold_note(3))),
-        ('14-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
+        ('15-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
                            lead_line='', extra='',
                            status='Paused - the unit is safe. '
                                   'Press START to run the test again.',
                            passed=28, failed=1,
                            failures=[LV.patch_words(tone)])),
-        ('15-finished', dict(state=LV.FINISHED, n=total, total=total,
+        ('16-finished', dict(state=LV.FINISHED, n=total, total=total,
                              instruction='', lead_line='', extra='',
                              status=LV.finished_words(total, 0),
                              action=LV.HANDOVER, passed=total, failed=0,
                              failures=[])),
-        ('16-finished-with-failures',
+        ('17-finished-with-failures',
          dict(state=LV.FINISHED, n=total, total=total, instruction='',
               lead_line='', extra='',
               status=LV.finished_words(total - 2, 2), action=LV.HANDOVER,
               passed=total - 2, failed=2,
               failures=[LV.patch_words(tone), LV.patch_words(trs)])),
+        ('18-no-signal-anywhere',
+         dict(state=LV.FINISHED, n=1, total=total, instruction='',
+              lead_line='', extra='', status=LV.NO_LOOP, action=LV.HANDOVER,
+              passed=0, failed=0, failures=[])),
     ]
 
 

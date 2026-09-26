@@ -134,6 +134,23 @@ def instruction_for(row, confirm=True):
     return line + (', then press ENTER.' if confirm else '.')
 
 
+def move_input(name, confirm=True):
+    """The walk that finds a working loop, in the words of an ordinary
+    instruction. It is a diagnosis, and it must never read as one: a worker
+    is told to move a lead, not that the unit has a dead input."""
+    return ('Move the lead to %s%s'
+            % (socket_words(name), ', then press ENTER.' if confirm else '.'))
+
+
+def move_output(out, into, confirm=True):
+    return ('Move the other end to %s, and this end to %s%s'
+            % (out, socket_words(into), ', then press ENTER.' if confirm else '.'))
+
+
+NO_LOOP = 'No signal on any socket - call the supervisor.'
+LOOKING = 'Looking for a working socket...'
+
+
 def extra_for(row):
     """The one qualifying sentence a patch may need, or ''.
 
@@ -217,7 +234,9 @@ def every_string(rows=()):
     instructions and not just the fixed furniture.
     """
     out = list(STATUS_WORDS.values())
-    out += [SIGNAL_SEEN,
+    out += [SIGNAL_SEEN, NO_LOOP, LOOKING,
+            move_input('MIC 6'), move_input('MIC 6', False),
+            move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
             action_no_signal(), action_no_signal(False), action_failed(),
             HANDOVER, 'ENTER', 'PAUSE', 'START',
             finished_words(55, 0), finished_words(53, 2),
