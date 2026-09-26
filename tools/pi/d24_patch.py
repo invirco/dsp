@@ -87,6 +87,14 @@ FS = 48000.0
 WIN_S = 4096.0 / FS
 SETTLE_WINDOWS = 2
 READ_WINDOWS = 2
+# A ROUTE CHANGE NEEDS LONGER THAN A MEASCHAN CHANGE. The send, the bus master
+# and the pan are all ramped cells, and the fit that produces ThdResult treats
+# a level still on its way somewhere as distortion: measured on MW-D24-2 on
+# 2026-09-26, a reading taken two windows after a route assert gave THD+N
+# figures from -4 dB to -115 dB on paths whose LEVEL was -15.01 dBFS every
+# time. The level was never wrong; the fit had not settled. So a reading that
+# follows a route change waits longer.
+ROUTE_SETTLE_WINDOWS = 6
 
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 MISPATCH = 'MISPATCH'
@@ -198,14 +206,10 @@ class PatchList:
             out[-1][1].append((pid, rows))
         return out
 
-    def standing(self, donors):
-        cells = list(self.routes['_standing_close'])
-        for d in sorted(set(donors)):
-            key = '_standing_donor_%d' % d
-            if key in self.routes:
-                cells += self.routes[key]
-        cells += self.routes['_standing_masters']
-        return cells
+    def standing(self, donors=None):
+        return (list(self.routes['_standing_close'])
+                + self.routes['_standing_strips']
+                + self.routes['_standing_masters'])
 
 
 # ---------------------------------------------------------------------------
@@ -576,7 +580,7 @@ class Scorer:
         return ('normal' if d < self.lim['polarity_margin_deg']
                 else 'inverted'), d
 
-    def score(self, row, meas, floor, sweep, siblings):
+    def score(self, row, meas, floor, sweep, siblings, donor=None):
         """One path's verdict, and the plain sentence that goes with it.
 
         `meas` is the settled reading, `floor` the same lane with the tone off,
@@ -620,7 +624,7 @@ class Scorer:
                     'so they are not matched or they are crossed' % rel, notes)
 
         # -- isolation: the tone must be on THIS lane and no other ----------
-        bad = self._isolation(lane, sweep)
+        bad = self._isolation(lane, sweep, donor)
         if bad:
             return (MISPATCH, 'the tone is on %s, not %s' % (bad, row['in']), notes)
 
@@ -708,8 +712,16 @@ class Scorer:
                          'the figure is recorded, and limits.csv t4b_ein_max_dbu '
                          'is the design reference'])
 
-    def _isolation(self, lane, sweep):
-        """The loudest OTHER lane, if it is not far enough down."""
+    def _isolation(self, lane, sweep, donor=None):
+        """The loudest OTHER lane, if it is not far enough down.
+
+        THE DONOR STRIP IS NOT A LANE UNDER TEST and is skipped. The
+        oscillator REPLACES a strip's input, so the donor's own meter sits at
+        the drive level for every patch of the pass -- measured on MW-D24-2:
+        MIC 24 read -12.0 dBFS while every real path read about -15. Counting
+        it would make every single patch report the tone as being on the donor
+        rather than where the lead is.
+        """
         if not sweep:
             return None
         here = sweep.get(lane)
@@ -717,7 +729,7 @@ class Scorer:
             return None
         worst, who = None, None
         for k, v in sweep.items():
-            if k == lane or not v or v <= 0:
+            if k == lane or k == donor or not v or v <= 0:
                 continue
             d = dbv(v) - dbv(here)
             if worst is None or d > worst:
@@ -890,7 +902,7 @@ class Station:
                     self.u.meas_chan(int(r['lane']))
             freq = float(r['freq_hz']) if r['freq_hz'] else None
             lvl = float(r['level_dbfs']) if r['level_dbfs'] else 0.0
-            m = self.u.measure(freq, lvl)
+            m = self.u.measure(freq, lvl, settle=ROUTE_SETTLE_WINDOWS)
             sweep = (self.u.meter_sweep(MIC_STRIPS)
                      if int(r['lane']) in MIC_STRIPS and r['expect'] == 'tone'
                      else {})
@@ -904,7 +916,8 @@ class Station:
             # per LANE, not per patch: a mini-jack patch reads two lanes and
             # they have floors of their own
             floor = self.floors.get(int(r['lane']))
-            v, why, notes = self.sc.score(r, m, floor, item['sweep'], sibs)
+            v, why, notes = self.sc.score(r, m, floor, item['sweep'], sibs,
+                                          donor=int(r['donor']))
             sibs.append(dict(level_ref=r['level_ref'], h_db=m.get('h_db'),
                              h_deg=m.get('h_deg')))
             scored.append(dict(path=r['path'], patch=r['patch'], lead=r['lead'],
@@ -916,9 +929,15 @@ class Station:
                                rms_db=m.get('rms')))
         return scored
 
-    def where_is_it(self, lane, sweep):
-        """The plain sentence for a lead that went into the wrong socket."""
-        lit = [(dbv(v), k) for k, v in sweep.items() if v and dbv(v) > -90]
+    def where_is_it(self, lane, sweep, donor=None):
+        """The plain sentence for a lead that went into the wrong socket.
+
+        The donor strip is skipped for the same reason it is skipped in the
+        isolation check: it carries the oscillator by construction, so it is
+        always the loudest thing on the unit and would be named every time.
+        """
+        lit = [(dbv(v), k) for k, v in sweep.items()
+               if k != donor and v and dbv(v) > -90]
         lit.sort(reverse=True)
         if not lit:
             return None
@@ -967,7 +986,8 @@ class Station:
                     # A wrong patch is a prompt, never a fail: find the lead,
                     # say where it is, and offer the same patch again.
                     sweep = self.u.meter_sweep(MIC_STRIPS)
-                    where = self.where_is_it(int(rows[0]['lane']), sweep)
+                    where = self.where_is_it(int(rows[0]['lane']), sweep,
+                                             int(rows[0]['donor']))
                     self.p.done(tok)
                     if pending:
                         self.rows_out += self.score_patch(*pending)
@@ -1155,7 +1175,18 @@ class SimUnit:
         return sorted(out)
 
     def level_at(self, lane):
-        """dB at `lane`, from the world's idea of what is plugged where."""
+        """dB at `lane`, from the world's idea of what is plugged where.
+
+        THE DONOR STRIP READS THE OSCILLATOR. The stimulus replaces that
+        strip's input, so its meter sits at the drive level for the whole
+        pass whatever is or is not plugged in. The model says so because the
+        bench found it and the model had not: on MW-D24-2 the donor read
+        -12.0 dBFS while real paths read -15, which made the donor the
+        loudest lane on the unit and would have turned every patch into a
+        mis-patch report.
+        """
+        if self.osc_on and lane == self.osc_chan:
+            return self.osc_level
         return self.w.level(self.driven(), lane, self.osc_on, self.osc_level)
 
     def meter_peak(self, strip):

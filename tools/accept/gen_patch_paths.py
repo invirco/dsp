@@ -278,12 +278,20 @@ def cells_close_assigns(strips, auxes):
     return out
 
 
-def cells_donor_transparent(d):
-    """The donor strip, made a wire: nothing between the oscillator and the bus.
+def cells_strip_transparent(d):
+    """One strip, made a wire.
 
-    S54-2's lesson, and S115's: a donor left at the configuration defaults has
-    its gate and compressor ON, and a route that is not asserted still produces
-    a plausible number.
+    EVERY strip under test needs this, not just the donor, and the reason is
+    where the instrument stands: MeasChan taps a strip POST-FADER. A muted or
+    faded strip therefore reads as an exact zero however healthy its converter
+    lane is -- which is indistinguishable from a dead input. Measured on
+    MW-D24-2 on 2026-09-26: twenty-three lanes read about -116 dBFS and MIC 20
+    read -336, because the acoustic-loop test's own teardown leaves
+    Chan020Mute001 at 1 and nothing had ever put it back.
+
+    The processing goes with it, for S54-2's reason: a strip left at the
+    configuration defaults has its gate and compressor ON, so a reading taken
+    through one is not a reading of the path.
     """
     return ['Chan%03dPol001=0' % d,
             'Chan%03dEqOn001=0' % d,
@@ -296,6 +304,13 @@ def cells_donor_transparent(d):
             'Chan%03dMute001=0' % d,
             'Chan%03dPan001=f0.5' % d,
             'Chan%03dGain001=f1.0' % d]
+
+
+def cells_all_strips_transparent(strips):
+    out = []
+    for s in strips:
+        out += cells_strip_transparent(s)
+    return out
 
 
 def cells_bus_masters(auxes):
@@ -599,8 +614,7 @@ class Builder:
                 if nm not in self.cells:
                     self.missing.append('%s: %s' % (rid, nm))
         for spec in (cells_close_assigns(STRIPS, AUXES)
-                     + cells_donor_transparent(DONOR_DEFAULT)
-                     + cells_donor_transparent(DONOR_ALT)
+                     + cells_all_strips_transparent(STRIPS)
                      + cells_bus_masters(AUXES)):
             nm = spec.split('=')[0]
             if nm not in self.cells:
@@ -657,9 +671,8 @@ def write_routes(out, b):
         w = csv.writer(fh)
         w.writerow(('route', 'cells'))
         w.writerow(('_standing_close', ';'.join(cells_close_assigns(STRIPS, AUXES))))
-        for d in sorted({DONOR_DEFAULT, DONOR_ALT}):
-            w.writerow(('_standing_donor_%d' % d,
-                        ';'.join(cells_donor_transparent(d))))
+        w.writerow(('_standing_strips',
+                    ';'.join(cells_all_strips_transparent(STRIPS))))
         w.writerow(('_standing_masters', ';'.join(cells_bus_masters(AUXES))))
         for rid in sorted(b.routes):
             w.writerow((rid, ';'.join(b.routes[rid])))
