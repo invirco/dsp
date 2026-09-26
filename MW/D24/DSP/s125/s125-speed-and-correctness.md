@@ -509,3 +509,85 @@ and read back, the oscillator **off**, `matrix-app` **inactive**,
 `d24-testui` **active**, no live status file, no `runall/prompt.json`, and the
 **factory screen ARMED** with the 59-patch quick list. The one thing PW presses
 is still START.
+
+---
+
+## Addendum 1 — the product app is not wrong (hub, 2026-09-26)
+
+**Asked:** does the app put each MIC's gain byte where the hardware reads it?
+**Answer: yes, on all twenty-four, on both of the layouts it can use. There is
+no product bug.** 🟢
+
+This was not settled by reading the app. `MW/D24/DSP/s125/chaincheck/` loads
+the built `app.dll` by reflection and runs the app's **own**
+`AnalogControlChain.BuildImage` and `ToWire`: for each panel channel in turn it
+builds an image in which that channel alone carries an unmistakable gain code
+(21 = `0b010101`), converts it to wire order exactly as the app does before it
+clocks anything, and reports which transmit byte the marked value landed in.
+
+| MIC | `chain_index` | defs `send_pos` | app tx byte (compiled fallback) | app tx byte (defs layout) | measured on the part | |
+|---|---|---|---|---|---|---|
+| 1 | 1 | 23 | 23 | 23 | depopulated | OK |
+| 2 | 3 | 21 | 21 | 21 | depopulated | OK |
+| 3 | 5 | 19 | 19 | 19 | depopulated | OK |
+| 4 | 7 | 17 | 17 | 17 | depopulated | OK |
+| 5 | 9 | 15 | 15 | 15 | 15 | OK |
+| 6 | 11 | 13 | 13 | 13 | 13 | OK |
+| 7 | 13 | 11 | 11 | 11 | 11 | OK |
+| 8 | 15 | 9 | 9 | 9 | 9 | OK |
+| 9 | 17 | 7 | 7 | 7 | 7 | OK |
+| 10 | 19 | 5 | 5 | 5 | 5 | OK |
+| 11 | 21 | 3 | 3 | 3 | 3 | OK |
+| 12 | 23 | 1 | 1 | 1 | 1 | OK |
+| 13 | 2 | 22 | 22 | 22 | depopulated | OK |
+| 14 | 4 | 20 | 20 | 20 | depopulated | OK |
+| 15 | 6 | 18 | 18 | 18 | depopulated | OK |
+| 16 | 8 | 16 | 16 | 16 | depopulated | OK |
+| 17 | 10 | 14 | 14 | 14 | 14 | OK |
+| 18 | 12 | 12 | 12 | 12 | 12 | OK |
+| 19 | 14 | 10 | 10 | 10 | 10 | OK |
+| 20 | 16 | 8 | 8 | 8 | 8 | OK |
+| 21 | 18 | 6 | 6 | 6 | 6 | OK |
+| 22 | 20 | 4 | 4 | 4 | 4 | OK |
+| 23 | 22 | 2 | 2 | 2 | 2 | OK |
+| 24 | 24 | 0 | 0 | 0 | 0 | OK |
+
+**16 populated inputs checked against the part, 0 disagree.** The eight
+"depopulated" rows are panel mics 1-4 and 13-16, which have no front end on
+MW-D24-2, so the part cannot confirm them; the app still agrees with defs on
+all eight.
+
+**Both layouts, because the app has two.** With a defs checkout reachable it
+builds images from `defs/products/d24/inputs.csv`; on a deployed unit
+`DefsFile.Find` returns nothing and it falls back to a compiled table. The
+probe exercises both explicitly and they are byte-for-byte the same. (The
+`Default` property resolved to the fallback in this run, which is why the
+defs path had to be forced rather than assumed.)
+
+### Why the app got it right and the station did not
+
+The app never uses `chain_index` as a wire index. It uses it to order a
+**logical** image — index 0 is U34/SHIFT at the head, 1..24 are the chain
+positions — and then reverses the whole array exactly once, in `ToWire()`,
+because the chain clocks the first byte sent to the far end. That single
+reversal turns chain index *c* into transmit byte 24 − *c*, which is
+`send_pos`. The class comment claims that reversal is "the only place byte
+order changes"; grepping every other file for `image[`, `ToWire`, `FromWire`,
+`ChannelOrder`, `ChainIndex`, `SendPos` and `PositionOf` confirms it — the two
+other `ToWire` calls are in the CLI's printer, turning a readback back into
+wire order for display.
+
+The station had no such reversal. It built the transmit array directly and
+indexed it with `chain_index` — **the same number the app uses for the logical
+image**, used as a wire index. That is the whole of S125-1, and it is a
+one-sided defect: the station's array is already in wire order, so it needed
+`send_pos` and nothing else.
+
+There is also a guard on the app's side that the station did not have:
+`InputMap.TryParse` **refuses** a defs file in which `send_pos != 24 −
+chain_index`, so the two columns cannot drift apart under it. The generator
+now has its own check (`send_pos` must be a 0..23 permutation), which catches a
+different failure — a duplicated or missing byte — and the two together cover
+the file.
+
+**Nothing for the hub to fix in the app.**
