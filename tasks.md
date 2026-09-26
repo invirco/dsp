@@ -1,3 +1,74 @@
+## HUB DISPATCH 2026-09-26 15:56Z — S121: the audio patch loop — one path list, manual fallback now, harness back end stub   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S121 — The audio patch loop: one path list, a manual fallback now, the harness later
+
+**PW ruling 2026-09-26:** "we need a similar efficient approach for audio testing: tester will prompt the
+operator to patch a single cable then press enter, the signal path will be tested with pass/fail, then
+the next patch will be prompted, until all signal paths are tested. This needs to work as a FALLBACK, and
+when an automated tester is available, all cable patching will be automated." Context: the hardware test
+is dsp's top priority; simplest, fastest suite; factory = hardware proof (does every path work), not
+design qualification; wrong parts are the assembler's job. This replaces RUN ALL's hand-driven "analog
+loopback" station (S113 group M4, ~48 rows).
+
+## Design
+
+1. **ONE signal-path list, generated from defs** (build on S66's `tools/accept/gen_accept_fixtures.py`,
+   `path-cells.csv`, `limits.csv`, `units.csv`, the 38 `MW/D24/DSP/accept/fixtures/*.json` and
+   `tools/pi/dsp4_accept.py`, not beside them). Each entry = one D24 OUTPUT → one D24 INPUT in PANEL
+   NAMES (PW 09-21: "MIC 5", "AUX 1 out"; J numbers only in records), the route cells to set (cell
+   NAMES, never addresses), the stimulus and the pass/fail windows. Cover EVERY analog input and output
+   at least once: 24 mic/line inputs, Main L/R, Centre/LF, Aux 1-8 XLR, Monitor L/R TRS, the four stereo
+   "Aux Out A" TRS jacks, the talkback XLR input, the mini-jack stereo aux input (mx26 defs/products/d24/
+   d24-io.csv, d24.csv). One patch covers one input AND one output, so the plan needs ≈ max(inputs,
+   outputs) patches; order them so the CABLE TYPE changes as few times as possible (XLR-XLR block, then
+   TRS-XLR, then mini-jack …) and say the count per cable type on the station card.
+2. **Measurement per patch (automatic, target ≤ ~2 s so plugging dominates):** the DSP oscillator into
+   the output's route, measured at the input strip — tone PRESENT on the expected input and ABSENT on
+   every other input (a tone on an unexpected input = "wrong socket": tell the operator which socket the
+   cable is actually in and re-prompt, do NOT fail the channel); level within a window from the gain law
+   / full-scale references (defs mic-gain table, D24 FS refs); bandpass THD (the S115 method) and a noise
+   sanity window. Every figure in dB and %. Windows provisional until PW rules them; from S66's limits.
+3. **Two patch back ends behind ONE interface** (`Patcher`): MANUAL (build now) — the glass shows
+   "Patch <OUT> to <IN>, then press Enter" (on-glass Done; also accept a USB keyboard Enter if one is
+   plugged into the CM4), measures, shows PASS briefly then auto-prompts the next patch; FAIL stays on
+   screen with RETEST (re-seat and measure again) / SKIP (reason) / IGNORE; HARNESS (stub now) — the
+   same list, with `connect(out, in)` / `disconnect` over USB CDC per the harness's runner interface,
+   which the harness revision has now defined (harness repo branch `d24-factory-scope`, hub-only repo — copies on this machine at `~/harness-ref/`: `runner-interface.md` (commands IDENT, SELFTEST, STATUS, CLEAR, CONNECT "<out>" "<in>", TERMINATE, PHANTOM; optional ADD, FANOUT, PAD, SHORT; ports by D24 panel name; every command atomic latch → readback → 50 ms settle → OK; the doc maps each call to the manual prompt), `d24-path-plan.csv` (29 one-to-one paths, 23 LOOP + 6 bus, covering every D24 analog input and output; the manual fallback does them in 22 patches with a 4-lead kit K1-K4 wired to read like the harness) and `d24-harness-ports.csv`). SEED YOUR PATH LIST FROM `d24-path-plan.csv` and implement the harness back end as a stub against `runner-interface.md` exactly. Note: the harness paths read exactly like a plain patch lead (unity, non-inverting — the draft's +6 dB inverted bus buffer was fixed), so the same windows serve both back ends; the correct-channel check = every other input ≥ 40 dB below at 1 kHz. Selecting the back end = one runner option / station
+   setting; NO test logic differs between them.
+4. **Into RUN ALL** as the analog station (replacing M4's per-row dialogs), rails raised once and late
+   (S116 rule), every catalog row the loop proves stamped by catalog number (partner stamping as S117);
+   rows the loop cannot cover (e.g. phantom presence without the harness's sense) listed NOT RUN with a
+   plain reason, never dropped. Silent handback.
+5. **Prove on MW-D24-2:** the path list and patch plan (count, cable-type blocks), the wrong-socket
+   detection (deliberately mis-patch once), and as many real patches as the bench cabling allows — if a
+   human must plug cables, write a 🔴 note with the exact patch list and stop after the desk/runner
+   parts are proven (an injected "patched" state may prove the runner flow first).
+
+## PW facts for this dispatch (2026-09-26)
+
+- The PHONES board takes Aux 1-8 and makes FOUR STEREO phones feeds, all analog (rear TRS jacks, "Aux Out A 1-2 … 7-8";
+  netlist: phonejack J1-J4 fed from the analog board's OUT_1-8 over J9 → J5). They are the aux buses, no pot.
+- There is ALSO a phones jack ON THE ANALOG BOARD, driven from the DSP (catalog row 97 "Phones 1"); the harness maps a
+  PHONES L/R pair on module 2 outputs 14-15. Include it in the path list (its route cells from defs/the DSP graph). If you
+  find a physical level pot in its path, say so as a 🔴 note (a pot makes the level window meaningless).
+- Catalog housekeeping for the hub (report, do not edit the mx26 generator): row 148 is not an audio row (S117-2); rows 146
+  and 147 are covered by 39-42 and 95-96 + the mini-jack sense; row 97 as above.
+- BENCH SHARING: PW may walk S120's panel loop at the bench (it stops matrix-app and owns /dev/serial0). Do your desk parts
+  first; before any bench step check nothing else holds the bench (no d24_panel.py / RUN ALL process, matrix-app state as you
+  expect) and take the bench lock the S80-12 way.
+
+## Deliverables (`MW/D24/DSP/s121/`)
+
+`patch-loop.md` (the list, the plan with counts per cable type, measurement + windows, the Patcher
+interface, how the harness plugs in, timings), the generated list committed, code, deployed md5s /
+rollbacks. Questions for PW = 🔴 note, commit, stop — no dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 15:25Z — S120: the panel loop — fast press → LED round trip for the switch-panel stations   [status: 🔴 done, ONE THING LEFT: NOBODY HAS PRESSED A BUTTON — **the loop is built, it needed NO firmware change and NO new wire, and the machine part of press → LED is UNDER 10 ms against PW's 50 ms bar.** Both halves were already in the shipping panel firmware and both are ONE matrix cell (`Sys001Skin001`, 5412): writing it makes `WrRadioLed()` light the ONE indicator whose radio index equals the received value and extinguish the other thirteen, and a press makes `RdRadioSwitch()` put the pressed button's index into the same cell's transmit value, which MH1 relays to the host. **Measured on the part:** host → indicator **1.74–1.85 ms** (three runs of ten, timed to MH1's own `+` ack, which `CheckHost()` writes only after its transmitter has gone idle — so the ack is stamped after the last byte reached both boards); a full cell round trip through a slave **3.07 ms**; **≈3 ms per slave** of MH1's sweep; the slave's own loop **under 2 ms**. **Option (a) is DEAD, electrically:** `SRX`/`MRX`/`BUSY` (G2702/G2703/G2632) reach `digital:J17` — the DSP card connector — and NO `J24` pin, and `J24` is the CM4 socket; the only CM4 pins on the path are the host UART to MH1. Option (b), a test mode in a panel or the master, was rejected: it buys no latency, and the one thing it would buy (panel identity) belongs in `defs`. **The protocol is written down** — the errata item — as a defs candidate in `s120/panel-bus-protocol.md`: the wires, the ASCII nibble alphabet ('h'..'w' address, '0'..'F' data, `\n` commits), all fourteen control characters, the hardware data-ready/data-request handshake (nothing polls on a clock), the `+` flow control, and both panels' index → button → indicator tables. **The station: 44 of the 50 rows graded**, against S117's fifty *not tested*. ONE LOOP per panel inside RUN ALL's existing manual phase; the sweep order is the catalog's own `order`; the operator's only judgement is NOT LIT. `Glass.ask()` splits into `post`/`poll`/`taken` because a blocking ask cannot hear the panel — the loop advances on the UNIT, not the glass. **Every outcome proven** through the REAL glass protocol with a scripted key stream: right panel clean 32/32 PASS, right panel faults landing NOT-LIT-then-pressed (switch PASS / indicator FAIL), a dead switch (NO DATA naming the timeout), a wrong key code (*'the tester lit +48 and the key code that came back was 9 (L)'*), a dark always-lit ring, a one-way encoder, dark ring indicators; left panel clean 12/12. **And on the REAL copper with no finger:** the same station against `/dev/serial0`, 32 rows in 48.6 s, every indicator write acknowledged, every row honestly NO DATA, and **not one phantom key code** out of 48 s of heartbeat traffic (nor out of a separate 20 s idle watch). Every operator-facing string the loop can produce is CLEAN under `--check-md`. **🔴 S120-1, a PRODUCT DEFECT found by reading the firmware: both panels decode the SAME cell with the SAME indices 1..6**, so pressing MONO AUX on the left sends index 1 = HOME, and writing 3 lights FX on the left and +48 on the right. The loop runs one panel at a time and says plainly that a press on the other panel's button of the same index would score as correct; the fix is a cell of the left panel's own — a `defs` row plus two lines of firmware. **🔴 S120-2: three live matrix generations.** `main.c` and `matrix.cs` are byte-identical between Dropbox and the bench; `matrix.h` is NOT — Dropbox `459349c04128` (Skin=17553), the bench copy that built the flashed image `e80ccab5d6d8` (5412), this repo's contract `67d01aeb49f8` (4698). A rebuild from the canonical tree would put the 2026-08-19 skin corruption straight back, and a tool taking the address from this repo would write where no slave decodes. 🟢 S120-3: the flashed images carry `MATRIX[]={0,5232,5412,5414,5415}` — read off the binary, not a header. 🟡 S120-4: the two flash packs are addressed to each other's slave slot, deliberately (the RIGHT panel is in slot 4 on this unit); identity follows the CONTENT, not the slot. 🟡 S120-5: `H1S3`'s `Poll()` uses PC0 as a scratch pin, and PC0 is the MONITOR ring — every transmit flickers it. **Deployed** `/home/app/selftest/`: `d24_panel.py` `c0bb5e5438b2afbcdbb3deac6b0761e3` (new), `d24_runall.py` `5536b590b7926a935c534b27b34b9550` (rollback `.bak-s120-pre` = `f2cb40e76d22399c3972a1586d99dd58`, S119's). No catalog, no app, no firmware, no CPLD, no `pair.conf`; `defs.lock` unmoved, **no contract bump owed**. mx26 `4e5beb3` labels the new dialog slot NOT LIT — one line, app NOT rebuilt, so the glass reads NOTLIT until the next deploy. **Unit as left:** `matrix-app` inactive, `d24-testui` active, both panel cells written back to 0 (no indicator selected, where a fresh panel boot leaves them); nothing else on the unit was touched — the only device this session spoke to is the panel bus. Report `MW/D24/DSP/s120/panel-loop.md`, logs `s120/logs/`, dialogs `s120/manual-dialogs.csv`, findings S120-0..6. **Why 🔴 and not 🟢: the loop has never been walked by a hand.** Three questions, §7 of the report and repeated below.]   [model: opus]
 
 🔴 **S120-Q1 — the finger.** Nothing has been pressed. At the bench:
