@@ -4,8 +4,16 @@
 Values: 0x.. raw word, f<float> as IEEE-754, plain int. A bare cell name reads it.
 Nothing here peeks; every read is an SPI parameter read through the image's own
 dispatch table (the S39-2 rule).
+
+A NAME MAY ALSO BE AN ADDRESS: `cN@ADDR` (e.g. `c2@2175`, `c2@0x87F`) reaches a
+chip-N dispatch address directly. It is the SAME path -- the image's own
+dispatch table, never a peek -- and it exists for words that are DISPATCHED BUT
+NOT CELLED, which today means the S122 panel-haptic block: the cell family is
+proposed and not landed (cell names are forever; PW rules them), so until it is
+there is no contract name to write. An address form is deliberately ugly to
+type: a word that has a cell should be written by its cell.
 """
-import json, struct, sys, time
+import json, re, struct, sys, time
 _ARGV = sys.argv[1:]
 sys.argv = ['s']
 sys.path.insert(0, '/home/app/dspboot')
@@ -27,7 +35,14 @@ class Chip:
         return None if e is None or e[0] != self.n else e[2]
 
 chips = {}
+_RAW = re.compile(r'^c([12])@(0[xX][0-9a-fA-F]+|\d+)$')
+
 def chip_for(name):
+    m = _RAW.match(name)
+    if m:
+        n = int(m.group(1))
+        if n not in chips: chips[n] = Chip(n)
+        return chips[n], int(m.group(2), 0)
     e = L.get(name)
     if e is None: return None, None
     n = e[0]

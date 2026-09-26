@@ -1342,11 +1342,11 @@ def t_asdac(r):
     """The read path exists and is exercised; the stimulus the spec's criterion
     needs does not exist on the image under test, so the slot reading is
     evidence and not a verdict."""
-    cap = r.out('cd %s && python3 s89_slotcap.py %s 2 _tx_out_slot_C2_MON_OUT 256 2>&1 | tail -6'
+    cap = r.out('cd %s && python3 s89_slotcap.py %s 2 _tx_out_slot_C2_SPKR_OUT 256 2>&1 | tail -6'
                 % (r.a.stage, r.a.stage), timeout=180)
     osc = r.out('cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
                 'print(\'_osc_blk_q_C1_TEST_OSC\' in j)"' % r.a.stage, timeout=60)
-    raw = ('--- coherent capture of _tx_out_slot_C2_MON_OUT (256 samples) ---\n%s\n'
+    raw = ('--- coherent capture of _tx_out_slot_C2_SPKR_OUT (256 samples) ---\n%s\n'
            'chip1 carries _osc_blk_q_C1_TEST_OSC: %s' % (cap, osc))
     return (NODATA,
             'TX slot read (see evidence); no stimulus on this image (TEST_NODES symbol: %s)' % osc,
@@ -1480,11 +1480,47 @@ IC1_CEILING_DBFS = 0.0
 # 54 is the MEMS lane. Proven on the part in S110 -- MeasChan <- 0x36 reads
 # back, the window serial advances, and the level tracks the tone.
 #
-# THE ROUTE (S102, correcting S90-P6 which read it as absent) is unchanged and
-# is asserted and READ BACK before anything is measured; see SPKR_ROUTE_NOTE.
-_SPKR_OSC_STRIP = 20              # S89's donor strip, for the same reason
-_SPKR_FREQ_HZ = 1000.0
+# THE STIMULUS IS THE HAPTIC NODE'S TEST TONE (S122), NOT A MIXER ROUTE.
+#
+# PW ruled on 2026-09-26 that "the spkr feed is for screen button haptics only,
+# and should be completely separate from all mixer signal paths", and S122
+# built that: the codec speaker slot (`CODEC_OUT_1`, AK4619 AOUT1L) is written
+# by `C2_HPT_01` -- a chip-2 node with NO INPUTS -- and by nothing else, which
+# the generator now REFUSES to build otherwise (dsp_codegen.py::
+# _speaker_slot_guard, dsp_validate.py::check_speaker_slot).
+#
+# WHAT THAT DELETES FROM THIS FILE, and why it is worth more than the code it
+# costs. The old stimulus was TEST_OSC into strip 20 -> MAIN -> the monitor bus
+# -> the codec, which meant:
+#   * a 43-cell route write (about 10 s) and a 31-strip CLOSE list, so that
+#     nothing ELSE on the main bus reached the speaker;
+#   * `Mon001Level001/002 = 1.0`, which is what actually made the speaker live
+#     -- and the graph's own default, so every boot did it too;
+#   * a teardown that had to run on every exit path, because a press that
+#     returned early left the speaker playing the main mix for as long as the
+#     unit stayed powered (S115; PW heard it as a hiss that outlived the test).
+# None of that exists now. There is no route to assert, nothing to close, no
+# standing state and no marker: the speaker is silent by construction between
+# tones, and a press that dies half way cannot leave it live, because the only
+# thing that can make a sound is a word this test wrote on purpose.
+#
+# WHAT IS LEFT is one word to turn off at the end -- `HptTestOn` -- and it is
+# still read back, for the same reason it always was: a write that did not land
+# leaves the unit audible.
+_SPKR_FREQ_HZ = 1000.0            # the haptic test tone: a stored 48-sample
+                                  # period, exactly 1 kHz at 48 kHz. The whole
+                                  # AL1 calibration was taken at 1 kHz through
+                                  # this loop, which is why the node stores
+                                  # this frequency and not the 2.5 kHz click.
 _OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
+_HPT_SYM = '_hpt_test_on_C2_HPT_01'
+# The chip-2 haptic block, by address: the cell family is PROPOSED and not
+# landed (proposals/CONTRACT-PROPOSAL-S122.md), so there is no contract name
+# to write yet. `s89_set.py` reaches it as `c2@ADDR` -- the same dispatch-table
+# path a cell write takes, never a peek.
+HPT_BASE = 2175
+HPT_TESTON = HPT_BASE + 3
+HPT_TESTLEVEL = HPT_BASE + 4
 AL1_MEAS_CHAN = 54                # C1_XIN_MEMS -- see above, not a strip
 # THE SAME LANE, AS A BLOCK THE SCOPE CAN RECORD (S115). MeasChan 54 and this
 # symbol are two instruments on ONE tap: the node accumulates RMS/THD+N over a
@@ -1503,161 +1539,53 @@ AL1_CAP_SAMPLES = 1024            # _scope_buf's length; 21.3 ms at 48 kHz
 # its own floor there, so THD+N cannot read better than ~-8 dB (40 %) however
 # clean the speaker is -- it was a weak clip detector, not a real one. The
 # default moves to -6 dBFS, where THD+N reads as a real number, and the hard
-# cap moves to -3 dBFS -- still 3 dB under the 0 dBFS PW drove by hand today
-# with no audible or visible clipping. An unattended run fades in and out over
-# 150 ms so the speaker is never asked for a step, and is on for well under a
-# second (0.6 s measured; `--then-off` stops the tone inside the same session,
-# which is the only way that number is small -- a second invocation spends two
-# to four seconds starting up with the tone still sounding). `--al1-level`
-# moves it and CANNOT go past AL1_TONE_CAP_DBFS.
+# cap moves to -3 dBFS -- still 3 dB under the 0 dBFS PW drove by hand with no
+# audible or visible clipping. An unattended run fades in and out over 150 ms
+# so the speaker is never asked for a step, and is on for well under a second
+# (`--then-off` stops the tone inside the same session, which is the only way
+# that number is small). `--al1-level` moves it and CANNOT go past
+# AL1_TONE_CAP_DBFS.
+#
+# THE FADE IS STILL THE HOST'S (S122). The haptic node's level word is
+# InstantCtl and has no ramp companions -- a RAMPED SPI write to it would walk
+# the three words above it -- so `dsp4_s49_osc.py --haptic --ramp-ms` walks
+# `HptTestLevel` in 24 equal-dB steps with ramp 0 on every write, exactly as it
+# walked OscLevel before. Same fade, same reason, different word.
 AL1_TONE_DBFS = -6.0
 AL1_TONE_CAP_DBFS = -3.0
 AL1_RAMP_MS = 150.0
 AL1_MAX_ON_S = 3.0                # reported if exceeded; the cap is the design
 
-# ===========================================================================
-# THE WINDOWS AND CEILINGS -- ONE TABLE, PROVISIONAL
-# ===========================================================================
-# PROVISIONAL until the speaker supplier's datasheet arrives, and provisional
-# again until PW's planned amp-gain change (a resistor in parallel with R97,
-# +6 dB or more) lands. These are NOT spec limits. They are set to catch a
-# fault -- no sound, a quiet path, a distorting one -- on a small speaker in an
-# ordinary room, and nothing here certifies anything.
-#
-# EVERY NUMBER HERE CAME OFF THIS UNIT. See the calibration table in the S110
-# report for the runs behind each one.
-#
-# THE LEVEL WINDOW IS RELATIVE, WHICH IS THE POINT. The expected mic level is
-# a straight line in the injected level -- `pred = slope * drive + intercept`
-# -- so the table survives a change in what is between the two ends of the
-# loop. When PW adds amp gain, one command re-measures and rewrites this
-# block: `d24_selftest.py --only AL1 --al1-calibrate`, which prints the old
-# table and the new one side by side and says what moved.
-#
-# THE THD CEILING (`thd_abs_db` / `thd_margin_db`, S115) IS A DIFFERENT NUMBER
-# FROM THE THD+N ONE AND THE TWO ARE NEVER INTERCHANGEABLE. PW ruled
-# 2026-09-26 that the verdict is on BANDPASS THD -- harmonics h2..h10, each
-# integrated in its own narrow band, the noise between the bands left out.
-# Over this loop THD+N is mostly noise: measured on this unit at the default
-# drive, the node's THD+N reads -15.5 dB (16.9 %) on the SAME window whose
-# bandpass THD is -31.7 dB (2.6 %), a 16 dB difference that is all noise and
-# fit residual. So `thdn_abs_db` / `thdn_margin_db` stay for the informational
-# line and can NEVER be reused as the ceiling the verdict applies.
-# `thd_abs_db` is the worst THD this unit's own calibration measured at the
-# drive the test runs at, plus headroom. `thd_margin_db` is how far past the
-# INSTRUMENT'S OWN THD FLOOR -- the noise inside the harmonic bands, which no
-# reading can beat however clean the speaker is -- a healthy loop went, worst
-# case, so a capture taken in a loud room raises the ceiling instead of
-# failing the unit.
-AL1_CAL = {
-    'provisional': 'until the speaker supplier datasheet -- NOT a spec limit',
-    'unit': 'MW-D24-2 (rev C+)',
-    'stamp': '2026-09-26T12:17:59Z',
-    'pair': '/home/app/loopthd/s109',
-    'runs': 'THD ceiling only (--al1-calibrate-thd); every other limit left as it was: 15 runs at -12/-6/-3 dBFS x 5 reps; 15 fitted, 0 excluded as not measuring a tone (THD+N > -6 dB); lowest drive that read: -12 dBFS; default drive -6 dBFS',
-    'slope_db_per_db': 1.029,
-    'intercept_dbfs': -29.650,
-    'level_tol_db': 4.000,
-    'level_hi_tol_db': 7.000,
-    'high_fails': False,
-    'snr_min_db': 15.400,
-    'floor_max_dbfs': -48.300,
-    'thdn_abs_db': -16.700,
-    'thdn_margin_db': 10.800,
-    'thd_abs_db': -28.500,
-    'thd_margin_db': 6.000,
-}
-AL1_CAL_KEYS_NUMERIC = ('slope_db_per_db', 'intercept_dbfs', 'level_tol_db',
-                        'level_hi_tol_db', 'snr_min_db', 'floor_max_dbfs',
-                        'thdn_abs_db', 'thdn_margin_db',
-                        'thd_abs_db', 'thd_margin_db')
 
-
-def pct_of_db(db):
-    """A ratio in dB as percent. PW's standing rule (2026-09-16): every
-    THD/THD+N figure is printed in dB AND in percent, never one alone."""
-    return 100.0 * 10.0 ** (db / 20.0)
-
-
-def _mems_row(rows):
-    hit = [x for x in rows if 'MEMS' in x]
-    return hit[0] if hit else None
-
-
-def _route_cells():
-    """The write that asserts the TEST_OSC -> speaker route, as one list.
-
-    Lifted from `dsp4_loop_thd.sh`'s proven route write, which exists because
-    the FIRST run of that leg measured the default configuration instead: the
-    donor strip's compressor is ON out of dsp4_config.py at about -22 dBFS
-    (S70-3), so a route that is not asserted still produces a plausible
-    number. Every write here is checked."""
-    osc = '%03d' % _SPKR_OSC_STRIP
-    close = ['Chan%03dMainOn001=0' % s for s in range(1, 33) if s != _SPKR_OSC_STRIP]
-    route = ['Chan%sMainOn001=1' % osc, 'Chan%sMute001=0' % osc,
-             'Chan%sLevel001=f1.0:4' % osc, 'Chan%sPan001=f0.5:4' % osc,
-             'Chan%sCompOn001=0' % osc, 'Chan%sGateOn001=0' % osc,
-             'Chan%sTubeOn001=0' % osc, 'Chan%sEqOn001=0' % osc,
-             'Main001Level001=f1.0:4', 'Main001Mute001=0',
-             # the speaker's own level word: C2_MON, the node that feeds
-             # C2_MON_OUT slot 0.
-             'Mon001Level001=f1.0:4', 'Mon001Level002=f1.0:4']
-    return close, route
-
-
-# THE SPEAKER PATH, TORN BACK DOWN (S115). The route write above is what makes
-# the panel speaker live, and until S115 NOTHING ever undid it: every AL1 press
-# left `Chan020MainOn001=1`, `Main001Level001=1.0` and `Mon001Level001/002=1.0`
-# on the part, and the speaker amplifier (TS482, digital U32) runs from the 5 V
-# on the DIGITAL board -- always on while the unit is up, independent of AN_EN
-# (PW 2026-09-26). So the speaker played whatever the monitor bus carried, for
-# as long as the unit stayed powered, with no test running. PW heard it as a
-# short tone and then a long hiss on every press, and then as continuous noise.
-#
-# WHAT IT WAS CARRYING, measured (S115): the chip-2 MAIN bus sits at +17 to
-# +18 dBFS -- 17 dB past converter full scale -- with every strip's MainOn at 0,
-# so it is not strip 20 and closing strip 20 does not silence it (the hub tried
-# that first, PW: still there). `Mon001Level001/002 = 0` DID silence it (PW:
-# "gone"), which is why those two cells are in this list and are the ones that
-# matter.
-#
-# WHY ZERO AND NOT THE GRAPH DEFAULT: `defs` declares C2_MON with
-# `level_l_db=0.0;level_r_db=0.0`, i.e. unity, so "the default" is exactly the
-# 1.0 that makes the speaker live. There is no resting value in the graph that
-# is silent. Until S117 gives the speaker its own haptic node, off the mixer
-# buses altogether (PW ruling 2026-09-26), a self-test hands the monitor back
-# at ZERO, which is the state PW confirmed silent on the bench.
 def _silence_cells():
-    osc = '%03d' % _SPKR_OSC_STRIP
-    return ['Mon001Level001=f0.0:4', 'Mon001Level002=f0.0:4',
-            'Chan%sMainOn001=0' % osc, 'Chan%sMute001=1' % osc]
+    """The one word that can make the speaker sound, turned off."""
+    return ['c2@%d=0' % HPT_TESTON, 'c2@%d=f0.0' % HPT_TESTLEVEL]
 
 
 def _silence_ok(txt):
-    """True only when every cell that makes the speaker live reads back OFF."""
-    want = {'Mon001Level001': 0, 'Mon001Level002': 0,
-            'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 0,
-            'Chan%03dMute001' % _SPKR_OSC_STRIP: 1}
-    for name, need in want.items():
-        m = re.search(r'^%s\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})' % re.escape(name),
+    """True only when the speaker's one enable reads back OFF."""
+    for a_ in (HPT_TESTON, HPT_TESTLEVEL):
+        m = re.search(r'^c2@%d\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})' % a_,
                       txt, re.M)
-        if not m or int(m.group(1), 16) != need:
+        if not m or int(m.group(1), 16) != 0:
             return False
     return True
 
 
 def al1_silence(r, why=None):
-    """Take the speaker path down and PROVE it, once per run.
+    """Take the speaker's stimulus down and PROVE it, once per run.
 
     Idempotent and cheap: called as soon as the last measurement window has
     been read, and again from handback -- in case a blocker returned before the
-    measurement ever happened, and for a run that never touched AL1 at all but
-    BOOTED THE PAIR. A boot's config commit writes the graph defaults, and
-    `defs` declares C2_MON at `level_l_db=0.0;level_r_db=0.0`, i.e. UNITY: so
-    every boot leaves the monitor bus wide open whether a test asked for it or
-    not, and pressing DR1 is enough to do it. The read-back is the evidence -- a
-    write that did not land leaves the unit audible for however long it stays
-    powered, which is the exact defect this exists to end."""
+    measurement ever happened.
+
+    SINCE S122 THIS IS BELT AND BRACES RATHER THAN THE ONLY THING BETWEEN THE
+    UNIT AND A STANDING HISS. `dsp4_s49_osc.py --then-off` already stops the
+    tone inside the session that started it; the graph has no resting value
+    that sounds (the haptic node writes digital zero unless asked); and a boot
+    no longer leaves the speaker live, because the monitor bus does not reach
+    it. It stays because the read-back is still the only evidence that the
+    stop landed."""
     cap = getattr(r, '_al1_an', None)
     if cap is None:
         cap = {}
@@ -1665,7 +1593,7 @@ def al1_silence(r, why=None):
     if cap.get('silenced'):
         return None
     cap['silence_why'] = why or 'AL1'
-    # s89_set reads every cell back as it writes it, so the write's own output
+    # s89_set reads every word back as it writes it, so the write's own output
     # IS the read-back evidence; a separate probe pass would cost another 1.5 s
     # of a press that is being kept short.
     rc, txt = _set(r, _silence_cells())
@@ -1675,8 +1603,8 @@ def al1_silence(r, why=None):
     cap['silent_at'] = time.time()
     if cap.get('route_at'):
         cap['speaker_live_s'] = round(cap['silent_at'] - cap['route_at'], 2)
-    return ('--- the speaker path, torn down (%s; exit %d, read-back %s) ---\n'
-            'the route was live for %s s of this press\n%s'
+    return ('--- the speaker stimulus, stopped (%s; exit %d, read-back %s) ---\n'
+            'the tone could have been live for %s s of this press\n%s'
             % (cap['silence_why'], rc,
                'SILENT' if ok else 'NOT SILENT -- the unit may still be audible',
                cap.get('speaker_live_s', '?'), txt))
@@ -1722,58 +1650,8 @@ def _set(r, cells, timeout=300):
     return c.returncode, (c.stdout + c.stderr).strip()
 
 
-# THE ROUTE, SPLIT IN TWO (S115). Everything the route write sets falls into
-# one of two groups, and the difference is what keeps a repeat press fast now
-# that handback tears the speaker down.
-#
-#   ENABLE: the four cells that decide whether the speaker is LIVE. These are
-#   the ones al1_silence() takes back to zero after every press, so they are
-#   the ones a repeat press has to re-write -- four writes, one s89_set call,
-#   about 1.5 s.
-#
-#   STANDING: the level, the pan, the four processors off, the main level, and
-#   the 31-strip CLOSE list. Nothing tears these down, so a repeat press finds
-#   them already set and writes none of them. The 43-cell write took 10.0 s on
-#   the bench (s89_set reads every cell back as it writes it, ~0.25 s each),
-#   which is why it is worth not repeating.
-#
-# A cell outside the ENABLE group that does NOT match still forces the full
-# close + route write. A partial match is not the route asserted, it is a write
-# that failed halfway on some earlier press.
-_ENABLE_TARGETS = {
-    'Mon001Level001': 0x3F800000,                  # f1.0
-    'Mon001Level002': 0x3F800000,                  # f1.0
-    'Chan%03dMainOn001' % _SPKR_OSC_STRIP: 1,
-    'Chan%03dMute001' % _SPKR_OSC_STRIP: 0,
-}
-_STANDING_TARGETS = {
-    'Main001Level001': 0x3F800000,                 # f1.0
-    'Chan%03dLevel001' % _SPKR_OSC_STRIP: 0x3F800000,
-    'Chan%03dPan001' % _SPKR_OSC_STRIP: 0x3F000000,   # f0.5, centre
-    'Chan%03dCompOn001' % _SPKR_OSC_STRIP: 0,
-    'Chan%03dGateOn001' % _SPKR_OSC_STRIP: 0,
-    'Chan%03dTubeOn001' % _SPKR_OSC_STRIP: 0,
-    'Chan%03dEqOn001' % _SPKR_OSC_STRIP: 0,
-}
-
-
-def _enable_cells():
-    osc = '%03d' % _SPKR_OSC_STRIP
-    return ['Mon001Level001=f1.0:4', 'Mon001Level002=f1.0:4',
-            'Chan%sMainOn001=1' % osc, 'Chan%sMute001=0' % osc]
-
-
-def _route_probe(r):
-    """Every cell the route write targets, read back through the image's own
-    dispatch table (S102) -- a read, never a write, so calling it costs nothing
-    and tells which of the two writes below is needed."""
-    names = list(_ENABLE_TARGETS) + list(_STANDING_TARGETS)
-    return r.out('cd %s && python3 s89_set.py %s %s 2>&1'
-                 % (r.a.stage, r.a.stage, ' '.join(names)), timeout=300)
-
-
 def _probe_reads(txt):
-    """{cell: raw word} out of an s89_set read-back."""
+    """{name: raw word} out of an s89_set read-back."""
     out = {}
     for m in re.finditer(r'^(\S+)\s+chip\d+ addr\s+\d+\s+(0x[0-9A-Fa-f]{8})',
                          txt, re.M):
@@ -1781,20 +1659,14 @@ def _probe_reads(txt):
     return out
 
 
-def _route_probe_ok(txt):
-    """True only if EVERY probed cell already equals the route write's target."""
-    got = _probe_reads(txt)
-    want = dict(_ENABLE_TARGETS, **_STANDING_TARGETS)
-    return all(got.get(k) == v for k, v in want.items())
-
-
-def _standing_ok(txt):
-    """True when every STANDING cell is set. Not on the fast path -- that is
-    marker-gated, see the route write -- but kept because it is the question
-    the marker is a cheap stand-in for, and a reader checking the marker's
-    claim by hand wants it spelled out."""
-    got = _probe_reads(txt)
-    return all(got.get(k) == v for k, v in _STANDING_TARGETS.items())
+def _spkr_probe(r):
+    """The speaker's own words, read back through the image's own dispatch
+    table (S102's rule, S122's block) -- a read, never a write. It is the
+    evidence that the speaker is silent BEFORE a tone is asked for, which on
+    the old mixer route took a 12-cell probe and now takes two words."""
+    return r.out('cd %s && python3 s89_set.py %s c2@%d c2@%d 2>&1'
+                 % (r.a.stage, r.a.stage, HPT_TESTON, HPT_TESTLEVEL),
+                 timeout=300)
 
 
 def _al1_osc(r, level=None, timeout=300, cap=True):
@@ -1818,10 +1690,10 @@ def _al1_osc(r, level=None, timeout=300, cap=True):
     come back, and the raw text says why."""
     j = '%s/al1-osc.json' % r.a.stage
     if level is None:
-        args = '--off'
+        args = '--haptic --off'
     else:
-        args = ('--strip %d --level %g --ramp-ms %g --then-off'
-                % (_SPKR_OSC_STRIP, level, AL1_RAMP_MS))
+        args = ('--haptic --level %g --ramp-ms %g --then-off'
+                % (level, AL1_RAMP_MS))
     if cap:
         args += ' --cap-node %s --cap %d' % (AL1_CAP_NODE, AL1_CAP_SAMPLES)
     # The CS lines are re-driven before every tool call: a boot or a stray
@@ -1858,19 +1730,21 @@ def _al1_osc(r, level=None, timeout=300, cap=True):
 
 
 SPKR_ROUTE_NOTE = (
-    'THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is '
-    'codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 '
-    'pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: '
-    'C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = '
-    'digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> '
-    'lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/'
-    'G3463). Upstream: C1_TEST_OSC injects at C1_IN_%02d -> strip -> MAIN -> C2_MAIN_FDR -> '
-    'C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell '
-    '(Chan%03dMainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). '
-    'MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_MON_OUT, sink=DNP on '
-    'C2_CODEC_AUX_OUT. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 '
-    '(0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code %d.'
-    % (_SPKR_OSC_STRIP, _SPKR_OSC_STRIP, AL1_MEAS_CHAN))
+    'THE PATH, named (S102) and then SEPARATED (S122). The speaker is codec TDM slot 0 = '
+    'signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output '
+    'fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R '
+    'are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 '
+    '(digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 '
+    'docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). UPSTREAM IT IS ONE NODE AND '
+    'NO MIXER AT ALL (PW ruling 2026-09-26): C2_HPT_01, a chip-2 HAPTIC node with no inputs, '
+    '-> C2_SPKR_OUT slot 0. It plays stored 2.5 kHz clicks for the screen buttons and, for '
+    'this test, a stored 1 kHz tone; it writes digital zero the rest of the time. The '
+    'monitor bus reached this slot until S122 and no longer reaches any converter slot at '
+    'all. MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_SPKR_OUT, sink=DNP on '
+    'C2_CODEC_AUX_OUT, and BOTH generators refuse a graph in which anything but a HAPTIC '
+    'node reaches a sink=SPKR output. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM '
+    'slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code %d.'
+    % AL1_MEAS_CHAN)
 
 
 def al1_level(r):
@@ -1935,68 +1809,35 @@ def _al1_prereq(r):
                   % (cap['mems_row'] or 'no MEMS lane in the scan'))
     _tick('AL1 rxscan end')
 
-    # The route write, IN TWO GROUPS (S114 rank 3, re-cut by S115). A repeat
-    # press finds the STANDING route still asserted from the last one -- the
-    # 31-cell CLOSE list, the level, the pan, the four processors off, the main
-    # level -- and re-writes none of it; the four ENABLE cells that decide
-    # whether the speaker is LIVE were deliberately zeroed by the last press's
-    # handback and always go back on. Every cell written is read back through
-    # the image's own dispatch table, and on the full path the standing cells
-    # are probed as well: that read-back is the evidence that the S102 loop
-    # measures the ASSERTED route and not the default configuration, which is
-    # the exact trap this file's history warns about.
-    _tick('AL1 route start')
-    close, route = _route_cells()
-    marker = os.path.join(r.a.stage, '.al1_route_standing')
-    standing = (r.out('test -f %s && echo yes' % shlex.quote(marker)) == 'yes'
-                and not r._booted_this_run)
-    if standing:
-        # THE NORMAL REPEAT PRESS SINCE S115. The four ENABLE cells were zeroed
-        # by the last press's handback, so they ALWAYS have to be re-written and
-        # probing them first would be pure cost; s89_set reads each one back as
-        # it writes it, and that read-back IS the evidence -- the thing the
-        # probe was ever for. The standing route -- level, pan, the four
-        # processors off, the main level and the 31-strip CLOSE list -- is only
-        # ever moved by a boot's config commit, so a marker written when it last
-        # verified, plus "nothing booted the pair in this run", is what says it
-        # does not need re-writing. Same shape as the SAFE-chain marker in
-        # handback (S114 rank 4) and for the same reason.
-        rc, tx = _set(r, _enable_cells())
-        got = _probe_reads(tx)
-        bad = (rc or 'Traceback' in tx or 'NOT IN CONTRACT' in tx
-               or any(got.get(k) != v for k, v in _ENABLE_TARGETS.items()))
-        cap['route_rc'] = 1 if bad else 0
-        cap['route_how'] = 'ENABLE group only (the standing route was still set)'
-        cap['probe'] = tx
-        ev.append('--- the route write, ENABLE group only (exit %d) ---\n'
-                  'the standing route was verified for this stage (marker %s) and '
-                  'nothing booted the pair in this run, so it was NOT re-written; '
-                  'only the four cells the handback zeroes were. Each is read back '
-                  'below through the image\'s own dispatch table.\n%s'
-                  % (cap['route_rc'], marker, tx[-900:]))
-    else:
-        rc1, t1 = _set(r, close)
-        rc2, t2 = _set(r, route)
-        # `NOT IN CONTRACT` is expected on the CLOSE write and only there: it
-        # walks strips 1-32 and a D24 has 24, so 25-32 have no cells.
-        bad = rc1 or rc2 or 'Traceback' in t1 or 'Traceback' in t2 \
-            or 'NOT IN CONTRACT' in t2
-        cap['route_rc'] = 1 if bad else 0
-        cap['route_how'] = 'full close + route'
-        ev.append('--- the route write (exit %d) ---\n--- other strips off MAIN ---\n%s'
-                  '\n--- the route ---\n%s' % (cap['route_rc'], t1[-400:], t2[-800:]))
-        cap['probe'] = _route_probe(r)
-        ev.append('--- read back through the image\'s own dispatch table ---\n%s' % cap['probe'])
-        if _route_probe_ok(cap['probe']):
-            r.rsh('touch %s' % shlex.quote(marker))
-        else:
-            r.rsh('rm -f %s' % shlex.quote(marker))
-            cap['route_rc'] = 1
+    # THERE IS NO ROUTE TO WRITE ANY MORE (S122). What used to be a 43-cell
+    # write, a 31-strip CLOSE list, a standing-route marker and a teardown is
+    # now two reads: the speaker's source exists in this image, and it is
+    # currently OFF. The whole point of PW's ruling is that nothing has to be
+    # arranged for the speaker to be silent -- silence is the resting state of
+    # the graph, not a state a test has to put it in and remember to undo.
+    _tick('AL1 stimulus check start')
+    cap['haptic'] = r.out(
+        'cd %s && python3 -c "import json;j=json.load(open(\'chip2.sym.json\'));'
+        'print(\'%s\' in j)"' % (r.a.stage, _HPT_SYM), timeout=60) == 'True'
+    ev.append('the chip-2 image carries the haptic node (%s in chip2.sym.json): %s'
+              % (_HPT_SYM, cap['haptic']))
+    cap['probe'] = _spkr_probe(r)
+    got = _probe_reads(cap['probe'])
+    cap['silent_at_entry'] = (got.get('c2@%d' % HPT_TESTON) == 0
+                              and got.get('c2@%d' % HPT_TESTLEVEL) == 0)
+    ev.append('--- the speaker\'s two words, read back through the image\'s own '
+              'dispatch table BEFORE anything is played ---\n%s\nspeaker silent at '
+              'entry: %s' % (cap['probe'], cap['silent_at_entry']))
+    cap['route_rc'] = 0 if cap['haptic'] else 1
+    cap['route_how'] = 'no route -- the haptic node is the only source (S122)'
     cap['route_at'] = time.time()
-    _tick('AL1 route end')
+    _tick('AL1 stimulus check end')
 
-    if cap['route_rc']:
-        return 'the route write failed -- nothing downstream would be measured', ev, cap
+    if not cap['haptic']:
+        return ('this chip-2 image has no haptic node (%s absent). Since S122 the '
+                'panel speaker is fed by C2_HPT_01 and by nothing else, so an '
+                'older image cannot make a sound out of it at all -- re-stage the '
+                'pair' % _HPT_SYM), ev, cap
     if cap['mems_row'] is None:
         return 'no MEMS lane in the scan', ev, cap
     if not cap['testnodes']:
@@ -2882,9 +2723,9 @@ def codec_init(r):
     asks for it on a running system is the mixer coming up -- `matrix-app`, which
     the factory-test display Conflicts= with and which therefore never runs on a
     unit booted into the test UI. So after a reboot the converter sits at its
-    power-on defaults: the DSP graph carries the tone to C2_MON_OUT slot 0, the
-    route reads back correct, the MEMS lane carries, and NOTHING COMES OUT OF
-    AOUT1L. The mic then measures the room and the verdict is NO SOUND -- which
+    power-on defaults: the DSP graph carries the tone to C2_SPKR_OUT slot 0
+    (C2_MON_OUT until S122), the words read back correct, the MEMS lane
+    carries, and NOTHING COMES OUT OF AOUT1L. The mic then measures the room and the verdict is NO SOUND -- which
     is true, and blames the loop for a converter nobody configured.
     `codec4619.py --reinit` is register 0xFF, H1S1's "re-run StartAK4619()"
     sentinel; it writes the codec image and NOTHING ELSE. `--reset` would also
@@ -3167,12 +3008,13 @@ def main():
                          'that lands.')
     ap.add_argument('--al1-level', type=float, default=AL1_TONE_DBFS,
                     metavar='DBFS',
-                    help='AL1: the 1 kHz tone level, dBFS PEAK, injected into '
-                         'strip %d. Default %g. HARD-CAPPED at %g: a bigger '
-                         'number is clamped and said out loud. PW drove this '
-                         'speaker to full scale by hand on 2026-09-25 and it '
-                         'was clean; an automated test still does not.'
-                         % (_SPKR_OSC_STRIP, AL1_TONE_DBFS, AL1_TONE_CAP_DBFS))
+                    help='AL1: the 1 kHz tone level, dBFS PEAK, played out of '
+                         'the HAPTIC node\'s test tone (S122 -- the speaker has '
+                         'no other source). Default %g. HARD-CAPPED at %g: a '
+                         'bigger number is clamped and said out loud. PW drove '
+                         'this speaker to full scale by hand on 2026-09-25 and '
+                         'it was clean; an automated test still does not.'
+                         % (AL1_TONE_DBFS, AL1_TONE_CAP_DBFS))
     ap.add_argument('--al1-calibrate-thd', action='store_true',
                     help='S115: the same calibration runs, but ONLY the bandpass'
                          '-THD ceiling (thd_abs_db / thd_margin_db) is written. '

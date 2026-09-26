@@ -126,6 +126,31 @@ ADDR_SYMS = {
     '_osc_sweep_step_C1_TEST_OSC': A_SWEEPSTEP,
 }
 
+# ---- THE HAPTIC BLOCK (chip 2, page 1), S122 -----------------------------
+#
+# Since S122 the D24 panel speaker is fed by `C2_HPT_01` and by nothing else:
+# PW ruled 2026-09-26 that the speaker feed is screen-button haptics only and
+# is completely separate from every mixer signal path, so the acoustic loop's
+# stimulus can no longer be a strip oscillator routed through MAIN and the
+# monitor bus. It is this node's TEST TONE, which is 1 kHz -- the same
+# frequency the loop was always calibrated at.
+#
+# These eight words are DISPATCHED AND NOT CELLED: the haptic cell family is
+# proposed and not landed (proposals/CONTRACT-PROPOSAL-S122.md), so they are
+# reached by number, exactly as the S49 block above is, and PROVEN the same
+# way -- written and read back, never peeked.
+HAP_BASE = 2175
+(A_HPT_TRIG, A_HPT_SAMPLE, A_HPT_LEVEL, A_HPT_TESTON,
+ A_HPT_TESTLEVEL, A_HPT_BUSY) = (HAP_BASE + i for i in range(6))
+HAP_SYMS = {
+    '_hpt_trig_C2_HPT_01':       A_HPT_TRIG,
+    '_hpt_sample_C2_HPT_01':     A_HPT_SAMPLE,
+    '_hpt_level_C2_HPT_01':      A_HPT_LEVEL,
+    '_hpt_test_on_C2_HPT_01':    A_HPT_TESTON,
+    '_hpt_test_level_C2_HPT_01': A_HPT_TESTLEVEL,
+    '_hpt_busy_C2_HPT_01':       A_HPT_BUSY,
+}
+
 # The measurement window, from dsp_block.h. One window is 256 blocks of 16
 # samples at 48 kHz.
 WIN_SAMPLES = 256 * 16
@@ -287,6 +312,19 @@ def main():
     ap.add_argument('--cap', type=int, default=1024, metavar='N',
                     help='samples in the capture (<= 1024, the _scope_buf '
                          'length). 1,024 = 21.3 ms at 48 kHz.')
+    ap.add_argument('--haptic', action='store_true',
+                    help='S122: the stimulus is the CHIP-2 HAPTIC node\'s '
+                         'test tone, not the chip-1 oscillator on a strip. '
+                         'Since S122 that is the only thing that reaches the '
+                         'panel speaker, so it is what the acoustic loop '
+                         'drives. --strip is then unused and the chip-1 '
+                         'oscillator is explicitly left OFF; --freq is a '
+                         'declaration, because the tone is a stored table '
+                         '(1 kHz) and the node does not take a frequency.')
+    ap.add_argument('--haptic-base', type=int, default=HAP_BASE,
+                    metavar='ADDR',
+                    help='chip-2 SPI address of the haptic block (default '
+                         '%d, from the generated address map)' % HAP_BASE)
     ap.add_argument('--symdir', default='/home/app/s49')
     ap.add_argument('--json', default=None, help='write the results here too')
     a = ap.parse_args(_ARGV)
@@ -304,11 +342,33 @@ def main():
             'and take writes in every image; only this one reads them.'
             % a.symdir)
 
+    # ---- S122: the haptic stimulus lives on CHIP 2 ------------------------
+    sc2 = None
+    hap = {k: a.haptic_base + (v - HAP_BASE) for k, v in HAP_SYMS.items()}
+    if a.haptic:
+        sc2 = S.Scope(2, symfile='%s/chip2.sym.json' % a.symdir)
+        sc2.d.resync()
+        sc2.check_chip()
+        absent = [k for k in HAP_SYMS if k not in sc2.sym]
+        if absent:
+            raise SystemExit(
+                'this chip-2 image has no haptic node: %s absent from '
+                '%s/chip2.sym.json. The panel speaker has been fed by '
+                'C2_HPT_01 and by nothing else since S122; an image without '
+                'it cannot make a sound out of the speaker at all.'
+                % (', '.join(absent), a.symdir))
+
     print('S49 — self-test oscillator and measurement')
     print('  symbols: %s' % a.symdir)
-    print('  inject : strip %d   measure: strip %d' % (a.strip, meas))
-    print('  tone   : %.3f Hz at %.2f dBFS peak %s'
-          % (a.freq, a.level, '(OFF)' if a.off else ''))
+    if a.haptic:
+        print('  inject : CHIP-2 HAPTIC test tone (S122)   measure: strip %d'
+              % meas)
+    else:
+        print('  inject : strip %d   measure: strip %d' % (a.strip, meas))
+    print('  tone   : %.3f Hz at %.2f dBFS peak %s%s'
+          % (a.freq, a.level, '(OFF)' if a.off else '',
+             '   [stored 1 kHz table; --freq is a declaration]'
+             if a.haptic else ''))
     print('  window : %d samples, %.1f ms' % (WIN_SAMPLES, 1000 * WIN_S))
     print('')
 
@@ -332,6 +392,20 @@ def main():
         if not ok:
             raise SystemExit('write to %d did not land' % addr)
 
+    def w2(addr, val, tag):
+        """The same, on chip 2. RAMP ARGUMENT ZERO, ALWAYS: the haptic words
+        have no target/step/frames companions (they are InstantCtl), so a
+        ramped write would walk the three words ABOVE the one addressed --
+        which on this block is `busy` and the two spares."""
+        sc2.d.link.write(addr, val & 0xFFFFFFFF, 0)
+        time.sleep(S.SETTLE)
+        got = sc2.rd(addr)
+        ok = (got == (val & 0xFFFFFFFF))
+        print('    %-12s %5d <- 0x%08X   read 0x%08X  %s  (chip 2)'
+              % (tag, addr, val & 0xFFFFFFFF, got, 'OK' if ok else 'MISMATCH'))
+        if not ok:
+            raise SystemExit('write to chip-2 %d did not land' % addr)
+
     # THE RAMP. Equal dB steps: a linear fade of a float amplitude spends
     # most of its time near the top and still steps audibly at the bottom,
     # and what the ear (and the mic) answers to is dB.
@@ -352,10 +426,14 @@ def main():
             if not up:
                 f = 1.0 - f
             a_ = lo_amp * (hi_amp / lo_amp) ** f
-            sc.d.link.write(A_OSCLEVEL, f32(a_), 0)
+            if a.haptic:
+                sc2.d.link.write(hap['_hpt_test_level_C2_HPT_01'], f32(a_), 0)
+            else:
+                sc.d.link.write(A_OSCLEVEL, f32(a_), 0)
             time.sleep(max(dt, S.SETTLE))
         print('    %-12s %s over %.0f ms in %d equal-dB steps'
-              % ('OscLevel', 'fade UP' if up else 'fade DOWN', ms, RAMP_STEPS))
+              % ('HptTestLevel' if a.haptic else 'OscLevel',
+                 'fade UP' if up else 'fade DOWN', ms, RAMP_STEPS))
 
     floor_amp = amp * 10.0 ** (RAMP_FLOOR_DB / 20.0)
 
@@ -366,26 +444,46 @@ def main():
     # the fade-in below. The level it fades FROM is the one on the part, not
     # one this invocation was told about.
     if a.off and a.ramp_ms > 0:
-        cur = from_f32(sc.rd(A_OSCLEVEL))
-        if sc.rd(A_OSCON) and cur > 0:
-            ramp(cur * 10.0 ** (RAMP_FLOOR_DB / 20.0), cur, a.ramp_ms, False)
+        if a.haptic:
+            cur = from_f32(sc2.rd(hap['_hpt_test_level_C2_HPT_01']))
+            if sc2.rd(hap['_hpt_test_on_C2_HPT_01']) and cur > 0:
+                ramp(cur * 10.0 ** (RAMP_FLOOR_DB / 20.0), cur, a.ramp_ms, False)
+        else:
+            cur = from_f32(sc.rd(A_OSCLEVEL))
+            if sc.rd(A_OSCON) and cur > 0:
+                ramp(cur * 10.0 ** (RAMP_FLOOR_DB / 20.0), cur, a.ramp_ms, False)
     w(A_OSCON, 0, 'OscOn')
     w(A_MEASCHAN, 0, 'MeasChan')
     w(A_XSRC, 0, 'XtalkSrc')
     w(A_XDST, 0, 'XtalkDst')
-    w(A_OSCFREQ, f32(a.freq), 'OscFreq')
-    # With a fade-in the oscillator is armed AT the floor, turned on there and
-    # walked up; without one it is armed at the target as it always was.
-    w(A_OSCLEVEL, f32(floor_amp if (a.ramp_ms > 0 and not a.off) else amp),
-      'OscLevel')
-    w(A_OSCCHAN, a.strip, 'OscChan')
+    if a.haptic:
+        # THE CHIP-1 OSCILLATOR IS LEFT OFF AND SAID TO BE OFF. In haptic mode
+        # it is not the stimulus and it must not be one: `OscOn 0` above is the
+        # write, `OscChan 0` is the belt, and neither is assumed.
+        w(A_OSCCHAN, 0, 'OscChan')
+        w2(hap['_hpt_test_on_C2_HPT_01'], 0, 'HptTestOn')
+        w2(hap['_hpt_test_level_C2_HPT_01'],
+           f32(floor_amp if (a.ramp_ms > 0 and not a.off) else amp),
+           'HptTestLevel')
+        w2(hap['_hpt_test_on_C2_HPT_01'], 0 if a.off else 1, 'HptTestOn')
+    else:
+        w(A_OSCFREQ, f32(a.freq), 'OscFreq')
+        # With a fade-in the oscillator is armed AT the floor, turned on there
+        # and walked up; without one it is armed at the target as it always was.
+        w(A_OSCLEVEL, f32(floor_amp if (a.ramp_ms > 0 and not a.off) else amp),
+          'OscLevel')
+        w(A_OSCCHAN, a.strip, 'OscChan')
     w(A_XSRC, a.xsrc, 'XtalkSrc')
     w(A_XDST, a.xdst, 'XtalkDst')
-    w(A_OSCON, 0 if a.off else 1, 'OscOn')
+    if not a.haptic:
+        w(A_OSCON, 0 if a.off else 1, 'OscOn')
     on_at = time.time()
     if a.ramp_ms > 0 and not a.off:
         ramp(floor_amp, amp, a.ramp_ms, True)
-        w(A_OSCLEVEL, f32(amp), 'OscLevel')       # the target, verified
+        if a.haptic:
+            w2(hap['_hpt_test_level_C2_HPT_01'], f32(amp), 'HptTestLevel')
+        else:
+            w(A_OSCLEVEL, f32(amp), 'OscLevel')   # the target, verified
     # MeasChan LAST, so the first window the measurement node accumulates is
     # one the tone is already at full level in -- a window opened during the
     # fade would average the ramp and read low.
@@ -474,14 +572,23 @@ def main():
         print('')
         print('  stopping:')
         ramp(floor_amp, amp, a.ramp_ms, False)
-        sc.d.link.write(A_OSCON, 0, 0)
-        time.sleep(S.SETTLE)
-        off_at = time.time()
-        got = sc.rd(A_OSCON)
+        if a.haptic:
+            stop_a, stop_t = hap['_hpt_test_on_C2_HPT_01'], 'HptTestOn'
+            sc2.d.link.write(stop_a, 0, 0)
+            time.sleep(S.SETTLE)
+            off_at = time.time()
+            got = sc2.rd(stop_a)
+        else:
+            stop_a, stop_t = A_OSCON, 'OscOn'
+            sc.d.link.write(stop_a, 0, 0)
+            time.sleep(S.SETTLE)
+            off_at = time.time()
+            got = sc.rd(stop_a)
         print('    %-12s %5d <- 0x%08X   read 0x%08X  %s'
-              % ('OscOn', A_OSCON, 0, got, 'OK' if got == 0 else 'MISMATCH'))
+              % (stop_t, stop_a, 0, got, 'OK' if got == 0 else 'MISMATCH'))
         if got != 0:
-            raise SystemExit('the oscillator did not stop')
+            raise SystemExit('the %s stimulus did not stop'
+                             % ('haptic' if a.haptic else 'oscillator'))
         on_s = off_at - on_at
         print('    oscillator was ON for %.2f s' % on_s)
 
@@ -506,6 +613,8 @@ def main():
     if a.json:
         with open(a.json, 'w') as f:
             json.dump({'tool': 'dsp4_s49_osc', 'strip': a.strip,
+                       'stimulus': 'haptic' if a.haptic else 'osc',
+                       'haptic_base': a.haptic_base if a.haptic else None,
                        'meas': meas, 'freq_hz': a.freq,
                        'level_dbfs_peak': a.level, 'off': a.off,
                        'xsrc': a.xsrc, 'xdst': a.xdst,
