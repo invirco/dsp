@@ -11,6 +11,69 @@ sessions after that review, newest first.
 Hub dispatch `tasks.md` 2026-09-26 15:25Z. Report: `MW/D24/DSP/s120/panel-loop.md`,
 protocol `MW/D24/DSP/s120/panel-bus-protocol.md`.
 
+**S121 🟢 THE ANALOG STATION IS ONE PATCH LOOP, AND NOBODY PRESSES ENTER.**
+81 patches, 91 measurements, five standard off-the-shelf leads, four lead
+changes; it grades **45 of the analog station's 48 catalog rows**, against the
+forty-eight that said "fixture not built". The prompt goes up with the tone
+already running and the step ends when the lane it is meant to reach changes —
+a rise for a tone row, a drop for a noise row, because fitting a 150 ohm plug
+quiets an open mic input. The next patch is prepared and prompted before the
+last is scored. Measured on the part: detector poll 1.3 ms, threshold fires
+1 ms after a tone starts, settled reading 436 ms, route assert 112 ms, 24-lane
+meter sweep 32 ms. **78 s of machine in a whole pass**; projected end to end
+5.4 min at 3 s per hand move, 8.1 at 5 s, 12.1 at 8 s — the machine is 13 % of
+it, so the hand time is the only thing left worth optimising. Polarity is a
+measured item and a RELATIVE one: the coherent fit's signed in-phase and
+quadrature amplitudes give a phase, the first block measures each lane's
+balanced reference phase, and later readings are judged against that — an
+absolute sign is meaningless through 91.4 samples of loop latency. A reading
+on the decision boundary is reported uncalled, never quietly passed. Report
+`MW/D24/DSP/s121/patch-loop.md`.
+
+**S121-1 🔴 EVERY STRIP UNDER TEST MUST BE OPENED, NOT JUST THE DONOR — AND A
+MUTED STRIP READS AS A DEAD INPUT.** MeasChan taps a strip POST-FADER, so a
+muted or faded strip reads an exact zero however healthy its converter lane is.
+On MW-D24-2 MIC 20 read **-336 dBFS** against every other lane's -116, because
+`d24_selftest.py`'s acoustic-loop teardown leaves `Chan020Mute001` at 1 and
+nothing ever puts it back. Any tool that reads a strip lane and does not first
+open the strip is measuring the fader. The standing write now opens and
+bypasses all twenty-four.
+
+**S121-2 🔴 THE DONOR STRIP IS THE LOUDEST LANE ON THE UNIT, ALWAYS.** TEST_OSC
+REPLACES a strip's input, so the donor's own meter sits at the drive level for
+the whole pass whatever is plugged in: -12.0 dBFS while a real path reads about
+-15. Any "is the tone where it should be" check that sweeps the lanes must skip
+the donor, or it names the donor every single time. Found on the part; the
+dry-run model now reproduces it.
+
+**S121-3 🔴 TWO SETTLING WINDOWS IS NOT ENOUGH AND IT LOOKS LIKE DISTORTION.**
+TEST_MEAS's fit subtracts the previous window's fitted sine sample by sample,
+so a window in which anything moved — a ramped send, a bus master, a pan, or
+the tap arriving somewhere new — is scored as distortion. The same three routes
+read THD+N of -19.21, -24.74 and **-3.75 dB** at settle 2 and -115 to -116 dB at
+settle 4, 6 and 12, while the LEVEL read -15.01 dBFS in every one of them. Four
+windows is the floor; six after a route change. The strip meters also decay
+slowly, about **6 dB per second**, so a lane driven hard by one patch is still
+tens of dB above its floor during the next: an isolation check has to ask
+whether a lane ROSE during this patch, not whether it is lit.
+
+**S121-5 🔴 THREE REAR SOCKETS HAVE NO HOST-REACHABLE SOURCE ON A D24.** The
+Centre/LF XLR is `DAC_14`, which the firmware feeds from aux bus 12; the
+headphone jack is `DAC_09/10`, fed from aux buses 9 and 10. D24 declares aux
+buses 1-8 and no more, so no cell exists to open any of them — the lane-by-lane
+netlist walk in `docs/d24-dac-lane-xlr-candidate-20260913.md` says the same at
+its sections 148-154. Catalog rows 35 and 97 are NOT RUN with that reason
+rather than failed. A product question, not a test one. (PW asked about a level
+pot in the headphone path: there is no potentiometer anywhere in the analog
+board's inventory and the stage is a pair of summing op-amps. The pot is not
+the problem; the source is.)
+
+**S121-6 🟡 THE REAR MONITOR JACKS ARE THE CROSSOVER'S CENTRE AND SUB LEGS.**
+`DAC_15/16` = `C2_MAIN_OUT_03/04`, whose cells are `MainCtr` and `MainSub`, so
+the monitor outputs are fed by the main crossover and not by the monitor bus at
+all. The station sets the crossover wide and shallow and tests **Monitor R at
+100 Hz**, because a crossover is what stops 1 kHz reaching the sub leg.
+
 **S120-0 🟢 A PRESS -> INDICATOR ROUND TRIP NEEDS NO FIRMWARE CHANGE AND NO NEW
 WIRE, AND IT IS UNDER 10 ms.** Both halves are one matrix cell that the shipping
 panel firmware already implements. Writing `Sys001Skin001` makes `WrRadioLed()`

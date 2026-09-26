@@ -1,0 +1,107 @@
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 27 lanes, -87.0 to -87.0 dBFS
+   .. P1 PASS: the tone arrived on MIC 1 and nowhere else
+   .. P2 PASS: the tone arrived on MIC 2 and nowhere else
+   .. P3 PASS: the tone arrived on MIC 3 and nowhere else
+   .. P5: the tone came back on MIC 6, not MIC 5 -- prompting again
+   .. P4 PASS: the tone arrived on MIC 4 and nowhere else
+   .. P5 PASS: the tone arrived on MIC 5 and nowhere else
+   .. P6 PASS: the tone arrived on MIC 6 and nowhere else
+   .. P7 PASS: the tone arrived on MIC 7 and nowhere else
+   .. P9: nothing reached MIC 9 -- prompting again
+   .. P9: nothing reached MIC 9 -- prompting again
+   .. P9 NO DATA: no tone reached MIC 9 after 3 attempts
+   .. P10 PASS: the tone arrived on MIC 10 and nowhere else
+   .. P11 PASS: the tone arrived on MIC 11 and nowhere else
+   .. P12 PASS: the tone arrived on MIC 12 and nowhere else
+   .. P13 PASS: the tone arrived on MIC 13 and nowhere else
+   .. P14 PASS: the tone arrived on MIC 14 and nowhere else
+   .. P15 PASS: the tone arrived on MIC 15 and nowhere else
+   .. P16 PASS: the tone arrived on MIC 16 and nowhere else
+   .. P17 PASS: the tone arrived on MIC 17 and nowhere else
+   .. P18 PASS: the tone arrived on MIC 18 and nowhere else
+   .. P19 PASS: the tone arrived on MIC 19 and nowhere else
+   .. P20 PASS: the tone arrived on MIC 20 and nowhere else
+   .. P21 PASS: the tone arrived on MIC 21 and nowhere else
+   .. P22 PASS: the tone arrived on MIC 22 and nowhere else
+   .. P23 PASS: the tone arrived on MIC 23 and nowhere else
+   .. P24 PASS: the tone arrived on MIC 24 and nowhere else
+   .. P25 PASS: the tone arrived on TALKBACK and nowhere else
+   .. P26 PASS: the input noise was measured with a 150 ohm source
+   .. P27 PASS: the input noise was measured with a 150 ohm source
+   .. P28 PASS: the input noise was measured with a 150 ohm source
+   .. P29 PASS: the input noise was measured with a 150 ohm source
+   .. P30 PASS: the input noise was measured with a 150 ohm source
+   .. P31 PASS: the input noise was measured with a 150 ohm source
+   .. P32 PASS: the input noise was measured with a 150 ohm source
+   .. P33 PASS: the input noise was measured with a 150 ohm source
+   .. P34 PASS: the input noise was measured with a 150 ohm source
+   .. P35 PASS: the input noise was measured with a 150 ohm source
+   .. P36 PASS: the input noise was measured with a 150 ohm source
+   .. P37 PASS: the input noise was measured with a 150 ohm source
+   .. P38 PASS: the input noise was measured with a 150 ohm source
+   .. P39 PASS: the input noise was measured with a 150 ohm source
+   .. P40 PASS: the input noise was measured with a 150 ohm source
+   .. P41 PASS: the input noise was measured with a 150 ohm source
+   .. P42 PASS: the input noise was measured with a 150 ohm source
+   .. P43 PASS: the input noise was measured with a 150 ohm source
+   .. P44 PASS: the input noise was measured with a 150 ohm source
+   .. P45 PASS: the input noise was measured with a 150 ohm source
+   .. P46 PASS: the input noise was measured with a 150 ohm source
+   .. P47 PASS: the input noise was measured with a 150 ohm source
+   .. P48 PASS: the input noise was measured with a 150 ohm source
+   .. P49 PASS: the input noise was measured with a 150 ohm source
+   .. P50 PASS: the tone arrived on MIC 1 line and nowhere else
+   .. P51 PASS: the tone arrived on MIC 2 line and nowhere else
+   .. P52 PASS: the tone arrived on MIC 3 line and nowhere else
+   .. P53 PASS: the tone arrived on MIC 4 line and nowhere else
+   .. P54 PASS: the tone arrived on MIC 5 line and nowhere else
+   .. P55 PASS: the tone arrived on MIC 6 line and nowhere else
+   .. P56 PASS: the tone arrived on MIC 7 line and nowhere else
+   .. P57 PASS: the tone arrived on MIC 8 line and nowhere else
+   .. P58 PASS: the tone arrived on MIC 9 line and nowhere else
+   .. P59 PASS: the tone arrived on MIC 10 line and nowhere else
+   .. P60 PASS: the tone arrived on MIC 11 line and nowhere else
+   .. P61 PASS: the tone arrived on MIC 12 line and nowhere else
+   .. P62 PASS: the tone arrived on MIC 13 line and nowhere else
+   .. P63 PASS: the tone arrived on MIC 14 line and nowhere else
+   .. P64 PASS: the tone arrived on MIC 15 line and nowhere else
+   .. P65 PASS: the tone arrived on MIC 16 line and nowhere else
+   .. P66 PASS: the tone arrived on MIC 17 line and nowhere else
+   .. P67 PASS: the tone arrived on MIC 18 line and nowhere else
+   .. P68 PASS: the tone arrived on MIC 19 line and nowhere else
+   .. P69 PASS: the tone arrived on MIC 20 line and nowhere else
+   .. P70 PASS: the tone arrived on MIC 21 line and nowhere else
+   .. P71 PASS: the tone arrived on MIC 22 line and nowhere else
+   .. P72 PASS: the tone arrived on MIC 23 line and nowhere else
+   .. P73 PASS: the tone arrived on MIC 24 line and nowhere else
+   .. P74 PASS: the tone arrived on MIC 1 and nowhere else
+   .. P75 PASS: the tone arrived on MIC 1 and nowhere else
+   .. P76 PASS: the two channels cancelled to -34.0 dB below either one
+   .. P77 PASS: the two channels cancelled to -34.0 dB below either one
+   .. P78 FAIL: the two channels did not cancel: only -4.0 dB down, so they are not matched or they are crossed
+   .. P79 PASS: the two channels cancelled to -34.0 dB below either one
+   .. P80 PASS: the tone arrived on MINI-JACK 1 and nowhere else
+
+DRY RUN (no unit): 91 measurements in 80 patches
+  FAIL 3, NO DATA 1, PASS 87
+  faults injected: mispatch:MIC 5, dead:MIC 9, swap:AUX A 3-4, nonull:AUX A 5-6, edge:AUX A 1-2
+    P9    MIC 9                  NO DATA   no tone reached MIC 9 after 3 attempts
+    P77   MIC 1                  FAIL      this channel came back inverted, which on a stereo jack is tip and ring swapped
+    P77   MIC 1                  FAIL      this channel came back normal and should be inverted
+    P78   MIC 1                  FAIL      the two channels did not cancel: only -4.0 dB down, so they are not matched or they are crossed
+
+  lead  patches  checks   machine s   per patch   hand s @ 5 s
+  --------------------------------------------------------------
+  K1         24      24        21.5        0.90           120
+  K5         24      24        19.6        0.82           120
+  K4         24      24        21.5        0.90           120
+  K2          6      14        11.6        1.93            30
+  K3          2       4         3.1        1.55            10
+  --------------------------------------------------------------
+  all        80      90        77.3        0.97           400
+
+  projected pass: 400 s hands + 77 s machine = 8.0 min
+
+wrote MW/D24/DSP/s121/logs/dry-run-faults.csv
+wrote MW/D24/DSP/s121/logs/operator-strings.txt

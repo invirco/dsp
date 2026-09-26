@@ -1,0 +1,92 @@
+list: /home/app/selftest/s121 -- 81 patches, 91 measurements
+
+=== 1. the image guard
+  refused, correctly:
+    _osc_blk_q_C1_TEST_OSC is not in the staged symbol map (/home/app/dspboot): this is not a
+    DSP4_TEST_NODES=1 pair, and without it the oscillator does not
+    exist. The factory pair is /home/app/loopthd/s109 (PW ruling S116 Q3).
+  accepted the factory pair at /home/app/loopthd/s109
+
+=== 2. the standing write
+  567 cells, 5.41 s (9.5 ms each), 0 did not read back
+  the monitor bus: Level001=0.000 Level002=0.000 (the speaker is silent only if both are zero)
+
+=== 3. the floors
+  27 lanes in 11.5 s (425 ms each)
+    MIC 1             -116.20 dBFS
+    MIC 2             -116.23 dBFS
+    MIC 3             -116.13 dBFS
+    MIC 4             -116.18 dBFS
+    MIC 5             -116.34 dBFS
+    MIC 6             -116.16 dBFS
+    MIC 7             -116.17 dBFS
+    MIC 8             -116.13 dBFS
+    MIC 9             -116.32 dBFS
+    MIC 10            -116.32 dBFS
+    MIC 11            -115.91 dBFS
+    MIC 12            -116.31 dBFS
+    MIC 13            -116.25 dBFS
+    MIC 14            -116.15 dBFS
+    MIC 15            -116.25 dBFS
+    MIC 16            -116.07 dBFS
+    MIC 17            -116.06 dBFS
+    MIC 18            -116.14 dBFS
+    MIC 19            -116.30 dBFS
+    MIC 20            -116.07 dBFS
+    MIC 21            -116.19 dBFS
+    MIC 22            -116.35 dBFS
+    MIC 23            -116.17 dBFS
+    MIC 24            -116.16 dBFS
+    mini-jack tip      -76.05 dBFS
+    talkback XLR       -87.88 dBFS
+    mini-jack ring     -75.94 dBFS
+
+=== 4. the route, in the digital domain
+  the oscillator into the donor strip, read at the BUS tap on the far
+  side. No cable is involved and none is needed: if the route cells
+  were wrong this is where it shows.
+    aux:1      -> aux 1                          -15.01 dBFS   THD+N -115.51 dB = 0.000 %
+    aux:2      -> aux 2                          -15.01 dBFS   THD+N -115.50 dB = 0.000 %
+    aux:1+2    -> aux 1, with aux 2 driven too   -15.01 dBFS   THD+N -115.50 dB = 0.000 %
+    main:L     -> main L                         -15.01 dBFS   THD+N -116.16 dB = 0.000 %
+    main:R     -> main R                         -15.01 dBFS   THD+N -116.16 dB = 0.000 %
+    main:L     -> main R (the OTHER side)    -336.12 dBFS  -- a pan that
+               did not land would read the same on both
+
+=== 5. the detector
+  the auto-advance watches one lane and waits for it to rise. Here the
+  oscillator is pointed AT a measured strip, so the same code sees the
+  same rise a lead going in would make.
+    MIC 5 meter: -104.4 dBFS quiet -> -12.0 dBFS driven
+    the 12 dB threshold fired 1 ms after the tone started
+
+=== 6. the seconds
+  one settled reading: 436 ms
+  one route assert (13 cells): 112 ms
+  one 24-lane meter sweep: 32 ms
+  one detector poll: 1.3 ms
+
+=== 7. is anything actually patched?
+  each aux driven in turn, every mic lane read. Anything lit is a lead
+  somebody left on the bench -- and a whole analog path proved with it.
+    AUX 1 -> MIC 5 at -27.2 dBFS
+    AUX 2 -> MIC 5 at -28.3 dBFS
+    AUX 3 -> MIC 5 at -29.4 dBFS
+    AUX 4 -> MIC 5 at -30.4 dBFS
+    AUX 5 -> MIC 5 at -31.6 dBFS
+    AUX 6 -> MIC 5 at -32.7 dBFS
+    AUX 7 -> MIC 5 at -33.7 dBFS
+    AUX 8 -> MIC 5 at -34.9 dBFS
+    AUX 1 -> MIC 5: loop gain -134.83 dB, phase 92.3 deg, THD+N 0.00 dB = 100.052 %
+    AUX 2 -> MIC 5: loop gain -132.98 dB, phase -142.4 deg, THD+N -0.00 dB = 99.976 %
+    AUX 3 -> MIC 5: loop gain -130.27 dB, phase 73.5 deg, THD+N 0.01 dB = 100.104 %
+    AUX 4 -> MIC 5: loop gain -133.67 dB, phase 0.6 deg, THD+N -0.00 dB = 99.989 %
+    AUX 5 -> MIC 5: loop gain -136.88 dB, phase -155.5 deg, THD+N 0.00 dB = 100.002 %
+    AUX 6 -> MIC 5: loop gain -131.58 dB, phase 165.3 deg, THD+N -0.00 dB = 99.980 %
+    AUX 7 -> MIC 5: loop gain -135.75 dB, phase 67.3 deg, THD+N 0.01 dB = 100.093 %
+    AUX 8 -> MIC 5: loop gain -137.71 dB, phase 130.1 deg, THD+N 0.00 dB = 100.014 %
+
+=== handback
+  oscillator off, every assign shut, the monitor bus at zero
+  Mon001Level001=0.000 Mon001Level002=0.000
+  Test001OscOn001=0

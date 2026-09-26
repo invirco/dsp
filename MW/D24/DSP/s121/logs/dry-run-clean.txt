@@ -1,0 +1,17 @@
+
+DRY RUN (no unit): 91 measurements in 81 patches
+  PASS 91
+
+  lead  patches  checks   machine s   per patch   hand s @ 5 s
+  --------------------------------------------------------------
+  K1         25      25        22.4        0.90           125
+  K5         24      24        19.6        0.82           120
+  K4         24      24        21.5        0.90           120
+  K2          6      14        11.6        1.93            30
+  K3          2       4         3.1        1.55            10
+  --------------------------------------------------------------
+  all        81      91        78.1        0.96           405
+
+  projected pass: 405 s hands + 78 s machine = 8.1 min
+
+wrote MW/D24/DSP/s121/logs/dry-run-clean.csv

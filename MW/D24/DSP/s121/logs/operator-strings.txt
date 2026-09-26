@@ -1,0 +1,479 @@
+# every operator-facing string this station can produce,
+# for the internal-vocabulary check. Generated, not written.
+
+Step 1 of 5 - the microphone inputs
+  Take lead K1: the XLR lead.
+  25 patches at this step.
+  Each one advances on its own as soon as the lead is in.
+  Wiring: an ordinary balanced XLR lead.
+Patch AUX 1 to MIC 1  (lead K1)
+  Patch AUX 1 to MIC 1.
+  It advances on its own when the lead is in.
+Patch AUX 2 to MIC 2  (lead K1)
+  Patch AUX 2 to MIC 2.
+  It advances on its own when the lead is in.
+Patch AUX 3 to MIC 3  (lead K1)
+  Patch AUX 3 to MIC 3.
+  It advances on its own when the lead is in.
+Patch AUX 4 to MIC 4  (lead K1)
+  Patch AUX 4 to MIC 4.
+  It advances on its own when the lead is in.
+Patch AUX 5 to MIC 5  (lead K1)
+  Patch AUX 5 to MIC 5.
+  It advances on its own when the lead is in.
+Check the patch
+  The tone came back on MIC 6, not MIC 5.
+  Move the lead to MIC 5.
+  It advances on its own when the tone arrives.
+Patch AUX 5 to MIC 5  (lead K1)
+  Patch AUX 5 to MIC 5.
+  It advances on its own when the lead is in.
+Patch AUX 6 to MIC 6  (lead K1)
+  Patch AUX 6 to MIC 6.
+  It advances on its own when the lead is in.
+Patch AUX 7 to MIC 7  (lead K1)
+  Patch AUX 7 to MIC 7.
+  It advances on its own when the lead is in.
+Patch AUX 8 to MIC 8  (lead K1)
+  Patch AUX 8 to MIC 8.
+  It advances on its own when the lead is in.
+Patch MAIN L to MIC 9  (lead K1)
+  Patch MAIN L to MIC 9.
+  It advances on its own when the lead is in.
+Check the patch
+  Nothing reached MIC 9.
+  Check both ends of the lead are fully home.
+  It advances on its own when the tone arrives.
+Patch MAIN L to MIC 9  (lead K1)
+  Patch MAIN L to MIC 9.
+  It advances on its own when the lead is in.
+Check the patch
+  Nothing reached MIC 9.
+  Check both ends of the lead are fully home.
+  It advances on its own when the tone arrives.
+Patch MAIN L to MIC 9  (lead K1)
+  Patch MAIN L to MIC 9.
+  It advances on its own when the lead is in.
+Patch MAIN R to MIC 10  (lead K1)
+  Patch MAIN R to MIC 10.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 11  (lead K1)
+  Patch AUX 1 to MIC 11.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 12  (lead K1)
+  Patch AUX 1 to MIC 12.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 13  (lead K1)
+  Patch AUX 1 to MIC 13.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 14  (lead K1)
+  Patch AUX 1 to MIC 14.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 15  (lead K1)
+  Patch AUX 1 to MIC 15.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 16  (lead K1)
+  Patch AUX 1 to MIC 16.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 17  (lead K1)
+  Patch AUX 1 to MIC 17.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 18  (lead K1)
+  Patch AUX 1 to MIC 18.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 19  (lead K1)
+  Patch AUX 1 to MIC 19.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 20  (lead K1)
+  Patch AUX 1 to MIC 20.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 21  (lead K1)
+  Patch AUX 1 to MIC 21.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 22  (lead K1)
+  Patch AUX 1 to MIC 22.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 23  (lead K1)
+  Patch AUX 1 to MIC 23.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MIC 24  (lead K1)
+  Patch AUX 1 to MIC 24.
+  It advances on its own when the lead is in.
+Patch AUX 1 to TALKBACK  (lead K1)
+  Patch AUX 1 to TALKBACK.
+  It advances on its own when the lead is in.
+Step 2 of 5 - the input noise rows
+  Take lead K5: the 150 ohm plug.
+  24 patches at this step.
+  Each one advances on its own as soon as the lead is in.
+  Wiring: a male XLR plug with 150 ohm inside it.
+Fit the 150 ohm terminator in MIC 1  (lead K5)
+  Fit the 150 ohm terminator in MIC 1.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 2  (lead K5)
+  Fit the 150 ohm terminator in MIC 2.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 3  (lead K5)
+  Fit the 150 ohm terminator in MIC 3.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 4  (lead K5)
+  Fit the 150 ohm terminator in MIC 4.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 5  (lead K5)
+  Fit the 150 ohm terminator in MIC 5.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 6  (lead K5)
+  Fit the 150 ohm terminator in MIC 6.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 7  (lead K5)
+  Fit the 150 ohm terminator in MIC 7.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 8  (lead K5)
+  Fit the 150 ohm terminator in MIC 8.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 9  (lead K5)
+  Fit the 150 ohm terminator in MIC 9.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 10  (lead K5)
+  Fit the 150 ohm terminator in MIC 10.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 11  (lead K5)
+  Fit the 150 ohm terminator in MIC 11.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 12  (lead K5)
+  Fit the 150 ohm terminator in MIC 12.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 13  (lead K5)
+  Fit the 150 ohm terminator in MIC 13.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 14  (lead K5)
+  Fit the 150 ohm terminator in MIC 14.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 15  (lead K5)
+  Fit the 150 ohm terminator in MIC 15.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 16  (lead K5)
+  Fit the 150 ohm terminator in MIC 16.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 17  (lead K5)
+  Fit the 150 ohm terminator in MIC 17.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 18  (lead K5)
+  Fit the 150 ohm terminator in MIC 18.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 19  (lead K5)
+  Fit the 150 ohm terminator in MIC 19.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 20  (lead K5)
+  Fit the 150 ohm terminator in MIC 20.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 21  (lead K5)
+  Fit the 150 ohm terminator in MIC 21.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 22  (lead K5)
+  Fit the 150 ohm terminator in MIC 22.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 23  (lead K5)
+  Fit the 150 ohm terminator in MIC 23.
+  It advances on its own when the lead is in.
+Fit the 150 ohm terminator in MIC 24  (lead K5)
+  Fit the 150 ohm terminator in MIC 24.
+  It advances on its own when the lead is in.
+Step 3 of 5 - the line inputs
+  Take lead K4: the XLR-to-jack lead.
+  24 patches at this step.
+  Each one advances on its own as soon as the lead is in.
+  Wiring: female XLR one end, 6.35 mm TRS the other.
+Patch AUX 1 to the TRS centre of MIC 1  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 1.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 2  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 2.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 3  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 3.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 4  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 4.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 5  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 5.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 6  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 6.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 7  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 7.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 8  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 8.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 9  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 9.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 10  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 10.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 11  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 11.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 12  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 12.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 13  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 13.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 14  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 14.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 15  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 15.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 16  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 16.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 17  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 17.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 18  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 18.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 19  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 19.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 20  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 20.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 21  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 21.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 22  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 22.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 23  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 23.
+  It advances on its own when the lead is in.
+Patch AUX 1 to the TRS centre of MIC 24  (lead K4)
+  Patch AUX 1 to the TRS centre of MIC 24.
+  It advances on its own when the lead is in.
+Step 4 of 5 - the TRS outputs
+  Take lead K2: the jack-to-XLR lead.
+  6 patches at this step.
+  Each one advances on its own as soon as the lead is in.
+  Wiring: 6.35 mm TRS one end, male XLR the other.
+Patch MONITOR L to MIC 1  (lead K2)
+  Patch MONITOR L to MIC 1.
+  It advances on its own when the lead is in.
+Patch MONITOR R to MIC 1  (lead K2)
+  Patch MONITOR R to MIC 1.
+  It advances on its own when the lead is in.
+Patch AUX A 1-2 to MIC 1  (lead K2)
+  Patch AUX A 1-2 to MIC 1.
+  3 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+Patch AUX A 3-4 to MIC 1  (lead K2)
+  Patch AUX A 3-4 to MIC 1.
+  3 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+Patch AUX A 5-6 to MIC 1  (lead K2)
+  Patch AUX A 5-6 to MIC 1.
+  3 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+Patch AUX A 7-8 to MIC 1  (lead K2)
+  Patch AUX A 7-8 to MIC 1.
+  3 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+Step 5 of 5 - the mini-jack inputs
+  Take lead K3: the XLR-to-mini-jack lead.
+  2 patches at this step.
+  Each one advances on its own as soon as the lead is in.
+  Wiring: female XLR one end, 3.5 mm stereo jack the other.
+Patch AUX 1 to MINI-JACK 1, with MINI-JACK 2 empty  (lead K3)
+  Patch AUX 1 to MINI-JACK 1, with MINI-JACK 2 empty.
+  2 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+Patch AUX 1 to MINI-JACK 2, with MINI-JACK 1 empty  (lead K3)
+  Patch AUX 1 to MINI-JACK 2, with MINI-JACK 1 empty.
+  2 checks on this one patch -- leave the lead in until the next instruction.
+  It advances on its own when the lead is in.
+the tone arrived on MIC 1 and nowhere else
+this reading is now MIC 1's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 2 and nowhere else
+this reading is now MIC 2's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 3 and nowhere else
+this reading is now MIC 3's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 4 and nowhere else
+this reading is now MIC 4's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 5 and nowhere else
+this reading is now MIC 5's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 6 and nowhere else
+this reading is now MIC 6's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 7 and nowhere else
+this reading is now MIC 7's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 8 and nowhere else
+this reading is now MIC 8's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+no tone reached MIC 9 after 3 attempts
+the tone arrived on MIC 10 and nowhere else
+this reading is now MIC 10's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 11 and nowhere else
+this reading is now MIC 11's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 12 and nowhere else
+this reading is now MIC 12's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 13 and nowhere else
+this reading is now MIC 13's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 14 and nowhere else
+this reading is now MIC 14's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 15 and nowhere else
+this reading is now MIC 15's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 16 and nowhere else
+this reading is now MIC 16's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 17 and nowhere else
+this reading is now MIC 17's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 18 and nowhere else
+this reading is now MIC 18's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 19 and nowhere else
+this reading is now MIC 19's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 20 and nowhere else
+this reading is now MIC 20's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 21 and nowhere else
+this reading is now MIC 21's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 22 and nowhere else
+this reading is now MIC 22's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 23 and nowhere else
+this reading is now MIC 23's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 24 and nowhere else
+this reading is now MIC 24's balanced reference: -3.00 dB, 42.0 deg; THD+N -72.00 dB = 0.025 %
+the tone arrived on TALKBACK and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; phase 42.0 deg, reported only; THD+N -72.00 dB = 0.025 %
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the input noise was measured with a 150 ohm source
+-96.0 dBFS at the lane with the terminator fitted; no EIN window is ruled for the factory station yet: the figure is recorded, and limits.csv t4b_ein_max_dbu is the design reference
+the tone arrived on MIC 1 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 2 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 3 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 4 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 5 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 6 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 7 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 8 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 9 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity not judged: this lane has no reference phase yet; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 10 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 11 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 12 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 13 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 14 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 15 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 16 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 17 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 18 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 19 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 20 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 21 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 22 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 23 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 24 line and nowhere else
+-3.00 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB loop gain, reported: no window is ruled for this path yet; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 at the right level, but its polarity could not be called: 90 deg from the reference
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; polarity UNCERTAIN: 90 deg from the reference, too near the 90 deg boundary to call; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 at the right level, but its polarity could not be called: 90 deg from the reference
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; within 0.00 dB of the other channel; polarity UNCERTAIN: 90 deg from the reference, too near the 90 deg boundary to call; THD+N -72.00 dB = 0.025 %
+the two channels cancelled to -34.0 dB below either one
+-34.0 dB below the louder of the two channels
+this channel came back inverted, which on a stereo jack is tip and ring swapped
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts
+this channel came back normal and should be inverted
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; within 0.00 dB of the other channel
+the two channels cancelled to -34.0 dB below either one
+-34.0 dB below the louder of the two channels
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; within 0.00 dB of the other channel; polarity inverted, 180 deg from the reference; THD+N -72.00 dB = 0.025 %
+the two channels did not cancel: only -4.0 dB down, so they are not matched or they are crossed
+-4.0 dB below the louder of the two channels
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; polarity normal, 0 deg from the reference; THD+N -72.00 dB = 0.025 %
+the tone arrived on MIC 1 and nowhere else
+-9.02 dB, which is +0.00 dB from the -9.02 dB this lane's balanced reference predicts; within 0.00 dB of the other channel; polarity inverted, 180 deg from the reference; THD+N -72.00 dB = 0.025 %
+the two channels cancelled to -34.0 dB below either one
+-34.0 dB below the louder of the two channels
+the tone arrived on MINI-JACK 1 and nowhere else
+no balanced reference on this lane yet, so the level is reported and not judged; phase 42.0 deg, reported only; THD+N -72.00 dB = 0.025 %
+the tone arrived on MINI-JACK 1 and nowhere else
+no balanced reference on this lane yet, so the level is reported and not judged; within 0.00 dB of the other channel; phase 42.0 deg, reported only; THD+N -72.00 dB = 0.025 %
+the tone arrived on MINI-JACK 2 and nowhere else
+no balanced reference on this lane yet, so the level is reported and not judged; phase 42.0 deg, reported only; THD+N -72.00 dB = 0.025 %
+the tone arrived on MINI-JACK 2 and nowhere else
+no balanced reference on this lane yet, so the level is reported and not judged; within 0.00 dB of the other channel; phase 42.0 deg, reported only; THD+N -72.00 dB = 0.025 %
