@@ -1858,8 +1858,25 @@ def screen_walk(plist):
     ]
 
 
+def _whole_png(path):
+    """The capture file, if it is a whole PNG right now.
+
+    The display writes this file on a loop while the walk is running, so a
+    plain copy catches a half-written frame about as often as not. A PNG says
+    where it starts and where it ends, so the check is exact rather than a
+    sleep.
+    """
+    try:
+        with open(path, 'rb') as fh:
+            b = fh.read()
+    except OSError:
+        return None
+    if len(b) > 64 and b[:8] == b'\x89PNG\r\n\x1a\n' and b[-8:-4] == b'IEND':
+        return b
+    return None
+
+
 def cmd_screens(a, plist):
-    import shutil
     out = a.screens
     os.makedirs(out, exist_ok=True)
     live = LV.Live(a.live or a.dir, run='patch',
@@ -1876,17 +1893,22 @@ def cmd_screens(a, plist):
             # Hold the screen, beating so the display keeps calling the run
             # live, until the capture path has a frame newer than the change.
             got = None
-            while time.time() - t_set < a.dwell:
+            while time.time() - t_set < a.dwell or (got is None and
+                                                    time.time() - t_set < a.dwell * 4):
                 if state is not None:
                     live.beat()
                 time.sleep(0.1)
-                if cap and os.path.exists(cap) and os.path.getmtime(cap) > t_set + 0.3:
-                    got = cap
+                if (cap and os.path.exists(cap)
+                        and os.path.getmtime(cap) > t_set + 0.4):
+                    b = _whole_png(cap)
+                    if b:
+                        got = b
             dst = os.path.join(out, '%s.png' % name)
             if got:
-                shutil.copyfile(got, dst)
+                with open(dst, 'wb') as fh:
+                    fh.write(got)
                 shots.append((name, dst))
-                print('   %-28s %s' % (name, dst))
+                print('   %-28s %s  (%d bytes)' % (name, dst, len(got)))
             else:
                 print('   %-28s NO FRAME (capture path %s)' % (name, cap))
     finally:
