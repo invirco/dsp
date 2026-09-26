@@ -78,13 +78,13 @@ All on MW-D24-2, 2026-09-26, `tools/pi/d24_panel.py --mode rtt` and
 | host → indicator | the cell line out, to the master's `+` ack. `CheckHost()` forwards the line to the bus, waits for its own transmitter to go idle and only THEN writes `+`, so the ack is stamped after the last byte reached both boards | **1.74 … 1.85 ms** mean over three runs of ten; 1.72 ms fastest, 2.47 ms slowest single write |
 | press → host | not directly observable without a finger. Bounded by the only panel → host traffic a session can provoke: `&`, and the time to each identity line | **≈ 3 ms per slave** of the master's sweep (S MCU 3.2 ms, panel 6.0 ms, second panel 9.8 ms, cumulative) |
 | host → slave → host | one complete cell out and a cell back, through a slave | **3.07 ms** mean of 10 (2.92 … 3.39) |
-| the slave's own loop | the gap between two slaves' identity lines, less the 1.5 ms the 17-character string takes on the wire | **under 2 ms** |
+| the slave's own loop | the 3.8 ms gap between two slaves' identity lines, less the 1.5 ms the 17-character string takes on the wire. The remainder is the master's handshake AND the slave reaching its own `Poll()`, so it is an upper bound on the loop, not the loop | **at most ≈2.3 ms** |
 | the master's heartbeat | `:`/`.` edges over 3.0 s | 250 ms — it does not gate anything here |
 
 Adding the hops a press actually takes — the board notices it inside its own
-loop (< 2 ms), the master relays it (≈ 3 ms), the runner decides (a dictionary
+loop (≤ 2.3 ms), the master relays it (≈ 3 ms), the runner decides (a dictionary
 lookup), the write reaches the board (1.8 ms), the board applies it inside its
-next loop (< 2 ms) — gives **under 10 ms** of machine time. Against a 50 ms
+next loop (≤ 2.3 ms) — gives **under 10 ms** of machine time. Against a 50 ms
 target, with the product's firmware untouched.
 
 One number is deliberately outside that: **the glass redraws on the app's own

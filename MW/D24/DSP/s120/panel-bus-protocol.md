@@ -232,7 +232,7 @@ right; a press of either arrives at the host identically. See S120-1.
 | host → slave → host | one full cell round trip (an S MCU guard fetch) | **3.07 ms** mean of 10 (2.92 … 3.39) |
 | panel → host relay | `&` out, to each identity line arriving | S MCU 3.2 ms, one panel 6.0 ms, the second panel 9.8 ms — about **3 ms per slave** of the master's sweep |
 | master heartbeat | `:`/`.` edges over 3.0 s | **250 ms** |
-| slave loop period | bounded by the gap between two slaves' identity lines less the 1.5 ms the string takes on the wire | **under 2 ms** |
+| slave loop period | the 3.8 ms gap between two slaves' identity lines less the 1.5 ms the string takes on the wire; the remainder also holds the master's handshake, so it is an upper bound | **at most ≈2.3 ms** |
 
 ---
 

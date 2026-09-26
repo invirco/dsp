@@ -21,8 +21,10 @@ host. Measured on MW-D24-2: **host -> indicator 1.74 to 1.85 ms** (mean of three
 runs of ten, to MH1's own `+` ack, which `CheckHost()` writes only after its
 transmitter has gone idle — so the ack is stamped after the last byte reached
 both boards); **a full cell round trip through a slave 3.07 ms**; **about 3 ms
-per slave** of MH1's bus sweep; the slave's own loop **under 2 ms**, bounded by
-the gap between two slaves' identity lines. The dispatch's option (a) — a runner
+per slave** of MH1's bus sweep; the slave's own loop **at most ≈2.3 ms**, which
+is the 3.8 ms gap between two slaves' identity lines less the 1.5 ms the
+17-character string takes on the wire — an upper bound, since the remainder also
+holds MH1's own handshake. The dispatch's option (a) — a runner
 on the CM4 talking the panel bus directly — is **impossible on this hardware**:
 `SRX`, `MRX` and `BUSY` (G2702/G2703/G2632) reach `digital:J17`, the DSP card
 connector, and no `J24` pin at all, and `J24` is the CM4 socket. The only CM4
