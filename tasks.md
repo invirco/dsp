@@ -1,3 +1,63 @@
+## HUB DISPATCH 2026-09-26 18:54Z — S124: S122 bench proof with no hands, and room on the unit disk   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S124 — S122's bench proof (no hands), and room on the unit's disk
+
+PW has left the bench for the evening (2026-09-26). **Nothing in this dispatch may need a hand or PW's
+ears**: run what the part can prove on its own, and list the rest for PW's next bench visit. The unit is
+MW-D24-2, as S123 left it: rails down, chain SAFE, oscillator off, monitor 0, `d24-testui` active,
+`matrix-app` inactive, the factory screen ARMED with the 59-step quick list (`/home/app/selftest/factory.json`).
+**Leave it exactly that way at the end**, with the factory screen still armed.
+
+## 1. S122's queued bench items (its dispatch block in tasks.md)
+
+Run every S122 bench item that can be judged by the part itself. Candidates are:
+- the haptic node's words on the part;
+- the speaker slot carrying digital zero at rest;
+- a triggered click reaching the codec's DAC slot, read off the TX lane or the AK4619 path;
+- AL1 driving the 1 kHz haptic test tone through the new node, instead of any mixer route;
+- cell-write → click latency on the part;
+- the generator's guard on the deployed build.
+
+Anything whose verdict is "does it sound right", or which needs a hand on the unit, goes into a short
+**PW bench list** in plain words: what PW does, what PW should hear, and how long it takes. Deploy the
+S122 build ONLY if the factory screen and RUN ALL still pass their own checks on it afterwards. The
+factory image is versioned (`factory-test-v1`), so say plainly whether S122 bumps it.
+
+## 2. The disk (S123-6)
+
+Before S123 deleted two app backups, the unit's root was full with 0 bytes free. It now has 138 MB free, which is not
+enough for another app build. Make room, with **≥ 1.5 GB free** as the target and nothing lost:
+- **Archive before you delete.** Copy each candidate to this machine under `~/d24-unit-archive/2026-09-26/`,
+  check its md5 on both ends, and only then remove it from the unit.
+- **Candidates:**
+  - capture and scratch directories from finished dispatches (`dspcap`, `cap_*`, `s63`, `_temp`, the old `sNN` stage dirs no current tool reads);
+  - `logic-flash.log`, archived and then truncated;
+  - app backups older than the newest two;
+  - `fwbuild` artifacts other than the currently flashed image and its named rollback.
+- **Never touch:**
+  - anything RUN ALL, the factory screen, `dspboot`, `/home/app/loopthd/s109`, `/home/app/selftest`, `/home/app/firmware` or `/home/app/software` reads;
+  - the current app;
+  - its `app.bak-s123-pre` rollback.
+
+  Grep the deployed tools for every path before removing it.
+- Report the list of what went where, with sizes, the free space before and after, and the grep evidence.
+
+## 3. Hold for the hub
+
+A whole-test speed review is running on the hub. It may add items to this dispatch as addenda. Read
+any addendum under this header before you start a new step.
+
+## Report
+
+Include the S122 bench results, the PW bench list, the disk ledger, deployed md5s, the unit as left, and
+whether the factory screen is armed. Number the findings S124-n.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 17:30Z — S123: the factory patch screen - one instruction, live status, progress, nothing else   [status: 🟢 DONE — **THE FACTORY SCREEN IS BUILT, DEPLOYED AND PHOTOGRAPHED ON MW-D24-2, AND ADDENDA 1-6 ARE IN IT.** Report `MW/D24/DSP/s123/factory-screen.md`, 18 screens `MW/D24/DSP/s123/screens/`. **THE SCREEN:** one instruction in panel names, one live status line, "3 of 59" and a bar, ENTER and PAUSE, and nothing else — no row number, class, workbook status, catalog text, lead code, lane, dBFS or cell name; colour means pass or fail and nothing else; the type shrinks a step when the sentence is long so it can never run over the line beneath it. **The display chooses no words and counts nothing**: all 788 operator strings are generated in the new `tools/pi/d24_live.py` beside the patch list and are CLEAN under `--check-md`. **Live is the heartbeat, not the unit name**, which is what made the old page say "finished" over a running station. **A1 ENTER:** "Plug AUX 5 into MIC 5, then press ENTER", the hint "Signal found - press ENTER" that never advances, the wrong-socket prompt, auto-advance behind a flag and OFF, and the USB keyboard's Enter read BY THE STATION (hot-plug, no focus, cannot double-fire; 🟡 no keyboard is on the unit, so that arm is built and not witnessed). **A2 SOLVED: it was the inputs.** Both halves split with no hands — every lane's noise follows the preamp gain over 25-34 dB, and the oscillator reaches `_blk_C2_AUX_OUT_05` at -12.00 dBFS — then PW's two patches settled it: **MAIN L → MIC 17 -0.99 dB, AUX 5 → MIC 17 +5.56 dB with THD+N -90.16 dB**. The aux analog stage (S109's open item) carried a measured tone on this unit for the first time. MIC 5 and MIC 6 are dead and MIC 5 is 33 dB noisier than any other input. **START now refuses a second press** (it launched the station twice for PW). **A3 ORDER:** find a loop (the input end walks, "Move the lead to MIC 8, then press ENTER"; three deaf inputs and the OUTPUT becomes the suspect; nothing anywhere is ONE sentence), then every output in a row, then every input in a row. A `park` column, bound at run time, both donor routes emitted. **A4 GAIN:** seven steps per input from defs' own law — 25 of 64 codes are measured and three of the six single-element codes are not, so the six ELEMENT gains are fitted to that table (G = 1 + sum of the elements, **worst residual 0.509 dB over 24 codes**) and every row says measured or fitted; a dead element shows as "MIC 7 gain step 3 is wrong: it adds 0.0 dB and should add 26.9 dB". **`VERIFIED 200/200` WAS A BIT COUNT, NOT A PASS COUNT** — the writer never verified twice; what was slow was a process per write. New `d24_chain.py`: **294 ms → 8.1 ms a write**, read-back still matching, no sudo. **A5:** EIN rides the input walk, sequential, no separate noise block, no crosstalk to prove. **A6 TIME, and PW's targets are MET:** one gain element step **65 ms** (≤100), a seven-step patch **0.797 s** (≤1), EIN **0.355 s** (≤0.5), worst block **1.93 s** against a 5.8 s hand move. 91 patches / 245 readings / **82.2 s machine**; **7.2 / 10.2 / 14.8 min at 3 / 5 / 8 s a hand move** (this unit's 59-patch list: 4.7 / 6.7 / 9.6). Top machine costs: settled readings 44.4 s, gain steps 21.1 s, getting ready 16.2 s, routes 13.8 s, the whole 595 chain **1.8 s**. **In RUN ALL**: the automatic set takes 156 s on this unit, so the patch pass is about 4x it, and 86 % of it is hands. **Screen latency on the part, n=429: median 2 ms, p99 14 ms, max 26 ms, 100 % under the 200 ms budget**; lead-in → screen bounded at ~80 ms. **PAUSE PROVED ON THE PART**: pass stopped, AN_EN low FIRST, chain SAFE and read back, **0.53 s**. 🔴 **S123-6: THE UNIT'S DISK WAS FULL** (0 bytes) and the deploy could not land; `app.bak-s100-pre` and `app.bak-s102-pre` were deleted (md5s in the report), s107/s112/s117/s123 kept, **138 MB free — it will not take another app build without more room**. Deployed md5s: app `7533ce450967890cac9a7b417eb0c109` (rollback `app.bak-s123-pre` = `b61a190c6b1655346378acc75b2e4432`), `d24_patch.py` `d5e5c3c6db6f17a132a0656642809538`, `d24_live.py` `4a5bb7888612764a26bb6f491f4eb955`, `d24_chain.py` `22db7dd3f98f5fdbc6e5935fc23bea13`, the 59-patch list in `/home/app/selftest/quick/`. **Unit: AN_EN low, CS_M high, chain SAFE and read back, oscillator off, monitor 0, `d24-testui` active, `matrix-app` inactive, no run live, the factory screen ARMED.** **The one thing PW presses: START, on the D24's own screen** — then follow the instructions and press ENTER after each lead. **NOT DONE, and owed:** nobody has run a full pass with a lead, so the seven gain steps have never been measured through a real preamp; the keyboard arm is unwitnessed; PAUSE ends a pass rather than resuming it (the screen says so); S122's queued bench items are still queued.]   [model: opus]
 
 > **HUB NOTE — PW HAS LEFT THE BENCH (evening 2026-09-26).** No PW-PATCH until further notice: nothing that needs a hand can be run. Carry on with everything desk-side and every bench step that needs no lead (timing, gain-step and EIN machinery on the part with no patch — e.g. level-only windows against the lane's own noise, chain write/read-back timing, ramp settles, screen states). Leave the unit safe and the screen armed at every stop. PW liked the direction; the hub is running a whole-test speed review in parallel and may add items.
