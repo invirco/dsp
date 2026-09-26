@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-26 14:57Z — S119: retire the meter station from RUN ALL; deploy the corrected catalog   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-26 14:57Z — S119: retire the meter station from RUN ALL; deploy the corrected catalog   [status: 🟢 done — meter station retired (`STATIONS` drops M7; its 24 rows classified NOT RUN under new `group=QC`, 8 "covered by <plain-English test>", 16 "board-level test at the assembler"); corrected catalog (mx26 7bb7c84, 0 violations/202 rows) regenerated and deployed, `covers`/`remedy` reconciled (fresh generator right on both — the S116 "nine pairs" never fired, and its HDMI remedy text was stale from before HD0-2's own retirement); proved on MW-D24-2 over 3 RUN ALL passes (202 rows, one fewer station, `--check-md` clean); two real bugs found and fixed along the way (S119-1): a `classify()` order bug that misrouted row 153, and a pre-existing `State.put()` rank-gate bug that pins a row's stale SKIPPED verdict forever once it is reclassified NOT RUN — fixed with a `force=True` path used only by `record_not_run()`. Silent handback, same shape as S118.]   [model: sonnet]
 
 model: sonnet
 

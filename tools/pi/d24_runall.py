@@ -283,7 +283,12 @@ def load_catalog(path):
 # the operator has in hand", said once per station and not per row.
 #
 # M6 (the slot-1 card) and M8 (no bench time) are not stations: their rows are
-# NOT RUN and say why in the report (S117 §1).
+# NOT RUN and say why in the report (S117 §1). M7 ("Meter checks, lid off") is
+# RETIRED (S119 / PW 2026-09-26): component and assembly faults are the
+# assembler's QC job, not a lid-off bench step. Its 24 rows moved to group
+# `QC` and are classified NOT RUN, each with its own reason -- see
+# `QC_REASON` below -- so there is no station, no rails and no dialog for it
+# any more.
 STATIONS = [
     ('M1', 'Left switch panel',
      'a finger and an eye, at the left half of the front panel', False),
@@ -296,8 +301,6 @@ STATIONS = [
     ('M4', 'Analog loopback',
      'the loopback lead set: microphone leads, the small jack lead, headphones',
      True),
-    ('M7', 'Meter checks, lid off',
-     'a multimeter, the build sheet, and the lid off', True),
 ]
 STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
 STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
@@ -335,8 +338,7 @@ def manual_step(r):
              'M2': 'on the right of the front panel',
              'M3': 'on the foot pedal',
              'M4': 'on the rear panel',
-             'M5': 'on the rear panel',
-             'M7': 'inside the unit'}.get(r.group, '')
+             'M5': 'on the rear panel'}.get(r.group, '')
     name = r.panel
 
     # --- station 5 / rear sockets: the three that can be read today ---------
@@ -382,18 +384,6 @@ def manual_step(r):
                            % name,
                     check='the looped lane rises out of its own noise floor')
 
-    # --- the meter station --------------------------------------------------
-    if r.group == 'M7':
-        # The header's own designator STAYS in a meter dialog. PW's 09-21 rule
-        # is that the operator is told PANEL names -- "MIC 5", "AUX 1 out" --
-        # and never a connector number for something they can see on the
-        # outside of the unit. An internal header has no panel name, and the
-        # designator is what is printed next to it on the board: taking it out
-        # would leave the operator hunting.
-        return dict(kind=JUDGE,
-                    action='With the meter, check %s %s.' % (name, where),
-                    question='Does it read what the build sheet gives for it?')
-
     # Anything else in a station group: a plain operator judgement, worded so
     # Yes is a pass. No row reaches here on today's catalog; it is here so a
     # new row does not fall through into silence.
@@ -402,12 +392,60 @@ def manual_step(r):
                 question='Is it right?')
 
 
+# ---------------------------------------------------------------------------
+# QC (S119 / PW 2026-09-26): the 24 rows retired from the meter station
+# ---------------------------------------------------------------------------
+# "Meter checks, lid off" is out: component and assembly faults are the
+# assembler's QC job (feeder/reel verification, AOI, X-ray, flying-probe test,
+# first power-up, first-article inspection, a pilot build), not a bench step
+# with a lid off. Every one of the 24 rows still gets a line in the report --
+# never silently dropped (S117 §1) -- as either:
+#
+#   * covered by <test>: an automatic test elsewhere in this catalog already
+#     proves the connector, because the header's own nets are exactly what
+#     that test exercises (defs/products/d24/d24-hw-inventory.csv has the
+#     nets per header; ITEMS in d24_selftest.py has the test-to-net map);
+#   * board-level test at the assembler: nothing in this catalog proves the
+#     connector, so it is the assembler's continuity/presence check, not a
+#     bench one. No row is reworded beyond this -- the row already names the
+#     board and the designator.
+QC_REASON = {
+    # DSP PCBA J1/J2: the CPLD's own clock (C1/L0) and LOGIC_AD/DA bus.
+    # AS-CPLD ("clocks present and locked; configuration in flash matches the
+    # shipping bitstream") cannot pass without this header intact. Named in
+    # PLAIN, not by test id -- the human page carries no bench test ids
+    # (INTERNAL, above), and a plain name is what "name the test" needs here.
+    164: 'covered by the clock master test: it already needs this header’s clock and logic-bus lines',
+    165: 'covered by the clock master test: it already needs this header’s clock and logic-bus lines',
+    # DSP PCBA J3/J4/J6: CS_C, CS_M and both chips' SPI2 SS/RDY -- every one of
+    # those nets already has its own dedicated automatic test (fw.csv Dsp1/
+    # Dsp2/RdyDspA/RdyDspB/MicGainLatch/Codec).
+    166: ('covered by the converter-select, microphone-gain-latch and audio-'
+          'processor select/ready tests: every net on this header already '
+          'has its own automatic test'),
+    167: ('covered by the converter-select, microphone-gain-latch and audio-'
+          'processor select/ready tests: every net on this header already '
+          'has its own automatic test'),
+    168: ('covered by the audio-processor select and ready tests: both '
+          'processors’ select and ready lines on this header already '
+          'have their own automatic test'),
+    # Digital J7: the same magjack as row 128 "Ethernet (RJ45)".
+    172: ('covered by the network link, error-counter, packet-loss and '
+          'throughput tests: they already exercise this magjack'),
+    # Digital J24/J25: the CM4 module's own 2x100 B2B connectors.
+    181: 'covered by the compute-module test: the unit being up and reachable already proves this connector',
+    182: 'covered by the compute-module test: the unit being up and reachable already proves this connector',
+}
+QC_BOARD_LEVEL = 'board-level test at the assembler'
+
+
 def classify(rows):
     """AUTO from the catalog's own `automation` column (1 = AUTO, any of 2/3/4
     = MANUAL), cross-checked against the `group` column, which is what RUN ALL
     actually orders by. Rows with no automation declared (`-`), group M8 (no
-    bench time) and group M6 (the slot-1 card does not exist) are NOT RUN and
-    say so in the report; they are never silently dropped."""
+    bench time), group M6 (the slot-1 card does not exist) and group QC (the
+    retired meter station, S119) are NOT RUN and say so in the report; they
+    are never silently dropped."""
     warn = []
     for r in rows:
         auto_col = r.automation == '1'
@@ -415,7 +453,9 @@ def classify(rows):
         if auto_col != auto_grp:
             warn.append('#%d: automation %r but group %r'
                         % (r.num, r.automation, r.group))
-        if r.group == 'M8' or r.automation in ('', '—', '-'):
+        if r.group == 'QC':
+            r.category, r.reason = 'not-run', QC_REASON.get(r.num, QC_BOARD_LEVEL)
+        elif r.group == 'M8' or r.automation in ('', '—', '-'):
             r.category, r.reason = 'not-run', (
                 'no test is declared for this row: it is out of scope for the '
                 'factory test or its method has not been written')
@@ -466,11 +506,22 @@ class State:
         e = self.row(num)
         return e['verdict'] if e else ''
 
-    def put(self, num, verdict, **kw):
+    def put(self, num, verdict, force=False, **kw):
         """Record a verdict for a row. A row's FINAL verdict is the best it has
         ever reached -- a PASS is not undone by a later NO DATA, because a pass
         is never re-run -- and every earlier verdict is kept as history so a
-        fail that was fixed still shows in the report."""
+        fail that was fixed still shows in the report.
+
+        `force` (S119) bypasses the rank gate: it is for `record_not_run`
+        alone, whose NOT TESTED is not a measurement that can be "worse" than
+        an earlier SKIPPED/NO DATA/FAIL, it is the catalog saying this row is
+        no longer a check that can be run at all -- a category change, not a
+        regression. Without it, a row skipped at a station under an OLDER
+        catalog (SKIPPED outranks NOT TESTED) would carry that stale verdict
+        and reason forever, never reaching the new one, because the row can
+        never again out-rank it by being run. The old entry is still kept in
+        `history`, so nothing is lost from the report -- it just stops being
+        the headline."""
         key = str(num)
         e = self.d['rows'].get(key)
         new = dict(verdict=verdict, stamp=stamp(), **kw)
@@ -479,7 +530,7 @@ class State:
             self.d['rows'][key] = new
             return
         hist = e.pop('history', [])
-        if RANK[verdict] <= RANK.get(e['verdict'], 9):
+        if force or RANK[verdict] <= RANK.get(e['verdict'], 9):
             hist.append({k: v for k, v in e.items() if k != 'history'})
             new['history'] = hist
             self.d['rows'][key] = new
@@ -933,7 +984,9 @@ def record_manual(a, state, r, verdict, reason, passno, ignored, glass):
 
 def record_not_run(rows, state, passno):
     """Every row that is NOT RUN gets its line, once, with its reason. §1: never
-    silently dropped."""
+    silently dropped. `force=True` (S119): NOT TESTED here is the catalog's own
+    classification, not a graded measurement, so it must land even when an
+    earlier SKIPPED/NO DATA/FAIL outranks it -- see `State.put`."""
     for r in rows:
         if r.category != 'not-run':
             continue
@@ -941,7 +994,7 @@ def record_not_run(rows, state, passno):
             continue
         state.put(r.num, NOTTESTED, pass_no=passno, judged='-',
                   measured='', limit='', evidence=r.reason,
-                  source='', reason=r.reason)
+                  source='', reason=r.reason, force=True)
 
 
 # ---------------------------------------------------------------------------
