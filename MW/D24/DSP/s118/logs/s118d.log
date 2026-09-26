@@ -1,0 +1,194 @@
+D24 self-test, section 1 -- sections A,B,C -- 2026-09-26T14:44:33Z
+HD0-1 ...
+  HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+AS-CM4 ...
+  AS-CM4    PASS     throttled=0x0 temp=53.5 C core=0.9100V app=matrix-app
+USB-HUB ...
+  USB-HUB   PASS     1 hub(s) enumerated
+NW1 ...
+  NW1       PASS     Link detected: yes, Speed: 1000Mb/s, Duplex: Full, carrier=1
+NW3 ...
+  NW3       FAIL     bench host 192.168.1.211: worst 0.5% loss over 3 passes [0.5, 0.0, 0.0], max RTT 0.727 ms; gatew
+NW4 ...
+  NW4       NO DATA  unit rx 5520 Mbit/s, unit tx 5217 Mbit/s -- but the driving host's lo negotiates 0 Mb/s, so this
+NW2 ...
+  NW2       FAIL     deltas over NW3+NW4: {'rx_errors': 0, 'rx_dropped': 1, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropp
+-- 2026-09-26T14:46:29Z app_stop start
+matrix-app stopped (was active); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+-- 2026-09-26T14:46:32Z app_stop end
+-- 2026-09-26T14:46:32Z stage_setup start
+pair: /home/app/loopthd/s109 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+6f11a1ddc6efd45ec30f536cef295292  /home/app/s90/chip2.ldr
+tools: 8 repo-only tools already current in /home/app/s90 (md5)
+-- 2026-09-26T14:46:32Z stage_setup end
+codec init (for CC1/CC2): ok
+ML1 ...
+  ML1       PASS     Sys001Test001 (5414) x3 = ['0x00', '0x00', '0x00'], [111.0, 110.5, 110.4] ms
+ML2 ...
+  ML2       NO DATA  no H1S1 version cell; host side H1S1.shex 272868c889fc87ead0a3b4bb277f55e2
+ML-M ...
+  ML-M      PASS     ML1=PASS; S_TEST identities: {'H1S1': '// H1S1 DSP', 'H1S4': '// H1S4 SW Left', 'H1S3': '// H1S3
+ML-P1 ...
+  ML-P1     PASS     H1S3 S_TEST = '// H1S3 SW Right'; app log: 26/09/2026 15:43:59.374613: MCU verified: // H1S1 DSP
+ML-P2 ...
+  ML-P2     PASS     H1S4 S_TEST = '// H1S4 SW Left'; app log: 26/09/2026 15:43:59.374613: MCU verified: // H1S1 DSP 
+ML-B0 ...
+  ML-B0     NO DATA  no BOOT0/NRST drive on H1S1
+CC1 ...
+  CC1       PASS     05H = 0xBB
+CC2 ...
+  CC2       PASS     05H 0xBB -> MGN2R 5 -> 0xB5 -> restored 0xBB
+MC1 ...
+  MC1       PASS     wrote 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00, read back: VER
+MC2 ...
+  MC2       PASS     wrote SAFE 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, read back
+MC3 ...
+  MC3       PASS     MC1 read-back is not all-zeros; guard not invoked; CS_M (GPIO27) = 27: op -- pd | hi // GPIO27 =
+-- 2026-09-26T14:46:52Z boot_pair start
+ 10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+CHIP_ID verified: chip 1 = 1, chip 2 = 2
+
+--- config cycle 2 chip 1 ---
+wrote 53 registers to chip 1 (CS GPIO6)
+
+--- config cycle 2 chip 2 ---
+wrote 6 registers to chip 2 (CS GPIO24)
+
+--- inter-chip link gate (s89_signbit, exit 0) ---
+  lane 0 (SPORT 0)  MAIN L/R    sent bit31  45/ 64 (distinct 60)   received bit31  33/ 64 (distinct 55)
+  lane 1 (SPORT 1)  codec ret   sent bit31  29/ 64 (distinct 64)   received bit31  35/ 64 (distinct 63)
+  VERDICT lane 0 (SPORT 0)  MAIN L/R   CLEAN
+  VERDICT lane 1 (SPORT 1)  codec ret  CLEAN
+OVERALL: CLEAN
+
+-- 2026-09-26T14:46:58Z boot_pair end
+DR1 ...
+  DR1       PASS     FRAME_COUNT 6342 -> 10138 advancing; after !RST_D (GPIO16) low 50 ms: None -> None
+DR2 ...
+  DR2       PASS     BOOT_STAGE 7/7, BUILD_ID 0x20260812/0x20260812, 31 lanes CARRYING
+DY1-RDY1 ...
+  DY1-RDY1  PASS     CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DY1-RDY2 ...
+  DY1-RDY2  PASS     CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DC1-CS1 ...
+  DC1-CS1   PASS     CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812
+DC1-CS2 ...
+  DC1-CS2   PASS     CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812
+DC1-CS6 ...
+  DC1-CS6   NO DATA  CS6 reaches no fitted part
+DC1-CS7 ...
+  DC1-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC1-CS8 ...
+  DC1-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+DC2-CS1 ...
+  DC2-CS1   PASS     CS1: CHIP_ID 1 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS2 ...
+  DC2-CS2   PASS     CS2: CHIP_ID 2 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS6 ...
+  DC2-CS6   NO DATA  CS6 reaches no fitted part
+DC2-CS7 ...
+  DC2-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC2-CS8 ...
+  DC2-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+IC1 ...
+  IC1       PASS     MAIN_L c1 -103.0 -> c2 -102.7 dBFS, MAIN_R c1 -101.0 -> c2 -103.8 dBFS  [tol +12.0 dB over -40.0
+AS-DSPA ...
+  AS-DSPA   PASS     CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 16317->20274 (delta 3957), 28/30 lanes C
+AS-DSPB ...
+  AS-DSPB   PASS     CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 26014->29834 (delta 3820)
+AS-CPLD ...
+  AS-CPLD   NO DATA  design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 10 s: chip1 0 chip2 0
+-- 2026-09-26T14:47:41Z rails ensure_pair start
+-- 2026-09-26T14:47:42Z rails ensure_pair end (booted=False)
+03C0 00000520
+    c2 words 00000AB0 FFFFFE50 FFFFFBD0 FFFFFFF0 FFFFFDF0 FFFFFE30 FFFFFF90 FFFFFEC0
+  set 0 MAIN_R  c1  -102.84 dBFS  c2  -100.80 dBFS  delta   +2.04
+  set 1 MAIN_R  c1  -103.83 dBFS  c2   -98.47 dBFS  delta   +5.35
+    c1 words 000002C0 000005F0 000000D0 FFFFFEC0 FFFFF940 000001B0 FFFFFFB0 00000200
+    c2 words FFFFFD90 FFFFFC30 000005B0 00000C80 000000B0 FFFFFC30 FFFFFD60 00000330
+-- 2026-09-26T14:47:42Z rails_up start
+AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it once, at the end)
+-- 2026-09-26T14:47:42Z rails_up end
+AS-ADC ...
+  AS-ADC    PASS     lane 0 (U15): 8/8 CARRYING, rms -118.0..-114.3 dBFS; lane 1 (U39): 8/8 CARRYING, rms -111.5..-93
+AS-DAC ...
+  AS-DAC    NO DATA  TX slot read (see evidence); no stimulus on this image (TEST_NODES symbol: True)
+AS-PWR ...
+  AS-PWR    NO DATA  no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi
+AL1 ...
+-- 2026-09-26T14:47:47Z AL1 codec_init start
+-- 2026-09-26T14:47:49Z AL1 codec_init end
+-- 2026-09-26T14:47:49Z AL1 ensure_pair start
+-- 2026-09-26T14:47:51Z AL1 ensure_pair end (booted=False)
+-- 2026-09-26T14:47:51Z AL1 rxscan start
+-- 2026-09-26T14:47:51Z AL1 rxscan end
+-- 2026-09-26T14:47:51Z AL1 route start
+-- 2026-09-26T14:48:01Z AL1 route end
+-- 2026-09-26T14:48:01Z AL1 baseline start
+-- 2026-09-26T14:48:02Z AL1 tone start
+-- 2026-09-26T14:48:03Z AL1 second baseline start
+-- 2026-09-26T14:48:04Z AL1 measure end
+  AL1       PASS     PASS base -60.2 tone -35.0 SNR 25.2 dB THD -31.8 dB 2.58%
+-- 2026-09-26T14:48:05Z handback start
+
+--- handback ---
+speaker path: already torn down by AL1 (SILENT, live 4.05 s)
+SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 00 E0 FE 00 00 00 00 00 00 0B 02 20 00 00 00 00 00 E0 FE 00 00 00 00 00 00
+CS_M: 27: op -- pd | hi // GPIO27 = output
+AN_EN: 26: op -- pd | lo at entry, RAISED this session, LOWERED here (up for 22.93 s) -> 26: op -- pd | lo // GPIO26 = output
+matrix-app: active
+MCU verify (whole log): 
+-- 2026-09-26T14:48:33Z handback end
+HD-PWR ...
+  HD-PWR    PASS     inferred from HD0-1 PASS
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        PASS    
+AS-ADC     PASS    
+AS-CM4     PASS    
+AS-CPLD    NO DATA 
+AS-DAC     NO DATA 
+AS-DSPA    PASS    
+AS-DSPB    PASS    
+AS-PWR     NO DATA 
+CC1        PASS    
+CC2        PASS    
+DC1-CS1    PASS    
+DC1-CS2    PASS    
+DC1-CS6    NO DATA 
+DC1-CS7    NO DATA 
+DC1-CS8    NO DATA 
+DC2-CS1    PASS    
+DC2-CS2    PASS    
+DC2-CS6    NO DATA 
+DC2-CS7    NO DATA 
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+HD-PWR     PASS    
+HD0-1      PASS    
+IC1        PASS    
+MC1        PASS    
+MC2        PASS    
+MC3        PASS    
+ML-B0      NO DATA 
+ML-M       PASS    
+ML-P1      PASS    
+ML-P2      PASS    
+ML1        PASS    
+ML2        NO DATA 
+NW1        PASS    
+NW2        FAIL    
+NW3        FAIL    
+NW4        NO DATA 
+USB-HUB    PASS    
+------------------------------------------------------------------------------
+rows:  34 PASS / 2 FAIL / 15 NO DATA  (51 rows)
+items: 22 PASS / 1 FAIL / 11 NO DATA  (34 of 36 workbook rows covered)
+
+appended 51 rows to /tmp/s118d.csv
+raw reads: /tmp/logs/2026-09-26T144433Z

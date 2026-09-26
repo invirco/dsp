@@ -6,6 +6,100 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE INTER-CHIP FABRIC IS A WIRE, AND NOW SOMETHING ASKS WHETHER IT STILL IS (2026-09-26, session 118)
+
+Hub dispatch `tasks.md` 2026-09-26 14:22Z. Report: `MW/D24/DSP/s118/main-recv.md`.
+
+**S118-1 🟢 THE INTER-CHIP FABRIC HAS NO GAIN AND NO CONVERSION IN IT, SO THE
+TWO MECHANISMS MOST OFTEN PROPOSED FOR S115-2 ARE RULED OUT.** `_gather_chip1`
+(`chip1/block_io.asm:980`) writes the Q4.28 word straight into the IC TX DMA
+half and `_scatter_chip2` (`chip2/block_io.asm:482`) reads it straight out; the
+`Q1.31 <-> Q4.28` shifts live only on the CONVERTER lanes
+(`chip1/block_io.asm:943`, `chip2/block_io.asm:529`). A LOST CONVERSION cannot
+be the fault, because there is no conversion on this path to lose. A SLOT
+ROTATION cannot be the fault on its own either: all 41 fabric slots carry
+chip-1 buses or forwarded inputs, and with chip 1's graph quiet a rotation
+substitutes one silence for another. `shared/dsp4-logic/tdm-lines.csv`
+additionally rules out a CPLD loopback: `MIX_0..2` are DSPA `O0..O2` -> DSPB
+`I0..I2` and nothing routes chip 2's output back to chip 2. Measured healthy
+behaviour under a −6 dBFS tone, both ends of MAIN L and R: **0.03 to 0.08 dB
+apart**, decaying together to −115 dBFS when the tone stops.
+
+**S118-2 🔴 THE FOUR DMA HALVES ARE CONTIGUOUS AND CHIP 2's Q1.31 TRANSMIT
+HALVES SIT DIRECTLY ABOVE ITS INTER-CHIP RECEIVE HALVES.** Read off the part:
+IC RX ping `0xB4770`, IC RX pong `0xB4A00` (+656 = `c2_ic_region_words`), TX
+ping `0xB4C90`, TX pong `0xB4F10` (+640 = `c2_tx_region_words`). A receive-side
+read that strays one region high lands in `_gather_chip2`'s output — Q1.31,
+saturated at `0x7FFFFFFF` — and reports it as Q4.28: **x8, saturating,
+sustained, with chip 1 silent, surviving a config commit and cleared by a
+boot.** That is S115-2's signature including the factor of 8 hiding in
+`+18.06 dBFS` and in the word `0x7FFFFEE0`, which is exactly `0x0FFFFFDC << 3`
+— a 0 dBFS Q4.28 word sitting in Q1.31 position. The generated tables cannot
+reach there (the largest address the scatter can form is 655 of 656), so this
+needs `_ic_rx_active_buf` itself to be wrong, and the ISR toggle that maintains
+it (`sport_init.asm:320`) is self-correcting. **No root cause is claimed** —
+but this is the first hypothesis that accounts for the arithmetic rather than
+only the symptom, and `s118_probe.py` prints all four pointer words on every
+run, so the next occurrence decides it in one read.
+
+**S118-3 🟡 S115-2's `_buf_C2_RECV_MAIN_L` READ SPANNED THREE DIFFERENT
+VARIABLES.** Under `DSP4_BLOCK_KERNELS` that symbol is a SCALAR staging word —
+the node file says so in as many words — and the block is
+`_blk_C2_RECV_MAIN_L`. The 16 consecutive words S115 read covered the scalar,
+three words of padding and 12 words of the NEXT node's `_rx_ic_slot`. The
+finding stands (those words are still fabric-delivered MAIN data) but the
+`+18.06 dBFS` peak may belong to MAIN_R rather than MAIN_L. Read `_blk_`.
+
+**S118-4 🟡 A CM4 REBOOT LEAVES THREE PIN TRAPS BETWEEN THE HOST AND THE DSP
+LINK, AND TWO OF THEM ARE NOT THE KNOWN ONE.** Measured after `systemctl
+reboot` on MW-D24-2: GPIO27 (`CS_M`) back to `ip pd | lo`, the known U2/MISO
+trap — the parameter link cannot phase; AND GPIO6/GPIO24 back in ALT, so both
+chip selects sit asserted and the link answers as **"CHIP 3"**. Only
+`7,9,10,11,22,23,25 a0` + `6,24 op dh` + `27 op dh` — what `pin_handback()`
+does — makes a perfectly healthy pair readable. **The pair itself survived the
+reboot**: `FRAME_COUNT` climbed straight through it and the fabric was still a
+wire afterwards, so a host reboot is NOT a way to produce S115-2.
+
+**S118-5 🟢 THE DETECTION IS A COMPARISON, NOT A THRESHOLD, AND IT LIVES IN
+`ensure_pair()`.** `tools/pi/dsp4_icrecv.py` asks the one thing the fabric's
+own construction guarantees — what chip 2 receives on MAIN equals what chip 1
+sent — so it needs NO setup, writes nothing and has nothing to put back, and
+is true at digital silence, under a tone and with the rails up. `IC1` in
+`d24_selftest.py` reports it; `ensure_pair()` consults it and BOOTS THE PAIR on
+a `no`, which is S117-3's structural fix: `link_alive()` was asking MAGIC and
+BOOT_STAGE, both of which a pinned pair answers perfectly. A forced boot is
+still reported as an `IC1` FAIL (`Rig.ic_forced_boot`), so repairing a unit
+cannot turn it into a clean report. **Cost measured on the part: 0.706 s for
+the gate, and an `--only AL1` press is 41 s against 39-41 s on the S118-pre
+rollback.** Every arm is proven on the part — PASS, FAIL on each of the two
+rules (limits moved onto a healthy part's own reading with `--ceiling` /
+`--gain-tol` rather than a fault being faked), NO DATA with `!RST_D` held, and
+the forced boot through the runner with `--ic1-ceiling -110`.
+
+**S118-6 🔴 THE STATE DID NOT RECUR AND WAS NOT REPRODUCIBLE.** Five
+deliberate perturbations, each ending in a full-fabric survey, all negative: a
+−6 dBFS tone on and off (no latch); config commits on a running pair; the two
+chips booted 10 s apart (`!RST_D` resets both together, so this is the only
+staggered case that exists); a CM4 reboot with the pair left running; and six
+self-test passes including one full `--section A,B,C` and five later
+`--only AL1` presses that did not boot the pair — the exact S117-3 condition —
+every one of them `AL1 PASS` with SNR 12.9 to 33.1 dB. The unit was also found
+CLEAN at 15:25 BST with every stage of the chain at exact digital zero. **No
+root cause is claimed.** The ranked hypotheses and the single experiment that
+decides each are in the report §2; H1 (S118-2) is the only one that explains
+the arithmetic.
+
+**S118-Q1 🟡 FOR THE HUB, ONE LINE IN mx26's GENERATOR.** `IC1` has no
+workbook row: `ITEMS['IC1'] = []` (the `USB-HUB` precedent), because rows
+139/140 are the LINKS and already belong to `AS-DSPA`/`AS-DSPB`, and taking
+them would let an `IC1` PASS overwrite an `AS-DSPB` FAIL on the same row.
+Nothing was invented in this tree (S117-1's rule). Giving it a row of its own
+is a new `Inter-board links` item — *Inter-chip mix fabric (dig-dsp-a ->
+dig-dsp-b audio)* — APPENDED, so its number is above every existing one and
+**nothing renumbers**, with `tests = IC1`, `automation = 1`, `group = A4`.
+Until then the gate is fully effective inside `ensure_pair()` and its verdict
+lives in the run log rather than in the results CSV.
+
 ## THE CATALOG'S PASS CRITERION IS ONE ROW OUT OF STEP FOR 75 CONSECUTIVE ROWS (2026-09-26, session 117)
 
 Hub dispatch `tasks.md` 2026-09-26 13:17Z. Report: `MW/D24/DSP/s117/run-all.md`.

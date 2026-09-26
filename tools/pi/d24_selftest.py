@@ -191,6 +191,20 @@ ITEMS = {
     # key at row 56's number, and this is that key. MM1 and SP1 are kept as
     # --only aliases (ALIASES below) and resolve here.
     'AL1':     [(B_LSW, 'Panel MEMS mic (talkback) + Speaker')],          # 56
+    # THE INTER-CHIP FABRIC GATE (S118), AND IT HAS NO WORKBOOK ITEM YET.
+    # S115-2 found chip 2's MAIN receive pinned at Q4.28 saturation while
+    # chip 1 sent silence; nothing in this set saw it, and S117-3 measured a
+    # whole RUN ALL pass carrying the fictional acoustic verdict that state
+    # produces. The workbook has no row for "the audio that crosses
+    # dig-dsp-a/b is the audio chip 1 sent" -- rows 139/140 are the LINKS and
+    # are already AS-DSPA/AS-DSPB's, and taking them would let an IC1 PASS
+    # overwrite an AS-DSPB FAIL on the same row. So this is deliberately
+    # item-less, like USB-HUB: it writes no results row, it is a GATE, and
+    # `d24_runall.py` runs it first in every pass and forces a reset+boot on
+    # a hit. Giving it a numbered row of its own is one line in mx26's
+    # generator (a new `Inter-board links` item, appended -- nothing
+    # renumbers); see MW/D24/DSP/s118/main-recv.md.
+    'IC1':     [],
 }
 
 # Retired test ids that still name something real. `--only MM1` and `--only
@@ -221,7 +235,8 @@ for _t in ('HD0-1', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
 for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
            'MC1', 'MC2', 'MC3', 'CC1', 'CC2'):
     SECTION[_t] = 'B'
-for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR', 'AL1'):
+for _t in ('AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AS-PWR',
+           'AL1', 'IC1'):
     SECTION[_t] = 'C'
 for _n in DC_SELECTS:
     SECTION['DC1-CS%d' % _n] = 'B'
@@ -239,7 +254,8 @@ PAIR_TESTS_B = ({'DR1', 'DR2'} | {'DY1-RDY%d' % c for c in RDY_SELECT}
 # Every test that reads the SHARC pair, section B or C -- the set
 # `_check_factory_image()`'s verdict gates in `Rig.run()` (S116 Q3: "make
 # RUN ALL / every press assert it is the loaded pair").
-PAIR_DEPENDENT = PAIR_TESTS_B | {'AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC', 'AS-DAC', 'AL1'}
+PAIR_DEPENDENT = PAIR_TESTS_B | {'AS-DSPA', 'AS-DSPB', 'AS-CPLD', 'AS-ADC',
+                                 'AS-DAC', 'AL1', 'IC1'}
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +279,18 @@ class Rig:
         self.a = args
         self.rows = []
         self.results = {}
+        # Evidence from an inter-chip fabric gate that FIRED earlier in this
+        # press (S118). `ensure_pair()` boots the pair when the fabric is not
+        # a wire, which repairs the unit before IC1 gets to read it -- so the
+        # reading that condemned it is kept here and IC1 reports THAT, or a
+        # forced boot would silently turn a defect into a clean report.
+        self.ic_forced_boot = []
+        # ONCE PER PRESS. `ensure_pair()` is called up to three times in one
+        # press (section entry, the rails raise, AL1's own prereq) and the
+        # fabric cannot go bad between them without a boot -- so the gate is
+        # asked once and the answer reused, which keeps an AL1 press at its
+        # S114 cost. A boot clears it, so the post-boot check still happens.
+        self.ic_gate = None
         self.csv_path = args.csv or CSV_PATH
         log_root = (os.path.join(os.path.dirname(self.csv_path), 'logs')
                     if args.csv else LOG_ROOT)
@@ -1342,6 +1370,67 @@ def t_aspwr(r):
             'is not in this tree (it is mx26\'s). AN_EN is not an MCU word at all -- it is CM4 '
             'GPIO26, read here as: %s' % an)
 
+
+# --- IC1: is the inter-chip mix fabric still a wire? (S118) -----------------
+#
+# THE FAULT THIS EXISTS FOR. S115-2 measured chip 2's MAIN receive pinned at
+# Q4.28 saturation -- `_buf_C2_RECV_MAIN_L` peak +18.06 dBFS, words at
+# `0x7FFFFEE0` -- while chip 1's own `_buf_C1_BUS_MAIN_L` read -117.8 dBFS and
+# every strip's `MainOn` was 0. In the product that is a full-scale signal on
+# the main outputs. On the bench it made the acoustic loop unmeasurable, and
+# S117-3 measured the consequence: a RUN ALL pass after the first does not
+# boot the pair when the link is alive, so a unit in that state carried a
+# fictional NO SOUND verdict through every later pass. A `dsp4_config.py`
+# commit does not clear it; a reset + boot does.
+#
+# WHY THE READING IS A COMPARISON AND NOT A THRESHOLD. The fabric has no gain,
+# no conversion and no state in it: chip 1 writes a Q4.28 word into its IC TX
+# half, the DDE clocks it across MIX_0..2 and chip 2's scatter lifts it out at
+# the same slot. So "what chip 2 receives == what chip 1 sent" is true at
+# digital silence, true under a tone and true with the rails up, and this test
+# owns NO setup at all -- no cells written, no route asserted, no audio, no
+# rails, nothing to put back. A "MAIN must be quiet" rule would need all of
+# that and would still be wrong the moment a press legitimately opens a strip.
+#
+# COST: 0.7 s measured on the part (S118), which is why `d24_runall.py` can
+# afford to run it FIRST IN EVERY PASS and why the reset+boot it can force is
+# paid only when the state is actually present.
+def t_ic1(r):
+    """chip 1 -> chip 2 MAIN receive: the two ends of the fabric, compared."""
+    txt = r.out(_ic_cmd(r), timeout=90)
+    head = (txt.splitlines() or [''])[0]
+    lim = ('chip 2 MAIN receive within %g dB of chip 1 MAIN send above '
+           '%g dBFS, and never above %g dBFS'
+           % (IC1_GAIN_TOL_DB, IC1_FLOOR_DBFS, IC1_CEILING_DBFS))
+    if head.startswith('IC1 PASS'):
+        v = PASS
+    elif head.startswith('IC1 FAIL'):
+        v = FAIL
+    else:
+        v = NODATA
+    measured = head[len('IC1 PASS '):].strip() if head.startswith('IC1 ') else head
+    # A FORCED BOOT EARLIER IN THIS PRESS IS THIS ROW'S FAIL, whatever the
+    # fabric reads now: `ensure_pair()` found it broken and repaired it, and a
+    # repaired unit is still a unit that arrived broken.
+    if r.ic_forced_boot:
+        return (FAIL,
+                'the fabric was NOT A WIRE when this run found the unit; the '
+                'run booted the pair and it reads clean now (%s)' % measured,
+                lim,
+                'AS FOUND, before this run booted the pair:\n%s\n'
+                '--- after the forced boot ---\n%s'
+                % ('\n'.join(r.ic_forced_boot), txt))
+    return v, measured, lim, txt
+
+
+# The limits live in `dsp4_icrecv.py`, which is the thing that applies them;
+# these three are for the `limit` column only, so the report says the rule
+# rather than pointing at a file. They are asserted against the tool's own
+# printed limits in its evidence line, so a drift between the two shows up in
+# the report instead of hiding.
+IC1_GAIN_TOL_DB = 12.0
+IC1_FLOOR_DBFS = -40.0
+IC1_CEILING_DBFS = 0.0
 
 # --- AL1: the acoustic loop, speaker + MEMS mic in one test (S110) ----------
 #
@@ -2504,7 +2593,8 @@ def _pair_names(md5_txt):
 # `md5sum` over the stage copies, then a copy of only the ones that differ. A
 # repeat press with nothing changed pays one `md5sum`.
 STAGE_TOOLS = ('d24_bus_probe.py', 's89_signbit.py', 's89_slotcap.py',
-               's89_set.py', 'dsp4_s49_osc.py', 'dsp4_bulk.py', 'dsp4_fft.py')
+               's89_set.py', 'dsp4_s49_osc.py', 'dsp4_bulk.py', 'dsp4_fft.py',
+               'dsp4_icrecv.py')
 
 
 def stage_tools(r, s):
@@ -2688,6 +2778,9 @@ def boot_pair(r):
     log.append('--- inter-chip link gate (s89_signbit, exit %d) ---\n%s'
                % (sb.returncode, sb.stdout + sb.stderr))
     _check_factory_image(r)
+    # A boot invalidates the cached fabric reading: this is the one event that
+    # can change the answer inside a press (DR2 calls this directly).
+    r.ic_gate = None
     return '\n'.join(log)
 
 
@@ -2711,6 +2804,31 @@ def link_alive(r):
     return ok, '\n'.join(lines)
 
 
+def _ic_cmd(r):
+    """The gate's command line. `--ic1-ceiling` moves one limit onto a
+    healthy part's own reading, which is how the forced-boot path is proven
+    without a faulty unit (S118 §4) and how the limits get re-calibrated."""
+    cmd = ('cd %s && python3 dsp4_icrecv.py --symdir %s'
+           % (r.a.stage, r.a.stage))
+    if r.a.ic1_ceiling is not None:
+        cmd += ' --ceiling %g' % r.a.ic1_ceiling
+    return cmd + ' 2>&1'
+
+
+def _ic_gate(r):
+    """(ok, evidence). `ok` is True on PASS, False ONLY on a clear FAIL, and
+    None when the gate could not answer -- because an unreadable gate must
+    not be able to force a boot on a pair that is otherwise fine, and must
+    not be able to bless one either."""
+    txt = r.out(_ic_cmd(r), timeout=90)
+    head = (txt.splitlines() or [''])[0]
+    if head.startswith('IC1 PASS'):
+        return True, txt
+    if head.startswith('IC1 FAIL'):
+        return False, txt
+    return None, txt
+
+
 def ensure_pair(r):
     """The pair up and running the staged image, booting it only if it is not.
 
@@ -2723,7 +2841,31 @@ def ensure_pair(r):
     ok, ev = link_alive(r)
     if ok:
         _check_factory_image(r)
-        return True, 'the pair was ALREADY UP (no boot by this run)\n' + ev, False
+        # ALIVE IS NOT THE SAME AS WELL (S118, from S115-2 and S117-3).
+        # `link_alive()` asks MAGIC and BOOT_STAGE, which a pair whose MAIN
+        # receive is pinned at Q4.28 saturation answers perfectly. S117
+        # measured the consequence: the second RUN ALL pass did not boot,
+        # because the link was alive, and carried a NO SOUND acoustic verdict
+        # that a reset+boot cleared on the spot. So the cheap question now has
+        # a second half -- is the inter-chip fabric still a wire -- and a `no`
+        # is a reason to boot, exactly like a dead link. It costs 0.7 s when
+        # the answer is yes, which is why the boot it can force is affordable:
+        # the 40 s is paid only when the state is actually there.
+        gate = r.ic_gate if r.ic_gate is not None else _ic_gate(r)
+        r.ic_gate = gate
+        if gate[0] is not False:
+            return True, ('the pair was ALREADY UP (no boot by this run)\n%s\n'
+                          '--- inter-chip fabric ---\n%s' % (ev, gate[1])), False
+        ev = ('the pair answered, but the INTER-CHIP FABRIC IS NOT A WIRE '
+              '(S115-2), so this run boots it anyway\n%s\n%s' % (ev, gate[1]))
+        r.ic_forced_boot.append(gate[1])
+        log = boot_pair(r)
+        ok2, ev2 = link_alive(r)
+        gate2 = _ic_gate(r)
+        r.ic_gate = gate2
+        return (ok2 and gate2[0] is not False,
+                '%s\n--- boot ---\n%s\n--- after the boot ---\n%s\n%s'
+                % (ev, log[-1200:], ev2, gate2[1]), True)
     log = boot_pair(r)
     ok2, ev2 = link_alive(r)
     return (ok2,
@@ -2993,6 +3135,11 @@ def main():
                                    'sections (e.g. NW3, or AS-ADC,MM1); the rest are skipped. '
                                    'Use it to re-take one row without superseding the others.')
     ap.add_argument('--stage', default='/home/app/s90')
+    ap.add_argument('--ic1-ceiling', type=float, default=None,
+                    metavar='DBFS',
+                    help='override IC1\'s absolute ceiling -- move it '
+                         'onto a healthy part\'s own reading to prove '
+                         'the gate and the forced boot it triggers')
     ap.add_argument('--pair',
                     help='directory holding the chip1/chip2 .ldr + .sym.json pair to '
                          'stage and boot. Default: %s, or whatever %s names on the '
@@ -3155,6 +3302,11 @@ def main():
             print(ev[-600:])
 
         if 'C' in a.section:
+            # FIRST in the section, and deliberately: it reads the graph as it
+            # STANDS, before AS-DAC's tone or AL1's route can legitimately put
+            # signal on MAIN, and before the rails go up. It writes nothing,
+            # so nothing after it has to put anything back.
+            r.run('IC1', lambda: t_ic1(r))
             r.run('AS-DSPA', lambda: t_asdspa(r))
             r.run('AS-DSPB', lambda: t_asdspb(r))
             r.run('AS-CPLD', lambda: t_ascpld(r))
