@@ -1,0 +1,158 @@
+# S120 -- the same panel station on the REAL copper of MW-D24-2, with NO finger.
+# Every indicator write goes out and is acknowledged by the master; no phantom
+# key code is parsed out of the heartbeat; every row lands NO DATA naming the
+# press that never came. --panel-timeout 3 so it takes a minute.
+# harness: MW/D24/DSP/s120/tools/station-real-bus.py (run on the unit)
+# 2026-09-26T15:50:46Z
+
+   .. light 6 (FX MUTE)
+
+== INSTRUCT: Panel loop - FX MUTE
+   Press the button that is lit: FX MUTE.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 1 (HOME)
+
+== INSTRUCT: Panel loop - HOME
+   Press the button that is lit: HOME.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 2 (MENU)
+
+== INSTRUCT: Panel loop - MENU
+   Press the button that is lit: MENU.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 3 (+48)
+
+== INSTRUCT: Panel loop - +48
+   Press the button that is lit: +48.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 4 (FEEDBACK)
+
+== INSTRUCT: Panel loop - FEEDBACK
+   Press the button that is lit: FEEDBACK.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 7 (MUTE)
+
+== INSTRUCT: Panel loop - MUTE
+   Press the button that is lit: MUTE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 8 (SCENE)
+
+== INSTRUCT: Panel loop - SCENE
+   Press the button that is lit: SCENE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 9 (L)
+
+== INSTRUCT: Panel loop - L
+   Press the button that is lit: L.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 10 (C)
+
+== INSTRUCT: Panel loop - C
+   Press the button that is lit: C.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 5 (CH ASSIGN)
+
+== INSTRUCT: Panel loop - CH ASSIGN
+   Press the button that is lit: CH ASSIGN.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 11 (R)
+
+== INSTRUCT: Panel loop - R
+   Press the button that is lit: R.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 12 (MONITOR)
+
+== INSTRUCT: Panel loop - MONITOR
+   Press the button that is lit: MONITOR.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 13 (REC/PLY)
+
+== INSTRUCT: Panel loop - REC/PLY
+   Press the button that is lit: REC/PLY.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 14 (STUDIO CTL)
+
+== INSTRUCT: Panel loop - STUDIO CTL
+   Press the button that is lit: STUDIO CTL.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+
+== INSTRUCT: Panel loop - the always-lit rings
+   Two indicators are lit whenever the unit is on and nothing can switch them off.
+   Look at the white ring around FX MUTE and the white ring around REC/PLY.
+   Are both lit?
+   [yes / no / skip / ignore / pause]
+   -> skip
+
+== INSTRUCT: Panel loop - the encoder
+   Turn the encoder ONE click clockwise, then ONE click anticlockwise.
+   The tester reads the ring position each time.
+   [notlit / skip / ignore / pause]
+
+== INSTRUCT: Panel loop - the encoder ring
+   The eight indicators around the encoder have just been stepped round twice.
+   Did all eight light in turn?
+   [yes / no / skip / ignore / pause]
+   -> skip
+   .. panel loop (right switch panel): 32 rows graded
+
+=== real bus, no finger: 32 rows, 48.6 s ===
+  59  NO DATA  no key code arrived within 3 s
+  60  SKIPPED  other
+  61  NO DATA  not reached: the button sent nothing
+  62  NO DATA  no key code arrived within 3 s
+  63  NO DATA  not reached: the button sent nothing
+  64  NO DATA  no key code arrived within 3 s
+  65  NO DATA  not reached: the button sent nothing
+  66  NO DATA  no key code arrived within 3 s
+  67  NO DATA  not reached: the button sent nothing
+  68  NO DATA  no key code arrived within 3 s
+  69  NO DATA  not reached: the button sent nothing
+  70  NO DATA  no key code arrived within 3 s
+  71  NO DATA  not reached: the button sent nothing
+  72  NO DATA  no key code arrived within 3 s
+  73  NO DATA  not reached: the button sent nothing
+  74  NO DATA  no key code arrived within 3 s
+  75  NO DATA  not reached: the button sent nothing
+  76  NO DATA  no key code arrived within 3 s
+  77  NO DATA  not reached: the button sent nothing
+  79  NO DATA  no key code arrived within 3 s
+  80  NO DATA  not reached: the button sent nothing
+  81  NO DATA  no key code arrived within 3 s
+  82  NO DATA  not reached: the button sent nothing
+  83  NO DATA  no key code arrived within 3 s
+  84  NO DATA  not reached: the button sent nothing
+  85  NO DATA  no key code arrived within 3 s
+  86  SKIPPED  other
+  87  NO DATA  not reached: the button sent nothing
+  88  NO DATA  no key code arrived within 3 s
+  89  NO DATA  not reached: the button sent nothing
+  90  NO DATA  the encoder sent no ring position within 3 s
+  91  SKIPPED  other

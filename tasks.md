@@ -1,4 +1,34 @@
-## HUB DISPATCH 2026-09-26 15:25Z — S120: the panel loop — fast press → LED round trip for the switch-panel stations   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-26 15:25Z — S120: the panel loop — fast press → LED round trip for the switch-panel stations   [status: 🔴 done, ONE THING LEFT: NOBODY HAS PRESSED A BUTTON — **the loop is built, it needed NO firmware change and NO new wire, and the machine part of press → LED is UNDER 10 ms against PW's 50 ms bar.** Both halves were already in the shipping panel firmware and both are ONE matrix cell (`Sys001Skin001`, 5412): writing it makes `WrRadioLed()` light the ONE indicator whose radio index equals the received value and extinguish the other thirteen, and a press makes `RdRadioSwitch()` put the pressed button's index into the same cell's transmit value, which MH1 relays to the host. **Measured on the part:** host → indicator **1.74–1.85 ms** (three runs of ten, timed to MH1's own `+` ack, which `CheckHost()` writes only after its transmitter has gone idle — so the ack is stamped after the last byte reached both boards); a full cell round trip through a slave **3.07 ms**; **≈3 ms per slave** of MH1's sweep; the slave's own loop **under 2 ms**. **Option (a) is DEAD, electrically:** `SRX`/`MRX`/`BUSY` (G2702/G2703/G2632) reach `digital:J17` — the DSP card connector — and NO `J24` pin, and `J24` is the CM4 socket; the only CM4 pins on the path are the host UART to MH1. Option (b), a test mode in a panel or the master, was rejected: it buys no latency, and the one thing it would buy (panel identity) belongs in `defs`. **The protocol is written down** — the errata item — as a defs candidate in `s120/panel-bus-protocol.md`: the wires, the ASCII nibble alphabet ('h'..'w' address, '0'..'F' data, `\n` commits), all fourteen control characters, the hardware data-ready/data-request handshake (nothing polls on a clock), the `+` flow control, and both panels' index → button → indicator tables. **The station: 44 of the 50 rows graded**, against S117's fifty *not tested*. ONE LOOP per panel inside RUN ALL's existing manual phase; the sweep order is the catalog's own `order`; the operator's only judgement is NOT LIT. `Glass.ask()` splits into `post`/`poll`/`taken` because a blocking ask cannot hear the panel — the loop advances on the UNIT, not the glass. **Every outcome proven** through the REAL glass protocol with a scripted key stream: right panel clean 32/32 PASS, right panel faults landing NOT-LIT-then-pressed (switch PASS / indicator FAIL), a dead switch (NO DATA naming the timeout), a wrong key code (*'the tester lit +48 and the key code that came back was 9 (L)'*), a dark always-lit ring, a one-way encoder, dark ring indicators; left panel clean 12/12. **And on the REAL copper with no finger:** the same station against `/dev/serial0`, 32 rows in 48.6 s, every indicator write acknowledged, every row honestly NO DATA, and **not one phantom key code** out of 48 s of heartbeat traffic (nor out of a separate 20 s idle watch). Every operator-facing string the loop can produce is CLEAN under `--check-md`. **🔴 S120-1, a PRODUCT DEFECT found by reading the firmware: both panels decode the SAME cell with the SAME indices 1..6**, so pressing MONO AUX on the left sends index 1 = HOME, and writing 3 lights FX on the left and +48 on the right. The loop runs one panel at a time and says plainly that a press on the other panel's button of the same index would score as correct; the fix is a cell of the left panel's own — a `defs` row plus two lines of firmware. **🔴 S120-2: three live matrix generations.** `main.c` and `matrix.cs` are byte-identical between Dropbox and the bench; `matrix.h` is NOT — Dropbox `459349c04128` (Skin=17553), the bench copy that built the flashed image `e80ccab5d6d8` (5412), this repo's contract `67d01aeb49f8` (4698). A rebuild from the canonical tree would put the 2026-08-19 skin corruption straight back, and a tool taking the address from this repo would write where no slave decodes. 🟢 S120-3: the flashed images carry `MATRIX[]={0,5232,5412,5414,5415}` — read off the binary, not a header. 🟡 S120-4: the two flash packs are addressed to each other's slave slot, deliberately (the RIGHT panel is in slot 4 on this unit); identity follows the CONTENT, not the slot. 🟡 S120-5: `H1S3`'s `Poll()` uses PC0 as a scratch pin, and PC0 is the MONITOR ring — every transmit flickers it. **Deployed** `/home/app/selftest/`: `d24_panel.py` `c0bb5e5438b2afbcdbb3deac6b0761e3` (new), `d24_runall.py` `5536b590b7926a935c534b27b34b9550` (rollback `.bak-s120-pre` = `f2cb40e76d22399c3972a1586d99dd58`, S119's). No catalog, no app, no firmware, no CPLD, no `pair.conf`; `defs.lock` unmoved, **no contract bump owed**. mx26 `4e5beb3` labels the new dialog slot NOT LIT — one line, app NOT rebuilt, so the glass reads NOTLIT until the next deploy. **Unit as left:** `matrix-app` inactive, `d24-testui` active, both panel cells written back to 0 (no indicator selected, where a fresh panel boot leaves them); nothing else on the unit was touched — the only device this session spoke to is the panel bus. Report `MW/D24/DSP/s120/panel-loop.md`, logs `s120/logs/`, dialogs `s120/manual-dialogs.csv`, findings S120-0..6. **Why 🔴 and not 🟢: the loop has never been walked by a hand.** Three questions, §7 of the report and repeated below.]   [model: opus]
+
+🔴 **S120-Q1 — the finger.** Nothing has been pressed. At the bench:
+```
+ssh app@192.168.1.219
+sudo systemctl stop matrix-app          # it owns /dev/serial0
+cd /home/app/selftest
+python3 d24_panel.py --mode loop --panel right    # then --panel left
+#   the tester lights ONE indicator; press the lit button.
+#   type `notlit` + Enter for a button whose indicator stayed dark,
+#   `skip` + Enter to pass one over. JSON verdicts land on stdout.
+sudo systemctl start matrix-app         # put it back
+```
+or through the glass, which is the real thing: START ALL, then stations 1 and 2
+as they come up. Expect the next indicator to light the instant the last button
+is pressed; the dialog text is up to 2 s behind it and that is the app's own
+tick, not the loop.
+
+🔴 **S120-Q2 — does the left panel get a cell of its own?** (S120-1.) It is one
+`fw.csv` row and one address in `defs`, plus two lines in the left board's
+`matrix.cs`, and it fixes the product defect as well as the test's one blind
+spot. Alternatives: (b) leave it, and accept that a press on the wrong panel's
+button of the same index scores as correct; (c) give the left board's six
+switches indices 15..20 in the existing cell — no new address, but it changes
+what the app receives. Not decided here.
+
+🔴 **S120-Q3 — is the Dropbox panel source repaired from the bench copy?**
+(S120-2.) The corrected `matrix.h` exists only on the unit. Should
+`matrix_gen_id.py --compare` become a gate on any panel build? Nothing was
+written to Dropbox this session.
+
 
 model: opus
 

@@ -1,0 +1,12 @@
+# S120 latency, MW-D24-2, 2026-09-26T15:49:47Z
+# tools/pi/d24_panel.py --mode probe / --mode rtt, run on the unit
+
+$ d24_panel.py --mode probe
+{"mode": "probe", "mcus_ms": {"H1S1": 3.55, "H1S4": 6.44, "H1S3": 9.88}, "panels_present": ["H1S3", "H1S4"]}
+
+$ d24_panel.py --mode rtt --reps 10
+{"mode": "rtt", "light_ms": [1.8, 1.75, 1.73, 1.73, 1.72, 1.73, 1.73, 1.72, 1.73, 1.81], "key_relay_ms": [{"H1S1": 3.62, "H1S4": 6.02, "H1S3": 9.6}, {"H1S1": 3.61, "H1S4": 5.94, "H1S3": 10.02}, {"H1S1": 3.61, "H1S4": 5.93, "H1S3": 9.37}, {"H1S1": 3.59, "H1S4": 5.87, "H1S3": 9.86}, {"H1S1": 3.48, "H1S4": 6.34, "H1S3": 9.77}], "light_mean_ms": 1.74, "light_max_ms": 1.81}
+
+$ d24_panel.py --mode watch --secs 20   (idle bus: the negative control)
+watching for 20 s -- press panel buttons
+(no events)

@@ -1,0 +1,35 @@
+# S120 -- which matrix generation is in the flashed panel images, read off the
+# binary rather than off a header. Run on MW-D24-2.
+# harness: MW/D24/DSP/s120/tools/shex-generation.py
+# 2026-09-26T15:51:48Z
+
+== /home/app/firmware/H1S3.shex  21792 bytes at 0x08000000
+   slave addressed: H1S4
+   identity string: // H1S3 SW Right
+   MATRIX[] generation app / H1S1 on this unit (5412)     FOUND
+   MATRIX[] generation panel source in Dropbox (17553)    -
+== /home/app/firmware/H1S4.shex  14752 bytes at 0x08000000
+   slave addressed: H1S3
+   identity string: // H1S4 SW Left
+   MATRIX[] generation app / H1S1 on this unit (5412)     FOUND
+   MATRIX[] generation panel source in Dropbox (17553)    -
+
+# and the three generations, fingerprinted with defs/tools/matrix_gen_id.py:
+_mx/MW/D24/FW/H1S3/Core/Inc/matrix.h (Dropbox source)
+  format   matrix.h
+  cells    13168 names / 17619 addresses (max 20044)
+  base-id  459349c04128
+  full-id  b364fb1abcda
+  Sys001Skin001 = 17553
+/home/app/fwbuild/H1S3/Core/Inc/matrix.h (built the flashed image)
+  format   matrix.h
+  cells    5412 names / 5412 addresses (max 6417)
+  base-id  e80ccab5d6d8
+  full-id  e80ccab5d6d8
+  Sys001Skin001 = 5412
+MW/D24/MX/_matrix.csv
+  format   _matrix.csv
+  cells    5004 names / 5004 addresses (max 5004)
+  base-id  67d01aeb49f8
+  full-id  67d01aeb49f8
+  Sys001Skin001 = 4698

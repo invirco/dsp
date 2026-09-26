@@ -55,6 +55,8 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import d24_panel as PL                                  # noqa: E402
+
 PASS, FAIL, NODATA = 'PASS', 'FAIL', 'NO DATA'
 IGNORED, SKIPPED, NOTTESTED = 'IGNORED', 'SKIPPED', 'NOT TESTED'
 # Worst-wins, for an item covered by more than one test and for a row whose
@@ -312,7 +314,13 @@ STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
 #            can judge. NOT RUN, with the missing piece named.
 #   fixture  the test is real and the fixture is not built. The station is
 #            still visited and the step is Skipped with that reason.
-MEASURE, JUDGE, BLOCKED, FIXTURE = 'measure', 'judge', 'blocked', 'fixture'
+#   loop     the row is graded inside a panel loop, not by a dialog of its own
+MEASURE, JUDGE, BLOCKED, FIXTURE, LOOP = ('measure', 'judge', 'blocked',
+                                          'fixture', 'loop')
+
+# The two stations that are ONE LOOP rather than a walk of dialogs (S120), and
+# which side of the front panel each one is.
+PANEL_STATIONS = {'M1': 'left', 'M2': 'right'}
 
 NO_KEYREAD = ('the host cannot see this control or sense line change: this unit '
               'has no per-control read through the panel processors')
@@ -365,11 +373,26 @@ def manual_step(r):
     if r.num == 127 or r.num == 203:
         return dict(kind=BLOCKED, reason='covered by the automatic set')
 
-    # --- the switch panels and the pedal ------------------------------------
-    if r.cls in ('panel switch', 'pedal switch', 'panel control', 'panel encoder'):
-        return dict(kind=BLOCKED, reason=NO_KEYREAD)
-    if r.cls in ('panel LED', 'pedal LED'):
-        return dict(kind=BLOCKED, reason=NO_LEDDRIVE)
+    # --- the two switch panels: the loop (S120) ------------------------------
+    # Stations M1 and M2 are not walked one dialog per row. They are ONE LOOP:
+    # the tester lights the next button's indicator, the operator presses the
+    # button under it, and the key code that comes back grades the switch row
+    # and the indicator row together. `panel_station()` owns every row it can
+    # reach; what it cannot reach is named here, row by row, in its own words.
+    if r.group in PANEL_STATIONS:
+        side = PANEL_STATIONS[r.group]
+        why = PL.UNREACHED.get(side, {}).get(r.num)
+        if why:
+            return dict(kind=BLOCKED, reason=why)
+        if r.num in PL.rows_for(side):
+            action, question, check = PL.wording(side, r.num)
+            return dict(kind=LOOP, side=side, action=action,
+                        question=question, check=check)
+        return dict(kind=BLOCKED, reason=(NO_LEDDRIVE if 'LED' in r.cls
+                                          else NO_KEYREAD))
+    if r.cls in ('pedal switch', 'pedal LED'):
+        return dict(kind=BLOCKED,
+                    reason=NO_LEDDRIVE if 'LED' in r.cls else NO_KEYREAD)
     if r.group == 'M3':
         return dict(kind=FIXTURE, reason='the foot pedal and its lead are not at '
                                          'the bench',
@@ -612,11 +635,33 @@ class Glass:
                 pass
 
     def ask(self, kind, title, lines, buttons, **extra):
-        """Put one dialog up and wait. `buttons` is the ordered list of button
-        ids the dialog offers; the glass draws them in that order and hands back
-        the one that was pressed. Every dialog carries `skip` and `ignore` as
-        well, and PAUSE, which is offered at every step (S117 §3): added here so no
-        caller can forget any of the three."""
+        """Put one dialog up and wait for the operator to answer it."""
+        btns = self.post(kind, title, lines, buttons, **extra)
+        ans = self._wait(btns)
+        try:
+            os.remove(self.prompt_path)
+        except OSError:
+            pass
+        print('   -> %s%s' % (ans.get('button'),
+                              (' (%s)' % ans['reason']) if ans.get('reason') else ''),
+              flush=True)
+        return ans
+
+    def post(self, kind, title, lines, buttons, **extra):
+        """Put one dialog up and DO NOT wait. Returns the button list the glass
+        was given, which `poll()` needs to recognise a valid answer.
+
+        `ask()` is post + wait, and the split exists for the panel loop (S120):
+        there the dialog and the panel race each other -- the operator answers
+        most steps by pressing a button ON THE UNIT, not on the glass, and the
+        glass button is only there for the one judgement a press cannot make
+        ("it did not light"). A blocking ask cannot hear the panel.
+
+        `buttons` is the ordered list of button ids the dialog offers; the glass
+        draws them in that order and hands back the one that was pressed. Every
+        dialog carries `skip` and `ignore` as well, and PAUSE, which is offered
+        at every step (S117 §3): added here so no caller can forget any of the
+        three."""
         self.seq += 1
         btns = list(buttons)
         # IGNORE and PAUSE are offered everywhere. SKIP is not offered on the
@@ -640,7 +685,37 @@ class Glass:
         for ln in lines:
             print('   %s' % ln, flush=True)
         print('   [%s]' % ' / '.join(btns), flush=True)
-        ans = self._wait(btns)
+        return btns
+
+    def poll(self, btns):
+        """The answer to the dialog `post()` put up, or None if nobody has
+        pressed anything yet. Never blocks."""
+        if self.autoskip:
+            return dict(button='skip', reason='fixture not built')
+        if self.stdin:
+            import select
+            if not select.select([sys.stdin], [], [], 0)[0]:
+                return None
+            line = sys.stdin.readline()
+            if not line:
+                return dict(button='pause', reason='input closed')
+            parts = line.strip().split(':', 1)
+            b = parts[0].strip().lower()
+            if b in btns:
+                return dict(button=b,
+                            reason=parts[1].strip() if len(parts) > 1 else '')
+            return None
+        try:
+            with open(self.answer_path) as fh:
+                a = json.load(fh)
+            if int(a.get('seq', -1)) == self.seq and a.get('button') in btns:
+                return a
+        except (OSError, ValueError, TypeError):
+            pass
+        return None
+
+    def taken(self, ans):
+        """Clear a posted dialog once its answer has been taken."""
         try:
             os.remove(self.prompt_path)
         except OSError:
@@ -648,7 +723,6 @@ class Glass:
         print('   -> %s%s' % (ans.get('button'),
                               (' (%s)' % ans['reason']) if ans.get('reason') else ''),
               flush=True)
-        return ans
 
     def _wait(self, btns):
         if self.autoskip:
@@ -882,6 +956,12 @@ def run_manual(a, rows, state, ignored, glass, passno):
                                   ignored, glass)
                     i = j + 1
                 continue
+        if st in PANEL_STATIONS:
+            # One loop for the whole station, not one dialog per row (S120).
+            panel_station(a, st, rows, state, ignored, glass, passno)
+            while i < len(steps) and steps[i][0] == st:
+                i += 1
+            continue
         need_rails = dict((k, rl) for k, _n, _h, rl in STATIONS)[st]
         if need_rails and not rails_up:
             rails_up = True
@@ -901,6 +981,172 @@ def run_manual(a, rows, state, ignored, glass, passno):
     if rails_up:
         glass.progress('the analog rails are lowered again')
     return time.time() - t0
+
+
+def panel_station(a, st, rows, state, ignored, glass, passno):
+    """One switch panel, as ONE LOOP (S120).
+
+    The tester lights the indicator of the next button to press; the operator
+    presses the button under it; the key code that comes back grades the switch
+    row AND the indicator row, and the next indicator lights. The glass carries
+    one button, NOT LIT, which is the only judgement a press cannot make.
+
+    The loop advances on the PANEL, not on the glass: `Glass.post` puts the
+    step up and `Glass.poll` is asked for an answer between bus reads, so a
+    press on the unit ends the step in the time the bus takes (measured on
+    MW-D24-2: the indicator is lit 1.8 ms after the write and one panel's key
+    report costs about 3 ms of MH1's sweep -- see s120/panel-loop.md)."""
+    side = PANEL_STATIONS[st]
+    byrow = dict((r.num, r) for r in rows)
+    verdicts = {}
+
+    def land(num, verdict, note, operator=True):
+        r = byrow.get(num)
+        if r is None or num in ignored:
+            return
+        verdicts[num] = (verdict, note)
+        state.put(num, verdict, pass_no=passno,
+                  judged='operator' if operator else 'runner',
+                  measured=note, limit='', evidence='', source='panel loop')
+
+    bus = PL.InjectedBus(a.inject_keys) if a.inject_keys else PL.PanelBus()
+    pending = {'paused': False}
+
+    def ask(step, n, total, tries):
+        if tries:
+            lines = ['%s did not light.' % step.what.capitalize(),
+                     'Press %s anyway, so the switch itself is still checked.'
+                     % step.name]
+        else:
+            lines = ['Press the button that is lit: %s.' % step.name,
+                     'It is %s that should be lit.' % step.what,
+                     'If nothing lit, press NOT LIT.']
+        btns = glass.post('instruct', 'Panel loop - %s' % step.name, lines,
+                          ['notlit'], row=step.sw_row, station=st)
+
+        def tick():
+            ans = glass.poll(btns)
+            if ans is None:
+                return None
+            glass.taken(ans)
+            b = ans['button']
+            if b == 'pause':
+                pending['paused'] = True
+                return 'skip'
+            if b == 'ignore':
+                pending['ignore'] = ans.get('reason') or 'other'
+                return 'skip'
+            return b
+        return tick
+
+    try:
+        owed = set(r.num for r in rows
+                   if r.group == st and r.num not in ignored
+                   and state.verdict(r.num) != PASS)
+        steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
+                               log=glass.progress, owed=owed)
+        for step in steps:
+            land(step.sw_row, step.sw or NODATA, step.sw_note
+                 or 'the loop did not reach this button')
+            land(step.led_row, step.led or NODATA, step.led_note
+                 or 'the loop did not reach this indicator')
+            if pending['paused']:
+                break
+        if pending['paused']:
+            raise Paused()
+        # The indicators that no write can move: they are lit whenever the unit
+        # is on, so one question grades them all.
+        if 'always_on' in extra:
+            nums, what = extra['always_on']
+            owed_ao = [n for n in nums if n in owed]
+            if owed_ao:
+                ans = glass.ask('instruct', 'Panel loop - the always-lit rings',
+                                ['Two indicators are lit whenever the unit is '
+                                 'on and nothing can switch them off.',
+                                 'Look at %s.' % what,
+                                 'Are both lit?'], ['yes', 'no'], station=st)
+                if ans['button'] == 'pause':
+                    raise Paused()
+                for n in owed_ao:
+                    if ans['button'] == 'yes':
+                        land(n, PASS, 'the operator confirmed it is lit')
+                    elif ans['button'] == 'no':
+                        land(n, FAIL, 'the operator answered that it is not lit')
+                    else:
+                        land(n, SKIPPED, ans.get('reason') or 'other')
+        # The encoder: it turns, and its ring steps round.
+        if 'encoder' in extra:
+            turn_row, led_row = extra['encoder']
+            if turn_row in owed:
+                land(*((turn_row,) + panel_encoder(bus, glass, st,
+                                                   a.panel_timeout)))
+            if led_row in owed:
+                PL.encoder_leds(bus)
+                ans = glass.ask('instruct', 'Panel loop - the encoder ring',
+                                ['The eight indicators around the encoder have '
+                                 'just been stepped round twice.',
+                                 'Did all eight light in turn?'],
+                                ['yes', 'no'], row=led_row, station=st)
+                if ans['button'] == 'pause':
+                    raise Paused()
+                if ans['button'] == 'yes':
+                    land(led_row, PASS, 'the operator saw all eight light in turn')
+                elif ans['button'] == 'no':
+                    land(led_row, FAIL, 'the operator did not see all eight light')
+                else:
+                    land(led_row, SKIPPED, ans.get('reason') or 'other')
+    finally:
+        try:
+            bus.light(0)
+            bus.light_enc(0)
+        except Exception:
+            pass
+        bus.close()
+        glass.clear()
+        state.save()
+    glass.progress('panel loop (%s): %d rows graded'
+                   % (PL.PANEL_NAME[side], len(verdicts)))
+    return verdicts
+
+
+def panel_encoder(bus, glass, st, timeout):
+    """The encoder ring itself: one detent each way, read off the bus.
+
+    A detent sends the ring's new position, so direction is the difference
+    between two positions and not a flag -- and the position wraps 8 -> 1 and
+    1 -> 8, which is why the comparison is on the wrap as well as the step."""
+    btns = glass.post('instruct', 'Panel loop - the encoder',
+                      ['Turn the encoder ONE click clockwise, then ONE click '
+                       'anticlockwise.',
+                       'The tester reads the ring position each time.'],
+                      ['notlit'], station=st)
+    seen, last = [], None
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        got = bus.wait_key(0.2, tick=lambda: glass.poll(btns))
+        if got is None:
+            continue
+        kind, value, _ms = got
+        if kind == 'glass':
+            glass.taken({'button': value})
+            return SKIPPED, 'the operator stopped at the encoder'
+        if kind != 'enc':
+            continue
+        if last is not None and value != last:
+            seen.append(1 if (value - last) % 8 == 1 else -1)
+        last = value
+        if 1 in seen and -1 in seen:
+            break
+    try:
+        os.remove(glass.prompt_path)
+    except OSError:
+        pass
+    if 1 in seen and -1 in seen:
+        return PASS, 'the ring position stepped both ways: %r' % (seen,)
+    if seen:
+        return FAIL, ('the ring only stepped %s'
+                      % ('clockwise' if 1 in seen else 'anticlockwise'))
+    return NODATA, 'the encoder sent no ring position within %.0f s' % timeout
 
 
 def station_card(st, steps, glass, i):
@@ -1289,7 +1535,9 @@ def dump_dialogs(rows, path):
                     instruction=s.get('action', ''),
                     question=s.get('question', ''),
                     buttons=('yes/no' if s.get('kind') == JUDGE else
-                             'done' if s.get('kind') in (MEASURE, FIXTURE) else ''),
+                             'done' if s.get('kind') in (MEASURE, FIXTURE) else
+                             ('yes/no' if s.get('question') else 'notlit')
+                             if s.get('kind') == LOOP else ''),
                     runner_measures=s.get('measure', '') or s.get('check', ''),
                     not_run_reason=r.reason if r.category == 'not-run' else ''))
         for r in sorted(rows, key=lambda x: x.num):
@@ -1398,6 +1646,13 @@ def main():
                          'what the runner measures afterwards. This is the list '
                          'PW reviews -- the wording is generated, so the review '
                          'is of this file and not of 140 screens.')
+    ap.add_argument('--panel-timeout', type=float, default=30.0,
+                    help='how long one button in the panel loop waits for a '
+                         'press before it lands NO DATA (default 30 s)')
+    ap.add_argument('--inject-keys', metavar='FILE',
+                    help='drive the panel loop from a scripted key stream '
+                         'instead of the bus -- proves the runner side with no '
+                         'finger at the bench (see d24_panel.py)')
     ap.add_argument('--serial')
     a = ap.parse_args()
 

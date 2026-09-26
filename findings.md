@@ -6,6 +6,98 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PANEL LOOP WAS ALREADY IN THE FIRMWARE (2026-09-26, session 120)
+
+Hub dispatch `tasks.md` 2026-09-26 15:25Z. Report: `MW/D24/DSP/s120/panel-loop.md`,
+protocol `MW/D24/DSP/s120/panel-bus-protocol.md`.
+
+**S120-0 🟢 A PRESS -> INDICATOR ROUND TRIP NEEDS NO FIRMWARE CHANGE AND NO NEW
+WIRE, AND IT IS UNDER 10 ms.** Both halves are one matrix cell that the shipping
+panel firmware already implements. Writing `Sys001Skin001` makes `WrRadioLed()`
+light the ONE indicator whose radio index equals the received value and
+extinguish the other thirteen; a press makes `RdRadioSwitch()` put the pressed
+button's radio index into the same cell's transmit value, which MH1 relays to the
+host. Measured on MW-D24-2: **host -> indicator 1.74 to 1.85 ms** (mean of three
+runs of ten, to MH1's own `+` ack, which `CheckHost()` writes only after its
+transmitter has gone idle — so the ack is stamped after the last byte reached
+both boards); **a full cell round trip through a slave 3.07 ms**; **about 3 ms
+per slave** of MH1's bus sweep; the slave's own loop **under 2 ms**, bounded by
+the gap between two slaves' identity lines. The dispatch's option (a) — a runner
+on the CM4 talking the panel bus directly — is **impossible on this hardware**:
+`SRX`, `MRX` and `BUSY` (G2702/G2703/G2632) reach `digital:J17`, the DSP card
+connector, and no `J24` pin at all, and `J24` is the CM4 socket. The only CM4
+pins on the path are `J24.55`/`J24.51`, the host UART to MH1.
+
+**S120-1 🔴 BOTH SWITCH PANELS DECODE THE SAME CELL AND USE THE SAME INDICES
+1..6, SO A LEFT-PANEL PRESS MOVES THE SKIN AS IF A RIGHT-PANEL BUTTON HAD BEEN
+PRESSED.** `H1S4/Core/Inc/matrix.cs` gives its six switches `pSys001Skin001`
+with `radioData` 1..6; `H1S3` gives HOME..FX MUTE the same cell with the same
+1..6, and both boards' `matrix.h` puts that cell at 5412. Pressing MONO AUX on
+the left sends index 1, which is HOME. **This is a product defect, not only a
+test problem**, and nothing in the firmware distinguishes the two boards. For the
+test it means writing an index of 6 or less lights an indicator on BOTH panels
+and a key code of 6 or less does not say which panel sent it; the loop runs one
+panel at a time with the operator told which, and the report says plainly that a
+press on the other panel's button of the same index would score as correct.
+Everything else — a dead switch, a dead indicator, a switch wired to the wrong
+index within one panel — is caught exactly. The fix is a cell of the left panel's
+own, which is a `defs` change plus two lines in the left board's `matrix.cs`.
+**Question for PW, report §7 Q2.**
+
+**S120-2 🔴 THE PANEL FIRMWARE SOURCE IN DROPBOX IS A DIFFERENT MATRIX
+GENERATION FROM THE FIRMWARE ON THE UNIT, AND A REBUILD FROM IT WOULD PUT THE
+2026-08-19 SKIN CORRUPTION STRAIGHT BACK.** `main.c` and `matrix.cs` are
+byte-identical between `_mx/MW/D24/FW/H1S3/` and `/home/app/fwbuild/H1S3/`;
+`matrix.h` is not. Fingerprinted with `defs/tools/matrix_gen_id.py`, the tool
+written for exactly this failure: Dropbox `459349c04128` (`Sys001Skin001` =
+17553), the bench copy that built the flashed image `e80ccab5d6d8` (5412), and
+this repo's own contract `MW/D24/MX/_matrix.csv` `67d01aeb49f8` (4698). **Three
+live generations**, and the corrected header exists only on the bench unit.
+A tool that took the cell address from this repo's contract would write to an
+address no slave decodes and would look like dead hardware. **Question for PW,
+report §7 Q3.**
+
+**S120-3 🟢 THE FLASHED PANEL IMAGES ARE THE APP'S GENERATION, READ OFF THE
+BINARY.** `/home/app/firmware/H1S3.shex` and `H1S4.shex` both contain
+`MATRIX[] = {0, 5232, 5412, 5414, 5415}` as five little-endian words and neither
+contains the Dropbox generation, so the addresses the loop writes and reads are
+the addresses in the firmware rather than in a header
+(`MW/D24/DSP/s120/tools/shex-generation.py`, log `s120/logs/matrix-generation.txt`).
+
+**S120-4 🟡 THE TWO FLASH PACKS ON THE UNIT ARE ADDRESSED TO EACH OTHER'S SLAVE
+SLOT, DELIBERATELY.** `/home/app/firmware/H1S3.shex` is 59956 bytes of
+right-panel content — its identity string is `// H1S3 SW Right` — and its
+extended-address record names slave **H1S4**; `H1S4.shex` is the mirror. Both are
+byte-identical to `fwbuild/right-slot4-H1S3content.shex` and
+`left-slot3-H1S4content.shex`, whose names say why: on this unit the RIGHT panel
+sits in slave slot 4 and the LEFT panel in slot 3. The straight pair,
+`H1S3.new.shex` / `H1S4.new.shex`, is the pre-swap build and would flash each
+panel with the other's firmware. **Identity follows the content, not the slot**,
+so anything that keys on the slave slot to tell the panels apart is wrong on this
+unit. The loop never asks which panel answered, so it is unaffected.
+
+**S120-5 🟡 THE RIGHT PANEL'S MONITOR INDICATOR IS DRIVEN HIGH ON EVERY
+TRANSMIT.** `H1S3`'s `Poll()` uses `PC0` as a scratch pin while it waits for MH1
+to drop the data-request line: it reconfigures the pin as push-pull output and
+drives it high, then restores it to input. `PC0` is `wled[]` index 12, the
+MONITOR ring (`fw.csv` `LED,Monitor,C0,P5,LD12;LD13`). Every key report and every
+identity string therefore flickers that one indicator. Brief, and nothing in the
+product reads it, but it is a real defect in the panel firmware and it is the one
+indicator a tester should not trust to be OFF. The loop only ever asks whether an
+indicator is ON, so it is unaffected.
+
+**S120-6 🟢 THE STATION GRADES 44 OF THE 50 PANEL ROWS; THE SIX IT CANNOT REACH
+ARE NAMED ROW BY ROW.** S117 left all fifty *not tested* behind two blanket
+sentences. What remains: row 55 (the red indicator is driven by the processor
+boot pin, not by the processor), row 58 (the pedal path needs the pedal, which is
+the foot pedal station), row 78 (no indicator is declared for that designator —
+`fw.csv` gives the C button one indicator pair and the loop grades it on row 77),
+and rows 92/93/94 (the talkback switch and its indicators, the mini-jack sense
+and the temperature/blower/fan lines pass through the panel processor with NO
+matrix cell bound, so the host can neither read nor drive them). Those three are
+the only panel rows that would need new firmware, and the dispatch's "no
+per-control read" was true only of them.
+
 ## THE INTER-CHIP FABRIC IS A WIRE, AND NOW SOMETHING ASKS WHETHER IT STILL IS (2026-09-26, session 118)
 
 Hub dispatch `tasks.md` 2026-09-26 14:22Z. Report: `MW/D24/DSP/s118/main-recv.md`.

@@ -1,0 +1,8 @@
+# S120 -- a clean walk of the left panel: six buttons, each answering with its
+# own radio index, in the sweep order the station lights them.
+8  1     # MONO AUX
+8  2     # STEREO AUX
+7  3     # FX
+8  4     # EQ
+9  5     # AUX ON FADERS
+8  6     # OVERVIEW

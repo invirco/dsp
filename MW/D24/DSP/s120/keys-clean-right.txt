@@ -1,0 +1,21 @@
+# S120 -- a clean walk of the right panel: every button answers with its own
+# radio index, in the sweep order the station lights them.
+# <delay_ms> <value>
+9  6     # FX MUTE
+8  1     # HOME
+8  2     # MENU
+7  3     # +48
+8  4     # FEEDBACK
+9  7     # MUTE
+8  8     # SCENE
+7  9     # L
+8  10    # C
+8  5     # CH ASSIGN
+9  11    # R
+8  12    # MONITOR
+8  13    # REC/PLY
+9  14    # STUDIO CTL
+# the encoder, after the sweep: one detent clockwise then one back
+12 enc 1
+12 enc 2
+12 enc 1
