@@ -56,6 +56,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import d24_panel as PL                                  # noqa: E402
+import d24_patch as PT                                 # noqa: E402
 
 PASS, FAIL, NODATA = 'PASS', 'FAIL', 'NO DATA'
 IGNORED, SKIPPED, NOTTESTED = 'IGNORED', 'SKIPPED', 'NOT TESTED'
@@ -300,8 +301,9 @@ STATIONS = [
      'the foot pedal, its lead and the network lead', False),
     ('M5', 'Rear panel sockets',
      'a USB memory stick, a screen and its lead, the mains lead', False),
-    ('M4', 'Analog loopback',
-     'the loopback lead set: microphone leads, the small jack lead, headphones',
+    ('M4', 'Analog paths',
+     'the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an '
+     'XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug',
      True),
 ]
 STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
@@ -322,11 +324,56 @@ MEASURE, JUDGE, BLOCKED, FIXTURE, LOOP = ('measure', 'judge', 'blocked',
 # which side of the front panel each one is.
 PANEL_STATIONS = {'M1': 'left', 'M2': 'right'}
 
+# The analog station is ONE LOOP as well (S121), for the same reason the panel
+# stations are: the operator's hands are the slow part, and a dialog per row
+# would stop them between every socket. Eighty-one patches prove forty-five of
+# this station's forty-eight rows, and the three it cannot reach say why.
+PATCH_STATIONS = {'M4'}
+
+# The M4 rows the patch list does not reach, each with its own reason. None of
+# them is a unit fault and none is dropped (S117 section 1).
+PATCH_UNREACHED = {
+    35: ('the Centre/LF socket is on a converter lane this product has no '
+         'cell for: nothing the host can write puts a signal on it'),
+    97: ('the headphone socket is on two converter lanes this product has no '
+         'cells for: nothing the host can write puts a signal on it'),
+    148: ('this row is a screen link, not an audio path: it does not belong '
+          'to this station'),
+}
+# Rows proved by the paths that run over them rather than by a path of their
+# own -- the partner stamping S117 established. The board-to-board link to the
+# headphone jack board IS the four stereo jacks' signal path, and the link to
+# the mini-jack board IS the two mini-jacks'.
+PATCH_PARTNERS = {146: (39, 40, 41, 42), 147: (95, 96)}
+
 NO_KEYREAD = ('the host cannot see this control or sense line change: this unit '
               'has no per-control read through the panel processors')
 NO_LEDDRIVE = ('the host cannot light one indicator at a time: this unit has no '
                'indicator drive for the panel processors')
 NO_HARNESS = 'the loopback lead set is not built'
+
+
+_PATCH_ROWS = None
+
+
+def PATCH_ROWS():
+    """The catalog rows the generated patch list actually names.
+
+    Read from the list, never restated here: the list is generated from defs
+    and the port table, and a second copy of which rows it covers is a second
+    thing to keep in step. An unreadable list is an error, not an empty set --
+    an empty set would quietly turn the whole station into NOT RUN.
+    """
+    global _PATCH_ROWS
+    if _PATCH_ROWS is None:
+        plist = PT.PatchList(PT.find_list_dir())
+        out = set()
+        for row in plist.paths:
+            out.update(int(x) for x in row['rows'].split())
+        if not out:
+            raise SystemExit('the patch list names no catalog rows at all')
+        _PATCH_ROWS = out
+    return _PATCH_ROWS
 
 
 def manual_step(r):
@@ -400,12 +447,19 @@ def manual_step(r):
                            'panel, with its own lead into the pedal.',
                     check='the pedal link comes up')
 
-    # --- the analog loopback ------------------------------------------------
-    if r.group == 'M4':
-        return dict(kind=FIXTURE, reason=NO_HARNESS,
-                    action='Loop %s back to the unit with the loopback lead set.'
-                           % name,
-                    check='the looped lane rises out of its own noise floor')
+    # --- the analog paths ---------------------------------------------------
+    # One loop, not forty-eight dialogs (S121). `patch_station()` owns every
+    # row the patch list reaches; what it cannot reach is named here, row by
+    # row, in its own words.
+    if r.group in PATCH_STATIONS:
+        why = PATCH_UNREACHED.get(r.num)
+        if why:
+            return dict(kind=BLOCKED, reason=why)
+        if r.num in PATCH_PARTNERS or r.num in PATCH_ROWS():
+            return dict(kind=LOOP, action='Patch %s as the tester asks.' % name,
+                        question='', check='a tone reaches it and nowhere else')
+        return dict(kind=BLOCKED,
+                    reason='no signal path in the patch list reaches this row')
 
     # Anything else in a station group: a plain operator judgement, worded so
     # Yes is a pass. No row reaches here on today's catalog; it is here so a
@@ -967,6 +1021,15 @@ def run_manual(a, rows, state, ignored, glass, passno):
             rails_up = True
             glass.progress('the analog rails are raised once here, for the '
                            'analog stations')
+        if st in PATCH_STATIONS:
+            # One loop for the whole station as well (S121). It comes AFTER the
+            # rails block above on purpose: this is the only station that needs
+            # them, it is last in the order, and PW's rule is that they go up
+            # once and late.
+            patch_station(a, st, rows, state, ignored, glass, passno)
+            while i < len(steps) and steps[i][0] == st:
+                i += 1
+            continue
         glass.progress('MANUAL station %d of %d, step %d of %d - row %d'
                        % (STATION_NUM[st], len(STATIONS), i + 1, len(steps), r.num))
         ans = one_step(a, r, glass, i, len(steps))
@@ -1107,6 +1170,79 @@ def panel_station(a, st, rows, state, ignored, glass, passno):
     glass.progress('panel loop (%s): %d rows graded'
                    % (PL.PANEL_NAME[side], len(verdicts)))
     return verdicts
+
+
+def patch_station(a, st, rows, state, ignored, glass, passno):
+    """The analog paths, as ONE LOOP (S121).
+
+    The tester prompts one patch, the operator makes it, and the step ends the
+    moment the tone arrives -- no Enter, and the next prompt is already up
+    while the last one is being scored. One patch can prove more than one row
+    (a stereo jack is one connection and three checks), and one row can be
+    proved by more than one patch (an output XLR and the TRS jack beside it
+    carry the same bus off the same stage), so the verdicts are folded
+    worst-wins exactly as a row covered by two tests always has been.
+    """
+    byrow = dict((r.num, r) for r in rows)
+    owed = set(r.num for r in rows
+               if r.group == st and r.num not in ignored
+               and state.verdict(r.num) != PASS)
+    plist = PT.PatchList(PT.find_list_dir())
+    limits = PT.Limits.load(plist.dir)
+    unit = PT.Unit(symdir=a.patch_symdir)
+    patcher = PT.pick_patcher(glass)
+    station = PT.Station(plist, unit, patcher, glass, limits,
+                         log=glass.progress)
+    try:
+        results = station.run()
+    finally:
+        try:
+            station.teardown()
+        except Exception as e:
+            glass.progress('the analog station could not be torn down: %s' % e)
+    # -- fold the paths onto the catalog rows -----------------------------
+    per_row = {}
+    for res in results:
+        for num in (int(x) for x in (res['rows'] or '').split()):
+            per_row.setdefault(num, []).append(res)
+    verdicts = {}
+    for num, hits in sorted(per_row.items()):
+        if num not in byrow or num in ignored:
+            continue
+        worst = max(hits, key=lambda h: RANK.get(h['verdict'], 9))
+        v = worst['verdict']
+        if v == PT.MISPATCH:                # never a unit verdict on its own
+            v = NODATA
+        note = worst['why']
+        if len(hits) > 1:
+            note += ' (%d of %d checks on this item)' % (
+                sum(1 for h in hits if h['verdict'] == worst['verdict']),
+                len(hits))
+        state.put(num, v, pass_no=passno, judged='runner', measured=note,
+                  limit=worst.get('detail', ''), evidence='',
+                  source='analog patch loop')
+        verdicts[num] = v
+    # -- the rows proved by the paths that run over them -------------------
+    for num, partners in sorted(PATCH_PARTNERS.items()):
+        if num not in byrow or num in ignored or num not in owed:
+            continue
+        got = [verdicts[p] for p in partners if p in verdicts]
+        if not got:
+            continue
+        v = max(got, key=lambda x: RANK.get(x, 9))
+        state.put(num, v, pass_no=passno, judged='runner',
+                  measured='proved by the signal paths that cross this link: '
+                           '%s' % plain_rows(byrow, partners),
+                  limit='', evidence='', source='analog patch loop')
+        verdicts[num] = v
+    state.save()
+    glass.progress('analog paths: %d rows graded from %d checks'
+                   % (len(verdicts), len(results)))
+    return verdicts
+
+
+def plain_rows(byrow, nums):
+    return ', '.join(byrow[n].panel for n in nums if n in byrow)
 
 
 def panel_encoder(bus, glass, st, timeout):
@@ -1614,6 +1750,8 @@ def main():
     ap.add_argument('--dir', default=DIR_DEFAULT)
     ap.add_argument('--tools', help='where d24_selftest.py lives (default: '
                                     'beside this file)')
+    ap.add_argument('--patch-symdir', default=PT.FACTORY_TEST_PAIR_DIR,
+                    help='the staged pair the analog station measures through')
     ap.add_argument('--catalog')
     ap.add_argument('--csv', help='the results file the auto runner appends to')
     ap.add_argument('--stage', default='/home/app/s90')

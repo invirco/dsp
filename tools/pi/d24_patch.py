@@ -1409,6 +1409,19 @@ def cmd_simulate(a, plist):
     print_time_table(time_table(st, plist, a.hand), a.hand, plist)
     if a.out:
         print('\nwrote %s' % write_results(a.out, rows))
+    if a.strings:
+        with open(a.strings, 'w', encoding='utf-8') as fh:
+            fh.write('# every operator-facing string this station can produce,\n'
+                     '# for the internal-vocabulary check. Generated, not written.\n\n')
+            for kind, title, lines in glass.prompts:
+                fh.write('%s\n' % title)
+                for ln in lines:
+                    fh.write('  %s\n' % ln)
+            for r in rows:
+                fh.write('%s\n' % r['why'])
+                if r['detail']:
+                    fh.write('%s\n' % r['detail'])
+        print('wrote %s' % a.strings)
     return 0
 
 
@@ -1448,6 +1461,8 @@ def main(argv=None):
     ap.add_argument('--hand', type=float, default=5.0,
                     help='seconds per hand move, for the projection')
     ap.add_argument('--out', help='write the per-path results here')
+    ap.add_argument('--strings',
+                    help='dump every operator-facing string, for --check-md')
     ap.add_argument('--dir', default='/home/app/selftest/runall',
                     help='the glass directory (--run)')
     ap.add_argument('--symdir', default=FACTORY_TEST_PAIR_DIR)
