@@ -1,3 +1,88 @@
+## HUB DISPATCH 2026-09-26 10:18Z — S113: test-order analysis for batched self-test setup (desk study)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S113 — Test-order analysis for batched setup (desk study, no hardware)
+
+PW 2026-09-25: "anything to make the testing faster is good". Item (d) of the 09-26
+self-test speed plan (mx26 pipeline.md, "QUEUED FOR 2026-09-26"). Analyse the order the
+D24 self-test rows run in so rows that share a setup run back to back and the setup is
+paid ONCE per group, not once per row. This is the desk study that RUN ALL (item (b),
+later) will follow. It comes BEFORE the AL1 compaction (item (a), S114) so S114 can be
+priced against a known order.
+
+## Scope
+
+DESK ONLY. Do not touch MW-D24-2, the bench, the CPLD, the 595 chain or the app on the
+unit. Read code and reports; write a table, an order and a report.
+
+## Inputs
+
+- The catalog: `MW/D24/DSP/s110/test-catalog.csv` (203 rows; columns num, board, item,
+  class, declared_status, automation, tests, runner_section, stops_app, short, remedy,
+  explain, pass_when, manual, spec_section, informational, covers). Automation grades:
+  1 = automatic, 2 = needs a fixture/plug, 3 = needs an operator press, 4 = needs a meter
+  or ear; "—" = no runner yet.
+- Every runner the catalog names, under `tools/pi/` (`d24_selftest.py` is the entry;
+  the section runners it calls; `chain.py`, `codec4619.py`, `d24_inputs.py`,
+  `dsp4_accept.py` and the rest as referenced). Read what each one DOES to the unit
+  before, during and after: boots the pair, raises/drops AN_EN, drives CS_M, runs
+  `codec_init()`, loads the 595 SAFE image or arms the chain, stops/starts `matrix-app`
+  vs `d24-testui`, needs the s109 test-node pair vs the shipping image, re-syncs the
+  DSP link, sleeps, hands back.
+- The reports that established the setup facts: S107 (catalog + numbering rule),
+  S109 (CPLD I/O), S110 (AL1), S111 (cold-start: CS_M drive, `codec_init()`), S112
+  (wizard stays on row). Stopwatch fact: one AL1 press = 23 s for a 0.6 s beep.
+
+## Deliverables (all under `MW/D24/DSP/s113/`)
+
+1. `setup-state.csv` — one row per catalog row that has a runner (automation 1/2/3/4,
+   not "—"), columns: num, item, runner, requires_pair_boot, requires_an_en,
+   requires_cs_m_driven, requires_codec_init, requires_595 (safe | armed | none),
+   requires_app (matrix-app | d24-testui | either), requires_image (shipping |
+   test-node-pair), requires_fixture (name or none), requires_press, requires_meter,
+   handback (what the runner restores), est_setup_s, est_run_s, evidence (file:line of
+   the runner code the row is read from). Every cell cites code, not memory. Rows whose
+   runner does not yet exist are listed separately with "no runner".
+2. `run-order.csv` — the grouped order: group_id, group_name, shared_state (the state
+   raised once at the start of the group), order, num, item, transition_note (only where
+   the group boundary changes state). Rules: catalog numbering is UNTOUCHED (S107: the
+   number is the operator's handle — never renumber); groups are chosen so each distinct
+   unit state is entered once and left once; where two rows need conflicting states,
+   say so and place the transition once, not twice; manual rows (automation 2/3/4) are
+   grouped by WHAT THE OPERATOR HAS IN HAND (fixture / plug / meter) so the bench visits
+   each fixture once; `stops_app` rows sit together at the end of their group so the
+   display goes down once.
+3. `test-catalog.csv` — the s110 catalog copied forward with two new columns appended:
+   `group` and `order` (values from run-order.csv). Nothing else changed, no row removed,
+   no number changed. The app will read these by column name (mx26 change, hub's job —
+   name the columns in the report exactly).
+4. `test-order.md` — the report: method; the setup-state table summarised (how many
+   rows need each state); the groups and why; the transitions; the predicted total time
+   BEFORE (catalog order, setup paid per row, using the 23 s AL1 stopwatch and your
+   per-runner estimates from code) and AFTER grouping — as two numbers with the
+   arithmetic shown, and the per-group subtotal table; what S114 (AL1 compaction) should
+   remove first, ranked by seconds saved across the whole run; every assumption stated
+   where a runner's cost was estimated rather than measured; open questions for PW as a
+   🔴 list (do not open a dialog).
+
+## Acceptance
+
+- Every runner-bearing catalog row appears in setup-state.csv with code citations.
+- run-order.csv covers every row of setup-state.csv exactly once; groups never re-enter a
+  state already left, or the report says why it is unavoidable.
+- test-catalog.csv diff against s110 = two appended columns only.
+- Two predicted totals (before/after) with the arithmetic, and the ranked list for S114.
+- `git diff --stat` shows only `MW/D24/DSP/s113/` and tasks.md. Unit untouched.
+
+Rules: this is a desk study; if any step seems to need the bench, write it as a 🔴
+question in the block and stop. Commit + push main; update this block's status with a
+one-line outcome (before/after totals in it).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-25 16:07Z — S112: rebuild+deploy test app, wizard stays on row after PASS   [status: 🟢 done — rebuilt (163/163 tests green), deployed `432ae0fc…` (rollback `app.bak-s112-pre` = S107's `5981fd34…`), catalog 202 rows confirmed; proved live through the wizard's own START: row 56 AL1 PASS now stays on-row showing the green tile and full result line (was: silent auto-advance to the next row), NEXT still walks forward normally, and a non-PASS row (107, reliable NO DATA) stays put unchanged — write-up `MW/D24/DSP/s112/rebuild-deploy-stay-on-pass.md`. Unit handed back on row 56, AN_EN lo, CS_M driven hi, matrix-app inactive, d24-testui active, injector/FIFO removed.]   [model: sonnet]
 
 model: sonnet
