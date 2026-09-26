@@ -1,0 +1,30 @@
+path,patch,out,in,harness_route,manual_cable,rows
+1,P1,AUX 1,MIC 1,LOOP,XLR-F to XLR-M lead,25 + 1
+2,P2,AUX 2,MIC 2,LOOP,XLR-F to XLR-M lead,26 + 2
+3,P3,AUX 3,MIC 3,LOOP,XLR-F to XLR-M lead,27 + 3
+4,P4,AUX 4,MIC 4,LOOP,XLR-F to XLR-M lead,28 + 4
+5,P5,AUX 5,MIC 5,LOOP,XLR-F to XLR-M lead,29 + 9
+6,P6,AUX 6,MIC 6,LOOP,XLR-F to XLR-M lead,30 + 10
+7,P7,AUX 7,MIC 7,LOOP,XLR-F to XLR-M lead,31 + 22
+8,P8,AUX 8,MIC 8,LOOP,XLR-F to XLR-M lead,32 + 23
+9,P9,MAIN L,MIC 9,LOOP,XLR-F to XLR-M lead,33 + 11
+10,P10,MAIN R,MIC 10,LOOP,XLR-F to XLR-M lead,34 + 12
+11,P11,C/LF,MIC 11,LOOP,XLR-F to XLR-M lead,35 + 13
+12,P12,MONITOR L,MIC 12,LOOP,"6.35 TRS plug to XLR-M: tip->2, ring+sleeve->3, sleeve->1",36 + 14
+13,P13,MONITOR R,MIC 13,LOOP,"6.35 TRS plug to XLR-M: tip->2, ring+sleeve->3, sleeve->1",37 + 5
+14,P14,PHONES L,MIC 14,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",97 + 6
+15,P14,PHONES R,MIC 15,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",97 + 7
+16,P15,AUX 1,MIC 16,BUS (0 dB),XLR-F to XLR-M lead,25 + 8
+17,P16,AUX A 1-2 L,MIC 17,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",39 + 15
+18,P16,AUX A 1-2 R,MIC 18,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",39 + 16
+19,P17,AUX A 3-4 L,MIC 19,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",40 + 17
+20,P17,AUX A 3-4 R,MIC 20,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",40 + 24
+21,P18,AUX A 5-6 L,MIC 21,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",41 + 18
+22,P18,AUX A 5-6 R,MIC 22,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",41 + 19
+23,P19,AUX A 7-8 L,MIC 23,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",42 + 20
+24,P19,AUX A 7-8 R,MIC 24,LOOP,"6.35 TRS plug to 2 x XLR-M Y: tip->A pin 2, ring->B pin 2, sleeve->pins 3+1",42 + 21
+25,P20,AUX 2,TALKBACK,BUS (0 dB),XLR-F to XLR-M lead,26 + 38
+26,P21,AUX 3,MINI-JACK 1 L,BUS (0 dB),"2 x XLR-F to 3.5 TRS plug Y: A pin 2->tip, B pin 2->ring, pins 1->sleeve, pins 3 open",27 + 95
+27,P21,AUX 4,MINI-JACK 1 R,BUS (0 dB),"2 x XLR-F to 3.5 TRS plug Y: A pin 2->tip, B pin 2->ring, pins 1->sleeve, pins 3 open",28 + 95
+28,P22,AUX 3,MINI-JACK 2 L,BUS (0 dB),"2 x XLR-F to 3.5 TRS plug Y: A pin 2->tip, B pin 2->ring, pins 1->sleeve, pins 3 open",27 + 96
+29,P22,AUX 4,MINI-JACK 2 R,BUS (0 dB),"2 x XLR-F to 3.5 TRS plug Y: A pin 2->tip, B pin 2->ring, pins 1->sleeve, pins 3 open",28 + 96
