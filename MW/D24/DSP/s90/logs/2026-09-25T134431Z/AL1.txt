@@ -1,0 +1,71 @@
+=== 2026-09-25T13:46:11Z  NO DATA
+THE ROUTE, named (S102, correcting S90-P6 which read it as absent). The speaker is codec TDM slot 0 = C2_MON_OUT slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1.6/7 -> J2.1/2 (mx26 docs/d24-netlist-global-pins.csv G0209/G3461/G3462/G3463). Upstream: C1_TEST_OSC injects at C1_IN_20 -> strip -> MAIN -> C2_MAIN_FDR -> C2_MON -> C2_MON_DLY -> C2_MON_OUT slot 0, every hop with a contract cell (Chan020MainOn001/Level001/Pan001/Mute001, Main001Level001, Mon001Level001/002). MW/D32/DSP/SHARC/dsp.csv declares it: sink=SPKR on C2_MON_OUT, sink=DNP on C2_CODEC_AUX_OUT. THE RETURN: the panel MEMS mic (ADAU7002) on A_I7 TDM slot 4 (0-based), node C1_XIN_MEMS, read here as TEST_MEAS lane code 54.
+
+AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it)
+pair booted: /home/app/loopthd/s109 (/home/app/selftest/pair.conf)
+DSP4_TEST_NODES pair (_osc_blk_q_C1_TEST_OSC in chip1.sym.json): True
+--- MEMS lane, rxscan ---
+XIN_MEMS          46   736     7     0    16       16    -56.03    -54.76  003bdfff 0032ffff 002f5fff  CARRYING
+--- the route write (exit 0) ---
+--- other strips off MAIN ---
+inOn001           chip1 addr 3396   0x00000000  0.000000
+Chan025MainOn001           NOT IN CONTRACT
+Chan026MainOn001           NOT IN CONTRACT
+Chan027MainOn001           NOT IN CONTRACT
+Chan028MainOn001           NOT IN CONTRACT
+Chan029MainOn001           NOT IN CONTRACT
+Chan030MainOn001           NOT IN CONTRACT
+Chan031MainOn001           NOT IN CONTRACT
+Chan032MainOn001           NOT IN CONTRACT
+--- the route ---
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+Chan020Mute001             chip1 addr 2818   0x00000000  0.000000
+Chan020Level001            chip1 addr 2816   0x3F800000  1.000000
+Chan020Pan001              chip1 addr 2817   0x3F000000  0.500000
+Chan020CompOn001           chip1 addr 2792   0x00000000  0.000000
+Chan020GateOn001           chip1 addr 2776   0x00000000  0.000000
+Chan020TubeOn001           chip1 addr 2812   0x00000000  0.000000
+Chan020EqOn001             chip1 addr 2773   0x00000000  0.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Main001Mute001             chip2 addr 1381   0x00000000  0.000000
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+--- read back through the image's own dispatch table ---
+Mon001Level001             chip2 addr 1789   0x3F800000  1.000000
+Mon001Level002             chip2 addr 1790   0x3F800000  1.000000
+Main001Level001            chip2 addr 1379   0x3F800000  1.000000
+Chan020MainOn001           chip1 addr 2820   0x00000001  0.000000
+
+--- every calibration run ---
+  drive    rep   baseline      tone        SNR     THD+N        THD+N     noise    on
+  dBFS           dBFS       dBFS        dB        dB           %      dBFS     s
+   -12.0     1     -55.59     -41.98      13.61    -17.44       13.426    -59.42   0.56
+   -12.0     2     -57.26     -41.98      15.28    -17.76       12.937    -59.74   0.62
+   -12.0     3     -55.01     -42.01      13.01    -21.02        8.897    -63.02   0.57
+   -12.0     4     -57.39     -41.99      15.40    -18.99       11.236    -60.98   0.57
+   -12.0     5     -57.13     -41.96      15.17    -17.41       13.472    -59.37   0.60
+    -6.0     1     -55.64     -35.89      19.75    -20.77        9.153    -56.66   0.57
+    -6.0     2     -54.61     -35.89      18.72    -20.52        9.423    -56.40   0.60
+    -6.0     3     -54.25     -35.88      18.37    -20.43        9.519    -56.31   0.58
+    -6.0     4     -56.44     -35.87      20.57    -19.70       10.349    -55.57   0.62
+    -6.0     5     -56.61     -35.91      20.70    -25.12        5.544    -61.03   0.57
+    -3.0     1     -54.56     -32.67      21.89    -14.98       17.816    -47.65   0.60
+    -3.0     2     -55.76     -32.70      23.06    -16.25       15.407    -48.95   0.57
+    -3.0     3     -55.65     -32.72      22.93    -16.22       15.461    -48.93   0.57
+    -3.0     4     -56.07     -32.70      23.37    -15.59       16.613    -48.29   0.57
+    -3.0     5     -56.33     -32.70      23.64    -15.95       15.937    -48.65   0.57
+  mean at  -12.0: tone -41.98 dBFS (spread 0.05 dB), baseline -56.47, SNR 14.49 dB, THD+N -18.52 dB = 11.852 %
+  mean at   -6.0: tone -35.89 dBFS (spread 0.04 dB), baseline -55.51, SNR 19.62 dB, THD+N -21.31 dB = 8.602 %
+  mean at   -3.0: tone -32.70 dBFS (spread 0.05 dB), baseline -55.67, SNR 22.98 dB, THD+N -15.80 dB = 16.223 %
+
+--- the table: old -> new ---
+  slope_db_per_db           0.940 ->        1.029   CHANGED
+  intercept_dbfs          -30.590 ->      -29.650   CHANGED
+  level_tol_db              4.000 ->        4.000
+  level_hi_tol_db           7.000 ->        7.000
+  snr_min_db                3.900 ->       15.400   CHANGED
+  floor_max_dbfs          -48.500 ->      -48.300   CHANGED
+  thdn_abs_db              -4.100 ->      -16.700   CHANGED
+  thdn_margin_db            4.900 ->       10.800   CHANGED
+
+TABLE REWRITTEN in /home/peter/dsp/tools/pi/d24_selftest.py. The comments above it -- including what makes each number provisional -- are untouched; only the dict body is replaced. Commit it: the table is the test.

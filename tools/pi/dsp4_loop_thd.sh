@@ -249,6 +249,21 @@ for i in $(seq 1 "$N"); do
     sudo pinctrl set 6,24 op dh
 done
 
+# LEAVE THE SPEAKER SILENT (S115). This script asserts strip 20 on MAIN and
+# Main001Level001 at unity, and until S115 nothing here undid either. The
+# monitor bus sits at the graph default, which `defs` declares as
+# `level_l_db=0.0;level_r_db=0.0` -- UNITY -- and the panel speaker's amplifier
+# (TS482, digital U32) runs from the 5 V on the DIGITAL board, always on while
+# the unit is up and independent of AN_EN (PW 2026-09-26). So a run of this left
+# the panel speaker playing whatever the MAIN bus carried for as long as the
+# unit stayed powered; PW heard exactly that at the bench, and on 2026-09-26 the
+# MAIN bus was measured pinned at +17 dBFS with every strip closed. Four cells,
+# read back as they are written.
+echo "--- speaker path, torn back down (S115) ---"
+python3 s89_set.py "/home/app/$D" \
+    Mon001Level001=f0.0:4 Mon001Level002=f0.0:4 \
+    Chan${OSC}MainOn001=0 Chan${OSC}Mute001=1 2>&1 | sed 's/^/    /'
+
 [ "$any" = "1" ] || { echo "LOOP THD: INCONCLUSIVE -- no usable reading"; exit 2; }
 [ "$rc" = "2" ] && { echo "LOOP THD: INCONCLUSIVE -- at least one reading was unusable (see above)"; exit 2; }
 if awk -v w="$worst" -v l="$LIMIT" 'BEGIN{exit !(w<=l)}'; then

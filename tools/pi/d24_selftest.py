@@ -1533,19 +1533,25 @@ def _silence_ok(txt):
     return True
 
 
-def al1_silence(r):
+def al1_silence(r, why=None):
     """Take the speaker path down and PROVE it, once per run.
 
     Idempotent and cheap: called as soon as the last measurement window has
-    been read, and again from handback in case a blocker returned before the
-    measurement ever happened. The read-back is the evidence -- a write that
-    did not land would leave the unit hissing for however long it stays
+    been read, and again from handback -- in case a blocker returned before the
+    measurement ever happened, and for a run that never touched AL1 at all but
+    BOOTED THE PAIR. A boot's config commit writes the graph defaults, and
+    `defs` declares C2_MON at `level_l_db=0.0;level_r_db=0.0`, i.e. UNITY: so
+    every boot leaves the monitor bus wide open whether a test asked for it or
+    not, and pressing DR1 is enough to do it. The read-back is the evidence -- a
+    write that did not land leaves the unit audible for however long it stays
     powered, which is the exact defect this exists to end."""
     cap = getattr(r, '_al1_an', None)
     if cap is None:
-        return None
+        cap = {}
+        r._al1_an = cap
     if cap.get('silenced'):
         return None
+    cap['silence_why'] = why or 'AL1'
     # s89_set reads every cell back as it writes it, so the write's own output
     # IS the read-back evidence; a separate probe pass would cost another 1.5 s
     # of a press that is being kept short.
@@ -1556,9 +1562,10 @@ def al1_silence(r):
     cap['silent_at'] = time.time()
     if cap.get('route_at'):
         cap['speaker_live_s'] = round(cap['silent_at'] - cap['route_at'], 2)
-    return ('--- the speaker path, torn down (exit %d, read-back %s) ---\n'
+    return ('--- the speaker path, torn down (%s; exit %d, read-back %s) ---\n'
             'the route was live for %s s of this press\n%s'
-            % (rc, 'SILENT' if ok else 'NOT SILENT -- the unit may still be audible',
+            % (cap['silence_why'], rc,
+               'SILENT' if ok else 'NOT SILENT -- the unit may still be audible',
                cap.get('speaker_live_s', '?'), txt))
 
 
@@ -2737,15 +2744,28 @@ def handback(r):
     # exception, a future runner that asserts the route and forgets. A unit that
     # goes back on the shelf with the monitor bus at unity hisses until it is
     # unplugged: the amplifier is on the digital 5 V, not on AN_EN.
-    sil = al1_silence(r)
-    if sil:
-        notes.append(sil)
-    else:
-        cap0 = getattr(r, '_al1_an', None)
-        if cap0 is not None:
-            notes.append('speaker path: already torn down by AL1 (%s, live %s s)'
-                         % ('SILENT' if cap0.get('silent_ok') else 'NOT SILENT',
-                            cap0.get('speaker_live_s', '?')))
+    cap0 = getattr(r, '_al1_an', None)
+    if cap0 is not None and cap0.get('silenced'):
+        notes.append('speaker path: already torn down by AL1 (%s, live %s s)'
+                     % ('SILENT' if cap0.get('silent_ok') else 'NOT SILENT',
+                        cap0.get('speaker_live_s', '?')))
+    elif cap0 is not None or r._booted_this_run:
+        # THE WRITE NEEDS A RUNNING GRAPH. `DR1` deliberately holds !RST_D low
+        # and leaves the pair in reset, so the cells cannot be written and there
+        # is nothing to silence -- no graph, no audio. Saying "NOT SILENT" there
+        # would be alarming and wrong, so the link is asked first.
+        up, up_txt = link_alive(r)
+        if up:
+            sil = al1_silence(r, 'a boot in this run left the monitor bus at the '
+                                 'graph default, which is unity'
+                                 if cap0 is None else
+                                 'AL1 did not reach its own stand-down')
+            if sil:
+                notes.append(sil)
+        else:
+            notes.append('speaker path: the DSP link does not answer, so the graph is '
+                         'not running and there is nothing for it to play. Nothing '
+                         'written.\n%s' % up_txt)
     want_safe = ' '.join('%02X' % b for b in SAFE_IMAGE)
     marker = r.out('cat %s 2>/dev/null' % shlex.quote(_chain_marker(r)))
     if marker == want_safe and not r._booted_this_run:

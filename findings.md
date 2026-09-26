@@ -6,6 +6,72 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PANEL SPEAKER IS LIVE FROM THE MOMENT THE PAIR BOOTS (2026-09-26, session 115)
+
+Hub dispatch `tasks.md` 2026-09-26 11:39Z and its addenda. Report:
+`MW/D24/DSP/s115/al1-thd.md`.
+
+**S115-1 🔴 THE MONITOR BUS AND EVERY STRIP'S `MainOn` ARE AT UNITY OUT OF THE
+IMAGE'S OWN INITIALISERS, AND THE SPEAKER AMPLIFIER IS NOT ON AN_EN.** Measured
+straight after `dsp4_boot.py` + `dsp4_config.py` on both chips with nothing else
+written: `Mon001Level001 = 1.0`, `Mon001Level002 = 1.0`, `Main001Level001 = 1.0`,
+`Chan001/002/012/020/024MainOn001 = 1`, `Chan001Level001 = 1.0`. `defs` declares
+`C2_MON` as `level_l_db=0.0;level_r_db=0.0` — unity — so there is NO resting
+value in the graph that is silent. The TS482 (digital U32) runs from the 5 V on
+the digital board, always on while the unit is up and independent of AN_EN (PW
+2026-09-26). So the panel speaker plays whatever the MAIN bus carries from the
+moment the pair boots, before any test writes a cell, and pressing DR1 or DR2 is
+enough to do it. PW heard exactly this at the bench as continuous noise with no
+test running. AL1 additionally left its own route asserted at the end of every
+press and never tore it down; S115 fixes the runner (`al1_silence`, four cells
+read back, after AL1 and after any run that boots) and `dsp4_loop_thd.sh`, but
+the GRAPH DEFAULT is the root and only S117 — the speaker on its own haptic node,
+off every mixer bus (PW ruling 2026-09-26) — removes it.
+
+**S115-2 🔴 THE CHIP-1 -> CHIP-2 MAIN RECEIVE CAN SIT PINNED AT Q4.28 SATURATION
+WHILE CHIP 1 SENDS SILENCE, AND A CONFIG COMMIT DOES NOT CLEAR IT.** Measured on
+the as-found unit at 12:41-12:47 BST: `MainL001Mtr001` (the product's own meter
+cell) 7.09-7.99 linear = **+17.0 to +18.1 dBFS** sustained, `_buf_C2_MIX_MAIN_L`
++16.6 dBFS, `_buf_C2_RECV_MAIN_L` +15.3 dBFS with words at `0x7FFFFEE0` (±8.0 in
+Q4.28 = saturation), while `_buf_C1_BUS_MAIN_L` — chip 1's own MAIN block — read
+−117.8 dBFS, and with EVERY strip's `MainOn` at 0 and the 595 chain at SAFE.
+`dsp4_config.py` on both chips did not clear it; a full `dsp4_boot.py` + config
+twice did, and the same cells then read −106 dBFS. Controls after the boot rule
+out routing, rails and preamp gain: every strip on MAIN at unity gives −107 dBFS
+with the chain SAFE and −74 dBFS at micGainFull, and every strip closed gives
+exactly zero. **Not reproducible on demand, so no root cause is claimed.** Two
+consequences: any AL1 press taken in that state is fiction (the press at
+12:47:42 UTC read `base -15.9 tone -18.7 SNR -2.8 dB THD+N -0.4 dB 95.8%`, a
+41 dB rise on the MEMS lane caused purely by asserting the route into that bus,
+against −56.9 dBFS with the route down), and nothing in the self-test detects it.
+
+**S115-3 THE S49 NODE'S `ThdResult` IS NOT A USABLE DISTORTION FIGURE FOR THE
+ACOUSTIC LOOP.** It is the window's total RMS minus a single-frequency quadrature
+fit over 4,096 samples. Measured on this unit, same lane, same drive, on a
+PASSING press: `ThdResult` −6.51 dB = **47.2 %** while the bandpass THD of the
+same window is −31.83 dB = **2.56 %** and the same window's own FFT
+total-minus-fundamental is −31.75 dB. Across two independent 15-run calibration
+grids three minutes apart, bandpass THD repeated to 0.05 dB and rose
+monotonically with drive (1.0 / 2.6 / 4.0 % at −12 / −6 / −3 dBFS); `ThdResult`
+moved by up to 6.5 dB at the same drive and was non-monotonic, and its two worst
+readings of the session (34.5 %, 35.1 %) came from the two QUIETEST baselines
+(−74.7, −78.9 dBFS). PW ruled on 2026-09-26 that AL1 reports bandpass THD only;
+`ThdResult` stays as an informational line. Note also that the old ceiling was
+`thdn_abs_db = -16.7 dB` and a healthy loop today read −17.1 dB cold and −20.8 dB
+warm on the untouched pre-S115 runner: **the old verdict sat 0.4 dB inside its own
+limit on a good unit.**
+
+**S115-4 A STRIP NODE'S `_buf_` READS AS ANOTHER NODE'S WAVEFORM, NOT AS ZERO.**
+Under block kernels strip node buffers live in the block pool
+(`gen_input_tdm`: "the pool is for strip inputs only"). On the bench
+`_buf_C1_FDR_01`, `_buf_C1_FDR_12` and `_buf_C1_FDR_20` all captured +5.95 dBFS
+RMS, peak +11.97 dBFS, bit-identically, while `C1_IN_01/12/20` read exactly zero.
+So `[[dsp4-buf-symbols-are-not-buffers]]` is worse than "plausible zero": it is a
+plausible WAVEFORM belonging to whatever last used that pool slot. The taps that
+are real are the buses and the non-strip converter lanes, which declare their own
+`_buf_<nid>[DSP4_BLOCK_SIZE]` — `C1_XIN_MEMS` among them, which is why AL1's
+coherent capture uses it.
+
 ## THE CODEC'S DAC IS FED A CONSTANT ZERO BY THE CPLD (2026-09-24, session 108)
 
 Hub dispatch `tasks.md` 2026-09-24 15:54Z. Dispatched to deep-dive the AK4619's
