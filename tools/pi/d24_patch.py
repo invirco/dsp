@@ -77,6 +77,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, HERE)
 import d24_live as LV                                 # noqa: E402
+import d24_chain as CH                               # noqa: E402
 
 LIST_DIR_CANDIDATES = (os.path.join(ROOT, 'MW', 'D24', 'DSP', 's121'),
                        os.path.join(HERE, 's121'),
@@ -201,6 +202,16 @@ class PatchList:
     def __init__(self, d):
         self.dir = d
         self.paths = read_csv(os.path.join(d, 'patch-paths.csv'))
+        # The seven gain steps and what each one should read. Generated from
+        # defs' own mic gain law; the runner carries no gain number of its own.
+        self.gain = {}
+        gp = os.path.join(d, 'patch-gain-steps.csv')
+        if os.path.exists(gp):
+            for r in read_csv(gp):
+                self.gain[int(r['code'])] = dict(
+                    expected_db=float(r['expected_db']), source=r['source'],
+                    drive_dbfs=(float(r['drive_dbfs'])
+                                if r['drive_dbfs'] else None))
         self.routes = dict((r['route'], r['cells'].split(';'))
                            for r in read_csv(os.path.join(d, 'patch-routes.csv')))
         self.patches = []
@@ -210,10 +221,18 @@ class PatchList:
             self.patches[-1][1].append(r)
 
     def blocks(self):
+        """The patches grouped the way the OPERATOR meets them.
+
+        Grouped by the block, not by the lead: since PW's ruling of
+        2026-09-26 the input walk alternates between the XLR lead and the
+        150 ohm plug at every input -- lead in, seven gain steps, lead out,
+        plug in, noise -- and that is one stretch of work with one pair of
+        leads in the operator's hands, not forty-eight blocks.
+        """
         out = []
         for pid, rows in self.patches:
             key = (rows[0]['lead'], rows[0]['block'])
-            if not out or out[-1][0] != key:
+            if not out or out[-1][0][1] != key[1]:
                 out.append((key, []))
             out[-1][1].append((pid, rows))
         return out
@@ -618,6 +637,9 @@ class Scorer:
         if want == 'noise':
             return self._score_noise(row, meas, notes)
 
+        if row['level_ref'] == 'gain':
+            return self._score_gain_step(row, meas, siblings, notes)
+
         # `floor` is the lane's own dBFS floor and `h` is a loop GAIN, so the
         # comparison is made on the lane: the coherent level the fit found.
         here = meas.get('coh_dbfs', meas.get('rms'))
@@ -723,6 +745,49 @@ class Scorer:
                     'polarity could not be called: %.0f deg from the reference'
                     % (row['in'], uncertain), notes)
         return PASS, 'the tone arrived on %s and nowhere else' % row['in'], notes
+
+    def _score_gain_step(self, row, meas, siblings, notes):
+        """One of PW's six single-element gain steps.
+
+        WHAT IS JUDGED IS THE STEP, NOT THE LEVEL. The reading is compared
+        with the SAME INPUT's code-0 reading taken seconds earlier through the
+        same lead and the same output, so the loop's own gain, the drive and
+        the converter all cancel and what is left is what the element added.
+        The expected value is the list's, out of defs' gain law.
+        """
+        want = meas.get('expected_db')
+        here = meas.get('meter_db')
+        ref = None
+        for sib in siblings:
+            if sib.get('gain_code') == 0:
+                ref = sib.get('meter_db')
+                break
+        code = meas.get('gain_code')
+        if here is None or ref is None or want is None:
+            return NODATA, ('the gain step at code %s could not be read'
+                            % code), notes
+        # The drive was dropped by the step's own expected gain so the
+        # converter sees about the same level every time, so the drop has to
+        # be added back before the two readings can be subtracted.
+        got = here - ref
+        drive_ref = None
+        for sib in siblings:
+            if sib.get('gain_code') == 0:
+                drive_ref = sib.get('drive_dbfs')
+                break
+        if drive_ref is not None and meas.get('drive_dbfs') is not None:
+            got += drive_ref - meas['drive_dbfs']
+        tol = self.lim['gain_step_tol_db']
+        notes.append('gain element %d: measured %+.2f dB, expected %+.2f dB '
+                     '(%s), drive %+.1f dBFS'
+                     % (int(code).bit_length(), got, want,
+                        meas.get('source') or '?', meas.get('drive_dbfs') or 0.0))
+        if abs(got - want) <= tol:
+            return PASS, ('gain element %d adds %.1f dB, %.1f dB from expected'
+                          % (int(code).bit_length(), got, got - want)), notes
+        return FAIL, ('%s gain step %d is wrong: it adds %.1f dB and should '
+                      'add %.1f dB' % (row['in'], int(code).bit_length(), got,
+                                       want)), notes
 
     def _score_noise(self, row, meas, notes):
         n = meas.get('rms')
@@ -843,6 +908,10 @@ class Analog:
         self.raised = False          # this run raised AN_EN, so this run lowers it
         self.image = None            # the chain image currently on the part
         self.done = False
+        self.fast = None             # the lean writer, opened on first use
+        self.wrote = False           # did the last chain() move the wire?
+        self.writes = 0
+        self.write_s = 0.0
 
     # -- the shell ---------------------------------------------------------
     def sh(self, cmd, timeout=90):
@@ -868,20 +937,54 @@ class Analog:
                  % ('' if self.raised else ' (they were already up)'))
 
     # -- the chain ---------------------------------------------------------
+    def open_fast(self):
+        """The lean writer, opened once and held for the pass.
+
+        Measured on MW-D24-2, 2026-09-26: a chain write cost 294 ms as a
+        python3 process per write, 157 ms called in-process (113 ms of that
+        four `sudo pinctrl` calls), and 8 ms through this. The gain steps ask
+        for 168 writes in a pass; that is the difference between 49 s of a
+        worker's time and 1.3 s.
+        """
+        if self.fast is None and self.enabled:
+            try:
+                self.fast = CH.Chain()
+                self.log('the mic-pre chain writer is open (%s)'
+                         % ('fast' if self.fast.fast else 'pin fallback'))
+            except Exception as e:
+                self.fast = False
+                self.log('the fast chain writer would not open (%s); falling '
+                         'back to one process per write' % e)
+        return self.fast or None
+
     def chain(self, image, what):
         """One 595 image, written and read back. Never written twice running.
+
+        Sets `wrote` to say whether the wire actually moved, because a reading
+        taken after an image that did NOT change needs no settle for it.
 
         An unverified write is not a known state, so the marker is removed
         rather than left saying something that was not proved -- the same rule
         the self-test runner keeps.
         """
+        self.wrote = False
         if not self.enabled or image == self.image:
             return True
-        hexes = ' '.join('0x%02X' % b for b in image)
+        self.wrote = True
         want = ' '.join('%02X' % b for b in image)
-        txt = self.sh('cd %s && sudo -n python3 s55_chain.py %s 2>&1'
-                      % (self.s55, hexes), timeout=120)
-        ok = txt.startswith('VERIFIED 200/200') and want in txt
+        t0 = time.time()
+        fast = self.open_fast()
+        if fast is not None:
+            ok, got = fast.send(image)
+            txt = '%s %s' % ('VERIFIED' if ok else 'MISMATCH',
+                             ' '.join('%02X' % b for b in got))
+        else:
+            hexes = ' '.join('0x%02X' % b for b in image)
+            txt = self.sh('cd %s && sudo -n python3 s55_chain.py %s 2>&1'
+                          % (self.s55, hexes), timeout=120)
+            ok = txt.startswith('VERIFIED 200/200') and want in txt
+        self.writes += 1
+        self.write_s += time.time() - t0
         if ok:
             self.sh('printf %s > %s'
                     % (_q(want), _q(self.marker())))
@@ -896,6 +999,22 @@ class Analog:
             why = 'NOT VERIFIED -- %s' % first
         self.log('mic-pre chain %s: %s' % (what, why))
         return ok
+
+    def step_image(self, chain_index, code, quiet=0x01):
+        """The image for ONE gain step: the input under test at this code,
+        unmuted and phantom off; every other channel quiet and known.
+
+        The chain does NOT run in panel order, so the position comes out of
+        the list (which took it from defs' own input table) and never from
+        the strip number.
+        """
+        img = [quiet] * 24 + [0x00]
+        i = int(chain_index) - 1
+        if not 0 <= i < 24:
+            raise AssertionError('chain position %r is not on the chain'
+                                 % chain_index)
+        img[i] = CH.byte(mute=0, phantom=0, gain=int(code))
+        return img
 
     def for_block(self, lead):
         """The chain image this block needs.
@@ -927,6 +1046,12 @@ class Analog:
         self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
         self.image = None
         self.chain(self.safe_image, 'back to safe (muted, gain 0, phantom off)')
+        if self.fast:
+            try:
+                self.fast.close()
+            except Exception:
+                pass
+            self.fast = None
 
 
 def _q(s):
@@ -1122,15 +1247,24 @@ class Station:
         self.failures = []
         self.paused = False
         self._lead_line = ''     # folded into the next instruction, then cleared
+        self._last_in = None     # so the noise step can say 'take the lead out'
         # The parked ends, bound by the first step and not before it (S123
         # addendum 3). Until the loop is found there is no such thing as a
         # known-good socket, so there is nothing to park on.
         self.ref_in = None       # (panel name, strip)
         self.ref_out = None      # (panel name, drive)
         self.dead_in = {}        # strip -> why, from the find-a-loop walk
+        self.costs = {}          # where the machine seconds went, by name
 
     # -- setup -------------------------------------------------------------
     def standing(self):
+        t0 = now()
+        try:
+            return self._standing()
+        finally:
+            self.cost('getting the unit ready', now() - t0)
+
+    def _standing(self):
         self.live.set(state=LV.STARTING)
         self.an.up()
         donors = sorted({int(r['donor']) for r in self.L.paths})
@@ -1169,6 +1303,13 @@ class Station:
 
     # -- one patch ---------------------------------------------------------
     def prepare(self, rows):
+        t0 = now()
+        try:
+            return self._prepare(rows)
+        finally:
+            self.cost('putting the route up', now() - t0)
+
+    def _prepare(self, rows):
         """Assert the first sub-test's route, point the instrument, and read
         the lane with NOTHING plugged in. That baseline is two things at once:
         what the auto-advance watches for a change in, and the floor the tone
@@ -1176,6 +1317,14 @@ class Station:
         r = rows[0]
         lane = int(r['lane'])
         self.u.write(self.L.routes[r['route']])
+        # The preamp gain this patch starts at. A gain-step patch starts at
+        # code 0 (its own reference); the noise patch starts at full gain,
+        # which is also what makes the terminator's insertion visible.
+        if str(r.get('gain_code') or '') != '' and r.get('chain_index'):
+            self.an.image = None
+            self.an.chain(self.an.step_image(r['chain_index'],
+                                             int(r['gain_code'])),
+                          '%s at gain code %s' % (r['in'], r['gain_code']))
         freq = float(r['freq_hz']) if r['freq_hz'] else None
         lvl = float(r['level_dbfs']) if r['level_dbfs'] else None
         if r['expect'] == 'noise':
@@ -1272,10 +1421,66 @@ class Station:
             nap(0.05)
         return ('timeout', None, now() - t0)
 
+    def gain_step(self, r):
+        """One of PW's seven gain steps: chain, drive, settle, level.
+
+        LEVEL ONLY, AND OFF THE METER. A gain step asks one question -- how
+        much did this element add -- and the meter answers it in one peek with
+        no integration window at all, where the measurement node would cost a
+        settle and two windows (about half a second) to also report a THD
+        nobody asked for at this step. The code-0 step is the exception: it is
+        also the patch's tone reference, so it is read properly.
+        """
+        code = int(r['gain_code'])
+        spec = self.L.gain.get(code) or {}
+        drive = (float(r['level_dbfs']) if r['level_dbfs'] not in ('', None)
+                 else spec.get('drive_dbfs'))
+        t0 = now()
+        self.an.image = None
+        self.an.chain(self.an.step_image(r['chain_index'], code),
+                      'gain step, %s at code %d' % (r['in'], code))
+        if drive is not None:
+            self.u.osc(level_dbfs=drive)
+        nap(self.lim.get('gain_step_settle_s', 0.05))
+        lvl = self.watch(int(r['lane']))
+        m = dict(gain_code=code, drive_dbfs=drive, meter_db=lvl,
+                 expected_db=spec.get('expected_db'), source=spec.get('source'))
+        if code == 0:
+            # STEP 0 IS ALSO THE PATCH'S TONE REFERENCE, so it is read
+            # properly as well: level, polarity and distortion off the
+            # measurement node. The other six steps ask one question and get
+            # it from the meter in a single peek.
+            #
+            # AND IT NEEDS THE FULL SETTLE ONLY IF SOMETHING MOVED. The fit
+            # behind ThdResult subtracts the previous window, so a window in
+            # which anything changed reads as distortion -- but by the time
+            # this runs, the route, the instrument and the chain have been
+            # where they are for as long as the operator took to plug a lead
+            # in, which is seconds. The settle is paid when the chain write
+            # for this step actually moved the wire, and not otherwise.
+            settle = SETTLE_WINDOWS if self.an.wrote else READ_WINDOWS
+            m.update(self.u.measure(float(r['freq_hz']) if r['freq_hz'] else None,
+                                    drive if drive is not None else 0.0,
+                                    settle=settle))
+        else:
+            m['rms'] = lvl
+        self.cost('gain steps', now() - t0)
+        return m
+
+    def cost(self, what, secs):
+        self.costs[what] = self.costs.get(what, 0.0) + secs
+
     def acquire(self, rows, prep):
         """Every sub-test of one patch, with the lead left where it is."""
         out = []
         for i, r in enumerate(rows):
+            if str(r.get('gain_code') or '') != '' and r['expect'] != 'noise':
+                if i:
+                    # the route and the instrument do not move between the
+                    # seven steps -- only the chain and the drive do
+                    pass
+                out.append(dict(row=r, meas=self.gain_step(r), sweep={}))
+                continue
             if i:
                 self.u.write(self.L.routes[r['route']])
                 freq = float(r['freq_hz']) if r['freq_hz'] else None
@@ -1287,7 +1492,15 @@ class Station:
                     self.u.meas_chan(int(r['lane']))
             freq = float(r['freq_hz']) if r['freq_hz'] else None
             lvl = float(r['level_dbfs']) if r['level_dbfs'] else 0.0
-            m = self.u.measure(freq, lvl, settle=ROUTE_SETTLE_WINDOWS)
+            tm = now()
+            # A NOISE ROW HAS NO FIT TO SETTLE. ROUTE_SETTLE_WINDOWS exists
+            # because the coherent fit reads a changed window as distortion;
+            # an RMS of a terminated input is an RMS, and six windows of it
+            # is five windows of a factory worker waiting.
+            m = self.u.measure(freq, lvl,
+                               settle=(READ_WINDOWS if r['expect'] == 'noise'
+                                       else ROUTE_SETTLE_WINDOWS))
+            self.cost('settled readings', now() - tm)
             sweep = (self.u.meter_sweep(MIC_STRIPS)
                      if int(r['lane']) in MIC_STRIPS and r['expect'] == 'tone'
                      else {})
@@ -1305,7 +1518,10 @@ class Station:
                                           donor=int(r['donor']),
                                           sweep0=prep.get('sweep0'))
             sibs.append(dict(level_ref=r['level_ref'], h_db=m.get('h_db'),
-                             h_deg=m.get('h_deg')))
+                             h_deg=m.get('h_deg'),
+                             gain_code=m.get('gain_code'),
+                             meter_db=m.get('meter_db'),
+                             drive_dbfs=m.get('drive_dbfs')))
             scored.append(dict(path=r['path'], patch=r['patch'], lead=r['lead'],
                                out=r['out'], **{'in': r['in']}, sub=r['sub'],
                                rows=r['rows'], verdict=v, why=why,
@@ -1362,7 +1578,8 @@ class Station:
                     t1 = now()
                     self.record(self.score_patch([frow], fprep,
                                                  self.acquire([frow], fprep)))
-                    self.timing.append(dict(patch=pid, lead=lead, hand_s=0.0,
+                    self.timing.append(dict(patch=pid, lead=lead, block=block,
+                                            hand_s=0.0, read_s=now() - t1,
                                             machine_s=now() - t1, subs=1))
                     continue
                 # An input the find-a-loop walk already went past is recorded
@@ -1394,14 +1611,17 @@ class Station:
                         t1 = now()
                         self.live.set(state=LV.CHECKING)
                         raw = self.acquire(rows, prep)
+                        t_read = now() - t1
                         break
                     # ENTER with nothing on the expected input, or -- with
                     # auto-advance on -- the tone never arriving at all. A
                     # wrong patch is a prompt, never a fail: find the lead,
                     # say where it is, and offer the same patch again.
+                    tw = now()
                     sweep = self.u.meter_sweep(MIC_STRIPS)
                     where = self.where_is_it(int(rows[0]['lane']), sweep,
                                              int(rows[0]['donor']))
+                    self.cost('finding a misplaced lead', now() - tw)
                     self.p.done(tok)
                     tries += 1
                     again = (self.reprompt(pid, rows, where)
@@ -1425,9 +1645,9 @@ class Station:
                         token = self.p.connect(nxt[0], nrows, self.g)
                         self.announce(nxt[0], nrows)
                 self.record(self.score_patch(rows, prep, raw))
-                self.timing.append(dict(patch=pid, lead=lead, hand_s=t_hand,
-                                        machine_s=now() - t1,
-                                        subs=len(rows)))
+                self.timing.append(dict(patch=pid, lead=lead, block=block,
+                                        hand_s=t_hand, machine_s=now() - t1,
+                                        read_s=t_read, subs=len(rows)))
                 self.report_last(pid)
         self.finish()
         return self.rows_out
@@ -1593,8 +1813,15 @@ class Station:
         if lead_line and LV.lead_words(r['lead']) in LV.instruction_for(r):
             lead_line = ''
         extra = LV.extra_for(r) or LV.hold_note(len(rows))
-        self.live.set(state=LV.WAITING,
-                      instruction=LV.instruction_for(r, confirm=not self.auto),
+        # THE NOISE STEP IS A SWAP, NOT A NEW PATCH (PW 2026-09-26): the lead
+        # has just been in this very socket, so the instruction says so
+        # instead of naming the plug out of nowhere.
+        if r['expect'] == 'noise' and self._last_in == r['in']:
+            line = LV.swap_for_plug(r['in'], confirm=not self.auto)
+        else:
+            line = LV.instruction_for(r, confirm=not self.auto)
+        self._last_in = r['in']
+        self.live.set(state=LV.WAITING, instruction=line,
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
 
@@ -1787,6 +2014,10 @@ LEAD_TEXT = {
 # parameter, because they are a fact about a person and not about this code.
 CELL_WRITE_S = 0.004          # one SPI write plus its read-back, measured shape
 PEEK_S = 0.003                # one diag peek, ditto
+# One 595 chain write through the lean writer, MEASURED on MW-D24-2 on
+# 2026-09-26: 8.1 ms with gpiod holding CS_M, against 157 ms calling
+# s55_chain.send() in-process and 294 ms as a process per write.
+CHAIN_WRITE_S = 0.0081
 
 
 class SimUnit:
@@ -1812,15 +2043,20 @@ class SimUnit:
         return []
 
     def osc(self, chan=None, freq=None, level_dbfs=None, on=None):
+        # ONE NAP PER CELL ACTUALLY WRITTEN, not four every time: a gain step
+        # writes the level and nothing else, and charging it for the chan, the
+        # frequency and the on/off it did not touch put 12 ms on every one of
+        # the hundred and forty-four element steps in a pass.
+        specs = 0
         if chan is not None:
-            self.osc_chan = chan
+            self.osc_chan = chan; specs += 1
         if freq is not None:
-            self.osc_freq = freq
+            self.osc_freq = freq; specs += 1
         if level_dbfs is not None:
-            self.osc_level = level_dbfs
+            self.osc_level = level_dbfs; specs += 1
         if on is not None:
-            self.osc_on = on
-        nap(CELL_WRITE_S * 4)
+            self.osc_on = on; specs += 1
+        nap(CELL_WRITE_S * specs)
 
     def meas_chan(self, lane):
         self.lane = lane
@@ -1854,7 +2090,12 @@ class SimUnit:
         """
         if self.osc_on and lane == self.osc_chan:
             return self.osc_level
-        return self.w.level(self.driven(), lane, self.osc_on, self.osc_level)
+        db = self.w.level(self.driven(), lane, self.osc_on, self.osc_level)
+        # THE PREAMP IS PART OF THE MODEL SINCE PW'S SEVEN GAIN STEPS. Without
+        # it a dry run cannot tell a correct step from a broken one, which is
+        # the only way this session can check the step arithmetic at all.
+        g = self.w.preamp_db(lane)
+        return db + g if db > -200 else db
 
     def meter_peak(self, strip):
         nap(PEEK_S)
@@ -1890,6 +2131,35 @@ class World:
 
     REF_PHASE = 42.0             # this unit's loop phase at 1 kHz, arbitrary
     thd = -72.0
+
+    gain_table = {}
+    chain_pos = {}
+    chain = None
+
+    def preamp_db(self, lane):
+        """What this lane's preamp is adding, from the image on the chain.
+
+        The chain does not run in panel order, so the position comes from the
+        same map the station uses; a lane with no position (the codec return
+        lanes) has no preamp and adds nothing.
+        """
+        if not self.chain or not self.gain_table:
+            return 0.0
+        pos = self.chain_pos.get(int(lane))
+        if pos is None:
+            return 0.0
+        code = (self.chain[pos - 1] >> 2) & 63
+        # A DEAD GAIN ELEMENT. `gain:MIC 7:3` opens element 3 on that input:
+        # the bit is written, the resistor is not there, so the step reads as
+        # if the element were off. That is what an open FET or a missing part
+        # does, and it is the thing the seven steps exist to catch.
+        for f in self.faults:
+            if f.startswith('gain:'):
+                _k, who, bit = f.split(':')
+                if who.strip() == 'MIC %d' % int(lane):
+                    code &= ~(1 << (int(bit) - 1))
+        spec = self.gain_table.get(code)
+        return spec['expected_db'] if spec else 0.0
 
     def __init__(self, faults=(), quiet_floor=-96.0):
         self.faults = set(faults)
@@ -1945,6 +2215,30 @@ class World:
         if 'swap:%s' % self.plugged_out in self.faults:
             inverted = not inverted
         return d + (180.0 if inverted else 0.0)
+
+
+class SimAnalog(Analog):
+    """The rails and the chain, in arithmetic. It writes nothing anywhere; it
+    tells the world what image is on the part so the preamps can be modelled."""
+
+    def __init__(self, world, gain, chain_pos, log=None):
+        Analog.__init__(self, enabled=False, log=log)
+        self.w = world
+        self.w.gain_table = gain
+        self.w.chain_pos = chain_pos
+
+    def chain(self, image, what):
+        self.w.chain = list(image)
+        self.writes += 1
+        nap(CHAIN_WRITE_S)
+        self.write_s += CHAIN_WRITE_S
+        return True
+
+    def up(self):
+        pass
+
+    def down(self):
+        pass
 
 
 class SimGlass:
@@ -2057,6 +2351,57 @@ def time_table(station, plist, hand_s):
     return by_lead
 
 
+def block_table(station, hand_s, press_s, out=sys.stdout):
+    """What each block of the pass costs, hand and machine (S123 addendum 6).
+
+    The machine seconds are the ones the loop actually spent -- every window,
+    every cell write, every chain write and every peek is inside them -- so
+    the table says where the time goes and not where it was supposed to.
+    """
+    per_hand = hand_s + press_s
+    by = {}
+    order = []
+    for t in station.timing:
+        b = t.get('block') or '(the start)'
+        if b not in by:
+            by[b] = dict(n=0, subs=0, machine=0.0)
+            order.append(b)
+        by[b]['n'] += 1
+        by[b]['subs'] += t['subs']
+        by[b]['machine'] += t['machine_s']
+    out.write('\n  block                     steps  readings   machine s   '
+              'per step   hand s @ %.1f s\n' % per_hand)
+    out.write('  ' + '-' * 78 + '\n')
+    tot_n = tot_s = 0
+    tot_m = 0.0
+    for b in order:
+        d = by[b]
+        tot_n += d['n']; tot_s += d['subs']; tot_m += d['machine']
+        out.write('  %-24s %6d  %8d  %10.1f  %9.3f  %14.0f\n'
+                  % (b[:24], d['n'], d['subs'], d['machine'],
+                     d['machine'] / max(d['n'], 1), d['n'] * per_hand))
+    out.write('  ' + '-' * 78 + '\n')
+    out.write('  %-24s %6d  %8d  %10.1f  %9.3f  %14.0f\n'
+              % ('the whole pass', tot_n, tot_s, tot_m,
+                 tot_m / max(tot_n, 1), tot_n * per_hand))
+    setup = sum(v for k, v in station.costs.items()
+                if k == 'getting the unit ready')
+    out.write('\n  where the machine seconds go\n')
+    for k, v in sorted(station.costs.items(), key=lambda kv: -kv[1]):
+        out.write('    %-26s %7.1f s\n' % (k, v))
+    out.write('    %-26s %7d writes, %.1f s (%.1f ms each)\n'
+              % ('...of which the 595 chain', station.an.writes,
+                 station.an.write_s,
+                 1000.0 * station.an.write_s / max(station.an.writes, 1)))
+    out.write('\n  the operator waits for the machine only when the machine '
+              'is slower than their hands:\n')
+    slow = [(b, by[b]['machine'] / max(by[b]['n'], 1)) for b in order]
+    worst = max(slow, key=lambda x: x[1])
+    out.write('    worst block: %s at %.3f s a step against %.1f s of hand\n'
+              % (worst[0], worst[1], per_hand))
+    return by, setup
+
+
 def print_time_table(by_lead, hand_s, plist, out=sys.stdout, press_s=0.0):
     # THE OPERATOR'S SECONDS ARE TWO ACTIONS NOW, not one: the hand move and
     # the reach for ENTER (PW 2026-09-26). Both are the operator's, so both
@@ -2109,13 +2454,19 @@ def cmd_simulate(a, plist):
     glass = SimGlass(log)
     unit = SimUnit(world)
     patcher = SimPatcher(glass, world, a.hand, log, press_s=a.press)
+    chain_pos = {}
+    for r in plist.paths:
+        if r.get('chain_index') and str(r['lane']).isdigit():
+            chain_pos[int(r['lane'])] = int(r['chain_index'])
+    an = SimAnalog(world, plist.gain, chain_pos, log=log)
     live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live,
                    confirm=not a.auto_advance)
     # The dry run has no hands to press ENTER with, so the simulated operator
     # presses it: SimPatcher answers `done` the moment its virtual hand has
     # made the connection, which is the same message the button sends.
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
-                 blocks=a.block, live=live, auto_advance=a.auto_advance)
+                 blocks=a.block, live=live, analog=an,
+                 auto_advance=a.auto_advance)
     rows = st.run()
     counts = {}
     for r in rows:
@@ -2131,6 +2482,7 @@ def cmd_simulate(a, plist):
                       % (r['patch'], r['in'], r['verdict'], r['why']))
     print_time_table(time_table(st, plist, a.hand), a.hand, plist,
                      press_s=0.0 if a.auto_advance else a.press)
+    block_table(st, a.hand, 0.0 if a.auto_advance else a.press)
     if a.out:
         print('\nwrote %s' % write_results(a.out, rows))
     if a.strings:
@@ -2219,8 +2571,9 @@ def screen_walk(plist):
         ('11-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
                        banner_line=LV.patch_words(tone),
                        action=LV.action_failed(), passed=5, failed=1)),
-        ('12-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
-                                  lead_line='')),
+        ('12-terminator-step',
+         at(noise, 20, state=LV.WAITING, lead_n=2, lead_line='',
+            instruction=LV.swap_for_plug(noise['in']))),
         ('13-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
                             lead_line=LV.pick_up(line['lead']))),
         ('14-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
@@ -2371,7 +2724,8 @@ def main(argv=None):
                     help='only this lead (K1..K5); repeatable')
     ap.add_argument('--fault', action='append',
                     help='inject a fault in --simulate: dead:<in>, '
-                         'mispatch:<in>, swap:<jack>, nonull:<jack>, edge:<in>')
+                         'mispatch:<in>, swap:<jack>, nonull:<jack>, '
+                         'edge:<in>, gain:<in>:<element 1-6>')
     ap.add_argument('--hand', type=float, default=5.0,
                     help='seconds per hand move, for the projection')
     ap.add_argument('--press', type=float, default=PRESS_S,

@@ -147,6 +147,13 @@ def move_output(out, into, confirm=True):
             % (out, socket_words(into), ', then press ENTER.' if confirm else '.'))
 
 
+def swap_for_plug(name, confirm=True):
+    """The noise step, which PW ruled is sequential: the lead comes out and
+    the plug goes into the socket it just left."""
+    return ('Take the lead out of %s and put the 150 ohm plug in%s'
+            % (socket_words(name), ', then press ENTER.' if confirm else '.'))
+
+
 NO_LOOP = 'No signal on any socket - call the supervisor.'
 LOOKING = 'Looking for a working socket...'
 
@@ -237,6 +244,7 @@ def every_string(rows=()):
     out += [SIGNAL_SEEN, NO_LOOP, LOOKING,
             move_input('MIC 6'), move_input('MIC 6', False),
             move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
+            swap_for_plug('MIC 7'), swap_for_plug('MIC 7', False),
             action_no_signal(), action_no_signal(False), action_failed(),
             HANDOVER, 'ENTER', 'PAUSE', 'START',
             finished_words(55, 0), finished_words(53, 2),

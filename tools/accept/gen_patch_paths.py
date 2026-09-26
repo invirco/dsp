@@ -67,6 +67,7 @@ Rows whose lane never carries a balanced reference (the codec lanes) carry
 """
 import argparse
 import csv
+import math
 import os
 import re
 import sys
@@ -76,6 +77,9 @@ ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 sys.path.insert(0, os.path.join(ROOT, 'tools', 'pi'))
 
 DEFS_DSP = os.path.join(ROOT, 'defs', 'products', 'd24', 'dsp.csv')
+DEFS_INPUTS = os.path.join(ROOT, 'defs', 'products', 'd24', 'inputs.csv')
+DEFS_GAIN_LAW = os.path.join(ROOT, 'defs', 'common', 'tables',
+                             'mic-gain-law.csv')
 DEFS_IO = os.path.join(ROOT, 'defs', 'products', 'd24', 'd24-io.csv')
 OUT_DEFAULT = os.path.join(ROOT, 'MW', 'D24', 'DSP', 's121')
 PORTS = os.path.join(OUT_DEFAULT, 'harness-ref', 'd24-harness-ports.csv')
@@ -195,6 +199,70 @@ def load_cells():
     if len(names) < 1000:
         raise SystemExit('dsp.csv gave only %d cell names: wrong file?' % len(names))
     return names
+
+
+def load_chain_index():
+    """Which byte of the 25-byte 595 image belongs to which panel input.
+
+    Straight off `defs/products/d24/inputs.csv`. The chain does NOT run in
+    panel order -- MIC 1 is byte 1 and MIC 2 is byte 3 -- so a station that
+    assumed it did would put every gain step on the wrong preamp.
+    """
+    out = {}
+    for r in read_csv(DEFS_INPUTS, comment='#'):
+        m = re.match(r'^MIC\s+(\d+)$', r['panel'].strip())
+        if m:
+            out[int(m.group(1))] = int(r['chain_index'])
+    if len(out) != len(STRIPS):
+        raise SystemExit('inputs.csv gave %d mic chain positions, expected %d'
+                         % (len(out), len(STRIPS)))
+    return out
+
+
+def load_gain_law():
+    """The measured mic gain law, and the six element gains fitted to it.
+
+    Returns (measured {code: dB}, k[6], worst residual dB).
+    """
+    seen = {}
+    for r in read_csv(DEFS_GAIN_LAW, comment='#'):
+        c = int(r['code'])
+        seen.setdefault(c, float(r['hw_gain_db']))
+    codes = [c for c in sorted(seen) if c > 0]
+    if len(codes) < 12:
+        raise SystemExit('the mic gain law has only %d measured codes: a fit '
+                         'of six elements needs more' % len(codes))
+    rowsA = [[1.0 if (c >> i) & 1 else 0.0 for i in range(6)] for c in codes]
+    y = [10 ** (seen[c] / 20.0) - 1.0 for c in codes]
+    nn = 6
+    ata = [[sum(rowsA[r][i] * rowsA[r][j] for r in range(len(codes)))
+            for j in range(nn)] for i in range(nn)]
+    aty = [sum(rowsA[r][i] * y[r] for r in range(len(codes))) for i in range(nn)]
+    M = [ata[i][:] + [aty[i]] for i in range(nn)]
+    for col in range(nn):
+        piv = max(range(col, nn), key=lambda r: abs(M[r][col]))
+        M[col], M[piv] = M[piv], M[col]
+        if not M[col][col]:
+            raise SystemExit('the gain law fit is singular')
+        for r in range(nn):
+            if r != col and M[r][col]:
+                f = M[r][col] / M[col][col]
+                for cc in range(col, nn + 1):
+                    M[r][cc] -= f * M[col][cc]
+    k = [M[i][nn] / M[i][i] for i in range(nn)]
+    worst = 0.0
+    for c in codes:
+        g = 1.0 + sum(k[i] for i in range(6) if (c >> i) & 1)
+        worst = max(worst, abs(20.0 * math.log10(g) - seen[c]))
+    return seen, k, worst
+
+
+def gain_db(code, seen, k):
+    """The expected hardware gain of one code, and where the number came from."""
+    if code in seen:
+        return seen[code], 'measured'
+    g = 1.0 + sum(k[i] for i in range(6) if (code >> i) & 1)
+    return 20.0 * math.log10(g), 'fitted'
 
 
 def load_ports():
@@ -428,7 +496,8 @@ MONO_TRS_OUTS = [('MONITOR L', 'xover:ctr', TONE_HZ,
 
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',
-           'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park')
+           'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park',
+           'gain_code', 'chain_index')
 
 # ---------------------------------------------------------------------------
 # THE ORDER (PW 2026-09-26)
@@ -462,6 +531,38 @@ COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
 # does not. What it buys is that no fail ever needs a second patch to
 # interpret.
 PARK_FIND, PARK_IN_END, PARK_OUT_END = 'find', 'in', 'out'
+
+# ---------------------------------------------------------------------------
+# THE SEVEN GAIN STEPS (PW 2026-09-26)
+# ---------------------------------------------------------------------------
+# "The real test should test all 6 gain resistors off, and each resistor
+# enabled individually -- total 7 steps." The lead is already in the socket,
+# so this costs no hand move at all: it is machine time spent behind a screen
+# that already says "Checking...".
+#
+# WHAT EACH STEP SHOULD READ IS NOT TYPED HERE. defs' own mic gain law
+# (`defs/common/tables/mic-gain-law.csv`, measured on MW-D24-2's analog board
+# on 2026-09-16) gives `hw_gain_db` for 25 of the 64 codes -- and three of the
+# six single-element codes are NOT among them, because the law only keeps the
+# code it would actually pick for each target dB. So the six ELEMENT gains are
+# fitted to that same table and the three missing steps come out of the fit.
+#
+# The fit is one line of physics and no free hardware constants: the preamp is
+# an instrumentation amplifier whose gain is 1 + 2Rf/Rg with Rg the PARALLEL
+# combination of whichever elements are switched in, so
+#
+#     G(code) = 1 + sum(k_i for each element i in the code)
+#
+# with six unknowns k_i = 2Rf/R_i. Twenty-four measured codes determine them
+# by least squares, and the residual is reported so nobody has to take the fit
+# on trust. A step whose expected value came out of the fit says so in the
+# `source` column, and the window in patch-limits.csv is wide enough to cover
+# the fit's own error several times over.
+GAIN_STEPS = (0, 1, 2, 4, 8, 16, 32)
+# The noise reading rides the input walk now (PW 2026-09-26), at the gain the
+# 2026-09-16 survey used: every element in, which is the code the old separate
+# noise block wrote.
+EIN_GAIN_CODE = 63
 
 
 # ---------------------------------------------------------------------------
@@ -540,6 +641,8 @@ def parse_lead_excludes(specs):
 class Builder:
     def __init__(self, ports, cells, excl_inputs=(), excl_leads=()):
         self.ports, self.cells = ports, cells
+        self.chain_at = load_chain_index()
+        self.gain_seen, self.gain_k, self.gain_resid = load_gain_law()
         self.paths, self.routes, self.missing = [], {}, []
         self.n = 0
         self.patch = 0
@@ -604,6 +707,8 @@ class Builder:
         kw.setdefault('sub', '')
         kw.setdefault('note', '')
         kw.setdefault('park', '')
+        kw.setdefault('gain_code', '')
+        kw.setdefault('chain_index', '')
         kw.setdefault('prompt', '')
         kw.setdefault('freq_hz', TONE_HZ)
         kw.setdefault('level_dbfs', TONE_DBFS)
@@ -648,16 +753,49 @@ class Builder:
         The output end is parked on the output the loop was found with, so a
         fail here is the INPUT and nothing else. Inputs the first step already
         walked past are recorded there and are not walked again.
+
+        EACH INPUT IS TWO OPERATOR STEPS AND NINE READINGS. The lead goes in
+        and the tester takes SEVEN gain steps without the hand moving again
+        (all six gain-leg elements off, then each one alone); then the lead
+        comes out, the 150 ohm plug goes in, and the input's own noise is read
+        at full gain. PW's amendment of 2026-09-26 made it that way round --
+        sequential, one socket at a time -- rather than the plug following one
+        socket behind, so nothing has to be proved about crosstalk between a
+        driven input and the one next to it.
         """
         for strip in self.strips():
             inp = 'MIC %d' % strip
+            pos = self.chain_at[strip]
             self.new_patch()
-            self.add(lead='K1', block='the inputs', out=PARK_OUT, in_=inp,
-                     drive=PARK_DRIVE, lane=strip, donor=donor_for(strip),
-                     expect='tone', level_ref='ref', polarity='ref',
-                     rows=self.rows_for(PARK_OUT, inp),
-                     prompt='Patch %s to %s' % (PARK_OUT, inp),
-                     park=PARK_OUT_END)
+            for step in GAIN_STEPS:
+                db, _src = gain_db(step, self.gain_seen, self.gain_k)
+                self.add(lead='K1', block='the inputs', out=PARK_OUT, in_=inp,
+                         drive=PARK_DRIVE, lane=strip, donor=donor_for(strip),
+                         expect='tone',
+                         level_ref=('ref' if step == 0 else 'gain'),
+                         polarity=('ref' if step == 0 else '-'),
+                         sub='g%d' % step, gain_code=step, chain_index=pos,
+                         level_dbfs=round(TONE_DBFS - db, 2),
+                         rows=self.rows_for(PARK_OUT, inp),
+                         prompt='Patch %s to %s' % (PARK_OUT, inp),
+                         park=PARK_OUT_END,
+                         note=('the tone reference for this input, every gain '
+                               'element off' if step == 0 else
+                               'gain element %d alone; the drive is dropped by '
+                               'the step\'s own expected gain so the converter '
+                               'reads about the same level every step'
+                               % (step.bit_length())))
+            if self.out_lead('K5'):
+                continue
+            self.new_patch()
+            self.add(lead='K5', block='the inputs', out='', in_=inp,
+                     drive='none', lane=strip, donor=donor_for(strip),
+                     expect='noise', level_ref='ein', polarity='-',
+                     level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
+                     chain_index=pos, rows=self.rows_for(inp),
+                     prompt='Fit the 150 ohm terminator in %s' % inp,
+                     note='the input noise, at the gain the 2026-09-16 survey '
+                          'used; the window is limits.csv t4b_ein_max_dbu')
         if self.out_in('TALKBACK'):
             return
         self.new_patch()
@@ -671,21 +809,6 @@ class Builder:
                       'preamps: a different gain law and about 23 dB more noise '
                       '(S70), so its level is reported and not judged until PW '
                       'rules a window')
-
-    def block_k5(self):
-        """The input noise rows: a 150 ohm terminator and no tone at all."""
-        self.dropped += len(STRIPS) - len(self.strips())
-        for strip in self.strips():
-            self.new_patch()
-            self.add(lead='K5', block='the input noise rows', out='',
-                     in_='MIC %d' % strip, drive='none', lane=strip,
-                     donor=donor_for(strip), expect='noise', level_ref='ein',
-                     polarity='-', level_dbfs='', freq_hz='',
-                     rows=self.rows_for('MIC %d' % strip),
-                     prompt='Fit the 150 ohm terminator in MIC %d' % strip,
-                     park='',
-                     note='EIN at the gain the 2026-09-16 survey used; the '
-                          'window is limits.csv t4b_ein_max_dbu')
 
     def block_k4(self):
         """The line paths: the same combo jacks, entered through the TRS centre.
@@ -794,7 +917,6 @@ class Builder:
         # output in a row against it, then every input in a row against a
         # known-good output. Each block moves ONE end.
         blocks = [('K1', self.block_k1_outputs), ('K1', self.block_k1_inputs),
-                  ('K5', self.block_k5),
                   ('K4', self.block_k4), ('K2', self.block_k2),
                   ('K3', self.block_k3)]
         for lead, fn in blocks:
@@ -888,6 +1010,40 @@ def write_routes(out, b):
         w.writerow(('_standing_masters', ';'.join(cells_bus_masters(AUXES))))
         for rid in sorted(b.routes):
             w.writerow((rid, ';'.join(b.routes[rid])))
+    return path
+
+
+HEAD_GAIN = """\
+# patch-gain-steps.csv -- GENERATED by tools/accept/gen_patch_paths.py (S121). Do not edit.
+# The seven mic-preamp gain steps: every gain-leg element off, then each one alone.
+# `expected_db` is the step's hardware gain. `source` says where it came from:
+#   measured  defs/common/tables/mic-gain-law.csv has this code, measured on an
+#             analog board on 2026-09-16
+#   fitted    the law does not carry this code (it only keeps the code it would
+#             pick for each target dB), so the six ELEMENT gains were fitted to the
+#             %d codes it does carry -- G(code) = 1 + sum of the elements in it --
+#             and this step is the fit's value. Worst residual over the measured
+#             codes: %.3f dB.
+# `drive_dbfs` is what the oscillator is set to for this step, so the converter sees
+# about the same level at every gain and nothing clips.
+"""
+
+
+def write_gain_steps(out, b):
+    path = os.path.join(out, 'patch-gain-steps.csv')
+    with open(path, 'w', newline='') as fh:
+        fh.write(HEAD_GAIN % (len([c for c in b.gain_seen if c > 0]),
+                              b.gain_resid))
+        w = csv.writer(fh)
+        w.writerow(('step', 'code', 'byte', 'expected_db', 'source',
+                    'drive_dbfs'))
+        for i, code in enumerate(GAIN_STEPS):
+            db, src = gain_db(code, b.gain_seen, b.gain_k)
+            w.writerow((i, code, '0x%02X' % ((code & 63) << 2), '%.3f' % db,
+                        src, '%.2f' % (TONE_DBFS - db)))
+        db, src = gain_db(EIN_GAIN_CODE, b.gain_seen, b.gain_k)
+        w.writerow(('ein', EIN_GAIN_CODE, '0x%02X' % ((EIN_GAIN_CODE & 63) << 2),
+                    '%.3f' % db, src, ''))
     return path
 
 
@@ -1009,7 +1165,7 @@ def main(argv=None):
         return 0
     os.makedirs(a.out, exist_ok=True)
     written = [write_paths(a.out, b), write_routes(a.out, b),
-               write_plan(a.out, b)]
+               write_gain_steps(a.out, b), write_plan(a.out, b)]
     # The windows are a SOURCE file, hand-tuned by PW, and the station reads
     # them out of the list directory it was pointed at. A short list written
     # somewhere else would otherwise be a directory the station cannot run
@@ -1027,6 +1183,8 @@ def main(argv=None):
         print('wrote %s' % os.path.relpath(p, ROOT))
     print('%d patches, %d measurements, %d sockets not run'
           % (b.patch, b.n, len(b.notrun)))
+    print('the gain law fit: worst residual %.3f dB over %d measured codes'
+          % (b.gain_resid, len([c for c in b.gain_seen if c > 0])))
     if excl_in or excl_lead:
         print('excluded: %s' % ', '.join(sorted(excl_in) +
                                          sorted(LEADS[k]['name']
