@@ -85,15 +85,24 @@ FS = 48000.0
 # means anything -- the first window after any change has no fit yet and reads
 # ThdResult 0.00 dB by construction.
 WIN_S = 4096.0 / FS
-SETTLE_WINDOWS = 2
+# TWO WINDOWS IS NOT ENOUGH, AND IT LOOKS LIKE DISTORTION WHEN IT ISN'T.
+# The fit behind ThdResult subtracts the PREVIOUS window's fitted sine sample
+# by sample, so a window in which anything moved -- a ramped send, a bus
+# master, a pan, or just the tap arriving somewhere new -- is scored as
+# distortion. Measured on MW-D24-2, 2026-09-26, sweeping the settle over the
+# same three routes:
+#
+#     settle    aux 1 THD+N    aux 2 THD+N    main L THD+N
+#          2     -19.21 dB      -24.74 dB       -3.75 dB     <- nonsense
+#          4    -116.16 dB     -115.50 dB     -115.51 dB
+#          6    -115.51 dB     -115.50 dB     -116.16 dB
+#         12    -116.16 dB     -116.16 dB     -115.51 dB
+#
+# The LEVEL read -15.01 dBFS in every one of those, settle 2 included: it was
+# never the level that was wrong. Four is where it settles, so four is the
+# floor here and a route change -- which moves more -- gets six.
+SETTLE_WINDOWS = 4
 READ_WINDOWS = 2
-# A ROUTE CHANGE NEEDS LONGER THAN A MEASCHAN CHANGE. The send, the bus master
-# and the pan are all ramped cells, and the fit that produces ThdResult treats
-# a level still on its way somewhere as distortion: measured on MW-D24-2 on
-# 2026-09-26, a reading taken two windows after a route assert gave THD+N
-# figures from -4 dB to -115 dB on paths whose LEVEL was -15.01 dBFS every
-# time. The level was never wrong; the fit had not settled. So a reading that
-# follows a route change waits longer.
 ROUTE_SETTLE_WINDOWS = 6
 
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
@@ -580,7 +589,7 @@ class Scorer:
         return ('normal' if d < self.lim['polarity_margin_deg']
                 else 'inverted'), d
 
-    def score(self, row, meas, floor, sweep, siblings, donor=None):
+    def score(self, row, meas, floor, sweep, siblings, donor=None, sweep0=None):
         """One path's verdict, and the plain sentence that goes with it.
 
         `meas` is the settled reading, `floor` the same lane with the tone off,
@@ -624,7 +633,7 @@ class Scorer:
                     'so they are not matched or they are crossed' % rel, notes)
 
         # -- isolation: the tone must be on THIS lane and no other ----------
-        bad = self._isolation(lane, sweep, donor)
+        bad = self._isolation(lane, sweep, donor, sweep0)
         if bad:
             return (MISPATCH, 'the tone is on %s, not %s' % (bad, row['in']), notes)
 
@@ -712,7 +721,7 @@ class Scorer:
                          'the figure is recorded, and limits.csv t4b_ein_max_dbu '
                          'is the design reference'])
 
-    def _isolation(self, lane, sweep, donor=None):
+    def _isolation(self, lane, sweep, donor=None, sweep0=None):
         """The loudest OTHER lane, if it is not far enough down.
 
         THE DONOR STRIP IS NOT A LANE UNDER TEST and is skipped. The
@@ -731,12 +740,33 @@ class Scorer:
         for k, v in sweep.items():
             if k == lane or k == donor or not v or v <= 0:
                 continue
+            if not self._rose(k, v, sweep0):
+                continue
             d = dbv(v) - dbv(here)
             if worst is None or d > worst:
                 worst, who = d, k
         if worst is not None and worst > -self.lim['isolation_min_db']:
             return 'MIC %d' % who
         return None
+
+    def _rose(self, lane, v, sweep0):
+        """Did this lane get louder during THIS patch?
+
+        A MIS-PATCH LIGHTS A LANE THAT WAS DARK; A METER TAIL IS A LANE GOING
+        OUT. The strip meters hold their peak and decay slowly -- measured on
+        MW-D24-2, about 6 dB per second -- so a lane driven hard by the patch
+        before is still tens of decibels above its floor when the next patch
+        is measured, and judging "is anything else lit" on the absolute
+        reading alone would call that a mis-patch. The lane that matters is
+        the one that RISES while the operator's hands are on the connector,
+        which is exactly what the baseline taken at prepare time separates.
+        """
+        if not sweep0:
+            return True
+        was = sweep0.get(lane)
+        if was is None or was <= 0:
+            return True
+        return dbv(v) - dbv(was) >= self.lim['detect_rise_db']
 
 
 # ---------------------------------------------------------------------------
@@ -829,7 +859,8 @@ class Station:
             self.u.osc(chan=int(r['donor']), freq=freq, level_dbfs=lvl, on=True)
         self.u.meas_chan(lane)
         return dict(lane=lane, freq=freq, level=lvl,
-                    floor=self.floors.get(lane), watch=self.watch(lane))
+                    floor=self.floors.get(lane), watch=self.watch(lane),
+                    sweep0=self.u.meter_sweep(MIC_STRIPS))
 
     def watch(self, lane):
         """The cheap level the auto-advance polls, in dB.
@@ -917,7 +948,8 @@ class Station:
             # they have floors of their own
             floor = self.floors.get(int(r['lane']))
             v, why, notes = self.sc.score(r, m, floor, item['sweep'], sibs,
-                                          donor=int(r['donor']))
+                                          donor=int(r['donor']),
+                                          sweep0=prep.get('sweep0'))
             sibs.append(dict(level_ref=r['level_ref'], h_db=m.get('h_db'),
                              h_deg=m.get('h_deg')))
             scored.append(dict(path=r['path'], patch=r['patch'], lead=r['lead'],

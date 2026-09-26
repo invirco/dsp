@@ -86,7 +86,7 @@ def main():
     # 2 ---------------------------------------------------------------------
     head(2, 'the standing write')
     donors = sorted({int(r['donor']) for r in plist.paths})
-    cells = plist.standing(donors)
+    cells = plist.standing()
     t0 = time.time()
     bad = u.write(cells)
     dt = time.time() - t0
@@ -133,14 +133,14 @@ def main():
         u.write(plist.routes[rid])
         u.osc(chan=donor, freq=1000.0, level_dbfs=-12.0, on=True)
         u.meas_chan(code)
-        m = u.measure(1000.0, -12.0)
+        m = u.measure(1000.0, -12.0, settle=PT.ROUTE_SETTLE_WINDOWS)
         say('    %-10s -> %-28s %8.2f dBFS   THD+N %s'
             % (drive, label, m.get('rms', float('nan')),
                PT.dbpct(m.get('thd'))))
     u.write(plist.routes['%s@%d' % ('mainL', donor)])
     u.osc(chan=donor, freq=1000.0, level_dbfs=-12.0, on=True)
     u.meas_chan(34)
-    m = u.measure(1000.0, -12.0)
+    m = u.measure(1000.0, -12.0, settle=PT.ROUTE_SETTLE_WINDOWS)
     say('    main:L     -> main R (the OTHER side)   %8.2f dBFS  -- a pan that'
         % m.get('rms', float('nan')))
     say('               did not land would read the same on both')
@@ -211,7 +211,8 @@ def main():
         u.write(plist.routes['aux%d@%d' % (a, donor)])
         u.osc(chan=donor, freq=1000.0, level_dbfs=-12.0, on=True)
         sweep = u.meter_sweep(range(1, 25))
-        lit = [(PT.dbv(v), s) for s, v in sweep.items() if v and PT.dbv(v) > -70]
+        lit = [(PT.dbv(v), s) for s, v in sweep.items()
+               if s != donor and v and PT.dbv(v) > -70]
         lit.sort(reverse=True)
         if lit:
             say('    AUX %d -> %s' % (a, ', '.join('MIC %d at %.1f dBFS'
@@ -225,7 +226,7 @@ def main():
             u.write(plist.routes['aux%d@%d' % (a, donor)])
             u.osc(chan=donor, freq=1000.0, level_dbfs=-12.0, on=True)
             u.meas_chan(s)
-            m = u.measure(1000.0, -12.0)
+            m = u.measure(1000.0, -12.0, settle=PT.ROUTE_SETTLE_WINDOWS)
             say('    AUX %d -> MIC %d: loop gain %.2f dB, phase %.1f deg, '
                 'THD+N %s' % (a, s, m.get('h_db', float('nan')),
                               m.get('h_deg', float('nan')), PT.dbpct(m.get('thd'))))
