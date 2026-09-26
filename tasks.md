@@ -1,3 +1,101 @@
+## HUB DISPATCH 2026-09-26 13:17Z — S117: RUN ALL — one START, auto pipelined, manual stepped, one report (simplest/fastest)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S117 — RUN ALL: one START, every auto test pipelined, every manual test stepped, one complete report
+
+PW 2026-09-26 (mx26 pipeline.md, "RUN ALL SHAPE RULED"): there are two categories of test.
+AUTO needs no operator. MANUAL needs the operator to push buttons, respond to LED signals,
+change XLR cables, insert a USB drive into a port, and so on. The test starts with a SINGLE
+button push that pipelines all the auto tests, then steps through the manual tests IN ORDER,
+each with an INSTRUCT and ACKNOWLEDGEMENT dialog, until all tests are run; then a COMPLETE
+TEST REPORT is created. Standing rules (PW 09-26): the factory test is HARDWARE PROOF on the
+fixed factory-test image (S116), no test runs twice for the same proof, no continuity soaks.
+
+**PW 2026-09-26: the hardware test is the dsp spoke's TOP PRIORITY; the goal is the SIMPLEST, FASTEST, most
+EFFICIENT test suite.** Every design choice below is judged by that: fewest operator actions, least wall
+time, least code; anything not needed for a hardware verdict is left out (no extras beyond this spec).
+AL1 stays on S115's route + silent handback here; the haptic path (a later dispatch) retargets it.
+**Starting point (S116, 451cad93):** the full automated set (`--section A,B,C`) runs in **210.4 s**; catalog in
+`MW/D24/DSP/s116/test-catalog.csv` (`covers` fixed for the nine pairs, HD0-2 retired, factory image asserted);
+the mx26 app changes S116 §9 lists are YOURS in this dispatch (drop `--no-soak-wait`; read the corrected
+`tests`/`covers`; partner-row stamping on the glass; read `group`/`order`). Also close S114/S115's gap: prove START
+and RUN ALL through a real touch on the glass (`d24_touch_inject.py`), recording the button coordinates.
+
+Built on S113 (order and groups), S114 (compacted runners), S115 (AL1 bandpass THD), S116 (the five rulings). The
+runner lives in this repo (`tools/pi/d24_selftest.py`); the on-glass UI is the mx26 app
+(`src/sw/app/Core/TestSkinStore.cs` and the test wizard views) — pull `~/mx26` main, build
+and deploy it the S107/S112 way. Both halves are this dispatch.
+
+## Shape
+
+1. **Category** from the catalog `automation` column: `1` = AUTO; any of 2/3/4 = MANUAL.
+   Rows with no runner (`—`), S113 group M8, and M6 (slot-1 card does not exist) are NOT
+   RUN and appear in the report as "not tested — <reason>", never silently dropped.
+2. **START ALL** (beside the per-row START, which stays): runs the AUTO set in S113/S116
+   `group`/`order` (A1→A5) with no stops, verdicts landing on the glass as they come, one
+   progress line (group, row, elapsed, remaining estimate). Rows IGNORED (see 6) are skipped.
+3. **Manual stepping**, straight after the auto set, in station order (S113 M1…M7, each
+   visited once; analog stations after digital so the rails go up once — S116 rule):
+   - A STATION card first: what the operator needs in hand for the whole station (from
+     S113 §3 "what the operator has in hand"), acknowledged once.
+   - Per test an INSTRUCT dialog in PANEL NAMES, never J numbers (PW 09-21: "MIC 5",
+     "AUX 1 out"): one action per dialog, a diagram/picture reference where the catalog has
+     one, then the operator's ACKNOWLEDGEMENT: `Done` (runner then measures) or, for what
+     only a person can judge (an LED lit, a sound heard), `Yes / No` with the question
+     worded so Yes = pass. Every dialog also offers `Skip` (reason pick-list) and `IGNORE`.
+   - The runner measures wherever it can (XLR loop levels, USB drive enumerated, key code
+     received); the operator judges only what a person must.
+   - `Back` re-does the previous manual step; the run can be paused and resumed at the
+     current step (state persisted on the unit, survives an app restart).
+4. **One complete report** at the end (S113/09-25 item (e)): summary tile (pass / fail /
+   no data / ignored / skipped / not tested counts, wall time, auto time, manual time);
+   a scrollable on-glass list of every non-PASS row, tap to expand; the file pair written on
+   the unit (`/home/app/selftest/reports/<serial>-<stamp>.md` + `.json`) and pulled to
+   `MW/D24/DSP/accept/`: per row number, name, category, verdict, measured vs limit, who
+   judged (runner / operator), remedy/explain text, evidence line; FAILs first. The .md
+   (human page) carries product test numbers and plain English only — no Matrix-internal
+   names; the JSON twin may carry cell/test ids, serial, catalog hash, factory-image name
+   and triple. Where the report is exported (test-result hub) is still PW's — write it to
+   the unit and to a configurable drop folder only.
+5. **Review, then the next pass** (PW 09-26): after the first complete pass and its report,
+   the operator gets a REVIEW screen of every row without a PASS, where any of them can be
+   IGNORED (reason as in 6) before anything else runs. `START NEXT PASS` then runs ONLY the
+   rows still owed — no PASS yet and not IGNORED (fails, no data, skipped, not yet run) —
+   auto ones pipelined first, then the owed manual ones stepped in station order; PASSED rows
+   are never re-run in a later pass (no redundant tests). Repeat review → next pass until
+   nothing is owed or the operator stops. Each pass numbered; the complete report is
+   regenerated after every pass as the unit's cumulative state (per row: final verdict and
+   the pass that produced it; earlier fails kept as history). The review/next-pass state
+   persists per unit serial across app restarts and power cycles (so a unit can go to the
+   rework bench and come back to the next pass).
+6. **IGNORE** (09-25 item (c), unchanged): on any row or dialog, one-line reason (pick-list:
+   awaiting part / known rev-C erratum / fixture not built / other + on-glass text), grey
+   IGNORED status, per unit serial (`/home/app/selftest/ignored.csv`), expires when the
+   row's runner/limits change (catalog hash stored), UNIGNORE on the row, never a PASS;
+   report lists ignores in their own section. Sign-off with ignores outstanding = 🔴 PW.
+
+## Deliverables (`MW/D24/DSP/s117/`)
+
+`run-all.md` — the design as built, screenshots of each dialog type on the glass, a full
+real run on MW-D24-2 (auto timed; manual walked end to end by the session where a station
+needs no fixture it lacks — every station without its fixture exercised as far as its
+first dialog and Skipped with reason), the report it produced, and the list of manual
+dialog texts for PW to review in one place. Deployed md5s + rollbacks.
+
+## Acceptance
+
+One START press runs the whole auto set with no further input; manual stepping reaches
+every runnable manual row in station order; every catalog row appears exactly once in the
+report; pause/resume survives an app restart; IGNORE round-trip proven; the .md report has
+no Matrix-internal vocabulary (grep it). Questions for PW = 🔴 note in the block, commit,
+stop — no dialog. Flag, do not decide: M7 (meter, lid off) with the analog rails up — is
+that a safe station order, or must M7 run rails-down?
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-26 12:39Z — S116: the five PW rulings on S113 (NW3, HDMI, factory image, rails once, no redundant tests)   [status: 🟢 done — **all five rulings applied and proven on MW-D24-2.** NW3: `-i 0.1` + two targets concurrent, proven NOT to cost packets vs `-i 0.2` (5-pass A/B table, both ~8-9% under today's elevated ambient loss), ~63 s measured against a ~62 s target. HDMI: HD0-2 (3600 s soak) fully retired from runner/catalog/options; HD0-1 now PASS = connector connected only, EDID/native-mode informational; `--no-soak-wait` kept as a harmless accepted flag so the wizard's current invocation string doesn't break before the hub drops it (mx26 change listed). Factory image: `factory-test-v1` named and recorded in `MW/D24/DSP/accept/manifest.json` (build-cfg triple + both `.ldr` md5s) and ASSERTED every press (`_check_factory_image`, NO DATA "wrong image loaded" on mismatch, gate proven live via DC2-CS1/CS2's `factory-test-v1: True`). Rails once: AN_EN now raises ONCE before AS-ADC (after `ensure_pair()` confirms the pair, per the ordering bug caught and fixed mid-dispatch), held through AL1, dropped exactly once at handback — **AS-ADC now PASSES** (was permanent NO DATA); `boot_pair()` refuses with AN_EN high, proven by deliberately forcing it and watching the refusal + clean recovery. No redundant tests: S114 already folded in S113 §7 items 1-2; `covers` column fixed for all nine shared-test row pairs (asymmetric 125→143/126→144 guard included), mx26-side stamping logic listed for the hub. Full `--section A,B,C` timed run: **210.4 s** against S113's 435 s / S114's 419 s re-price; AL1 PASSED this run (base -55.9 tone -34.8 THD 2.62%). Deployed `d24_selftest.py` `34de17cb…` (rollback `.bak-s116-pre` = `421ceec0…`, S115's exact deployed copy); `--keys` clean. Unit handed back AN_EN lo, CS_M driven hi, 595 SAFE, speaker silent, d24-testui active, matrix-app inactive; pair.conf unchanged. 🔴 Two non-blocking findings: today's ambient network loss (6-10.5%, both NW3 targets, both intervals) is well above S113's baseline and affects both old and new code equally — not caused by this dispatch, worth a look separately; catalog rows 127/203's `pass_when`/`explain` text (pre-existing, verified unchanged since `s110`) describes ML-B0/ML-P2/ML1/ML2, not HD0-1/HD0-2 — fixed for `pass_when` here, `explain` left flagged rather than guessed at. Report `MW/D24/DSP/s116/rulings-applied.md`, catalog diff `MW/D24/DSP/s116/test-catalog.csv` (22 cells, 4 columns, 202 rows unchanged), NW3 table `MW/D24/DSP/s116/nw3-old-vs-new.csv`, logs `MW/D24/DSP/s116/logs/`. mx26 app changes listed in §9 of the report (drop `--no-soak-wait`; read the corrected `tests`/`covers` on rows 127/203/103/104; partner-row stamping logic; group/order still unread, S113's own carried-over note).]   [model: sonnet]
 
 model: sonnet
