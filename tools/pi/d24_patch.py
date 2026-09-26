@@ -75,6 +75,9 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+sys.path.insert(0, HERE)
+import d24_live as LV                                 # noqa: E402
+
 LIST_DIR_CANDIDATES = (os.path.join(ROOT, 'MW', 'D24', 'DSP', 's121'),
                        os.path.join(HERE, 's121'),
                        '/home/app/selftest/s121')
@@ -770,6 +773,157 @@ class Scorer:
 
 
 # ---------------------------------------------------------------------------
+# The analog side: the station's own, standalone and inside RUN ALL
+# ---------------------------------------------------------------------------
+# WHY THIS IS HERE AT ALL (S123 item 4). Until now the station prepared the
+# DSP and nothing else: the rails and the 595 mic-pre chain were somebody
+# else's job, which in practice meant the hub's, by hand, before every run.
+# A worker at a factory bench has no hand to do it with, and a run against
+# rails that are down reads as a unit with twenty-four dead inputs. So the
+# station owns the whole analog state it depends on, and owns putting it back.
+#
+# THE NUMBERS ARE NOT COPIED. AN_EN, CS_M and the SAFE image are imported from
+# d24_selftest, which is the file that defines them; only the SEQUENCING lives
+# here, and it is the sequencing PW ruled on:
+#
+#   up    CS_M driven high (a low CS_M gates the U2 buffer onto the shared
+#         MISO and every read comes back as plausible zeros), then AN_EN,
+#         ONCE for the whole pass and never through a DSP boot.
+#   image the chain per block -- tone blocks unmuted at gain 0, the noise
+#         block unmuted at gain 63, each one read back and the marker written.
+#   down  AN_EN LOW FIRST, then SAFE, then the oscillator and the monitor.
+#         That order is PW's, taken from the handback the hub did by hand on
+#         2026-09-26: the rails go down before the chain is rewritten, so a
+#         chain write can never be the thing that is heard.
+AN_EN_GPIO = 26
+CS_M_GPIO = 27
+# (gain & 63) << 2 | (phantom & 1) << 1 | (mute & 1), twenty-four preamps and
+# one trailing byte.
+CHAIN_TONE = [0x00] * 24 + [0x00]        # unmuted, phantom off, gain 0
+CHAIN_NOISE = [0xFC] * 24 + [0x00]       # unmuted, phantom off, gain 63
+S55_DIR = '/home/app/s55'
+STAGE_DIR = '/home/app/s90'
+
+
+def _selftest_consts():
+    """AN_EN, CS_M and SAFE, from the file that owns them.
+
+    Imported rather than typed so that a pin or an image that moves moves in
+    one place. If d24_selftest is not beside this file -- a desk run, a dry
+    run -- the module's own defaults stand and nothing analog is touched
+    anyway.
+    """
+    try:
+        sys.path.insert(0, HERE)
+        import d24_selftest as D                       # noqa: E402
+        return D.AN_EN_GPIO, D.CS_M_GPIO, list(D.SAFE_IMAGE)
+    except Exception:
+        return AN_EN_GPIO, CS_M_GPIO, [0x01] * 24 + [0x00]
+
+
+class Analog:
+    """The rails and the mic-pre chain, for the length of one pass."""
+
+    def __init__(self, enabled=True, log=None, stage=STAGE_DIR, s55=S55_DIR):
+        self.enabled = bool(enabled)
+        self.log = log or (lambda s: None)
+        self.stage = stage
+        self.s55 = s55
+        self.an_en, self.cs_m, self.safe_image = _selftest_consts()
+        self.raised = False          # this run raised AN_EN, so this run lowers it
+        self.image = None            # the chain image currently on the part
+        self.done = False
+
+    # -- the shell ---------------------------------------------------------
+    def sh(self, cmd, timeout=90):
+        import subprocess
+        p = subprocess.run(['/bin/bash', '-c', cmd], capture_output=True,
+                           text=True, timeout=timeout)
+        return (p.stdout + p.stderr).strip()
+
+    def marker(self):
+        return os.path.join(self.stage, '.chain_last')
+
+    # -- up ----------------------------------------------------------------
+    def up(self):
+        """CS_M high, then the rails. Idempotent: a second call re-reads."""
+        if not self.enabled or self.raised:
+            return
+        self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
+        an = self.sh('pinctrl get %d' % self.an_en)
+        if 'hi' not in an:
+            self.sh('sudo -n pinctrl set %d op dh' % self.an_en)
+            self.raised = True
+        self.log('the analog rails are up%s'
+                 % ('' if self.raised else ' (they were already up)'))
+
+    # -- the chain ---------------------------------------------------------
+    def chain(self, image, what):
+        """One 595 image, written and read back. Never written twice running.
+
+        An unverified write is not a known state, so the marker is removed
+        rather than left saying something that was not proved -- the same rule
+        the self-test runner keeps.
+        """
+        if not self.enabled or image == self.image:
+            return True
+        hexes = ' '.join('0x%02X' % b for b in image)
+        want = ' '.join('%02X' % b for b in image)
+        txt = self.sh('cd %s && sudo -n python3 s55_chain.py %s 2>&1'
+                      % (self.s55, hexes), timeout=120)
+        ok = txt.startswith('VERIFIED 200/200') and want in txt
+        if ok:
+            self.sh('printf %s > %s'
+                    % (_q(want), _q(self.marker())))
+            self.image = image
+        else:
+            self.sh('rm -f %s' % _q(self.marker()))
+            self.image = None
+        if ok:
+            why = 'verified'
+        else:
+            first = txt.splitlines()[0][:80] if txt else 'no reply'
+            why = 'NOT VERIFIED -- %s' % first
+        self.log('mic-pre chain %s: %s' % (what, why))
+        return ok
+
+    def for_block(self, lead):
+        """The chain image this block needs.
+
+        The noise block reads each input's own noise at the gain the survey
+        used, so it is the one block that runs the preamps wide open; every
+        other block drives a tone in and wants the preamp out of the way.
+        """
+        if lead == 'K5':
+            return self.chain(CHAIN_NOISE, 'at full gain for the noise step')
+        return self.chain(CHAIN_TONE, 'at zero gain')
+
+    # -- down --------------------------------------------------------------
+    def down(self):
+        """The rails down and the chain SAFE, in that order. Runs once.
+
+        Called on every way out -- the end of the pass, PAUSE, a signal, an
+        exception -- because the failure this exists to stop is a unit that
+        goes back on the shelf live.
+        """
+        if not self.enabled or self.done:
+            return
+        self.done = True
+        if self.raised:
+            self.sh('sudo -n pinctrl set %d op dl' % self.an_en)
+            self.log('the analog rails are down')
+        else:
+            self.log('the analog rails were not raised by this run; left as found')
+        self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
+        self.image = None
+        self.chain(self.safe_image, 'back to safe (muted, gain 0, phantom off)')
+
+
+def _q(s):
+    return "'" + str(s).replace("'", "'\\''") + "'"
+
+
+# ---------------------------------------------------------------------------
 # The loop
 # ---------------------------------------------------------------------------
 MIC_STRIPS = tuple(range(1, 25))
@@ -793,7 +947,7 @@ class Station:
     """
 
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
-                 blocks=None):
+                 blocks=None, live=None, analog=None):
         self.L = plist
         self.u = unit
         self.p = patcher
@@ -805,9 +959,19 @@ class Station:
         self.rows_out = []
         self.timing = []
         self.floors = {}
+        self.live = live or LV.Live(None, enabled=False)
+        self.an = analog or Analog(enabled=False)
+        self.where = {}          # patch id -> (n of N, lead n of M, lead)
+        self.passed = 0
+        self.failed = 0
+        self.failures = []
+        self.paused = False
+        self._lead_line = ''     # folded into the next instruction, then cleared
 
     # -- setup -------------------------------------------------------------
     def standing(self):
+        self.live.set(state=LV.STARTING)
+        self.an.up()
         donors = sorted({int(r['donor']) for r in self.L.paths})
         cells = self.L.standing(donors)
         self.log('standing write: %d cells (every strip\'s assigns shut, both '
@@ -903,6 +1067,13 @@ class Station:
         # that produces, and it needs no knowledge of what came before.
         lo = hi = None
         while now() < deadline:
+            # The screen is alive while this loop runs, and the one button is
+            # polled in the same breath as the meter -- so PAUSE lands within
+            # one poll of the press wherever the loop is waiting.
+            self.live.beat()
+            if self.paused_by_screen():
+                return ('glass', dict(button='pause', reason='the screen'),
+                        now() - t0)
             ans = self.p.poll(token)
             if ans is not None:
                 return ('glass', ans, now() - t0)
@@ -986,15 +1157,17 @@ class Station:
             if self.only and lead not in self.only:
                 continue
             seq.append(((lead, block), patches))
+        self.index(seq)
         prepared = None
         token = None
-        pending = None                 # (rows, prep, raw) waiting to be scored
         for bi, ((lead, block), patches) in enumerate(seq):
             self.lead_card(lead, block, patches, bi + 1, len(seq))
+            self.an.for_block(lead)
             for pi, (pid, rows) in enumerate(patches):
                 if prepared is None:
                     prepared = self.prepare(rows)
                     token = self.p.connect(pid, rows, self.g)
+                    self.announce(pid, rows)
                 prep, tok = prepared, token
                 prepared, token = None, None
                 raw = None
@@ -1006,13 +1179,11 @@ class Station:
                     if how == 'glass' and ans.get('button') in (
                             'pause', 'skip', 'ignore'):
                         self.p.done(tok)
-                        if pending:
-                            self.rows_out += self.score_patch(*pending)
-                            pending = None
                         self.finish_early(rows, ans)
                         return self.rows_out
                     if how != 'timeout':
                         t1 = now()
+                        self.live.set(state=LV.CHECKING)
                         raw = self.acquire(rows, prep)
                         break
                     # A wrong patch is a prompt, never a fail: find the lead,
@@ -1021,72 +1192,140 @@ class Station:
                     where = self.where_is_it(int(rows[0]['lane']), sweep,
                                              int(rows[0]['donor']))
                     self.p.done(tok)
-                    if pending:
-                        self.rows_out += self.score_patch(*pending)
-                        pending = None
                     tries += 1
                     again = (self.reprompt(pid, rows, where)
                              if tries <= MAX_RETRIES else None)
                     if again is None:
-                        self.rows_out += self.nodata(rows, where, tries)
+                        self.record(self.nodata(rows, where, tries))
                         break
                     prep, tok = again
                 if raw is None:
                     continue
                 self.p.done(tok)
-                # PIPELINE: the next patch goes up before this one is scored.
+                # PIPELINE: the next patch goes up before this one is scored,
+                # so the only thing the operator waits for is the reading.
                 nxt = self.next_patch(seq, bi, pi)
                 if nxt is not None:
                     prepared = self.prepare(nxt[1])
                     token = self.p.connect(nxt[0], nxt[1], self.g)
-                if pending:
-                    self.rows_out += self.score_patch(*pending)
-                pending = (rows, prep, raw)
+                    self.announce(nxt[0], nxt[1])
+                self.record(self.score_patch(rows, prep, raw))
                 self.timing.append(dict(patch=pid, lead=lead, hand_s=t_hand,
                                         machine_s=now() - t1,
                                         subs=len(rows)))
                 self.report_last(pid)
-        if pending:
-            self.rows_out += self.score_patch(*pending)
-        self.teardown()
+        self.finish()
         return self.rows_out
 
+    # -- the screen ---------------------------------------------------------
+    def index(self, seq):
+        """Where every patch sits in the pass, so the screen can say `3 of 55`
+        and `lead 1 of 3` without counting anything of its own."""
+        self.where = {}
+        n = 0
+        for bi, (_, patches) in enumerate(seq):
+            for pid, _rows in patches:
+                n += 1
+                self.where[pid] = (n, bi + 1, len(seq))
+        self.live.set(state=LV.STARTING, total=n, n=0, lead_n=0,
+                      lead_total=len(seq))
+
+    def announce(self, pid, rows):
+        """One instruction on the glass, and the state that goes with it.
+
+        A lead change is FOLDED IN HERE and nowhere else: there is no card to
+        acknowledge and nothing to press at a block boundary, because the lead
+        going into the socket is the acknowledgement (S123).
+        """
+        n, lead_n, lead_total = self.where.get(pid, (0, 0, 0))
+        r = rows[0]
+        lead_line, self._lead_line = self._lead_line, ''
+        # A lead the instruction already names does not need picking up in a
+        # sentence of its own: "Pick up the 150 ohm plug. Put the 150 ohm plug
+        # into MIC 1." is one sentence too many for somebody holding it.
+        if lead_line and LV.lead_words(r['lead']) in LV.instruction_for(r):
+            lead_line = ''
+        extra = LV.extra_for(r) or LV.hold_note(len(rows))
+        self.live.set(state=LV.WAITING, instruction=LV.instruction_for(r),
+                      lead_line=lead_line, extra=extra,
+                      n=n, lead_n=lead_n, lead_total=lead_total)
+
+    def record(self, scored):
+        """Take a patch's rows into the results, and put its verdict up.
+
+        One patch is one thing to the operator however many measurements it
+        carries, so the banner is the patch's worst row and the tally counts
+        patches -- twenty-four checks that all passed is one PASS, and one bad
+        leg of a stereo jack fails the patch.
+        """
+        self.rows_out += scored
+        if not scored:
+            return
+        verdicts = {s['verdict'] for s in scored}
+        r = scored[0]
+        name = LV.patch_words(dict(out=r['out'], **{'in': r['in']}))
+        if verdicts <= {PASS}:
+            self.passed += 1
+            self.live.set(state=LV.VERDICT, banner='PASS', banner_line=name,
+                          action='', passed=self.passed, failed=self.failed)
+        else:
+            self.failed += 1
+            self.failures.append(name)
+            self.live.set(state=LV.VERDICT, banner='FAIL', banner_line=name,
+                          action=LV.action_failed(), passed=self.passed,
+                          failed=self.failed, failures=list(self.failures))
+
+    def paused_by_screen(self):
+        """The one button, polled wherever the loop already polls."""
+        return self.live.command() == 'pause'
+
     def next_patch(self, seq, bi, pi):
-        """The next patch IN THE SAME BLOCK. A block boundary is a lead change
-        and gets its own card, so nothing is prepared or prompted across one."""
+        """The next patch IN THE SAME BLOCK. A block boundary is a lead change,
+        and the change is folded into that block's first instruction, so
+        nothing is prepared across one."""
         patches = seq[bi][1]
         return patches[pi + 1] if pi + 1 < len(patches) else None
 
     def lead_card(self, lead, block, patches, n, total):
-        d = LEAD_TEXT.get(lead, {})
-        lines = ['Take lead %s: %s.' % (lead, d.get('name', lead)),
-                 '%d patches at this step.' % len(patches),
-                 'Each one advances on its own as soon as the lead is in.']
-        if d.get('wiring'):
-            lines.append('Wiring: %s.' % d['wiring'])
-        self.g.ask('station', 'Step %d of %d - %s' % (n, total, block), lines,
-                   ['ack'], lead=lead)
+        """A lead change, and NOT a card.
+
+        This used to put a READY dialog up and wait for a press. PW, at the
+        bench on 2026-09-26, wanted it gone: a factory worker following
+        instructions should never be asked to confirm that they have read one.
+        So the change becomes a sentence on the next instruction's screen, and
+        the block still announces itself on the terminal and in the log for
+        whoever is reading those.
+        """
+        self._lead_line = LV.pick_up(lead)
+        self.g.progress('%s - %d patches' % (block, len(patches)))
+        self.live.set(lead_n=n, lead_total=total)
 
     def reprompt(self, pid, rows, where):
-        """A wrong patch is a prompt, never a fail (PW 2026-09-26)."""
+        """A wrong patch is a prompt, never a fail (PW 2026-09-26).
+
+        AND IT IS NOT A DIALOG EITHER (S123). This used to put a RETRY / FAIL
+        card up and wait for a press. On the factory screen there is one
+        button and it says PAUSE, so a card here would be a screen a worker
+        cannot answer: the loop would sit on it for ever with a lead in their
+        hand. So the wrong socket is said in one red line with one plain
+        action, the same patch is offered again, and it advances on its own the
+        moment the lead arrives where it belongs -- exactly like every other
+        step. The count of attempts still bounds it: MAX_RETRIES and then the
+        patch is recorded with no data.
+        """
         r = rows[0]
         self.log('%s: %s' % (pid, ('the tone came back on %s, not %s -- '
                                    'prompting again' % (where, r['in'])) if where
                              else ('nothing reached %s -- prompting again'
                                    % r['in'])))
-        if where:
-            lines = ['The tone came back on %s, not %s.' % (where, r['in']),
-                     'Move the lead to %s.' % r['in']]
-        else:
-            lines = ['Nothing reached %s.' % r['in'],
-                     'Check both ends of the lead are fully home.']
-        lines.append('It advances on its own when the tone arrives.')
-        ans = self.g.ask('instruct', 'Check the patch', lines, ['retry', 'fail'],
-                         patch=pid)
-        if ans['button'] in ('retry', 'done', 'ack'):
-            prep = self.prepare(rows)
-            return prep, self.p.connect(pid, rows, self.g)
-        return None
+        action = (LV.action_wrong_socket(where, r['in']) if where
+                  else LV.action_no_signal())
+        prep = self.prepare(rows)
+        tok = self.p.connect(pid, rows, self.g)
+        self.announce(pid, rows)
+        self.live.set(state=LV.CHECKLEAD, banner='CHECK THE LEAD',
+                      banner_line='', action=action)
+        return prep, tok
 
     def nodata(self, rows, where, tries=0):
         why = ('the lead was in %s and never in %s' % (where, rows[0]['in'])
@@ -1109,19 +1348,58 @@ class Station:
     def finish_early(self, rows, ans):
         self.log('the pass stopped at %s (%s)'
                  % (rows[0]['patch'], ans.get('button')))
+        self.paused = True
+        self.live.set(state=LV.STOPPING)
         self.teardown()
+        self.live.set(state=LV.PAUSED, instruction='', lead_line='', extra='',
+                      status='Paused - the unit is safe. %s'
+                             % ('Press START to run the test again.'
+                                if self.rows_out else
+                                'Press START when you are ready.'),
+                      passed=self.passed, failed=self.failed,
+                      failures=list(self.failures), action='')
+
+    def finish(self):
+        """The end of the pass: the tally, the failures by name, and who the
+        unit goes to. Nothing here is a number the screen worked out."""
+        self.live.set(state=LV.STOPPING)
+        self.teardown()
+        self.live.set(state=LV.FINISHED, instruction='', lead_line='',
+                      extra='',
+                      status=LV.finished_words(self.passed, self.failed),
+                      action=LV.HANDOVER, passed=self.passed,
+                      failed=self.failed, failures=list(self.failures),
+                      n=self.live.d.get('total', 0))
 
     def teardown(self):
-        """The oscillator off and the routes shut, always.
+        """The unit put back safe, always, in PW's order.
 
         S115's lesson, and it cost PW a unit that hissed: a route asserted by a
         test and never taken down stays asserted for as long as the unit is
-        powered. Everything this station opened is closed here.
+        powered. S123 adds the analog side to the same rule, and fixes the
+        ORDER: the rails go down FIRST and the mic-pre chain is rewritten to
+        SAFE after them, so a chain write can never be the thing that is heard;
+        then the oscillator, the routes, and the monitor bus.
+
+        Runs on every way out -- the last patch, PAUSE, a signal, an exception
+        -- and runs once.
         """
+        if getattr(self, '_torn', False):
+            return
+        self._torn = True
+        try:
+            self.an.down()
+        except Exception as e:                       # never mask the real error
+            self.log('the rails and the chain could not be put back: %s' % e)
         try:
             self.u.osc(on=False)
             self.u.write(self.L.routes['_standing_close'], verify=False)
-        except Exception as e:                       # never mask the real error
+            # The monitor bus, explicitly. It is not one of this station's
+            # routes, so closing the assigns does not close it; it is also the
+            # one bus that reaches an amplifier which is not on the rails.
+            self.u.write(['Mon001Level001=f0', 'Mon001Level002=f0'],
+                         verify=False)
+        except Exception as e:
             self.log('teardown could not complete: %s' % e)
 
 
@@ -1454,8 +1732,9 @@ def cmd_simulate(a, plist):
     glass = SimGlass(log)
     unit = SimUnit(world)
     patcher = SimPatcher(glass, world, a.hand, log)
+    live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live)
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
-                 blocks=a.block)
+                 blocks=a.block, live=live)
     rows = st.run()
     counts = {}
     for r in rows:
@@ -1488,14 +1767,162 @@ def cmd_simulate(a, plist):
     return 0
 
 
+def cmd_strings(a, plist):
+    """Every word the factory screen can put in front of a person, with no
+    unit and no run. This is what the internal-vocabulary check reads."""
+    with open(a.strings, 'w', encoding='utf-8') as fh:
+        fh.write('# every operator-facing string the factory patch screen can\n'
+                 '# produce. Generated, not written.\n\n')
+        for s in LV.every_string(plist.paths):
+            fh.write('%s\n' % s)
+    print('wrote %s' % a.strings)
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Walking the screen with no hands
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS. Nobody in this session can plug a lead in, and a screen
+# that has only ever been seen in a drawing is a screen that has not been
+# built. So the runner drives its own status file through every state the loop
+# can reach, on the real unit, in front of the real display, and the display's
+# own capture path photographs each one. It is the runner doing it -- the same
+# `Live` object, the same words out of the same file -- so what is
+# photographed is what a worker would see and not a mock-up of it.
+def _row_by(plist, **want):
+    for r in plist.paths:
+        if all(str(r.get(k, '')) == str(v) for k, v in want.items()):
+            return r
+    return plist.paths[0]
+
+
+def screen_walk(plist):
+    """The states, in the order a pass reaches them, each with a name."""
+    first = plist.paths[0]
+    tone = _row_by(plist, lead='K1', **{'in': 'MIC 5'})
+    noise = _row_by(plist, lead='K5')
+    line = _row_by(plist, lead='K4')
+    trs = _row_by(plist, lead='K2')
+    total = len({r['patch'] for r in plist.paths})
+
+    def at(r, n, **kw):
+        d = dict(instruction=LV.instruction_for(r), extra=LV.extra_for(r),
+                 n=n, total=total, lead_n=1, lead_total=4)
+        d.update(kw)
+        return d
+
+    return [
+        ('01-armed-start', None),
+        ('02-getting-ready', dict(state=LV.STARTING, n=0, total=total,
+                                  lead_n=0, lead_total=4)),
+        ('03-lead-change', at(first, 1, state=LV.WAITING,
+                              lead_line=LV.pick_up(first['lead']))),
+        ('04-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
+        ('05-signal-found', at(tone, 5, state=LV.CHECKING, lead_line='')),
+        ('06-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
+                       banner_line=LV.patch_words(tone), passed=5, failed=0)),
+        ('07-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
+                               banner='CHECK THE LEAD', banner_line='',
+                               action=LV.action_wrong_socket('MIC 6',
+                                                             tone['in']))),
+        ('08-no-signal', at(tone, 6, state=LV.CHECKLEAD,
+                            banner='CHECK THE LEAD', banner_line='',
+                            action=LV.action_no_signal())),
+        ('09-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
+                       banner_line=LV.patch_words(tone),
+                       action=LV.action_failed(), passed=5, failed=1)),
+        ('10-terminator-step', at(noise, 20, state=LV.WAITING, lead_n=2,
+                                  lead_line='')),
+        ('11-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
+                            lead_line=LV.pick_up(line['lead']))),
+        ('12-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
+                                  lead_line=LV.pick_up(trs['lead']),
+                                  extra=LV.hold_note(3))),
+        ('13-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
+                           lead_line='', extra='',
+                           status='Paused - the unit is safe. '
+                                  'Press START to run the test again.',
+                           passed=28, failed=1,
+                           failures=[LV.patch_words(tone)])),
+        ('14-finished', dict(state=LV.FINISHED, n=total, total=total,
+                             instruction='', lead_line='', extra='',
+                             status=LV.finished_words(total, 0),
+                             action=LV.HANDOVER, passed=total, failed=0,
+                             failures=[])),
+        ('15-finished-with-failures',
+         dict(state=LV.FINISHED, n=total, total=total, instruction='',
+              lead_line='', extra='',
+              status=LV.finished_words(total - 2, 2), action=LV.HANDOVER,
+              passed=total - 2, failed=2,
+              failures=[LV.patch_words(tone), LV.patch_words(trs)])),
+    ]
+
+
+def cmd_screens(a, plist):
+    import shutil
+    out = a.screens
+    os.makedirs(out, exist_ok=True)
+    live = LV.Live(a.live or a.dir, run='patch',
+                   total=len({r['patch'] for r in plist.paths}))
+    cap = a.capture
+    shots = []
+    try:
+        for name, state in screen_walk(plist):
+            if state is None:
+                live.clear()                      # the armed screen: no run
+            else:
+                live.set(**state)
+            t_set = time.time()
+            # Hold the screen, beating so the display keeps calling the run
+            # live, until the capture path has a frame newer than the change.
+            got = None
+            while time.time() - t_set < a.dwell:
+                if state is not None:
+                    live.beat()
+                time.sleep(0.1)
+                if cap and os.path.exists(cap) and os.path.getmtime(cap) > t_set + 0.3:
+                    got = cap
+            dst = os.path.join(out, '%s.png' % name)
+            if got:
+                shutil.copyfile(got, dst)
+                shots.append((name, dst))
+                print('   %-28s %s' % (name, dst))
+            else:
+                print('   %-28s NO FRAME (capture path %s)' % (name, cap))
+    finally:
+        live.clear()
+    print('\n%d screen(s) captured into %s' % (len(shots), out))
+    return 0 if shots else 1
+
+
 def cmd_run(a, plist):
     sys.path.insert(0, HERE)
     import d24_runall as RA                          # noqa: E402
+    import signal
     glass = RA.Glass(a.dir, stdin=a.stdin)
+    live = LV.Live(a.live or a.dir, run='patch',
+                   enabled=not a.no_live)
     unit = Unit(symdir=a.symdir)
     patcher = pick_patcher(glass, a.back_end)
+    an = Analog(enabled=not a.no_analog, log=glass.progress)
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
-                 log=glass.progress, blocks=a.block)
+                 log=glass.progress, blocks=a.block, live=live, analog=an)
+
+    # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
+    # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
+    # up and the chain wherever the last block put it, which is a unit that
+    # goes back on the bench live. The handler tears down and re-raises.
+    def stopped(sig, _frm):
+        try:
+            st.teardown()
+        finally:
+            live.set(state=LV.PAUSED, status='Stopped - the unit is safe.',
+                     action='', failures=list(st.failures))
+        signal.signal(sig, signal.SIG_DFL)
+        os.kill(os.getpid(), sig)
+    for s in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(s, stopped)
+
     try:
         rows = st.run()
     finally:
@@ -1528,6 +1955,23 @@ def main(argv=None):
                     help='dump every operator-facing string, for --check-md')
     ap.add_argument('--dir', default='/home/app/selftest/runall',
                     help='the glass directory (--run)')
+    ap.add_argument('--live', metavar='DIR',
+                    help='write the factory screen\'s live status file here '
+                         '(default: the glass directory)')
+    ap.add_argument('--no-live', action='store_true',
+                    help='do not drive the factory screen at all')
+    ap.add_argument('--no-analog', action='store_true',
+                    help='do not touch the rails or the mic-pre chain: for a '
+                         'run on a unit somebody else has already set up')
+    ap.add_argument('--screens', metavar='DIR',
+                    help='walk the factory screen through every state it can '
+                         'reach, with no unit and no lead, so each one can be '
+                         'photographed')
+    ap.add_argument('--dwell', type=float, default=2.5,
+                    help='seconds to hold each screen in --screens')
+    ap.add_argument('--capture', default='/home/app/selftest/s105-wizard.png',
+                    help='the display\'s own capture file, copied out after '
+                         'each screen in --screens')
     ap.add_argument('--symdir', default=FACTORY_TEST_PAIR_DIR)
     ap.add_argument('--back-end', default='auto', choices=('auto', 'harness'))
     ap.add_argument('--stdin', action='store_true')
@@ -1536,11 +1980,15 @@ def main(argv=None):
     plist = PatchList(find_list_dir(a.list_dir))
     if a.list:
         return cmd_list(plist)
+    if a.strings and not (a.simulate or a.run):
+        return cmd_strings(a, plist)
+    if a.screens:
+        return cmd_screens(a, plist)
     if a.simulate:
         return cmd_simulate(a, plist)
     if a.run:
         return cmd_run(a, plist)
-    ap.error('one of --list, --simulate or --run')
+    ap.error('one of --list, --simulate, --screens or --run')
 
 
 if __name__ == '__main__':

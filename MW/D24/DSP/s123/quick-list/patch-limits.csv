@@ -1,0 +1,16 @@
+# patch-limits.csv -- PROVISIONAL windows for the analog patch station (S121).
+# PW tunes these; d24_patch.py reads nothing else and carries no number of its own.
+# NOTHING HERE IS A SPEC LIMIT. Each one is either a ratio that follows from how the
+# lead is wired, or a placeholder waiting on a good unit. `source` says which.
+key,value,unit,source
+tone_min_over_floor_db,40.0,dB,"the harness revision's own figure for the same check (runner-interface.md, 'Detecting a wrong connection'): the measured lane must rise at least this far above its idle floor before a reading is called a tone at all"
+isolation_min_db,40.0,dB,"runner-interface.md condition 2: every input other than the one under test stays at least this far below it. A single switch pair isolates about -99 dB at 1 kHz, so 40 dB is a wide gate that only a real mis-patch or a crossed pair can fail"
+detect_rise_db,12.0,dB,"AUTO-ADVANCE, tone rows: how far the expected lane's meter must rise over its unplugged baseline before the step is called done. Well under tone_min_over_floor_db on purpose -- this ends the operator's step, the measurement that follows decides the verdict"
+detect_drop_db,3.0,dB,"AUTO-ADVANCE, noise rows: fitting the 150 ohm terminator DROPS an open mic input's own noise. Provisional: set from a good unit, and Enter is the fallback if a unit's open-input noise is too close to its terminated noise to tell apart"
+detect_timeout_s,20.0,s,"how long a patch waits before the runner sweeps every lane to find where the lead actually went"
+single_ended_db,-6.02,dB,"a TRS jack's tip drives ONE leg of the balanced pair the XLR input reads, and a balanced XLR output drives both in anti-phase, so the single-ended reading is half the differential one. TOPOLOGY, not a measurement: it holds only if the single-ended driver swings the same volts as one leg of the balanced one, which this repo does not record. s110/test-catalog.csv line 39 claims the TRS pair and its XLR agree within 1.0 dB, which would mean 0 dB here -- unreconciled. PW: 'derive the exact window from the output stage, don't assume'"
+level_tol_db,3.0,dB,"the window around single_ended_db. Wide enough to pass either convention above, narrow enough to catch a dead or halved path. Tighten from a good unit"
+stereo_match_tol_db,1.5,dB,"the two sub-tests of one stereo jack share everything but the channel, so they must match each other far more tightly than either matches the absolute window"
+null_max_db,-30.0,dB,"the null sub-test, relative to the same jack's single-ended reading. What is left is the L/R match of the output stage plus the lead. A crossed or absent channel cannot reach this; a good unit sets the real figure"
+polarity_margin_deg,90.0,deg,"how the measured phase is turned into normal/inverted: within this of the lane's reference phase is normal, beyond it is inverted. 90 deg is the decision boundary itself, so a reading near it is reported as UNCERTAIN rather than guessed"
+polarity_uncertain_deg,30.0,deg,"a reading within this of the 90 deg boundary is UNCERTAIN, not a verdict"

@@ -68,6 +68,7 @@ Rows whose lane never carries a balanced reference (the codec lanes) carry
 import argparse
 import csv
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -421,13 +422,113 @@ COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'level_ref', 'polarity', 'rows', 'prompt', 'note')
 
 
+# ---------------------------------------------------------------------------
+# Exclusions: a shorter list, still generated
+# ---------------------------------------------------------------------------
+# WHY THE GENERATOR AND NOT A FILTER AFTERWARDS (S123 item 5). A unit with
+# eight dead inputs and no mini-jacks fitted still has to be patch-tested, and
+# on 2026-09-26 that meant a hand-written script that cut rows out of the full
+# list and patched three of them up by hand. A cut list is not the same thing
+# as a shorter list: taking MIC 2 out takes AUX 2's ONLY test with it, and
+# taking MIC 1 out takes the input every TRS output is read on. Both of those
+# have to be re-homed, and re-homing is exactly the kind of thing that is
+# right once and wrong the second time somebody does it by hand. So the
+# exclusions go in here, where the block that knows what each patch is FOR can
+# do it, and the short list is generated from the same source as the full one.
+#
+# WHAT IS RE-HOMED, and it is only ever onto a PARKED input:
+#   * an output whose only patch used an excluded input moves to the first
+#     working input that was only carrying the parked output anyway;
+#   * the TRS-output block, which reads everything on one input, moves to the
+#     first working input.
+# Nothing is re-homed onto an input that has a test of its own, because that
+# would silently drop the output that test was proving.
+def parse_excludes(specs):
+    """`MIC1-4,MIC13-16` or `MIC 1-4, MIC 13` -> {'MIC 1', ... }.
+
+    A range is a socket name with two numbers in it. Anything without a
+    number is taken whole, so TALKBACK excludes the talkback XLR.
+    """
+    out = set()
+    for spec in specs or ():
+        for item in re.split(r'[,\s]*,[,\s]*|\s{2,}', spec.strip()):
+            item = item.strip()
+            if not item:
+                continue
+            m = re.match(r'^([A-Za-z][A-Za-z\- ]*?)\s*(\d+)\s*-\s*(\d+)$', item)
+            if m:
+                pre = m.group(1).strip().upper()
+                for n in range(int(m.group(2)), int(m.group(3)) + 1):
+                    out.add('%s %d' % (pre, n))
+                continue
+            m = re.match(r'^([A-Za-z][A-Za-z\- ]*?)\s*(\d+)$', item)
+            if m:
+                out.add('%s %d' % (m.group(1).strip().upper(), int(m.group(2))))
+            else:
+                out.add(item.upper())
+    return out
+
+
+# The leads, by the words a person uses for them rather than by kit code, so
+# `--exclude-lead mini-jack` works without anybody looking up K3.
+LEAD_ALIASES = {
+    'K1': 'K1', 'XLR': 'K1',
+    'K2': 'K2', 'JACK-TO-XLR': 'K2',
+    'K3': 'K3', 'MINI-JACK': 'K3', 'MINIJACK': 'K3', 'XLR-TO-MINI-JACK': 'K3',
+    'K4': 'K4', 'XLR-TO-JACK': 'K4', 'LINE': 'K4',
+    'K5': 'K5', 'TERMINATOR': 'K5', '150-OHM': 'K5', '150OHM': 'K5',
+}
+
+
+def parse_lead_excludes(specs):
+    out = set()
+    for spec in specs or ():
+        for item in re.split(r'[,\s]+', spec.strip()):
+            if not item:
+                continue
+            key = item.strip().upper()
+            if key not in LEAD_ALIASES:
+                raise SystemExit(
+                    '%r is not a lead. Use one of: %s'
+                    % (item, ', '.join(sorted(set(LEAD_ALIASES)))))
+            out.add(LEAD_ALIASES[key])
+    return out
+
+
 class Builder:
-    def __init__(self, ports, cells):
+    def __init__(self, ports, cells, excl_inputs=(), excl_leads=()):
         self.ports, self.cells = ports, cells
         self.paths, self.routes, self.missing = [], {}, []
         self.n = 0
         self.patch = 0
         self.notrun = []
+        self.excl_in = set(excl_inputs)
+        self.excl_lead = set(excl_leads)
+        self.rehomed = []            # (output, input it moved to, why)
+        self.dropped = 0             # patches the exclusions removed
+
+    # -- exclusions ---------------------------------------------------------
+    def out_in(self, name):
+        """`MIC 5 line` and `MIC 5` are the same socket to an exclusion: a
+        combo jack that is dead is dead through both of its holes."""
+        base = (name or '').replace(' line', '').strip().upper()
+        return base in self.excl_in
+
+    def out_lead(self, lead):
+        return lead in self.excl_lead
+
+    def strips(self):
+        return tuple(n for n in STRIPS if not self.out_in('MIC %d' % n))
+
+    def park_in(self):
+        """The input the TRS-output block reads on: MIC 1, or the first
+        working input if MIC 1 is excluded."""
+        if not self.out_in(PARK_IN):
+            return PARK_IN, PARK_IN_STRIP
+        left = self.strips()
+        if not left:
+            raise SystemExit('every input is excluded: there is no list left')
+        return 'MIC %d' % left[0], left[0]
 
     def rows_for(self, *names):
         out = []
@@ -463,6 +564,36 @@ class Builder:
         self.patch += 1
         return 'P%d' % self.patch
 
+    def rehome(self, plan):
+        """Drop the excluded inputs, and move any output that lost its only
+        test onto an input that was carrying nothing but the parked output.
+
+        The order is what makes this safe: the dead inputs go first, so the
+        list of still-working PARKED inputs is known before anything is moved,
+        and an output is only ever moved onto one of those. An input with a
+        test of its own is never taken, because taking it would drop the
+        output that test was there to prove.
+        """
+        keep = [(o, d, i, st) for (o, d, i, st) in plan if not self.out_in(i)]
+        self.dropped += len(plan) - len(keep)
+        if not self.excl_in:
+            return keep
+        proved = {o for (o, _d, _i, _st) in keep}
+        orphans = [(o, d) for (o, d) in XLR_OUTS if o not in proved]
+        free = [k for k, (o, _d, _i, _st) in enumerate(keep) if o == PARK_OUT]
+        for (o, d) in orphans:
+            if not free:
+                self.notrun.append(dict(
+                    port=o, row=self.ports.get(o, {}).get('catalog_row', ''),
+                    reason='its own input is excluded and no parked input is '
+                           'left to move it to'))
+                continue
+            k = free.pop(0)
+            _o, _d, inp, st = keep[k]
+            keep[k] = (o, d, inp, st)
+            self.rehomed.append((o, inp, 'its own input is excluded'))
+        return keep
+
     # -- the blocks ---------------------------------------------------------
     def block_k1(self):
         """The mic paths and the talkback: a balanced XLR output into a
@@ -473,6 +604,7 @@ class Builder:
             plan.append((out, drive, 'MIC %d' % (i + 1), i + 1))
         for mic in range(len(XLR_OUTS) + 1, 25):
             plan.append((PARK_OUT, PARK_DRIVE, 'MIC %d' % mic, mic))
+        plan = self.rehome(plan)
         for out, drive, inp, strip in plan:
             self.new_patch()
             self.add(lead='K1', block='the microphone inputs', out=out, in_=inp,
@@ -480,6 +612,8 @@ class Builder:
                      expect='tone', level_ref='ref', polarity='ref',
                      rows=self.rows_for(out, inp),
                      prompt='Patch %s to %s' % (out, inp))
+        if self.out_in('TALKBACK'):
+            return
         self.new_patch()
         self.add(lead='K1', block='the microphone inputs', out=PARK_OUT,
                  in_='TALKBACK', drive=PARK_DRIVE, lane=LANE_TALKBACK,
@@ -493,7 +627,7 @@ class Builder:
 
     def block_k5(self):
         """The input noise rows: a 150 ohm terminator and no tone at all."""
-        for strip in STRIPS:
+        for strip in self.strips():
             self.new_patch()
             self.add(lead='K5', block='the input noise rows', out='',
                      in_='MIC %d' % strip, drive='none', lane=strip,
@@ -517,7 +651,7 @@ class Builder:
         judging it -- the tone-present verdict is the factory question either
         way. See the report's open items.
         """
-        for strip in STRIPS:
+        for strip in self.strips():
             self.new_patch()
             self.add(lead='K4', block='the line inputs', out=PARK_OUT,
                      in_='MIC %d line' % strip, drive=PARK_DRIVE, lane=strip,
@@ -531,19 +665,23 @@ class Builder:
 
     def block_k2(self):
         """The TRS output jacks, read through one XLR input."""
+        park_in, park_strip = self.park_in()
+        if park_in != PARK_IN:
+            self.rehomed.append(( 'the TRS outputs', park_in,
+                                 '%s is excluded' % PARK_IN))
         for name, drive, hz, why in MONO_TRS_OUTS:
             self.new_patch()
-            self.add(lead='K2', block='the TRS outputs', out=name, in_=PARK_IN,
-                     drive=drive, lane=PARK_IN_STRIP, donor=DONOR_DEFAULT,
+            self.add(lead='K2', block='the TRS outputs', out=name, in_=park_in,
+                     drive=drive, lane=park_strip, donor=DONOR_DEFAULT,
                      freq_hz=hz, expect='tone', level_ref='info',
-                     polarity='normal', rows=self.rows_for(name, PARK_IN),
-                     prompt='Patch %s to %s' % (name, PARK_IN), note=why)
+                     polarity='normal', rows=self.rows_for(name, park_in),
+                     prompt='Patch %s to %s' % (name, park_in), note=why)
         for jack, la, ra in STEREO_TRS_OUTS:
             self.new_patch()
             base = dict(lead='K2', block='the TRS outputs', out=jack,
-                        in_=PARK_IN, lane=PARK_IN_STRIP, donor=DONOR_DEFAULT,
-                        rows=self.rows_for('%s L' % jack, PARK_IN),
-                        prompt='Patch %s to %s' % (jack, PARK_IN))
+                        in_=park_in, lane=park_strip, donor=DONOR_DEFAULT,
+                        rows=self.rows_for('%s L' % jack, park_in),
+                        prompt='Patch %s to %s' % (jack, park_in))
             self.add(sub='L', drive='aux:%d' % la, expect='tone',
                      level_ref='single', polarity='normal',
                      note='tip alone: one leg of aux %d into a balanced input' % la,
@@ -574,6 +712,8 @@ class Builder:
             lane_l, lane_r = LANE_MJ_L, LANE_MJ_R
             other = 2 if n == 1 else 1
             jack = 'MINI-JACK %d' % n
+            if self.out_in(jack):
+                continue
             self.new_patch()
             base = dict(lead='K3', block='the mini-jack inputs', out=PARK_OUT,
                         in_=jack, drive=PARK_DRIVE, donor=DONOR_DEFAULT,
@@ -597,11 +737,21 @@ class Builder:
                                     reason=why))
 
     def build(self):
-        self.block_k1()
-        self.block_k5()
-        self.block_k4()
-        self.block_k2()
-        self.block_k3()
+        blocks = [('K1', self.block_k1), ('K5', self.block_k5),
+                  ('K4', self.block_k4), ('K2', self.block_k2),
+                  ('K3', self.block_k3)]
+        for lead, fn in blocks:
+            if self.out_lead(lead):
+                self.notrun.append(dict(
+                    port='every path that needs %s' % LEADS[lead]['name'],
+                    row='',
+                    reason='that lead was excluded from this list'))
+                continue
+            fn()
+        for name in sorted(self.excl_in):
+            self.notrun.append(dict(
+                port=name, row=self.ports.get(name, {}).get('catalog_row', ''),
+                reason='excluded from this list'))
         self.block_unreachable()
         self.check()
         return self
@@ -685,21 +835,39 @@ def write_plan(out, b):
     for r in b.paths:
         by_lead.setdefault(r['lead'], set()).add(r['patch'])
         patches.setdefault(r['patch'], []).append(r)
+    leads_used = [k for k in BLOCK_ORDER if by_lead.get(k)]
     L = ['<!-- GENERATED by tools/accept/gen_patch_paths.py (S121). Do not edit. -->',
          '# The D24 audio patch plan', '',
          '%d patches, %d measurements, %d lead changes.'
-         % (b.patch, b.n, len(BLOCK_ORDER) - 1), '',
-         '## The kit', '',
+         % (b.patch, b.n, max(0, len(leads_used) - 1)), '']
+    if b.excl_in or b.excl_lead:
+        L += ['## This is a SHORT list', '',
+              'It is generated from the same source as the full one, with '
+              'sockets left out on purpose. Nothing here was edited by hand.',
+              '',
+              '* left out: %s'
+              % ', '.join(sorted(b.excl_in)
+                          + sorted('every path that needs the %s'
+                                   % LEADS[k]['name'] for k in b.excl_lead)),
+              '* patches the exclusions removed: %d' % b.dropped]
+        for out, inp, why in b.rehomed:
+            L.append('* %s now reads on %s (%s)' % (out, inp, why))
+        L += ['',
+              'An output whose only test used a socket that was left out is '
+              'MOVED onto an input that was carrying nothing but the parked '
+              'output, so leaving an input out never quietly stops proving an '
+              'output.', '']
+    L += ['## The kit', '',
          '| lead | what it is | how it is wired | patches |',
          '|---|---|---|---|']
-    for k in BLOCK_ORDER:
+    for k in leads_used:
         d = LEADS[k]
         L.append('| %s | %s | %s | %d |'
                  % (k, d['name'], d['wiring'], len(by_lead.get(k, ()))))
     L += ['',
           'One of each. The order above is the order the station walks, so the '
           'operator changes lead type %d times in a whole pass and never goes '
-          'back to a lead already put down.' % (len(BLOCK_ORDER) - 1), '',
+          'back to a lead already put down.' % max(0, len(leads_used) - 1), '',
           '## The blocks', '',
           '| # | lead | block | patches | measurements | the end that stays put |',
           '|---|---|---|---|---|---|']
@@ -762,17 +930,47 @@ def main(argv=None):
     ap.add_argument('--out', default=OUT_DEFAULT)
     ap.add_argument('--check', action='store_true',
                     help='build and validate, write nothing')
+    ap.add_argument('--exclude', action='append', metavar='SOCKETS',
+                    help='inputs to leave out, e.g. MIC1-4,MIC13-16 . '
+                         'Repeatable. Outputs that lose their only test are '
+                         're-homed onto a working input')
+    ap.add_argument('--exclude-lead', action='append', metavar='LEAD',
+                    help='leads to leave out, by name (mini-jack, line, '
+                         'terminator, xlr, jack-to-xlr) or by kit code')
     a = ap.parse_args(argv)
-    b = Builder(load_ports(), load_cells()).build()
+    excl_in = parse_excludes(a.exclude)
+    excl_lead = parse_lead_excludes(a.exclude_lead)
+    b = Builder(load_ports(), load_cells(), excl_in, excl_lead).build()
     if a.check:
         print('OK: %d patches, %d paths, %d routes, %d sockets not run'
               % (b.patch, b.n, len(b.routes), len(b.notrun)))
         return 0
     os.makedirs(a.out, exist_ok=True)
-    for p in (write_paths(a.out, b), write_routes(a.out, b), write_plan(a.out, b)):
+    written = [write_paths(a.out, b), write_routes(a.out, b),
+               write_plan(a.out, b)]
+    # The windows are a SOURCE file, hand-tuned by PW, and the station reads
+    # them out of the list directory it was pointed at. A short list written
+    # somewhere else would otherwise be a directory the station cannot run
+    # from, or -- worse -- one somebody fills in with a second copy that
+    # drifts. It is copied here, on every generation, from the one original.
+    src_lim = os.path.join(OUT_DEFAULT, 'patch-limits.csv')
+    dst_lim = os.path.join(a.out, 'patch-limits.csv')
+    if os.path.abspath(src_lim) != os.path.abspath(dst_lim):
+        with open(src_lim) as fh:
+            text = fh.read()
+        with open(dst_lim, 'w') as fh:
+            fh.write(text)
+        written.append(dst_lim)
+    for p in written:
         print('wrote %s' % os.path.relpath(p, ROOT))
     print('%d patches, %d measurements, %d sockets not run'
           % (b.patch, b.n, len(b.notrun)))
+    if excl_in or excl_lead:
+        print('excluded: %s' % ', '.join(sorted(excl_in) +
+                                         sorted(LEADS[k]['name']
+                                                for k in excl_lead)))
+        for out, inp, why in b.rehomed:
+            print('re-homed: %s now reads on %s (%s)' % (out, inp, why))
     return 0
 
 
