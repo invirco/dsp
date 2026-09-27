@@ -1,0 +1,1 @@
+  NW4       NO DATA  unit rx 94 Mbit/s, unit tx 94 Mbit/s -- but the driving host's ens9 negotiates 100 Mb/s, so this

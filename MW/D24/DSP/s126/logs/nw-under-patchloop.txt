@@ -1,0 +1,13 @@
+4
+NW4 ...
+-- 2026-09-27T10:42:46Z NW4 took 23.7 s
+  NW4       NO DATA  unit rx 5327 Mbit/s, unit tx 5549 Mbit/s -- but the driving host's lo negotiates 0 Mb/s, so this
+NW2 ...
+-- 2026-09-27T10:43:16Z NW2 took 30.0 s
+  NW2       PASS     deltas over NW3+NW4: {'rx_errors': 0, 'rx_dropped': 0, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropp
+NW2        PASS    
+NW4        NO DATA 
+TEST        SECONDS
+NW2            30.0
+NW4            23.7
+total          53.7  (the tests alone; staging, boots and the handback are outside them)

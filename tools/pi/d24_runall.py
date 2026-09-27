@@ -1134,12 +1134,26 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
         report=lambda m: print('   [dsp] %s' % m, flush=True))).start()
     if live is not None:
         live.clear()             # the panel loops are the app's own dialogs
+    stopped = False
     try:
         panels = run_manual(a, rows, state, ignored, glass, passno,
                             only=set(PANEL_STATIONS), quiet_flag=quiet)
+    except Paused:
+        stopped = True
+        raise
     finally:
         dsp.join(glass, PHASE_WORDS['dsp'])
         results += dsp.results
+        # THE RAILS DO NOT STAY UP ON A PAUSE (S126). The dsp phase is told to
+        # keep them up FOR the analog station, and a pass stopped in the panel
+        # loops never reaches it -- so the unit would sit on the bench live,
+        # and the next automatic run would refuse to boot the pair with them
+        # up, which is that guard doing its job about a state nothing meant to
+        # leave. Measured on MW-D24-2, 2026-09-27: that is exactly what
+        # happened. The analog station raises them itself when the pass is
+        # resumed, so lowering here costs nothing.
+        if stopped and patch_to_come:
+            lower_rails(glass)
     timing['panels'] = panels
     # -- 3. the network tests, under the analog station ---------------------
     a.background = lambda: run_auto(
@@ -1147,6 +1161,20 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
         report=lambda m: print('   [net] %s' % m, flush=True))
     timing['_manual_t0'] = time.time()
     return time.time() - t0, results
+
+
+def lower_rails(glass):
+    """The analog supplies down and the mic-pre chain back to SAFE.
+
+    The patch station's own teardown, borrowed: it is the one piece of code
+    that knows PW's order -- rails first, chain after them -- and there must
+    not be a second one.
+    """
+    try:
+        an = PT.Analog(enabled=True, log=glass.progress, own_rails=True)
+        an.down()
+    except Exception as exc:                            # noqa: BLE001
+        glass.progress('the analog supplies could not be lowered: %s' % exc)
 
 
 def setup_screen(a, glass):
@@ -1437,6 +1465,48 @@ def run_manual(a, rows, state, ignored, glass, passno, only=None,
     i = max(0, min(i, len(steps) - 1))
     carded = set()
     rails_up = False
+    # RULING a, STEP 3: the network phase runs UNDER this slice of the manual
+    # set, which in an overlapped pass is the analog station and nothing else.
+    # It is started HERE, around the whole walk, and not inside the station --
+    # an operator who skips the station's card must not also lose the network
+    # tests, and a `back` or a retry inside it must not be able to start a
+    # second one.
+    fn, a.background = getattr(a, 'background', None), None
+    bg = Background('net', fn).start() if fn is not None else None
+    # DOES THIS CALL OWN THE ANALOG STATION? If it does and the station does
+    # not actually run -- skipped, ignored or paused out of -- then the rails
+    # the automatic set was told to keep up for it have nobody to lower them,
+    # and the unit goes back on the bench live. Measured on MW-D24-2
+    # 2026-09-27: the next automatic run then REFUSED to boot the pair, which
+    # is PW's own guard (analog last up, first down) catching a state nothing
+    # meant to leave.
+    owns_analog = only is None or bool(PATCH_STATIONS & set(only))
+    a.patch_station_ran = False
+    try:
+        return _walk(a, rows, state, ignored, glass, passno, only, quiet_flag,
+                     t0, steps, i, carded, rails_up)
+    finally:
+        if (owns_analog and not a.patch_station_ran
+                and getattr(a, 'keep_rails_from_auto', False)):
+            lower_rails(glass)
+        if bg is not None:
+            bg.join(glass, PHASE_WORDS['net'])
+            # THE BACKGROUND PHASE'S VERDICTS ARE STAMPED HERE, and they have
+            # to be: `one_pass` stamped what the overlapped opening returned,
+            # and this phase had not run yet. Same function, same results CSV,
+            # same partner rule.
+            got = stamp_auto(rows, state, bg.results, passno)
+            if got:
+                print('   partner rows stamped: %s'
+                      % ', '.join('%d->%d' % x for x in got))
+            a.background_secs = bg.secs
+            state.save()
+
+
+def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
+          steps, i, carded, rails_up):
+    """The walk itself. Split out of `run_manual` only so that the background
+    phase's start and join can bracket the whole of it in one place."""
     while i < len(steps):
         st, r = steps[i]
         state.d['current'] = {'phase': 'manual', 'step': i, 'pass': passno,
@@ -1484,24 +1554,8 @@ def run_manual(a, rows, state, ignored, glass, passno, only=None,
             # started here rather than before the station card so that it is
             # not running while the operator is still reading -- the whole
             # point is that it sits under the patch pass, which is minutes.
-            fn, a.background = getattr(a, 'background', None), None
-            bg = Background('net', fn).start() if fn is not None else None
-            try:
-                patch_station(a, st, rows, state, ignored, glass, passno)
-            finally:
-                if bg is not None:
-                    bg.join(glass, PHASE_WORDS['net'])
-                    # THE BACKGROUND PHASE'S VERDICTS ARE STAMPED HERE, and
-                    # they have to be: `one_pass` stamped what the overlapped
-                    # opening returned, and this phase had not run yet. Same
-                    # function, same results CSV, same partner rule.
-                    got = stamp_auto(rows, state, bg.results, passno)
-                    if got:
-                        print('   partner rows stamped: %s'
-                              % ', '.join('%d->%d' % x for x in got))
-                    a.background_secs = bg.secs
-                run_background_rows(a, rows, state, ignored, glass, passno)
-                state.save()
+            a.patch_station_ran = True
+            patch_station(a, st, rows, state, ignored, glass, passno)
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
@@ -2344,6 +2398,14 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
                                       t0=timing.pop('_manual_t0', None))
     else:
         timing['manual'] = run_manual(a, rows, state, ignored, glass, passno)
+    # THE BACKGROUND ROWS, WHEREVER THE PASS WENT (S126, ruling f). They are
+    # normally read under the analog station, which is where they cost nobody
+    # anything -- but a pass with no analog station owed, or an --auto-only
+    # one, never reaches it, and a row with no dialog is the easiest kind to
+    # leave without a verdict. Rows already PASSED are skipped, so this is a
+    # backstop and never a second reading.
+    if not a.manual_only:
+        run_background_rows(a, rows, state, ignored, glass, passno)
     record_not_run(rows, state, passno)
     state.d['passes'] = passno
     state.d['current'] = None

@@ -1,0 +1,26 @@
+HD-PWR     PASS    
+HD0-1      PASS    
+NW1        PASS    
+NW2        PASS    
+NW3        FAIL    
+NW4        NO DATA 
+USB-HUB    PASS    
+------------------------------------------------------------------------------
+rows:  6 PASS / 1 FAIL / 1 NO DATA  (8 rows)
+items: 4 PASS / 1 FAIL / 0 NO DATA  (5 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+NW3            62.6
+NW2            30.0
+NW4            23.7
+AS-CM4          0.1
+HD0-1           0.1
+USB-HUB         0.0
+NW1             0.0
+HD-PWR          0.0
+total         116.5  (the tests alone; staging, boots and the handback are outside them)
+
+real	1m56.892s
+user	0m0.819s
+sys	0m20.366s

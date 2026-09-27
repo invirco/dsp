@@ -1,0 +1,84 @@
+-- 2026-09-27T10:56:51Z AL1 took 3.1 s
+  AL1       NO DATA  no settled window for: base, tone, back
+-- 2026-09-27T10:56:51Z handback start
+
+--- handback ---
+speaker path: already torn down by AL1 (NOT SILENT, live 0.86 s)
+SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 7A C3 00 00 37 AC 10 00 BB BB 30 30 30 30 00 00 00 00 18 18 18 18 00 05 0A
+CS_M: 27: op -- pd | hi // GPIO27 = output
+AN_EN: 26: op -- pd | lo at entry, RAISED this session, LEFT UP (--al1-keep-rails) -> 26: op -- pd | hi // GPIO26 = output
+matrix-app: left stopped (--no-app-restart); the test display owns the screen
+MCU verify (whole log): not read -- the app was not restarted
+-- 2026-09-27T10:56:51Z handback end
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        NO DATA 
+AS-ADC     PASS    
+AS-CPLD    NO DATA 
+AS-DAC     NO DATA 
+AS-DSPA    PASS    
+AS-DSPB    PASS    
+AS-PWR     NO DATA 
+DC1-CS1    PASS    
+DC1-CS2    PASS    
+DC1-CS6    NO DATA 
+DC1-CS7    NO DATA 
+DC1-CS8    NO DATA 
+DC2-CS1    PASS    
+DC2-CS2    PASS    
+DC2-CS6    NO DATA 
+DC2-CS7    NO DATA 
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+------------------------------------------------------------------------------
+rows:  14 PASS / 0 FAIL / 11 NO DATA  (25 rows)
+items: 11 PASS / 0 FAIL / 8 NO DATA  (19 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+DR2             9.3
+AS-CPLD         4.0
+DR1             3.6
+AL1             3.1
+AS-DSPA         2.5
+AS-ADC          1.7
+AS-DSPB         0.9
+DC2-CS2         0.6
+DC2-CS1         0.6
+DC1-CS2         0.3
+DC1-CS1         0.3
+AS-PWR          0.0
+DY1-RDY1        0.0
+DY1-RDY2        0.0
+DC2-CS6         0.0
+DC1-CS6         0.0
+DC2-CS7         0.0
+DC1-CS7         0.0
+DC1-CS8         0.0
+DC2-CS8         0.0
+AS-DAC          0.0
+total          26.9  (the tests alone; staging, boots and the handback are outside them)
+
+appended 25 rows to /tmp/s126-runall/item-status.csv
+raw reads: /tmp/s126-runall/logs/2026-09-27T105615Z
+   [dsp] auto set (the audio processor checks) finished in 36 s
+
+== STATION: Station 3 - Analog paths
+   What you need in hand: the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug.
+   45 checks at this station.
+   The analog supplies are LIVE for this station.
+   [ack / skip / ignore / pause]
+   -> skip (fixture not built)
+
+pass 1: 17 PASS / 0 FAIL / 12 NO DATA / 0 ignored / 89 skipped / 76 not tested (of 202 rows) in 47 s
+report: /tmp/s126-runall/reports/10000000830b03af-2026-09-27T105651Z.md
+        /tmp/s126-runall/reports/10000000830b03af-2026-09-27T105651Z.json
+   .. pass 1 complete - report written - 17 of 202 rows pass
+
+real	0m47.841s
+user	0m18.491s
+sys	0m4.184s

@@ -1,0 +1,16 @@
+D24 self-test, section 1 -- sections A -- 2026-09-27T10:32:52Z
+NW4 ...
+-- 2026-09-27T10:33:16Z NW4 took 23.6 s
+  NW4       NO DATA  unit rx 5983 Mbit/s, unit tx 11973 Mbit/s -- but the driving host's lo negotiates 0 Mb/s, so thi
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+NW4        NO DATA 
+------------------------------------------------------------------------------
+rows:  0 PASS / 0 FAIL / 1 NO DATA  (1 rows)
+items: 0 PASS / 0 FAIL / 1 NO DATA  (1 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+NW4            23.6
+total          23.6  (the tests alone; staging, boots and the handback are outside them)

@@ -1,0 +1,15 @@
+                           3 s worker     5 s worker
+before                      693 s 11.6 m      931 s 15.5 m
+after                       550 s  9.2 m      753 s 12.6 m
+saved                       143 s   21 %      178 s   19 %
+
+hand 3 s, after by phase:
+   setup pages  machine  39.3  worker  30.4  ->  39.3
+   panel loops  machine  74.0  worker  48.0  ->  74.0
+   patch pass   machine 116.9  worker 435.1  -> 435.1
+hand 5 s, after by phase:
+   setup pages  machine  39.3  worker  46.4  ->  46.4
+   panel loops  machine  74.0  worker  80.0  ->  80.0
+   patch pass   machine 116.9  worker 625.1  -> 625.1
+
+the split costs 65.9 s of machine time (230.2 s of wall as three invocations vs 164.3 s as one)

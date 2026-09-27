@@ -1,0 +1,74 @@
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+HD-PWR     PASS    
+HD0-1      PASS    
+IC1        PASS    
+MC1        PASS    
+MC2        PASS    
+MC3        PASS    
+ML-B0      NO DATA 
+ML-M       PASS    
+ML-P1      PASS    
+ML-P2      PASS    
+ML1        PASS    
+ML2        NO DATA 
+NW1        PASS    
+NW2        FAIL    
+NW3        FAIL    
+NW4        NO DATA 
+USB-HUB    PASS    
+------------------------------------------------------------------------------
+rows:  33 PASS / 2 FAIL / 16 NO DATA  (51 rows)
+items: 21 PASS / 1 FAIL / 12 NO DATA  (34 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+NW3            62.7
+NW2            30.0
+NW4            23.6
+DR2             9.4
+ML-M            4.9
+AS-CPLD         4.0
+DR1             3.6
+AL1             3.2
+AS-DSPA         2.5
+AS-ADC          1.7
+CC2             1.6
+AS-DSPB         0.9
+ML1             0.8
+IC1             0.7
+DC2-CS1         0.6
+DC2-CS2         0.6
+CC1             0.4
+DC1-CS2         0.3
+DC1-CS1         0.3
+MC1             0.3
+MC2             0.3
+AS-CM4          0.0
+HD0-1           0.0
+USB-HUB         0.0
+NW1             0.0
+ML2             0.0
+ML-P1           0.0
+AS-PWR          0.0
+ML-P2           0.0
+MC3             0.0
+DY1-RDY1        0.0
+DY1-RDY2        0.0
+HD-PWR          0.0
+DC1-CS6         0.0
+DC2-CS6         0.0
+AS-DAC          0.0
+DC2-CS7         0.0
+ML-B0           0.0
+DC1-CS7         0.0
+DC1-CS8         0.0
+DC2-CS8         0.0
+total         152.7  (the tests alone; staging, boots and the handback are outside them)
+
+real	2m44.275s
+user	0m18.396s
+sys	0m23.952s

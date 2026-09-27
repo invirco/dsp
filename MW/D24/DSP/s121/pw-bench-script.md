@@ -1,99 +1,124 @@
-provenance: AI-drafted 2026-09-26 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
+provenance: AI-drafted 2026-09-27 — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
-# Timing a real analog pass — one page
+# The first full analog pass with a real lead — one page
 
-MW-D24-2, `app@192.168.1.219`. Takes about 10 minutes plus whatever the leads
-take. Nothing here changes the unit's configuration permanently: the station
-shuts every route it opens and silences the monitor bus on the way out.
+MW-D24-2, `app@192.168.1.219`. Rewritten for S126: the kit is parked at START,
+the pass is confirmed with ENTER, and it is started on the D24's own screen.
+Takes about 10 minutes plus whatever the leads take. Nothing here changes the
+unit's configuration permanently: the station shuts every route it opens and
+silences the monitor bus on the way out.
+
+**The seven gain steps have never been run through a real preamp.** Everything
+about them is right on paper and proved against the part with no lead in
+(S125); what has never happened is a tone arriving at a socket and each of the
+six gain elements being switched in under it. That is the point of this pass,
+and it is the reason to do MIC 7 carefully and slowly before letting the rest
+of it run.
 
 ## What to have in hand
 
-| | lead | where to get one |
-|---|---|---|
-| **K1** | XLR female → XLR male | any mic lead |
-| **K5** | 150 Ω terminator, male XLR, 150 Ω across pins 2–3 | the EIN plug from the 09-16 survey |
-| **K4** | XLR female → 6.35 mm TRS plug (pin 2 → tip, pin 3 → ring) | a standard balanced jack-to-XLR lead |
-| **K2** | 6.35 mm TRS plug → XLR male (tip → pin 2, ring → pin 3) | the same lead the other way round — **it is a different lead**, the XLR gender is opposite |
-| **K3** | XLR female → 3.5 mm TRS plug | a standard mini-jack-to-XLR lead |
+| | lead | where to get one | where it is parked |
+|---|---|---|---|
+| **K1** | XLR female → XLR male | any mic lead | far end on **AUX 1** |
+| **K4** | XLR female → 6.35 mm TRS plug (pin 2 → tip, pin 3 → ring) | a standard balanced jack-to-XLR lead | XLR end on **AUX 2** |
+| **K3** | XLR female → 3.5 mm TRS plug | a standard mini-jack-to-XLR lead | XLR end on **AUX 3** |
+| **K2** | 6.35 mm TRS plug → XLR male (tip → pin 2, ring → pin 3) | the same lead the other way round — **it is a different lead**, the XLR gender is opposite | XLR end in the **second working input** |
+| **K5** | 150 Ω terminator, male XLR, 150 Ω across pins 2–3 | the EIN plug from the 09-16 survey | on the bench, in reach |
+
+You do not have to remember the table. The test walks you through it, one
+socket per screen, before it asks for a single patch.
 
 ## Before you start
 
 ```
 ssh app@192.168.1.219
 sudo systemctl stop matrix-app          # if it is running
+sudo systemctl start d24-testui         # the factory screen; they conflict
 pinctrl set 27 op dh                    # CS_M driven, or the DSP link reads zeros
 pinctrl set 7,8 op dh
 ```
 
-## The two patches that settle the biggest open question first
-
-Do these before the full pass. They answer whether a TRS jack's tip really
-sits 6 dB under the XLR beside it — the one window in the whole station that
-rests on topology rather than on a measurement (**S121-4**).
-
-```
-cd /home/app/selftest/s121
-python3 - <<'EOF'
-import sys; sys.path.insert(0, '/home/app/selftest')
-import d24_patch as PT
-pl = PT.PatchList(PT.find_list_dir()); u = PT.Unit(); u.write(pl.standing())
-def read(route, lane):
-    u.write(pl.routes[route]); u.osc(chan=24, freq=1000.0, level_dbfs=-12.0, on=True)
-    u.meas_chan(lane); m = u.measure(1000.0, -12.0, settle=PT.ROUTE_SETTLE_WINDOWS)
-    return m
-input('Patch AUX 1 (XLR) to MIC 1, then press Enter: ')
-a = read('aux1@24', 1)
-input('Move the AUX 1 end to the AUX A 1-2 jack (TRS), same MIC 1: ')
-b = read('aux1@24', 1)
-print('  balanced      %8.2f dB   %7.1f deg' % (a['h_db'], a['h_deg']))
-print('  single-ended  %8.2f dB   %7.1f deg' % (b['h_db'], b['h_deg']))
-print('  DIFFERENCE    %8.2f dB   %7.1f deg' % (b['h_db'] - a['h_db'],
-                                                b['h_deg'] - a['h_deg']))
-u.osc(on=False); u.write(pl.routes['_standing_close'], verify=False)
-EOF
-```
-
-Expect about **−6 dB** and about **0°**. If it comes out near 0 dB instead, the
-TRS tip is buffered rather than tapped off one leg, and `single_ended_db` in
-`patch-limits.csv` becomes 0.0. Either way, put the number PW measures into
-that file — it is the only place the station reads it from.
+Then let go of the keyboard. **Everything after this is on the D24's own
+screen**, and START is the one thing to press.
 
 ## The pass
 
-```
-cd /home/app/selftest/s121
-python3 /home/app/selftest/d24_patch.py --run --stdin --hand 5
-```
+Press **START**.
 
-`--stdin` puts the prompts on the terminal instead of the glass. It prints the
-lead to pick up, then one patch at a time.
+1. **The bench setup, seven or eight pages.** One instruction each, `n of N` in
+   the corner, ENTER to confirm. The network lead, the two USB sticks, then
+   each kit lead onto the socket it hangs on. Where the unit can see the thing
+   arrive — the network link, the two sticks — the page says so under the
+   instruction. The parked leads it cannot see, and does not pretend to.
 
-**You do not press Enter.** Make the patch; it moves on by itself as soon as
-the lead is in. Type `skip` or `pause` and Enter if you want to leave one out
-or stop. If the tone turns up somewhere else it says so and asks again — that
-is not a failure, it is the tester telling you which socket the lead is really
-in.
+   The unit is checking its own panel and codec buses while you do this, so
+   these pages are free.
 
-Five blocks, in this order, lead change between each:
+2. **The panel loops.** The button that is lit is the button to press. The
+   audio processors are being checked underneath; if the panel speaker sounds,
+   the next button waits about a second before it lights, because the panel
+   microphone can hear a click.
+
+3. **The patch pass.** One patch per screen: plug it in, then press ENTER. The
+   reading is already taken by the time your finger gets there — the tester
+   starts it the moment the tone arrives and re-checks at ENTER that nothing
+   moved, so the verdict is up almost at once. If the lead goes in the wrong
+   socket it says which one and asks again; that is not a failure.
+
+   The network checks run underneath this, so nothing waits for them.
+
+4. **One report**, when both halves are done.
+
+### What to watch on the first input
+
+The first input the walk reaches takes **nine screens' worth of readings from
+one lead**: the tone reference, then six gain elements one at a time, then the
+terminator. The lead does not move for the first eight. **Leave it in until
+the screen changes** — it says so.
+
+This is the bit that has never run through a preamp. Worth watching:
+
+* every one of the seven steps should land within **0.05 dB** of what the gain
+  law says (S125 measured that on this unit's own preamps with no lead);
+* a step that is wrong says so in a whole sentence, naming the input and the
+  step;
+* the whole input, all nine readings, should be about **1.6 s** of machine
+  time.
+
+If a step reads low on the first input and on no other, it is that input. If it
+reads low on every input, stop and say so — that is the gain law or the drive
+level, not the unit.
+
+## The blocks, in the order you will meet them
 
 | block | patches | what moves |
 |---|---|---|
-| K1, the mic inputs | 25 | the input end walks MIC 1…24 and TALKBACK; the output end moves once per output for the first ten, then stays on AUX 1 |
-| K5, the noise rows | 24 | just the terminator, MIC 1…24 |
-| K4, the line inputs | 24 | the output end stays on AUX 1; the TRS end walks the 24 combo jacks |
-| K2, the TRS outputs | 6 | the XLR end stays in MIC 1; the TRS end walks Monitor L, Monitor R and the four Aux Out A jacks |
-| K3, the mini-jacks | 2 | the XLR end stays on AUX 1 |
+| the outputs | 10 | the input end stays in the reference input; the output end walks the ten XLR outputs. **AUX 2 and AUX 3 come last**, and each says "take the … off first" — that is the parked lead coming back into your hand |
+| the inputs | 25 | the output end stays on AUX 1; the input end walks the mic inputs and the talkback, seven gain steps and a terminator at each. **The input the jack-to-XLR lead is parked in comes last** |
+| the TRS outputs | 6 | the XLR end goes back into the input the walk has just proved; the TRS end walks Monitor L, Monitor R and the four Aux Out A jacks |
+| the line inputs | 24 | the XLR end stays on AUX 2; the TRS end walks the combo jacks |
+| the mini-jacks | 2 | the XLR end stays on AUX 3 |
 
-At the end it prints the per-patch seconds and the projected pass. **The
-number worth having is the real hand time**: the projection assumes 5 s per
+At the end it prints the per-patch seconds and the projected pass. **The number
+worth having is the real hand time**: the projection assumes 3 s or 5 s per
 move, and whatever it actually turns out to be is what sizes the station.
+
+## If you want it on the terminal instead
+
+```
+cd /home/app/selftest
+python3 d24_patch.py --run --stdin --hand 5 --list-dir /home/app/selftest/quick
+```
+
+Same pass, same order, prompts on the terminal. Type `done` and Enter where the
+screen would have said ENTER; `skip` or `pause` to leave one out or stop.
 
 ## Afterwards
 
 The station shuts everything it opened. Worth confirming:
 
 ```
-python3 /home/app/selftest/s89_set.py /home/app/loopthd/s109 \
+python3 /home/app/selftest/s89_set.py /home/app/loopthd/s122 \
     Test001OscOn001 Mon001Level001 Mon001Level002
 ```
 

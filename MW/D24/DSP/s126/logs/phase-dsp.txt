@@ -1,0 +1,44 @@
+DC1-CS8    NO DATA 
+DC2-CS1    PASS    
+DC2-CS2    PASS    
+DC2-CS6    NO DATA 
+DC2-CS7    NO DATA 
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+IC1        FAIL    
+------------------------------------------------------------------------------
+rows:  14 PASS / 0 FAIL / 11 NO DATA  (25 rows)
+items: 11 PASS / 0 FAIL / 8 NO DATA  (19 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+DR2             9.0
+AS-CPLD         4.0
+DR1             3.5
+AL1             3.0
+AS-DSPA         2.4
+AS-ADC          1.6
+AS-DSPB         0.8
+IC1             0.7
+DC2-CS1         0.6
+DC2-CS2         0.5
+DC1-CS2         0.3
+DC1-CS1         0.3
+AS-PWR          0.0
+DY1-RDY1        0.0
+DY1-RDY2        0.0
+DC1-CS6         0.0
+DC2-CS6         0.0
+DC1-CS7         0.0
+DC2-CS7         0.0
+AS-DAC          0.0
+DC1-CS8         0.0
+DC2-CS8         0.0
+total          26.8  (the tests alone; staging, boots and the handback are outside them)
+
+real	1m13.980s
+user	0m18.290s
+sys	0m4.416s

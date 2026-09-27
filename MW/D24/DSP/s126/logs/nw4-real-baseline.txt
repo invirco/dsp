@@ -1,0 +1,12 @@
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+NW4        NO DATA 
+------------------------------------------------------------------------------
+rows:  0 PASS / 0 FAIL / 1 NO DATA  (1 rows)
+items: 0 PASS / 0 FAIL / 1 NO DATA  (1 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+NW4            24.9
+total          24.9  (the tests alone; staging, boots and the handback are outside them)

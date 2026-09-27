@@ -1,0 +1,29 @@
+MC3        PASS    
+ML-B0      NO DATA 
+ML-M       PASS    
+ML-P1      PASS    
+ML-P2      PASS    
+ML1        PASS    
+ML2        NO DATA 
+------------------------------------------------------------------------------
+rows:  14 PASS / 0 FAIL / 4 NO DATA  (18 rows)
+items: 6 PASS / 0 FAIL / 4 NO DATA  (10 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+ML-M            4.9
+CC2             1.6
+ML1             0.8
+CC1             0.3
+MC2             0.3
+MC1             0.3
+ML2             0.0
+ML-P1           0.0
+ML-P2           0.0
+MC3             0.0
+ML-B0           0.0
+total           8.3  (the tests alone; staging, boots and the handback are outside them)
+
+real	0m39.256s
+user	0m1.844s
+sys	0m0.658s
