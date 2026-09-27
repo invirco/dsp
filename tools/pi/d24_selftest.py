@@ -193,6 +193,17 @@ ITEMS = {
     'NW4':     [('Digital', 'Ethernet (RJ45)')],
     'AS-CM4':  [(B_ASM, 'CM4 compute module')],                           # 193
     'USB-HUB': [],           # no workbook item: the spec files it under section-2 UA1
+    # 🔴 NO CATALOG ROW EXISTS FOR THE TOUCH PANEL AS A USB DEVICE YET. PW asked
+    # for one (S129 addendum 2) and the catalog is generated upstream, so the
+    # row is the hub's to add and this is the test that will grade it. Until it
+    # exists the verdict reaches item-status.csv and the log and no report row.
+    # The row the hub should add, in the catalog's own columns:
+    #   board  = Digital
+    #   item   = Touch panel (rear USB socket, hub port 2)
+    #   class  = USB-A
+    #   tests  = USB-TP
+    #   group  = A1
+    'USB-TP':  [],
     # B -- through H1S1 over the matrix bus
     'ML1':     [(B_DSP, 'H1S1 MCU (STM32U575) link'),                     # 102
                 (B_ASM, 'S MCU H1S1 (STM32U575)')],                       # 202
@@ -272,7 +283,8 @@ for _c, _n in RDY_SELECT.items():
     ITEMS['DY1-RDY%d' % _c] = [(B_DSP, 'DSP chip-select CS%d (fw.csv Dsp%d)' % (_n, _n))]
 
 SECTION = {}
-for _t in ('HD0-1', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB'):
+for _t in ('HD0-1', 'HD-PWR', 'NW1', 'NW2', 'NW3', 'NW4', 'AS-CM4', 'USB-HUB',
+           'USB-TP'):
     SECTION[_t] = 'A'
 for _t in ('ML1', 'ML2', 'ML-M', 'ML-P1', 'ML-P2', 'ML-B0', 'DR1', 'DR2',
            'MC1', 'MC2', 'MC3', 'CC1', 'CC2'):
@@ -971,6 +983,62 @@ def t_usbhub(r):
     ok = hubs >= 1
     return ((PASS if ok else FAIL), '%d hub(s) enumerated' % hubs,
             'CM4 hub enumerates; ports 3/4 empty (a device there is section 2)', txt)
+
+
+# THE TOUCH PANEL IS A USB DEVICE ON THE UNIT'S OWN HUB (PW, S129 addendum 2:
+# "Also add a row: the touch panel (back USB socket, digital board) enumerates
+# on its hub port, graded automatically").
+#
+# Measured on MW-D24-2, 2026-09-27:
+#   Bus 001 Device 003: ID 222a:0001 ILI Technology Corp. Multi-Touch Screen
+# on the Microchip 0424:2514 hub, PORT 2, as a Human Interface Device at 12M --
+# where the two operator sticks are ports 3 and 4. So the row grades on three
+# facts the unit can read for itself: the VID:PID is there, it is bound to
+# `usbhid`, and it is on the hub and not on the root port.
+TOUCH_VIDPID = '222a:0001'
+TOUCH_PORT = 2
+
+
+def t_usbtp(r):
+    """The touch panel enumerates on its own hub port, and its driver is bound.
+
+    WHY THE DRIVER AND NOT JUST THE ID. A panel that enumerates and does not
+    bind is a panel nobody can touch, and that is the failure this row is for:
+    the glass is the only input device on a finished unit. `lsusb -t` names the
+    driver per interface, so both facts come out of one read.
+
+    It is also the test of the rear USB socket, which the setup pages tell the
+    operator to leave alone precisely because the touch panel is in it.
+    """
+    txt = r.out('lsusb -t; echo ---; lsusb; echo ---; '
+                'for d in /sys/bus/usb/devices/*/; do '
+                'v=$(cat $d/idVendor 2>/dev/null); p=$(cat $d/idProduct 2>/dev/null); '
+                '[ "$v:$p" = "%s" ] && echo "$d devpath=$(cat $d/devpath 2>/dev/null) '
+                'speed=$(cat $d/speed 2>/dev/null)"; done' % TOUCH_VIDPID)
+    seen = TOUCH_VIDPID in txt
+    # `devpath` is the whole chain of hub ports, not one number: the touch panel
+    # reads `1.2` -- root port 1, then port 2 of the Microchip hub -- while the
+    # hub itself reads `1` and the two operator sticks read `1.3` and `1.4`.
+    # The number that matters is the LAST hop, which is the hub port.
+    m = re.search(r'devpath=([\d.]+)', txt)
+    port = int(m.group(1).rsplit('.', 1)[-1]) if m else None
+    on_hub = bool(m and '.' in m.group(1))
+    hid = bool(re.search(r'Class=Human Interface Device, Driver=usbhid', txt))
+    lim = ('the touch panel (%s) enumerates on internal hub port %d and binds '
+           'usbhid' % (TOUCH_VIDPID, TOUCH_PORT))
+    if not seen:
+        return (FAIL, 'the touch panel did not enumerate at all', lim, txt)
+    if not hid:
+        return (FAIL, 'the touch panel enumerated but no usbhid driver is bound '
+                'to it, so nothing can be touched', lim, txt)
+    if not on_hub:
+        return (FAIL, 'the touch panel is not on the internal hub at all: it '
+                'enumerated straight on the root port', lim, txt)
+    if port is not None and port != TOUCH_PORT:
+        return (FAIL, 'the touch panel is on hub port %d and should be on port '
+                '%d' % (port, TOUCH_PORT), lim, txt)
+    return (PASS, 'the touch panel is on hub port %s with usbhid bound'
+            % (port if port is not None else '?'), lim, txt)
 
 
 # ---------------------------------------------------------------------------
@@ -3744,6 +3812,8 @@ def main():
         r.run('HD0-1', lambda: t_hd01(r))
         r.run('AS-CM4', lambda: t_ascm4(r))
         r.run('USB-HUB', lambda: t_usbhub(r))
+        if not a.only or 'USB-TP' in a.only:
+            r.run('USB-TP', lambda: t_usbtp(r))
         r.run('NW1', lambda: t_nw1(r))
         if not a.only or 'NW2' in a.only:
             r._nw2_before = _ifstats(r)

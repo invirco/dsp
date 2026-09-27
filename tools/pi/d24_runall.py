@@ -77,7 +77,8 @@ DIR_DEFAULT = '/home/app/selftest'
 # the one progress line's "remaining" figure and for nothing else, so a drift
 # of a second or two costs nothing.
 COST = {
-    'HD0-1': 2, 'AS-CM4': 0, 'USB-HUB': 0, 'NW1': 0, 'NW3': 63, 'NW4': 23,
+    'HD0-1': 2, 'AS-CM4': 0, 'USB-HUB': 0, 'USB-TP': 0, 'NW1': 0,
+    'NW3': 63, 'NW4': 0,
     'NW2': 30, 'ML1': 4, 'ML2': 0, 'ML-M': 5, 'ML-P1': 5, 'ML-P2': 5,
     'ML-B0': 0, 'CC1': 1, 'CC2': 0, 'MC1': 1, 'MC2': 0, 'MC3': 0,
     'DR1': 11, 'DR2': 9, 'DY1-RDY1': 7, 'DY1-RDY2': 0,
@@ -96,6 +97,7 @@ PLAIN = {
     'NW1': 'network link', 'NW2': 'network error counters',
     'NW3': 'network packet loss', 'NW4': 'network throughput',
     'AS-CM4': 'compute module', 'USB-HUB': 'internal USB hub',
+    'USB-TP': 'touch panel USB link',
     'ML1': 'main control processor link', 'ML2': 'main control processor version',
     'ML-M': 'dispatch processor', 'ML-P1': 'right panel processor link',
     'ML-P2': 'left panel processor link', 'ML-B0': 'panel processor reprogramming line',
