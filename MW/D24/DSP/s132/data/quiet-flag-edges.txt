@@ -1,0 +1,32 @@
+The `--quiet-flag` the panel loop holds on, watched at 10 ms on the unit while
+one AL1 press ran (`qwatch.py`, /tmp on the bench; edges relative to the
+watcher's own start).
+
+BEFORE (per-leg quiet_window, the deployed runner of 2026-09-27 23:21):
+    DOWN 0.000
+    UP   5.838
+    DOWN 6.728      <-- released between the baseline and the tone
+    UP   6.769
+    DOWN 8.032      <-- released between the tone and the second baseline
+    UP   8.073
+    DOWN 8.781
+    segments up: 3          two gaps of 41 ms inside a 2.94 s measurement
+  AL1  PASS  base -46.6 tone -29.7 SNR 16.9 dB THD -25.1 dB 5.58%
+
+AFTER (quiet_window reference-counted on the rig, al1_measure holds it across
+all three legs):
+    DOWN 0.000
+    UP   5.827
+    DOWN 8.801
+    segments up: 1          one continuous 2.97 s window
+  AL1  PASS  base -46.5 tone -29.7 SNR 16.8 dB THD -25.0 dB 5.62%
+
+WHY IT MATTERS AND WHY IT IS NOT THE 09-27 FAULT. `d24_runall.quiet_hold` is a
+`while os.path.exists(path)` loop polled at QUIET_POLL_S = 0.1 s, so a 41 ms gap
+is usually missed -- but `PL.loop` also asks the hold ONCE before it lights each
+indicator, and a call that lands in a gap lights the next button with the tone
+about to play into the microphone AL1 reads. The hold was leaky by construction
+and neither side could see it. It was never the cause of the NO DATA (that was
+two stale tools; every leg died in 0.5 s and no acoustic window existed to
+disturb), and it is fixed here because it is a real latent defect found on the
+way.

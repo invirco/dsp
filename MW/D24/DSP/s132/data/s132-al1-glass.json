@@ -1,0 +1,236 @@
+[
+ {
+  "pass": 1,
+  "verdict": "PASS",
+  "measured": "PASS base -46.4 tone -29.8 SNR 16.7 dB THD -25.0 dB 5.63%",
+  "handsoff_reached": false,
+  "screens": [
+   [
+    0.0,
+    "paused",
+    "The test stopped before it finished - it was paused. The uni",
+    "",
+    5
+   ],
+   [
+    0.5,
+    "starting",
+    "Getting the unit ready...",
+    "",
+    0
+   ],
+   [
+    1.0,
+    "waiting",
+    "Set the bench up",
+    "Plug the network lead into the network socket on the rear panel, then press ENTER.",
+    1
+   ],
+   [
+    3.4,
+    "waiting",
+    "Set the bench up",
+    "Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER.",
+    2
+   ],
+   [
+    5.9,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR lead on AUX 1 and leave it there, then press ENTER.",
+    3
+   ],
+   [
+    8.5,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.",
+    4
+   ],
+   [
+    11.0,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.",
+    5
+   ],
+   [
+    13.4,
+    "waiting",
+    "Set the bench up",
+    "Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.",
+    6
+   ],
+   [
+    15.9,
+    "waiting",
+    "Set the bench up",
+    "Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.",
+    7
+   ],
+   [
+    18.4,
+    "waiting",
+    "Station 1 of 3",
+    "Next: front panel switches. 44 checks. Press ENTER.",
+    1
+   ]
+  ]
+ },
+ {
+  "pass": 2,
+  "verdict": "PASS",
+  "measured": "PASS base -46.1 tone -29.7 SNR 16.4 dB THD -25.0 dB 5.61%",
+  "handsoff_reached": false,
+  "screens": [
+   [
+    0.0,
+    "paused",
+    "The test stopped before it finished - it was paused. The uni",
+    "",
+    1
+   ],
+   [
+    0.5,
+    "starting",
+    "Getting the unit ready...",
+    "",
+    0
+   ],
+   [
+    1.0,
+    "waiting",
+    "Set the bench up",
+    "Plug the network lead into the network socket on the rear panel, then press ENTER.",
+    1
+   ],
+   [
+    3.5,
+    "waiting",
+    "Set the bench up",
+    "Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER.",
+    2
+   ],
+   [
+    5.9,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR lead on AUX 1 and leave it there, then press ENTER.",
+    3
+   ],
+   [
+    8.4,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.",
+    4
+   ],
+   [
+    11.0,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.",
+    5
+   ],
+   [
+    13.4,
+    "waiting",
+    "Set the bench up",
+    "Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.",
+    6
+   ],
+   [
+    15.9,
+    "waiting",
+    "Set the bench up",
+    "Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.",
+    7
+   ],
+   [
+    18.4,
+    "waiting",
+    "Station 1 of 3",
+    "Next: front panel switches. 44 checks. Press ENTER.",
+    1
+   ]
+  ]
+ },
+ {
+  "pass": 3,
+  "verdict": "PASS",
+  "measured": "PASS base -46.3 tone -29.7 SNR 16.6 dB THD -25.0 dB 5.64%",
+  "handsoff_reached": false,
+  "screens": [
+   [
+    0.0,
+    "paused",
+    "The test stopped before it finished - it was paused. The uni",
+    "",
+    1
+   ],
+   [
+    0.5,
+    "starting",
+    "Getting the unit ready...",
+    "",
+    0
+   ],
+   [
+    1.0,
+    "waiting",
+    "Set the bench up",
+    "Plug the network lead into the network socket on the rear panel, then press ENTER.",
+    1
+   ],
+   [
+    3.5,
+    "waiting",
+    "Set the bench up",
+    "Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER.",
+    2
+   ],
+   [
+    6.0,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR lead on AUX 1 and leave it there, then press ENTER.",
+    3
+   ],
+   [
+    8.5,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.",
+    4
+   ],
+   [
+    11.0,
+    "waiting",
+    "Set the bench up",
+    "Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.",
+    5
+   ],
+   [
+    13.5,
+    "waiting",
+    "Set the bench up",
+    "Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.",
+    6
+   ],
+   [
+    15.9,
+    "waiting",
+    "Set the bench up",
+    "Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.",
+    7
+   ],
+   [
+    18.4,
+    "waiting",
+    "Station 1 of 3",
+    "Next: front panel switches. 44 checks. Press ENTER.",
+    1
+   ]
+  ]
+ }
+]

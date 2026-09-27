@@ -6,6 +6,73 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## A TEST CAN ONLY BE AS HONEST AS ITS DEPLOY: AL1's "NO DATA" WAS TWO STALE TOOLS ON THE UNIT (2026-09-27, session 132)
+
+Hub dispatch `tasks.md` 2026-09-27 22:02Z. Report: `MW/D24/DSP/s132/s132-report.md`,
+raw runs in `MW/D24/DSP/s132/data/`.
+
+**S132-1 `stage_tools`' md5 GATE IS SELF-CONSISTENT AND BLIND, AND UNDER `--local`
+THAT IS THE WHOLE STORY.** `d24_selftest.py::stage_tools` refreshes the eight
+`STAGE_TOOLS` in the stage directory by md5 **against the runner's own directory**
+(`HERE`). Under `--local` — how the glass's own START launches it — `HERE` is
+`/home/app/selftest` ON THE UNIT, so the "source" is itself a deploy. When that
+deploy is behind the repo, source and stage are the same stale file, the md5s
+agree, and the evidence line reads `tools: 8 repo-only tools already current`.
+The gate protects against stage-vs-source drift and cannot see source-vs-repo
+drift at all. Both of AL1's tools moved in S122 (`42d09d1b`) and **neither had
+ever been deployed**: `dsp4_s49_osc.py` on the unit was S115's `098f95ba` (no
+`--haptic`) and `s89_set.py` was S89's `bead35c7` (no `cN@ADDR` form). Since S122
+`--haptic` is the only way to sound the speaker and `cN@ADDR` the only way to
+write the haptic words, which are dispatched and not celled. **Every bench deploy
+before this was a hand-typed `scp`**; `tools/pi/deploy-bench-tools.sh` (`--check`
+to report, no arguments to deploy) is now the thing that compares from the repo,
+which is the only side that can see it.
+
+**S132-2 THE THREE-LEG COLLAPSE WAS AN ARGPARSE ERROR WEARING AN ACOUSTIC
+SENTENCE, AND THE TIMESTAMPS SAID SO ALL ALONG.** All three legs of
+`al1_measure` died on `error: unrecognized arguments: --haptic`, so `_al1_osc`
+returned `None` three times and `al1_numbers` printed `no settled window for:
+base, tone, back`. `factory.log` of the 21:40 run puts `baseline start`, `tone
+start`, `second baseline start` and `measure end` inside **1.3 s** for a
+measurement that takes 6 s when it works — three legs that never ran, not three
+windows that would not settle. `al1_numbers` now lifts each leg's own reason to
+the verdict line (`_al1_leg_why`), and says it once when all three failed the
+same way. **The speaker, the MEMS mic, the TDM slot map, the codec init order,
+the drive level and the window length were never involved**: tone -29.7 dBFS
+against -46.2..-46.8 dBFS, SNR 16.4..17.1 dB, bandpass THD -25.0 dB (5.6 %),
+level repeating to 0.0 dB over six consecutive readings. Nothing for the supplier
+list.
+
+**S132-3 A STALE `s89_set.py` ANSWERS `NOT IN CONTRACT` AND EXITS 0, SO EVERY
+HANDBACK CLAIMED THE UNIT MIGHT BE AUDIBLE WHEN IT WAS SILENT.** `al1_silence`
+writes `c2@ADDR=0` and reads it back in the same call; a tool with no address
+form prints `NOT IN CONTRACT` with **rc 0**, so `_silence_ok` found no read-back
+line, `rc == 0` hid it, and the handback line read `NOT SILENT -- the unit may
+still be audible` on a graph whose resting value is digital zero. A read-back
+that is missing entirely now means the tool, said as such and gated before any
+tone is played.
+
+**S132-4 S129's EXPLANATION IS DISPROVED (and was a reasonable hypothesis).** The
+comment at `d24_runall.py::QUIET_MAX_S` said the 8 s hold cap was why AL1 read NO
+DATA having passed on 09-25/26. It cannot have been: no acoustic window ever
+opened for a panel press to disturb, and the fault reproduces standalone with the
+panel loop not started and nobody near the unit. Corrected in place rather than
+deleted, because it is the standing story in the S129 and S130 reports. S130's
+escalation was right on both counts.
+
+**S132-5 THE HANDS-OFF FLAG WAS LEAKY, AND THE HANDS-OFF SCREEN NEVER APPEARS.**
+Two real defects found on the way, neither the cause here. `quiet_window` raised
+and dropped `--quiet-flag` PER LEG, so it went down twice mid-measurement — once
+between the baseline and the tone — and `quiet_hold` is a `while
+os.path.exists()` loop that `PL.loop` also asks once before lighting each
+indicator. Measured at 10 ms on the unit: **3 segments with two 41 ms gaps, now 1
+continuous 2.97 s window** (reference-counted on the rig; `al1_measure` is the
+outermost holder). And `LV.HANDSOFF` is set only inside `panel_station`'s `hold=`
+callback while AL1 runs in the automatic batch, so **on a real pass the hands-off
+screen never appears at all** — answering S130's open question. A reporting gap,
+not a safety one; whether the automatic batch should raise that screen off the
+flag itself is for PW.
+
 ## THE PANEL SPEAKER IS NOT A MIXER OUTPUT (2026-09-26, session 122)
 
 Hub dispatch `tasks.md` 2026-09-26 16:41Z. Report: `MW/D24/DSP/s122/haptic-path.md`,

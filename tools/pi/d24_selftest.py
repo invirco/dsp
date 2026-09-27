@@ -2306,25 +2306,45 @@ class quiet_window:
     A HINT, NOT AN INTERLOCK, in both directions: a run with no `--quiet-flag`
     raises nothing and behaves exactly as it did, and a loop that finds the flag
     stuck lights the next button anyway rather than stopping.
+
+    NESTABLE, AND THAT IS THE POINT (S132). One `_al1_osc` leg is ~2 s and the
+    three legs are ~6 s, but the flag used to be raised and DROPPED PER LEG, so
+    it went down twice in the middle of the measurement -- once between the
+    baseline and the tone. `quiet_hold` is a `while os.path.exists(path)` loop,
+    so each drop released it and let the panel loop light its next button
+    exactly as the tone was about to play. The hold was leaky by construction
+    and nothing on either side could see it. So the flag is REFERENCE-COUNTED on
+    the rig: `al1_measure` holds it across all three legs, each leg still asks
+    for it, and it comes down once, when the outermost holder exits.
     """
 
     def __init__(self, r):
+        self.r = r
         self.path = getattr(r.a, 'quiet_flag', None)
 
     def __enter__(self):
-        if self.path:
-            try:
-                d = os.path.dirname(self.path)
-                if d:
-                    os.makedirs(d, exist_ok=True)
-                with open(self.path, 'w') as fh:
-                    fh.write('%.3f\n' % time.time())
-            except OSError:
-                self.path = None
+        if not self.path:
+            return self
+        if getattr(self.r, '_quiet_n', 0) > 0:
+            self.r._quiet_n += 1
+            return self
+        try:
+            d = os.path.dirname(self.path)
+            if d:
+                os.makedirs(d, exist_ok=True)
+            with open(self.path, 'w') as fh:
+                fh.write('%.3f\n' % time.time())
+        except OSError:
+            self.path = None
+            return self
+        self.r._quiet_n = 1
         return self
 
     def __exit__(self, *exc):
-        if self.path:
+        if not self.path:
+            return False
+        self.r._quiet_n = max(0, getattr(self.r, '_quiet_n', 0) - 1)
+        if self.r._quiet_n == 0:
             try:
                 os.remove(self.path)
             except OSError:
@@ -2424,6 +2444,55 @@ def al1_level(r):
     return want
 
 
+# THE STAGED TOOLS ARE PART OF AL1'S PREREQUISITE (S132) -----------------------
+#
+# `stage_tools` md5-gates the stage copies against THE RUNNER'S OWN DIRECTORY,
+# which under `--local` -- the way the glass's own START launches this runner --
+# is `/home/app/selftest` on the unit. A tool that was never re-deployed there
+# is therefore "already current (md5)" by that gate and still behind the repo,
+# and the gate cannot tell: source and stage are the same stale file.
+#
+# BOTH OF AL1'S TOOLS MOVED IN S122 AND NEITHER HAD BEEN DEPLOYED, which is the
+# whole of the 09-27 NO DATA:
+#   * `dsp4_s49_osc.py` (unit: S115's 098f95ba, repo: S122's 1d5ddeb7) has no
+#     `--haptic`, so every leg died on `error: unrecognized arguments: --haptic`
+#     before it measured anything -- 0.5 s a leg instead of 2 s -- and the three
+#     Nones came out as `no settled window for: base, tone, back`, a sentence
+#     about acoustics describing an argparse error.
+#   * `s89_set.py` (unit: S89's bead35c7, repo: S122's 32ba6f20) has no `cN@ADDR`
+#     form, and the haptic words are dispatched and NOT celled, so it answered
+#     `NOT IN CONTRACT` AND EXIT 0 -- which is why every handback since read
+#     "NOT SILENT -- the unit may still be audible" on a graph that was silent.
+#
+# Checked BY THE CAPABILITY AL1 ACTUALLY USES rather than by a version or an
+# md5 manifest: a manifest in a deployed runner rots into a false blocker on a
+# good unit, which is the harness inventing a defect. `--help` costs no SPI, and
+# the `cN@ADDR` check is read off `_spkr_probe`'s existing read-back, so the gate
+# costs nothing a press was not already paying.
+def _al1_osc_tool_ok(r):
+    """(bool, evidence) -- does the STAGED oscillator tool take `--haptic`."""
+    h = r.out('cd %s && python3 dsp4_s49_osc.py --help 2>&1' % r.a.stage,
+              timeout=120)
+    ok = '--haptic' in h
+    return ok, ('dsp4_s49_osc.py in %s accepts --haptic (S122 -- the haptic node '
+                'is the ONLY thing that can sound this speaker): %s\n%s'
+                % (r.a.stage, ok,
+                   r.out('cd %s && md5sum dsp4_s49_osc.py s89_set.py 2>&1'
+                         % r.a.stage, timeout=120)))
+
+
+def _al1_stale_tool_blocker(names):
+    """The one message a stale stage gets, naming the deploy and not the
+    speaker."""
+    return ('the staged copy of %s is BEHIND THIS RUNNER -- deploy tools/pi/%s '
+            'to the unit\'s own selftest directory (not just to the stage). '
+            'Under --local the stage is refreshed FROM that directory, so "md5 '
+            'already current" there proves nothing about the repo: this is what '
+            'read NO DATA "no settled window" all of 2026-09-27 (S132)'
+            % (' and '.join(names),
+               '{%s}' % ','.join(names) if len(names) > 1 else names[0]))
+
+
 def _al1_prereq(r):
     """Everything that has to be true before a tone is worth playing, as
     (blocker-or-None, evidence-lines, capture-dict). The rails are raised by
@@ -2449,6 +2518,17 @@ def _al1_prereq(r):
     ev.append('--- the DSP pair ---\n%s' % link_txt)
     if not cap['link_ok']:
         return ('the DSP link does not answer (MAGIC) even after a boot', ev, cap)
+
+    # THE STAGED TOOLS, BEFORE ANY OF THE PHYSICS (S132 -- see the note above
+    # `_al1_osc_tool_ok`). No SPI, no tone; it only asks the tool what arguments
+    # it takes.
+    _tick('AL1 staged tools start')
+    cap['osc_tool_ok'], osc_tool_txt = _al1_osc_tool_ok(r)
+    ev.append('--- the staged tools AL1 calls, checked by capability (S132) ---\n%s'
+              % osc_tool_txt)
+    _tick('AL1 staged tools end')
+    if not cap['osc_tool_ok']:
+        return _al1_stale_tool_blocker(['dsp4_s49_osc.py']), ev, cap
 
     cap['testnodes'] = r.out(
         'cd %s && python3 -c "import json;j=json.load(open(\'chip1.sym.json\'));'
@@ -2488,16 +2568,26 @@ def _al1_prereq(r):
               % (_HPT_SYM, cap['haptic']))
     cap['probe'] = _spkr_probe(r)
     got = _probe_reads(cap['probe'])
+    # NO READ-BACK LINE AT ALL MEANS THE TOOL, NOT THE SPEAKER (S132). A stale
+    # `s89_set.py` has no `cN@ADDR` form and answers `NOT IN CONTRACT` with
+    # EXIT 0, so `silent_at_entry` and `al1_silence`'s read-back both go quietly
+    # false on a unit that is perfectly silent. Told apart here, once, from the
+    # read this press was already taking.
+    cap['set_tool_ok'] = ('c2@%d' % HPT_TESTON) in got
     cap['silent_at_entry'] = (got.get('c2@%d' % HPT_TESTON) == 0
                               and got.get('c2@%d' % HPT_TESTLEVEL) == 0)
     ev.append('--- the speaker\'s two words, read back through the image\'s own '
-              'dispatch table BEFORE anything is played ---\n%s\nspeaker silent at '
-              'entry: %s' % (cap['probe'], cap['silent_at_entry']))
+              'dispatch table BEFORE anything is played ---\n%s\ns89_set.py '
+              'understands the cN@ADDR form (S122; the haptic words are '
+              'dispatched and NOT celled): %s\nspeaker silent at entry: %s'
+              % (cap['probe'], cap['set_tool_ok'], cap['silent_at_entry']))
     cap['route_rc'] = 0 if cap['haptic'] else 1
     cap['route_how'] = 'no route -- the haptic node is the only source (S122)'
     cap['route_at'] = time.time()
     _tick('AL1 stimulus check end')
 
+    if not cap['set_tool_ok']:
+        return _al1_stale_tool_blocker(['s89_set.py']), ev, cap
     if not cap['haptic']:
         return ('this chip-2 image has no haptic node (%s absent). Since S122 the '
                 'panel speaker is fed by C2_HPT_01 and by nothing else, so an '
@@ -2515,6 +2605,32 @@ def _al1_prereq(r):
     return None, ev, cap
 
 
+def _al1_leg_why(txt):
+    """Why ONE window leg came back empty, in a few words, off the tool's own
+    output (S132).
+
+    `no settled window for: base, tone, back` was true and useless: it is the
+    sentence a genuinely unsettled acoustic window gets, and it was printed for
+    three argparse errors. The raw text was in the evidence all along -- nobody
+    reads 600 lines of evidence to explain a NO DATA on the glass, and the glass
+    cuts the line at 70 characters. So the reason is lifted to the verdict line."""
+    t = txt or ''
+    if 'unrecognized arguments' in t or re.search(r'^usage: ', t, re.M):
+        m = re.search(r'^\S*\s*error: (.+)$', t, re.M)
+        return 'the tool refused the arguments (%s)' % (m.group(1) if m
+                                                       else 'see the evidence')
+    if 'Traceback (most recent call last)' in t:
+        m = [ln for ln in t.splitlines() if ln.strip()][-1]
+        return 'the tool raised (%s)' % m.strip()[:80]
+    if 'every window was torn' in t:
+        return 'every window was torn'
+    if 'json did not parse' in t:
+        return 'the JSON did not parse'
+    if not t:
+        return 'the tool printed nothing and wrote no JSON'
+    return 'no JSON came back (%s)' % t.splitlines()[-1].strip()[:80]
+
+
 def al1_measure(r, level):
     """Baseline, tone, baseline again -- the three legs of one loop reading.
 
@@ -2524,18 +2640,26 @@ def al1_measure(r, level):
     floor the tone is compared against. The second baseline is what says the
     floor came back and the reading was the tone rather than something in the
     room."""
-    _tick('AL1 baseline start')
-    base, t0 = _al1_osc(r, None)
-    _tick('AL1 tone start')
-    tone, t1 = _al1_osc(r, level)
-    # NO CAPTURE ON THE SECOND BASELINE. The first one gives the noise spectrum
-    # the tone is read against and the tone leg gives the verdict; the second
-    # baseline's job is to say the floor came back, which its RMS answers on its
-    # own. 0.19 s of every press (S115).
-    _tick('AL1 second baseline start')
-    back, t2 = _al1_osc(r, None, cap=False)
-    _tick('AL1 measure end')
+    # ONE QUIET WINDOW OVER ALL THREE LEGS (S132 -- see `quiet_window`). The
+    # legs still each ask for it; this is the outermost holder, so the flag goes
+    # up once here and comes down once at the end of the measurement instead of
+    # blinking twice in the middle of it.
+    with quiet_window(r):
+        _tick('AL1 baseline start')
+        base, t0 = _al1_osc(r, None)
+        _tick('AL1 tone start')
+        tone, t1 = _al1_osc(r, level)
+        # NO CAPTURE ON THE SECOND BASELINE. The first one gives the noise
+        # spectrum the tone is read against and the tone leg gives the verdict;
+        # the second baseline's job is to say the floor came back, which its RMS
+        # answers on its own. 0.19 s of every press (S115).
+        _tick('AL1 second baseline start')
+        back, t2 = _al1_osc(r, None, cap=False)
+        _tick('AL1 measure end')
     return {'base': base, 'tone': tone, 'back': back,
+            'why': {'base': None if base else _al1_leg_why(t0),
+                    'tone': None if tone else _al1_leg_why(t1),
+                    'back': None if back else _al1_leg_why(t2)},
             'raw': '--- baseline (tone off) ---\n%s\n--- tone at %.1f dBFS ---\n%s'
                    '\n--- tone off again ---\n%s' % (t0, level, t1, t2)}
 
@@ -2545,6 +2669,20 @@ def al1_numbers(m, level):
     calibrator and the verdict cannot compute them differently."""
     if not (m['base'] and m['tone'] and m['back']):
         missing = [k for k in ('base', 'tone', 'back') if not m[k]]
+        why = m.get('why') or {}
+        # THE REASON, NOT JUST THE NAMES OF THE LEGS (S132). When all three legs
+        # failed the same way it is said once -- three copies of an argparse
+        # error is the sentence that hid this fault for a day.
+        seen = [why.get(k) for k in missing if why.get(k)]
+        uniq = sorted(set(seen), key=seen.index)
+        if len(uniq) == 1 and len(seen) == len(missing):
+            return None, ('no window from %s: %s'
+                          % (', '.join(missing), uniq[0]))
+        if uniq:
+            return None, ('no settled window for: %s (%s)'
+                          % (', '.join(missing),
+                             '; '.join('%s: %s' % (k, why[k]) for k in missing
+                                       if why.get(k))))
         return None, 'no settled window for: %s' % ', '.join(missing)
     n = {'drive_dbfs': level,
          'base_dbfs': m['base']['rms_dbfs'],
@@ -3143,11 +3281,26 @@ def stage_tools(r, s):
     for name in stale:
         r.rsh('rm -f %s/%s' % (s, name))              # never scp onto a symlink
         r.put(os.path.join(HERE, name), s)
+    # WHAT THIS GATE CANNOT SEE, SAID OUT LOUD UNDER --local (S132). `HERE` is
+    # the runner's own directory; under `--local` that is `/home/app/selftest` on
+    # the unit, so the "source" being compared against is itself a deploy that
+    # can be behind the repo -- and then source and stage match perfectly and the
+    # line below reads "already current". That is how a S122 runner came to call
+    # S115's `dsp4_s49_osc.py` for a whole day. The md5s are printed so the
+    # evidence carries what the gate could not judge; `tools/pi/deploy-bench-tools.sh
+    # --check`, run from the repo, is the thing that can.
+    note = ''
+    if r.a.local:
+        note = ('\n  (--local: HERE is %s ON THE UNIT, so these md5s prove the '
+                'stage matches THAT DEPLOY and nothing about the repo -- run '
+                'tools/pi/deploy-bench-tools.sh --check from the repo. S132)\n  '
+                % HERE) + '\n  '.join('%-22s %s' % (n, h)
+                                      for n, h in sorted(want.items()))
     if not stale:
-        return ('tools: %d repo-only tools already current in %s (md5)'
-                % (len(want), s))
-    return ('tools: copied %s into %s (md5 differed); %d already current'
-            % (', '.join(sorted(stale)), s, len(want) - len(stale)))
+        return ('tools: %d repo-only tools already current in %s (md5)%s'
+                % (len(want), s, note))
+    return ('tools: copied %s into %s (md5 differed); %d already current%s'
+            % (', '.join(sorted(stale)), s, len(want) - len(stale), note))
 
 
 def stage_setup(r):

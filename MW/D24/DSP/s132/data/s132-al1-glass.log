@@ -1,0 +1,76 @@
+23:48:18 AN_EN before the pass: 26: op -- pd | lo // GPIO26 = output -> 26: op -- pd | lo // GPIO26 = output
+23:48:18 run state reset (--reset-only, exit 0)
+23:48:20 pass 1: pressing the armed START (factory.log at 428906 bytes)
+23:48:20 tap 400,955
+23:48:20   SCREEN [paused] 5/14 The test stopped before it finished - it was paused. The uni :: 
+23:48:21   SCREEN [starting] 0/1 Getting the unit ready... :: 
+23:48:21   SCREEN [waiting] 1/7 Set the bench up :: Plug the network lead into the network socket on the rear panel, then press ENTER.
+23:48:23 tap 400,955
+23:48:24   SCREEN [waiting] 2/7 Set the bench up :: Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER
+23:48:26 tap 400,955
+23:48:26   SCREEN [waiting] 3/7 Set the bench up :: Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+23:48:28 tap 400,955
+23:48:29   SCREEN [waiting] 4/7 Set the bench up :: Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+23:48:31 tap 400,955
+23:48:31   SCREEN [waiting] 5/7 Set the bench up :: Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.
+23:48:33 tap 400,955
+23:48:34   SCREEN [waiting] 6/7 Set the bench up :: Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+23:48:36 tap 400,955
+23:48:36   SCREEN [waiting] 7/7 Set the bench up :: Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+23:48:38 tap 400,955
+23:48:39   AL1's own batch is running -- HANDS OFF from here: no tap of any kind until AL1 has reported
+23:48:39   SCREEN [waiting] 1/3 Station 1 of 3 :: Next: front panel switches. 44 checks. Press ENTER. (hands off)
+23:49:20 pass 1: AL1 PASS  PASS base -46.4 tone -29.8 SNR 16.7 dB THD -25.0 dB 5.63%
+23:49:20 pass 1: PAUSE, winding the pass up
+23:49:20 tap 913,955
+23:49:22 AN_EN before the pass: 26: op -- pd | lo // GPIO26 = output -> 26: op -- pd | lo // GPIO26 = output
+23:49:22 run state reset (--reset-only, exit 0)
+23:49:24 pass 2: pressing the armed START (factory.log at 448317 bytes)
+23:49:24 tap 400,955
+23:49:24   SCREEN [paused] 1/3 The test stopped before it finished - it was paused. The uni :: 
+23:49:25   SCREEN [starting] 0/1 Getting the unit ready... :: 
+23:49:25   SCREEN [waiting] 1/7 Set the bench up :: Plug the network lead into the network socket on the rear panel, then press ENTER.
+23:49:27 tap 400,955
+23:49:28   SCREEN [waiting] 2/7 Set the bench up :: Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER
+23:49:30 tap 400,955
+23:49:30   SCREEN [waiting] 3/7 Set the bench up :: Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+23:49:32 tap 400,955
+23:49:33   SCREEN [waiting] 4/7 Set the bench up :: Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+23:49:35 tap 400,955
+23:49:35   SCREEN [waiting] 5/7 Set the bench up :: Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.
+23:49:37 tap 400,955
+23:49:38   SCREEN [waiting] 6/7 Set the bench up :: Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+23:49:40 tap 400,955
+23:49:40   SCREEN [waiting] 7/7 Set the bench up :: Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+23:49:42 tap 400,955
+23:49:43   AL1's own batch is running -- HANDS OFF from here: no tap of any kind until AL1 has reported
+23:49:43   SCREEN [waiting] 1/3 Station 1 of 3 :: Next: front panel switches. 44 checks. Press ENTER. (hands off)
+23:50:23 pass 2: AL1 PASS  PASS base -46.1 tone -29.7 SNR 16.4 dB THD -25.0 dB 5.61%
+23:50:23 pass 2: PAUSE, winding the pass up
+23:50:23 tap 913,955
+23:50:25 AN_EN before the pass: 26: op -- pd | lo // GPIO26 = output -> 26: op -- pd | lo // GPIO26 = output
+23:50:26 run state reset (--reset-only, exit 0)
+23:50:28 pass 3: pressing the armed START (factory.log at 467726 bytes)
+23:50:28 tap 400,955
+23:50:28   SCREEN [paused] 1/3 The test stopped before it finished - it was paused. The uni :: 
+23:50:28   SCREEN [starting] 0/1 Getting the unit ready... :: 
+23:50:29   SCREEN [waiting] 1/7 Set the bench up :: Plug the network lead into the network socket on the rear panel, then press ENTER.
+23:50:31 tap 400,955
+23:50:31   SCREEN [waiting] 2/7 Set the bench up :: Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER
+23:50:33 tap 400,955
+23:50:34   SCREEN [waiting] 3/7 Set the bench up :: Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+23:50:36 tap 400,955
+23:50:36   SCREEN [waiting] 4/7 Set the bench up :: Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+23:50:38 tap 400,955
+23:50:39   SCREEN [waiting] 5/7 Set the bench up :: Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.
+23:50:41 tap 400,955
+23:50:41   SCREEN [waiting] 6/7 Set the bench up :: Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+23:50:43 tap 400,955
+23:50:44   SCREEN [waiting] 7/7 Set the bench up :: Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+23:50:46 tap 400,955
+23:50:46   AL1's own batch is running -- HANDS OFF from here: no tap of any kind until AL1 has reported
+23:50:46   SCREEN [waiting] 1/3 Station 1 of 3 :: Next: front panel switches. 44 checks. Press ENTER. (hands off)
+23:51:27 pass 3: AL1 PASS  PASS base -46.3 tone -29.7 SNR 16.6 dB THD -25.0 dB 5.64%
+23:51:27 pass 3: PAUSE, winding the pass up
+23:51:27 tap 913,955
+23:51:29 --- 3 passes, AL1: PASS, PASS, PASS ---

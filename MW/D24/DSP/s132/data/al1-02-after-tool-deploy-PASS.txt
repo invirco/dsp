@@ -1,0 +1,58 @@
+D24 self-test, section 1 -- sections B,C -- 2026-09-27T22:14:49Z
+-- 2026-09-27T22:14:49Z app_stop start
+matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | hi // GPIO26 = output
+-- 2026-09-27T22:14:49Z app_stop end
+-- 2026-09-27T22:14:49Z stage_setup start
+pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+tools: copied dsp4_s49_osc.py, s89_set.py into /home/app/s90 (md5 differed); 6 already current
+-- 2026-09-27T22:14:49Z stage_setup end
+-- 2026-09-27T22:14:49Z rails ensure_pair start
+-- 2026-09-27T22:14:51Z rails ensure_pair end (booted=False)
+0000 00000000
+    c2 words 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+  set 0 MAIN_R  c1  -300.00 dBFS  c2  -300.00 dBFS  delta   +0.00
+  set 1 MAIN_R  c1  -300.00 dBFS  c2  -300.00 dBFS  delta   +0.00
+    c1 words 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+    c2 words 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+-- 2026-09-27T22:14:51Z rails_up start
+AN_EN (GPIO26): at entry 26: op -- pd | hi; now 26: op -- pd | hi
+-- 2026-09-27T22:14:51Z rails_up end
+AL1 ...
+-- 2026-09-27T22:14:51Z AL1 codec_init start
+-- 2026-09-27T22:14:52Z AL1 codec_init end
+-- 2026-09-27T22:14:52Z AL1 ensure_pair start
+-- 2026-09-27T22:14:52Z AL1 ensure_pair end (booted=False)
+-- 2026-09-27T22:14:52Z AL1 rxscan start
+-- 2026-09-27T22:14:52Z AL1 rxscan end
+-- 2026-09-27T22:14:52Z AL1 stimulus check start
+-- 2026-09-27T22:14:53Z AL1 stimulus check end
+-- 2026-09-27T22:14:53Z AL1 baseline start
+-- 2026-09-27T22:14:54Z AL1 tone start
+-- 2026-09-27T22:14:55Z AL1 second baseline start
+-- 2026-09-27T22:14:56Z AL1 measure end
+-- 2026-09-27T22:14:57Z AL1 took 6.4 s
+  AL1       PASS     PASS base -46.1 tone -29.8 SNR 16.4 dB THD -24.9 dB 5.66%
+-- 2026-09-27T22:14:57Z handback start
+
+--- handback ---
+speaker path: already torn down by AL1 (SILENT, live 3.77 s)
+SAFE image: already SAFE (marker 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, no boot this run) -- write skipped
+CS_M: 27: op -- pd | hi // GPIO27 = output
+AN_EN: 26: op -- pd | hi // GPIO26 = output (not written by this run)
+matrix-app: left stopped (--no-app-restart); the test display owns the screen
+MCU verify (whole log): not read -- the app was not restarted
+-- 2026-09-27T22:14:57Z handback end
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        PASS    
+------------------------------------------------------------------------------
+rows:  1 PASS / 0 FAIL / 0 NO DATA  (1 rows)
+items: 1 PASS / 0 FAIL / 0 NO DATA  (1 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+AL1             6.4
+total           6.4  (the tests alone; staging, boots and the handback are outside them)

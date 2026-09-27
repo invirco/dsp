@@ -1940,10 +1940,22 @@ QUIET_POLL_S = 0.1
 # LONGER THAN THE STEP IT IS WAITING FOR (S129, PW addendum 4 and 7). It was
 # 8.0 s and AL1 takes 17 (`COST['AL1']`), so the hold gave up less than half way
 # through and the panel loop lit the next button while the speaker was still
-# sounding into the microphone that AL1 reads. That is why AL1 read NO DATA --
-# "no settled window for: base, tone, back" -- on PW's passes having passed on
-# 09-25 and 09-26 when nothing ran under it. 30 s is AL1 plus margin, and it is
-# still a cap and not a wait for ever.
+# sounding into the microphone that AL1 reads. 30 s is AL1 plus margin, and it
+# is still a cap and not a wait for ever.
+#
+# THE CLAIM THIS COMMENT USED TO MAKE IS WRONG AND S132 MEASURED IT (kept here
+# because it was the standing explanation for a day and the next reader will
+# meet it in the reports): the 8 s cap was NOT why AL1 read NO DATA "no settled
+# window for: base, tone, back" on 09-27. That fault was two STALE TOOLS on the
+# unit -- `dsp4_s49_osc.py` without `--haptic` and `s89_set.py` without the
+# `cN@ADDR` form, both S122 changes never deployed to `/home/app/selftest`, which
+# is where a `--local` run stages from. Every leg died on an argparse error in
+# 0.5 s, so no window was ever opened for a panel press to disturb; the message
+# was an acoustic sentence describing an unrecognised argument. It reproduced
+# standalone with nothing else running and no hands, and it PASSED three times
+# in a row once the two tools were deployed (SNR 16.4-17.1 dB, tone -29.7 dBFS
+# every time). Widening the cap and holding the panel loop are both still right
+# -- the tone and the microphone really are shared -- they just were not this.
 QUIET_MAX_S = 30.0
 HANDS_OFF_WHAT = 'the speaker and the panel microphone'
 
