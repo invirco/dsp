@@ -60,17 +60,18 @@ CHECKING = 'checking'      # the lead is in, the reading is being taken
 VERDICT = 'verdict'        # a patch has been scored; `banner` carries it
 CHECKLEAD = 'checklead'    # the lead is in the wrong socket, or in nothing
 PAUSED = 'paused'
+HANDSOFF = 'handsoff'      # the unit is testing itself; nothing to press
 SUMMARY = 'summary'        # the end-of-pass summary, one page of it
 FINISHED = 'finished'
 STOPPING = 'stopping'      # the unit is being put back safe
-STATES = (STARTING, WAITING, CHECKING, VERDICT, CHECKLEAD, PAUSED, SUMMARY,
-          FINISHED, STOPPING)
+STATES = (STARTING, WAITING, CHECKING, VERDICT, CHECKLEAD, PAUSED, HANDSOFF,
+          SUMMARY, FINISHED, STOPPING)
 
 # The states during which the little activity indicator must be moving. A
 # still screen must never leave a worker wondering whether it is stuck, which
 # is why STOPPING is in here too: putting the rails down takes a few seconds
 # and looks like nothing at all.
-BUSY_STATES = (STARTING, WAITING, CHECKING, CHECKLEAD, STOPPING)
+BUSY_STATES = (STARTING, WAITING, CHECKING, CHECKLEAD, HANDSOFF, STOPPING)
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +173,33 @@ def move_input(name, confirm=True):
 def move_output(out, into, confirm=True):
     return ('Move the other end to %s, and this end to %s%s'
             % (out, socket_words(into), ', then press ENTER.' if confirm else '.'))
+
+
+# ---------------------------------------------------------------------------
+# HANDS OFF (PW ruling, S129 addendum 4)
+# ---------------------------------------------------------------------------
+# "If any of the tests require touch display silence then notify user and take
+# control for those tests, with active progress."
+#
+# ONE step on this unit genuinely needs it, and it is the one that has been
+# failing: AL1, the speaker-to-panel-microphone loop. Since S126 the automatic
+# set runs UNDER the operator's panel loop, so the microphone that has to hear
+# the speaker is six inches from a finger clicking buttons -- and AL1 read
+# NO DATA, "no settled window for: base, tone, back", on PW's passes having
+# passed on 09-25 and 09-26 when nothing ran under it.
+#
+# The hold that was supposed to prevent that gave up after 8 s and AL1 takes 17,
+# so the loop lit the next button while the tone was still sounding. The cap is
+# now longer than the step, the glass says what is happening, the progress
+# counts up, and a press during the window is DROPPED rather than queued -- a
+# queued press would be spent on the step after, which is the same class of
+# fault one layer up.
+def hands_off_words(what, secs):
+    return 'Hands off - the unit is testing itself (%s, about %d s).' % (what,
+                                                                        secs)
+
+
+HANDS_OFF_NOTE = 'Do not touch the screen or the front panel until this clears.'
 
 
 def move_other_end(out, into, confirm=True):
@@ -648,6 +676,13 @@ def buttons_for(state, confirm=True):
     # last press leaves it.
     if state == SUMMARY:
         return ['exit']
+    # HANDS OFF HAS NO BUTTON AT ALL (PW ruling, S129 addendum 4): "if any of
+    # the tests require touch display silence then notify user and take control
+    # for those tests, with active progress". A button that did nothing would
+    # be worse than none, and a button that QUEUED a press would spend it on
+    # the step after -- which is the fault this is fixing, one layer up.
+    if state == HANDSOFF:
+        return []
     if state in (PAUSED, FINISHED):
         return ['start']
     if confirm and state in (WAITING, CHECKLEAD):
@@ -753,6 +788,10 @@ class Live:
             if state != SUMMARY:
                 kw.setdefault('summary', [])
                 kw.setdefault('summary_title', '')
+            if state == HANDSOFF:
+                kw.setdefault('can_pause', False)
+            elif state != SUMMARY:
+                kw.setdefault('can_pause', True)
         self.d.update(kw)
         self._flush()
 

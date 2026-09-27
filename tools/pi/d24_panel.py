@@ -82,15 +82,34 @@ ENC = 0x1470           # Sys001Enc001  = 5232 -- the encoder ring
 # one -- and from then on a press arriving on SKIN during a LEFT step is a
 # press on the RIGHT board and is recorded as one. `--left-cell` forces it.
 #
-# AND THE ADDRESS IS THE ONE DEFS ASSIGNS, WHICH IS NOT THE GENERATION THE
-# FIRMWARE WAS BUILT AGAINST. Finding S120-2 is still open: the flashed panel
-# images carry Sys001Skin001 = 5412 while this repo's contract expands it to
-# 4698 and the Dropbox copy gives 17553 -- three live generations of the same
-# cell name. The new cell is baked at its DEFS address in both ends at once
-# (here and in H1S4), so the loop agrees with itself whatever the app does;
-# what the APP reads for this cell is the hub's mapping job, and if its
-# generation differs the app will write somewhere else. Said out loud rather
-# than papered over.
+# 🔴 AND THE FIRMWARE CANNOT BE GIVEN THIS ADDRESS YET, WHICH IS FINDING S120-2
+# COMING DUE. The panel firmware's address table is GENERATED from the UNIT'S
+# OWN APP PACK, not from defs: H1S4/Core/Inc/matrix.h opens
+#
+#   // matrix.h - GENERATED on-unit from config/_matrix.mxc (app build
+#   // 260714102659)
+#   // 2026-08-19: aligns panel fw addresses with the RUNNING app generation.
+#   // Do not confuse with the Dropbox MX/matrix.h (newer generation, drifted).
+#
+# so the flashed panels and the running app agree with each other on 5412, and
+# it is THIS REPO's contract (4698) and Dropbox (17553) that are the other two
+# generations. The new cell exists in NONE of the app's pack, so there is no
+# app-generation address to use -- and its DEFS address is already taken in the
+# app's generation:
+#
+#   H1S4/Core/Inc/matrix.h:4936:  #define Main004EqGain001 5005
+#
+# Baking 5005 into H1S4 would therefore make an EQ gain change light a
+# left-panel indicator once matrix-app is running. It is harmless during a
+# factory pass, because matrix-app is stopped for the whole of one and this
+# tool is the only writer -- and it is NOT harmless in a product.
+#
+# SO THE ORDER IS FIXED AND IT IS THE HUB'S: rebuild the app's `_matrix.mxc`
+# from defs-v2026.09.27.1 so the app and defs are ONE generation, regenerate
+# matrix.h from that pack, and flash BOTH panel boards against it in one go --
+# which also moves Sys001Skin001 from 5412 to 4698, so the pack, the app and
+# both panel MCUs move together or not at all. Until then this address is the
+# factory test's alone and no panel firmware should carry it.
 SW_LEFT = 0x138D       # Sys001SwLeft001 = 5005 -- the LEFT panel's radio group
 CELL_NAME = {0x1524: 'Sys001Skin001', 0x138D: 'Sys001SwLeft001',
              0x1470: 'Sys001Enc001'}

@@ -181,20 +181,64 @@ The dispatch asked this directly. Read off PW's third pass
 
 **Which is why the screen must stop naming the button** — see §4.3.
 
-### 3.2 Still owed
+### 3.2 🔴 STILL OWED, AND IT IS BLOCKED — the firmware cannot carry this address yet
 
-H1S4's `MATRIX[]` must carry 5005, which means a rebuild and a reflash. §4.2
-has the build facts; the flash is one command by the established path.
+This is finding S120-2 coming due, and it is now concrete rather than a
+worry.
 
-**🔴 AND ONE THING THE HUB MUST KNOW BEFORE IT MAPS THE APP.** Finding S120-2 is
-still open and this cell walks straight into it: the flashed panel images carry
-`Sys001Skin001` = **5412**, this repo's contract expands it to **4698**, and the
-Dropbox copy gives **17553** — three live generations of one cell name. The new
-cell is baked at its **defs** address (5005) at both ends at once, here and in
-H1S4, so the factory loop agrees with itself whatever the app does. What the APP
-reads for `Sys001SwLeft001` depends on the app's own generation; if it differs,
-the app will write somewhere no slave decodes. That is a mapping decision, not a
-bug in either end, and it is the hub's.
+**The panel firmware's address table is generated from the UNIT'S OWN APP PACK,
+not from defs.** `H1S4/Core/Inc/matrix.h` opens:
+
+```
+// matrix.h - GENERATED on-unit from config/_matrix.mxc (app build 260714102659)
+// 2026-08-19: aligns panel fw addresses with the RUNNING app generation.
+// Do not confuse with the Dropbox MX/matrix.h (newer generation, drifted).
+```
+
+and it was rewritten at 15:55:38 on 2026-08-19, **one to two seconds before the
+flashed `.elf` was linked** at 15:55:40. So the flashed panels and the running
+app agree with each other on `Sys001Skin001` = 5412, and it is this repo's
+contract (4698) and the Dropbox copy (17553) that are the other two generations.
+
+**The new cell exists in none of the app's pack, so there is no app-generation
+address to use — and its defs address is already taken in that generation:**
+
+```
+H1S4/Core/Inc/matrix.h:4936:  #define Main004EqGain001 5005
+```
+
+Baking 5005 into H1S4 would make an **EQ gain change light a left-panel
+indicator** as soon as `matrix-app` is running. That is harmless during a
+factory pass — `matrix-app` is stopped for the whole of one and `d24_panel.py`
+is the only writer — and it is not harmless in a product.
+
+**So the order is fixed, and it is the hub's:**
+
+1. rebuild the app's `config/_matrix.mxc` from `defs-v2026.09.27.1`, so the app
+   and defs are ONE generation;
+2. regenerate `matrix.h` on the unit from that pack (there is no script for it
+   on the unit — the 2026-08-19 header says it was done by hand, so whoever
+   owns the pack owns this step);
+3. add the cell to H1S4's `MATRIX[]` **and** its parallel `enum` — they are two
+   independent lists with no compiler-enforced link, so appending to one and
+   not the other silently misaligns every index after it — and repoint H1S4's
+   `rsw[]`/`wled[]` at the new pointer;
+4. flash **both** boards against it in one go, because step 1 also moves
+   `Sys001Skin001` from 5412 to 4698 and the currently flashed firmware would
+   stop decoding it.
+
+**The build half of that is proved ready.** Both boards' flashed images are
+**byte-reproducible** from the source on the unit with the toolchain on the
+unit: `arm-none-eabi-gcc 14.2.1` (against a recorded 13.3.rel1), one line fixed
+per board in `Debug/makefile` — a `C:\dropbox\...` Windows linker-script path
+replaced by `../STM32F030R8TX_FLASH.ld` — and no source change at all gives
+`objcopy -O binary` md5 `f06639b6…` / 21 784 bytes for H1S3 and `97c4dfea…` /
+14 744 bytes for H1S4, `cmp -l` reporting **0 differing bytes on both**. Built
+in a copy under `/home/app/s129fw/`; nothing under `/home/app/fwbuild/` or
+`/home/app/firmware/` was touched. Full log: `data/panel-build-repro.md`.
+
+So when the generation question is answered, the firmware change is a
+few lines and a build that is known to reproduce.
 
 ---
 

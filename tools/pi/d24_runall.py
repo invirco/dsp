@@ -1935,31 +1935,68 @@ def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
 # is cheap -- it happens once in a whole pass -- and a cap stops a stuck flag
 # from stopping the loop for ever: the flag is a hint, not an interlock.
 QUIET_POLL_S = 0.1
-QUIET_MAX_S = 8.0
+# LONGER THAN THE STEP IT IS WAITING FOR (S129, PW addendum 4 and 7). It was
+# 8.0 s and AL1 takes 17 (`COST['AL1']`), so the hold gave up less than half way
+# through and the panel loop lit the next button while the speaker was still
+# sounding into the microphone that AL1 reads. That is why AL1 read NO DATA --
+# "no settled window for: base, tone, back" -- on PW's passes having passed on
+# 09-25 and 09-26 when nothing ran under it. 30 s is AL1 plus margin, and it is
+# still a cap and not a wait for ever.
+QUIET_MAX_S = 30.0
+HANDS_OFF_WHAT = 'the speaker and the panel microphone'
 
 
-def quiet_hold(path):
+def quiet_hold(path, live=None, keys=None, secs=None):
     """The `hold` the panel loop is given while the acoustic test may run.
 
     The self-test raises the flag around its own tone (`--quiet-flag`). Nothing
     here can command that test; it only waits for it, and gives up saying so.
+
+    AND IT TAKES CONTROL WHILE IT WAITS (PW ruling, S129 addendum 4): the glass
+    says what is happening in one plain line, the progress counts up so the
+    screen never looks frozen, and any press that arrives is DROPPED -- read and
+    thrown away rather than left in `command.json` for the next step to spend.
+    The screen has no button at all in that state (`LV.buttons_for`).
     """
     if not path:
         return None
+    total = int(secs or QUIET_MAX_S)
 
     def hold(log=None):
         t0 = time.time()
         said = False
+        was = dict(live.d) if live is not None else None
         while os.path.exists(path):
             if time.time() - t0 > QUIET_MAX_S:
                 if log:
                     log('the speaker check is still running after %.0f s; '
                         'lighting the next button anyway' % QUIET_MAX_S)
-                return
-            if not said and log:
+                break
+            if not said:
                 said = True
-                log('holding the next button while the speaker is checked')
+                if log:
+                    log('hands off: holding the next button while %s is '
+                        'checked (up to %d s)' % (HANDS_OFF_WHAT, total))
+                if live is not None:
+                    live.set(state=LV.HANDSOFF, instruction='', lead_line='',
+                             banner='', banner_line='', action='',
+                             status=LV.hands_off_words(HANDS_OFF_WHAT, total),
+                             extra=LV.HANDS_OFF_NOTE, n=0, total=total,
+                             lead_n=0, lead_total=0)
+            if live is not None:
+                # ACTIVE PROGRESS, and the presses go in the bin.
+                live.command()
+                live.set(n=min(total, int(time.time() - t0)), total=total)
+            if keys is not None:
+                keys.pressed()
             time.sleep(QUIET_POLL_S)
+        if said and live is not None and was is not None:
+            # Put the screen back exactly as the loop left it, so the operator
+            # sees the same instruction they were on before the window opened.
+            live.command()
+            live.set(**dict((k, was[k]) for k in
+                            ('state', 'instruction', 'lead_line', 'extra',
+                             'status', 'n', 'total', 'lead_n', 'lead_total')))
     return hold
 
 
@@ -2079,7 +2116,9 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                    and state.verdict(r.num) != PASS)
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
                                log=glass.progress, owed=owed,
-                               hold=quiet_hold(quiet_flag),
+                               hold=quiet_hold(quiet_flag, live=live,
+                                               keys=keys,
+                                               secs=COST.get('AL1', 17)),
                                # The ARMED factory screen draws no dialog, so
                                # it has no NOT LIT button and a press cannot be
                                # read as "I saw it light". See PL.LED_NOT_SEEN.
