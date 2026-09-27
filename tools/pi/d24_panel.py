@@ -51,6 +51,7 @@ both cells and the first press settles it.
 import argparse
 import json
 import os
+import random
 import sys
 import termios
 import time
@@ -264,17 +265,27 @@ class PanelBus:
         termios.tcflush(self.bus.fd, termios.TCIFLUSH)
         self.buf = b''
 
-    def light(self, value):
-        """Write the radio cell and wait for MH1's ack. Returns the ack in ms.
+    def light(self, value, cells=(SKIN,)):
+        """Write the radio cell(s) and wait for MH1's ack on each. Returns the
+        last ack in ms, or None the moment one write is not acked.
+
+        `cells` defaults to `(SKIN,)` for every caller that only ever knew one
+        cell (`mode_probe`, `mode_rtt`, `mode_light`); `loop()` passes
+        `cells_for()`'s list, which is TWO cells while a left-board step's
+        firmware is unidentified (S129) -- both must be written, so a press
+        from either board still lands during that window.
 
         `CheckHost()` forwards the line to the bus, waits for the slave UART to
         go idle and only THEN writes S_RUN back, so the ack is stamped after the
         last byte has reached both panels -- it is the hop, not a guess at it."""
-        self.flush()
-        t0 = time.time()
-        self.bus.send(C.cell_line(SKIN, value))
         self.lit = value
-        ms = self._wait_raw(lambda o: b'+' in o, 0.5)
+        ms = None
+        for cell in cells:
+            self.flush()
+            self.bus.send(C.cell_line(cell, value))
+            ms = self._wait_raw(lambda o: b'+' in o, 0.5)
+            if ms is None:
+                return None
         return ms
 
     def light_enc(self, value):
@@ -403,9 +414,10 @@ class InjectedBus:
     def flush(self):
         pass
 
-    def light(self, value):
+    def light(self, value, cells=(SKIN,)):
         self.lit = value
-        self.lights.append(('skin', value))
+        for cell in cells:
+            self.lights.append(('swleft' if cell == SW_LEFT else 'skin', value))
         return 1.8
 
     def light_enc(self, value):
@@ -510,10 +522,24 @@ def cells_for(panel, known=None):
 
 
 def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
-         can_say_notlit=True, left_cell='auto'):
+         can_say_notlit=True, left_cell='auto', random_order=False):
     """Walk one panel.  `ask` puts the step in front of the operator and returns
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
+
+    `random_order`: S130 item 5, behind a flag, default OFF (PW has not ruled
+    on it). The design problem it answers is S129 item 4's: with no
+    indicator readback, a
+    dark panel and a screen that NAMES the button are indistinguishable from a
+    dead switch that just happens to be lit -- PW's own pass proved it (S129
+    HANDS ADDENDUM 7 / the FX MUTE / HOME / MENU mis-fires, an operator hunting
+    a dark panel, not three switch faults). With `random_order` the walk order
+    is shuffled and `ask` is expected to stop naming the button (see
+    `d24_live.panel_press_words_blind`/`panel_retry_words_blind`): a correct
+    key code then proves both that the switch works AND that the operator saw
+    the light, because reading the name off the glass can no longer produce
+    it. Grading is unchanged -- `st.idx` is still matched by VALUE, never by
+    position -- so this only permutes `steps` before the walk.
 
     `hold`, if given, is called before each indicator is lit and may block. It
     is how the panel loop stays out of the acoustic test's way (S126, ruling a):
@@ -531,6 +557,8 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     LED_NOT_SEEN: the indicator half of each step is then recorded as not
     measured rather than inferred from a press."""
     steps = [Step(*s) for s in PANELS[panel]]
+    if random_order:
+        random.shuffle(steps)
     # WHICH CELL THIS BOARD IS ON. 'auto' finds out from the first press;
     # 'new'/'shared' force it, for a bench run that knows what is flashed.
     known = {'new': SW_LEFT, 'shared': SKIN}.get(left_cell)

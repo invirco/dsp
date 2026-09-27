@@ -2056,8 +2056,24 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                    'already passed on an earlier pass'
                    % (panel_name, total_steps, already))
 
+    random_order = getattr(a, 'random_panel_order', False)
+
     def ask(step, n, total, tries):
-        if tries:
+        # S130 (behind --random-panel-order, default OFF, PW has not ruled):
+        # the button's NAME is what let an operator hunt a dark panel by
+        # reading the glass rather than finding the light (S129 addendum 7).
+        # With the flag on, no name and no indicator description reach the
+        # worker on either the dialog or the glass -- only "find the light".
+        if random_order:
+            if tries:
+                lines = ['It did not light.',
+                         'On the %s: press it anyway, so the switch itself '
+                         'is still checked.' % LV.panel_side_words(panel_name)]
+            else:
+                lines = ['On the %s: press the button that is lit.'
+                         % LV.panel_side_words(panel_name),
+                         'If nothing lit, press NOT LIT.']
+        elif tries:
             lines = ['%s did not light.' % step.what.capitalize(),
                      'On the %s: press %s anyway, so the switch itself is '
                      'still checked.'
@@ -2072,15 +2088,22 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
         # that asked for something else -- a retry after an indicator stayed
         # dark, the encoder -- left the worker reading the wrong sentence.
         if live is not None:
-            live.set(state=LV.WAITING,
-                     instruction=(
-                         LV.panel_retry_words(step.name, step.what, panel_name)
-                         if tries else
-                         LV.panel_press_words(step.name, step.what, panel_name)),
+            if random_order:
+                instruction = (LV.panel_retry_words_blind('it', panel_name)
+                               if tries else
+                               LV.panel_press_words_blind(panel_name))
+            else:
+                instruction = (LV.panel_retry_words(step.name, step.what,
+                                                    panel_name)
+                               if tries else
+                               LV.panel_press_words(step.name, step.what,
+                                                    panel_name))
+            live.set(state=LV.WAITING, instruction=instruction,
                      lead_line='', extra='', status=panel_name.capitalize(),
                      n=min(n, total_steps), total=total_steps)
-        btns = glass.post('instruct', 'Panel loop - %s (%s)'
-                          % (step.name, panel_name), lines,
+        title = ('Panel loop (%s)' % panel_name if random_order else
+                 'Panel loop - %s (%s)' % (step.name, panel_name))
+        btns = glass.post('instruct', title, lines,
                           ['notlit'], row=step.sw_row, station=st)
 
         def tick():
@@ -2118,6 +2141,7 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                    and state.verdict(r.num) != PASS)
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
                                log=glass.progress, owed=owed,
+                               random_order=random_order,
                                hold=quiet_hold(quiet_flag, live=live,
                                                keys=keys,
                                                secs=COST.get('AL1', 17)),
@@ -3071,6 +3095,14 @@ def main(argv=None):
     ap.add_argument('--panel-timeout', type=float, default=30.0,
                     help='how long one button in the panel loop waits for a '
                          'press before it lands NO DATA (default 30 s)')
+    ap.add_argument('--random-panel-order', action='store_true',
+                    help='S130, default OFF, PW has not ruled on it: walk '
+                         'each panel in a random order and stop naming the '
+                         'button on the glass and the dialog (only "press '
+                         'the button that is lit"). A correct key code then '
+                         'proves the switch AND that the operator saw the '
+                         'light, which naming it cannot -- see PL.loop\'s '
+                         'random_order docstring. Grading is unchanged')
     ap.add_argument('--inject-keys', metavar='FILE',
                     help='drive the panel loop from a scripted key stream '
                          'instead of the bus -- proves the runner side with no '

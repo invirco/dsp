@@ -552,6 +552,27 @@ def panel_press_words(name, what, panel=''):
             % (name, what))
 
 
+def panel_retry_words_blind(what, panel=''):
+    """S130, behind the `random_order` flag (PW has not ruled on it): the
+    NOT-random-order retry names the button (`panel_retry_words`); this does
+    not, on purpose -- naming it is what let an operator hunt a dark panel by
+    reading the glass instead of finding the light (S129 addendum 7)."""
+    if panel:
+        return ('%s: %s did not light. Press it anyway.'
+                % (panel_side_words(panel), what))
+    return ('%s did not light. Press it anyway, so the switch itself is still '
+            'checked.' % what.capitalize())
+
+
+def panel_press_words_blind(panel=''):
+    """S130, behind the `random_order` flag: no button name, no indicator
+    description -- just 'find the light'. See `panel_press_words` for the
+    named version this replaces only when the flag is on."""
+    if panel:
+        return ('%s: press the button that is lit.' % panel_side_words(panel))
+    return 'Press the button that is lit.'
+
+
 def panel_already_passed(already, total):
     """The second line of a panel loop that is only walking what it owes.
 
@@ -630,6 +651,8 @@ def every_string(rows=()):
                               'left switch panel'),
             panel_press_words('FX MUTE', 'the RED ring',
                               'right switch panel'),
+            panel_retry_words_blind('it', 'left switch panel'),
+            panel_press_words_blind('right switch panel'),
             panel_judgement_missed('The always-lit rings'),
             panel_judgement_missed('The ring around the encoder'),
             station_card_words('Front panel switches',

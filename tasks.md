@@ -1,4 +1,32 @@
-## HUB DISPATCH 2026-09-27 20:47Z — S130: overnight no-hands improvements — grid + AL1 on glass, PSU rails, mini-jacks, random-order LEDs (flag), bench script, gain-table tool   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-09-27 20:47Z — S130: overnight no-hands improvements — grid + AL1 on glass, PSU rails, mini-jacks, random-order LEDs (flag), bench script, gain-table tool   [status: 🔴 SIX OF EIGHT ITEMS DONE; ITEM 2 (AL1) ESCALATED, NOT A GRIND — a real same-day PanelBus.light() regression was found and fixed (S129 18:55 broke every panel step, dry-run included) or nothing else in items 1-2 was provable; item 1 (summary grid) PROVEN with a real app bug found (post-EXIT the grid stays composited over armed START — FactoryView.axaml.cs DrawIdle() never hides SummaryList, not fixed here, app pack); item 2 (AL1) NOT proven — AL1 still returns NO DATA "no settled window" in two independent unattended runs, one with zero touch input at all, contradicting S129's "PASSED" claim -- 🔴 needs opus-tier or PW's own eyes, see MW/D24/DSP/s130/s130-report.md; item 3 (PSU) NOT built -- defs' own fw.csv says PAD0-11 are N/C on this rev with a dated PW ruling not to test them, and no code path reads them at all; items 4 (mini-jack, deployed+dry-run PASS), 5 (random-order flag, default off, proven), 6 (bench script), 7 (gain table -- landed in defs as mic-gain-codes.csv, defs-v2026.09.27.5, three addenda answered including a defs-publish.sh bash-3.2 portability fix), 8 (catalog rows) are done -- full detail in the report]   [model: sonnet]
+
+> **HUB ADDENDUM 3 (small, in the same defs tag as addendum 2):**
+> - defs `defs.toml [tags] current` still reads `defs-v2026.09.27.2` at the `.27.3` tag. Set it to the tag you are creating.
+> - `defs-publish.sh` with no `--product` aborts on macOS bash (bash 3.2). Make it portable, or have it iterate products without bash-4-only features. The hub runs it on macOS.
+>
+> Also note: the hub has advanced mx26 to `.27.3` and republished D24 (generation `f9677e5fae5e`). The unit still runs the OLD 08-18 pack. The switch-over (app + `.mxc` + H1S3/H1S4 (+H1S1) reflash together) is HELD for PW as S131, so do NOT do it in S130.
+
+
+> **HUB ADDENDUM 2 (PW: "Ok, fix the table") — do addendum 1 PROPERLY, through defs, not only in this repo.**
+> - Extend `MW/D24/DSP/s55/tools/s55_ingest.py`, the generator that made defs `common/tables/mic-gain-law.csv`, to also emit **`common/tables/mic-gain-codes.csv`**. That is ALL 64 hardware codes: `code, byte, step_db` (the median over channels of gain(code) − gain(code 0)), plus `spread_db`, `n_channels` and `excluded` (J29 / MIC 7, the bit-3 stage fault).
+>   - Header comment: source, date, unit, "generated, do not hand-edit".
+>   - Use the same 15-channel set the existing table uses.
+> - Land it in the defs repo (invirco/defs) the way you landed the S129 cells: a new tag `defs-v2026.09.27.N`, after .3; check the latest tag first.
+>   - A hub agent is separately advancing mx26's defs pin and publishing. It pins by tag, so a later tag is fine. Do NOT edit mx26 or `defs.toml` in mx26; the hub advances the pin.
+> - Point `gen_patch_paths.py`'s gain-step EXPECTED values at that table: one row per step, no fit.
+> - Prove it by dry-run against law.csv: exactly MIC 7 code 8 fails at ±0.25 dB and every other channel/code passes.
+> - Report the tag and the commit in the block.
+
+
+> **HUB ADDENDUM 1 (PW: "see how many mic amps violate the +/-0.25dB step average, because we have to meet it").** The hub ran it on the 09-16 survey data, `MW/D24/DSP/s55/law.csv`: 16 channels × 64 codes, step = gain(code) − gain(code 0), compared with the per-code MEDIAN across channels.
+>
+> **Result: 1 of 16 violates** — MIC 7 (J29), code 8 (bit 3) 0.85 dB low. That is the known supplier suspect (R1001/R1002, Q295). The other 15 are within **0.088 dB worst** on ALL 63 codes. The spread grows with gain: c1 0.005, c2 0.006, c4 0.006, c8 0.023, c16 0.053, c32 0.088 dB max.
+>
+> **Action for S130:**
+> - Replace the gain-step EXPECTED values with this **measured per-code median table**. Do not use the 6-element fit, whose residual is 0.51 dB. Generate it from law.csv by a script, not by hand, so it can be re-run when a second unit is surveyed. Keep it as a candidate for defs `common/tables/` (the hub lands it through the contract path).
+> - Dry-run the ±0.25 dB rule against law.csv. Exactly MIC 7 code 8 must fail and everything else pass.
+> - Add it to item 7's tool.
+
 
 model: sonnet
 
