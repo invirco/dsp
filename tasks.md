@@ -1,3 +1,31 @@
+## HUB DISPATCH 2026-09-27 22:59Z — S133: hands-off screen for the automatic batch; PAUSE drops the rails (hub ruling from PW rules)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S133 — overnight, NO HANDS: S132's two open questions, answered by existing PW rulings (hub ruling, reported to PW after)
+
+Both follow from rulings PW has already made, so no new decision is needed:
+
+1. **The hands-off SCREEN for the automatic batch.** PW 2026-09-27: "if a test needs silence, or zero operator activity, then state it and pause manual moves until a test is complete, but provide active progress updates." AL1 runs in the automatic batch, where `LV.HANDSOFF` is never set (S132).
+   - Raise the hands-off screen off the quiet flag itself, for ANY hands-off window, whichever station or batch owns it.
+   - Same wording, input drained, active progress. Restore the prior screen afterwards.
+   - Prove it on the glass with AL1 in a real pass from START, with zero taps. Capture PNGs to `~/hub-staging/s133-screens/`.
+2. **PAUSE must drop the analog rails.** PW's rule is analog last up, first down, and S127/S128 established that rails are never left up without an owner. A pass abandoned by PAUSE currently leaves AN_EN HIGH, so the next pass's `[dsp]` batch dies on `boot_pair`'s rails refusal and AL1 is silently skipped.
+   - Make `Paused()` lower AN_EN (first down) and put the chain SAFE. Resume re-raises the rails at the point the flow needs them (last up, after DSP boots), exactly as a fresh pass does.
+   - Also make a "finished in 0 s" automatic batch impossible to report as finished. A batch that died must say so plainly and FAIL/NO DATA its rows, never read as done.
+   - Prove it: PAUSE mid-pass with the rails up, check AN_EN low + SAFE, then RESUME or a new START, and the automatic batch runs fully (AL1 PASS).
+
+**Rules:**
+- No flashing, no fuses. The app stays `b05e9fd5`: main's app rides S131 only; do NOT deploy an app.
+- Use S132's `deploy-bench-tools.sh` for the tools.
+- Leave the unit safe and armed.
+
+**Report:** `MW/D24/DSP/s133/`. Close 🟢 or 🔴, commit and push `main`. No AI attribution. No question dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 22:02Z — S132: overnight no-hands — root-cause AL1 speaker/MEMS NO DATA with zero operator input   [status: 🟢 ROOT-CAUSED, FIXED, AL1 PASSES 3/3 FROM THE GLASS START — it was never the speaker, the mic, the slot map, the codec order, the level or the window: TWO STALE TOOLS ON THE UNIT. `dsp4_s49_osc.py` (S115's 098f95ba, no `--haptic`) and `s89_set.py` (S89's bead35c7, no `cN@ADDR`) both moved in S122 and neither had EVER been deployed to `/home/app/selftest`, which is where a `--local` run -- the glass's own START -- stages FROM; `stage_tools`' md5 gate compares stage against that same stale source, so it read "already current" for a day. All three legs died on `error: unrecognized arguments: --haptic` in 0.5 s each (factory.log has baseline/tone/back/end inside 1.3 s for a 6 s measurement), and the three Nones printed as `no settled window for: base, tone, back`; the stale `s89_set.py` answers `NOT IN CONTRACT` AND EXIT 0, which is why every handback claimed NOT SILENT on a silent graph. Reproduced standalone with nothing running and no hands, then fixed: tone -29.7/-29.8 dBFS on a -46.1..-46.8 floor, SNR 16.4-17.1 dB, bandpass THD -25.0 dB (5.6 %), level repeating to one display digit over NINE readings -- five standalone plus 3/3 from the glass's own armed START in a hands-off window with zero taps (driver exit 0) plus the final deployed-runner run. NOTHING FOR THE SUPPLIER LIST. Shipped: `tools/pi/deploy-bench-tools.sh` (the deploy that never existed -- md5-compares the station's whole tool set FROM THE REPO, the only side that can see the drift; `--check` reports); AL1 now BLOCKS before any tone on a stale tool, by capability not by md5 manifest, naming the deploy (both gates proven by putting each stale tool back); each leg says WHY it produced nothing (`_al1_leg_why`). Also found and fixed: the `--quiet-flag` was raised and DROPPED PER LEG, so the hands-off hold leaked twice mid-measurement -- measured at 10 ms: 3 segments with two 41 ms gaps, now 1 continuous 2.97 s window. S129's `QUIET_MAX_S` explanation is DISPROVED and corrected in place (no acoustic window ever opened); S130's escalation was right. Answered for S130: the hands-off SCREEN never appears on a real pass (`LV.HANDSOFF` is only set inside `panel_station`'s `hold=`; AL1 runs in the earlier automatic batch). 🔴 TWO FOR PW, neither changed here: (1) should the automatic batch raise the hands-off screen off the flag itself; (2) a pass abandoned by PAUSE leaves AN_EN HIGH, so the NEXT pass's whole `[dsp]` batch dies on `boot_pair`'s rails refusal in under a second, AUTO reports "finished in 0 s" and AL1 is silently never taken -- arguably `Paused()` should drop the rails. Unit safe: AN_EN low, CS_M high, 595 chain SAFE verified 200/200, pair `loopthd/s122`, app still `b05e9fd5`, state reset, glass armed. Report: `MW/D24/DSP/s132/s132-report.md`]   [model: opus]
 
 model: opus
