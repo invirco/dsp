@@ -112,7 +112,7 @@ LEADS = {
 # The order the blocks are walked. It is the order that costs the operator the
 # least: the lead type changes exactly four times, and inside K5 and K4 the
 # hand is already on the input row it was on for K1.
-BLOCK_ORDER = ('K1', 'K5', 'K4', 'K2', 'K3')
+BLOCK_ORDER = ('K1', 'K5', 'K2', 'K4', 'K3')
 
 # ---------------------------------------------------------------------------
 # The donor strip: where the oscillator goes in
@@ -526,6 +526,50 @@ PARK_IN_STRIP = 1
 XLR_OUTS = [('AUX %d' % a, 'aux:%d' % a) for a in AUXES] + [
     ('MAIN L', 'main:L'), ('MAIN R', 'main:R')]
 
+# ---------------------------------------------------------------------------
+# THE PARKED KIT (PW 2026-09-27, ruling c; review §2.3)
+# ---------------------------------------------------------------------------
+# "All five kit items go on during START, under machine time. Parked ends are
+# per review §2.3: XLR lead on the 1st XLR output, XLR->jack on the 2nd XLR
+# output, jack->XLR on the 2nd XLR input (not the reference input), XLR->mini-
+# jack on the 3rd XLR output, and the 150 ohm plug on the bench. The generator
+# orders every block around the parked ends."
+#
+# WHAT PARKING CAN AND CANNOT BUY, MEASURED RATHER THAN ASSUMED (S126-1).
+# Every socket a lead can usefully be parked on is a socket some walk has to
+# visit: each of the ten XLR outputs gets a patch of its own in the output
+# walk, and each of the twenty-four XLR inputs gets seven gain steps and a
+# noise reading in the input walk. So a parked end cannot simply stay put --
+# the walk that proves its socket has to have it off. What the generator CAN
+# do, and does here, is order each walk so that the socket carrying a parked
+# lead is the LAST one that walk visits, which makes the collision exactly one
+# folded sentence ("take the jack-to-XLR lead off AUX 2 first") at the moment
+# the hand is already at that socket, and puts the lead in the operator's hand
+# immediately before the block that needs it. There is no separate change
+# screen and no card, which is what the ruling asked for; the hand-move
+# arithmetic is in the S126 report and it is not the review's 24-40 s.
+#
+# `end` is which END of the lead is parked:
+#   out    an XLR-F (or the XLR lead's output end) hangs on a D24 XLR OUTPUT
+#   in     an XLR-M sits in a D24 XLR INPUT
+#   bench  it is not on the unit at all
+PARK_OUT_END_LEADS = ('K1', 'K4', 'K3')
+KIT_PARK = {
+    # lead: (which end, the nominal socket, the drive that socket carries)
+    'K1': ('out', 'AUX 1', 'aux:1'),
+    'K4': ('out', 'AUX 2', 'aux:2'),
+    'K3': ('out', 'AUX 3', 'aux:3'),
+    'K2': ('in', None, None),        # the second working input, bound below
+    'K5': ('bench', None, None),
+}
+# The order the output walk visits its ten sockets in: everything that has
+# nothing parked on it first, then the parked ones, last, in kit order. Built,
+# not typed, so excluding AUX 2 moves the parking rather than breaking it.
+def output_walk_order(parked):
+    clean = [x for x in XLR_OUTS if x[0] not in parked]
+    late = [x for x in XLR_OUTS if x[0] in parked]
+    return clean + late
+
 # The stereo TRS output jacks: one patch, three sub-tests. `l`/`r` are the two
 # aux buses the jack's tip and ring carry -- the SAME buses the Aux Out A XLRs
 # carry, tapped in parallel off the same output stage (findings.md: the TRS
@@ -545,7 +589,7 @@ MONO_TRS_OUTS = [('MONITOR L', 'xover:ctr', TONE_HZ,
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',
            'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park',
-           'gain_code', 'send_pos')
+           'gain_code', 'send_pos', 'unpark')
 
 # ---------------------------------------------------------------------------
 # THE ORDER (PW 2026-09-26)
@@ -607,6 +651,27 @@ PARK_FIND, PARK_IN_END, PARK_OUT_END = 'find', 'in', 'out'
 # `source` column, and the window in patch-limits.csv is wide enough to cover
 # the fit's own error several times over.
 GAIN_STEPS = (0, 1, 2, 4, 8, 16, 32)
+
+# ---------------------------------------------------------------------------
+# THE INPUT ORDER (PW 2026-09-27, ruling g: STOPWATCH FIRST)
+# ---------------------------------------------------------------------------
+# Both orders are generated, behind one switch, and the default is the one the
+# bench runs today until PW's stopwatch says otherwise:
+#
+#   three-walks  the XLR lead walks every input with its seven gain steps and
+#                then the talkback; the 150 ohm plug walks every input; the
+#                XLR-to-jack lead walks every combo jack. Three traverses of
+#                the input row, one lead each.
+#   one-stop     one stop per input: at each input the XLR lead's seven gain
+#                steps, then the plug, then the jack lead, then on to the next
+#                input. One traverse, three leads juggled at every socket.
+#
+# The estimate that made this PW's call rather than the generator's: 24 traverse
+# moves become in-place swaps, worth 29 / 48 s IF a swap is about 60 % of a
+# traverse -- and juggling three ends at one socket could erase it. Nobody has
+# timed either, so nobody knows. `s126-stopwatch-card.md` is the card that
+# settles it.
+INPUT_ORDERS = ('three-walks', 'one-stop')
 # The noise reading rides the input walk now (PW 2026-09-26), at the gain the
 # 2026-09-16 survey used: every element in, which is the code the old separate
 # noise block wrote.
@@ -687,7 +752,13 @@ def parse_lead_excludes(specs):
 
 
 class Builder:
-    def __init__(self, ports, cells, excl_inputs=(), excl_leads=()):
+    def __init__(self, ports, cells, excl_inputs=(), excl_leads=(),
+                 park_kit=True, input_order='three-walks'):
+        if input_order not in INPUT_ORDERS:
+            raise SystemExit('--input-order must be one of %s'
+                             % ', '.join(INPUT_ORDERS))
+        self.park_kit = bool(park_kit)
+        self.input_order = input_order
         self.ports, self.cells = ports, cells
         self.send_at = load_send_pos()
         self.gain_seen, self.gain_k, self.gain_resid = load_gain_law()
@@ -723,6 +794,79 @@ class Builder:
             raise SystemExit('every input is excluded: there is no list left')
         return 'MIC %d' % left[0], left[0]
 
+    # -- the parked kit (ruling c) ------------------------------------------
+    def kit(self):
+        """Each lead, which end of it is parked, and on which socket.
+
+        Resolved against the exclusions, never typed twice: an excluded AUX 2
+        moves the XLR-to-jack lead's parked end to the next working output, and
+        an excluded MIC 1 moves the reference input, which moves the input the
+        jack-to-XLR lead parks in. With `--no-park-kit` every lead falls back
+        to the socket the list used before the ruling, which is what makes the
+        before/after timing runs comparable.
+        """
+        if getattr(self, '_kit', None) is not None:
+            return self._kit
+        ref_in, _ref_strip = self.park_in()
+        outs = [o for o in XLR_OUTS if not self.out_in(o[0])]
+        if not outs:
+            raise SystemExit('every XLR output is excluded: there is no list left')
+        kit = {}
+        if self.park_kit:
+            # The first three working XLR outputs, in panel order: the XLR
+            # lead, then the XLR-to-jack lead, then the XLR-to-mini-jack lead.
+            for lead, o in zip(PARK_OUT_END_LEADS, outs):
+                kit[lead] = dict(end='out', socket=o[0], drive=o[1], lane=None)
+            for lead in PARK_OUT_END_LEADS[len(outs):]:
+                kit[lead] = dict(end='out', socket=outs[-1][0],
+                                 drive=outs[-1][1], lane=None)
+            name, strip = self.park_in2()
+            kit['K2'] = dict(end='in', socket=name, drive=None, lane=strip)
+        else:
+            for lead in PARK_OUT_END_LEADS:
+                kit[lead] = dict(end='out', socket=outs[0][0], drive=outs[0][1],
+                                 lane=None)
+            name, strip = self.park_in()
+            kit['K2'] = dict(end='in', socket=name, drive=None, lane=strip)
+        kit['K5'] = dict(end='bench', socket=None, drive=None, lane=None)
+        self._kit = kit
+        return kit
+
+    def parked_outputs(self):
+        """The output sockets that carry a parked lead, and which lead."""
+        k = self.kit()
+        return dict((k[l]['socket'], l) for l in PARK_OUT_END_LEADS
+                    if k[l]['end'] == 'out' and k[l]['socket'])
+
+    def input_walk_strips(self):
+        """The inputs, in the order the walk visits them.
+
+        The input the jack-to-XLR lead parks in comes LAST (ruling c): the walk
+        has to have that lead out of the socket to read the input's own seven
+        gain steps, so the collision is put where it costs one folded sentence
+        and hands the operator the lead the TRS block needs next.
+        """
+        left = list(self.strips())
+        if not self.park_kit:
+            return left
+        _name, strip = self.kit()['K2']['lane'], None
+        strip = self.kit()['K2']['lane']
+        if strip in left and len(left) > 1:
+            left = [n for n in left if n != strip] + [strip]
+        return left
+
+    def park_in2(self):
+        """The input the jack-to-XLR lead parks in: the first working input
+        that is NOT the reference input (PW: "not the reference input"), and
+        not the donor strip, whose input block the oscillator replaces."""
+        ref, ref_strip = self.park_in()
+        for n in self.strips():
+            if n != ref_strip and n != DONOR_DEFAULT:
+                return 'MIC %d' % n, n
+        # One working input and it is the reference: there is nowhere else, so
+        # the lead parks where it used to and the collision is the walk's own.
+        return ref, ref_strip
+
     def rows_for(self, *names):
         out = []
         for nm in names:
@@ -756,6 +900,7 @@ class Builder:
         kw.setdefault('note', '')
         kw.setdefault('park', '')
         kw.setdefault('gain_code', '')
+        kw.setdefault('unpark', '')
         kw.setdefault('send_pos', '')
         kw.setdefault('prompt', '')
         kw.setdefault('freq_hz', TONE_HZ)
@@ -782,7 +927,16 @@ class Builder:
         end moving -- so a fail here is the OUTPUT and nothing else.
         """
         ref_in, ref_strip = self.park_in()
-        for i, (out, drive) in enumerate(XLR_OUTS):
+        parked = self.parked_outputs()
+        # THE PARKED SOCKETS ARE VISITED LAST (ruling c). The XLR lead's own
+        # parked socket is the first patch of all, because that patch is what
+        # the lead is already plugged into; the other two carry leads this
+        # walk has to have off, so they come at the end of the walk, where the
+        # unpark hands the operator the lead the next block needs.
+        mine = self.kit()['K1']['socket']
+        late = dict((k, v) for k, v in parked.items() if k != mine)
+        order = output_walk_order(late)
+        for i, (out, drive) in enumerate(order):
             self.new_patch()
             self.add(lead='K1', block='the outputs', out=out, in_=ref_in,
                      drive=drive, lane=ref_strip, donor=donor_for(ref_strip),
@@ -790,10 +944,16 @@ class Builder:
                      rows=self.rows_for(out, ref_in),
                      prompt='Patch %s to %s' % (out, ref_in),
                      park=(PARK_FIND if i == 0 else PARK_IN_END),
+                     unpark=late.get(out, ''),
                      note=('the first patch of the pass: the input end walks '
                            'until the tone arrives, and the input it stops on '
                            'is the reference for every patch after it'
-                           if i == 0 else ''))
+                           if i == 0 else
+                           'at the end of the walk on purpose: the %s has '
+                           'been parked on this socket since START and has to '
+                           'come off for this patch, so the walk pays that '
+                           'once, last, with the hand already there'
+                           % LEADS[late[out]]['name'] if out in late else ''))
 
     def block_k1_inputs(self):
         """Every XLR input in a row, from one output (PW 2026-09-26).
@@ -811,21 +971,25 @@ class Builder:
         socket behind, so nothing has to be proved about crosstalk between a
         driven input and the one next to it.
         """
-        for strip in self.strips():
+        for strip in self.input_walk_strips():
             inp = 'MIC %d' % strip
             pos = self.send_at[strip]
             self.new_patch()
+            unpark = ('K2' if (self.park_kit
+                               and strip == self.kit()['K2']['lane']) else '')
+            k1out, k1drive = self.kit()['K1']['socket'], self.kit()['K1']['drive']
             for step in GAIN_STEPS:
                 db, _src = gain_db(step, self.gain_seen, self.gain_k)
-                self.add(lead='K1', block='the inputs', out=PARK_OUT, in_=inp,
-                         drive=PARK_DRIVE, lane=strip, donor=donor_for(strip),
+                self.add(lead='K1', block='the inputs', out=k1out, in_=inp,
+                         drive=k1drive, lane=strip, donor=donor_for(strip),
+                         unpark=(unpark if step == 0 else ''),
                          expect='tone',
                          level_ref=('ref' if step == 0 else 'gain'),
                          polarity=('ref' if step == 0 else '-'),
                          sub='g%d' % step, gain_code=step, send_pos=pos,
                          level_dbfs=round(GAIN_TONE_DBFS - db, 2),
-                         rows=self.rows_for(PARK_OUT, inp),
-                         prompt='Patch %s to %s' % (PARK_OUT, inp),
+                         rows=self.rows_for(k1out, inp),
+                         prompt='Patch %s to %s' % (k1out, inp),
                          park=PARK_OUT_END,
                          note=('the tone reference for this input, every gain '
                                'element off' if step == 0 else
@@ -833,25 +997,31 @@ class Builder:
                                'the step\'s own expected gain so the converter '
                                'reads about the same level every step'
                                % (step.bit_length())))
-            if self.out_lead('K5'):
-                continue
-            self.new_patch()
-            self.add(lead='K5', block='the inputs', out='', in_=inp,
-                     drive='none', lane=strip, donor=donor_for(strip),
-                     expect='noise', level_ref='ein', polarity='-',
-                     level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
-                     send_pos=pos, rows=self.rows_for(inp),
-                     prompt='Fit the 150 ohm terminator in %s' % inp,
-                     note='the input noise, at the gain the 2026-09-16 survey '
-                          'used; the window is limits.csv t4b_ein_max_dbu')
+            if not self.out_lead('K5'):
+                self.new_patch()
+                self.add(lead='K5', block='the inputs', out='', in_=inp,
+                         drive='none', lane=strip, donor=donor_for(strip),
+                         expect='noise', level_ref='ein', polarity='-',
+                         level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
+                         send_pos=pos, rows=self.rows_for(inp),
+                         prompt='Fit the 150 ohm terminator in %s' % inp,
+                         note='the input noise, at the gain the 2026-09-16 '
+                              'survey used; the window is limits.csv '
+                              't4b_ein_max_dbu')
+            # ONE STOP PER INPUT (ruling g): the jack lead's own patch for this
+            # input rides here instead of in a walk of its own. Same patch,
+            # same reading, same row -- only the order changes.
+            if self.input_order == 'one-stop' and not self.out_lead('K4'):
+                self.add_k4_patch(strip, block='the inputs')
         if self.out_in('TALKBACK'):
             return
         self.new_patch()
-        self.add(lead='K1', block='the inputs', out=PARK_OUT,
-                 in_='TALKBACK', drive=PARK_DRIVE, lane=LANE_TALKBACK,
+        k1out, k1drive = self.kit()['K1']['socket'], self.kit()['K1']['drive']
+        self.add(lead='K1', block='the inputs', out=k1out,
+                 in_='TALKBACK', drive=k1drive, lane=LANE_TALKBACK,
                  donor=DONOR_DEFAULT, expect='tone', level_ref='info',
-                 polarity='info', rows=self.rows_for(PARK_OUT, 'TALKBACK'),
-                 prompt='Patch %s to TALKBACK' % PARK_OUT,
+                 polarity='info', rows=self.rows_for(k1out, 'TALKBACK'),
+                 prompt='Patch %s to TALKBACK' % k1out,
                  park=PARK_OUT_END,
                  note='the talkback XLR is on the AK4619 codec, not the mic '
                       'preamps: a different gain law and about 23 dB more noise '
@@ -871,24 +1041,37 @@ class Builder:
         judging it -- the tone-present verdict is the factory question either
         way. See the report's open items.
         """
-        for strip in self.strips():
-            self.new_patch()
-            self.add(lead='K4', block='the line inputs', out=PARK_OUT,
-                     in_='MIC %d line' % strip, drive=PARK_DRIVE, lane=strip,
-                     donor=donor_for(strip), expect='tone', level_ref='info',
-                     polarity='normal', rows='',
-                     prompt='Patch %s to the TRS centre of MIC %d'
-                            % (PARK_OUT, strip),
-                     park=PARK_OUT_END,
-                     note='no catalog row declares the combo TRS line path, and '
-                          'nothing in defs says how it is selected: level '
-                          'reported, tone presence judged')
+        if self.input_order == 'one-stop':
+            return                        # every K4 patch rode the input walk
+        for strip in self.input_walk_strips():
+            self.add_k4_patch(strip, block='the line inputs')
+
+    def add_k4_patch(self, strip, block):
+        """One combo jack's line path. Its output end is the XLR-to-jack
+        lead's own parked socket (ruling c), which the output walk proved."""
+        k = self.kit()['K4']
+        out, drive = k['socket'], k['drive']
+        self.new_patch()
+        self.add(lead='K4', block=block, out=out,
+                 in_='MIC %d line' % strip, drive=drive, lane=strip,
+                 donor=donor_for(strip), expect='tone', level_ref='info',
+                 polarity='normal', rows='',
+                 prompt='Patch %s to the TRS centre of MIC %d' % (out, strip),
+                 park=PARK_OUT_END,
+                 note='no catalog row declares the combo TRS line path, and '
+                      'nothing in defs says how it is selected: level '
+                      'reported, tone presence judged')
 
     def block_k2(self):
-        """The TRS output jacks, read through one XLR input."""
-        park_in, park_strip = self.park_in()
+        """The TRS output jacks, read through the input the jack-to-XLR lead
+        is parked in (ruling c) -- the second working input, not the reference
+        one, and one the input walk has just proved with its own gain steps."""
+        k = self.kit()['K2']
+        park_in, park_strip = k['socket'], k['lane']
         if park_in != PARK_IN:
-            self.rehomed.append(( 'the TRS outputs', park_in,
+            self.rehomed.append(('the TRS outputs', park_in,
+                                 'the jack-to-XLR lead is parked there'
+                                 if self.park_kit else
                                  '%s is excluded' % PARK_IN))
         for name, drive, hz, why in MONO_TRS_OUTS:
             self.new_patch()
@@ -938,11 +1121,13 @@ class Builder:
             if self.out_in(jack):
                 continue
             self.new_patch()
-            base = dict(lead='K3', block='the mini-jack inputs', out=PARK_OUT,
-                        in_=jack, drive=PARK_DRIVE, donor=DONOR_DEFAULT,
+            k3 = self.kit()['K3']
+            base = dict(lead='K3', block='the mini-jack inputs',
+                        out=k3['socket'], in_=jack, drive=k3['drive'],
+                        donor=DONOR_DEFAULT,
                         rows=self.rows_for('%s L' % jack),
                         prompt='Patch %s to %s, with MINI-JACK %d empty'
-                               % (PARK_OUT, jack, other),
+                               % (k3['socket'], jack, other),
                         park=PARK_OUT_END)
             self.add(sub='L', lane=lane_l, expect='tone', level_ref='single',
                      polarity='info',
@@ -964,8 +1149,14 @@ class Builder:
         # THE ORDER IS PW'S, AND IT IS THE POINT: find a loop, then every
         # output in a row against it, then every input in a row against a
         # known-good output. Each block moves ONE end.
+        # THE TRS BLOCK FOLLOWS THE INPUT WALK (S126, ruling c). The jack-to-XLR
+        # lead is parked in the second working input and that input is the LAST
+        # one the walk visits, so putting its own block next is what turns the
+        # collision into a handover: the lead comes out of the socket for the
+        # input's gain steps and goes straight back into it for the block that
+        # reads on it. The line block, which used to sit here, moves after it.
         blocks = [('K1', self.block_k1_outputs), ('K1', self.block_k1_inputs),
-                  ('K4', self.block_k4), ('K2', self.block_k2),
+                  ('K2', self.block_k2), ('K4', self.block_k4),
                   ('K3', self.block_k3)]
         for lead, fn in blocks:
             if self.out_lead(lead):
@@ -1026,6 +1217,9 @@ HEAD_PATHS = """\
 #               all, whose input end walks until the tone arrives; in = the input
 #               end is the reference input; out = the output end is the reference
 #               output; empty = the patch names both ends itself
+#   unpark      a kit lead is parked on THIS patch's socket and has to come off
+#               before the lead in hand goes in (S126, ruling c). One folded
+#               sentence on the same screen; never a card of its own
 """ % (SINGLE_ENDED_DB, NULL_MAX_DB)
 
 HEAD_ROUTES = """\
@@ -1033,6 +1227,48 @@ HEAD_ROUTES = """\
 # The cells, BY NAME, that assert one route. Written whole every time, so a route is
 # never half-set from the patch before. Values: f<x> is an IEEE-754 float word.
 """
+
+
+HEAD_KIT = """\
+# patch-kit.csv -- GENERATED by tools/accept/gen_patch_paths.py (S126). Do not edit.
+# THE PARKED KIT (PW 2026-09-27, ruling c). One row per kit item, in the order the
+# operator is walked through it on the D24's own screen at START. `end` is which end
+# of the lead is parked and `socket` is the PANEL name it goes on. The operator's
+# words are not here: d24_live.py owns those (see KIT_COLUMNS below).
+"""
+
+# NO INSTRUCTION COLUMN, ON PURPOSE. The words an operator reads live in
+# d24_live.py and nowhere else -- the kit codes and the wiring descriptions in
+# this file are records ("XLR-F to XLR-M"), not something anybody says out
+# loud, and a generated sentence here would be a second vocabulary for
+# `--check-md` to have to police. This file carries the FACTS: which lead,
+# which end, which panel socket. `d24_live.park_kit_page` turns each row into
+# the one big line.
+KIT_COLUMNS = ('lead', 'name', 'wiring', 'end', 'socket', 'drive', 'lane')
+
+# The order the operator is walked through the kit at START: the three ends that
+# hang on XLR OUTPUTS first, in panel order, because that is one reach along one
+# row of sockets; then the one that goes into an input; then the plug, which
+# goes on the bench and not on the unit at all.
+KIT_ORDER = ('K1', 'K4', 'K3', 'K2', 'K5')
+
+
+def write_kit(out, b):
+    path = os.path.join(out, 'patch-kit.csv')
+    k = b.kit()
+    with open(path, 'w', newline='') as fh:
+        fh.write(HEAD_KIT)
+        w = csv.DictWriter(fh, KIT_COLUMNS, extrasaction='ignore')
+        w.writeheader()
+        for lead in KIT_ORDER:
+            d = k.get(lead)
+            if d is None or b.out_lead(lead):
+                continue
+            w.writerow(dict(lead=lead, name=LEADS[lead]['name'],
+                            wiring=LEADS[lead]['wiring'], end=d['end'],
+                            socket=d['socket'] or '', drive=d['drive'] or '',
+                            lane=d['lane'] if d['lane'] else ''))
+    return path
 
 
 def write_paths(out, b):
@@ -1206,17 +1442,29 @@ def main(argv=None):
     ap.add_argument('--exclude-lead', action='append', metavar='LEAD',
                     help='leads to leave out, by name (mini-jack, line, '
                          'terminator, xlr, jack-to-xlr) or by kit code')
+    ap.add_argument('--input-order', default='three-walks', choices=INPUT_ORDERS,
+                    help='three-walks (the default, and what the bench runs '
+                         'today): the XLR lead walks every input, then the '
+                         '150 ohm plug, then the jack lead. one-stop: every '
+                         'lead at one input before moving on. PW 2026-09-27 '
+                         'ruled STOPWATCH FIRST -- see s126-stopwatch-card.md')
+    ap.add_argument('--no-park-kit', dest='park_kit', action='store_false',
+                    help='every block homes on the first XLR output and the '
+                         'reference input, as the list did before the parked '
+                         'kit (ruling c). For a before/after timing run')
     a = ap.parse_args(argv)
     excl_in = parse_excludes(a.exclude)
     excl_lead = parse_lead_excludes(a.exclude_lead)
-    b = Builder(load_ports(), load_cells(), excl_in, excl_lead).build()
+    b = Builder(load_ports(), load_cells(), excl_in, excl_lead,
+                park_kit=a.park_kit, input_order=a.input_order).build()
     if a.check:
         print('OK: %d patches, %d paths, %d routes, %d sockets not run'
               % (b.patch, b.n, len(b.routes), len(b.notrun)))
         return 0
     os.makedirs(a.out, exist_ok=True)
     written = [write_paths(a.out, b), write_routes(a.out, b),
-               write_gain_steps(a.out, b), write_plan(a.out, b)]
+               write_gain_steps(a.out, b), write_kit(a.out, b),
+               write_plan(a.out, b)]
     # The windows are a SOURCE file, hand-tuned by PW, and the station reads
     # them out of the list directory it was pointed at. A short list written
     # somewhere else would otherwise be a directory the station cannot run

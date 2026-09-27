@@ -128,6 +128,31 @@ ROUTE_SETTLE_WINDOWS = 6
 GAIN_SETTLE_WINDOWS = 2
 GAIN_READ_WINDOWS = 1
 
+# ---------------------------------------------------------------------------
+# PRE-ARMING THE READING (PW 2026-09-27, ruling d; review §2.4)
+# ---------------------------------------------------------------------------
+# "On tone rows, take the reading as soon as the detector sees the tone arrive.
+# At ENTER, one meter peek must agree within 0.5 dB, and then the verdict shows
+# at once. If it does not agree, re-measure: that patch loses the saving, not
+# the correctness."
+#
+# ENTER STILL GATES THE VERDICT AND THE ADVANCE. Nothing is recorded before
+# ENTER, nothing is put on the screen before ENTER, and a patch whose armed
+# reading is not confirmed is read again -- so the worst a pre-arm can do is
+# cost the 0.27 s it was trying to save.
+#
+# WHAT THE CONFIRMATION IS. One strip-meter peek, which needs no settling
+# window at all (`Unit.meter_peak`), taken at ENTER and compared with the same
+# peek taken the instant the armed reading finished. It asks one question --
+# did the connection stay where it was while the hand let go? -- and it is the
+# only question a pre-arm opens. A half-seated connector that settles, moves or
+# falls out between the two shows up here; one that is moving DURING the armed
+# reading shows up as a window spread instead (`rms_spread`, above).
+PREARM_AGREE_DB = 0.5
+# The armed reading is thrown away if its own windows disagree by more than
+# this: that is a reading taken through a connector that was still moving.
+PREARM_STABLE_DB = 0.5
+
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 MISPATCH = 'MISPATCH'
 
@@ -233,6 +258,14 @@ class PatchList:
                                 if r['drive_dbfs'] else None))
         self.routes = dict((r['route'], r['cells'].split(';'))
                            for r in read_csv(os.path.join(d, 'patch-routes.csv')))
+        # THE PARKED KIT (S126, ruling c). Generated beside the paths, in the
+        # order the operator is walked through it at START. An older list
+        # directory has no such file and the station runs without one -- there
+        # is then simply nothing to park and nothing to say about it.
+        self.kit = []
+        kp = os.path.join(d, 'patch-kit.csv')
+        if os.path.exists(kp):
+            self.kit = read_csv(kp)
         self.patches = []
         for r in self.paths:
             if not self.patches or self.patches[-1][0] != r['patch']:
@@ -490,6 +523,13 @@ def fold(rows):
     if v:
         out['h_deg'] = math.degrees(cmath.phase(sum(v) / len(v)))
     out['n'] = len(rows)
+    # THE SPREAD ACROSS THE WINDOWS (S126, ruling d). A settled reading's
+    # windows agree to hundredths; a lead being pushed home while they are
+    # taken does not. Pre-arming reads BEFORE the operator's ENTER, so the one
+    # thing it has to be able to see is a reading taken mid-insertion -- and
+    # the windows themselves say so, without another instrument.
+    v = [r['rms'] for r in rows if 'rms' in r and math.isfinite(r['rms'])]
+    out['rms_spread'] = (max(v) - min(v)) if len(v) > 1 else 0.0
     return out
 
 
@@ -1313,7 +1353,7 @@ class Station:
 
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
                  blocks=None, live=None, analog=None, auto_advance=False,
-                 keys=None):
+                 keys=None, prearm=True):
         self.L = plist
         self.u = unit
         self.p = patcher
@@ -1331,6 +1371,14 @@ class Station:
         # under their hands. Auto-advance is the same loop with this on, and
         # it is off unless somebody asks for it.
         self.auto = bool(auto_advance)
+        # RULING d. On by default; `--no-pre-arm` is what a before/after
+        # timing run turns off, and auto-advance has nothing to pre-arm for
+        # (its step ends on the tone, so the reading is already immediate).
+        self.prearm = bool(prearm) and not self.auto
+        self._armed = None       # (raw rows, the confirming meter level, when)
+        self.armed_kept = 0      # patches whose armed reading was confirmed
+        self.armed_lost = 0      # ... and whose was not, and was re-read
+        self.armed_saved_s = 0.0
         self.keys = keys or KeyWatch(enabled=False)
         self.where = {}          # patch id -> (n of N, lead n of M, lead)
         self.passed = 0
@@ -1338,6 +1386,8 @@ class Station:
         self.failures = []
         self.paused = False
         self._lead_line = ''     # folded into the next instruction, then cleared
+        self._repark_line = ''   # ditto, for ruling c's one re-park
+        self._lead_now = None
         self._last_in = None     # so the noise step can say 'take the lead out'
         # The parked ends, bound by the first step and not before it (S123
         # addendum 3). Until the loop is found there is no such thing as a
@@ -1345,6 +1395,16 @@ class Station:
         self.ref_in = None       # (panel name, strip)
         self.ref_out = None      # (panel name, drive)
         self.dead_in = {}        # strip -> why, from the find-a-loop walk
+        # THE PARKED KIT AT RUN TIME (S126, ruling c). The list names the
+        # socket each lead is parked on; these two say what the pass has since
+        # learned about those sockets. `out_ok` is every output the walk
+        # proved, in the order it proved them; `reparked` is the one
+        # instruction the ruling asks for -- "if a parking output FAILS in the
+        # output walk, emit one re-park instruction to a passed output".
+        self.out_ok = []         # [(panel name, drive)], in walk order
+        self.out_bad = set()     # outputs that did not pass
+        self.reparked = {}       # dead socket -> (panel name, drive)
+        self.unparked = set()    # sockets whose parked lead is already off
         self.costs = {}          # where the machine seconds went, by name
 
     # -- setup -------------------------------------------------------------
@@ -1446,6 +1506,78 @@ class Station:
         v = m.get('rms')
         return v if v is not None and math.isfinite(v) else None
 
+    def prearm_ok(self, rows):
+        """Whether this patch's reading may be taken before ENTER (ruling d).
+
+        TONE ROWS ONLY, and not the gain steps. PW: "Gain steps, EIN and
+        no-tone rows are unchanged (measure after ENTER)." A gain-step patch is
+        seven chain writes and seven readings with the drive moving under them;
+        its first row is also the patch's tone reference, so the patch is
+        excluded whole rather than half-armed.
+        """
+        if not self.prearm:
+            return False
+        r = rows[0]
+        if r['expect'] != 'tone':
+            return False
+        return str(r.get('gain_code') or '') == ''
+
+    def arm(self, rows, prep):
+        """Take the reading NOW, the instant the tone arrived (ruling d).
+
+        Nothing is scored, recorded or shown here. The rows come back with the
+        confirming meter level beside them, and `confirm_armed` at ENTER
+        decides whether they are used or thrown away.
+        """
+        t0 = now()
+        was = dict(self.costs)
+        raw = self.acquire(rows, prep)
+        lvl = self.watch(int(rows[-1]['lane']))
+        worst = max((x['meas'].get('rms_spread') or 0.0) for x in raw)
+        self._armed = dict(raw=raw, level=lvl, at=now(), spread=worst,
+                           cost=now() - t0)
+        # ONE BUCKET, NOT TWO. `acquire` books its own seconds under `settled
+        # readings`, and a pre-armed reading is not a second lot of them: it is
+        # the SAME reading, moved off the operator's path. So the inner buckets
+        # are put back and the whole cost is booked here, where the cost table
+        # can be added up without counting anything twice.
+        self.costs = was
+        self.cost('pre-armed readings', now() - t0)
+        self.log('pre-armed %s %.3f s after the tone arrived (window spread '
+                 '%.2f dB)' % (rows[0]['patch'], now() - t0, worst))
+
+    def confirm_armed(self, rows):
+        """At ENTER: one meter peek, and the armed reading kept or thrown.
+
+        Returns (raw, seconds saved) or (None, 0.0). The three ways an armed
+        reading is refused are all measurements, not opinions: its own windows
+        disagreed (the lead was moving while it was taken), the lane has moved
+        since (the lead was pushed home, or came out), or the lane has nothing
+        on it to peek at.
+        """
+        a, self._armed = self._armed, None
+        if a is None:
+            return None, 0.0
+        why = None
+        if a['spread'] > PREARM_STABLE_DB:
+            why = ('its own windows disagreed by %.2f dB, which is a connector '
+                   'still moving' % a['spread'])
+        else:
+            lvl = self.watch(int(rows[-1]['lane']))
+            if lvl is None or a['level'] is None:
+                why = 'the lane has no level to peek at'
+            elif abs(lvl - a['level']) > PREARM_AGREE_DB:
+                why = ('the lane moved %.2f dB between the reading and ENTER'
+                       % (lvl - a['level']))
+        if why:
+            self.armed_lost += 1
+            self.log('%s: the early reading was not used -- %s; re-reading'
+                     % (rows[0]['patch'], why))
+            return None, 0.0
+        self.armed_kept += 1
+        self.armed_saved_s += a['cost']
+        return a['raw'], a['cost']
+
     def detect(self, rows, prep, token):
         """Wait for the operator's hands, not for their Enter.
 
@@ -1512,6 +1644,14 @@ class Station:
                 # connector in it being read as the measurement.
                 self._met_at = now()
                 self.u.mark_moved()
+                # RULING d: the reading starts HERE, not on ENTER. The loop
+                # goes straight back to polling the buttons afterwards, so
+                # PAUSE and ENTER stay live across it.
+                if self.prearm_ok(rows):
+                    self.live.set(state=LV.CHECKING)
+                    self.arm(rows, prep)
+                    self.live.set(state=LV.WAITING, status=LV.SIGNAL_SEEN)
+                    self._hinted = True
             if met and self.auto:
                 return (('drop' if r['expect'] == 'noise' else 'rise'),
                         None, now() - t0)
@@ -1681,6 +1821,28 @@ class Station:
                                rms_db=m.get('rms')))
         return scored
 
+    def _drive_of(self, pid):
+        for r in self.L.paths:
+            if r['patch'] == pid:
+                return r['drive']
+        return ''
+
+    def repark(self, socket):
+        """RULING c: "If a parking output FAILS in the output walk, emit one
+        re-park instruction to a passed output."
+
+        One instruction, to the first output the walk actually proved, and it
+        is remembered so the block that reads through that lead names the new
+        socket everywhere -- the prompt, the route and the record.
+        """
+        if socket in self.reparked:
+            return self.reparked[socket]
+        spare = [x for x in self.out_ok if x[0] != socket]
+        if not spare:
+            return None
+        self.reparked[socket] = spare[0]
+        return spare[0]
+
     def where_is_it(self, lane, sweep, donor=None):
         """The plain sentence for a lead that went into the wrong socket.
 
@@ -1710,6 +1872,8 @@ class Station:
         prepared = None
         token = None
         for bi, ((lead, block), patches) in enumerate(seq):
+            if bi and seq[bi - 1][0][1] == 'the outputs':
+                self.check_parks()
             self.lead_card(lead, block, patches, bi + 1, len(seq))
             self.an.for_block(lead)
             for pi, (pid, rows) in enumerate(patches):
@@ -1760,13 +1924,17 @@ class Station:
                     if how in ('rise', 'drop', 'enter-ok'):
                         t1 = now()
                         self.live.set(state=LV.CHECKING)
-                        raw = self.acquire(rows, prep)
+                        raw, _saved = self.confirm_armed(rows)
+                        if raw is None:
+                            raw = self.acquire(rows, prep)
                         t_read = now() - t1
                         break
                     # ENTER with nothing on the expected input, or -- with
                     # auto-advance on -- the tone never arriving at all. A
                     # wrong patch is a prompt, never a fail: find the lead,
                     # say where it is, and offer the same patch again.
+                    self._armed = None      # a wrong socket never arms, but
+                                            # a retry must not inherit one
                     tw = now()
                     sweep = self.u.meter_sweep(MIC_STRIPS)
                     where = self.where_is_it(int(rows[0]['lane']), sweep,
@@ -1817,6 +1985,26 @@ class Station:
             return rows
         if park == 'out' and self.ref_out is None:
             return rows
+        # WHICH OUTPUT A `park=out` ROW ACTUALLY USES (S126, ruling c).
+        # Before the parked kit every such block homed on the one output the
+        # loop was found with, so rebinding meant "use ref_out". Now the kit
+        # parks three leads on three different outputs and the list NAMES the
+        # one each block reads through, so the named socket is kept -- it has
+        # its own patch in the output walk and has been proved. Two exceptions,
+        # and they are the only reasons to move it:
+        #   * the socket the XLR lead itself is parked on. If the loop had to
+        #     be found somewhere else, that IS ref_out and every K1 block
+        #     follows it, exactly as before.
+        #   * a parking output that FAILED. One re-park, to a passed output.
+        target = None
+        if park == 'out':
+            named = rows[0]['out']
+            if named == self.kit_socket('K1') or named == (self.ref_out or (None,))[0]:
+                target = self.ref_out
+            elif named in self.out_bad:
+                target = self.repark(named)
+            if target is None:
+                return rows
         out = []
         for r in rows:
             r = dict(r)
@@ -1827,12 +2015,19 @@ class Station:
                 r['route'] = route_id(r['drive'], r['donor'])
                 r['prompt'] = 'Patch %s to %s' % (r['out'], name)
             else:
-                name, drive = self.ref_out
+                name, drive = target
                 r['out'], r['drive'] = name, drive
                 r['route'] = route_id(drive, r['donor'])
                 r['prompt'] = 'Patch %s to %s' % (name, r['in'])
             out.append(r)
         return out
+
+    def kit_socket(self, lead):
+        """The socket the list parks one kit lead on, or None."""
+        for d in self.L.kit:
+            if d['lead'] == lead:
+                return d['socket'] or None
+        return None
 
     def walked_past(self, rows, block):
         """This patch's input was already found silent while the loop was
@@ -1962,7 +2157,29 @@ class Station:
         # into MIC 1." is one sentence too many for somebody holding it.
         if lead_line and LV.lead_words(r['lead']) in LV.instruction_for(r):
             lead_line = ''
+        # A LEAD CHANGE INSIDE A BLOCK (S126, ruling g). With one stop per
+        # input the lead changes at every patch, not at every block, so the
+        # pick-up sentence follows the LEAD and not the block boundary. In the
+        # three-walks order this never fires: `lead_card` has already set it.
+        if not lead_line and r['lead'] != getattr(self, '_lead_now', None):
+            lead_line = LV.pick_up(r['lead'], self.parked_now(r['lead']))
+        self._lead_now = r['lead']
         extra = LV.extra_for(r) or LV.hold_note(len(rows))
+        if self._repark_line:
+            extra, self._repark_line = self._repark_line, ''
+        # THE PARKED LEAD THAT IS IN THE WAY (S126, ruling c). This patch's
+        # socket carries a kit lead, and it has to come off before the lead in
+        # hand goes in. One sentence on the screen that was already asking for
+        # that socket; no card, no separate step, and said once -- the socket
+        # is remembered as free afterwards.
+        off = (r.get('unpark') or '').strip()
+        if off:
+            where = self.kit_socket(off)
+            if where and where not in self.unparked:
+                extra = LV.take_off(off, where,
+                                    in_socket=(where.startswith('MIC')
+                                               and not where.endswith('line')))
+                self.unparked.add(where)
         # THE NOISE STEP IS A SWAP, NOT A NEW PATCH (PW 2026-09-26): the lead
         # has just been in this very socket, so the instruction says so
         # instead of naming the plug out of nowhere.
@@ -1987,6 +2204,17 @@ class Station:
         if not scored:
             return
         verdicts = {s['verdict'] for s in scored}
+        # WHICH OUTPUTS PASSED (S126, ruling c). The parked kit hangs two leads
+        # on XLR outputs, and the ruling asks for one re-park instruction if a
+        # parking output turns out dead. That needs the walk's own verdicts,
+        # which is this -- taken from the scored rows rather than re-measured.
+        if scored[0]['lead'] == 'K1' and scored[0]['out']:
+            what = (scored[0]['out'], self._drive_of(scored[0]['patch']))
+            if verdicts <= {PASS}:
+                if what not in self.out_ok:
+                    self.out_ok.append(what)
+            else:
+                self.out_bad.add(scored[0]['out'])
         r = scored[0]
         name = LV.patch_words(dict(out=r['out'], **{'in': r['in']}))
         if verdicts <= {PASS}:
@@ -2021,9 +2249,23 @@ class Station:
         the block still announces itself on the terminal and in the log for
         whoever is reading those.
         """
-        self._lead_line = LV.pick_up(lead)
+        self._lead_line = LV.pick_up(lead, self.parked_now(lead))
+        self._lead_now = lead
         self.g.progress('%s - %d patches' % (block, len(patches)))
         self.live.set(lead_n=n, lead_total=total)
+
+    def parked_now(self, lead):
+        """The socket this lead is hanging on RIGHT NOW, or None.
+
+        The list says where it was parked at START; the pass says whether a
+        walk has since had it off (`unparked`) or moved it (`reparked`). A
+        sentence that tells an operator to pick a lead up off a socket it is
+        not on is worse than one that just names the lead.
+        """
+        sock = self.kit_socket(lead)
+        if not sock or sock in self.unparked:
+            return None
+        return self.reparked.get(sock, (sock,))[0]
 
     def reprompt(self, pid, rows, where):
         """A wrong patch is a prompt, never a fail (PW 2026-09-26).
@@ -2071,6 +2313,31 @@ class Station:
                      rows=r['rows'], verdict=NODATA, why=why, detail='',
                      h_db=None, h_deg=None, thd_db=None, noise_db=None,
                      rms_db=None) for r in rows]
+
+    def check_parks(self):
+        """RULING c's one re-park instruction, emitted once per dead socket.
+
+        Run at the end of the output walk, which is the only thing that can
+        prove an output dead. The instruction goes on the screen as the extra
+        line of the next patch's own page, so it is still one page and one
+        ENTER -- and the block that reads through that lead names the new
+        socket everywhere, because `rebind` reads the same table.
+        """
+        for d in self.L.kit:
+            sock = d.get('socket')
+            if d.get('end') != 'out' or not sock or sock not in self.out_bad:
+                continue
+            if sock == self.kit_socket('K1'):
+                continue          # the XLR lead follows ref_out, not a re-park
+            to = self.repark(sock)
+            if to is None:
+                self.log('%s did not pass and there is no output that did: '
+                         'the %s has nowhere to be parked'
+                         % (sock, d.get('lead')))
+                continue
+            self._repark_line = LV.repark(d['lead'], to[0])
+            self.log('%s did not pass: the %s is re-parked on %s'
+                     % (sock, d.get('lead'), to[0]))
 
     def report_last(self, pid):
         done = [x for x in self.rows_out if x['patch'] != pid]
@@ -2280,7 +2547,8 @@ class SimUnit:
                 settle=SETTLE_WINDOWS):
         nap(WIN_S * (settle + windows))
         db = self.level_at(self.lane)
-        out = dict(rms=db, thd=self.w.thd, noise=db - 60.0, n=windows)
+        out = dict(rms=db, thd=self.w.thd, noise=db - 60.0, n=windows,
+                   rms_spread=0.0)
         if self.osc_on and db > -200:
             out['h_db'] = db - (level_dbfs if level_dbfs is not None else 0.0)
             out['h_deg'] = self.w.phase(self.driven(), self.lane)
@@ -2638,7 +2906,7 @@ def cmd_simulate(a, plist):
     # made the connection, which is the same message the button sends.
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
                  blocks=a.block, live=live, analog=an,
-                 auto_advance=a.auto_advance)
+                 auto_advance=a.auto_advance, prearm=a.prearm)
     rows = st.run()
     counts = {}
     for r in rows:
@@ -2646,6 +2914,13 @@ def cmd_simulate(a, plist):
     print('\nDRY RUN (no unit): %d measurements in %d patches'
           % (len(rows), len(st.timing)))
     print('  ' + ', '.join('%s %d' % (k, v) for k, v in sorted(counts.items())))
+    if st.prearm:
+        print('  pre-armed (ruling d): %d patches read before ENTER and '
+              'confirmed at it, %d re-read. Those readings cost %.1f s and '
+              'were taken while the hand was still on the connector; what '
+              'comes OFF the operator\'s path is the per-patch machine time '
+              'in the table below.'
+              % (st.armed_kept, st.armed_lost, st.armed_saved_s))
     if a.fault:
         print('  faults injected: %s' % ', '.join(a.fault))
         for r in rows:
@@ -2702,6 +2977,30 @@ def _row_by(plist, **want):
     return plist.paths[0]
 
 
+def setup_pages(plist):
+    """The pages the operator is walked through at START (HUB ADDENDUM 1).
+
+    ONE BIG INSTRUCTION PER PAGE, n of N, ENTER on each -- never a checklist
+    wall. `check` names the reading the machine can take to confirm the page
+    live; an empty one means nothing on the unit can see that item, and the
+    page says nothing about it rather than pretending.
+
+    The order is the order of the work: the network lead, the two USB sticks,
+    then the kit in the order patch-kit.csv lists it. There is no pre-START
+    page: the only thing that has to be in before START is the mains lead, and
+    a unit showing this screen is running from it.
+    """
+    pages = [dict(key='network', instruction=LV.setup_network(), check='link'),
+             dict(key='usb-left', instruction=LV.setup_usb('left'),
+                  check='usb_port:3'),
+             dict(key='usb-right', instruction=LV.setup_usb('right'),
+                  check='usb_port:4')]
+    for d in plist.kit:
+        pages.append(dict(key='kit-%s' % d['lead'], check='',
+                          instruction=LV.park_kit_page(d)))
+    return pages
+
+
 def screen_walk(plist):
     """The states, in the order a pass reaches them, each with a name."""
     first = plist.paths[0]
@@ -2721,54 +3020,72 @@ def screen_walk(plist):
         ('01-armed-start', None),
         ('02-getting-ready', dict(state=LV.STARTING, n=0, total=total,
                                   lead_n=0, lead_total=4)),
-        ('03-lead-change', at(first, 1, state=LV.WAITING,
-                              lead_line=LV.pick_up(first['lead']))),
-        ('04-walk-to-the-next-input',
+        ('03-setup-network',
+         dict(state=LV.WAITING, instruction=LV.setup_network(), lead_line='',
+              extra='', status=LV.SETUP_TITLE, n=1,
+              total=len(setup_pages(plist)), lead_n=0, lead_total=0)),
+        ('04-setup-usb-seen',
+         dict(state=LV.WAITING, instruction=LV.setup_usb('left'),
+              lead_line='', extra=LV.SETUP_SEEN, status=LV.SETUP_TITLE, n=2,
+              total=len(setup_pages(plist)), lead_n=0, lead_total=0)),
+        ('05-setup-park-a-lead',
+         dict(state=LV.WAITING, lead_line='', extra='',
+              instruction=LV.park_kit_page(plist.kit[0] if plist.kit else
+                                           dict(lead='K1', end='out',
+                                                socket='AUX 1')),
+              status=LV.SETUP_TITLE, n=4, total=len(setup_pages(plist)),
+              lead_n=0, lead_total=0)),
+        ('06-lead-change', at(first, 1, state=LV.WAITING,
+                              lead_line=LV.pick_up(first['lead'], 'AUX 1'))),
+        ('07-take-the-parked-lead-off',
+         at(first, 9, state=LV.WAITING, lead_line='',
+            extra=LV.take_off('K4', 'AUX 2'))),
+        ('08-walk-to-the-next-input',
          at(tone, 1, state=LV.WAITING, lead_line='',
             instruction=LV.move_input('MIC %d' % (int(tone['lane']) + 1)),
             status=LV.LOOKING)),
-        ('05-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
-        ('06-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
+        ('09-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
+        ('10-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
                                status=LV.SIGNAL_SEEN)),
-        ('07-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
-        ('08-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
+        ('11-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
+        ('12-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
                        banner_line=LV.patch_words(tone), passed=5, failed=0)),
-        ('09-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
+        ('13-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
                                banner='CHECK THE LEAD', banner_line='',
                                action=LV.action_wrong_socket('MIC 6',
                                                              tone['in']))),
-        ('10-no-signal', at(tone, 6, state=LV.CHECKLEAD,
+        ('14-no-signal', at(tone, 6, state=LV.CHECKLEAD,
                             banner='CHECK THE LEAD', banner_line='',
                             action=LV.action_no_signal())),
-        ('11-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
+        ('15-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
                        banner_line=LV.patch_words(tone),
                        action=LV.action_failed(), passed=5, failed=1)),
-        ('12-terminator-step',
+        ('16-terminator-step',
          at(noise, 20, state=LV.WAITING, lead_n=2, lead_line='',
             instruction=LV.swap_for_plug(noise['in']))),
-        ('13-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
+        ('17-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
                             lead_line=LV.pick_up(line['lead']))),
-        ('14-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
+        ('18-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
                                   lead_line=LV.pick_up(trs['lead']),
                                   extra=LV.hold_note(3))),
-        ('15-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
+        ('19-paused', dict(state=LV.PAUSED, n=30, total=total, instruction='',
                            lead_line='', extra='',
                            status='Paused - the unit is safe. '
                                   'Press START to run the test again.',
                            passed=28, failed=1,
                            failures=[LV.patch_words(tone)])),
-        ('16-finished', dict(state=LV.FINISHED, n=total, total=total,
+        ('20-finished', dict(state=LV.FINISHED, n=total, total=total,
                              instruction='', lead_line='', extra='',
                              status=LV.finished_words(total, 0),
                              action=LV.HANDOVER, passed=total, failed=0,
                              failures=[])),
-        ('17-finished-with-failures',
+        ('21-finished-with-failures',
          dict(state=LV.FINISHED, n=total, total=total, instruction='',
               lead_line='', extra='',
               status=LV.finished_words(total - 2, 2), action=LV.HANDOVER,
               passed=total - 2, failed=2,
               failures=[LV.patch_words(tone), LV.patch_words(trs)])),
-        ('18-no-signal-anywhere',
+        ('22-no-signal-anywhere',
          dict(state=LV.FINISHED, n=1, total=total, instruction='',
               lead_line='', extra='', status=LV.NO_LOOP, action=LV.HANDOVER,
               passed=0, failed=0, failures=[])),
@@ -2913,6 +3230,10 @@ def main(argv=None):
                          '(default: the glass directory)')
     ap.add_argument('--no-live', action='store_true',
                     help='do not drive the factory screen at all')
+    ap.add_argument('--no-pre-arm', dest='prearm', action='store_false',
+                    help='wait for ENTER before taking any reading, as the '
+                         'station did before PW\'s ruling of 2026-09-27. For '
+                         'a before/after timing run')
     ap.add_argument('--auto-advance', action='store_true',
                     help='end each step on the tone instead of on ENTER. OFF '
                          'by default: PW ruled on 2026-09-26 that the operator '

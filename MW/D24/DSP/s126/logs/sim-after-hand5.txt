@@ -1,0 +1,36 @@
+
+DRY RUN (no unit): 245 measurements in 91 patches
+  PASS 245
+  pre-armed (ruling d): 42 patches read before ENTER and confirmed at it, 0 re-read. Those readings cost 39.7 s and were taken while the hand was still on the connector; what comes OFF the operator's path is the per-patch machine time in the table below.
+
+  lead  patches  checks   machine s   per patch   hand s @ 5.8 s
+  --------------------------------------------------------------
+  K1         59     203        60.2        1.02           342
+  K4         24      24         3.5        0.14           139
+  K2          6      14         0.7        0.12            35
+  K3          2       4         0.4        0.20            12
+  --------------------------------------------------------------
+  all        91     245        64.8        0.71           528
+
+  projected pass: 528 s hands (455 s moving the lead + 73 s pressing ENTER) + 65 s machine = 9.9 min
+
+  block                     steps  readings   machine s   per step   hand s @ 5.8 s
+  ------------------------------------------------------------------------------
+  the outputs                  10        10         1.4      0.143              58
+  the inputs                   49       193        58.8      1.200             284
+  the TRS outputs               6        14         0.7      0.124              35
+  the line inputs              24        24         3.5      0.144             139
+  the mini-jack inputs          2         4         0.4      0.200              12
+  ------------------------------------------------------------------------------
+  the whole pass               91       245        64.8      0.713             528
+
+  where the machine seconds go
+    gain steps                    43.5 s
+    pre-armed readings            40.4 s
+    getting the unit ready        16.2 s
+    putting the route up          13.5 s
+    settled readings               8.4 s
+    ...of which the 595 chain      221 writes, 1.8 s (8.1 ms each)
+
+  the operator waits for the machine only when the machine is slower than their hands:
+    worst block: the inputs at 1.200 s a step against 5.8 s of hand

@@ -50,6 +50,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -57,6 +58,8 @@ sys.path.insert(0, HERE)
 
 import d24_panel as PL                                  # noqa: E402
 import d24_patch as PT                                 # noqa: E402
+import d24_live as LV                                  # noqa: E402
+import d24_selftest as ST                              # noqa: E402
 
 PASS, FAIL, NODATA = 'PASS', 'FAIL', 'NO DATA'
 IGNORED, SKIPPED, NOTTESTED = 'IGNORED', 'SKIPPED', 'NOT TESTED'
@@ -292,23 +295,56 @@ def load_catalog(path):
 # `QC` and are classified NOT RUN, each with its own reason -- see
 # `QC_REASON` below -- so there is no station, no rails and no dialog for it
 # any more.
-STATIONS = [
+#
+# S126 / PW 2026-09-27 (ruling f). THE FOOT PEDAL STATION IS HIDDEN and the
+# REAR SOCKET STATION IS GONE. The pedal's six rows are fixture-not-built or
+# blocked and always have been, so visiting the station only ever cost three
+# dialogs to say so; they are recorded NOT RUN with their own reasons and the
+# station is not walked. `PEDAL_STATION` switches it back on the day the
+# fixture exists -- one name, one place, no rows to re-add.
+#
+# The rear sockets went the same way for a different reason: every row it had
+# is now either answered by the machine in the background (the two USB
+# sockets, the mains inlet -- see BACKGROUND) or blocked, so there is nothing
+# left for a person to do there. Both leave the manual set as TWO cards: the
+# front panel and the analog paths.
+PEDAL_STATION = False
+
+_ALL_STATIONS = [
     ('M1', 'Left switch panel',
      'a finger and an eye, at the left half of the front panel', False),
     ('M2', 'Right switch panel',
      'a finger and an eye, at the right half of the front panel', False),
     ('M3', 'Foot pedal',
      'the foot pedal, its lead and the network lead', False),
-    ('M5', 'Rear panel sockets',
-     'a USB memory stick, a screen and its lead, the mains lead', False),
     ('M4', 'Analog paths',
      'the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an '
      'XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug',
      True),
 ]
+STATIONS = [x for x in _ALL_STATIONS if x[0] != 'M3' or PEDAL_STATION]
 STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
 STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
 STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
+
+# ---------------------------------------------------------------------------
+# THE ROWS THE MACHINE ANSWERS WITH NOBODY STANDING THERE (S126, ruling f)
+# ---------------------------------------------------------------------------
+# PW 2026-09-27: "USB ports 3/4: the sticks are plugged at START and checked in
+# the background (`lsusb`). There is no card and no Done press. A fail names
+# the port in the report." And: "The mains-inlet question is retired: the unit
+# running the test answers it."
+#
+# So these three rows are neither AUTO (they are not in the catalog's automatic
+# groups and the auto runner knows nothing about them) nor MANUAL (there is no
+# dialog and nothing to press). They are BACKGROUND: the operator puts the two
+# sticks in during the setup pages at START, and the reading is taken under the
+# patch pass, where it costs nobody anything. The hook names are `measure()`'s.
+BACKGROUND = {
+    130: 'usb_port:3',
+    131: 'usb_port:4',
+    133: 'mains_inlet',
+}
 
 # What a step asks for.
 #   measure  the runner takes the reading after the operator says Done
@@ -417,23 +453,17 @@ def manual_step(r):
              'M5': 'on the rear panel'}.get(r.group, '')
     name = r.panel
 
-    # --- station 5 / rear sockets: the three that can be read today ---------
-    if r.num in (130, 131):
-        port = 3 if r.num == 130 else 4
-        side = 'left' if r.num == 130 else 'right'
-        return dict(kind=MEASURE, measure='usb_port:%d' % port,
-                    action='Plug the USB memory stick into the %s socket of the '
-                           'double USB pair on the rear panel.' % side,
-                    check='the stick appears on the unit')
+    # --- station 5 / rear sockets -------------------------------------------
+    # Rows 130, 131 and 133 do not come here any more: they are BACKGROUND
+    # (S126, ruling f). The sticks go in during the setup pages at START and
+    # `lsusb` is read under the patch pass; the mains inlet is answered by the
+    # unit that is running the test. `classify()` routes them before this
+    # function is reached, so what is left here is the two rows a person could
+    # never have graded either.
     if r.num == 132:
         return dict(kind=BLOCKED,
                     reason='the second screen socket is a placeholder on this '
                            'revision and is not fitted')
-    if r.num == 133:
-        return dict(kind=JUDGE,
-                    action='Look at the mains inlet on the rear panel.',
-                    question='Is the mains lead fully home in the inlet, and is '
-                             'the unit running from it?')
     if r.num == 134:
         return dict(kind=BLOCKED,
                     reason='working the power switch shuts the unit down; it is '
@@ -536,6 +566,16 @@ QC_REASON = {
 }
 QC_BOARD_LEVEL = 'board-level test at the assembler'
 
+# Why a whole station is not visited (S126, ruling f). One sentence per group,
+# for the rows in it that have no blocked reason of their own.
+STATION_GONE = {
+    'M3': ('the foot pedal fixture is not built, so the pedal station is not '
+           'visited: this row is owed a fixture, not a bench visit'),
+    'M5': ('every rear-socket row is either read by the unit itself while the '
+           'test runs or has no test on this revision, so there is no rear '
+           'socket station to visit'),
+}
+
 
 def classify(rows):
     """AUTO from the catalog's own `automation` column (1 = AUTO, any of 2/3/4
@@ -545,12 +585,18 @@ def classify(rows):
     retired meter station, S119) are NOT RUN and say so in the report; they
     are never silently dropped."""
     warn = []
+    stations = set(STATION_ORDER)
     for r in rows:
         auto_col = r.automation == '1'
         auto_grp = r.group.startswith('A')
         if auto_col != auto_grp:
             warn.append('#%d: automation %r but group %r'
                         % (r.num, r.automation, r.group))
+        if r.num in BACKGROUND and not auto_grp:
+            # S126 ruling f: read under the patch pass, no card, no press.
+            r.category, r.step = 'background', dict(
+                kind=MEASURE, measure=BACKGROUND[r.num], action='', check='')
+            continue
         if r.group == 'QC':
             r.category, r.reason = 'not-run', QC_REASON.get(r.num, QC_BOARD_LEVEL)
         elif r.group == 'M8' or r.automation in ('', '—', '-'):
@@ -562,6 +608,17 @@ def classify(rows):
                 'the expansion card this row belongs to does not exist yet')
         elif auto_grp:
             r.category = 'auto'
+        elif r.group not in stations:
+            # A MANUAL GROUP THAT IS NOT A STATION ANY MORE (S126, ruling f).
+            # `run_manual` walks STATIONS, so a row whose group is not in it
+            # would never be reached and never reported -- silence, which is
+            # the one thing §1 forbids. The row's own blocked reason is kept
+            # when it has one; otherwise the station's absence IS the reason.
+            step = manual_step(r)
+            r.category = 'not-run'
+            r.reason = (step['reason'] if step['kind'] in (BLOCKED, FIXTURE)
+                        else STATION_GONE.get(r.group, 'this row has no '
+                                              'station to be tested at'))
         else:
             r.category = 'manual'
             r.step = manual_step(r)
@@ -841,6 +898,52 @@ class Paused(Exception):
 # ---------------------------------------------------------------------------
 # The auto phase
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# THE THREE AUTO PHASES (PW 2026-09-27, ruling a: OVERLAP -- YES)
+# ---------------------------------------------------------------------------
+# "New RUN ALL order. There is still one START and one report.
+#   1. START. Machine: ML/CC and codec init first (they share /dev/serial0 with
+#      the panel loop), then DR/DY/DC and group C, rails up once, then
+#      patch-station setup. Worker, at the same time: park the kit, plug the
+#      two USB sticks, then the panel loops.
+#   2. The patch pass. Group A network tests run in the background, under it.
+#   3. One report, when both are done."
+#
+# WHAT SHARES WHAT, AND WHY THE SPLIT IS WHERE IT IS. The hardware limits are
+# the review's §2.1 table, and they were checked against the code rather than
+# taken: `ML*`, `CC*` and `MC*` are H1S1 bus transactions on /dev/serial0, which
+# is the same device the panel loop reads key reports from, so nothing operator-
+# facing can run while they do. `DR*`, `DY*`, `DC*` and the whole of group C
+# talk to the DSP link and the GPIOs, which the panel loop never touches. Group
+# A is Ethernet and the CPU.
+#
+# NOT RESTATED HERE, DERIVED: the membership comes from d24_selftest's own
+# SECTION and PAIR_TESTS_B, so a test added there lands in the right phase
+# without this file being edited -- and a test added to NEITHER raises rather
+# than being silently dropped into the wrong one.
+AUTO_PHASES = ('serial', 'dsp', 'net')
+PHASE_WORDS = {
+    'serial': 'the panel and codec bus checks',
+    'dsp': 'the audio processor checks',
+    'net': 'the network checks',
+}
+PHASE_SECTIONS = {'serial': 'B', 'dsp': 'B,C', 'net': 'A'}
+
+
+def phase_of(test):
+    """Which of ruling (a)'s three phases one test id belongs to."""
+    sec = ST.SECTION.get(test)
+    if sec == 'A':
+        return 'net'
+    if sec == 'C':
+        return 'dsp'
+    if sec == 'B':
+        return 'dsp' if test in ST.PAIR_TESTS_B else 'serial'
+    raise KeyError('%s is in no section: d24_selftest.SECTION does not know '
+                   'it, so nothing here can know which phase it runs in'
+                   % test)
+
+
 def auto_plan(rows, state, ignored):
     """The owed AUTO rows in S113 group/order, and the test ids they need.
 
@@ -860,18 +963,32 @@ def auto_plan(rows, state, ignored):
     return owed, tests
 
 
-def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False):
-    """One `d24_selftest.py` for the whole owed auto set, and its verdicts read
-    back out of the results CSV it appends to."""
+def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False,
+             phase=None, quiet_flag=None, report=None):
+    """One `d24_selftest.py` for the owed auto set, and its verdicts read back
+    out of the results CSV it appends to.
+
+    `phase` runs only ruling (a)'s slice of the set (see AUTO_PHASES); None is
+    the whole thing, which is what `--auto-only` and a resumed pass still use.
+    `report` replaces the glass progress line when this runs UNDER something
+    else -- a background phase must not write over the screen the operator is
+    reading.
+    """
     owed, tests = auto_plan(rows, state, ignored)
+    if phase:
+        tests = [t for t in tests if phase_of(t) == phase]
+    say = report or glass.progress
     if not tests:
-        glass.progress('auto set: nothing owed -- every automatic row has a '
-                       'verdict already')
+        say('auto set%s: nothing owed -- every automatic row has a verdict '
+            'already' % (' (%s)' % PHASE_WORDS[phase] if phase else ''))
         return 0.0, [], owed
     before = os.path.getsize(csv_path) if os.path.exists(csv_path) else 0
     total = sum(COST.get(t, 5) for t in tests)
     cmd = [sys.executable, os.path.join(a.tools, 'd24_selftest.py'), '--local',
-           '--csv', csv_path, '--section', 'A,B,C', '--only', ','.join(tests)]
+           '--csv', csv_path, '--section',
+           PHASE_SECTIONS[phase] if phase else 'A,B,C', '--only', ','.join(tests)]
+    if quiet_flag:
+        cmd += ['--quiet-flag', quiet_flag]
     # THE RAILS GO UP ONCE, AND THIS IS WHERE THEY GO UP (S125, review flag B;
     # PW's rule, S116 Q4: raised once, after the last DSP boot, held until the
     # handback). The self-test's group C raises them after its last boot; left
@@ -883,7 +1000,7 @@ def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False):
     # Only when a patch station is actually coming. A RUN ALL whose manual set
     # is finished, or one the operator stops after the auto set, must not
     # leave a unit on the bench with its rails up.
-    if patch_to_come:
+    if patch_to_come and phase in (None, 'dsp'):
         cmd.append('--al1-keep-rails')
     if a.no_app_restart:
         cmd.append('--no-app-restart')
@@ -913,14 +1030,134 @@ def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False):
             continue
         spent = sum(COST.get(x, 5) for x in done)
         grp = (by_test.get(t) or [None])[0]
-        glass.progress('AUTO %s - %s - %d s gone, about %d s left'
-                       % (('group ' + grp.group) if grp else 'running',
-                          plain_test(t), time.time() - t0, max(0, total - spent)))
+        say('AUTO %s - %s - %d s gone, about %d s left'
+            % (('group ' + grp.group) if grp else 'running',
+               plain_test(t), time.time() - t0, max(0, total - spent)))
         done.append(t)
     proc.wait()
     secs = time.time() - t0
-    glass.progress('auto set finished in %d s' % secs)
+    say('auto set%s finished in %d s'
+        % (' (%s)' % PHASE_WORDS[phase] if phase else '', secs))
     return secs, read_new_rows(csv_path, before), owed
+
+
+class Background:
+    """One auto phase running UNDER the operator's work (S126, ruling a).
+
+    A thread and not a bare Popen, because the verdicts have to be read back
+    out of the results CSV and stamped onto the catalog rows, and that is the
+    same code the foreground path uses. The thread owns NO screen: its progress
+    goes to the terminal and the log, prefixed, and the glass belongs to
+    whoever the operator is actually looking at.
+
+    A FAIL IN HERE NEVER STOPS THE OPERATOR. PW: "A DSP-test fail must NOT
+    abort the panel loop. The unit gets its full fault list." Nothing this
+    thread reads can raise into the main one; an exception is kept and
+    reported with the phase, and the rows it did not reach stay owed.
+    """
+
+    def __init__(self, name, fn):
+        self.name = name
+        self.secs = 0.0
+        self.results = []
+        self.error = None
+        self._fn = fn
+        self._t = threading.Thread(target=self._go, name='auto-%s' % name,
+                                   daemon=True)
+
+    def start(self):
+        self._t.start()
+        return self
+
+    def _go(self):
+        try:
+            self.secs, self.results, _owed = self._fn()
+        except Exception as exc:                        # noqa: BLE001
+            self.error = '%s: %s' % (type(exc).__name__, exc)
+
+    def running(self):
+        return self._t.is_alive()
+
+    def join(self, glass=None, words=None):
+        if self._t.is_alive() and glass is not None:
+            glass.progress('waiting for %s to finish' % (words or self.name))
+        self._t.join()
+        if self.error:
+            print('   !! the %s phase did not finish: %s'
+                  % (self.name, self.error), flush=True)
+        return self
+
+
+def overlapped(a, rows, state, ignored, glass, csv_path, passno,
+               patch_to_come, timing):
+    """RULING a's new order: one START, the machine and the worker at once.
+
+    1. The serial-bus phase goes off (it owns /dev/serial0) while the operator
+       is walked through the bench setup, which needs no unit resource at all.
+    2. The DSP phase goes off in the background -- it is the long one, and it
+       ends with the rails up for the analog station -- while the operator does
+       the panel loops, which use a bus nothing in that phase touches.
+    3. The network phase goes off in the background and the analog station
+       starts. That one is started here and joined by the caller after the
+       station, so the two really do overlap.
+
+    There is still ONE START and ONE report. Nothing here decides a verdict:
+    every row is stamped by `stamp_auto` from the same results CSV, in the same
+    place, whichever order the tests ran in.
+    """
+    t0 = time.time()
+    results = []
+    quiet = os.path.join(a.runall, 'quiet.flag')
+    # -- 1. the serial bus, with the operator setting the bench up ----------
+    glass.progress('START - the unit is checking itself while you set the '
+                   'bench up')
+    ser = Background('serial', lambda: run_auto(
+        a, rows, state, ignored, glass, csv_path, phase='serial',
+        report=lambda m: print('   [bus] %s' % m, flush=True))).start()
+    live, keys = setup_screen(a, glass)
+    try:
+        pages = setup_pages(a)
+        ok = Setup(a, glass, pages, live=live, keys=keys).run()
+    finally:
+        if keys is not None:
+            keys.stop()
+    ser.join(glass, PHASE_WORDS['serial'])
+    results += ser.results
+    if not ok:
+        if live is not None:
+            live.clear()
+        raise Paused()
+    # -- 2. the DSP tests, with the operator on the panel loops -------------
+    dsp = Background('dsp', lambda: run_auto(
+        a, rows, state, ignored, glass, csv_path, phase='dsp',
+        patch_to_come=patch_to_come, quiet_flag=quiet,
+        report=lambda m: print('   [dsp] %s' % m, flush=True))).start()
+    if live is not None:
+        live.clear()             # the panel loops are the app's own dialogs
+    try:
+        panels = run_manual(a, rows, state, ignored, glass, passno,
+                            only=set(PANEL_STATIONS), quiet_flag=quiet)
+    finally:
+        dsp.join(glass, PHASE_WORDS['dsp'])
+        results += dsp.results
+    timing['panels'] = panels
+    # -- 3. the network tests, under the analog station ---------------------
+    a.background = lambda: run_auto(
+        a, rows, state, ignored, glass, csv_path, phase='net',
+        report=lambda m: print('   [net] %s' % m, flush=True))
+    timing['_manual_t0'] = time.time()
+    return time.time() - t0, results
+
+
+def setup_screen(a, glass):
+    """The factory screen and the USB keyboard for the setup pages, or (None,
+    None) when there is nothing to draw on -- `--stdin`, `--autoskip`, or a
+    glass directory that does not exist. The dialog path covers those."""
+    if a.stdin or a.autoskip or not a.runall:
+        return None, None
+    live = LV.Live(a.runall, run='setup', enabled=True, confirm=True)
+    keys = PT.KeyWatch(enabled=True, log=glass.progress)
+    return live, keys
 
 
 def read_new_rows(csv_path, before):
@@ -992,6 +1229,33 @@ def measure(kind, tools):
     """What the runner reads after the operator says Done. Every hook returns
     (verdict, measured, limit, evidence)."""
     name, _, arg = kind.partition(':')
+    if name == 'mains_inlet':
+        # RULING f: THE UNIT RUNNING THE TEST ANSWERS IT (PW 2026-09-27).
+        # A D24 has no battery and no second supply: the IEC inlet is the only
+        # way it can be powered, so a unit that has been up long enough to run
+        # a test has a mains lead home in its inlet and a working inlet. The
+        # evidence is the unit's own uptime, which is a reading and not an
+        # opinion -- and the one thing the retired question asked a person to
+        # look at is the one thing they could not see from the front.
+        up = subprocess.run(['cat', '/proc/uptime'], capture_output=True,
+                            text=True, timeout=10).stdout.split()
+        secs = float(up[0]) if up else 0.0
+        return (PASS, 'the unit has been running from its mains inlet for '
+                      '%s' % secs_words(secs),
+                'the unit is powered through the IEC inlet and running',
+                'uptime %.0f s; a D24 has no other supply, so the test '
+                'running at all is the inlet working' % secs)
+    if name == 'link':
+        # The network lead, live, for the setup page's tick. The full link test
+        # (speed, duplex, the counters) is NW1's job and runs in the background
+        # phase; this is the one bit of it a page can show while a person is
+        # standing at the rear panel with the lead in their hand.
+        out = subprocess.run(['cat', '/sys/class/net/eth0/carrier'],
+                             capture_output=True, text=True, timeout=10)
+        up = out.stdout.strip() == '1'
+        return (PASS if up else NODATA,
+                'the network lead is in' if up else 'no network lead',
+                'the link comes up', 'carrier=%s' % out.stdout.strip())
     if name == 'usb_port':
         out = subprocess.run(['bash', '-c', 'lsusb -t; lsusb'],
                              capture_output=True, text=True, timeout=30)
@@ -1006,6 +1270,136 @@ def measure(kind, tools):
     return (NODATA, 'no reading taken', '', 'no measurement hook for %r' % kind)
 
 
+# ---------------------------------------------------------------------------
+# THE SETUP PAGES (HUB ADDENDUM 1, PW 2026-09-27)
+# ---------------------------------------------------------------------------
+class Setup:
+    """The operator's whole bench setup, one page at a time, at START.
+
+    "Before any lead-by-lead patching, the operator is walked through the whole
+    setup on the D24's own screen, in panel names... ONE big instruction per
+    page, with n of N and ENTER to confirm each. Do not put a checklist wall on
+    one page."
+
+    It runs WHILE the machine does ruling (a)'s first phase, so every second of
+    it is free. Pages the machine can confirm show the tick as it happens and
+    still wait for ENTER -- the tick is information, not an advance, for the
+    same reason the patch screen's "Signal found" is (PW 2026-09-26).
+
+    The screen is the factory screen (`d24_live`), the same file and the same
+    words the patch station uses, so the app needs nothing new to draw it. When
+    there is no screen to write to -- `--stdin`, `--autoskip`, a bench run with
+    no glass -- the pages go through the ordinary dialog path instead, which is
+    what makes them testable with no unit.
+    """
+
+    def __init__(self, a, glass, pages, live=None, keys=None, tools=None):
+        self.a, self.g, self.pages = a, glass, pages
+        self.live = live
+        self.keys = keys
+        self.tools = tools or a.tools
+        self.seen = {}           # page key -> the confirming verdict, or None
+
+    def run(self):
+        """Walk the pages. Returns True, or False if the operator paused."""
+        total = len(self.pages)
+        for i, page in enumerate(self.pages, start=1):
+            if not self._page(page, i, total):
+                return False
+        if self.live is not None:
+            self.live.set(state=LV.STARTING, instruction='', lead_line='',
+                          extra='', status=LV.SETUP_DONE, n=total, total=total)
+        self.g.progress('the bench is set up: %d of %d items confirmed by the '
+                        'unit itself'
+                        % (sum(1 for v in self.seen.values() if v == PASS),
+                           sum(1 for p in self.pages if p['check'])))
+        return True
+
+    def _check(self, page):
+        if not page['check']:
+            return None, ''
+        v, m, _lim, _ev = measure(page['check'], self.tools)
+        return v, m
+
+    def _page(self, page, i, total):
+        v, _m = self._check(page)
+        self.seen[page['key']] = v
+        extra = ('' if v is None else
+                 (LV.SETUP_SEEN if v == PASS else LV.SETUP_NOT_SEEN))
+        if self.live is None:
+            ans = self.g.ask('instruct', LV.SETUP_TITLE,
+                             [page['instruction']] + ([extra] if extra else []),
+                             ['done', 'pause'], n=i, total=total)
+            return ans.get('button') != 'pause'
+        self.live.set(state=LV.WAITING, instruction=page['instruction'],
+                      lead_line='', extra=extra, status=LV.SETUP_TITLE,
+                      n=i, total=total, lead_n=0, lead_total=0)
+        self.g.progress('SETUP %d of %d - %s' % (i, total, page['instruction']))
+        last = time.time()
+        while True:
+            self.live.beat()
+            if self.live.command() == 'pause':
+                return False
+            if (self.keys is not None and self.keys.pressed()) or \
+                    self.live.command() == 'enter':
+                return True
+            # THE TICK, RE-READ. A page the unit can confirm is re-read about
+            # once a second, so the tick appears when the stick actually goes
+            # in rather than only when the page first went up.
+            if page['check'] and time.time() - last > 1.0:
+                last = time.time()
+                nv, _nm = self._check(page)
+                if nv != v:
+                    v = nv
+                    self.seen[page['key']] = v
+                    self.live.set(extra=(LV.SETUP_SEEN if v == PASS
+                                         else LV.SETUP_NOT_SEEN))
+            time.sleep(0.05)
+
+    def stamp(self, rows, state, ignored, passno):
+        """Nothing. The setup pages GRADE NOTHING, deliberately.
+
+        A stick that is in at START and pulled out again before the reading is
+        a unit that fails that row, and it should: the row is the SOCKET, and
+        the socket is proved by the background reading under the patch pass
+        (BACKGROUND), not by an operator saying they put something in. This
+        method exists to say so where somebody would otherwise add one.
+        """
+        return {}
+
+
+def setup_pages(a):
+    """The pages, from the generated kit list. See PT.setup_pages."""
+    return PT.setup_pages(PT.PatchList(PT.find_list_dir()))
+
+
+def run_background_rows(a, rows, state, ignored, glass, passno):
+    """The BACKGROUND rows, read once, under whatever else is running."""
+    out = {}
+    for r in rows:
+        if r.category != 'background' or r.num in ignored:
+            continue
+        if state.verdict(r.num) == PASS:
+            continue
+        v, m, lim, ev = measure(r.step['measure'], a.tools)
+        state.put(r.num, v, pass_no=passno, judged='runner', measured=m,
+                  limit=lim, evidence=ev, source='read while the test ran')
+        out[r.num] = v
+    if out:
+        state.save()
+        glass.progress('read while the test ran: %s'
+                       % ', '.join('%s %s' % (rows_by(rows, n).report_name, v)
+                                   for n, v in sorted(out.items())))
+    return out
+
+
+def rows_by(rows, num):
+    for r in rows:
+        if r.num == num:
+            return r
+    return None
+
+
 def manual_rows_for(station, rows, state, ignored):
     out = []
     for r in sorted((x for x in rows if x.category == 'manual'
@@ -1016,20 +1410,30 @@ def manual_rows_for(station, rows, state, ignored):
     return out
 
 
-def run_manual(a, rows, state, ignored, glass, passno):
+def run_manual(a, rows, state, ignored, glass, passno, only=None,
+               quiet_flag=None, t0=None):
     """The manual set, stepped in station order. A station card first, then one
     dialog per owed row; `back` re-does the step before, `pause` stops the pass
-    where it is."""
-    t0 = time.time()
+    where it is.
+
+    `only` runs one slice of the stations, which is how ruling (a) puts the
+    panel loops under the DSP phase and the analog station under the network
+    phase; without it the whole manual set is walked, which is what a
+    `--no-overlap` pass and a resumed one still do.
+    """
+    t0 = time.time() if t0 is None else t0
     steps = []                      # flat (station, row) list, for `back`
     for st, _name, _hand, _rails in STATIONS:
+        if only is not None and st not in only:
+            continue
         for r in manual_rows_for(st, rows, state, ignored):
             steps.append((st, r))
     if not steps:
         glass.progress('manual set: nothing owed')
         return 0.0
     cur = state.d.get('current') or {}
-    i = int(cur.get('step', 0)) if cur.get('phase') == 'manual' else 0
+    i = (int(cur.get('step', 0))
+         if (cur.get('phase') == 'manual' and only is None) else 0)
     i = max(0, min(i, len(steps) - 1))
     carded = set()
     rails_up = False
@@ -1061,7 +1465,8 @@ def run_manual(a, rows, state, ignored, glass, passno):
                 continue
         if st in PANEL_STATIONS:
             # One loop for the whole station, not one dialog per row (S120).
-            panel_station(a, st, rows, state, ignored, glass, passno)
+            panel_station(a, st, rows, state, ignored, glass, passno,
+                          quiet_flag=quiet_flag)
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
@@ -1074,7 +1479,29 @@ def run_manual(a, rows, state, ignored, glass, passno):
             # rails block above on purpose: this is the only station that needs
             # them, it is last in the order, and PW's rule is that they go up
             # once and late.
-            patch_station(a, st, rows, state, ignored, glass, passno)
+            #
+            # RULING a, STEP 3: the network phase runs UNDER this station. It is
+            # started here rather than before the station card so that it is
+            # not running while the operator is still reading -- the whole
+            # point is that it sits under the patch pass, which is minutes.
+            fn, a.background = getattr(a, 'background', None), None
+            bg = Background('net', fn).start() if fn is not None else None
+            try:
+                patch_station(a, st, rows, state, ignored, glass, passno)
+            finally:
+                if bg is not None:
+                    bg.join(glass, PHASE_WORDS['net'])
+                    # THE BACKGROUND PHASE'S VERDICTS ARE STAMPED HERE, and
+                    # they have to be: `one_pass` stamped what the overlapped
+                    # opening returned, and this phase had not run yet. Same
+                    # function, same results CSV, same partner rule.
+                    got = stamp_auto(rows, state, bg.results, passno)
+                    if got:
+                        print('   partner rows stamped: %s'
+                              % ', '.join('%d->%d' % x for x in got))
+                    a.background_secs = bg.secs
+                run_background_rows(a, rows, state, ignored, glass, passno)
+                state.save()
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
@@ -1094,7 +1521,41 @@ def run_manual(a, rows, state, ignored, glass, passno):
     return time.time() - t0
 
 
-def panel_station(a, st, rows, state, ignored, glass, passno):
+# HOW LONG THE PANEL LOOP WAITS FOR THE SPEAKER (S126, ruling a). The acoustic
+# test's tone is on for about 0.76 s (measured, S115) plus its fade, and the
+# panel microphone is the thing that hears it. A second of patience either side
+# is cheap -- it happens once in a whole pass -- and a cap stops a stuck flag
+# from stopping the loop for ever: the flag is a hint, not an interlock.
+QUIET_POLL_S = 0.1
+QUIET_MAX_S = 8.0
+
+
+def quiet_hold(path):
+    """The `hold` the panel loop is given while the acoustic test may run.
+
+    The self-test raises the flag around its own tone (`--quiet-flag`). Nothing
+    here can command that test; it only waits for it, and gives up saying so.
+    """
+    if not path:
+        return None
+
+    def hold(log=None):
+        t0 = time.time()
+        said = False
+        while os.path.exists(path):
+            if time.time() - t0 > QUIET_MAX_S:
+                if log:
+                    log('the speaker check is still running after %.0f s; '
+                        'lighting the next button anyway' % QUIET_MAX_S)
+                return
+            if not said and log:
+                said = True
+                log('holding the next button while the speaker is checked')
+            time.sleep(QUIET_POLL_S)
+    return hold
+
+
+def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None):
     """One switch panel, as ONE LOOP (S120).
 
     The tester lights the indicator of the next button to press; the operator
@@ -1155,7 +1616,8 @@ def panel_station(a, st, rows, state, ignored, glass, passno):
                    if r.group == st and r.num not in ignored
                    and state.verdict(r.num) != PASS)
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
-                               log=glass.progress, owed=owed)
+                               log=glass.progress, owed=owed,
+                               hold=quiet_hold(quiet_flag))
         for step in steps:
             land(step.sw_row, step.sw or NODATA, step.sw_note
                  or 'the loop did not reach this button')
@@ -1594,6 +2056,17 @@ def write_report(a, rows, state, ignored, stale, timing):
     md.append('Wall time this pass %s.  Automatic part %s, operator part %s.'
               % (secs(timing.get('wall')), secs(timing.get('auto')),
                  secs(timing.get('manual'))))
+    if timing.get('panels') is not None:
+        # THE OVERLAPPED PASS (S126, ruling a). "Automatic" and "operator" both
+        # count seconds the other was also spending, so saying them without
+        # this line would make the two add up to more than the wall time and
+        # look like an error. The wall time is the one figure that is a pass.
+        md.append('')
+        md.append('The unit checked itself WHILE the operator worked: the bench '
+                  'setup and the panel checks (%s) ran under the first half of '
+                  'the automatic set, and the network checks ran under the '
+                  'analog paths. That is why the two parts above add up to more '
+                  'than the wall time.' % secs(timing.get('panels')))
     md.append('')
     if t[IGNORED]:
         md.append('**This unit cannot be signed off while %d row%s ignored.**'
@@ -1699,6 +2172,16 @@ def cell(s, n=80):
     return s if len(s) <= n else s[:n - 1] + '…'
 
 
+def secs_words(v):
+    """A duration in the words a report uses. No units nobody says out loud."""
+    v = int(v)
+    if v < 90:
+        return '%d seconds' % v
+    if v < 5400:
+        return '%d minutes' % round(v / 60.0)
+    return '%.1f hours' % (v / 3600.0)
+
+
 def secs(v):
     return '-' if v is None else '%d s' % round(v)
 
@@ -1747,14 +2230,41 @@ def dump_dialogs(rows, path):
                              if s.get('kind') == LOOP else ''),
                     runner_measures=s.get('measure', '') or s.get('check', ''),
                     not_run_reason=r.reason if r.category == 'not-run' else ''))
+        # THE SETUP PAGES (HUB ADDENDUM 1). They are not a station and they
+        # grade nothing, but they are the FIRST thing the operator reads and
+        # PW reviews the wording out of this file, so they belong in it.
+        try:
+            pages = PT.setup_pages(PT.PatchList(PT.find_list_dir()))
+        except SystemExit:
+            pages = []
+        for i, page in enumerate(pages, start=1):
+            w.writerow(dict(
+                station='0', station_name='Set the bench up',
+                check='setup %d of %d' % (i, len(pages)),
+                panel_name=page['key'], cls='setup', category='setup',
+                kind='instruct', station_card='',
+                instruction=page['instruction'], question='', buttons='enter',
+                runner_measures=page['check'],
+                not_run_reason=''))
+        # EVERY REMAINING ROW, whichever way it was classified. `background`
+        # rows (S126, ruling f) have no dialog at all and that is exactly why
+        # they have to appear here: a row with no screen is the easiest kind to
+        # lose, and §1 forbids losing one.
         for r in sorted(rows, key=lambda x: x.num):
-            if r.category != 'not-run' or r.group in STATION_NUM:
+            if r.group in STATION_NUM and r.category != 'background':
                 continue
-            w.writerow(dict(station='', station_name='not a station',
-                            check=r.num, panel_name=r.panel, cls=r.cls,
-                            category=r.category, kind='', station_card='',
-                            instruction='', question='', buttons='',
-                            runner_measures='', not_run_reason=r.reason))
+            if r.category not in ('not-run', 'background'):
+                continue
+            s = r.step or {}
+            w.writerow(dict(
+                station='', station_name=('read while the test runs'
+                                          if r.category == 'background'
+                                          else 'not a station'),
+                check=r.num, panel_name=r.panel, cls=r.cls,
+                category=r.category, kind=s.get('kind', ''), station_card='',
+                instruction='', question='', buttons='',
+                runner_measures=s.get('measure', ''),
+                not_run_reason=r.reason if r.category == 'not-run' else ''))
     print('wrote %s' % path)
 
 
@@ -1806,9 +2316,14 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
                              and any(manual_rows_for(st, rows, state, ignored)
                                      for st in PATCH_STATIONS))
             a.keep_rails_from_auto = patch_to_come
-            secs_auto, results, _owed = run_auto(a, rows, state, ignored, glass,
-                                                 csv_path,
-                                                 patch_to_come=patch_to_come)
+            if a.overlap and not a.auto_only:
+                secs_auto, results = overlapped(a, rows, state, ignored, glass,
+                                                csv_path, passno,
+                                                patch_to_come, timing)
+            else:
+                secs_auto, results, _owed = run_auto(
+                    a, rows, state, ignored, glass, csv_path,
+                    patch_to_come=patch_to_come)
             timing['auto'] = secs_auto
             state.d['pass_timing'] = {'auto': secs_auto, 'pass': passno,
                                       'keep_rails': patch_to_come}
@@ -1819,6 +2334,14 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
             state.save()
     if a.auto_only:
         timing['manual'] = None
+    elif a.overlap and not (resumed and (state.d.get('current') or {})
+                            .get('phase') == 'manual'):
+        # The overlapped pass has already run the operator's first half under
+        # the machine's; what is left is the analog station with the network
+        # phase running under IT.
+        timing['manual'] = run_manual(a, rows, state, ignored, glass, passno,
+                                      only=PATCH_STATIONS,
+                                      t0=timing.pop('_manual_t0', None))
     else:
         timing['manual'] = run_manual(a, rows, state, ignored, glass, passno)
     record_not_run(rows, state, passno)
@@ -1847,6 +2370,16 @@ def main():
     ap.add_argument('--autoskip', action='store_true',
                     help='answer every dialog with Skip, reason "fixture not '
                          'built". For a station walk with no fixtures at all.')
+    ap.add_argument('--no-overlap', dest='overlap', action='store_false',
+                    help='run the whole automatic set first and the manual set '
+                         'after it, as RUN ALL did before PW\'s ruling of '
+                         '2026-09-27. For a before/after timing run, and for a '
+                         'bench where one of the two halves is being debugged')
+    ap.add_argument('--pedal-station', action='store_true',
+                    help='visit the foot pedal station. Hidden by default '
+                         '(ruling f): its fixture is not built, so its rows '
+                         'are recorded NOT RUN with that reason and nobody '
+                         'walks to it')
     ap.add_argument('--auto-only', action='store_true')
     ap.add_argument('--manual-only', action='store_true')
     ap.add_argument('--report-only', action='store_true')
@@ -1890,6 +2423,16 @@ def main():
     a.ignored = os.path.join(a.dir, 'ignored.csv')
     a.serial = a.serial or unit_serial()
 
+    if a.pedal_station:
+        # One name, one place (see PEDAL_STATION). Switching it on has to
+        # happen before anything reads STATIONS, which is why it is here and
+        # not a flag threaded through twenty call sites.
+        global PEDAL_STATION, STATIONS, STATION_NAME, STATION_NUM, STATION_ORDER
+        PEDAL_STATION = True
+        STATIONS = list(_ALL_STATIONS)
+        STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
+        STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
+        STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
     rows, a.catalog_md5 = load_catalog(a.catalog)
     warn = classify(rows)
     if a.dump_dialogs:

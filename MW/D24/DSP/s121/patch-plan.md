@@ -9,8 +9,8 @@
 |---|---|---|---|
 | K1 | XLR-F to XLR-M | straight balanced: pin 1-1, 2-2, 3-3 | 35 |
 | K5 | 150 ohm XLR-M terminator | 150 ohm across pins 2-3, pin 1 to the shell | 24 |
-| K4 | XLR-F to 6.35 mm TRS | pin 2 -> tip, pin 3 -> ring, pin 1 -> sleeve | 24 |
 | K2 | 6.35 mm TRS to XLR-M | tip -> pin 2, ring -> pin 3, sleeve -> pin 1 | 6 |
+| K4 | XLR-F to 6.35 mm TRS | pin 2 -> tip, pin 3 -> ring, pin 1 -> sleeve | 24 |
 | K3 | XLR-F to 3.5 mm TRS | pin 2 -> tip, pin 3 -> ring, pin 1 -> sleeve | 2 |
 
 One of each. The order above is the order the station walks, so the operator changes lead type 4 times in a whole pass and never goes back to a lead already put down.
@@ -22,9 +22,9 @@ One of each. The order above is the order the station walks, so the operator cha
 | 1 | K1 | the outputs | 10 | 10 | the input end, in MIC 1 |
 | 2 | K1 | the inputs | 25 | 169 | the output end, on AUX 1 |
 | 3 | K5 | the inputs | 24 | 24 | nothing: the terminator moves on its own |
-| 4 | K4 | the line inputs | 24 | 24 | the output end, on AUX 1 |
-| 5 | K2 | the TRS outputs | 6 | 14 | the input end, in MIC 1 |
-| 6 | K3 | the mini-jack inputs | 2 | 4 | the output end, on AUX 1 |
+| 4 | K2 | the TRS outputs | 6 | 14 | the input end, in MIC 2 |
+| 5 | K4 | the line inputs | 24 | 24 | the output end, on AUX 2 |
+| 6 | K3 | the mini-jack inputs | 2 | 4 | the output end, on AUX 3 |
 
 ## Coverage
 
@@ -32,51 +32,51 @@ Every D24 analog socket, and what proves it.
 
 | socket | catalog row | proved by |
 |---|---|---|
-| MIC 1 | 1 | P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P60, P84, P85, P86, P87, P88, P89 |
-| MIC 2 | 2 | P13, P14, P61 |
-| MIC 3 | 3 | P15, P16, P62 |
-| MIC 4 | 4 | P17, P18, P63 |
-| MIC 13 | 5 | P35, P36, P72 |
-| MIC 14 | 6 | P37, P38, P73 |
-| MIC 15 | 7 | P39, P40, P74 |
-| MIC 16 | 8 | P41, P42, P75 |
-| MIC 5 | 9 | P19, P20, P64 |
-| MIC 6 | 10 | P21, P22, P65 |
-| MIC 9 | 11 | P27, P28, P68 |
-| MIC 10 | 12 | P29, P30, P69 |
-| MIC 11 | 13 | P31, P32, P70 |
-| MIC 12 | 14 | P33, P34, P71 |
-| MIC 17 | 15 | P43, P44, P76 |
-| MIC 18 | 16 | P45, P46, P77 |
-| MIC 19 | 17 | P47, P48, P78 |
-| MIC 21 | 18 | P51, P52, P80 |
-| MIC 22 | 19 | P53, P54, P81 |
-| MIC 23 | 20 | P55, P56, P82 |
-| MIC 24 | 21 | P57, P58, P83 |
-| MIC 7 | 22 | P23, P24, P66 |
-| MIC 8 | 23 | P25, P26, P67 |
-| MIC 20 | 24 | P49, P50, P79 |
-| AUX 1 | 25 | P1, P11, P13, P15, P17, P19, P21, P23, P25, P27, P29, P31, P33, P35, P37, P39, P41, P43, P45, P47, P49, P51, P53, P55, P57, P59, P60, P61, P62, P63, P64, P65, P66, P67, P68, P69, P70, P71, P72, P73, P74, P75, P76, P77, P78, P79, P80, P81, P82, P83, P90, P91 |
-| AUX 2 | 26 | P2 |
-| AUX 3 | 27 | P3 |
-| AUX 4 | 28 | P4 |
-| AUX 5 | 29 | P5 |
-| AUX 6 | 30 | P6 |
-| AUX 7 | 31 | P7 |
-| AUX 8 | 32 | P8 |
-| MAIN L | 33 | P9 |
-| MAIN R | 34 | P10 |
-| MONITOR L | 36 | P84 |
-| MONITOR R | 37 | P85 |
+| MIC 1 | 1 | P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P66 |
+| MIC 2 | 2 | P57, P58, P60, P61, P62, P63, P64, P65, P89 |
+| MIC 3 | 3 | P13, P14, P67 |
+| MIC 4 | 4 | P15, P16, P68 |
+| MIC 13 | 5 | P33, P34, P77 |
+| MIC 14 | 6 | P35, P36, P78 |
+| MIC 15 | 7 | P37, P38, P79 |
+| MIC 16 | 8 | P39, P40, P80 |
+| MIC 5 | 9 | P17, P18, P69 |
+| MIC 6 | 10 | P19, P20, P70 |
+| MIC 9 | 11 | P25, P26, P73 |
+| MIC 10 | 12 | P27, P28, P74 |
+| MIC 11 | 13 | P29, P30, P75 |
+| MIC 12 | 14 | P31, P32, P76 |
+| MIC 17 | 15 | P41, P42, P81 |
+| MIC 18 | 16 | P43, P44, P82 |
+| MIC 19 | 17 | P45, P46, P83 |
+| MIC 21 | 18 | P49, P50, P85 |
+| MIC 22 | 19 | P51, P52, P86 |
+| MIC 23 | 20 | P53, P54, P87 |
+| MIC 24 | 21 | P55, P56, P88 |
+| MIC 7 | 22 | P21, P22, P71 |
+| MIC 8 | 23 | P23, P24, P72 |
+| MIC 20 | 24 | P47, P48, P84 |
+| AUX 1 | 25 | P1, P11, P13, P15, P17, P19, P21, P23, P25, P27, P29, P31, P33, P35, P37, P39, P41, P43, P45, P47, P49, P51, P53, P55, P57, P59 |
+| AUX 2 | 26 | P9, P66, P67, P68, P69, P70, P71, P72, P73, P74, P75, P76, P77, P78, P79, P80, P81, P82, P83, P84, P85, P86, P87, P88, P89 |
+| AUX 3 | 27 | P10, P90, P91 |
+| AUX 4 | 28 | P2 |
+| AUX 5 | 29 | P3 |
+| AUX 6 | 30 | P4 |
+| AUX 7 | 31 | P5 |
+| AUX 8 | 32 | P6 |
+| MAIN L | 33 | P7 |
+| MAIN R | 34 | P8 |
+| MONITOR L | 36 | P60 |
+| MONITOR R | 37 | P61 |
 | TALKBACK | 38 | P59 |
-| AUX A 1-2 L | 39 | P86 |
-| AUX A 1-2 R | 39 | P86 |
-| AUX A 3-4 L | 40 | P87 |
-| AUX A 3-4 R | 40 | P87 |
-| AUX A 5-6 L | 41 | P88 |
-| AUX A 5-6 R | 41 | P88 |
-| AUX A 7-8 L | 42 | P89 |
-| AUX A 7-8 R | 42 | P89 |
+| AUX A 1-2 L | 39 | P62 |
+| AUX A 1-2 R | 39 | P62 |
+| AUX A 3-4 L | 40 | P63 |
+| AUX A 3-4 R | 40 | P63 |
+| AUX A 5-6 L | 41 | P64 |
+| AUX A 5-6 R | 41 | P64 |
+| AUX A 7-8 L | 42 | P65 |
+| AUX A 7-8 R | 42 | P65 |
 | MINI-JACK 1 L | 95 | P90 |
 | MINI-JACK 1 R | 95 | P90 |
 | MINI-JACK 2 L | 96 | P91 |

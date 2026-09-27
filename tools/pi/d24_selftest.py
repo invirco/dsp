@@ -2017,6 +2017,45 @@ def _spkr_probe(r):
                  timeout=300)
 
 
+class quiet_window:
+    """The flag that keeps the panel loop quiet while the speaker sounds.
+
+    S126, ruling a: with the DSP tests running UNDER the operator's panel loops,
+    the acoustic test's tone and the panel microphone that hears it are live at
+    the same time as somebody clicking buttons in front of that microphone. The
+    self-test cannot see the panel loop and must not try to drive it, so it
+    raises a flag around its own tone and the loop holds its next indicator
+    while the flag is up (`d24_runall.quiet_hold`).
+
+    A HINT, NOT AN INTERLOCK, in both directions: a run with no `--quiet-flag`
+    raises nothing and behaves exactly as it did, and a loop that finds the flag
+    stuck lights the next button anyway rather than stopping.
+    """
+
+    def __init__(self, r):
+        self.path = getattr(r.a, 'quiet_flag', None)
+
+    def __enter__(self):
+        if self.path:
+            try:
+                d = os.path.dirname(self.path)
+                if d:
+                    os.makedirs(d, exist_ok=True)
+                with open(self.path, 'w') as fh:
+                    fh.write('%.3f\n' % time.time())
+            except OSError:
+                self.path = None
+        return self
+
+    def __exit__(self, *exc):
+        if self.path:
+            try:
+                os.remove(self.path)
+            except OSError:
+                pass
+        return False
+
+
 def _al1_osc(r, level=None, timeout=300, cap=True):
     """One S49 window measurement of the MEMS lane, with a coherent capture.
 
@@ -2048,10 +2087,12 @@ def _al1_osc(r, level=None, timeout=300, cap=True):
     # reset leaves them somewhere else and the link then reads plausible
     # zeros rather than failing (bench recipe, and S109 on CS_M).
     r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
-    c = r.rsh('cd %s && rm -f %s && python3 dsp4_s49_osc.py --meas %d --freq %g '
-              '--symdir %s --json %s %s 2>&1'
-              % (r.a.stage, j, AL1_MEAS_CHAN, _SPKR_FREQ_HZ, r.a.stage, j, args),
-              timeout=timeout)
+    with quiet_window(r):
+        c = r.rsh('cd %s && rm -f %s && python3 dsp4_s49_osc.py --meas %d '
+                  '--freq %g --symdir %s --json %s %s 2>&1'
+                  % (r.a.stage, j, AL1_MEAS_CHAN, _SPKR_FREQ_HZ, r.a.stage, j,
+                     args),
+                  timeout=timeout)
     txt = (c.stdout + c.stderr).strip()
     raw = r.out('cat %s 2>/dev/null' % j)
     if not raw:
@@ -3394,6 +3435,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--section', default='A,B,C')
+    ap.add_argument('--quiet-flag', metavar='FILE',
+                    help='touch this file while the speaker is sounding and '
+                         'remove it after, so an operator loop that shares the '
+                         'panel microphone can hold its next step (S126). A '
+                         'hint, not an interlock: nothing waits on the reader')
     ap.add_argument('--only', help='comma-separated test ids to run within the chosen '
                                    'sections (e.g. NW3, or AS-ADC,MM1); the rest are skipped. '
                                    'Use it to re-take one row without superseding the others.')

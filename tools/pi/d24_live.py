@@ -91,14 +91,40 @@ def lead_words(lead):
     return LEAD_WORDS.get(lead, 'the next lead')
 
 
-def pick_up(lead):
+def pick_up(lead, socket=None):
     """The sentence that folds a lead change into the instruction after it.
 
     There is no READY card and nothing to press at a block boundary (S123):
     the lead going into the socket IS the acknowledgement, so the only thing
     the change needs is one more sentence on the same screen.
+
+    With the kit parked (S126, ruling c) the sentence can say WHERE the lead
+    is, which is the whole of what PW asked for: "a lead change becomes one
+    instruction -- pick up the lead hanging from AUX 3."
     """
+    if socket:
+        return 'Pick up %s, hanging on %s.' % (lead_words(lead),
+                                               socket_words(socket))
     return 'Pick up %s.' % lead_words(lead)
+
+
+def take_off(lead, socket, in_socket=False):
+    """Free a socket that has a parked kit lead on it (S126, ruling c).
+
+    Every socket a lead can usefully be parked on is one some walk has to
+    visit, so the walk pays for it once -- here, as one more sentence on the
+    screen that was already asking for that socket, and never as a card.
+    """
+    if in_socket:
+        return 'Take %s out of %s first.' % (lead_words(lead),
+                                             socket_words(socket))
+    return 'Take %s off %s first.' % (lead_words(lead), socket_words(socket))
+
+
+def repark(lead, socket):
+    """The one instruction the ruling asks for when a socket a lead was parked
+    on does not work: hang it somewhere that does."""
+    return 'Hang %s on %s instead.' % (lead_words(lead), socket_words(socket))
 
 
 def socket_words(name):
@@ -152,6 +178,62 @@ def swap_for_plug(name, confirm=True):
     the plug goes into the socket it just left."""
     return ('Take the lead out of %s and put the 150 ohm plug in%s'
             % (socket_words(name), ', then press ENTER.' if confirm else '.'))
+
+
+# ---------------------------------------------------------------------------
+# THE SETUP PAGES (HUB ADDENDUM 1, PW 2026-09-27)
+# ---------------------------------------------------------------------------
+# "Before any lead-by-lead patching, the operator is walked through the whole
+# setup on the D24's own screen, in panel names... ONE big instruction per page,
+# with n of N and ENTER to confirm each. Do not put a checklist wall on one
+# page."
+#
+# There is NO PRE-START PAGE, and the reason is worth stating once: the only
+# thing that has to be in before START is the mains lead, and a unit that is
+# showing this screen is running from it. The network lead is NOT a pre-START
+# item any more -- since ruling (a) the network tests run in the background
+# UNDER the patch pass, minutes after START -- so it is setup page 1 like
+# everything else.
+#
+# WHERE THE MACHINE CAN SEE IT, IT SAYS SO. The two USB sticks and the network
+# link are read live and the page shows the tick; a parked lead's far end sits
+# on an undriven output and nothing on the unit can see it, so no page claims
+# otherwise.
+SETUP_TITLE = 'Set the bench up'
+
+
+def setup_network(confirm=True):
+    return ('Plug the network lead into the network socket on the rear panel%s'
+            % (', then press ENTER.' if confirm else '.'))
+
+
+def setup_usb(side, confirm=True):
+    return ('Put a USB memory stick into the %s socket of the double USB pair '
+            'on the rear panel%s'
+            % (side, ', then press ENTER.' if confirm else '.'))
+
+
+def park_kit_page(row, confirm=True):
+    """One kit item's setup page, from patch-kit.csv's facts.
+
+    The CSV carries the lead code, which end is parked and the panel socket;
+    the words are here, so there is one vocabulary and `--check-md` polices it.
+    """
+    lead, end, socket = row.get('lead'), row.get('end'), row.get('socket')
+    tail = ', then press ENTER.' if confirm else '.'
+    if end == 'bench':
+        return ('Put %s on the bench, where you can reach it%s'
+                % (lead_words(lead), tail))
+    if end == 'in':
+        return ('Put %s into %s and leave it there%s'
+                % (lead_words(lead), socket_words(socket), tail))
+    return ('Hang %s on %s and leave it there%s'
+            % (lead_words(lead), socket_words(socket), tail))
+
+
+SETUP_SEEN = 'The unit can see it.'
+SETUP_NOT_SEEN = 'The unit cannot see it yet.'
+SETUP_DONE = 'The bench is set up.'
 
 
 NO_LOOP = 'No signal on any socket - call the supervisor.'
@@ -251,6 +333,17 @@ def every_string(rows=()):
             'PASS', 'FAIL']
     for lead in sorted(LEAD_WORDS):
         out.append(pick_up(lead))
+        out.append(pick_up(lead, 'AUX 2'))
+        out.append(take_off(lead, 'AUX 2'))
+        out.append(take_off(lead, 'MIC 2', in_socket=True))
+        out.append(repark(lead, 'AUX 5'))
+        for end, sock in (('out', 'AUX 3'), ('in', 'MIC 2'), ('bench', '')):
+            row = dict(lead=lead, end=end, socket=sock)
+            out.append(park_kit_page(row))
+            out.append(park_kit_page(row, confirm=False))
+    out += [SETUP_TITLE, setup_network(), setup_network(False),
+            setup_usb('left'), setup_usb('right'), setup_usb('left', False),
+            SETUP_SEEN, SETUP_NOT_SEEN, SETUP_DONE]
     for r in rows:
         out.append(instruction_for(r))
         out.append(instruction_for(r, confirm=False))

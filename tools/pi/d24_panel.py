@@ -390,10 +390,17 @@ class Step(object):
         self.got = None
 
 
-def loop(bus, panel, ask, timeout=30.0, log=print, owed=None):
+def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None):
     """Walk one panel.  `ask` puts the step in front of the operator and returns
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
+
+    `hold`, if given, is called before each indicator is lit and may block. It
+    is how the panel loop stays out of the acoustic test's way (S126, ruling a):
+    the panel microphone hears button clicks, so while the speaker is sounding
+    the next indicator waits rather than inviting a press. It is a HOLD, never a
+    skip -- the button is still lit, still pressed and still graded; only the
+    moment moves, by about a second.
 
     Returns (steps, extra) where `extra` carries the rows that are not part of
     the sweep: the always-lit indicators, the encoder, and the rows this station
@@ -405,6 +412,8 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None):
         # order, so the hand still crosses the panel once.
         steps = [s for s in steps if s.sw_row in owed or s.led_row in owed]
     for n, st in enumerate(steps):
+        if hold is not None:
+            hold(log)
         log('light %d (%s)' % (st.idx, st.name))
         ack = bus.light(st.idx)
         if ack is None:
