@@ -1,0 +1,253 @@
+D24 RUN ALL -- unit 10000000830b03af -- catalog f380c70d7ba5 (202 rows) -- 2026-09-27T23:24:35Z
+   catalog warning: #148: automation '1' but group 'M4'
+   auto 34, background 3, manual 79, not-run 86
+
+--- auto set: 39 tests over 34 rows, about 189 s ---
+/usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section A,B,C --only HD0-1,AS-CM4,NW1,NW2,NW3,NW4,HD-PWR,ML1,ML2,ML-M,ML-B0,ML-P1,ML-P2,CC1,CC2,MC1,MC2,MC3,DR1,DR2,DY1-RDY1,DY1-RDY2,DC1-CS1,DC2-CS1,DC1-CS2,DC2-CS2,DC1-CS6,DC2-CS6,DC1-CS7,DC2-CS7,DC1-CS8,DC2-CS8,AS-DSPA,AS-DSPB,AS-CPLD,AS-PWR,AS-ADC,AS-DAC,AL1 --no-app-restart --stage /home/app/s90
+D24 self-test, section 1 -- sections A,B,C -- 2026-09-27T23:24:35Z
+HD0-1 ...
+   .. AUTO group A1 - screen link - 0 s gone, about 189 s left
+-- 2026-09-27T23:24:35Z HD0-1 took 0.0 s
+  HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+AS-CM4 ...
+   .. AUTO group A1 - compute module - 0 s gone, about 187 s left
+-- 2026-09-27T23:24:35Z AS-CM4 took 0.1 s
+  AS-CM4    PASS     throttled=0x0 temp=46.7 C core=0.9100V app=d24-testui
+NW1 ...
+   .. AUTO group A1 - network link - 0 s gone, about 187 s left
+-- 2026-09-27T23:24:35Z NW1 took 0.0 s
+  NW1       PASS     Link detected: yes, Speed: 1000Mb/s, Duplex: Full, carrier=1
+NW3 ...
+   .. AUTO group A1 - network packet loss - 0 s gone, about 187 s left
+-- 2026-09-27T23:25:49Z NW3 took 73.4 s
+  NW3       PASS     bench host 192.168.1.211: worst 0.0% loss over 3 passes [0.0, 0.0, 0.0], max RTT 0.561 ms; gatew
+NW4 ...
+   .. AUTO group A1 - network throughput - 73 s gone, about 124 s left
+-- 2026-09-27T23:25:49Z NW4 took 0.0 s
+Traceback (most recent call last):
+  File "/home/app/selftest/d24_selftest.py", line 4104, in <module>
+    main()
+    ~~~~^^
+  File "/home/app/selftest/d24_selftest.py", line 3974, in main
+    r.run('NW4', lambda: t_nw4(r))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/app/selftest/d24_selftest.py", line 498, in run
+    self.record(test, v, m, lim, ev)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/app/selftest/d24_selftest.py", line 441, in record
+    assert verdict in (PASS, FAIL, NODATA), verdict
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: NOT TESTED
+
+!! auto set DIED (exit 1) after 73.9 s -- 34 rows marked NO DATA, never PASS
+   .. read while the test ran: top-panel USB socket (hub port 3) NO DATA, top-panel USB socket (hub port 4) NO DATA, IEC Power Inlet PASS
+
+pass 1: 1 PASS / 0 FAIL / 36 NO DATA / 50 ignored / 0 skipped / 80 not tested (of 202 rows) in 74 s
+report: /home/app/selftest/reports/10000000830b03af-2026-09-27T232549Z.md
+        /home/app/selftest/reports/10000000830b03af-2026-09-27T232549Z.json
+   .. pass 1 complete - report written - 1 of 202 rows pass
+
+SUMMARY -- Finished - 1 passed, 116 not tested.
+   56 panel microphone and speaker    NO DATA
+   102 main control processor link    NO DATA
+   103 audio processor select line 1  NO DATA
+   104 audio processor select line 2  NO DATA
+   105 audio processor select line 3  NO DATA
+   106 audio processor select line 4  NO DATA
+   107 audio processor select line 6  NO DATA
+   108 audio processor select line 7  NO DATA
+   109 audio processor select line 8  NO DATA
+   110 audio processor reset line     NO DATA
+   111 microphone gain chain latch    NO DATA
+   112 talkback converter select line NO DATA
+   125 right panel processor link     NO DATA
+   126 left panel processor link      NO DATA
+   127 screen link                    NO DATA
+   128 network socket                 NO DATA
+   130 top-panel USB socket (hub por… NO DATA
+   131 top-panel USB socket (hub por… NO DATA
+   139 audio processor A link         NO DATA
+   140 audio processor B link         NO DATA
+   141 input converter link           NO DATA
+   142 output converter link          NO DATA
+   143 right panel link               NO DATA
+   144 left panel link                NO DATA
+   151 screen power link              NO DATA
+   193 compute module                 NO DATA
+   194 audio processor A              NO DATA
+   195 audio processor B              NO DATA
+   196 clock master                   NO DATA
+   197 output converters              NO DATA
+   198 input converters               NO DATA
+   199 talkback converter             NO DATA
+   200 power processor                NO DATA
+   201 dispatch processor             NO DATA
+   202 main control processor         NO DATA
+   203 screen                         NO DATA
+   11 MIC 9                           NO VERDICT
+   12 MIC 10                          NO VERDICT
+   13 MIC 11                          NO VERDICT
+   14 MIC 12                          NO VERDICT
+   15 MIC 17                          NO VERDICT
+   16 MIC 18                          NO VERDICT
+   17 MIC 19                          NO VERDICT
+   18 MIC 21                          NO VERDICT
+   19 MIC 22                          NO VERDICT
+   20 MIC 23                          NO VERDICT
+   21 MIC 24                          NO VERDICT
+   22 MIC 7                           NO VERDICT
+   23 MIC 8                           NO VERDICT
+   24 MIC 20                          NO VERDICT
+   25 Aux Out A1 (doubles as Monito…  NO VERDICT
+   26 Aux Out A2                      NO VERDICT
+   27 Aux Out A3                      NO VERDICT
+   28 Aux Out A4                      NO VERDICT
+   29 Aux Out A5                      NO VERDICT
+   30 Aux Out A6                      NO VERDICT
+   31 Aux Out A7                      NO VERDICT
+   32 Aux Out A8                      NO VERDICT
+   33 Main Out L                      NO VERDICT
+   34 Main Out R                      NO VERDICT
+   36 Monitor Out L (TRS, unbalance…  NO VERDICT
+   37 Monitor Out R (TRS, unbalance…  NO VERDICT
+   38 Talkback TB (XLR)               NO VERDICT
+   39 Aux Out A 1-2 (TRS, Phone Jac…  NO VERDICT
+   40 Aux Out A 3-4 (TRS, Phone Jac…  NO VERDICT
+   41 Aux Out A 5-6 (TRS, Phone Jac…  NO VERDICT
+   42 Aux Out A 7-8 (TRS, Phone Jac…  NO VERDICT
+   95 Mini-jack 1 (3.5 mm, Mini Jac…  NO VERDICT
+   96 Mini-jack 2 (3.5 mm, Mini Jac…  NO VERDICT
+   146 headphone link                 NO VERDICT
+   147 small jack link                NO VERDICT
+   43 MONO AUX button                 IGNORED
+   44 MONO AUX button LEDs (white p…  IGNORED
+   45 STEREO AUX button               IGNORED
+   46 STEREO AUX button LEDs (white…  IGNORED
+   47 FX button                       IGNORED
+   48 FX button LEDs (white pair)     IGNORED
+   49 EQ button                       IGNORED
+   50 EQ button LEDs (white pair)     IGNORED
+   51 AUX ON FADERS button            IGNORED
+   52 AUX ON FADERS button LEDs (wh…  IGNORED
+   53 OVERVIEW button                 IGNORED
+   54 OVERVIEW button LEDs (white p…  IGNORED
+   55 BOOT0 indicator LED             IGNORED
+   58 Pedal UART through-path         IGNORED
+   59 FX MUTE button                  IGNORED
+   60 FX MUTE button LEDs (white pa…  IGNORED
+   61 FX MUTE red LEDs                IGNORED
+   62 HOME button                     IGNORED
+   63 HOME button LEDs (white pair)   IGNORED
+   64 MENU button                     IGNORED
+   65 MENU button LEDs (white pair)   IGNORED
+   66 +48 button                      IGNORED
+   67 +48 button LEDs (white pair)    IGNORED
+   68 FEEDBACK button                 IGNORED
+   69 FEEDBACK button LEDs (white p…  IGNORED
+   70 MUTE button                     IGNORED
+   71 MUTE button LEDs (white pair)   IGNORED
+   72 SCENE button                    IGNORED
+   73 SCENE button LEDs (white pair)  IGNORED
+   74 L button                        IGNORED
+   75 L button LEDs (white pair)      IGNORED
+   76 C button                        IGNORED
+   77 C button LEDs (white pair)      IGNORED
+   78 C red LED                       IGNORED
+   79 CH ASSIGN button                IGNORED
+   80 CH ASSIGN button LEDs (white…   IGNORED
+   81 R button                        IGNORED
+   82 R button LEDs (white pair)      IGNORED
+   83 MONITOR button                  IGNORED
+   84 MONITOR button LEDs (white pa…  IGNORED
+   85 REC/PLY button                  IGNORED
+   -- page 1 of 2 --
+   86 REC/PLY button LEDs (white pa…  IGNORED
+   87 REC/PLY red LEDs                IGNORED
+   88 STUDIO CTL button               IGNORED
+   89 STUDIO CTL button LEDs (white…  IGNORED
+   90 Encoder ring                    IGNORED
+   91 Encoder ring LEDs               IGNORED
+   92 Talkback switch + LEDs (pass-…  IGNORED
+   93 Mini-jack insertion sense (pa…  IGNORED
+   94 TEMP / BLOWER / FAN sense (pa…  IGNORED
+   133 IEC Power Inlet                PASS
+   1 MIC 1                            NOT TESTED
+   2 MIC 2                            NOT TESTED
+   3 MIC 3                            NOT TESTED
+   4 MIC 4                            NOT TESTED
+   5 MIC 13                           NOT TESTED
+   6 MIC 14                           NOT TESTED
+   7 MIC 15                           NOT TESTED
+   8 MIC 16                           NOT TESTED
+   9 MIC 5                            NOT TESTED
+   10 MIC 6                           NOT TESTED
+   35 Center/LF Out                   NOT TESTED
+   97 Phones 1 (headphone jack)       NOT TESTED
+   98 Footswitch 1                    NOT TESTED
+   99 Footswitch 2                    NOT TESTED
+   100 7-segment display + LEDs       NOT TESTED
+   101 Pedal link + 9 V               NOT TESTED
+   113 PSU monitor ADC PAD0           NOT TESTED
+   114 PSU monitor ADC PAD1           NOT TESTED
+   115 PSU monitor ADC PAD2           NOT TESTED
+   116 PSU monitor ADC PAD3           NOT TESTED
+   117 PSU monitor ADC PAD4           NOT TESTED
+   118 PSU monitor ADC PAD5           NOT TESTED
+   119 PSU monitor ADC PAD6           NOT TESTED
+   120 PSU monitor ADC PAD7           NOT TESTED
+   121 PSU monitor ADC PAD8           NOT TESTED
+   122 PSU monitor ADC PAD9           NOT TESTED
+   123 PSU monitor ADC PAD10          NOT TESTED
+   124 PSU monitor ADC PAD11          NOT TESTED
+   129 foot pedal socket              NOT TESTED
+   132 second screen socket (not fit… NOT TESTED
+   134 Power Switch                   NOT TESTED
+   135 expansion card USB-C socket    NOT TESTED
+   136 expansion link 1               NOT TESTED
+   137 expansion link 2               NOT TESTED
+   138 expansion link 3               NOT TESTED
+   145 foot pedal link                NOT TESTED
+   148 screen ribbon link             NOT TESTED
+   149 expansion compatibility link   NOT TESTED
+   150 analog board supply link       NOT TESTED
+   152 fan link                       NOT TESTED
+   153 J11 (power link / header)      NOT TESTED
+   154 J12 (power link / header)      NOT TESTED
+   155 J13 (power link / header)      NOT TESTED
+   156 J14 (power link / header)      NOT TESTED
+   157 J23 (power link / header)      NOT TESTED
+   158 J24 (power link / header)      NOT TESTED
+   159 J33 (power link / header)      NOT TESTED
+   160 J34 (power link / header)      NOT TESTED
+   161 J43 (power link / header)      NOT TESTED
+   162 J44 (power link / header)      NOT TESTED
+   163 J56 (board header)             NOT TESTED
+   164 J1 (power link / header)       NOT TESTED
+   165 J2 (power link / header)       NOT TESTED
+   166 J3 (power link / header)       NOT TESTED
+   167 J4 (power link / header)       NOT TESTED
+   168 J6 (power link / header)       NOT TESTED
+   169 J4 (power link / header)       NOT TESTED
+   170 J5 (board header)              NOT TESTED
+   171 J6 (board header)              NOT TESTED
+   172 J7 (power link / header)       NOT TESTED
+   173 J10 (power link / header)      NOT TESTED
+   174 J14 (debug / test header)      NOT TESTED
+   175 J15 (debug / test header)      NOT TESTED
+   176 J19 (power link / header)      NOT TESTED
+   177 J20 (board header)             NOT TESTED
+   178 J21 (board header)             NOT TESTED
+   179 J22 (power link / header)      NOT TESTED
+   180 J23 (debug / test header)      NOT TESTED
+   181 J24 (power link / header)      NOT TESTED
+   182 J25 (power link / header)      NOT TESTED
+   183 J26 (board header)             NOT TESTED
+   184 J27 (power link / header)      NOT TESTED
+   185 J30 (power link / header)      NOT TESTED
+   186 J31 (power link / header)      NOT TESTED
+   187 J32 (debug / test header)      NOT TESTED
+   188 J35 (power link / header)      NOT TESTED
+   189 J36 (power link / header)      NOT TESTED
+   190 J37 (power link / header)      NOT TESTED
+   191 J38 (power link / header)      NOT TESTED
+   192 J39 (power link / header)      NOT TESTED

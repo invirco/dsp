@@ -1003,7 +1003,7 @@ def auto_plan(rows, state, ignored):
 
 
 def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False,
-             phase=None, quiet_flag=None, report=None):
+             phase=None, quiet_flag=None, report=None, passno=None):
     """One `d24_selftest.py` for the owed auto set, and its verdicts read back
     out of the results CSV it appends to.
 
@@ -1088,9 +1088,37 @@ def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False,
         done.append(t)
     proc.wait()
     secs = time.time() - t0
+    new_rows = read_new_rows(csv_path, before)
+    if proc.returncode != 0:
+        # THE BATCH DIED, AND IT MUST NEVER READ AS FINISHED (hub ruling,
+        # S133). `boot_pair()` refuses loudly when AN_EN is left high (a
+        # `RuntimeError`, uncaught above the per-test guard) and the
+        # subprocess exits in well under a second having written not one row
+        # -- and until now this said "auto set finished in 0 s", the same
+        # words an honestly empty owed set gets, so a batch that died read as
+        # a batch that had nothing to do. Every row this run owed and did not
+        # get a fresh verdict for is stamped NO DATA here, plainly, rather
+        # than left blank for a later reader (or the next station) to mistake
+        # for "not reached yet".
+        got_keys = set(d['board'] + '|' + d['item'] for d in new_rows)
+        died = [r for r in owed if r.key not in got_keys]
+        for r in died:
+            state.put(r.num, NODATA, pass_no=passno, source='auto set',
+                      measured='the auto set died before this row was reached',
+                      limit='', evidence='auto set exited %s after %.1f s: %s'
+                      % (proc.returncode, secs,
+                         (log[-1].strip() if log else 'no output')),
+                      judged='runner')
+        if died:
+            state.save()
+        out('\n!! auto set%s DIED (exit %s) after %.1f s -- %d row%s marked '
+            'NO DATA, never PASS\n'
+            % (' (%s)' % PHASE_WORDS[phase] if phase else '', proc.returncode,
+               secs, len(died), '' if len(died) == 1 else 's'))
+        return secs, new_rows, owed
     say('auto set%s finished in %d s'
         % (' (%s)' % PHASE_WORDS[phase] if phase else '', secs))
-    return secs, read_new_rows(csv_path, before), owed
+    return secs, new_rows, owed
 
 
 class Background:
@@ -1130,10 +1158,29 @@ class Background:
     def running(self):
         return self._t.is_alive()
 
-    def join(self, glass=None, words=None):
-        if self._t.is_alive() and glass is not None:
-            glass.progress('waiting for %s to finish' % (words or self.name))
-        self._t.join()
+    def join(self, glass=None, words=None, hold=None):
+        """Wait for the phase, watching the quiet flag the whole time (hub
+        ruling, S133) when `hold` is given.
+
+        `hold` is a `quiet_hold()` closure -- the SAME one the panel loop's own
+        `hold=` uses, called from this same (main) thread, never the panel
+        loop's, so there is nothing here for it to race with. It exists
+        because the panel loop's `hold` only fires while `PL.loop` is between
+        buttons: a walk that finishes its owed buttons before the dsp phase
+        reaches AL1's tone leaves this join as the only thing left waiting,
+        and a bare `self._t.join()` watched nothing -- the hands-off screen
+        (PW ruling, S129 addendum 4) never went up for that stretch, whichever
+        station or batch the glass happened to be showing when it started.
+        """
+        if self._t.is_alive():
+            if glass is not None:
+                glass.progress('waiting for %s to finish' % (words or self.name))
+            if hold is not None:
+                while self._t.is_alive():
+                    hold(glass.progress if glass is not None else None)
+                    self._t.join(timeout=QUIET_POLL_S)
+            else:
+                self._t.join()
         if self.error:
             print('   !! the %s phase did not finish: %s'
                   % (self.name, self.error), flush=True)
@@ -1164,7 +1211,7 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     glass.progress('START - the unit is checking itself while you set the '
                    'bench up')
     ser = Background('serial', lambda: run_auto(
-        a, rows, state, ignored, glass, csv_path, phase='serial',
+        a, rows, state, ignored, glass, csv_path, phase='serial', passno=passno,
         report=lambda m: print('   [bus] %s' % m, flush=True))).start()
     live, keys = pass_screen(a, glass)
     # THE SCREEN AND THE KEYBOARD LIVE PAST THE SETUP PAGES (S127), AND PAST
@@ -1183,7 +1230,7 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     # -- 2. the DSP tests, with the operator on the panel loops -------------
     dsp = Background('dsp', lambda: run_auto(
         a, rows, state, ignored, glass, csv_path, phase='dsp',
-        patch_to_come=patch_to_come, quiet_flag=quiet,
+        patch_to_come=patch_to_come, quiet_flag=quiet, passno=passno,
         report=lambda m: print('   [dsp] %s' % m, flush=True))).start()
     stopped = False
     reached_the_end = False
@@ -1201,7 +1248,12 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
         # posted before the station, fell in the gap between the two. The
         # station now gets this same screen; the next thing written to it is its
         # card, over the panel loop's last words.
-        dsp.join(glass, PHASE_WORDS['dsp'])
+        # THE HANDS-OFF SCREEN WATCHES THE FLAG HERE TOO (hub ruling, S133).
+        # If the panel walk finishes its owed buttons before the dsp phase
+        # reaches AL1's tone, this join is the only thing left waiting on it.
+        dsp.join(glass, PHASE_WORDS['dsp'],
+                hold=quiet_hold(quiet, live=live, keys=keys,
+                                secs=COST.get('AL1', 17)))
         results += dsp.results
         # THE RAILS DO NOT STAY UP ON A PAUSE (S126). The dsp phase is told to
         # keep them up FOR the analog station, and a pass stopped in the panel
@@ -1220,7 +1272,7 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     timing['panels'] = panels
     # -- 3. the network tests, under the analog station ---------------------
     a.background = lambda: run_auto(
-        a, rows, state, ignored, glass, csv_path, phase='net',
+        a, rows, state, ignored, glass, csv_path, phase='net', passno=passno,
         report=lambda m: print('   [net] %s' % m, flush=True))
     timing['_manual_t0'] = time.time()
     return time.time() - t0, results
@@ -2973,7 +3025,7 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
             else:
                 secs_auto, results, _owed = run_auto(
                     a, rows, state, ignored, glass, csv_path,
-                    patch_to_come=patch_to_come)
+                    patch_to_come=patch_to_come, passno=passno)
             timing['auto'] = secs_auto
             state.d['pass_timing'] = {'auto': secs_auto, 'pass': passno,
                                       'keep_rails': patch_to_come}
@@ -3249,6 +3301,24 @@ def main(argv=None):
             timing = one_pass(a, rows, state, live, glass, csv_path, resumed)
         except Paused:
             state.save()
+            # THE RAILS DO NOT OUTLIVE THE PAUSE (hub ruling, S133; PW's rule
+            # is analog last up, first down, and S127/S128 already established
+            # that a rail is never left without an owner). Every OTHER way out
+            # of a pass -- `Stopped`, `overlapped()`'s own panel-loop exit --
+            # already lowers them on the way past; this is the one door that
+            # did not, and it is the ordinary one: PAUSE pressed on the analog
+            # station, minutes after the DSP phase handed the rails to it and
+            # went home. Found on MW-D24-2, 2026-09-27: AN_EN stayed HIGH
+            # through a pause there, and the next pass's whole `[dsp]` batch
+            # died on `boot_pair()`'s own rails refusal in under a second.
+            # `lower_rails()` is idempotent -- calling it again where
+            # `overlapped()` already dropped them (a pause inside the panel
+            # loops) costs nothing. RESUME needs no matching raise here: a
+            # resumed pass either re-enters the auto set fresh (rails go up
+            # exactly as a first pass raises them) or re-enters a station whose
+            # own `an.up()` is idempotent and self-healing, so the rails come
+            # back at the same point in the flow a fresh pass would raise them.
+            lower_rails(glass)
             glass.progress('paused at step %s of the operator set -- the next '
                            'START resumes here'
                            % ((state.d.get('current') or {}).get('step')))

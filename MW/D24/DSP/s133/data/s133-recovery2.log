@@ -1,0 +1,498 @@
+D24 RUN ALL -- unit 10000000830b03af -- catalog f380c70d7ba5 (202 rows) -- 2026-09-27T23:26:32Z
+   catalog warning: #148: automation '1' but group 'M4'
+   auto 34, background 3, manual 79, not-run 86
+
+--- auto set: 35 tests over 33 rows, about 96 s ---
+/usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section A,B,C --only HD0-1,AS-CM4,HD-PWR,ML1,ML2,ML-M,ML-B0,ML-P1,ML-P2,CC1,CC2,MC1,MC2,MC3,DR1,DR2,DY1-RDY1,DY1-RDY2,DC1-CS1,DC2-CS1,DC1-CS2,DC2-CS2,DC1-CS6,DC2-CS6,DC1-CS7,DC2-CS7,DC1-CS8,DC2-CS8,AS-DSPA,AS-DSPB,AS-CPLD,AS-PWR,AS-ADC,AS-DAC,AL1 --no-app-restart --stage /home/app/s90
+D24 self-test, section 1 -- sections A,B,C -- 2026-09-27T23:26:32Z
+HD0-1 ...
+   .. AUTO group A1 - screen link - 0 s gone, about 96 s left
+-- 2026-09-27T23:26:32Z HD0-1 took 0.0 s
+  HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+AS-CM4 ...
+   .. AUTO group A1 - compute module - 0 s gone, about 94 s left
+-- 2026-09-27T23:26:33Z AS-CM4 took 0.1 s
+  AS-CM4    PASS     throttled=0x0 temp=46.7 C core=0.9100V app=d24-testui
+-- 2026-09-27T23:26:33Z app_stop start
+matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+-- 2026-09-27T23:26:33Z app_stop end
+-- 2026-09-27T23:26:33Z stage_setup start
+pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+tools: 8 repo-only tools already current in /home/app/s90 (md5)
+  (--local: HERE is /home/app/selftest ON THE UNIT, so these md5s prove the stage matches THAT DEP
+-- 2026-09-27T23:26:33Z stage_setup end
+codec init (for CC1/CC2): ok
+ML1 ...
+   .. AUTO group A2 - main control processor link - 2 s gone, about 94 s left
+-- 2026-09-27T23:26:35Z ML1 took 0.8 s
+  ML1       PASS     Sys001Test001 (5414) x3 = ['0x43', '0x43', '0x43'], [111.2, 110.6, 110.5] ms
+ML2 ...
+   .. AUTO group A2 - main control processor version - 3 s gone, about 90 s left
+-- 2026-09-27T23:26:35Z ML2 took 0.0 s
+  ML2       NO DATA  no H1S1 version cell; host side H1S1.shex 272868c889fc87ead0a3b4bb277f55e2
+ML-M ...
+   .. AUTO group A2 - dispatch processor - 3 s gone, about 90 s left
+-- 2026-09-27T23:26:40Z ML-M took 4.9 s
+  ML-M      PASS     ML1=PASS; S_TEST identities: {'H1S1': '// H1S1 DSP', 'H1S4': '// H1S4 SW Left', 'H1S3': '// H1S3
+ML-P1 ...
+   .. AUTO group A2 - right panel processor link - 8 s gone, about 85 s left
+-- 2026-09-27T23:26:40Z ML-P1 took 0.0 s
+  ML-P1     PASS     H1S3 S_TEST = '// H1S3 SW Right'; app log: 
+ML-P2 ...
+   .. AUTO group A2 - left panel processor link - 8 s gone, about 80 s left
+-- 2026-09-27T23:26:40Z ML-P2 took 0.0 s
+  ML-P2     PASS     H1S4 S_TEST = '// H1S4 SW Left'; app log: 
+ML-B0 ...
+   .. AUTO group A2 - panel processor reprogramming line - 8 s gone, about 75 s left
+-- 2026-09-27T23:26:40Z ML-B0 took 0.0 s
+  ML-B0     NO DATA  no BOOT0/NRST drive on H1S1
+CC1 ...
+   .. AUTO group A2 - converter select - 8 s gone, about 75 s left
+-- 2026-09-27T23:26:41Z CC1 took 0.4 s
+  CC1       PASS     05H = 0xBB
+CC2 ...
+   .. AUTO group A2 - converter registers - 8 s gone, about 74 s left
+-- 2026-09-27T23:26:42Z CC2 took 1.6 s
+  CC2       PASS     05H 0xBB -> MGN2R 5 -> 0xB5 -> restored 0xBB
+MC1 ...
+   .. AUTO group A2 - microphone gain chain latch - 10 s gone, about 74 s left
+-- 2026-09-27T23:26:42Z MC1 took 0.3 s
+  MC1       PASS     wrote 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00, read back: VER
+MC2 ...
+   .. AUTO group A2 - microphone gain chain readback - 10 s gone, about 73 s left
+-- 2026-09-27T23:26:43Z MC2 took 0.3 s
+  MC2       PASS     wrote SAFE 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, read back
+MC3 ...
+   .. AUTO group A2 - microphone gain chain, safe image - 10 s gone, about 73 s left
+-- 2026-09-27T23:26:43Z MC3 took 0.0 s
+  MC3       PASS     MC1 read-back is not all-zeros; guard not invoked; CS_M (GPIO27) = 27: op -- pd | hi // GPIO27 =
+-- 2026-09-27T23:26:43Z boot_pair start
+ 10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+CHIP_ID verified: chip 1 = 1, chip 2 = 2
+--- config cycle 2 chip 1 ---
+wrote 53 registers to chip 1 (CS GPIO6)
+--- config cycle 2 chip 2 ---
+wrote 6 registers to chip 2 (CS GPIO24)
+--- inter-chip link gate (s89_signbit, exit 0) ---
+  lane 0 (SPORT 0)  MAIN L/R    sent bit31  36/ 64 (distinct 60)   received bit31  32/ 64 (distinct 58)
+  lane 1 (SPORT 1)  codec ret   sent bit31  25/ 64 (distinct 64)   received bit31  35/ 64 (distinct 64)
+  VERDICT lane 0 (SPORT 0)  MAIN L/R   CLEAN
+  VERDICT lane 1 (SPORT 1)  codec ret  CLEAN
+OVERALL: CLEAN
+-- 2026-09-27T23:26:50Z boot_pair end
+DR1 ...
+   .. AUTO group A3 - audio processor reset, held - 17 s gone, about 73 s left
+-- 2026-09-27T23:26:54Z DR1 took 3.6 s
+  DR1       PASS     FRAME_COUNT 6530 -> 9259 advancing; after !RST_D (GPIO16) low 200 ms: None -> None
+DR2 ...
+   .. AUTO group A3 - audio processor reset, released - 21 s gone, about 62 s left
+-- 2026-09-27T23:27:03Z DR2 took 9.2 s
+  DR2       PASS     BOOT_STAGE 7/7, BUILD_ID 0x20260812/0x20260812, 31 lanes CARRYING
+DY1-RDY1 ...
+   .. AUTO group A3 - audio processor A ready line - 30 s gone, about 53 s left
+-- 2026-09-27T23:27:03Z DY1-RDY1 took 0.0 s
+  DY1-RDY1  PASS     CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DY1-RDY2 ...
+   .. AUTO group A3 - audio processor B ready line - 30 s gone, about 46 s left
+-- 2026-09-27T23:27:03Z DY1-RDY2 took 0.0 s
+  DY1-RDY2  PASS     CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DC1-CS1 ...
+   .. AUTO group A3 - audio processor select line 1, asserted - 30 s gone, about 46 s left
+-- 2026-09-27T23:27:03Z DC1-CS1 took 0.3 s
+  DC1-CS1   PASS     CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812
+DC1-CS2 ...
+   .. AUTO group A3 - audio processor select line 2, asserted - 30 s gone, about 45 s left
+-- 2026-09-27T23:27:03Z DC1-CS2 took 0.3 s
+  DC1-CS2   PASS     CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812
+DC1-CS6 ...
+   .. AUTO group A3 - audio processor select line 6, asserted - 31 s gone, about 45 s left
+-- 2026-09-27T23:27:03Z DC1-CS6 took 0.0 s
+  DC1-CS6   NO DATA  CS6 reaches no fitted part
+DC1-CS7 ...
+   .. AUTO group A3 - audio processor select line 7, asserted - 31 s gone, about 45 s left
+-- 2026-09-27T23:27:03Z DC1-CS7 took 0.0 s
+  DC1-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC1-CS8 ...
+   .. AUTO group A3 - audio processor select line 8, asserted - 31 s gone, about 45 s left
+-- 2026-09-27T23:27:03Z DC1-CS8 took 0.0 s
+  DC1-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+DC2-CS1 ...
+   .. AUTO group A3 - audio processor select line 1, answered - 31 s gone, about 45 s left
+-- 2026-09-27T23:27:04Z DC2-CS1 took 0.6 s
+  DC2-CS1   PASS     CS1: CHIP_ID 1 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS2 ...
+   .. AUTO group A3 - audio processor select line 2, answered - 31 s gone, about 45 s left
+-- 2026-09-27T23:27:05Z DC2-CS2 took 0.6 s
+  DC2-CS2   PASS     CS2: CHIP_ID 2 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS6 ...
+   .. AUTO group A3 - audio processor select line 6, answered - 32 s gone, about 44 s left
+-- 2026-09-27T23:27:05Z DC2-CS6 took 0.0 s
+  DC2-CS6   NO DATA  CS6 reaches no fitted part
+DC2-CS7 ...
+   .. AUTO group A3 - audio processor select line 7, answered - 32 s gone, about 44 s left
+-- 2026-09-27T23:27:05Z DC2-CS7 took 0.0 s
+  DC2-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC2-CS8 ...
+   .. AUTO group A3 - audio processor select line 8, answered - 32 s gone, about 44 s left
+-- 2026-09-27T23:27:05Z DC2-CS8 took 0.0 s
+  DC2-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+AS-DSPA ...
+   .. AUTO group A4 - audio processor A - 32 s gone, about 44 s left
+-- 2026-09-27T23:27:07Z AS-DSPA took 2.5 s
+  AS-DSPA   PASS     CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 15173->21361 (2999 blocks/s), 28/30 lane
+AS-DSPB ...
+   .. AUTO group A4 - audio processor B - 34 s gone, about 40 s left
+-- 2026-09-27T23:27:08Z AS-DSPB took 0.8 s
+  AS-DSPB   PASS     CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 18060->27384 (3000 blocks/s)
+AS-CPLD ...
+   .. AUTO group A4 - clock master - 35 s gone, about 38 s left
+-- 2026-09-27T23:27:12Z AS-CPLD took 4.0 s
+  AS-CPLD   NO DATA  design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 12 s: chip1 0 chip2 0
+-- 2026-09-27T23:27:12Z rails ensure_pair start
+-- 2026-09-27T23:27:13Z rails ensure_pair end (booted=False)
+FAE0 FFFFFF90
+    c2 words FFFFFF40 00000130 FFFFFC60 FFFFFD70 FFFFFE40 FFFFFF10 00000510 FFFFFB80
+  set 0 MAIN_R  c1   -97.11 dBFS  c2  -101.70 dBFS  delta   -4.59
+  set 1 MAIN_R  c1  -100.63 dBFS  c2  -100.14 dBFS  delta   +0.49
+    c1 words FFFFFD90 000006C0 000009C0 FFFFFEA0 FFFFFDC0 FFFFFB40 000006A0 FFFFFC60
+    c2 words FFFFFE50 FFFFFB80 FFFFFB50 00000210 000002F0 FFFFFEE0 FFFFF950 FFFFFA30
+-- 2026-09-27T23:27:13Z rails_up start
+AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it once, at the end)
+-- 2026-09-27T23:27:13Z rails_up end
+AS-ADC ...
+   .. AUTO group A5 - input converters - 41 s gone, about 23 s left
+-- 2026-09-27T23:27:15Z AS-ADC took 1.6 s
+  AS-ADC    PASS     lane 0 (U15): 8/8 CARRYING, rms -119.3..-115.5 dBFS; lane 1 (U39): 8/8 CARRYING, rms -109.3..-94
+AS-DAC ...
+   .. AUTO group A5 - output converters - 42 s gone, about 21 s left
+-- 2026-09-27T23:27:15Z AS-DAC took 0.0 s
+  AS-DAC    NO DATA  retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and
+AS-PWR ...
+   .. AUTO group A4 - power processor - 42 s gone, about 17 s left
+-- 2026-09-27T23:27:15Z AS-PWR took 0.0 s
+  AS-PWR    NO DATA  no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi
+AL1 ...
+   .. AUTO group A5 - speaker to microphone loop - 42 s gone, about 17 s left
+-- 2026-09-27T23:27:15Z AL1 codec_init start
+-- 2026-09-27T23:27:17Z AL1 codec_init end
+-- 2026-09-27T23:27:17Z AL1 ensure_pair start
+-- 2026-09-27T23:27:17Z AL1 ensure_pair end (booted=False)
+-- 2026-09-27T23:27:17Z AL1 staged tools start
+-- 2026-09-27T23:27:17Z AL1 staged tools end
+-- 2026-09-27T23:27:17Z AL1 rxscan start
+-- 2026-09-27T23:27:17Z AL1 rxscan end
+-- 2026-09-27T23:27:17Z AL1 stimulus check start
+-- 2026-09-27T23:27:18Z AL1 stimulus check end
+-- 2026-09-27T23:27:18Z AL1 baseline start
+-- 2026-09-27T23:27:19Z AL1 tone start
+-- 2026-09-27T23:27:20Z AL1 second baseline start
+-- 2026-09-27T23:27:21Z AL1 measure end
+-- 2026-09-27T23:27:22Z AL1 took 6.6 s
+  AL1       PASS     PASS base -45.9 tone -29.7 SNR 16.2 dB THD -25.0 dB 5.63%
+-- 2026-09-27T23:27:22Z handback start
+--- handback ---
+speaker path: already torn down by AL1 (SILENT, live 3.73 s)
+SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 00 E0 FE 00 00 00 00 00 00 08 83 20 00 00 00 00 00 E0 FE 00 00 00 00 00 00
+CS_M: 27: op -- pd | hi // GPIO27 = output
+AN_EN: 26: op -- pd | lo at entry, RAISED this session, LOWERED here (up for 8.69 s) -> 26: op -- pd | lo // GPIO26 = output
+matrix-app: left stopped (--no-app-restart); the test display owns the screen
+MCU verify (whole log): not read -- the app was not restarted
+-- 2026-09-27T23:27:22Z handback end
+HD-PWR ...
+   .. AUTO group A1 - screen power link - 49 s gone, about 0 s left
+-- 2026-09-27T23:27:22Z HD-PWR took 0.0 s
+  HD-PWR    PASS     inferred from HD0-1 PASS
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        PASS    
+AS-ADC     PASS    
+AS-CM4     PASS    
+AS-CPLD    NO DATA 
+AS-DAC     NO DATA 
+AS-DSPA    PASS    
+AS-DSPB    PASS    
+AS-PWR     NO DATA 
+CC1        PASS    
+CC2        PASS    
+DC1-CS1    PASS    
+DC1-CS2    PASS    
+DC1-CS6    NO DATA 
+DC1-CS7    NO DATA 
+DC1-CS8    NO DATA 
+DC2-CS1    PASS    
+DC2-CS2    PASS    
+DC2-CS6    NO DATA 
+DC2-CS7    NO DATA 
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+HD-PWR     PASS    
+HD0-1      PASS    
+MC1        PASS    
+MC2        PASS    
+MC3        PASS    
+ML-B0      NO DATA 
+ML-M       PASS    
+ML-P1      PASS    
+ML-P2      PASS    
+ML1        PASS    
+ML2        NO DATA 
+------------------------------------------------------------------------------
+rows:  33 PASS / 0 FAIL / 14 NO DATA  (47 rows)
+items: 22 PASS / 0 FAIL / 11 NO DATA  (33 of 36 workbook rows covered)
+TEST        SECONDS
+--------------------
+DR2             9.2
+AL1             6.6
+ML-M            4.9
+AS-CPLD         4.0
+DR1             3.6
+AS-DSPA         2.5
+AS-ADC          1.6
+CC2             1.6
+AS-DSPB         0.8
+ML1             0.8
+DC2-CS2         0.6
+DC2-CS1         0.6
+CC1             0.4
+DC1-CS1         0.3
+DC1-CS2         0.3
+MC1             0.3
+MC2             0.3
+AS-CM4          0.1
+HD0-1           0.0
+ML2             0.0
+ML-P1           0.0
+ML-P2           0.0
+MC3             0.0
+AS-PWR          0.0
+DY1-RDY2        0.0
+DY1-RDY1        0.0
+DC1-CS8         0.0
+DC2-CS7         0.0
+DC2-CS8         0.0
+DC1-CS6         0.0
+HD-PWR          0.0
+DC2-CS6         0.0
+DC1-CS7         0.0
+ML-B0           0.0
+AS-DAC          0.0
+total          38.7  (the tests alone; staging, boots and the handback are outside them)
+appended 47 rows to /home/app/selftest/item-status.csv
+raw reads: /home/app/selftest/logs/2026-09-27T232632Z
+   .. auto set finished in 49 s
+   .. read while the test ran: top-panel USB socket (hub port 3) NO DATA, top-panel USB socket (hub port 4) NO DATA
+
+pass 2: 23 PASS / 0 FAIL / 13 NO DATA / 51 ignored / 0 skipped / 80 not tested (of 202 rows) in 50 s
+report: /home/app/selftest/reports/10000000830b03af-2026-09-27T232722Z.md
+        /home/app/selftest/reports/10000000830b03af-2026-09-27T232722Z.json
+   .. pass 2 complete - report written - 23 of 202 rows pass
+
+SUMMARY -- Finished - 23 passed, 93 not tested.
+   102 main control processor link    NO DATA
+   107 audio processor select line 6  NO DATA
+   108 audio processor select line 7  NO DATA
+   109 audio processor select line 8  NO DATA
+   125 right panel processor link     NO DATA
+   126 left panel processor link      NO DATA
+   130 top-panel USB socket (hub por… NO DATA
+   131 top-panel USB socket (hub por… NO DATA
+   142 output converter link          NO DATA
+   196 clock master                   NO DATA
+   197 output converters              NO DATA
+   200 power processor                NO DATA
+   202 main control processor         NO DATA
+   11 MIC 9                           NO VERDICT
+   12 MIC 10                          NO VERDICT
+   13 MIC 11                          NO VERDICT
+   14 MIC 12                          NO VERDICT
+   15 MIC 17                          NO VERDICT
+   16 MIC 18                          NO VERDICT
+   17 MIC 19                          NO VERDICT
+   18 MIC 21                          NO VERDICT
+   19 MIC 22                          NO VERDICT
+   20 MIC 23                          NO VERDICT
+   21 MIC 24                          NO VERDICT
+   22 MIC 7                           NO VERDICT
+   23 MIC 8                           NO VERDICT
+   24 MIC 20                          NO VERDICT
+   25 Aux Out A1 (doubles as Monito…  NO VERDICT
+   26 Aux Out A2                      NO VERDICT
+   27 Aux Out A3                      NO VERDICT
+   28 Aux Out A4                      NO VERDICT
+   29 Aux Out A5                      NO VERDICT
+   30 Aux Out A6                      NO VERDICT
+   31 Aux Out A7                      NO VERDICT
+   32 Aux Out A8                      NO VERDICT
+   33 Main Out L                      NO VERDICT
+   34 Main Out R                      NO VERDICT
+   36 Monitor Out L (TRS, unbalance…  NO VERDICT
+   37 Monitor Out R (TRS, unbalance…  NO VERDICT
+   38 Talkback TB (XLR)               NO VERDICT
+   39 Aux Out A 1-2 (TRS, Phone Jac…  NO VERDICT
+   40 Aux Out A 3-4 (TRS, Phone Jac…  NO VERDICT
+   41 Aux Out A 5-6 (TRS, Phone Jac…  NO VERDICT
+   42 Aux Out A 7-8 (TRS, Phone Jac…  NO VERDICT
+   95 Mini-jack 1 (3.5 mm, Mini Jac…  NO VERDICT
+   96 Mini-jack 2 (3.5 mm, Mini Jac…  NO VERDICT
+   146 headphone link                 NO VERDICT
+   147 small jack link                NO VERDICT
+   43 MONO AUX button                 IGNORED
+   44 MONO AUX button LEDs (white p…  IGNORED
+   45 STEREO AUX button               IGNORED
+   46 STEREO AUX button LEDs (white…  IGNORED
+   47 FX button                       IGNORED
+   48 FX button LEDs (white pair)     IGNORED
+   49 EQ button                       IGNORED
+   50 EQ button LEDs (white pair)     IGNORED
+   51 AUX ON FADERS button            IGNORED
+   52 AUX ON FADERS button LEDs (wh…  IGNORED
+   53 OVERVIEW button                 IGNORED
+   54 OVERVIEW button LEDs (white p…  IGNORED
+   55 BOOT0 indicator LED             IGNORED
+   58 Pedal UART through-path         IGNORED
+   59 FX MUTE button                  IGNORED
+   60 FX MUTE button LEDs (white pa…  IGNORED
+   61 FX MUTE red LEDs                IGNORED
+   62 HOME button                     IGNORED
+   63 HOME button LEDs (white pair)   IGNORED
+   64 MENU button                     IGNORED
+   65 MENU button LEDs (white pair)   IGNORED
+   66 +48 button                      IGNORED
+   67 +48 button LEDs (white pair)    IGNORED
+   68 FEEDBACK button                 IGNORED
+   69 FEEDBACK button LEDs (white p…  IGNORED
+   70 MUTE button                     IGNORED
+   71 MUTE button LEDs (white pair)   IGNORED
+   72 SCENE button                    IGNORED
+   73 SCENE button LEDs (white pair)  IGNORED
+   74 L button                        IGNORED
+   75 L button LEDs (white pair)      IGNORED
+   76 C button                        IGNORED
+   77 C button LEDs (white pair)      IGNORED
+   78 C red LED                       IGNORED
+   79 CH ASSIGN button                IGNORED
+   80 CH ASSIGN button LEDs (white…   IGNORED
+   81 R button                        IGNORED
+   82 R button LEDs (white pair)      IGNORED
+   83 MONITOR button                  IGNORED
+   84 MONITOR button LEDs (white pa…  IGNORED
+   85 REC/PLY button                  IGNORED
+   86 REC/PLY button LEDs (white pa…  IGNORED
+   87 REC/PLY red LEDs                IGNORED
+   88 STUDIO CTL button               IGNORED
+   89 STUDIO CTL button LEDs (white…  IGNORED
+   90 Encoder ring                    IGNORED
+   91 Encoder ring LEDs               IGNORED
+   92 Talkback switch + LEDs (pass-…  IGNORED
+   93 Mini-jack insertion sense (pa…  IGNORED
+   94 TEMP / BLOWER / FAN sense (pa…  IGNORED
+   128 network socket                 IGNORED
+   56 panel microphone and speaker    PASS
+   103 audio processor select line 1  PASS
+   104 audio processor select line 2  PASS
+   105 audio processor select line 3  PASS
+   106 audio processor select line 4  PASS
+   110 audio processor reset line     PASS
+   111 microphone gain chain latch    PASS
+   112 talkback converter select line PASS
+   127 screen link                    PASS
+   133 IEC Power Inlet                PASS
+   139 audio processor A link         PASS
+   140 audio processor B link         PASS
+   141 input converter link           PASS
+   -- page 1 of 2 --
+   143 right panel link               PASS
+   144 left panel link                PASS
+   151 screen power link              PASS
+   193 compute module                 PASS
+   194 audio processor A              PASS
+   195 audio processor B              PASS
+   198 input converters               PASS
+   199 talkback converter             PASS
+   201 dispatch processor             PASS
+   203 screen                         PASS
+   1 MIC 1                            NOT TESTED
+   2 MIC 2                            NOT TESTED
+   3 MIC 3                            NOT TESTED
+   4 MIC 4                            NOT TESTED
+   5 MIC 13                           NOT TESTED
+   6 MIC 14                           NOT TESTED
+   7 MIC 15                           NOT TESTED
+   8 MIC 16                           NOT TESTED
+   9 MIC 5                            NOT TESTED
+   10 MIC 6                           NOT TESTED
+   35 Center/LF Out                   NOT TESTED
+   97 Phones 1 (headphone jack)       NOT TESTED
+   98 Footswitch 1                    NOT TESTED
+   99 Footswitch 2                    NOT TESTED
+   100 7-segment display + LEDs       NOT TESTED
+   101 Pedal link + 9 V               NOT TESTED
+   113 PSU monitor ADC PAD0           NOT TESTED
+   114 PSU monitor ADC PAD1           NOT TESTED
+   115 PSU monitor ADC PAD2           NOT TESTED
+   116 PSU monitor ADC PAD3           NOT TESTED
+   117 PSU monitor ADC PAD4           NOT TESTED
+   118 PSU monitor ADC PAD5           NOT TESTED
+   119 PSU monitor ADC PAD6           NOT TESTED
+   120 PSU monitor ADC PAD7           NOT TESTED
+   121 PSU monitor ADC PAD8           NOT TESTED
+   122 PSU monitor ADC PAD9           NOT TESTED
+   123 PSU monitor ADC PAD10          NOT TESTED
+   124 PSU monitor ADC PAD11          NOT TESTED
+   129 foot pedal socket              NOT TESTED
+   132 second screen socket (not fit… NOT TESTED
+   134 Power Switch                   NOT TESTED
+   135 expansion card USB-C socket    NOT TESTED
+   136 expansion link 1               NOT TESTED
+   137 expansion link 2               NOT TESTED
+   138 expansion link 3               NOT TESTED
+   145 foot pedal link                NOT TESTED
+   148 screen ribbon link             NOT TESTED
+   149 expansion compatibility link   NOT TESTED
+   150 analog board supply link       NOT TESTED
+   152 fan link                       NOT TESTED
+   153 J11 (power link / header)      NOT TESTED
+   154 J12 (power link / header)      NOT TESTED
+   155 J13 (power link / header)      NOT TESTED
+   156 J14 (power link / header)      NOT TESTED
+   157 J23 (power link / header)      NOT TESTED
+   158 J24 (power link / header)      NOT TESTED
+   159 J33 (power link / header)      NOT TESTED
+   160 J34 (power link / header)      NOT TESTED
+   161 J43 (power link / header)      NOT TESTED
+   162 J44 (power link / header)      NOT TESTED
+   163 J56 (board header)             NOT TESTED
+   164 J1 (power link / header)       NOT TESTED
+   165 J2 (power link / header)       NOT TESTED
+   166 J3 (power link / header)       NOT TESTED
+   167 J4 (power link / header)       NOT TESTED
+   168 J6 (power link / header)       NOT TESTED
+   169 J4 (power link / header)       NOT TESTED
+   170 J5 (board header)              NOT TESTED
+   171 J6 (board header)              NOT TESTED
+   172 J7 (power link / header)       NOT TESTED
+   173 J10 (power link / header)      NOT TESTED
+   174 J14 (debug / test header)      NOT TESTED
+   175 J15 (debug / test header)      NOT TESTED
+   176 J19 (power link / header)      NOT TESTED
+   177 J20 (board header)             NOT TESTED
+   178 J21 (board header)             NOT TESTED
+   179 J22 (power link / header)      NOT TESTED
+   180 J23 (debug / test header)      NOT TESTED
+   181 J24 (power link / header)      NOT TESTED
+   182 J25 (power link / header)      NOT TESTED
+   183 J26 (board header)             NOT TESTED
+   184 J27 (power link / header)      NOT TESTED
+   185 J30 (power link / header)      NOT TESTED
+   186 J31 (power link / header)      NOT TESTED
+   187 J32 (debug / test header)      NOT TESTED
+   188 J35 (power link / header)      NOT TESTED
+   189 J36 (power link / header)      NOT TESTED
+   190 J37 (power link / header)      NOT TESTED
+   191 J38 (power link / header)      NOT TESTED
+   192 J39 (power link / header)      NOT TESTED

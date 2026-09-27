@@ -1,0 +1,33 @@
+00:21:59 AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+00:21:59 SCREEN [waiting] 1/7 Set the bench up :: Plug the network lead into the network socket on the rear panel, then press ENTER.
+00:21:59   command.json <- 'enter'
+00:22:00 SCREEN [waiting] 2/7 Set the bench up :: Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER
+00:22:00   command.json <- 'enter'
+00:22:00 SCREEN [waiting] 3/7 Set the bench up :: Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+00:22:01   command.json <- 'enter'
+00:22:01 SCREEN [waiting] 4/7 Set the bench up :: Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+00:22:02   command.json <- 'enter'
+00:22:02 SCREEN [waiting] 5/7 Set the bench up :: Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.
+00:22:02   command.json <- 'enter'
+00:22:03 SCREEN [waiting] 6/7 Set the bench up :: Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+00:22:03   command.json <- 'enter'
+00:22:04 SCREEN [waiting] 7/7 Set the bench up :: Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+00:22:04   command.json <- 'enter'
+00:22:04 SCREEN [starting] 7/7 The bench is set up. :: 
+00:22:41 SCREEN [handsoff] 0/17 Hands off - the unit is testing itself (the speaker and the  :: 
+00:22:41 *** HANDS-OFF REACHED (S133 join()-watcher) -- capturing
+00:22:42   capture -> /home/app/selftest/s133-screens/s133-handsoff.png (64261 bytes)
+00:22:42 SCREEN [handsoff] 1/17 Hands off - the unit is testing itself (the speaker and the  :: 
+00:22:43 SCREEN [handsoff] 2/17 Hands off - the unit is testing itself (the speaker and the  :: 
+00:22:44 SCREEN [starting] 7/7 The bench is set up. :: 
+00:22:45 SCREEN [waiting] 3/3 Station 3 of 3 :: Next: analog paths. Supplies LIVE. 35 checks. Press ENTER.
+00:22:45 *** ANALOG STATION CARD REACHED -- AN_EN: 26: op -- pd | hi // GPIO26 = output
+00:22:46   capture -> /home/app/selftest/s133-screens/s133-card-rails-up.png (100877 bytes)
+00:22:46 *** SENDING PAUSE AT THE CARD (before the station ever runs)
+00:22:46   command.json <- 'pause'
+00:23:59 SCREEN [paused] 3/3 The test stopped before it finished - it was paused. The uni :: 
+00:23:59 *** SCREEN SHOWS PAUSED
+00:24:00   capture -> /home/app/selftest/s133-screens/s133-paused.png (71920 bytes)
+00:24:00 AN_EN after PAUSE at the card: 26: op -- pd | lo // GPIO26 = output
+00:24:00 chain marker after PAUSE: 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00
+RESULT {"setup_pages_answered": 7, "handsoff_seen": true, "card_seen": true, "an_en_at_card": "26: op -- pd | hi // GPIO26 = output", "an_en_after_pause": "26: op -- pd | lo // GPIO26 = output", "chain_after_pause": "01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00"}

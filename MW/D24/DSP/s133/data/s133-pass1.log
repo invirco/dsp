@@ -1,0 +1,365 @@
+D24 RUN ALL -- unit 10000000830b03af -- catalog f380c70d7ba5 (202 rows) -- 2026-09-27T23:21:54Z
+   catalog warning: #148: automation '1' but group 'M4'
+   auto 34, background 3, manual 79, not-run 86
+   .. START - the unit is checking itself while you set the bench up
+   [serial] 
+   [serial] --- auto set: 11 tests over 34 rows, about 21 s ---
+   [serial] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section B --only ML1,ML2,ML-M,ML-B0,ML-P1,ML-P2,CC1,CC2,MC1,MC2,MC3 --no-app-restart --stage /home/app/s90
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. SETUP 1 of 7 - Plug the network lead into the network socket on the rear panel, then press ENTER.
+   [serial] D24 self-test, section 1 -- sections B -- 2026-09-27T23:21:54Z
+   [serial] -- 2026-09-27T23:21:54Z app_stop start
+   [serial] matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+   [serial] -- 2026-09-27T23:21:54Z app_stop end
+   [serial] -- 2026-09-27T23:21:54Z stage_setup start
+   [serial] pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+   [serial] 7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+   [serial] 9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+   [serial] tools: 8 repo-only tools already current in /home/app/s90 (md5)
+   [serial]   (--local: HERE is /home/app/selftest ON THE UNIT, so these md5s prove the stage matches THAT DEP
+   [serial] -- 2026-09-27T23:21:55Z stage_setup end
+   [serial] codec init (for CC1/CC2): ok
+   [serial] ML1 ...
+   [bus] AUTO group A2 - main control processor link - 2 s gone, about 21 s left
+   [serial] -- 2026-09-27T23:21:57Z ML1 took 0.8 s
+   [serial]   ML1       PASS     Sys001Test001 (5414) x3 = ['0x43', '0x43', '0x43'], [111.4, 110.8, 110.7] ms
+   [serial] ML2 ...
+   [bus] AUTO group A2 - main control processor version - 3 s gone, about 17 s left
+   [serial] -- 2026-09-27T23:21:57Z ML2 took 0.0 s
+   [serial]   ML2       NO DATA  no H1S1 version cell; host side H1S1.shex 272868c889fc87ead0a3b4bb277f55e2
+   [serial] ML-M ...
+   [bus] AUTO group A2 - dispatch processor - 3 s gone, about 17 s left
+   .. SETUP 2 of 7 - Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER.
+   .. SETUP 3 of 7 - Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+   .. SETUP 4 of 7 - Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+   .. SETUP 5 of 7 - Hang the XLR-to-mini-jack lead on AUX 3 and leave it there, then press ENTER.
+   [serial] -- 2026-09-27T23:22:02Z ML-M took 4.9 s
+   [serial]   ML-M      PASS     ML1=PASS; S_TEST identities: {'H1S1': '// H1S1 DSP', 'H1S4': '// H1S4 SW Left', 'H1S3': '// H1S3
+   [serial] ML-P1 ...
+   [bus] AUTO group A2 - right panel processor link - 7 s gone, about 12 s left
+   [serial] -- 2026-09-27T23:22:02Z ML-P1 took 0.0 s
+   [serial]   ML-P1     PASS     H1S3 S_TEST = '// H1S3 SW Right'; app log: 
+   [serial] ML-P2 ...
+   [bus] AUTO group A2 - left panel processor link - 7 s gone, about 7 s left
+   [serial] -- 2026-09-27T23:22:02Z ML-P2 took 0.0 s
+   [serial]   ML-P2     PASS     H1S4 S_TEST = '// H1S4 SW Left'; app log: 
+   [serial] ML-B0 ...
+   [bus] AUTO group A2 - panel processor reprogramming line - 7 s gone, about 2 s left
+   [serial] -- 2026-09-27T23:22:02Z ML-B0 took 0.0 s
+   [serial]   ML-B0     NO DATA  no BOOT0/NRST drive on H1S1
+   [serial] CC1 ...
+   [bus] AUTO group A2 - converter select - 7 s gone, about 2 s left
+   .. SETUP 6 of 7 - Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+   [serial] -- 2026-09-27T23:22:02Z CC1 took 0.4 s
+   [serial]   CC1       PASS     05H = 0xBB
+   [serial] CC2 ...
+   [bus] AUTO group A2 - converter registers - 8 s gone, about 1 s left
+   .. SETUP 7 of 7 - Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+   .. the bench is set up: 1 of 2 items confirmed by the unit itself
+   .. waiting for the panel and codec bus checks to finish
+   [serial] -- 2026-09-27T23:22:04Z CC2 took 1.7 s
+   [serial]   CC2       PASS     05H 0xBB -> MGN2R 5 -> 0xB5 -> restored 0xBB
+   [serial] MC1 ...
+   [bus] AUTO group A2 - microphone gain chain latch - 10 s gone, about 1 s left
+   [serial] -- 2026-09-27T23:22:04Z MC1 took 0.3 s
+   [serial]   MC1       PASS     wrote 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00, read back: VER
+   [serial] MC2 ...
+   [bus] AUTO group A2 - microphone gain chain readback - 10 s gone, about 0 s left
+   [serial] -- 2026-09-27T23:22:05Z MC2 took 0.3 s
+   [serial]   MC2       PASS     wrote SAFE 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, read back
+   [serial] MC3 ...
+   [bus] AUTO group A2 - microphone gain chain, safe image - 10 s gone, about 0 s left
+   [serial] -- 2026-09-27T23:22:05Z MC3 took 0.0 s
+   [serial]   MC3       PASS     MC1 read-back is not all-zeros; guard not invoked; CS_M (GPIO27) = 27: op -- pd | hi // GPIO27 =
+   [serial] -- 2026-09-27T23:22:05Z handback start
+   [serial] --- handback ---
+   [serial] SAFE image: already SAFE (marker 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, no boot this run) -- write skipped
+   [serial] CS_M: 27: op -- pd | hi // GPIO27 = output
+   [serial] AN_EN: 26: op -- pd | lo // GPIO26 = output (not written by this run)
+   [serial] matrix-app: left stopped (--no-app-restart); the test display owns the screen
+   [serial] MCU verify (whole log): not read -- the app was not restarted
+   [serial] -- 2026-09-27T23:22:05Z handback end
+   [serial] TEST       VERDICT  MEASURED
+   [serial] ------------------------------------------------------------------------------
+   [serial] CC1        PASS    
+   [serial] CC2        PASS    
+   [serial] MC1        PASS    
+   [serial] MC2        PASS    
+   [serial] MC3        PASS    
+   [serial] ML-B0      NO DATA 
+   [serial] ML-M       PASS    
+   [serial] ML-P1      PASS    
+   [serial] ML-P2      PASS    
+   [serial] ML1        PASS    
+   [serial] ML2        NO DATA 
+   [serial] ------------------------------------------------------------------------------
+   [serial] rows:  14 PASS / 0 FAIL / 4 NO DATA  (18 rows)
+   [serial] items: 6 PASS / 0 FAIL / 4 NO DATA  (10 of 36 workbook rows covered)
+   [serial] TEST        SECONDS
+   [serial] --------------------
+   [serial] ML-M            4.9
+   [serial] CC2             1.7
+   [serial] ML1             0.8
+   [serial] CC1             0.4
+   [serial] MC1             0.3
+   [serial] MC2             0.3
+   [serial] ML2             0.0
+   [serial] ML-P1           0.0
+   [serial] ML-P2           0.0
+   [serial] MC3             0.0
+   [serial] ML-B0           0.0
+   [serial] total           8.4  (the tests alone; staging, boots and the handback are outside them)
+   [serial] appended 18 rows to /home/app/selftest/item-status.csv
+   [serial] raw reads: /home/app/selftest/logs/2026-09-27T232154Z
+   [bus] auto set (the panel and codec bus checks) finished in 10 s
+   [dsp] 
+   [dsp] --- auto set: 21 tests over 34 rows, about 73 s ---
+   [dsp] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section B,C --only DR1,DR2,DY1-RDY1,DY1-RDY2,DC1-CS1,DC2-CS1,DC1-CS2,DC2-CS2,DC1-CS6,DC2-CS6,DC1-CS7,DC2-CS7,DC1-CS8,DC2-CS8,AS-DSPA,AS-DSPB,AS-CPLD,AS-PWR,AS-ADC,AS-DAC,AL1 --quiet-flag /home/app/selftest/runall/quiet.flag --al1-keep-rails --no-app-restart --stage /home/app/s90
+   .. manual set: nothing owed
+   .. waiting for the audio processor checks to finish
+   [dsp] D24 self-test, section 1 -- sections B,C -- 2026-09-27T23:22:05Z
+   [dsp] -- 2026-09-27T23:22:05Z app_stop start
+   [dsp] matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+   [dsp] -- 2026-09-27T23:22:05Z app_stop end
+   [dsp] -- 2026-09-27T23:22:05Z stage_setup start
+   [dsp] pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+   [dsp] 7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+   [dsp] 9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+   [dsp] tools: 8 repo-only tools already current in /home/app/s90 (md5)
+   [dsp]   (--local: HERE is /home/app/selftest ON THE UNIT, so these md5s prove the stage matches THAT DEP
+   [dsp] -- 2026-09-27T23:22:05Z stage_setup end
+   [dsp] -- 2026-09-27T23:22:05Z boot_pair start
+   [dsp]  10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+   [dsp] CHIP_ID verified: chip 1 = 1, chip 2 = 2
+   [dsp] --- config cycle 2 chip 1 ---
+   [dsp] wrote 53 registers to chip 1 (CS GPIO6)
+   [dsp] --- config cycle 2 chip 2 ---
+   [dsp] wrote 6 registers to chip 2 (CS GPIO24)
+   [dsp] --- inter-chip link gate (s89_signbit, exit 0) ---
+   [dsp]   lane 0 (SPORT 0)  MAIN L/R    sent bit31  37/ 64 (distinct 62)   received bit31  44/ 64 (distinct 55)
+   [dsp]   lane 1 (SPORT 1)  codec ret   sent bit31  27/ 64 (distinct 63)   received bit31  29/ 64 (distinct 64)
+   [dsp]   VERDICT lane 0 (SPORT 0)  MAIN L/R   CLEAN
+   [dsp]   VERDICT lane 1 (SPORT 1)  codec ret  CLEAN
+   [dsp] OVERALL: CLEAN
+   [dsp] -- 2026-09-27T23:22:13Z boot_pair end
+   [dsp] DR1 ...
+   [dsp] AUTO group A3 - audio processor reset, held - 7 s gone, about 73 s left
+   [dsp] -- 2026-09-27T23:22:16Z DR1 took 3.6 s
+   [dsp]   DR1       PASS     FRAME_COUNT 6870 -> 9602 advancing; after !RST_D (GPIO16) low 200 ms: None -> None
+   [dsp] DR2 ...
+   [dsp] AUTO group A3 - audio processor reset, released - 11 s gone, about 62 s left
+   [dsp] -- 2026-09-27T23:22:25Z DR2 took 9.2 s
+   [dsp]   DR2       PASS     BOOT_STAGE 7/7, BUILD_ID 0x20260812/0x20260812, 31 lanes CARRYING
+   [dsp] DY1-RDY1 ...
+   [dsp] AUTO group A3 - audio processor A ready line - 20 s gone, about 53 s left
+   [dsp] -- 2026-09-27T23:22:25Z DY1-RDY1 took 0.0 s
+   [dsp]   DY1-RDY1  PASS     CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+   [dsp] DY1-RDY2 ...
+   [dsp] AUTO group A3 - audio processor B ready line - 20 s gone, about 46 s left
+   [dsp] -- 2026-09-27T23:22:25Z DY1-RDY2 took 0.0 s
+   [dsp]   DY1-RDY2  PASS     CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+   [dsp] DC1-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, asserted - 20 s gone, about 46 s left
+   [dsp] -- 2026-09-27T23:22:26Z DC1-CS1 took 0.3 s
+   [dsp]   DC1-CS1   PASS     CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812
+   [dsp] DC1-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, asserted - 20 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:26Z DC1-CS2 took 0.3 s
+   [dsp]   DC1-CS2   PASS     CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812
+   [dsp] DC1-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, asserted - 21 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:26Z DC1-CS6 took 0.0 s
+   [dsp]   DC1-CS6   NO DATA  CS6 reaches no fitted part
+   [dsp] DC1-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, asserted - 21 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:26Z DC1-CS7 took 0.0 s
+   [dsp]   DC1-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+   [dsp] DC1-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, asserted - 21 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:26Z DC1-CS8 took 0.0 s
+   [dsp]   DC1-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+   [dsp] DC2-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, answered - 21 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:27Z DC2-CS1 took 0.6 s
+   [dsp]   DC2-CS1   PASS     CS1: CHIP_ID 1 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+   [dsp] DC2-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, answered - 21 s gone, about 45 s left
+   [dsp] -- 2026-09-27T23:22:27Z DC2-CS2 took 0.6 s
+   [dsp]   DC2-CS2   PASS     CS2: CHIP_ID 2 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+   [dsp] DC2-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, answered - 22 s gone, about 44 s left
+   [dsp] -- 2026-09-27T23:22:27Z DC2-CS6 took 0.0 s
+   [dsp]   DC2-CS6   NO DATA  CS6 reaches no fitted part
+   [dsp] DC2-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, answered - 22 s gone, about 44 s left
+   [dsp] -- 2026-09-27T23:22:27Z DC2-CS7 took 0.0 s
+   [dsp]   DC2-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+   [dsp] DC2-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, answered - 22 s gone, about 44 s left
+   [dsp] -- 2026-09-27T23:22:27Z DC2-CS8 took 0.0 s
+   [dsp]   DC2-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+   [dsp] AS-DSPA ...
+   [dsp] AUTO group A4 - audio processor A - 22 s gone, about 44 s left
+   [dsp] -- 2026-09-27T23:22:30Z AS-DSPA took 2.5 s
+   [dsp]   AS-DSPA   PASS     CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 15407->21495 (3000 blocks/s), 28/30 lane
+   [dsp] AS-DSPB ...
+   [dsp] AUTO group A4 - audio processor B - 24 s gone, about 40 s left
+   [dsp] -- 2026-09-27T23:22:31Z AS-DSPB took 0.9 s
+   [dsp]   AS-DSPB   PASS     CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 18259->27391 (3000 blocks/s)
+   [dsp] AS-CPLD ...
+   [dsp] AUTO group A4 - clock master - 25 s gone, about 38 s left
+   [dsp] -- 2026-09-27T23:22:35Z AS-CPLD took 4.0 s
+   [dsp]   AS-CPLD   NO DATA  design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 12 s: chip1 0 chip2 0
+   [dsp] -- 2026-09-27T23:22:35Z rails ensure_pair start
+   [dsp] -- 2026-09-27T23:22:36Z rails ensure_pair end (booted=False)
+   [dsp] FB80 FFFFFD00
+   [dsp]     c2 words FFFFFC20 FFFFFE10 FFFFF7F0 00000790 00000550 00000470 00000100 FFFFFC30
+   [dsp]   set 0 MAIN_R  c1  -101.21 dBFS  c2  -101.09 dBFS  delta   +0.12
+   [dsp]   set 1 MAIN_R  c1  -101.57 dBFS  c2   -99.78 dBFS  delta   +1.79
+   [dsp]     c1 words FFFFFFC0 FFFFF740 FFFFFE10 FFFFFA80 FFFFFF00 00000300 000001E0 00000430
+   [dsp]     c2 words FFFFF9D0 00000320 FFFFFFF0 00000680 00000080 FFFFF540 FFFFFCC0 FFFFFF60
+   [dsp] -- 2026-09-27T23:22:36Z rails_up start
+   [dsp] AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it once, at the end)
+   [dsp] -- 2026-09-27T23:22:36Z rails_up end
+   [dsp] AS-ADC ...
+   [dsp] AUTO group A5 - input converters - 31 s gone, about 23 s left
+   [dsp] -- 2026-09-27T23:22:38Z AS-ADC took 1.6 s
+   [dsp]   AS-ADC    PASS     lane 0 (U15): 8/8 CARRYING, rms -117.3..-114.0 dBFS; lane 1 (U39): 8/8 CARRYING, rms -111.0..-94
+   [dsp] AS-DAC ...
+   [dsp] AUTO group A5 - output converters - 32 s gone, about 21 s left
+   [dsp] -- 2026-09-27T23:22:38Z AS-DAC took 0.0 s
+   [dsp]   AS-DAC    NO DATA  retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and
+   [dsp] AS-PWR ...
+   [dsp] AUTO group A4 - power processor - 32 s gone, about 17 s left
+   [dsp] -- 2026-09-27T23:22:38Z AS-PWR took 0.0 s
+   [dsp]   AS-PWR    NO DATA  no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi
+   [dsp] AL1 ...
+   [dsp] AUTO group A5 - speaker to microphone loop - 32 s gone, about 17 s left
+   .. hands off: holding the next button while the speaker and the panel microphone is checked (up to 17 s)
+   [dsp] -- 2026-09-27T23:22:38Z AL1 codec_init start
+   [dsp] -- 2026-09-27T23:22:39Z AL1 codec_init end
+   [dsp] -- 2026-09-27T23:22:39Z AL1 ensure_pair start
+   [dsp] -- 2026-09-27T23:22:39Z AL1 ensure_pair end (booted=False)
+   [dsp] -- 2026-09-27T23:22:39Z AL1 staged tools start
+   [dsp] -- 2026-09-27T23:22:40Z AL1 staged tools end
+   [dsp] -- 2026-09-27T23:22:40Z AL1 rxscan start
+   [dsp] -- 2026-09-27T23:22:40Z AL1 rxscan end
+   [dsp] -- 2026-09-27T23:22:40Z AL1 stimulus check start
+   [dsp] -- 2026-09-27T23:22:40Z AL1 stimulus check end
+   [dsp] -- 2026-09-27T23:22:40Z AL1 baseline start
+   [dsp] -- 2026-09-27T23:22:41Z AL1 tone start
+   [dsp] -- 2026-09-27T23:22:43Z AL1 second baseline start
+   [dsp] -- 2026-09-27T23:22:44Z AL1 measure end
+   [dsp] -- 2026-09-27T23:22:44Z AL1 took 6.7 s
+   [dsp]   AL1       PASS     PASS base -46.3 tone -29.7 SNR 16.6 dB THD -24.9 dB 5.66%
+   [dsp] -- 2026-09-27T23:22:44Z handback start
+   [dsp] --- handback ---
+   [dsp] speaker path: already torn down by AL1 (SILENT, live 3.82 s)
+   [dsp] SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 00 E0 FE 00 00 00 00 00 00 08 83 20 00 00 00 00 00 E0 FE 00 00 00 00 00 00
+   [dsp] CS_M: 27: op -- pd | hi // GPIO27 = output
+   [dsp] AN_EN: 26: op -- pd | lo at entry, RAISED this session, LEFT UP (--al1-keep-rails) -> 26: op -- pd | hi // GPIO26 = output
+   [dsp] matrix-app: left stopped (--no-app-restart); the test display owns the screen
+   [dsp] MCU verify (whole log): not read -- the app was not restarted
+   [dsp] -- 2026-09-27T23:22:45Z handback end
+   [dsp] TEST       VERDICT  MEASURED
+   [dsp] ------------------------------------------------------------------------------
+   [dsp] AL1        PASS    
+   [dsp] AS-ADC     PASS    
+   [dsp] AS-CPLD    NO DATA 
+   [dsp] AS-DAC     NO DATA 
+   [dsp] AS-DSPA    PASS    
+   [dsp] AS-DSPB    PASS    
+   [dsp] AS-PWR     NO DATA 
+   [dsp] DC1-CS1    PASS    
+   [dsp] DC1-CS2    PASS    
+   [dsp] DC1-CS6    NO DATA 
+   [dsp] DC1-CS7    NO DATA 
+   [dsp] DC1-CS8    NO DATA 
+   [dsp] DC2-CS1    PASS    
+   [dsp] DC2-CS2    PASS    
+   [dsp] DC2-CS6    NO DATA 
+   [dsp] DC2-CS7    NO DATA 
+   [dsp] DC2-CS8    NO DATA 
+   [dsp] DR1        PASS    
+   [dsp] DR2        PASS    
+   [dsp] DY1-RDY1   PASS    
+   [dsp] DY1-RDY2   PASS    
+   [dsp] ------------------------------------------------------------------------------
+   [dsp] rows:  15 PASS / 0 FAIL / 10 NO DATA  (25 rows)
+   [dsp] items: 12 PASS / 0 FAIL / 7 NO DATA  (19 of 36 workbook rows covered)
+   [dsp] TEST        SECONDS
+   [dsp] --------------------
+   [dsp] DR2             9.2
+   [dsp] AL1             6.7
+   [dsp] AS-CPLD         4.0
+   [dsp] DR1             3.6
+   [dsp] AS-DSPA         2.5
+   [dsp] AS-ADC          1.6
+   [dsp] AS-DSPB         0.9
+   [dsp] DC2-CS1         0.6
+   [dsp] DC2-CS2         0.6
+   [dsp] DC1-CS2         0.3
+   [dsp] DC1-CS1         0.3
+   [dsp] AS-PWR          0.0
+   [dsp] DY1-RDY1        0.0
+   [dsp] DY1-RDY2        0.0
+   [dsp] DC1-CS6         0.0
+   [dsp] DC2-CS6         0.0
+   [dsp] DC2-CS7         0.0
+   [dsp] DC1-CS7         0.0
+   [dsp] DC2-CS8         0.0
+   [dsp] DC1-CS8         0.0
+   [dsp] AS-DAC          0.0
+   [dsp] total          30.2  (the tests alone; staging, boots and the handback are outside them)
+   [dsp] appended 25 rows to /home/app/selftest/item-status.csv
+   [dsp] raw reads: /home/app/selftest/logs/2026-09-27T232205Z
+   [dsp] auto set (the audio processor checks) finished in 39 s
+   [net] 
+   [net] --- auto set: 7 tests over 16 rows, about 95 s ---
+   [net] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section A --only HD0-1,AS-CM4,NW1,NW2,NW3,NW4,HD-PWR --no-app-restart --stage /home/app/s90
+   [net] D24 self-test, section 1 -- sections A -- 2026-09-27T23:22:45Z
+   [net] HD0-1 ...
+   [net] AUTO group A1 - screen link - 0 s gone, about 95 s left
+   [net] -- 2026-09-27T23:22:45Z HD0-1 took 0.1 s
+   [net]   HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+   [net] AS-CM4 ...
+   [net] AUTO group A1 - compute module - 0 s gone, about 93 s left
+   [net] -- 2026-09-27T23:22:45Z AS-CM4 took 0.1 s
+   [net]   AS-CM4    PASS     throttled=0x0 temp=48.7 C core=0.9100V app=d24-testui
+   [net] NW1 ...
+   [net] AUTO group A1 - network link - 0 s gone, about 93 s left
+   [net] -- 2026-09-27T23:22:45Z NW1 took 0.0 s
+   [net]   NW1       PASS     Link detected: yes, Speed: 1000Mb/s, Duplex: Full, carrier=1
+   [net] NW3 ...
+   [net] AUTO group A1 - network packet loss - 0 s gone, about 93 s left
+   .. the analog rails are down (raised earlier in this session, lowered here -- this station closes it)
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+   .. waiting for the network checks to finish
+   [net] -- 2026-09-27T23:23:59Z NW3 took 73.5 s
+   [net]   NW3       FAIL     bench host 192.168.1.211: worst 1.0% loss over 3 passes [1.0, 0.0, 0.0], max RTT 0.556 ms; gatew
+   [net] NW4 ...
+   [net] AUTO group A1 - network throughput - 74 s gone, about 30 s left
+   [net] -- 2026-09-27T23:23:59Z NW4 took 0.0 s
+   [net] Traceback (most recent call last):
+   [net]   File "/home/app/selftest/d24_selftest.py", line 4104, in <module>
+   [net]     main()
+   [net]     ~~~~^^
+   [net]   File "/home/app/selftest/d24_selftest.py", line 3974, in main
+   [net]     r.run('NW4', lambda: t_nw4(r))
+   [net]     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+   [net]   File "/home/app/selftest/d24_selftest.py", line 498, in run
+   [net]     self.record(test, v, m, lim, ev)
+   [net]     ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+   [net]   File "/home/app/selftest/d24_selftest.py", line 441, in record
+   [net]     assert verdict in (PASS, FAIL, NODATA), verdict
+   [net]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   [net] AssertionError: NOT TESTED
+   [net] 
+   [net] !! auto set (the network checks) DIED (exit 1) after 74.2 s -- 16 rows marked NO DATA, never PASS
+   .. the analog rails are down (raised earlier in this session, lowered here -- this station closes it)
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+   .. paused at step 0 of the operator set -- the next START resumes here
+PAUSED
