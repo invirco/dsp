@@ -1,5 +1,5 @@
 {
-  "contract": "defs-v2026.09.27.1",
+  "contract": "defs-v2026.09.27.3",
   "source": "defs/products/d24/inputs.csv",
   "patch": [
     3,

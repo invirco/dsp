@@ -738,6 +738,7 @@ Sys001SelectedAux001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no D
 Sys001SelectedChan001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001Skin001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001SwLeft001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
+Sys001SwTalk001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001SwUpd001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001Test001,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
 Sys001Test002,mcu-only,MCU-only cell family (mcu-only-prefixes.txt); no DSP address expected
