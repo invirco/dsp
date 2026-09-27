@@ -1,0 +1,58 @@
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. the analog rails are up
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 15 lanes, -114.5 to -88.1 dBFS
+   .. the TRS outputs - 6 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch MONITOR L to MIC 8  (lead K2)
+   Patch MONITOR L to MIC 8.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P40 skipped: awaiting part
+
+== PATCH: Patch MONITOR R to MIC 8  (lead K2)
+   Patch MONITOR R to MIC 8.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P41 skipped: awaiting part
+
+== PATCH: Patch AUX A 1-2 to MIC 8  (lead K2)
+   Patch AUX A 1-2 to MIC 8.
+   3 checks on this one patch -- leave the lead in until the next instruction.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P42 skipped: awaiting part
+
+== PATCH: Patch AUX A 3-4 to MIC 8  (lead K2)
+   Patch AUX A 3-4 to MIC 8.
+   3 checks on this one patch -- leave the lead in until the next instruction.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P43 skipped: awaiting part
+
+== PATCH: Patch AUX A 5-6 to MIC 8  (lead K2)
+   Patch AUX A 5-6 to MIC 8.
+   3 checks on this one patch -- leave the lead in until the next instruction.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P44 skipped: awaiting part
+
+== PATCH: Patch AUX A 7-8 to MIC 8  (lead K2)
+   Patch AUX A 7-8 to MIC 8.
+   3 checks on this one patch -- leave the lead in until the next instruction.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P45 skipped: awaiting part
+   .. the analog rails are down
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+wrote /home/app/s127/runB/patch-results.csv
+
+  lead  patches  checks   machine s   per patch   hand s @ 5.8 s
+  --------------------------------------------------------------
+  --------------------------------------------------------------
+  all         0       0         0.0        0.00             0
+
+  projected pass: 0 s hands (0 s moving the lead + 0 s pressing ENTER) + 0 s machine = 0.0 min

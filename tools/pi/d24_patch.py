@@ -166,7 +166,21 @@ PREARM_AGREE_DB = 0.5
 PREARM_STABLE_DB = 0.5
 
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
+IGNORED = 'IGNORED'
 MISPATCH = 'MISPATCH'
+
+# The ONLY button that ends a pass. S127: `skip` and `ignore` used to sit in
+# this set beside `pause`, so the one button an operator reaches for when a
+# patch will not pass ended the whole walk, wrote a report of the handful of
+# patches done so far, and put "Press START to run the test again" on the
+# glass -- and START then began at patch 1 of 59 and overwrote that report.
+# PW saw that as "the test restarted after a single fail". A fail, a skip and
+# an ignore are all about ONE PATCH and the walk carries on.
+STOP_BUTTONS = ('pause',)
+# The buttons that are a decision about the patch that is up, and what each
+# one records. Anything else the glass sends back is not a decision this
+# station understands, and it re-offers the patch rather than ending the run.
+PATCH_DECISIONS = {'skip': SKIPPED, 'ignore': IGNORED}
 
 # The factory-test pair, the same constants d24_selftest.py asserts against.
 FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s122'
@@ -1420,6 +1434,10 @@ class Station:
         self.where = {}          # patch id -> (n of N, lead n of M, lead)
         self.passed = 0
         self.failed = 0
+        # Patches the operator moved past: SKIP or IGNORE. Counted apart from
+        # both tallies so the end screen cannot say "all 59 passed" about a
+        # pass that measured 55 of them (S127).
+        self.skipped_n = 0
         self.failures = []
         self.paused = False
         self._lead_line = ''     # folded into the next instruction, then cleared
@@ -1953,11 +1971,29 @@ class Station:
                 while raw is None:
                     how, ans, dt = self.detect(rows, prep, tok)
                     t_hand += dt
-                    if how == 'glass' and ans.get('button') in (
-                            'pause', 'skip', 'ignore'):
+                    if how == 'glass' and ans.get('button') in STOP_BUTTONS:
                         self.p.done(tok)
                         self.finish_early(rows, ans)
                         return self.rows_out
+                    if how == 'glass' and ans.get('button') in PATCH_DECISIONS:
+                        # ONE PATCH, NOT THE PASS (S127).
+                        self.p.done(tok)
+                        self.record(self.decided(rows, ans))
+                        break
+                    if how == 'glass':
+                        # A button this station has no rule for is not a reason
+                        # to end a pass. Say so in the log and offer the patch
+                        # again -- and the offer has to be a NEW dialog, because
+                        # `poll` matches on the posted sequence number and the
+                        # answer that got us here is still on disk: re-using the
+                        # old token would read it again on the next breath and
+                        # spin.
+                        self.log('%s: the screen sent %r, which is not one of '
+                                 'this step\'s answers -- asking again'
+                                 % (pid, ans.get('button')))
+                        self.p.done(tok)
+                        tok = self.p.connect(pid, rows, self.g)
+                        continue
                     if how in ('rise', 'drop', 'enter-ok'):
                         t1 = now()
                         self.live.set(state=LV.CHECKING)
@@ -2136,10 +2172,24 @@ class Station:
                                   lead_line='', extra='', status=LV.LOOKING)
                 how, ans, _dt = self.detect([row], prep, tok)
                 self.p.done(tok)
-                if how == 'glass' and ans.get('button') in ('pause', 'skip',
-                                                            'ignore'):
+                if how == 'glass' and ans.get('button') in STOP_BUTTONS:
                     self.finish_early([row], ans)
                     return 'stopped'
+                if how == 'glass' and ans.get('button') in PATCH_DECISIONS:
+                    # SKIP while the loop is being found means "not this
+                    # socket", not "not this unit" (S127). The walk moves to
+                    # the next candidate exactly as a deaf input does; what it
+                    # must not do is end the pass before a single patch has
+                    # been measured.
+                    self.log('%s %s while the loop was being found: trying the '
+                             'next socket'
+                             % (name, PATCH_DECISIONS[ans['button']].lower()))
+                    self.dead_in[strip] = ('the operator moved past this one '
+                                           'while the loop was being found')
+                    misses += 1
+                    if misses >= MAX_DEAF_IN_A_ROW:
+                        break
+                    continue
                 if how in ('rise', 'drop', 'enter-ok'):
                     self.ref_in = (name, strip)
                     self.ref_out = (out, drive)
@@ -2241,11 +2291,20 @@ class Station:
         if not scored:
             return
         verdicts = {s['verdict'] for s in scored}
+        # A PATCH NOBODY MEASURED IS NOT A FAIL AND NOT A DEAD SOCKET (S127).
+        # SKIP and IGNORE say the operator could not make this patch; they say
+        # nothing about the unit, so they neither condemn the parking output
+        # nor go in the failure list the glass shows. They are still in the
+        # results CSV with the operator's reason, which is where the one report
+        # at the end reads them from.
+        undecided = verdicts <= {SKIPPED, IGNORED}
         # WHICH OUTPUTS PASSED (S126, ruling c). The parked kit hangs two leads
         # on XLR outputs, and the ruling asks for one re-park instruction if a
         # parking output turns out dead. That needs the walk's own verdicts,
         # which is this -- taken from the scored rows rather than re-measured.
-        if scored[0]['lead'] == 'K1' and scored[0]['out']:
+        if undecided:
+            pass
+        elif scored[0]['lead'] == 'K1' and scored[0]['out']:
             what = (scored[0]['out'], self._drive_of(scored[0]['patch']))
             if verdicts <= {PASS}:
                 if what not in self.out_ok:
@@ -2254,7 +2313,12 @@ class Station:
                 self.out_bad.add(scored[0]['out'])
         r = scored[0]
         name = LV.patch_words(dict(out=r['out'], **{'in': r['in']}))
-        if verdicts <= {PASS}:
+        if undecided:
+            self.skipped_n += 1
+            self.live.set(state=LV.VERDICT, banner='NOT TESTED',
+                          banner_line=name, action='', passed=self.passed,
+                          failed=self.failed)
+        elif verdicts <= {PASS}:
             self.passed += 1
             self.live.set(state=LV.VERDICT, banner='PASS', banner_line=name,
                           action='', passed=self.passed, failed=self.failed)
@@ -2264,10 +2328,6 @@ class Station:
             self.live.set(state=LV.VERDICT, banner='FAIL', banner_line=name,
                           action=LV.action_failed(), passed=self.passed,
                           failed=self.failed, failures=list(self.failures))
-
-    def paused_by_screen(self):
-        """The one button, polled wherever the loop already polls."""
-        return self.live.command() == 'pause'
 
     def next_patch(self, seq, bi, pi):
         """The next patch IN THE SAME BLOCK. A block boundary is a lead change,
@@ -2351,6 +2411,29 @@ class Station:
                      h_db=None, h_deg=None, thd_db=None, noise_db=None,
                      rms_db=None) for r in rows]
 
+    def decided(self, rows, ans):
+        """SKIP or IGNORE on the patch that is up. One patch, not the pass.
+
+        PW's ruling of 2026-09-27: a fail is logged, the walk carries on, and
+        every fail is in the one report at the end. SKIP and IGNORE are the
+        operator's half of that -- "this one cannot be made, move on" -- so
+        they record the patch with the operator's own reason and return.
+
+        The reason comes back from the dialog and is the operator's word for
+        it, so it is written down as given rather than re-worded here.
+        """
+        button = ans.get('button')
+        verdict = PATCH_DECISIONS[button]
+        reason = (ans.get('reason') or 'other').strip()
+        self.log('%s %s: %s' % (rows[0]['patch'], verdict.lower(), reason))
+        why = '%s by the operator: %s' % (
+            'skipped' if verdict == SKIPPED else 'ignored', reason)
+        return [dict(path=r['path'], patch=r['patch'], lead=r['lead'],
+                     out=r['out'], **{'in': r['in']}, sub=r['sub'],
+                     rows=r['rows'], verdict=verdict, why=why, detail='',
+                     h_db=None, h_deg=None, thd_db=None, noise_db=None,
+                     rms_db=None) for r in rows]
+
     def check_parks(self):
         """RULING c's one re-park instruction, emitted once per dead socket.
 
@@ -2404,7 +2487,8 @@ class Station:
         self.teardown()
         self.live.set(state=LV.FINISHED, instruction='', lead_line='',
                       extra='',
-                      status=LV.finished_words(self.passed, self.failed),
+                      status=LV.finished_words(self.passed, self.failed,
+                                               self.skipped_n),
                       action=LV.HANDOVER, passed=self.passed,
                       failed=self.failed, failures=list(self.failures),
                       n=self.live.d.get('total', 0))
@@ -2603,7 +2687,18 @@ class World:
         swap:<jack>      that stereo jack has tip and ring crossed
         nonull:<jack>    its two channels are 4 dB apart, so the null fails
         edge:<in>        the phase on that lane lands on the decision boundary
+
+    And three that are the OPERATOR and not the unit (S127). PW's three
+    defects of 2026-09-27 were all about what a press does, so the dry run has
+    to be able to press:
+
+        skip:<in>        the operator presses SKIP on that patch
+        ignore:<in>      ... IGNORE
+        pause:<in>       ... PAUSE, which is the one press that ends the pass
     """
+
+    # The operator's own buttons, and the fault name that presses each.
+    PRESSES = ('skip', 'ignore', 'pause')
 
     REF_PHASE = 42.0             # this unit's loop phase at 1 kHz, arbitrary
     thd = -72.0
@@ -2645,6 +2740,7 @@ class World:
         self.plugged_out = None
         self.plugged_lanes = set()
         self.mispatched = set()
+        self.pressed = set()     # (button, patch) -- a press happens once
 
     def plug(self, out_port, in_port, lanes):
         self.plugged_out, self.plugged_in = out_port, in_port
@@ -2765,6 +2861,7 @@ class SimPatcher(ManualPatcher):
         self.log = log
         self.at = None
         self.press_at = None
+        self.pending = None
 
     def connect(self, patch, rows, glass):
         tok = ManualPatcher.connect(self, patch, rows, glass)
@@ -2777,6 +2874,19 @@ class SimPatcher(ManualPatcher):
         return tok
 
     def poll(self, token):
+        # THE OPERATOR'S BUTTONS, ONCE EACH (S127). A press is answered as soon
+        # as the instruction is up -- a worker who can see the patch cannot be
+        # made does not wait for their own hand -- and only once per patch, so
+        # SKIP moves the walk on instead of answering the next prompt too.
+        if self.pending:
+            inp, patch = self.pending[1], self.pending[3]
+            for b in World.PRESSES:
+                if ('%s:%s' % (b, inp) in self.w.faults
+                        and (b, patch) not in self.w.pressed):
+                    self.w.pressed.add((b, patch))
+                    self.at = self.press_at = None
+                    self.log('the operator presses %s on %s' % (b.upper(), inp))
+                    return dict(button=b, reason='awaiting part')
         if self.at is not None and now() >= self.at:
             out, inp, lanes, patch = self.pending
             key = 'mispatch:%s' % inp
@@ -2800,6 +2910,138 @@ class SimPatcher(ManualPatcher):
 RESULT_COLUMNS = ('path', 'patch', 'lead', 'out', 'in', 'sub', 'rows',
                   'verdict', 'why', 'detail', 'h_db', 'h_deg', 'thd_db',
                   'noise_db', 'rms_db')
+
+
+# ---------------------------------------------------------------------------
+# ONE RUNNER PER START
+# ---------------------------------------------------------------------------
+class RunLock:
+    """One file, one pid, and a refusal that says so in plain words.
+
+    WHY IT IS HERE AND NOT IN THE APP. The display's START for this station
+    runs `systemctl reset-failed d24-factory` and then `systemd-run
+    --unit=d24-factory`, and `reset-failed` is not a guard: it CLEARS the
+    previous unit's state so a second press starts a second runner. On
+    2026-09-26 that put two of them on the unit at once and the second died on
+    the GPIO the first was holding -- a `gpiod ... Device or resource busy`
+    traceback in factory.log, which is a stack trace where a sentence belonged.
+    PW's ruling of 2026-09-27: exactly one runner per START, enforced at the
+    RUNNER, because the runner is the thing that knows.
+
+    A lock whose pid is gone is STALE and is taken over, with a line saying so:
+    a unit that has been power-cycled mid-run must not need a person to delete
+    a file before the test will run again.
+    """
+
+    NAME = 'runner.lock'
+
+    def __init__(self, dirpath, argv=None):
+        self.path = os.path.join(dirpath, self.NAME)
+        self.argv = list(argv if argv is not None else sys.argv)
+        self.held = False
+
+    @staticmethod
+    def alive(pid):
+        try:
+            os.kill(int(pid), 0)
+        except (OSError, TypeError, ValueError):
+            return False
+        return True
+
+    def read(self):
+        try:
+            with open(self.path) as fh:
+                return json.load(fh)
+        except (OSError, ValueError):
+            return None
+
+    def take(self, log=None):
+        """True if this process now owns the run; False if another one does.
+
+        The write is a whole file moved into place, so a reader never sees half
+        a lock, and the pid is checked BEFORE the refusal: a lock left by a
+        runner that is no longer there is not a reason to refuse anybody.
+        """
+        held = self.read()
+        if held and held.get('pid') != os.getpid() and self.alive(held.get('pid')):
+            self.other = held
+            return False
+        if held and log:
+            log('a previous run left its marker behind and is no longer '
+                'running: taking over')
+        d = dict(pid=os.getpid(), started=time.time(),
+                 stamp=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                 argv=self.argv)
+        os.makedirs(os.path.dirname(self.path) or '.', exist_ok=True)
+        tmp = self.path + '.tmp'
+        with open(tmp, 'w') as fh:
+            json.dump(d, fh)
+        os.replace(tmp, self.path)
+        self.held = True
+        return True
+
+    def release(self):
+        """Only ever removes THIS process's lock."""
+        if not self.held:
+            return
+        held = self.read()
+        if held and held.get('pid') != os.getpid():
+            return
+        try:
+            os.remove(self.path)
+        except OSError:
+            pass
+        self.held = False
+
+
+def result_key(r):
+    """What makes two result rows the same measurement.
+
+    `path` is the list's own row number and is stable across runs of the same
+    list; `patch` and `sub` name the connection and which check of it. The
+    three together are what a re-run supersedes.
+    """
+    return (str(r.get('path', '')), str(r.get('patch', '')),
+            str(r.get('sub', '')))
+
+
+def merge_results(path, rows):
+    """This run's rows over whatever the last run in this directory left.
+
+    WHY A MERGE AND NOT A WRITE. On 2026-09-27 PW's pass stopped part way, PW
+    pressed START, and the second run OVERWROTE the report: eight measured
+    patches became five, and the eight were gone. "Put every fail in the one
+    report at the end" cannot survive a file that only ever holds the last
+    attempt. So the run's own rows are also kept under their own name, and the
+    file the report is read from carries the whole session -- the newest verdict
+    for every patch anybody has reached.
+
+    A row this run did not reach keeps the verdict it already had; a row this
+    run DID reach replaces it, because the newer measurement is the true one.
+    """
+    keep = []
+    seen = set(result_key(r) for r in rows)
+    try:
+        for old in read_csv(path):
+            if result_key(old) not in seen:
+                keep.append(old)
+    except (OSError, ValueError):
+        pass
+    if rows:
+        base = os.path.join(os.path.dirname(path) or '.', 'patch-results-%s'
+                            % time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()))
+        mine, n = base + '.csv', 0
+        while os.path.exists(mine):          # two runs inside one second
+            n += 1
+            mine = '%s-%d.csv' % (base, n)
+        write_results(mine, rows)
+    # IN LIST ORDER, not in the order the session happened to reach them: this
+    # is the file a person reads the pass off.
+    both = sorted(keep + list(rows),
+                  key=lambda r: (int(r['path']) if str(r.get('path',
+                                 '')).isdigit() else 1 << 30,
+                                 str(r.get('sub', ''))))
+    return write_results(path, both)
 
 
 def write_results(path, rows):
@@ -3194,50 +3436,326 @@ def cmd_screens(a, plist):
     return 0 if shots else 1
 
 
+def rails_are_up():
+    """AN_EN, read off the pin. One shell call, no DSP link, no side effect."""
+    import subprocess
+    try:
+        out = subprocess.run(['pinctrl', 'get', str(AN_EN_GPIO)],
+                             capture_output=True, text=True,
+                             timeout=20).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None                      # cannot tell, so do not claim either
+    return 'hi' in out
+
+
+def cmd_guard(a):
+    """The other half of liveness: a run that stopped without saying so.
+
+    THE HEARTBEAT IS THE DEFINITION OF LIVE (S123), and until S127 only one side
+    of that was enforced. A runner killed outright -- SIGKILL, an OOM, the mains
+    -- cannot tear anything down or write anything, so it leaves the last
+    instruction on the glass with a heartbeat that stops and THE RAILS UP. On
+    2026-09-27 PW watched that for eight minutes and called it "froze in factory
+    test mode". Nothing was going to change it, because the only thing that
+    writes that file was dead. Measured on the part, that state is: AN_EN high,
+    `live.json` frozen on "Plug MONITOR L into MIC 8, then press ENTER.", and a
+    lock naming a pid that no longer exists.
+
+    So this is the one check that needs no run behind it. In order, because the
+    order is the whole of it:
+
+      1. does a live pid hold the lock?  -> a run is going, touch nothing;
+      2. has the screen already said the run ended?  -> only the rails are
+         still worth checking;
+      3. otherwise, has the heartbeat stopped for longer than the slack?  -> the
+         run is gone: say so on the glass in one plain sentence;
+      4. clear the dead lock, and put the rails down if they are up.
+
+    Idempotent, and it never touches a live run. Safe from a timer, from the
+    bench, or by hand. PW's order is kept: the rails go down through the
+    station's own teardown, so there is not a second piece of code in this tree
+    that knows it.
+    """
+    live_dir = a.live or a.dir
+    lock = RunLock(a.dir)
+    held = lock.read()
+    owner = held.get('pid') if held else None
+    if owner is not None and RunLock.alive(owner):
+        print('a run is going (pid %s, started %s): nothing to do'
+              % (owner, held.get('stamp')), flush=True)
+        return 0
+
+    try:
+        with open(os.path.join(live_dir, LV.LIVE_NAME)) as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        d = None
+    up = rails_are_up()
+
+    if d is None and held is None:
+        if up:
+            print('no run, no screen and no lock -- BUT THE RAILS ARE UP and '
+                  'nothing owns them', flush=True)
+        else:
+            print('no run and no screen: nothing to do', flush=True)
+            return 0
+        gone = False
+    elif d is not None and d.get('state') in (LV.PAUSED, LV.FINISHED):
+        # A run that ended tidily has already torn down and its last word on
+        # the glass is deliberate. The only thing left worth checking is whether
+        # the rails really are down.
+        gone = False
+        if not up:
+            print('the last run ended, its screen says so and the rails are '
+                  'down: nothing to do', flush=True)
+            lock_cleared = clear_stale_lock(lock, held)
+            return 0 if not lock_cleared else 0
+        print('the last run ended and its screen says so, BUT THE RAILS ARE UP '
+              'and nothing owns them', flush=True)
+    else:
+        age = None if d is None else time.time() - float(d.get('heartbeat') or 0)
+        stale_after = max(LV.LIVE_STALE_S, a.stale_after)
+        if age is not None and age < stale_after:
+            print('the screen was written %.1f s ago and nothing holds the '
+                  'lock: leaving it alone for now (the slack is %.0f s)'
+                  % (age, stale_after), flush=True)
+            return 0
+        gone = True
+        print('the screen has not been written for %s and no runner holds the '
+              'lock: the run is gone'
+              % ('%.0f s' % age if age is not None else 'a while'), flush=True)
+        live = LV.Live(live_dir, run='patch', enabled=True)
+        if d:
+            live.d.update(dict((k, d[k])
+                              for k in ('n', 'total', 'passed', 'failed',
+                                        'failures') if k in d))
+        live.set(state=LV.PAUSED, instruction='', lead_line='', extra='',
+                 action='',
+                 status='%s %s' % (LV.stopped_words('the test program stopped'),
+                                   LV.RESTART_WORDS))
+
+    clear_stale_lock(lock, held)
+    if up:
+        # THE RAILS, LAST. They are only ever lowered when nothing owns them,
+        # which is what the checks above have just established.
+        an = Analog(enabled=not a.no_analog,
+                    log=lambda t: print('   .. %s' % t, flush=True),
+                    own_rails=True)
+        try:
+            an.down()
+        except Exception as e:
+            print('the rails could not be lowered: %s' % e, flush=True)
+            return 1
+    return 3 if (gone or up) else 0
+
+
+def clear_stale_lock(lock, held):
+    """Remove a lock whose pid is gone. Never removes a live one."""
+    if not held:
+        return False
+    pid = held.get('pid')
+    if pid is not None and RunLock.alive(pid):
+        return False
+    try:
+        os.remove(lock.path)
+    except OSError:
+        return False
+    print('   .. the dead run\'s marker is cleared, so START works again',
+          flush=True)
+    return True
+
+
+def cmd_factory(a):
+    """START on the factory screen = the WHOLE ruled sequence (PW 2026-09-27).
+
+    WHAT WENT WRONG. The armed factory screen has launched THIS file since
+    S123, when the patch walk was the only thing it drove: the app's START
+    builds `python3 d24_patch.py --run --list-dir <factory.json's list> --dir
+    runall --live runall` and runs it as `d24-factory.service`. S126 then built
+    the full ruled order -- the setup pages, the overlap, the panel loops -- in
+    `d24_runall.py`, and nothing re-pointed the armed screen at it. So PW
+    pressed START, got the analog patch walk on its own, and was never asked
+    for the network lead, the USB sticks or the parked kit. PW's ruling:
+    "whatever START the operator presses on the factory screen is the full
+    ruled sequence, setup pages first".
+
+    THE LIST IS NOT TAKEN FROM THE COMMAND LINE HERE, and that is the other
+    half of the ruling ("a quick list must never be the default behind the
+    factory START"). The unit says which list it has, in `list.conf`, exactly
+    as it says which DSP pair it has -- so the sequence is told nothing and
+    `find_list_dir()` reads the unit's own declaration. A `--list-dir` on a
+    factory START is ignored, and the log says so rather than silently
+    honouring it.
+    """
+    sys.path.insert(0, HERE)
+    import d24_runall as RA                          # noqa: E402
+    # ONE RUNNER PER START, on this path too. The app's guard for this unit is
+    # a `systemctl reset-failed`, which CLEARS the last run's state rather than
+    # refusing a second press, so the refusal has to live here.
+    lock = RunLock(a.dir)
+    if not lock.take(log=lambda t: print('   .. %s' % t, flush=True)):
+        other = lock.other
+        print('a run is already going on this unit (pid %s, started %s): this '
+              'START is refused' % (other.get('pid'), other.get('stamp')),
+              flush=True)
+        print(LV.second_start_words(), flush=True)
+        return 2
+    if a.list_dir:
+        print('the factory test reads the unit\'s own list (list.conf), so '
+              '--list-dir %s is ignored here; --patch-only honours it'
+              % a.list_dir, flush=True)
+    # THE TWO --dir ARGUMENTS ARE NOT THE SAME DIRECTORY. This station is
+    # given the GLASS directory (`.../selftest/runall`); RUN ALL is given the
+    # one ABOVE it and appends `runall` itself. Passing one straight through
+    # gives `.../runall/runall`, a screen nothing reads and a report nobody
+    # finds.
+    d = a.dir.rstrip('/')
+    base = os.path.dirname(d) if os.path.basename(d) == 'runall' else d
+    argv = ['--dir', base]
+    if a.symdir != FACTORY_TEST_PAIR_DIR:
+        argv += ['--patch-symdir', a.symdir]
+    if a.no_keyboard:
+        argv.append('--no-keyboard')
+    if a.stdin:
+        argv.append('--stdin')
+    print('the factory test: the whole ruled sequence (%s)'
+          % ' '.join(['d24_runall.py'] + argv), flush=True)
+    try:
+        return RA.main(argv)
+    finally:
+        lock.release()
+
+
 def cmd_run(a, plist):
     sys.path.insert(0, HERE)
     import d24_runall as RA                          # noqa: E402
     import signal
+    # THE LOCK IS TAKEN BEFORE ANYTHING IS OPENED, and that order is the point.
+    # `Unit()` claims the DSP chip-select GPIO, so a second runner used to get
+    # as far as a `Device or resource busy` traceback -- after the first
+    # runner's screen had already been overwritten by the second's. Nothing is
+    # touched until this station knows it is the only one (S127).
+    lock = RunLock(a.dir)
+    if not lock.take(log=lambda t: print('   .. %s' % t, flush=True)):
+        other = lock.other
+        # ONE PLAIN SENTENCE, AND IT GOES NOWHERE THE LIVE RUN IS WRITING.
+        # A refused START must not touch live.json OR progress.txt: the run
+        # that is going owns both, and overwriting either takes the real run's
+        # words off the screen -- which is the very thing a second press must
+        # not do. So the refusal is printed, which lands in the runner's log
+        # and nowhere else.
+        print('a run is already going on this unit (pid %s, started %s): this '
+              'START is refused' % (other.get('pid'), other.get('stamp')),
+              flush=True)
+        print(LV.second_start_words(), flush=True)
+        return 2
+
     glass = RA.Glass(a.dir, stdin=a.stdin)
     live = LV.Live(a.live or a.dir, run='patch',
                    enabled=not a.no_live, confirm=not a.auto_advance)
-    unit = Unit(symdir=a.symdir)
-    patcher = pick_patcher(glass, a.back_end)
-    an = Analog(enabled=not a.no_analog, log=glass.progress,
-                own_rails=a.own_rails)
-    keys = KeyWatch(enabled=not (a.auto_advance or a.no_keyboard),
-                    log=glass.progress)
-    st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
-                 log=glass.progress, blocks=a.block, live=live, analog=an,
-                 auto_advance=a.auto_advance, keys=keys)
-
-    # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
-    # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
-    # up and the chain wherever the last block put it, which is a unit that
-    # goes back on the bench live. The handler tears down and re-raises.
-    def stopped(sig, _frm):
-        try:
-            st.teardown()
-        finally:
-            live.set(state=LV.PAUSED, status='Stopped - the unit is safe.',
-                     action='', failures=list(st.failures))
-        signal.signal(sig, signal.SIG_DFL)
-        os.kill(os.getpid(), sig)
-    for s in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(s, stopped)
-
+    st = None
+    rows = []
+    stopped_why = ''
     try:
+        unit = Unit(symdir=a.symdir)
+        patcher = pick_patcher(glass, a.back_end)
+        an = Analog(enabled=not a.no_analog, log=glass.progress,
+                    own_rails=a.own_rails)
+        keys = KeyWatch(enabled=not (a.auto_advance or a.no_keyboard),
+                        log=glass.progress)
+        st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
+                     log=glass.progress, blocks=a.block, live=live, analog=an,
+                     auto_advance=a.auto_advance, keys=keys)
+
+        # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
+        # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
+        # up and the chain wherever the last block put it, which is a unit that
+        # goes back on the bench live. The handler tears down, writes the report
+        # of what completed, and re-raises.
+        def stopped(sig, _frm):
+            try:
+                st.teardown()
+            finally:
+                end_of_run(a, st, plist, live, lock,
+                           LV.stopped_words('it was stopped'))
+            signal.signal(sig, signal.SIG_DFL)
+            os.kill(os.getpid(), sig)
+        for s in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(s, stopped)
+
         rows = st.run()
+    except BaseException as e:
+        # A CRASHED RUNNER ENDS THE RUN; IT DOES NOT RESTART AND IT DOES NOT
+        # LIE (PW 2026-09-27). Until S127 an exception here skipped the report
+        # entirely and left the last instruction on the glass with the rails
+        # up, so the screen sat in test mode showing a patch nobody was going
+        # to make. The traceback still goes to the log -- an engineer needs it
+        # -- but the unit is safe and the screen says so first.
+        stopped_why = 'the test program stopped'
+        if st is not None:
+            try:
+                st.teardown()
+            except Exception:
+                pass
+            rows = st.rows_out
+        else:
+            # Nothing was built, so there is nothing to tear down -- but the
+            # rails may already be up from the automatic set that handed this
+            # station the unit, and a screen that says a test is running when
+            # none is would be worse than a blank one.
+            try:
+                Analog(enabled=not a.no_analog,
+                       log=glass.progress, own_rails=True).down()
+            except Exception:
+                pass
+        end_of_run(a, st, plist, live, lock, LV.stopped_words(stopped_why))
+        raise
     finally:
         try:
-            st.teardown()
+            if st is not None:
+                st.teardown()
         except Exception:
             pass
-    out = a.out or os.path.join(a.dir, 'patch-results.csv')
-    print('wrote %s' % write_results(out, rows))
-    print_time_table(time_table(st, plist, a.hand), a.hand, plist,
-                     press_s=0.0 if a.auto_advance else a.press)
+    end_of_run(a, st, plist, live, lock)
     return 0
+
+
+def end_of_run(a, st, plist, live, lock, stopped=''):
+    """Everything that has to be true once the walk is over, however it ended.
+
+    Runs once, on every way out, and never raises: this is the code that makes
+    the difference between a unit handed back safe with a report and a unit
+    left on the bench with a stack trace.
+    """
+    if getattr(live, '_s127_ended', False):
+        return
+    live._s127_ended = True
+    rows = st.rows_out if st is not None else []
+    try:
+        out = a.out or os.path.join(a.dir, 'patch-results.csv')
+        print('wrote %s' % merge_results(out, rows), flush=True)
+    except Exception as e:
+        print('the results could not be written: %s' % e, flush=True)
+    if stopped:
+        try:
+            live.set(state=LV.PAUSED, instruction='', lead_line='', extra='',
+                     status='%s %s' % (stopped, LV.RESTART_WORDS),
+                     action='',
+                     passed=getattr(st, 'passed', 0),
+                     failed=getattr(st, 'failed', 0),
+                     failures=list(getattr(st, 'failures', [])))
+        except Exception:
+            pass
+    try:
+        lock.release()
+    except Exception:
+        pass
+    if st is not None and not stopped:
+        try:
+            print_time_table(time_table(st, plist, a.hand), a.hand, plist,
+                             press_s=0.0 if a.auto_advance else a.press)
+        except Exception:
+            pass
 
 
 def main(argv=None):
@@ -3246,7 +3764,25 @@ def main(argv=None):
     ap.add_argument('--list', action='store_true', help='print the plan, stop')
     ap.add_argument('--simulate', action='store_true',
                     help='walk the whole pass with no unit')
-    ap.add_argument('--run', action='store_true', help='the real pass')
+    ap.add_argument('--run', action='store_true',
+                    help='THE FACTORY TEST. Whatever START the operator '
+                         'presses is the whole ruled sequence -- setup pages, '
+                         'panel loops, the analog patch walk -- so --run hands '
+                         'over to RUN ALL (PW 2026-09-27). Use --patch-only '
+                         'for this station on its own')
+    ap.add_argument('--guard', action='store_true',
+                    help='one check, no run: if the lock names a pid that is '
+                         'gone and the screen has stopped beating, say so on '
+                         'the glass and put the rails down. Idempotent, and it '
+                         'never touches a live run')
+    ap.add_argument('--stale-after', type=float, default=15.0,
+                    help='seconds without a heartbeat before --guard calls a '
+                         'run gone (never below the screen\'s own %.0f s)'
+                         % LV.LIVE_STALE_S)
+    ap.add_argument('--patch-only', action='store_true',
+                    help='the analog patch station ALONE, with no setup pages '
+                         'and no panel loops: a development and bench entry, '
+                         'never what the factory screen launches')
     ap.add_argument('--block', action='append',
                     help='only this lead (K1..K5); repeatable')
     ap.add_argument('--fault', action='append',
@@ -3313,7 +3849,11 @@ def main(argv=None):
         return cmd_screens(a, plist)
     if a.simulate:
         return cmd_simulate(a, plist)
-    if a.run:
+    if a.guard:
+        return cmd_guard(a)
+    if a.run and not a.patch_only:
+        return cmd_factory(a)
+    if a.run or a.patch_only:
         return cmd_run(a, plist)
     ap.error('one of --list, --simulate, --screens or --run')
 

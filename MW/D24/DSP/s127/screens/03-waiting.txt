@@ -1,0 +1,28 @@
+{
+ "v": 1,
+ "run": "setup",
+ "seq": 73,
+ "state": "waiting",
+ "stamp": "2026-09-27T12:53:14Z",
+ "heartbeat": 1790513594.8538225,
+ "instruction": "Put a USB memory stick into the left socket of the double USB pair on the rear panel, then press ENTER.",
+ "lead_line": "",
+ "extra": "The unit cannot see it yet.",
+ "status": "Set the bench up",
+ "busy": true,
+ "banner": "",
+ "banner_line": "",
+ "action": "",
+ "n": 2,
+ "total": 7,
+ "lead_n": 0,
+ "lead_total": 0,
+ "passed": 0,
+ "failed": 0,
+ "failures": [],
+ "can_pause": true,
+ "buttons": [
+  "enter",
+  "pause"
+ ]
+}

@@ -1,0 +1,200 @@
+Traceback (most recent call last):
+  File "/home/app/selftest/d24_patch.py", line 2017, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/app/selftest/d24_patch.py", line 2012, in main
+    return cmd_run(a, plist)
+  File "/home/app/selftest/d24_patch.py", line 1927, in cmd_run
+    unit = Unit(symdir=a.symdir)
+  File "/home/app/selftest/d24_patch.py", line 253, in __init__
+    self.check_factory_image()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/app/selftest/d24_patch.py", line 272, in check_factory_image
+    sc = self.chip(1)
+  File "/home/app/selftest/d24_patch.py", line 257, in chip
+    sc = self.S.Scope(n, symfile='%s/chip%d.sym.json' % (self.symdir, n))
+  File "/home/app/dspboot/dsp4_scope.py", line 69, in __init__
+    self.d = DiagLink(SpiLink('0.0', 1_000_000, CS_GPIO[chip],
+                      ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                              rdy_gpio=RDY_GPIO[chip]))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/app/dspboot/dsp4_config.py", line 255, in __init__
+    self._req_cs = gpiod.request_lines(
+                   ~~~~~~~~~~~~~~~~~~~^
+        chippath, consumer='dsp4_config',
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        config={cs_gpio: gpiod.LineSettings(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            direction=Direction.OUTPUT,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            output_value=Value.ACTIVE)})
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/gpiod/__init__.py", line 64, in request_lines
+    return chip.request_lines(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/gpiod/chip.py", line 316, in request_lines
+    req_internal = self._chip.request_lines(line_cfg, consumer, event_buffer_size)
+OSError: [Errno 16] Device or resource busy
+   .. the analog rails are up
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 17 lanes, -114.8 to -87.9 dBFS
+   .. the microphone inputs - 17 patches
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch AUX 5 to MIC 5  (lead K1)
+   Patch AUX 5 to MIC 5.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 6  (lead K1)
+   Patch AUX 6 to MIC 6.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P2: nothing reached MIC 6 -- prompting again
+
+== PATCH: Patch AUX 6 to MIC 6  (lead K1)
+   Patch AUX 6 to MIC 6.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. the pass stopped at P2 (pause)
+   .. the analog rails are down
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+wrote /home/app/selftest/runall/patch-results.csv
+
+  lead  patches  checks   machine s   per patch   hand s @ 5 s
+  --------------------------------------------------------------
+  K1          1       1         0.9        0.88             5
+  --------------------------------------------------------------
+  all         1       1         0.9        0.88             5
+
+  projected pass: 5 s hands + 1 s machine = 0.1 min
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. the analog rails are up
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 15 lanes, -115.1 to -88.1 dBFS
+   .. the outputs - 10 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch AUX 1 to MIC 7  (lead K1)
+   Patch AUX 1 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. pre-armed P1 0.631 s after the tone arrived (window spread 0.01 dB)
+   .. the loop is AUX 1 into MIC 7: that input is the reference for the pass
+
+== PATCH: Patch AUX 4 to MIC 7  (lead K1)
+   Patch AUX 4 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. pre-armed P2 0.598 s after the tone arrived (window spread 0.01 dB)
+
+== PATCH: Patch AUX 5 to MIC 7  (lead K1)
+   Patch AUX 5 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P1 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P3 0.600 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch AUX 6 to MIC 7  (lead K1)
+   Patch AUX 6 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P2 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P4 0.646 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch AUX 7 to MIC 7  (lead K1)
+   Patch AUX 7 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P3 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P5 0.638 s after the tone arrived (window spread 0.01 dB)
+
+== PATCH: Patch AUX 8 to MIC 7  (lead K1)
+   Patch AUX 8 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P4 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P6 0.642 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch MAIN L to MIC 7  (lead K1)
+   Patch MAIN L to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P5 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P7 0.627 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch MAIN R to MIC 7  (lead K1)
+   Patch MAIN R to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P6 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P8 0.643 s after the tone arrived (window spread 0.51 dB)
+   .. P8: the early reading was not used -- its own windows disagreed by 0.51 dB, which is a connector still moving; re-reading
+
+== PATCH: Patch AUX 2 to MIC 7  (lead K1)
+   Patch AUX 2 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P7 PASS: the tone arrived on MIC 7 and nowhere else
+   .. the pass stopped at P9 (pause)
+   .. the analog rails are down
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+wrote /home/app/selftest/runall/patch-results.csv
+
+  lead  patches  checks   machine s   per patch   hand s @ 5.8 s
+  --------------------------------------------------------------
+  K1          8       8         1.6        0.20            46
+  --------------------------------------------------------------
+  all         8       8         1.6        0.20            46
+
+  projected pass: 46 s hands (40 s moving the lead + 6 s pressing ENTER) + 2 s machine = 0.8 min
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. the analog rails are up
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 15 lanes, -114.8 to -88.1 dBFS
+   .. the outputs - 10 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch AUX 1 to MIC 7  (lead K1)
+   Patch AUX 1 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. pre-armed P1 0.627 s after the tone arrived (window spread 3.24 dB)
+   .. the loop is AUX 1 into MIC 7: that input is the reference for the pass
+
+== PATCH: Patch AUX 4 to MIC 7  (lead K1)
+   Patch AUX 4 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. pre-armed P2 0.583 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch AUX 5 to MIC 7  (lead K1)
+   Patch AUX 5 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P1 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P3 0.598 s after the tone arrived (window spread 0.01 dB)
+
+== PATCH: Patch AUX 6 to MIC 7  (lead K1)
+   Patch AUX 6 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P2 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P4 0.602 s after the tone arrived (window spread 0.01 dB)
+
+== PATCH: Patch AUX 7 to MIC 7  (lead K1)
+   Patch AUX 7 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P3 PASS: the tone arrived on MIC 7 and nowhere else
+   .. pre-armed P5 0.610 s after the tone arrived (window spread 0.00 dB)
+
+== PATCH: Patch AUX 8 to MIC 7  (lead K1)
+   Patch AUX 8 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. P4 PASS: the tone arrived on MIC 7 and nowhere else

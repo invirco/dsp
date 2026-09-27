@@ -305,13 +305,107 @@ def action_failed():
     return 'Leave it - the supervisor will look at this one.'
 
 
-def finished_words(passed, failed):
-    if not failed:
+# The banner a patch gets when nobody measured it: the operator said SKIP or
+# IGNORE, the walk carried on, and the one report at the end lists it with
+# their reason (S127). It is neither a pass nor a fail and it does not pretend
+# to be either.
+NOT_TESTED = 'NOT TESTED'
+
+
+def action_not_tested():
+    return 'Nothing was measured on this one - moving on.'
+
+
+def finished_words(passed, failed, not_tested=0):
+    """The end of the pass, counting everything that happened to a patch.
+
+    S127: a pass that carried on past a skip used to end on "all N passed",
+    because the tally only knew about two outcomes. A worker who skipped four
+    patches was told the unit passed everything.
+    """
+    bits = ['%d passed' % passed]
+    if failed:
+        bits.append('%d failed' % failed)
+    if not_tested:
+        bits.append('%d not tested' % not_tested)
+    if len(bits) == 1:
         return 'Finished - all %d passed.' % passed
-    return 'Finished - %d passed, %d failed.' % (passed, failed)
+    return 'Finished - %s.' % ', '.join(bits)
 
 
 HANDOVER = 'Give this unit to the supervisor.'
+
+# A RUN THAT ENDED WITHOUT FINISHING, IN WORDS A WORKER CAN ACT ON (S127).
+# Until this existed, a station that fell over left the last instruction on the
+# glass with the rails still up, and the screen sat in test mode showing a
+# patch nobody was going to make. PW saw that as "froze in factory test mode".
+# The sentence says the same two things in every case: it stopped, and the unit
+# is safe to touch.
+STOPPED_WORDS = 'The test stopped before it finished. The unit is safe.'
+
+
+def stopped_words(why=''):
+    """The same sentence with one plain clause about what stopped.
+
+    `why` is written for the person at the unit, not for a log: "the test
+    program stopped", never an exception class.
+    """
+    if not why:
+        return STOPPED_WORDS
+    return ('The test stopped before it finished - %s. The unit is safe.'
+            % why)
+
+
+RESTART_WORDS = 'Press START to run the test again.'
+
+
+def station_card_words(name, hand, checks, rails):
+    """The card a worker reads before a stretch of hand work, as ONE
+    instruction for the one-instruction screen (S127).
+
+    The dialog version of this card is three lines and a button; the factory
+    screen is one big instruction and ENTER, so the same facts are said as one
+    sentence a person can act on. The station's own name is not on it: the
+    screen already says which station this is, and PW's rule for this display
+    is one thing to read, not a heading and a body.
+    """
+    bits = ['Next: %s.' % name.lower(), 'You need %s.' % hand]
+    if rails:
+        bits.append('The analog supplies are LIVE for this station.')
+    bits.append('%d check%s here. Press ENTER when you are ready.'
+                % (checks, '' if checks == 1 else 's'))
+    return ' '.join(bits)
+
+
+# What the glass says while a panel loop runs. The UNIT is the instruction --
+# it lights the indicator of the button to press next -- so the screen says the
+# one thing the unit cannot, and then stays still.
+PANEL_LOOP_WORDS = 'Press the button on the front panel that is lit.'
+
+
+def panel_judgement_missed(what):
+    """A judgement this screen cannot put to the operator.
+
+    PW's ruling of 2026-09-27: where a step cannot be taken, the station
+    records it, says so in one plain sentence, and carries on with whatever can
+    still be tested. The yes/no questions in the panel loop need two buttons
+    and this screen has one, so they are recorded as not measured rather than
+    guessed at or, worse, waited on for ever.
+    """
+    return ('%s: not checked, because this screen cannot ask a yes or no '
+            'question yet.' % what)
+
+
+def second_start_words():
+    """START pressed while a test is already going.
+
+    It is an ordinary thing for a worker to do -- the screen was slow, so they
+    pressed it again -- and until S127 it started a SECOND test on the same
+    unit, which died on the hardware the first one was holding. The refusal
+    says the one thing the person needs: yours is still going, keep following
+    it.
+    """
+    return 'The test is already running. Carry on with the instructions.'
 
 
 def every_string(rows=()):
@@ -328,9 +422,20 @@ def every_string(rows=()):
             move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
             swap_for_plug('MIC 7'), swap_for_plug('MIC 7', False),
             action_no_signal(), action_no_signal(False), action_failed(),
+            action_not_tested(),
             HANDOVER, 'ENTER', 'PAUSE', 'START',
             finished_words(55, 0), finished_words(53, 2),
-            'PASS', 'FAIL']
+            finished_words(51, 2, 2), finished_words(53, 0, 2),
+            STOPPED_WORDS, stopped_words('the test program stopped'),
+            stopped_words('it was stopped'), RESTART_WORDS,
+            second_start_words(), PANEL_LOOP_WORDS,
+            panel_judgement_missed('The always-lit rings'),
+            panel_judgement_missed('The ring around the encoder'),
+            station_card_words('Front panel switches',
+                               'a finger and an eye, at the front panel',
+                               44, False),
+            station_card_words('Rear panel', 'a finger', 3, True),
+            'PASS', 'FAIL', NOT_TESTED]
     for lead in sorted(LEAD_WORDS):
         out.append(pick_up(lead))
         out.append(pick_up(lead, 'AUX 2'))
@@ -408,6 +513,16 @@ class Live:
     def _flush(self):
         if not self.enabled:
             return
+        # THE PROGRESS PAIR IS ALWAYS DRAWABLE (S127). `n` and `total` are the
+        # only two numbers on this file a renderer does arithmetic with, so the
+        # writer owes it a pair it can draw: 0 <= n <= total, total at least 1.
+        # A run that stopped before it had a list left total at 0 here, which is
+        # a division nobody can draw, and an off-by-one leaves a bar past the
+        # end of its own track. Clamped rather than asserted: this is the code
+        # that runs while something has already gone wrong.
+        total = max(1, int(self.d.get('total') or 0))
+        self.d['total'] = total
+        self.d['n'] = min(max(0, int(self.d.get('n') or 0)), total)
         self.seq += 1
         self.d['seq'] = self.seq
         self.d['heartbeat'] = time.time()

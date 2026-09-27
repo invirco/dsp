@@ -1,0 +1,149 @@
+=== the station card, on the glass ===
+  GLASS starting 0/1 | 
+  GLASS waiting  2/3 | Next: right switch panel. You need a finger and an eye, at the right half of the front panel. 32 checks here. Press ENTER when you are ready.
+  (the operator presses ENTER)
+  card answered: {'button': 'ack', 'reason': ''}
+=== the loop, on the glass ===
+   .. light 6 (FX MUTE)
+
+== INSTRUCT: Panel loop - FX MUTE
+   Press the button that is lit: FX MUTE.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 1 (HOME)
+
+== INSTRUCT: Panel loop - HOME
+   Press the button that is lit: HOME.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 2 (MENU)
+
+== INSTRUCT: Panel loop - MENU
+   Press the button that is lit: MENU.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 3 (+48)
+
+== INSTRUCT: Panel loop - +48
+   Press the button that is lit: +48.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 4 (FEEDBACK)
+
+== INSTRUCT: Panel loop - FEEDBACK
+   Press the button that is lit: FEEDBACK.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 7 (MUTE)
+
+== INSTRUCT: Panel loop - MUTE
+   Press the button that is lit: MUTE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+  GLASS waiting  4/36 | Press the button on the front panel that is lit.
+   .. light 8 (SCENE)
+
+== INSTRUCT: Panel loop - SCENE
+   Press the button that is lit: SCENE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 9 (L)
+
+== INSTRUCT: Panel loop - L
+   Press the button that is lit: L.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 10 (C)
+
+== INSTRUCT: Panel loop - C
+   Press the button that is lit: C.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 5 (CH ASSIGN)
+
+== INSTRUCT: Panel loop - CH ASSIGN
+   Press the button that is lit: CH ASSIGN.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 11 (R)
+
+== INSTRUCT: Panel loop - R
+   Press the button that is lit: R.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+  GLASS waiting  10/36 | Press the button on the front panel that is lit.
+   .. light 12 (MONITOR)
+
+== INSTRUCT: Panel loop - MONITOR
+   Press the button that is lit: MONITOR.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 13 (REC/PLY)
+
+== INSTRUCT: Panel loop - REC/PLY
+   Press the button that is lit: REC/PLY.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 14 (STUDIO CTL)
+
+== INSTRUCT: Panel loop - STUDIO CTL
+   Press the button that is lit: STUDIO CTL.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.
+
+== INSTRUCT: Panel loop - the encoder
+   Turn the encoder ONE click clockwise, then ONE click anticlockwise.
+   The tester reads the ring position each time.
+   [notlit / skip / ignore / pause]
+  GLASS waiting  13/36 | Press the button on the front panel that is lit.  [The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.]
+   .. The ring around the encoder: not checked, because this screen cannot ask a yes or no question yet.
+   .. panel loop (right switch panel): 32 rows graded
+
+=== 32 rows landed in 0.5 s ===
+  59  PASS     key code 6 in 9 ms
+  60  NO DATA  The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.
+  61  PASS     the RED ring lit, and the operator pressed the button under it
+  62  PASS     key code 1 in 8 ms
+  63  PASS     the white ring lit, and the operator pressed the button under it
+  64  PASS     key code 2 in 8 ms
+  65  PASS     the white ring lit, and the operator pressed the button under it
+  66  PASS     key code 3 in 7 ms
+  67  PASS     the white ring lit, and the operator pressed the button under it
+  68  PASS     key code 4 in 8 ms
+  69  PASS     the white ring lit, and the operator pressed the button under it
+  70  PASS     key code 7 in 9 ms
+  71  PASS     the white ring lit, and the operator pressed the button under it
+  72  PASS     key code 8 in 8 ms
+  73  PASS     the white ring lit, and the operator pressed the button under it
+  74  PASS     key code 9 in 7 ms
+  75  PASS     the white ring lit, and the operator pressed the button under it
+  76  PASS     key code 10 in 8 ms
+  77  PASS     the white ring lit, and the operator pressed the button under it
+  79  PASS     key code 5 in 8 ms
+  80  PASS     the white ring lit, and the operator pressed the button under it
+  81  PASS     key code 11 in 9 ms
+  82  PASS     the white ring lit, and the operator pressed the button under it
+  83  PASS     key code 12 in 8 ms
+  84  PASS     the white ring lit, and the operator pressed the button under it
+  85  PASS     key code 13 in 8 ms
+  86  NO DATA  The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.
+  87  PASS     the RED ring lit, and the operator pressed the button under it
+  88  PASS     key code 14 in 9 ms
+  89  PASS     the white ring lit, and the operator pressed the button under it
+  90  PASS     the ring position stepped both ways: [1, -1]
+  91  NO DATA  The ring around the encoder: not checked, because this screen cannot ask a yes or no question yet.

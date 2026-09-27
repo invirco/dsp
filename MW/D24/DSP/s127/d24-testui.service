@@ -1,0 +1,46 @@
+# The D24 factory test display, as deployed at /etc/systemd/system/.
+#
+# S127 changes two lines and both are about what happens when the app FALLS
+# OVER. On 2026-09-27 it took SIGSEGV once and then aborted on every restart,
+# 36 times in seven minutes, and PW watched the glass strobe between blank and
+# the factory screen with no way to tell what was wrong:
+#
+#   * the app's own crash text went to /dev/null, because StandardOutput and
+#     StandardError were both `null`. The .NET exception that killed it 36
+#     times was only recoverable because the app happens to keep its own trace
+#     file. A service that can crash-loop must leave its reason where an
+#     engineer looks first.
+#
+#   * nothing bounded the loop. `Restart=on-failure` with no rate limit
+#     restarts for ever, so a deterministic startup crash is a strobing
+#     display rather than a stopped service. Three attempts in two minutes is
+#     enough to ride out a transient; past that the unit is telling us
+#     something and a still screen says it better than a flashing one.
+[Unit]
+Description=D24 factory test display (app --testui)
+After=multi-user.target systemd-logind.service hdmi-full-rgb.service
+Wants=multi-user.target
+Wants=hdmi-full-rgb.service
+Conflicts=matrix-app.service
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/home/app
+Environment="HOME=/home/app"
+Environment="DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1"
+ExecStartPre=/bin/sleep 2
+ExecStartPre=/bin/bash /home/app/bin/validate-app.sh
+ExecStart=/home/app/app --testui
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+SupplementaryGroups=video render input
+
+[Install]
+WantedBy=multi-user.target

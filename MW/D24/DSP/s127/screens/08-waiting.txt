@@ -1,0 +1,28 @@
+{
+ "v": 1,
+ "run": "setup",
+ "seq": 166,
+ "state": "waiting",
+ "stamp": "2026-09-27T12:54:00Z",
+ "heartbeat": 1790513640.7897713,
+ "instruction": "Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.",
+ "lead_line": "",
+ "extra": "",
+ "status": "Set the bench up",
+ "busy": true,
+ "banner": "",
+ "banner_line": "",
+ "action": "",
+ "n": 7,
+ "total": 7,
+ "lead_n": 0,
+ "lead_total": 0,
+ "passed": 0,
+ "failed": 0,
+ "failures": [],
+ "can_pause": true,
+ "buttons": [
+  "enter",
+  "pause"
+ ]
+}

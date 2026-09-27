@@ -1,0 +1,60 @@
+S127 -- the dry run's fault battery, before and after.
+HEAD = 9a996480 (S126, the code PW ran); S127 = this session.
+Each line: total measurements, patches walked, and the verdict counts.
+
+=== (no fault)
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  -> identical
+=== dead:MIC 9
+  HEAD: DRY RUN (no unit): 245 measurements in 90 patches   NO DATA 7, PASS 238 
+  S127: DRY RUN (no unit): 245 measurements in 90 patches   NO DATA 7, PASS 238 
+  -> identical
+=== mispatch:MIC 11
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  -> identical
+=== swap:MIC 5 line
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  -> identical
+=== nonull:MIC 6 line
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  -> identical
+=== edge:MIC 12
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  -> identical
+=== gain:MIC 7:3
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   FAIL 1, PASS 244 
+  S127: DRY RUN (no unit): 245 measurements in 91 patches   FAIL 1, PASS 244 
+  -> identical
+=== skip:MIC 9
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 89 patches   PASS 237, SKIPPED 8 
+  -> CHANGED
+=== ignore:MIC 9
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 245 measurements in 89 patches   IGNORED 8, PASS 237 
+  -> CHANGED
+=== pause:MIC 9
+  HEAD: DRY RUN (no unit): 245 measurements in 91 patches   PASS 245 
+  S127: DRY RUN (no unit): 66 measurements in 24 patches   PASS 66 
+  -> CHANGED
+
+READ THE LAST THREE ROWS WITH CARE. `skip:`, `ignore:` and `pause:` are S127's
+own additions to the fault battery: HEAD has no way to inject a press, so it
+simply ignores those fault names and runs clean. The HEAD column there is NOT
+the old behaviour -- it is "HEAD cannot press a button".
+
+The true before/after for SKIP is below: the S127 code with one line put back
+the way S126 had it (`STOP_BUTTONS = ('pause', 'skip', 'ignore')`, no
+`PATCH_DECISIONS`), against the S127 code, same fault, same list.
+
+  S126 rule (skip in the stop set):
+    DRY RUN (no unit): 66 measurements in 24 patches
+      PASS 66
+  S127 rule:
+    DRY RUN (no unit): 245 measurements in 89 patches
+      PASS 237, SKIPPED 8

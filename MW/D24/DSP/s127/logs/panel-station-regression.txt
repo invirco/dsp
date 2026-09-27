@@ -1,0 +1,79 @@
+=== RIGHT PANEL, clean walk: 32 rows landed ===
+  59  PASS     key code 6 in 9 ms
+  60  PASS     the operator confirmed it is lit
+  61  PASS     the RED ring lit, and the operator pressed the button under it
+  62  PASS     key code 1 in 8 ms
+  63  PASS     the white ring lit, and the operator pressed the button under it
+  64  PASS     key code 2 in 8 ms
+  65  PASS     the white ring lit, and the operator pressed the button under it
+  66  PASS     key code 3 in 7 ms
+  67  PASS     the white ring lit, and the operator pressed the button under it
+  68  PASS     key code 4 in 8 ms
+  69  PASS     the white ring lit, and the operator pressed the button under it
+  70  PASS     key code 7 in 9 ms
+  71  PASS     the white ring lit, and the operator pressed the button under it
+  72  PASS     key code 8 in 8 ms
+  73  PASS     the white ring lit, and the operator pressed the button under it
+  74  PASS     key code 9 in 7 ms
+  75  PASS     the white ring lit, and the operator pressed the button under it
+  76  PASS     key code 10 in 8 ms
+  77  PASS     the white ring lit, and the operator pressed the button under it
+  79  PASS     key code 5 in 8 ms
+  80  PASS     the white ring lit, and the operator pressed the button under it
+  81  PASS     key code 11 in 9 ms
+  82  PASS     the white ring lit, and the operator pressed the button under it
+  83  PASS     key code 12 in 8 ms
+  84  PASS     the white ring lit, and the operator pressed the button under it
+  85  PASS     key code 13 in 8 ms
+  86  PASS     the operator confirmed it is lit
+  87  PASS     the RED ring lit, and the operator pressed the button under it
+  88  PASS     key code 14 in 9 ms
+  89  PASS     the white ring lit, and the operator pressed the button under it
+  90  PASS     the ring position stepped both ways: [1, -1]
+  91  PASS     the operator saw all eight light in turn
+=== RIGHT PANEL, faults: 32 rows landed ===
+  59  PASS     key code 6 in 9 ms
+  60  FAIL     the operator answered that it is not lit
+  61  FAIL     the RED ring did not light when the tester lit it
+  62  PASS     key code 1 in 8 ms
+  63  PASS     the white ring lit, and the operator pressed the button under it
+  64  NO DATA  no key code arrived within 5 s
+  65  NO DATA  not reached: the button sent nothing
+  66  FAIL     the tester lit +48 and the key code that came back was 9 (L)
+  67  NO DATA  not reached: the wrong key code came back
+  68  PASS     key code 4 in 8 ms
+  69  PASS     the white ring lit, and the operator pressed the button under it
+  70  PASS     key code 7 in 9 ms
+  71  PASS     the white ring lit, and the operator pressed the button under it
+  72  PASS     key code 8 in 8 ms
+  73  PASS     the white ring lit, and the operator pressed the button under it
+  74  PASS     key code 9 in 7 ms
+  75  PASS     the white ring lit, and the operator pressed the button under it
+  76  PASS     key code 10 in 8 ms
+  77  PASS     the white ring lit, and the operator pressed the button under it
+  79  PASS     key code 5 in 8 ms
+  80  PASS     the white ring lit, and the operator pressed the button under it
+  81  PASS     key code 11 in 9 ms
+  82  PASS     the white ring lit, and the operator pressed the button under it
+  83  PASS     key code 12 in 8 ms
+  84  PASS     the white ring lit, and the operator pressed the button under it
+  85  PASS     key code 13 in 8 ms
+  86  FAIL     the operator answered that it is not lit
+  87  PASS     the RED ring lit, and the operator pressed the button under it
+  88  PASS     key code 14 in 9 ms
+  89  PASS     the white ring lit, and the operator pressed the button under it
+  90  FAIL     the ring only stepped clockwise
+  91  FAIL     the operator did not see all eight light
+=== LEFT PANEL, clean walk: 12 rows landed ===
+  43  PASS     key code 1 in 8 ms
+  44  PASS     the white pair lit, and the operator pressed the button under it
+  45  PASS     key code 2 in 8 ms
+  46  PASS     the white pair lit, and the operator pressed the button under it
+  47  PASS     key code 3 in 7 ms
+  48  PASS     the white pair lit, and the operator pressed the button under it
+  49  PASS     key code 4 in 8 ms
+  50  PASS     the white pair lit, and the operator pressed the button under it
+  51  PASS     key code 5 in 9 ms
+  52  PASS     the white pair lit, and the operator pressed the button under it
+  53  PASS     key code 6 in 8 ms
+  54  PASS     the white pair lit, and the operator pressed the button under it

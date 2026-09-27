@@ -1,0 +1,28 @@
+{
+ "v": 1,
+ "run": "setup",
+ "seq": 1412,
+ "state": "waiting",
+ "stamp": "2026-09-27T12:55:21Z",
+ "heartbeat": 1790513721.0974805,
+ "instruction": "Press the button on the front panel that is lit.",
+ "lead_line": "",
+ "extra": "",
+ "status": "Front panel",
+ "busy": true,
+ "banner": "",
+ "banner_line": "",
+ "action": "",
+ "n": 2,
+ "total": 14,
+ "lead_n": 0,
+ "lead_total": 0,
+ "passed": 0,
+ "failed": 0,
+ "failures": [],
+ "can_pause": true,
+ "buttons": [
+  "enter",
+  "pause"
+ ]
+}
