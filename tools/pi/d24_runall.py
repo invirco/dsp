@@ -1853,18 +1853,30 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
 
     bus = PL.InjectedBus(a.inject_keys) if a.inject_keys else PL.PanelBus()
     pending = {'paused': False}
-    total_steps = len([r for r in rows if r.group == st])
     panel_name = PL.PANEL_NAME[side]
+    # HOW MUCH OF THIS BOARD THIS PASS WILL WALK, AND WHY (S128, second pass).
+    # A button whose two rows both already PASSED is not lit again -- PW's rule
+    # of 09-26, and it is in `PL.loop` -- so a RE-TEST walks only what is still
+    # owed. On PW's second pass that was 4 of the right board's 14, and the
+    # glass said nothing about it: "right board switch test ... exited after a
+    # few button clicks". It had not exited; it had finished what it owed.
+    on_board = [r for r in rows if r.group == st]
+    total_steps = len(on_board)
+    already = sum(1 for r in on_board
+                  if r.num not in ignored and state.verdict(r.num) == PASS)
     if live is not None:
         # ONE STANDING PAGE PER BOARD, AND IT NAMES THE BOARD (S127, fixed
         # S128). It used to say "the front panel", which is two boards walked
         # one after the other, and the worker was never told when to move from
         # one to the other -- see `LV.panel_side_words`.
         live.set(state=LV.WAITING, instruction=LV.panel_loop_words(panel_name),
-                 lead_line='', extra='', status=panel_name.capitalize(),
+                 lead_line='',
+                 extra=LV.panel_already_passed(already, total_steps),
+                 status=panel_name.capitalize(),
                  n=0, total=total_steps, lead_n=0, lead_total=0)
-        glass.progress('panel loop: the %s, %d checks'
-                       % (panel_name, total_steps))
+    glass.progress('panel loop: the %s, %d checks on this board, %d of them '
+                   'already passed on an earlier pass'
+                   % (panel_name, total_steps, already))
 
     def ask(step, n, total, tries):
         if tries:
@@ -1928,7 +1940,11 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                    and state.verdict(r.num) != PASS)
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
                                log=glass.progress, owed=owed,
-                               hold=quiet_hold(quiet_flag))
+                               hold=quiet_hold(quiet_flag),
+                               # The ARMED factory screen draws no dialog, so
+                               # it has no NOT LIT button and a press cannot be
+                               # read as "I saw it light". See PL.LED_NOT_SEEN.
+                               can_say_notlit=live is None)
         for step in steps:
             land(step.sw_row, step.sw or NODATA, step.sw_note
                  or 'the loop did not reach this button')

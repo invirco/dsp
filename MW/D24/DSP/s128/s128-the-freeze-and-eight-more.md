@@ -579,3 +579,185 @@ contract bump is owed.**
 * the factory screen **ARMED** (`quick`, 59 patches);
 * the injected touch device destroyed and its FIFO gone;
 * 969 MB free (the two 330 MB cores were read and deleted).
+
+---
+
+# PART TWO — the hotfix, and what PW saw on the right board
+
+HUB ADDENDUM 2, after PW's second pass (16:04–16:14, stopped at patch 17 of 59).
+The app of §5 is fixed and deployed: mx26 `ae8a545`, md5 `311994f5`, with the
+bitmap disposed, the capture moved to an on-demand `capture.request` trigger,
+the START latch timed out and the instruction row made to fit.
+
+## 15. The missing ENTER
+
+**The glass said "press ENTER" with only a PAUSE button on it.** The unit's own
+artifact, `evidence-live-p13-161130.json`, patch 13 of 59:
+
+```json
+{"state": "verdict", "instruction": "Plug AUX 1 into MIC 9, then press ENTER.",
+ "status": "Signal found - press ENTER.", "banner": "PASS",
+ "banner_line": "MIC 7, terminated", "buttons": ["pause"]}
+```
+
+### Why
+
+`buttons` is chosen from the STATE (`d24_live.buttons_for`), and
+`buttons_for('verdict')` is `['pause']`. The pipeline is what leaves the screen
+in that state, and it does it on purpose:
+
+```python
+nxt = self.next_patch(seq, bi, pi)
+if nxt is not None:
+    self.announce(nxt[0], nrows)                # state WAITING + next instruction
+self.record(self.score_patch(rows, prep, raw))  # state VERDICT + last banner
+```
+
+The next patch's instruction goes up first so the operator never waits for the
+scoring; the last patch's verdict is then written over the top of it. The two
+together are the screen PW reviewed — "PASS / MIC 7, terminated" above "Plug
+AUX 1 into MIC 9". What nobody noticed is that the second write also takes the
+ENTER button off it.
+
+**One path climbed back out, which is why it looked intermittent.** When the
+lead went in, `detect()` re-set WAITING — but only for `prearm_ok` rows, and
+`prearm_ok` is true only for a **tone row with no gain code**. So plain tone
+patches recovered their button and **gain steps, the EIN plug and every no-tone
+row did not.** The hint at the bottom of the same loop changed `status` and
+nothing else, so it could not put the buttons back either.
+
+The same artifact shows a second, smaller fault: `"status": "Signal found -
+press ENTER."` on a patch with nothing in its socket. `_hinted` is an instance
+attribute and was never reset per step, so a patch that followed one where the
+tone was seen started with the hint already on.
+
+### Fixed, in three places and one rule
+
+**The state is what the screen is doing, and it must be said by whoever makes it
+true.**
+
+1. `Station.detect()` puts the screen into WAITING **once, at the top**, for
+   every path into it — that is the fix, because every path into that loop is
+   the unit waiting for a person. It also resets `_hinted`, which kills the
+   stale "Signal found".
+2. `Station.waiting()` carries `banner` / `banner_line` / `action` across, so
+   WAITING keeps the reviewed pipeline screen. The app draws the banner off
+   `banner` alone (`FactoryView.Draw`: `verdict = s.Banner.Length > 0`), never
+   off the state, so it is the same picture with the right buttons under it.
+   A screen that already offers ENTER is left alone — `CHECKLEAD` is one, red,
+   with its own action line.
+3. `Station.record(..., prompted=True)` keeps the state WAITING when the next
+   patch is already on the screen, so the bad state is never written at all.
+   With no prompt up — at a block boundary, where a lead change is not prepared
+   across — it stays VERDICT and **clears the instruction**, because a verdict
+   banner over the instruction of the patch just measured tells a worker to do
+   again what they have just done.
+4. The hint uses `waiting()` too.
+
+### Proved: every screen that asks for ENTER has one
+
+`glass_buttons_check.py` runs the dry run with a real `live.json` behind it,
+hooks `Live._flush` so it sees **every** screen the pass writes rather than
+polling for a sample, and checks one rule: *an instruction that asks for ENTER,
+on a screen where the unit is not itself working, must come with `enter` in
+`buttons`.*
+
+| run | screens | asked for ENTER | had one |
+|---|---|---|---|
+| whole list | 362 | 219 | **219** |
+| K1 — XLR tone, XLR gain step, EIN plug | 202 | 126 | **126** |
+| K2 — TRS jack | 33 | 17 | **17** |
+| K3 — mini-jack | 13 | 5 | **5** |
+| K4 — line (jack-to-XLR) | 123 | 71 | **71** |
+| K2 + `--fault mispatch:MIC 2` — wrong socket | 44 | 28 | **28** (6 `checklead`) |
+| K3 + `--fault dead:MINI-JACK 2` — no signal | 14 | 8 | **8** (2 `checklead`) |
+
+Every row type the hub listed, and `verdict` no longer appears as a resting
+state at all. Before the fix the same check found **30** screens asking for
+ENTER without one.
+
+## 16. The right board: nothing on either switch board can light
+
+PW, twice: *"right board switch test didn't illuminate buttons, and exited after
+a few button clicks"*, and *"the bottom 3 buttons never illuminated"*. They are
+two different faults and the second one is much bigger than three buttons.
+
+### "Exited after a few button clicks" — it had finished what it owed
+
+Pass 2's right-board loop lit four buttons: FX MUTE, MONITOR, REC/PLY, STUDIO
+CTL. The other ten had PASSED in pass 1 at 14:24, and `d24_panel.loop` skips a
+button whose two rows have both already passed — PW's own rule of 09-26, *no
+test runs twice for the same proof*. It had not exited early; it had walked
+everything a **re-test** owes.
+
+Not a fault, and nothing on the glass said so. The panel loop's page now carries
+*"24 of the 36 checks on this board passed on an earlier run and are not
+repeated"*, and the progress line says the same. A fresh unit walks all 14.
+
+### "Never illuminated" — read off the shipping firmware, and it is all of them
+
+`/home/app/fwbuild/H1S3/Core/Src/main.c` and `.../Core/Inc/matrix.cs`, which
+S120 established are byte-identical to what is flashed:
+
+* `MX_GPIO_Init()` configures **every** panel pin `GPIO_MODE_INPUT` with a
+  pull-up — the indicator pins included.
+* the block in `MainInit()` that made the indicator pins outputs is
+  **commented out**. On H1S3 *and* on H1S4.
+* H1S3 then makes exactly **two** pins outputs and drives them permanently
+  high: `PB11` and `PF1`, each commented *"always on white led next to red
+  led"*. **H1S4 makes none.**
+
+`WrRadioLed()` runs on every sweep and writes ODR bits on pins that are still
+inputs, which moves nothing. So:
+
+**No indicator on either switch board can be lit by the host. The only lit
+indicators on the whole front panel are the right board's two always-on
+whites** — beside FX MUTE and beside REC/PLY.
+
+That is the whole of PW's report. The loop lit 6, 12, 13 and 14; FX MUTE has an
+always-on white next to it so it looked lit, and MONITOR, REC/PLY and STUDIO CTL
+have nothing beside them — *"the bottom 3 buttons never illuminated"*.
+
+It also settles the hub's question: **it is not the board-naming change and it
+is not the shared-index aliasing.** Indices 12–14 exist only on the right board,
+so nothing can alias them; and `d24_panel.py`'s `ALWAYS_ON` entry for rows 60
+and 86 has been describing this firmware state since S120 without anyone
+noticing it was the general case rather than an exception for two pins.
+
+Measured on the part, this pass: the panel acknowledges every indicator write in
+about 2 ms (`light 3 (FX) - the panel acked the write in 2.0 ms`), so the host
+side and MH1's relay are not in question. The ack is now printed for every
+step, because it is what separates *the write never arrived* from *the write
+arrived and nothing lit*.
+
+### What the test was claiming, and no longer does
+
+The loop grades TWO rows from one press — the switch, and the indicator above
+it, *"the white ring lit, and the operator pressed the button under it"*. That
+inference is only sound if an operator who saw nothing light had a way to say
+so. On the dialog they do: NOT LIT is one of the buttons. **On the armed factory
+screen there are two buttons, ENTER and PAUSE, and no way to report a dark
+indicator at all** — and the instruction NAMES the button, so a worker who can
+read will press it whether or not anything lit.
+
+So every indicator PASS this station has ever recorded on the glass is an
+inference from a press, not a reading. From this session the indicator row is
+**NO DATA** where the operator could not have said otherwise, with the reason in
+the verdict: *"the screen named the button, and it has no way to say an
+indicator stayed dark, so the press proves the switch and nothing about the
+indicator"*. The switch row is unchanged — a key code is a reading.
+
+The dialog path keeps the old behaviour, because there NOT LIT exists.
+
+### Owed
+
+* **FIRMWARE, both panel boards:** restore the output init in `MainInit()` (or
+  fold it into `MX_GPIO_Init`) so `WrRadioLed()` can drive the indicator pins.
+  Until that lands, no front-panel indicator can be graded by any test.
+* **THE FACTORY SCREEN NEEDS A "NOT LIT" BUTTON**, or the two-button question
+  this screen has never been able to ask. It is the same missing thing as the
+  always-lit rings and the encoder ring (§12). With it, 20 of the 32 indicators
+  become gradeable the moment the firmware is fixed; without it, none do.
+* **The switch side of indices 12, 13 and 14 is still unproven.** They are in
+  `rsw[]` (PC1, PF0, PC14) and they returned no key code in pass 1 — but nothing
+  was lit to press, so that says nothing. Three presses would settle it.

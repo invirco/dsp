@@ -499,6 +499,20 @@ def panel_press_words(name, what, panel=''):
             % (name, what))
 
 
+def panel_already_passed(already, total):
+    """The second line of a panel loop that is only walking what it owes.
+
+    S128. A re-test walks the buttons whose rows have not passed yet and no
+    others (PW 09-26, no test twice for the same proof). On PW's second pass
+    that was four of the right board's fourteen and the screen said nothing,
+    so it read as the loop giving up: "exited after a few button clicks".
+    """
+    if not already:
+        return ''
+    return ('%d of the %d checks on this board passed on an earlier run and '
+            'are not repeated.' % (already, total))
+
+
 def panel_loop_words(panel=''):
     """The standing page for one board's sweep."""
     if not panel:
@@ -556,6 +570,7 @@ def every_string(rows=()):
             second_start_words(), PANEL_LOOP_WORDS, ENCODER_WORDS,
             panel_loop_words('left switch panel'),
             panel_loop_words('right switch panel'),
+            panel_already_passed(0, 36), panel_already_passed(24, 36),
             panel_retry_words('MONO AUX', 'the white pair',
                               'left switch panel'),
             panel_press_words('MONO AUX', 'the white pair',

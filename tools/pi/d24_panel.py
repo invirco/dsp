@@ -390,7 +390,46 @@ class Step(object):
         self.got = None
 
 
-def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None):
+# WHAT A PRESS PROVES, AND WHAT IT DOES NOT (S128, second pass).
+#
+# The loop grades TWO rows off one press: the switch, and the indicator above
+# it. The indicator half is an INFERENCE -- "it lit, and the operator pressed
+# the button under it" -- and the inference is only sound if an operator who
+# saw nothing light had a way to SAY SO. On the dialog they do: NOT LIT is one
+# of the buttons. On the armed factory screen there are two buttons, ENTER and
+# PAUSE, and no way to report a dark indicator at all.
+#
+# It matters because the instruction NAMES the button ("press the button that
+# is lit: MONO AUX"). A worker who can read will press MONO AUX whether or not
+# anything lit, and the loop then records that they saw it light.
+#
+# THEY HAVE NOT BEEN SEEING IT LIGHT. Read off the shipping panel firmware on
+# MW-D24-2, 2026-09-27, both boards:
+#
+#   * `MX_GPIO_Init()` configures EVERY panel pin `GPIO_MODE_INPUT` with a
+#     pull-up -- the LED pins included.
+#   * the block in `MainInit()` that made the indicator pins outputs is
+#     COMMENTED OUT, on H1S3 and on H1S4 alike.
+#   * H1S3 then makes exactly TWO pins outputs, PB11 and PF1, and drives them
+#     permanently high: the two "always on white led next to red led".
+#     H1S4 makes none.
+#
+# So `WrRadioLed()` writes ODR bits on input pins and nothing moves. The only
+# lit indicators on the whole front panel are the right board's two always-on
+# whites -- which is exactly what PW reported: "right board switch test didn't
+# illuminate buttons", "the bottom 3 buttons never illuminated" (MONITOR,
+# REC/PLY and STUDIO CTL have no always-on white beside them; FX MUTE does).
+#
+# The firmware is not this repo's to change. What IS this repo's is not
+# claiming a reading nobody took: where the operator could not have said "it
+# did not light", the indicator row is NO DATA with the reason.
+LED_NOT_SEEN = ('the screen named the button, and it has no way to say an '
+                'indicator stayed dark, so the press proves the switch and '
+                'nothing about the indicator')
+
+
+def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
+         can_say_notlit=True):
     """Walk one panel.  `ask` puts the step in front of the operator and returns
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
@@ -404,7 +443,12 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None):
 
     Returns (steps, extra) where `extra` carries the rows that are not part of
     the sweep: the always-lit indicators, the encoder, and the rows this station
-    cannot reach."""
+    cannot reach.
+
+    `can_say_notlit` is False when the operator is behind the ARMED FACTORY
+    SCREEN, which draws no dialog and therefore offers no NOT LIT button. See
+    LED_NOT_SEEN: the indicator half of each step is then recorded as not
+    measured rather than inferred from a press."""
     steps = [Step(*s) for s in PANELS[panel]]
     if owed is not None:
         # A button whose two rows have both already passed is not lit again:
@@ -414,8 +458,14 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None):
     for n, st in enumerate(steps):
         if hold is not None:
             hold(log)
-        log('light %d (%s)' % (st.idx, st.name))
         ack = bus.light(st.idx)
+        # THE ACK IS A MEASUREMENT AND IT IS WORTH PRINTING. It separates "the
+        # host could not even get the write to the panel" from "the write went
+        # out and nothing lit", which is the whole of the question PW asked
+        # about the bottom three buttons.
+        log('light %d (%s) - the panel acked the write in %s'
+            % (st.idx, st.name,
+               ('%.1f ms' % ack) if ack is not None else 'NO ACK'))
         if ack is None:
             st.sw = st.led = NODATA
             st.sw_note = st.led_note = 'the panel bus did not acknowledge the write'
@@ -447,9 +497,13 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None):
                 st.sw = PASS
                 st.sw_note = 'key code %d in %.0f ms' % (value, ms)
                 if st.led is None:
-                    st.led = PASS
-                    st.led_note = ('%s lit, and the operator pressed the button '
-                                   'under it' % st.what)
+                    if can_say_notlit:
+                        st.led = PASS
+                        st.led_note = ('%s lit, and the operator pressed the '
+                                       'button under it' % st.what)
+                    else:
+                        st.led = NODATA
+                        st.led_note = LED_NOT_SEEN
                 break
             other = dict((s.idx, s.name) for s in steps).get(value)
             st.sw = FAIL

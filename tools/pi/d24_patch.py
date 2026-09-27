@@ -1633,13 +1633,70 @@ class Station:
         self.armed_saved_s += a['cost']
         return a['raw'], a['cost']
 
-    def detect(self, rows, prep, token):
+    def waiting(self, **kw):
+        """Put the screen into WAITING without throwing the last patch's
+        verdict banner away.
+
+        S128 HOTFIX. `Live.set(state=WAITING)` clears `banner` on purpose --
+        a state change normally means the banner is stale -- but the pipeline
+        screen is a deliberate exception: the NEXT patch's instruction goes up
+        (`announce`, state WAITING) and the LAST patch's verdict is then
+        written over the top of it (`record`, state VERDICT). The two together
+        are the screen PW reviewed: "PASS - MIC 7, terminated" above "Plug
+        AUX 1 into MIC 9, then press ENTER."
+
+        What that leaves behind is the STATE, and the state is what picks the
+        buttons. `buttons_for(VERDICT)` is `['pause']`, so the glass said
+        "press ENTER" with no ENTER on it. This carries the banner across so a
+        caller can say WAITING -- which is the truth, something is waiting for
+        the operator -- without losing the reviewed screen.
+        """
+        d = self.live.d
+        # A SCREEN THAT ALREADY OFFERS ENTER IS LEFT ALONE. `CHECKLEAD` is the
+        # one: `reprompt` puts it up deliberately, red, with its own action
+        # line, immediately before the loop is re-entered, and its buttons are
+        # already `enter`+`pause`. Nothing is broken there and re-stating it as
+        # WAITING would quietly lose a named state that the screen dump and the
+        # wording review both know by name.
+        if 'enter' in (d.get('buttons') or []):
+            return
+        for k in ('banner', 'banner_line', 'action'):
+            kw.setdefault(k, d.get(k, ''))
+        self.live.set(state=LV.WAITING, **kw)
+
+    def detect(self, rows, prep, token, status=None):
         """Wait for the operator's hands, not for their Enter.
 
         Tone rows rise; noise rows drop, because an open mic input is noisier
         than a terminated one and fitting the plug is what changes it. Either
         way the glass button is polled in the same breath, so PAUSE, SKIP and
         the Enter fallback are always live.
+
+        THE SCREEN IS PUT INTO `WAITING` HERE, ONCE, AND THAT IS THE FIX
+        (S128 hotfix). Every path into this loop is the unit waiting for a
+        person, so this is the one place that can say so for all of them --
+        and until it did, a whole class of patch had no ENTER button:
+
+          * the PIPELINE leaves the screen on VERDICT. `announce` puts the next
+            patch up as WAITING and `record` then writes the last patch's
+            banner over it as VERDICT, so every patch after the first begins in
+            a state whose button list is `['pause']`.
+          * only ONE path used to climb back out: `prearm_ok` rows set WAITING
+            again the moment the tone arrived. Those are tone rows with no gain
+            code -- so tone patches recovered and **gain steps, the EIN plug,
+            and every no-tone row did not.**
+          * the hint at the bottom of the loop changed `status` and nothing
+            else, so it could not put the buttons back either.
+
+        Measured on MW-D24-2, 2026-09-27 15:11:30Z (`evidence-live-p13`): patch
+        13 of 59, `state: "verdict"`, instruction "Plug AUX 1 into MIC 9, then
+        press ENTER.", `buttons: ["pause"]`. PW could not go on and the hub had
+        to press ENTER through `command.json` three times.
+
+        `status` is the line under the instruction. The find-a-loop walk passes
+        its own; everything else gets WAITING's own words -- which also clears
+        a **stale** "Signal found - press ENTER." left over from the patch
+        before, visible in that same artifact.
         """
         r = rows[0]
         lane = prep['lane']
@@ -1647,6 +1704,13 @@ class Station:
         drop = self.lim['detect_drop_db']
         t0 = now()
         self._met_at = None
+        # THE HINT IS PER STEP, NOT PER PASS. `_hinted` used to carry across
+        # patches, so a patch that followed one where the tone was seen started
+        # with the hint already "on" -- the status said "Signal found - press
+        # ENTER." about a socket with nothing in it, and it could not be
+        # corrected until a signal actually arrived.
+        self._hinted = False
+        self.waiting(status=status or LV.status_words(LV.WAITING))
         # A step that waits for a PERSON cannot use the list's tone timeout:
         # somebody who has walked off to find the right lead has not failed.
         deadline = t0 + self.lim['detect_timeout_s'] * (1 if self.auto
@@ -1705,7 +1769,7 @@ class Station:
                 if self.prearm_ok(rows):
                     self.live.set(state=LV.CHECKING)
                     self.arm(rows, prep)
-                    self.live.set(state=LV.WAITING, status=LV.SIGNAL_SEEN)
+                    self.waiting(status=LV.SIGNAL_SEEN)
                     self._hinted = True
             if met and self.auto:
                 return (('drop' if r['expect'] == 'noise' else 'rise'),
@@ -1713,10 +1777,13 @@ class Station:
             if entered:
                 return (('enter-ok' if met else 'enter-no'), None, now() - t0)
             # The hint. It says what the tester can see and never advances.
+            # IT CARRIES THE STATE TOO (S128 hotfix): a bare `status=` change
+            # leaves whatever state the screen was in, and the state is what
+            # picks the buttons.
             if not self.auto and met != self._hinted:
                 self._hinted = met
-                self.live.set(status=(LV.SIGNAL_SEEN if met
-                                      else LV.status_words(LV.WAITING)))
+                self.waiting(status=(LV.SIGNAL_SEEN if met
+                                     else LV.status_words(LV.WAITING)))
             nap(0.05)
         return ('timeout', None, now() - t0)
 
@@ -2035,7 +2102,8 @@ class Station:
                         prepared = self.prepare(nrows)
                         token = self.p.connect(nxt[0], nrows, self.g)
                         self.announce(nxt[0], nrows)
-                self.record(self.score_patch(rows, prep, raw))
+                self.record(self.score_patch(rows, prep, raw),
+                            prompted=nxt is not None)
                 self.timing.append(dict(patch=pid, lead=lead, block=block,
                                         hand_s=t_hand, machine_s=now() - t1,
                                         read_s=t_read, subs=len(rows)))
@@ -2170,7 +2238,8 @@ class Station:
                                                LV.move_output(out, name,
                                                               not self.auto)),
                                   lead_line='', extra='', status=LV.LOOKING)
-                how, ans, _dt = self.detect([row], prep, tok)
+                how, ans, _dt = self.detect([row], prep, tok,
+                                            status=LV.LOOKING)
                 self.p.done(tok)
                 if how == 'glass' and ans.get('button') in STOP_BUTTONS:
                     self.finish_early([row], ans)
@@ -2279,13 +2348,20 @@ class Station:
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
 
-    def record(self, scored):
+    def record(self, scored, prompted=False):
         """Take a patch's rows into the results, and put its verdict up.
 
         One patch is one thing to the operator however many measurements it
         carries, so the banner is the patch's worst row and the tally counts
         patches -- twenty-four checks that all passed is one PASS, and one bad
         leg of a stereo jack fails the patch.
+
+        `prompted` SAYS THE NEXT PATCH IS ALREADY ON THE SCREEN (S128 hotfix).
+        The pipeline puts the next instruction up before this one is scored, so
+        the verdict is written OVER a screen that is already waiting for the
+        operator -- and a state of VERDICT takes the ENTER button off it.
+        Which was the whole fault. When a prompt is up the state stays WAITING,
+        because that is what the screen is doing; only the banner changes.
         """
         self.rows_out += scored
         if not scored:
@@ -2313,19 +2389,32 @@ class Station:
                 self.out_bad.add(scored[0]['out'])
         r = scored[0]
         name = LV.patch_words(dict(out=r['out'], **{'in': r['in']}))
+        # The app draws the banner off `banner` alone, never off the state
+        # (`FactoryView.Draw`: `verdict = s.Banner.Length > 0`), so WAITING with
+        # a banner is the SAME screen with the right buttons under it.
+        # AND WITH NO PROMPT UP, THE INSTRUCTION GOES (S128 hotfix). At a block
+        # boundary `next_patch` returns None -- a lead change is not prepared
+        # across -- so nothing new is announced and the screen keeps the
+        # instruction of the patch that was just MEASURED. A verdict banner
+        # over "Plug AUX 1 into MIC 1, then press ENTER.", with no ENTER, tells
+        # a worker to do again what they have just done. It lasts only until
+        # the next block is prepared, but the next block is prepared on the
+        # UNIT and that is about a second of it. The verdict stands alone.
+        st = LV.WAITING if prompted else LV.VERDICT
+        gone = {} if prompted else dict(instruction='', lead_line='', extra='')
         if undecided:
             self.skipped_n += 1
-            self.live.set(state=LV.VERDICT, banner='NOT TESTED',
+            self.live.set(state=st, banner='NOT TESTED', **gone,
                           banner_line=name, action='', passed=self.passed,
                           failed=self.failed)
         elif verdicts <= {PASS}:
             self.passed += 1
-            self.live.set(state=LV.VERDICT, banner='PASS', banner_line=name,
+            self.live.set(state=st, banner='PASS', **gone, banner_line=name,
                           action='', passed=self.passed, failed=self.failed)
         else:
             self.failed += 1
             self.failures.append(name)
-            self.live.set(state=LV.VERDICT, banner='FAIL', banner_line=name,
+            self.live.set(state=st, banner='FAIL', **gone, banner_line=name,
                           action=LV.action_failed(), passed=self.passed,
                           failed=self.failed, failures=list(self.failures))
 
