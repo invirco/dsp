@@ -1,0 +1,51 @@
+15:33:02 pressing the armed START
+15:33:02 tap 400,955
+15:33:03 SCREEN [starting] n=0/1 status='Getting the unit ready...' :: 
+15:33:04 SCREEN [waiting] n=1/3 status='Station 1 of 3' :: Next: front panel switches. You need a finger and an eye, at the front panel. 12 checks here. Press ENTER when you are ready.
+15:33:05 tap 400,955
+15:33:08 SCREEN [waiting] n=0/36 status='Right switch panel' :: On the RIGHT switch board, press the button that is lit: FX MUTE. It is the RED ring that should be lit.
+15:33:10 tap 400,955
+15:33:13 tap 400,955
+15:33:16 tap 400,955
+15:33:19 tap 400,955
+15:33:23 tap 400,955
+15:33:26 tap 400,955
+15:33:30 tap 400,955
+15:33:33 tap 400,955
+15:33:37 SCREEN [waiting] n=1/36 status='Right switch panel' :: On the RIGHT switch board, press the button that is lit: MONITOR. It is the white ring that should be lit.
+15:33:38 tap 400,955
+15:33:41 tap 400,955
+15:33:44 tap 400,955
+15:33:48 tap 400,955
+15:35:45 SCREEN [waiting] n=3/3 status='Station 3 of 3' :: Next: analog paths. You need the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm p
+15:35:46 tap 400,955
+15:35:46 SCREEN [starting] n=3/3 status='Getting the unit ready...' :: Next: analog paths. You need the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm p
+15:35:59 SCREEN [waiting] n=1/59 status='Waiting for the lead...' :: Plug AUX 1 into MIC 7, then press ENTER.
+15:36:00 tap 400,955
+15:36:03 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 9, then press ENTER.
+15:36:05 tap 400,955
+15:36:08 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 10, then press ENTER.
+15:36:09 tap 400,955
+15:36:13 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the other end to AUX 4, and this end to MIC 11, then press ENTER.
+15:36:14 tap 400,955
+15:36:17 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 12, then press ENTER.
+15:36:18 tap 400,955
+15:36:22 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 17, then press ENTER.
+15:36:23 tap 400,955
+15:36:26 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the other end to AUX 5, and this end to MIC 18, then press ENTER.
+15:36:28 tap 400,955
+15:36:31 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 19, then press ENTER.
+15:36:32 tap 400,955
+15:36:36 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 20, then press ENTER.
+15:36:37 tap 400,955
+15:36:40 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the other end to AUX 6, and this end to MIC 21, then press ENTER.
+15:36:41 tap 400,955
+15:36:45 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 22, then press ENTER.
+15:36:46 tap 400,955
+15:36:49 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 23, then press ENTER.
+15:36:51 tap 400,955
+15:36:54 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the other end to AUX 7, and this end to MIC 24, then press ENTER.
+15:36:55 tap 400,955
+15:36:59 SCREEN [waiting] n=1/59 status='Looking for a working socket...' :: Move the lead to MIC 8, then press ENTER.
+15:37:00 tap 400,955
+15:37:03 SCREEN [finished] n=1/59 status='No signal on any socket - call the supervisor.' :: 

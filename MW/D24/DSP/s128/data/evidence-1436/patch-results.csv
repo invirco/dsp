@@ -1,0 +1,6 @@
+path,patch,lead,out,in,sub,rows,verdict,why,detail,h_db,h_deg,thd_db,noise_db,rms_db
+1,P1,K1,AUX 1,MIC 7,,22 25,PASS,the tone arrived on MIC 7 and nowhere else,"this reading is now MIC 7's balanced reference: 5.57 dB, -145.3 deg; THD+N -90.14 dB = 0.003 %",5.573,-145.299,-90.137,-99.572,-9.435
+2,P2,K1,AUX 4,MIC 7,,22 28,PASS,the tone arrived on MIC 7 and nowhere else,"this reading is now MIC 7's balanced reference: 5.56 dB, -145.3 deg; THD+N -88.20 dB = 0.004 %",5.563,-145.312,-88.205,-97.655,-9.450
+3,P3,K1,AUX 5,MIC 7,,22 29,PASS,the tone arrived on MIC 7 and nowhere else,"this reading is now MIC 7's balanced reference: 5.57 dB, -145.3 deg; THD+N -88.95 dB = 0.004 %",5.566,-145.305,-88.952,-98.394,-9.442
+4,P4,K1,AUX 6,MIC 7,,22 30,PASS,the tone arrived on MIC 7 and nowhere else,"this reading is now MIC 7's balanced reference: 5.57 dB, -145.3 deg; THD+N -86.31 dB = 0.005 %",5.570,-145.298,-86.310,-95.752,-9.440
+5,P5,K1,AUX 7,MIC 7,,22 31,PASS,the tone arrived on MIC 7 and nowhere else,"this reading is now MIC 7's balanced reference: 5.56 dB, -145.3 deg; THD+N -54.73 dB = 0.183 %",5.561,-145.310,-54.728,-64.175,-9.448

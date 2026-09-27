@@ -1,0 +1,131 @@
+D24 RUN ALL -- unit 10000000830b03af -- catalog 28ed8a28ba99 (202 rows) -- 2026-09-27T14:50:32Z
+   catalog warning: #148: automation '1' but group 'M4'
+   auto 34, background 3, manual 77, not-run 88
+   .. resuming pass 2 at the step it stopped on
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. panel loop: the right switch panel, 36 checks
+   .. light 6 (FX MUTE)
+
+== INSTRUCT: Panel loop - FX MUTE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: FX MUTE.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 12 (MONITOR)
+
+== INSTRUCT: Panel loop - MONITOR (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MONITOR.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 13 (REC/PLY)
+
+== INSTRUCT: Panel loop - REC/PLY (right switch panel)
+   On the RIGHT switch board: press the button that is lit: REC/PLY.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 14 (STUDIO CTL)
+
+== INSTRUCT: Panel loop - STUDIO CTL (right switch panel)
+   On the RIGHT switch board: press the button that is lit: STUDIO CTL.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.
+
+== INSTRUCT: Panel loop - the encoder
+   Turn the encoder ONE click clockwise, then ONE click anticlockwise.
+   The tester reads the ring position each time.
+   [notlit / skip / ignore / pause]
+   .. The ring around the encoder: not checked, because this screen cannot ask a yes or no question yet.
+   .. panel loop (right switch panel): 12 rows graded
+   .. the analog supplies are live for this station
+   .. the analog rails are up
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 15 lanes, -114.7 to -88.0 dBFS
+   .. the outputs - 10 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch AUX 1 to MIC 7  (lead K1)
+   Patch AUX 1 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 1 to MIC 9  (lead K1)
+   Patch AUX 1 to MIC 9.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 1 to MIC 10  (lead K1)
+   Patch AUX 1 to MIC 10.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 11  (lead K1)
+   Patch AUX 4 to MIC 11.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 12  (lead K1)
+   Patch AUX 4 to MIC 12.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 17  (lead K1)
+   Patch AUX 4 to MIC 17.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 18  (lead K1)
+   Patch AUX 5 to MIC 18.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 19  (lead K1)
+   Patch AUX 5 to MIC 19.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 20  (lead K1)
+   Patch AUX 5 to MIC 20.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 21  (lead K1)
+   Patch AUX 6 to MIC 21.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 22  (lead K1)
+   Patch AUX 6 to MIC 22.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 23  (lead K1)
+   Patch AUX 6 to MIC 23.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 7 to MIC 24  (lead K1)
+   Patch AUX 7 to MIC 24.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 7 to MIC 8  (lead K1)
+   Patch AUX 7 to MIC 8.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   .. no output reached any input: the pass stops here
+   .. the analog rails are down
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+   .. analog paths: 0 rows graded from 0 checks
+   .. the analog supplies are off again
+   .. read while the test ran: top-panel USB socket (hub port 3) NO DATA, top-panel USB socket (hub port 4) NO DATA
+
+pass 2: 50 PASS / 0 FAIL / 26 NO DATA / 0 ignored / 0 skipped / 88 not tested (of 202 rows) in 230 s
+report: /home/app/selftest/reports/10000000830b03af-2026-09-27T145423Z.md
+        /home/app/selftest/reports/10000000830b03af-2026-09-27T145423Z.json
+   .. pass 2 complete - report written - 50 of 202 rows pass

@@ -1,0 +1,34 @@
+######## /home/app/cores/core.app.29240.1790519641  (2026-09-27 15:34:01) ########
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x0000007f26d0ca9c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#0  0x0000007f26d0ca9c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#1  0x0000007f26d0b920 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#2  0x0000007f26d09c68 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#3  0x0000007f26d17d04 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#4  0x0000007f26d17aac in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#5  0x0000007f26bedebc in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#6  0x0000007f26d17b6c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#7  0x0000007f26bedf60 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#8  0x0000007f26bee06c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#9  0x0000007f26b2924c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#10 0x0000007f26a88f1c in sk_image_encode () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#11 0x00000055768b6238 in ?? ()
+#12 0x0000000000000001 in ?? ()
+
+######## /home/app/cores/core.app.31731.1790520650  (2026-09-27 15:50:50) ########
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x0000007f1317ca9c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#0  0x0000007f1317ca9c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#1  0x0000007f1317b920 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#2  0x0000007f13179c68 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#3  0x0000007f13187d04 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#4  0x0000007f13187aac in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#5  0x0000007f1305debc in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#6  0x0000007f13187b6c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#7  0x0000007f1305df60 in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#8  0x0000007f1305e06c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#9  0x0000007f12f9924c in ?? () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#10 0x0000007f12ef8f1c in sk_image_encode () from /home/app/.net/app/1QsKd9zwExYx/libSkiaSharp.so
+#11 0x000000557aaf8be4 in ?? ()
+#12 0x000000557a636268 in ?? ()
+

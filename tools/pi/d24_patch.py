@@ -3269,11 +3269,17 @@ def setup_pages(plist):
     page: the only thing that has to be in before START is the mains lead, and
     a unit showing this screen is running from it.
     """
+    # ONE USB PAGE, NOT TWO, AND IT NAMES THE TOP PANEL (S128). There used to
+    # be one page per hub port, each naming a side of a "double USB pair on the
+    # rear panel" -- the wrong panel, and the rear socket is the touch screen's.
+    # The two sockets are on the ANALOG board on the top panel, which is what
+    # the catalog has said about rows 130/131 all along, and one page that asks
+    # for both is one press fewer and nothing to get wrong. The two rows are
+    # still graded separately, by `usb_port:3` and `usb_port:4`, under the patch
+    # pass; this page's own check reads the pair and says which one is empty.
     pages = [dict(key='network', instruction=LV.setup_network(), check='link'),
-             dict(key='usb-left', instruction=LV.setup_usb('left'),
-                  check='usb_port:3'),
-             dict(key='usb-right', instruction=LV.setup_usb('right'),
-                  check='usb_port:4')]
+             dict(key='usb-pair', instruction=LV.setup_usb(),
+                  check='usb_pair:3,4')]
     for d in plist.kit:
         pages.append(dict(key='kit-%s' % d['lead'], check='',
                           instruction=LV.park_kit_page(d)))
@@ -3304,7 +3310,7 @@ def screen_walk(plist):
               extra='', status=LV.SETUP_TITLE, n=1,
               total=len(setup_pages(plist)), lead_n=0, lead_total=0)),
         ('04-setup-usb-seen',
-         dict(state=LV.WAITING, instruction=LV.setup_usb('left'),
+         dict(state=LV.WAITING, instruction=LV.setup_usb(),
               lead_line='', extra=LV.SETUP_SEEN, status=LV.SETUP_TITLE, n=2,
               total=len(setup_pages(plist)), lead_n=0, lead_total=0)),
         ('05-setup-park-a-lead',
@@ -3611,7 +3617,14 @@ def cmd_factory(a):
     # finds.
     d = a.dir.rstrip('/')
     base = os.path.dirname(d) if os.path.basename(d) == 'runall' else d
-    argv = ['--dir', base]
+    # NO REVIEW SCREEN BEHIND THE FACTORY START (S128). The review screen is a
+    # DIALOG and the armed display draws none, so a factory pass that reached it
+    # sat on a prompt nobody could answer, holding the run lock, with "Finished"
+    # and a START button on the glass and "The test is already running." behind
+    # that START. RUN ALL refuses it on its own account too (it knows whether
+    # the pass had a screen); this says it at the door as well, because the door
+    # is where the rule is.
+    argv = ['--dir', base, '--no-review']
     if a.symdir != FACTORY_TEST_PAIR_DIR:
         argv += ['--patch-symdir', a.symdir]
     if a.no_keyboard:

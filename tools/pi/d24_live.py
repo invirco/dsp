@@ -207,10 +207,31 @@ def setup_network(confirm=True):
             % (', then press ENTER.' if confirm else '.'))
 
 
-def setup_usb(side, confirm=True):
-    return ('Put a USB memory stick into the %s socket of the double USB pair '
-            'on the rear panel%s'
-            % (side, ', then press ENTER.' if confirm else '.'))
+def setup_usb(side=None, confirm=True):
+    """The two USB sockets, in PANEL TERMS AND ON THE RIGHT PANEL (S128).
+
+    PW at the bench, 2026-09-27: "there are 2 usb sockets on top (analog board),
+    back (digital board) socket is currently occupied with touch panel." The page
+    said "the left socket of the double USB pair on the REAR panel", which is the
+    wrong panel and the wrong board -- the catalog has always had these two rows
+    against the ANALOG board -- and it sent the worker to the one socket they must
+    not touch, because unplugging it takes the display away.
+
+    ONE PAGE FOR BOTH, and `side` is accepted and ignored so the old two-page
+    call still works. Which of the two sockets is hub port 3 and which is port 4
+    is not something this page needs to assert -- and asserting it wrongly is how
+    the rear-panel sentence happened. The worker fills both; the machine reads
+    both and names the empty one if there is one.
+    """
+    return ('Put a USB memory stick into each of the TWO USB sockets on the top '
+            'panel%s' % (', then press ENTER.' if confirm else '.'))
+
+
+# The rear USB socket is the TOUCH PANEL'S, and it is not a page: it is graded by
+# the display working at all. Said here so the vocabulary check sees it and so
+# nobody adds a page that asks a worker to pull it out.
+USB_REAR_IS_THE_PANEL = ('The USB socket on the back panel is the touch '
+                         'screen\'s. Leave it alone.')
 
 
 def park_kit_page(row, confirm=True):
@@ -359,6 +380,26 @@ def stopped_words(why=''):
 RESTART_WORDS = 'Press START to run the test again.'
 
 
+# HOW MUCH FITS ON THE ONE INSTRUCTION (S128, measured on the glass).
+#
+# `FactoryView.axaml` draws the instruction at FontSize 104 with LineHeight 118
+# in a row 320 px tall on a 1920x1080 panel with an 80 px margin each side. That
+# is TWO LINES, about 34 characters each. A third line runs into the status line
+# under it and a fifth is simply not drawn.
+#
+# Witnessed: the analog station's card, 253 characters, came out five lines deep
+# with "Station 3 of 3" printed through the middle of it
+# (`s128/screens/08-...png`). The card had never been seen on the glass before
+# S128 -- it was a dialog, which has no such limit -- so the first time it was
+# drawn was the first time it was too long.
+GLASS_MAX_CHARS = 100
+
+
+def fits(instruction):
+    """Does this instruction fit the two lines the screen draws?"""
+    return len(instruction or '') <= GLASS_MAX_CHARS
+
+
 def station_card_words(name, hand, checks, rails):
     """The card a worker reads before a stretch of hand work, as ONE
     instruction for the one-instruction screen (S127).
@@ -368,19 +409,102 @@ def station_card_words(name, hand, checks, rails):
     sentence a person can act on. The station's own name is not on it: the
     screen already says which station this is, and PW's rule for this display
     is one thing to read, not a heading and a body.
+
+    WHAT THE WORKER MUST ACT ON IS THE INSTRUCTION; WHAT THEY MUST CARRY IS THE
+    SECOND LINE (S128). The kit list is four leads and a plug and it will not
+    fit in two lines at 104 px whatever is done to it, so it goes in `extra` --
+    the grey line under the instruction, which wraps and has room. Use
+    `station_card_extra()` for it.
     """
-    bits = ['Next: %s.' % name.lower(), 'You need %s.' % hand]
+    bits = ['Next: %s.' % name.lower()]
     if rails:
-        bits.append('The analog supplies are LIVE for this station.')
-    bits.append('%d check%s here. Press ENTER when you are ready.'
+        bits.append('Supplies LIVE.')
+    bits.append('%d check%s. Press ENTER.'
                 % (checks, '' if checks == 1 else 's'))
     return ' '.join(bits)
+
+
+def station_card_extra(hand):
+    """The second line of a station card: what to have in hand."""
+    return 'You need %s.' % hand
 
 
 # What the glass says while a panel loop runs. The UNIT is the instruction --
 # it lights the indicator of the button to press next -- so the screen says the
 # one thing the unit cannot, and then stays still.
 PANEL_LOOP_WORDS = 'Press the button on the front panel that is lit.'
+
+
+# WHICH SWITCH BOARD THE WORKER IS AT, ON EVERY STEP (S128, HUB ADDENDUM 1).
+#
+# PW at the bench, 2026-09-27: "led test was only one switch board, and didn't
+# cover all switches." Both halves of that follow from one hole. The front panel
+# is TWO switch boards, they are walked one after the other, and BOTH of them
+# decode the same matrix cell with the same indices 1..6 (finding S120-1) -- so
+# for the first six steps of either loop an indicator lights on BOTH boards and
+# the key code that comes back does not say which board it came from. S120 shipped
+# that with one mitigation: "the two stations are separate, the operator is told
+# which panel they are at."
+#
+# Then S125 gave the two stations ONE card, because the operator is already
+# standing at the front panel -- and S127 gave the loop ONE standing page that
+# says "press the button on the front panel that is lit". Between them, the one
+# place the worker was ever told which of the two boards to work was gone. A
+# worker who stays on the board they started on presses that board for all twenty
+# steps: six of them score (the shared indices) and the other fourteen do not,
+# which is a pass that covered one board and called it the front panel.
+#
+# So the board is named in the step's own words, on every step, and in the status
+# line -- no extra press, and nothing for a worker to remember.
+def panel_side_words(panel):
+    """The board, in the words on the glass. `panel` is `d24_panel.PANEL_NAME`."""
+    return panel.replace(' switch panel', '').upper() + ' switch board'
+
+
+# A STEP OF THE PANEL LOOP THAT IS NOT "PRESS THE LIT ONE" GETS ITS OWN WORDS
+# (S128). The standing page above is right for the sweep -- fourteen buttons,
+# one instruction, the unit saying which -- and wrong for every step that asks
+# for something else. PW's first real pass hit that: the runner was waiting for
+# the encoder and the glass still read "Press the button on the front panel that
+# is lit", so the one thing on the screen was the one thing not being asked for.
+ENCODER_WORDS = 'Turn the encoder one click clockwise, then one back.'
+
+
+def panel_retry_words(name, what, panel=''):
+    """The indicator did not light, and the switch under it is still worth a
+    press. Said on the glass as well as in the dialog, because the dialog is
+    what the runner is answered through and the glass is what is read."""
+    if panel:
+        return ('%s: %s did not light. Press %s anyway.'
+                % (panel_side_words(panel), what, name))
+    return ('%s did not light. Press %s anyway, so the switch itself is still '
+            'checked.' % (what.capitalize(), name))
+
+
+def panel_press_words(name, what, panel=''):
+    """One named button of the sweep, for the glass.
+
+    The BOARD and the BUTTON are both named, and it is two lines because that
+    is all the screen draws (GLASS_MAX_CHARS). The sweep's standing page named
+    neither -- the unit names the button by lighting it -- but the unit lights
+    the same index on BOTH boards, so the screen has to say which board, and a
+    worker who cannot tell which indicator lit has to be able to read the name.
+    """
+    if panel:
+        # `what` carries its own capitals -- "the RED ring" -- and
+        # `str.capitalize()` would flatten them, so only the first letter moves.
+        return ('%s: press the lit button, %s. %s should be lit.'
+                % (panel_side_words(panel), name, what[:1].upper() + what[1:]))
+    return ('Press the button that is lit: %s. It is %s that should be lit.'
+            % (name, what))
+
+
+def panel_loop_words(panel=''):
+    """The standing page for one board's sweep."""
+    if not panel:
+        return PANEL_LOOP_WORDS
+    return ('Work the %s. Press the button on it that is lit.'
+            % panel_side_words(panel))
 
 
 def panel_judgement_missed(what):
@@ -427,14 +551,24 @@ def every_string(rows=()):
             finished_words(55, 0), finished_words(53, 2),
             finished_words(51, 2, 2), finished_words(53, 0, 2),
             STOPPED_WORDS, stopped_words('the test program stopped'),
-            stopped_words('it was stopped'), RESTART_WORDS,
-            second_start_words(), PANEL_LOOP_WORDS,
+            stopped_words('it was stopped'),
+            stopped_words('it was paused'), RESTART_WORDS,
+            second_start_words(), PANEL_LOOP_WORDS, ENCODER_WORDS,
+            panel_loop_words('left switch panel'),
+            panel_loop_words('right switch panel'),
+            panel_retry_words('MONO AUX', 'the white pair',
+                              'left switch panel'),
+            panel_press_words('MONO AUX', 'the white pair',
+                              'left switch panel'),
+            panel_press_words('FX MUTE', 'the RED ring',
+                              'right switch panel'),
             panel_judgement_missed('The always-lit rings'),
             panel_judgement_missed('The ring around the encoder'),
             station_card_words('Front panel switches',
                                'a finger and an eye, at the front panel',
                                44, False),
-            station_card_words('Rear panel', 'a finger', 3, True),
+            station_card_words('Analog paths', 'the patch kit', 33, True),
+            station_card_extra('a finger and an eye, at the front panel'),
             'PASS', 'FAIL', NOT_TESTED]
     for lead in sorted(LEAD_WORDS):
         out.append(pick_up(lead))
@@ -447,7 +581,7 @@ def every_string(rows=()):
             out.append(park_kit_page(row))
             out.append(park_kit_page(row, confirm=False))
     out += [SETUP_TITLE, setup_network(), setup_network(False),
-            setup_usb('left'), setup_usb('right'), setup_usb('left', False),
+            setup_usb(), setup_usb(confirm=False), USB_REAR_IS_THE_PANEL,
             SETUP_SEEN, SETUP_NOT_SEEN, SETUP_DONE]
     for r in rows:
         out.append(instruction_for(r))
@@ -532,10 +666,23 @@ class Live:
             json.dump(self.d, fh)
         os.replace(tmp, self.path)
 
+    _warned = set()
+
     def set(self, **kw):
         """Change some fields and put the screen up. A state carries its own
         default status line and its own busy flag, so a caller that only knows
         it moved to CHECKING does not also have to know the words."""
+        # AN INSTRUCTION THAT WILL NOT FIT IS SAID IN THE LOG (S128). It is not
+        # an error -- nothing about a factory pass should stop over wording, and
+        # this is the code that runs while a worker is standing there -- but it
+        # is invisible from a terminal and obvious on the glass, which is the
+        # worst way round. See GLASS_MAX_CHARS.
+        instr = kw.get('instruction')
+        if instr and not fits(instr) and instr not in Live._warned:
+            Live._warned.add(instr)
+            print('   .. this instruction is %d characters and the screen '
+                  'draws about %d: %r' % (len(instr), GLASS_MAX_CHARS, instr),
+                  flush=True)
         state = kw.get('state')
         if state is not None:
             if state not in STATES:

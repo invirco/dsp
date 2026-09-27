@@ -1,0 +1,19 @@
+core_pattern: core
+coredump pkg: 
+app pid=27630 started=Sun Sep 27 15:10:46 2026
+15:10:51 CmaFree=169200k rss=176608 cpu=387
+15:11:21 CmaFree=100960k rss=249268 cpu=2989
+15:11:51 CmaFree=98904k rss=249912 cpu=4310
+15:12:21 CmaFree=95444k rss=250116 cpu=5480
+15:12:51 CmaFree=98128k rss=250608 cpu=6816
+15:13:21 CmaFree=98172k rss=250616 cpu=7970
+15:13:51 CmaFree=91216k rss=250616 cpu=9102
+15:14:21 CmaFree=98348k rss=250616 cpu=10227
+15:14:51 CmaFree=109160k rss=250900 cpu=11356
+15:15:21 CmaFree=91240k rss=251372 cpu=12485
+15:15:51 CmaFree=96296k rss=251376 cpu=13614
+15:16:21 CmaFree=92348k rss=259452 cpu=14752
+15:16:51 CmaFree=91056k rss=251376 cpu=15894
+15:17:21 CmaFree=99576k rss=251360 cpu=17042
+
+[exited with code 0]

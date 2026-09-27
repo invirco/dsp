@@ -164,8 +164,15 @@ NAMES = [
     (r"^Link 'analog-12v'$", 'analog board supply link'),
     (r"^Link 'opt(\d)'$", r'expansion link \1'),
     (r"^Link 'd32compat'$", 'expansion compatibility link'),
+    # THE TOP PANEL, NOT THE REAR (S128). The catalog has these two rows against
+    # the ANALOG board; "rear" was invented here, and the rear socket is the
+    # touch screen's. PW at the bench: "there are 2 usb sockets on top (analog
+    # board), back (digital board) socket is currently occupied with touch
+    # panel." The hub port number stays in the name because a fail has to say
+    # WHICH of the two sockets did not take a stick, and that is the only handle
+    # a worker and a fitter share.
     (r"^USB A \(dual jack, hub port (\d)\)$",
-     r'rear USB socket \1 of the double pair'),
+     r'top-panel USB socket (hub port \1)'),
     (r"^HDMI 1 \(placeholder\)$", 'second screen socket (not fitted)'),
     (r"^P1 Foot Pedal \(RJ45\)$", 'foot pedal socket'),
     (r"^USB-C Multitrack/DAW$", 'expansion card USB-C socket'),
@@ -904,6 +911,27 @@ class Paused(Exception):
     the step it stopped on, and the next START resumes there."""
 
 
+class Stopped(BaseException):
+    """SIGINT or SIGTERM: somebody outside the pass ended it.
+
+    S128, AND IT IS THE SAME FAULT AS EVERY OTHER WAY OUT THAT IS NOT ALL THE
+    WAY THROUGH. `systemctl stop` sends SIGTERM and the hub sends SIGINT; the
+    handler used to turn either into a bare `SystemExit`, which released the
+    lock through `atexit` and did nothing else. So a run stopped mid-station
+    left no report, nothing on the glass, and -- when it was stopped anywhere
+    the two rails guards do not reach -- a unit on the bench with its analog
+    supplies LIVE and no owner.
+
+    It derives from BaseException, not Exception, on purpose: nothing in this
+    file may catch a stop by accident, and the `finally` blocks that lower the
+    rails and tear the station down still run on the way past.
+    """
+
+    def __init__(self, signame):
+        BaseException.__init__(self, signame)
+        self.signame = signame
+
+
 # ---------------------------------------------------------------------------
 # The auto phase
 # ---------------------------------------------------------------------------
@@ -1015,9 +1043,23 @@ def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False,
         cmd.append('--no-app-restart')
     if a.stage:
         cmd += ['--stage', a.stage]
-    print('\n--- auto set: %d test%s over %d row%s, about %d s ---\n%s'
-          % (len(tests), '' if len(tests) == 1 else 's', len(owed),
-             '' if len(owed) == 1 else 's', total, ' '.join(cmd)), flush=True)
+    # EVERY LINE OF A BACKGROUND PHASE IS MARKED AS ONE (S128). The phase runs
+    # in a thread and its progress went through `report`, which prefixes -- but
+    # the SUBPROCESS's own stdout was copied straight through, unprefixed, into
+    # the same log. So `factory.log` read as though the network set had run in
+    # the FOREGROUND, in front of the analog station's card, when the card and
+    # the tests were up at the same moment: the hub read the evidence of PW's
+    # pass that way and so would anybody else. The tag makes the log say which
+    # half of the pass wrote each line.
+    tag = ('   [%s] ' % phase) if report is not None else ''
+
+    def out(text):
+        for ln in text.splitlines():
+            sys.stdout.write(tag + ln + '\n')
+        sys.stdout.flush()
+    out('\n--- auto set: %d test%s over %d row%s, about %d s ---\n%s'
+        % (len(tests), '' if len(tests) == 1 else 's', len(owed),
+           '' if len(owed) == 1 else 's', total, ' '.join(cmd)))
     t0 = time.time()
     done = []
     by_test = {}
@@ -1029,8 +1071,7 @@ def run_auto(a, rows, state, ignored, glass, csv_path, patch_to_come=False,
     log = []
     for line in proc.stdout:
         log.append(line)
-        sys.stdout.write(line)
-        sys.stdout.flush()
+        out(line.rstrip('\n'))
         m = re.match(r'^([A-Z][A-Z0-9-]+) \.\.\.\s*$', line.strip())
         if not m:
             continue
@@ -1123,23 +1164,19 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     ser = Background('serial', lambda: run_auto(
         a, rows, state, ignored, glass, csv_path, phase='serial',
         report=lambda m: print('   [bus] %s' % m, flush=True))).start()
-    live, keys = setup_screen(a, glass)
-    # THE SCREEN AND THE KEYBOARD LIVE PAST THE SETUP PAGES (S127). They used
-    # to be closed here, and the panel loops then ran on the app's DIALOGS --
-    # which the ARMED factory display does not draw at all. Measured on
-    # MW-D24-2: after the last setup page the glass went back to "Press START,
-    # then follow the instructions" while the run carried on underneath, and
-    # the station card behind it could not be answered by anything the worker
-    # could reach. They are closed after the panel loops instead.
+    live, keys = pass_screen(a, glass)
+    # THE SCREEN AND THE KEYBOARD LIVE PAST THE SETUP PAGES (S127), AND PAST
+    # THE PANEL LOOPS AS WELL (S128). They used to be closed after the setup
+    # pages, and the panel loops then ran on the app's DIALOGS -- which the
+    # ARMED factory display does not draw at all. S127 moved the close to after
+    # the panel loops, which moved the same hole to the analog station's card.
+    # There is no close in this function any more: one screen belongs to the
+    # whole pass and `main` is what takes it down. See `pass_screen`.
     pages = setup_pages(a)
     ok = Setup(a, glass, pages, live=live, keys=keys).run()
     ser.join(glass, PHASE_WORDS['serial'])
     results += ser.results
     if not ok:
-        if keys is not None:
-            keys.stop()
-        if live is not None:
-            live.clear()
         raise Paused()
     # -- 2. the DSP tests, with the operator on the panel loops -------------
     dsp = Background('dsp', lambda: run_auto(
@@ -1157,13 +1194,11 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
         stopped = True
         raise
     finally:
-        if keys is not None:
-            keys.stop()
-        if live is not None:
-            # The analog station builds its OWN screen (S126) and owns the
-            # glass from here on, so this one is taken down rather than left
-            # with the panel loop's last words on it.
-            live.clear()
+        # THE SCREEN IS NOT TAKEN DOWN HERE (S128). It used to be, because the
+        # analog station built one of its own -- and the station CARD, which is
+        # posted before the station, fell in the gap between the two. The
+        # station now gets this same screen; the next thing written to it is its
+        # card, over the panel loop's last words.
         dsp.join(glass, PHASE_WORDS['dsp'])
         results += dsp.results
         # THE RAILS DO NOT STAY UP ON A PAUSE (S126). The dsp phase is told to
@@ -1203,15 +1238,100 @@ def lower_rails(glass):
         glass.progress('the analog supplies could not be lowered: %s' % exc)
 
 
-def setup_screen(a, glass):
-    """The factory screen and the USB keyboard for the setup pages, or (None,
-    None) when there is nothing to draw on -- `--stdin`, `--autoskip`, or a
-    glass directory that does not exist. The dialog path covers those."""
-    if a.stdin or a.autoskip or not a.runall:
-        return None, None
-    live = LV.Live(a.runall, run='setup', enabled=True, confirm=True)
-    keys = PT.KeyWatch(enabled=True, log=glass.progress)
-    return live, keys
+def pass_screen(a, glass):
+    """THE ONE SCREEN A PASS USES, from the first setup page to the handback.
+
+    S128, AND THIS IS THE FREEZE PW HIT. There used to be three: `setup_screen`
+    built one for the setup pages and the panel loops, `overlapped` took it
+    down again in its `finally`, and `patch_station` built a third for itself.
+    Between the second and the third there was a stretch with NO live.json at
+    all -- and the analog station's CARD is posted in exactly that stretch, by
+    `_walk`, before `patch_station` is ever called. The armed factory display
+    draws no dialogs, so the card went up where nothing could draw it and
+    nothing could answer it.
+
+    Measured on MW-D24-2, 2026-09-27 13:32:46Z (`evidence-1436`): `prompt.json`
+    kind `station`, title "Station 3 - Analog paths", no `live.json` from then
+    on and no answer file ever. PW read "press enter to start audio test" on the
+    glass, pressed ENTER, and the pass sat there until the hub stopped it four
+    minutes later.
+
+    One object, built once, cached on `a`, handed to every station -- so there
+    is no moment in a pass when the screen does not exist. Returns (None, None)
+    only where there is genuinely no glass to draw on: `--stdin`, `--autoskip`,
+    or no run directory. The dialog path covers those.
+    """
+    got = getattr(a, '_screen', None)
+    if got is None:
+        if a.stdin or a.autoskip or not a.runall:
+            got = (None, None)
+        else:
+            # ONE KEYBOARD, ONE RULE. `--no-keyboard` used to be read by the
+            # analog station alone, so a pass given it still read the Enter key
+            # through the setup pages and the panel loops. There is one keyboard
+            # on the bench and one flag about it.
+            got = (LV.Live(a.runall, run='setup', enabled=True, confirm=True),
+                   PT.KeyWatch(enabled=not getattr(a, 'no_keyboard', False),
+                               log=glass.progress))
+            # A PASS THAT HAS A SCREEN HAS NO DIALOGS (S128). While `live.json`
+            # is beating the app draws the factory screen and nothing else, so
+            # anything that waits on a dialog answer in such a pass waits for
+            # ever. `main` reads this to decide whether the review screen can
+            # be put up at all.
+            a._screen_built = True
+        a._screen = got
+    return got
+
+
+def end_screen(a, t):
+    """How the pass ended, on the glass, with START under it.
+
+    The analog station leaves its own finish screen -- the patch tally PW
+    reviewed -- and that one is left alone. This is for every other way a pass
+    can end: an auto-only pass, a pass with no analog station owed, a pass whose
+    station was skipped. Before S128 those ended with whatever page was last
+    written still on the glass and the runner sitting on a review dialog behind
+    it.
+    """
+    live, _keys = getattr(a, '_screen', (None, None))
+    if live is None:
+        return
+    if live.d.get('state') in (LV.FINISHED, LV.PAUSED):
+        return
+    try:
+        live.set(state=LV.FINISHED, instruction='', lead_line='', extra='',
+                 status=LV.finished_words(t[PASS], t[FAIL],
+                                          t[NODATA] + t[SKIPPED] + t[NOTTESTED]),
+                 action=LV.HANDOVER if t[FAIL] else '')
+    except Exception:                                   # noqa: BLE001
+        pass
+
+
+def drop_screen(a, words=''):
+    """Take the pass's screen down, or leave ONE PLAIN SENTENCE on it.
+
+    `words` is what a worker reads when the pass ended without finishing; the
+    state is PAUSED because that is the state whose button is START, which is
+    the one thing they can do next. With no words the screen goes away and the
+    app shows whatever it shows when nothing is running.
+    """
+    live, keys = getattr(a, '_screen', (None, None))
+    a._screen = None
+    if keys is not None:
+        try:
+            keys.stop()
+        except Exception:                               # noqa: BLE001
+            pass
+    if live is None:
+        return
+    try:
+        if words:
+            live.set(state=LV.PAUSED, instruction='', lead_line='', extra='',
+                     status='%s %s' % (words, LV.RESTART_WORDS), action='')
+        else:
+            live.clear()
+    except Exception:                                   # noqa: BLE001
+        pass
 
 
 def glass_page(live, keys, instruction, status, n=0, total=0, extra=''):
@@ -1336,17 +1456,37 @@ def measure(kind, tools):
         return (PASS if up else NODATA,
                 'the network lead is in' if up else 'no network lead',
                 'the link comes up', 'carrier=%s' % out.stdout.strip())
-    if name == 'usb_port':
+    if name in ('usb_port', 'usb_pair'):
         out = subprocess.run(['bash', '-c', 'lsusb -t; lsusb'],
                              capture_output=True, text=True, timeout=30)
         txt = out.stdout + out.stderr
-        port = 'Port %s:' % arg
-        hit = [ln for ln in txt.splitlines() if port in ln]
-        dev = [ln for ln in hit if 'Class=' in ln and 'Hub' not in ln]
-        v = PASS if dev else NODATA
-        return (v, ('a device on port %s: %s' % (arg, dev[0].strip())) if dev
-                else 'nothing on port %s' % arg,
-                'a device enumerates on that socket', txt)
+
+        def on(port):
+            hit = [ln for ln in txt.splitlines() if ('Port %s:' % port) in ln]
+            got = [ln for ln in hit if 'Class=' in ln and 'Hub' not in ln]
+            return got[0].strip() if got else ''
+        if name == 'usb_port':
+            dev = on(arg)
+            return (PASS if dev else NODATA,
+                    ('a device on port %s: %s' % (arg, dev)) if dev
+                    else 'nothing on port %s' % arg,
+                    'a device enumerates on that socket', txt)
+        # THE PAIR, for the ONE setup page that asks for both sticks (S128). The
+        # page's tick is not a verdict -- rows 130 and 131 are graded one port at
+        # a time under the patch pass -- so this only has to tell the worker
+        # standing at the top panel whether both sockets have taken a stick, and
+        # name the one that has not.
+        ports = [p.strip() for p in (arg or '3,4').split(',') if p.strip()]
+        got = dict((p, on(p)) for p in ports)
+        empty = [p for p in ports if not got[p]]
+        if not empty:
+            return (PASS, 'a stick in both top USB sockets',
+                    'a device enumerates on each of the two sockets', txt)
+        return (NODATA,
+                'nothing in %d of the %d top USB sockets (hub port%s %s)'
+                % (len(empty), len(ports), '' if len(empty) == 1 else 's',
+                   ', '.join(empty)),
+                'a device enumerates on each of the two sockets', txt)
     return (NODATA, 'no reading taken', '', 'no measurement hook for %r' % kind)
 
 
@@ -1572,6 +1712,14 @@ def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
           steps, i, carded, rails_up, live=None, keys=None):
     """The walk itself. Split out of `run_manual` only so that the background
     phase's start and join can bracket the whole of it in one place."""
+    # NO STATION IS EVER WALKED WITHOUT THE SCREEN (S128). Every card, every
+    # step and every loop below can put its words on the glass, but only if it
+    # was given one -- and a caller that forgets hands the worker a dialog the
+    # armed display does not draw, which is a pass that stops dead with nothing
+    # on the screen to press. This is the backstop for that whole class of bug:
+    # ask for the pass's screen rather than trust the argument.
+    if live is None:
+        live, keys = pass_screen(a, glass)
     while i < len(steps):
         st, r = steps[i]
         state.d['current'] = {'phase': 'manual', 'step': i, 'pass': passno,
@@ -1602,7 +1750,7 @@ def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
         if st in PANEL_STATIONS:
             # One loop for the whole station, not one dialog per row (S120).
             panel_station(a, st, rows, state, ignored, glass, passno,
-                          quiet_flag=quiet_flag, live=live)
+                          quiet_flag=quiet_flag, live=live, keys=keys)
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
@@ -1621,7 +1769,8 @@ def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
             # not running while the operator is still reading -- the whole
             # point is that it sits under the patch pass, which is minutes.
             a.patch_station_ran = True
-            patch_station(a, st, rows, state, ignored, glass, passno)
+            patch_station(a, st, rows, state, ignored, glass, passno,
+                          live=live, keys=keys)
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
@@ -1676,7 +1825,7 @@ def quiet_hold(path):
 
 
 def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
-                  live=None):
+                  live=None, keys=None):
     """One switch panel, as ONE LOOP (S120).
 
     The tester lights the indicator of the next button to press; the operator
@@ -1705,25 +1854,43 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
     bus = PL.InjectedBus(a.inject_keys) if a.inject_keys else PL.PanelBus()
     pending = {'paused': False}
     total_steps = len([r for r in rows if r.group == st])
+    panel_name = PL.PANEL_NAME[side]
     if live is not None:
-        # ONE STANDING PAGE for the whole loop. The instruction is the UNIT --
-        # it lights the indicator of the next button -- so the screen says the
-        # one thing the panel cannot and then stays still while the operator
-        # works down it (S127).
-        live.set(state=LV.WAITING, instruction=LV.PANEL_LOOP_WORDS,
-                 lead_line='', extra='', status='Front panel',
+        # ONE STANDING PAGE PER BOARD, AND IT NAMES THE BOARD (S127, fixed
+        # S128). It used to say "the front panel", which is two boards walked
+        # one after the other, and the worker was never told when to move from
+        # one to the other -- see `LV.panel_side_words`.
+        live.set(state=LV.WAITING, instruction=LV.panel_loop_words(panel_name),
+                 lead_line='', extra='', status=panel_name.capitalize(),
                  n=0, total=total_steps, lead_n=0, lead_total=0)
+        glass.progress('panel loop: the %s, %d checks'
+                       % (panel_name, total_steps))
 
     def ask(step, n, total, tries):
         if tries:
             lines = ['%s did not light.' % step.what.capitalize(),
-                     'Press %s anyway, so the switch itself is still checked.'
-                     % step.name]
+                     'On the %s: press %s anyway, so the switch itself is '
+                     'still checked.'
+                     % (LV.panel_side_words(panel_name), step.name)]
         else:
-            lines = ['Press the button that is lit: %s.' % step.name,
+            lines = ['On the %s: press the button that is lit: %s.'
+                     % (LV.panel_side_words(panel_name), step.name),
                      'It is %s that should be lit.' % step.what,
                      'If nothing lit, press NOT LIT.']
-        btns = glass.post('instruct', 'Panel loop - %s' % step.name, lines,
+        # EVERY STEP PUTS ITS OWN INSTRUCTION ON THE GLASS (S128). The sweep
+        # used to write one standing page and never touch it again, so a step
+        # that asked for something else -- a retry after an indicator stayed
+        # dark, the encoder -- left the worker reading the wrong sentence.
+        if live is not None:
+            live.set(state=LV.WAITING,
+                     instruction=(
+                         LV.panel_retry_words(step.name, step.what, panel_name)
+                         if tries else
+                         LV.panel_press_words(step.name, step.what, panel_name)),
+                     lead_line='', extra='', status=panel_name.capitalize(),
+                     n=min(n, total_steps), total=total_steps)
+        btns = glass.post('instruct', 'Panel loop - %s (%s)'
+                          % (step.name, panel_name), lines,
                           ['notlit'], row=step.sw_row, station=st)
 
         def tick():
@@ -1803,7 +1970,9 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
             turn_row, led_row = extra['encoder']
             if turn_row in owed:
                 land(*((turn_row,) + panel_encoder(bus, glass, st,
-                                                   a.panel_timeout)))
+                                                   a.panel_timeout,
+                                                   live=live,
+                                                   panel=panel_name)))
             if led_row in owed and live is not None:
                 why = LV.panel_judgement_missed('The ring around the encoder')
                 glass.progress(why)
@@ -1834,11 +2003,12 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
         glass.clear()
         state.save()
     glass.progress('panel loop (%s): %d rows graded'
-                   % (PL.PANEL_NAME[side], len(verdicts)))
+                   % (panel_name, len(verdicts)))
     return verdicts
 
 
-def patch_station(a, st, rows, state, ignored, glass, passno):
+def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
+                  keys=None):
     """The analog paths, as ONE LOOP (S121).
 
     The tester prompts one patch, the operator makes it, and the step ends the
@@ -1871,9 +2041,13 @@ def patch_station(a, st, rows, state, ignored, glass, passno):
     # one in both paths, because that is what carries SKIP, IGNORE and the
     # patch's own identity. The screen is what the operator reads; the dialog
     # is what the runner is answered through.
-    live = LV.Live(a.runall, run='patch', enabled=True, confirm=True)
-    keys = PT.KeyWatch(enabled=not getattr(a, 'no_keyboard', False),
-                       log=glass.progress)
+    # THE PASS'S SCREEN, NOT A SECOND ONE (S128). This used to build its own
+    # `Live` and its own `KeyWatch`, which meant the pass had no screen at all
+    # between the panel loops and this line -- and the station CARD is posted in
+    # that gap. `_walk` hands its screen down instead; only a caller with no
+    # glass at all (`--stdin`, `--autoskip`) reaches the fallback.
+    if live is None:
+        live, keys = pass_screen(a, glass)
     station = PT.Station(plist, unit, patcher, glass, limits,
                          log=glass.progress, analog=an, live=live, keys=keys)
     try:
@@ -1883,7 +2057,8 @@ def patch_station(a, st, rows, state, ignored, glass, passno):
             station.teardown()
         except Exception as e:
             glass.progress('the analog station could not be torn down: %s' % e)
-        keys.stop()
+        # The keyboard is NOT stopped here: it belongs to the pass, not to this
+        # station, and a review screen after it still needs ENTER.
         # The screen is left showing how the pass ended -- the tally and who
         # the unit goes to -- exactly as a standalone run leaves it. The next
         # pass's setup pages are what take it down.
@@ -1932,12 +2107,25 @@ def plain_rows(byrow, nums):
     return ', '.join(byrow[n].panel for n in nums if n in byrow)
 
 
-def panel_encoder(bus, glass, st, timeout):
+def panel_encoder(bus, glass, st, timeout, live=None, panel=''):
     """The encoder ring itself: one detent each way, read off the bus.
 
     A detent sends the ring's new position, so direction is the difference
     between two positions and not a flag -- and the position wraps 8 -> 1 and
-    1 -> 8, which is why the comparison is on the wrap as well as the step."""
+    1 -> 8, which is why the comparison is on the wrap as well as the step.
+
+    THE GLASS SAYS WHAT THIS STEP WANTS (S128). PW's first real pass sat here
+    with "Press the button on the front panel that is lit." on the screen -- the
+    sweep's standing page, left over -- while the runner waited for a detent.
+    Nothing on the glass asked for the one thing that would have ended the step,
+    and it timed out at 30 s.
+    """
+    if live is not None:
+        live.set(state=LV.WAITING,
+                 instruction=(('%s: ' % LV.panel_side_words(panel))
+                              if panel else '') + LV.ENCODER_WORDS,
+                 lead_line='', extra='',
+                 status=(panel.capitalize() if panel else 'Front panel'))
     btns = glass.post('instruct', 'Panel loop - the encoder',
                       ['Turn the encoder ONE click clockwise, then ONE click '
                        'anticlockwise.',
@@ -1945,14 +2133,29 @@ def panel_encoder(bus, glass, st, timeout):
                       ['notlit'], station=st)
     seen, last = [], None
     t0 = time.time()
+
+    def tick():
+        if live is not None:
+            live.beat()
+            if live.command() == 'pause':
+                return dict(button='pause', reason='')
+        return glass.poll(btns)
     while time.time() - t0 < timeout:
-        got = bus.wait_key(0.2, tick=lambda: glass.poll(btns))
+        got = bus.wait_key(0.2, tick=tick)
         if got is None:
             continue
         kind, value, _ms = got
         if kind == 'glass':
-            glass.taken({'button': value})
-            return SKIPPED, 'the operator stopped at the encoder'
+            # `value` IS THE ANSWER DICT, not a button name: `tick` hands back
+            # what `Glass.poll` hands back. It used to be re-wrapped as
+            # `{'button': value}`, which printed a dict where a button belongs
+            # and lost PAUSE -- the operator's PAUSE was recorded as a skip on
+            # this one row and the walk carried on.
+            glass.taken(value)
+            if value.get('button') == 'pause':
+                raise Paused()
+            return SKIPPED, (value.get('reason')
+                             or 'the operator stopped at the encoder')
         if kind != 'enc':
             continue
         if last is not None and value != last:
@@ -1997,7 +2200,8 @@ def station_card(card, steps, glass, i, live=None, keys=None):
         # panel switches" with the screen showing "Press START").
         got = glass_page(live, keys, LV.station_card_words(name, hand, n, rails),
                          'Station %d of %d' % (STATION_NUM[card], len(STATIONS)),
-                         n=STATION_NUM[card], total=len(STATIONS))
+                         n=STATION_NUM[card], total=len(STATIONS),
+                         extra=LV.station_card_extra(hand))
         return dict(button='pause' if got == 'pause' else 'ack', reason='')
     return glass.ask('station', 'Station %d - %s' % (STATION_NUM[card], name),
                      lines, ['ack'], station=card,
@@ -2237,6 +2441,17 @@ def write_report(a, rows, state, ignored, stale, timing):
         md.append('| %s | %d |' % (label, t[k]))
     md.append('| **all rows** | **%d** |' % len(rows))
     md.append('')
+    if timing.get('stopped'):
+        # A REPORT OF A RUN THAT WAS STOPPED SAYS SO, FIRST (S128). Until this
+        # existed a stop wrote no report at all, so the only record of a pass
+        # that was halted was the absence of one -- and the pass before it kept
+        # its place as the unit's newest report.
+        md.append('**This pass did not finish: %s.** Everything measured before '
+                  'that point is below; every row it never reached is listed as '
+                  'not tested. The unit was put back safe -- analog supplies '
+                  'down, microphone chain SAFE -- before this was written.'
+                  % timing['stopped'])
+        md.append('')
     md.append('Wall time this pass %s.  Automatic part %s, operator part %s.'
               % (secs(timing.get('wall')), secs(timing.get('auto')),
                  secs(timing.get('manual'))))
@@ -2471,6 +2686,10 @@ def check_md(path):
 def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
     passno = state.d['passes'] + 1
     t0 = time.time()
+    # A PASS THAT IS STOPPED STILL TOOK TIME. `timing` is local and goes with
+    # the exception, so the one figure a stopped report can still be honest
+    # about lives where `main` can reach it.
+    a._pass_t0 = t0
     timing = {}
     # DID THE OVERLAPPED OPENING ACTUALLY RUN? Only then has the operator's
     # first half already happened, and only then is the manual set that
@@ -2531,11 +2750,21 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
         # The overlapped opening has already run the operator's first half
         # under the machine's; what is left is the analog station, with the
         # network phase running under IT.
+        #
+        # THE SCREEN GOES WITH IT (S128). This call used to be made with no
+        # `live` and no `keys`, so the analog station's card came out as a
+        # DIALOG -- and a dialog is the one thing the armed factory display
+        # cannot draw. That was PW's freeze. `pass_screen` hands back the same
+        # screen the setup pages and the panel loops were on.
+        _live, _keys = pass_screen(a, glass)
         timing['manual'] = run_manual(a, rows, state, ignored, glass, passno,
                                       only=PATCH_STATIONS,
-                                      t0=timing.pop('_manual_t0', None))
+                                      t0=timing.pop('_manual_t0', None),
+                                      live=_live, keys=_keys)
     else:
-        timing['manual'] = run_manual(a, rows, state, ignored, glass, passno)
+        _live, _keys = pass_screen(a, glass)
+        timing['manual'] = run_manual(a, rows, state, ignored, glass, passno,
+                                      live=_live, keys=_keys)
     # THE BACKGROUND ROWS, WHEREVER THE PASS WENT (S126, ruling f). They are
     # normally read under the analog station, which is where they cost nobody
     # anything -- but a pass with no analog station owed, or an --auto-only
@@ -2703,15 +2932,24 @@ def main(argv=None):
         return 2
     # RELEASED ON EVERY WAY OUT. `atexit` covers the returns and the
     # exceptions; the two signals systemd and the hub stop a run with do not
-    # run atexit handlers by themselves, so they are turned into an ordinary
-    # exit first. What nothing can cover is SIGKILL, and that is what
+    # run atexit handlers by themselves, so they are turned into an exception
+    # first. What nothing can cover is SIGKILL, and that is what
     # `d24_patch.py --guard` is for.
     import atexit
     import signal
     atexit.register(lock.release)
 
+    # A SIGNAL IS A WAY OUT LIKE ANY OTHER (S128). It used to raise a bare
+    # SystemExit, which released the lock and nothing else: no report, nothing
+    # on the glass, and the rails wherever the last `finally` left them. It now
+    # raises `Stopped`, which `main` hands to the same handback every other way
+    # out goes through. `d24_patch.py --patch-only` has had this since S127;
+    # this is the factory START's own door getting it too.
+    SIGNAMES = {signal.SIGINT: 'it was stopped',
+                signal.SIGTERM: 'it was stopped'}
+
     def _stop(sig, _frm):
-        raise SystemExit(128 + sig)
+        raise Stopped(SIGNAMES.get(sig, 'it was stopped'))
     for _s in (signal.SIGINT, signal.SIGTERM):
         signal.signal(_s, _stop)
 
@@ -2739,8 +2977,35 @@ def main(argv=None):
             glass.progress('paused at step %s of the operator set -- the next '
                            'START resumes here'
                            % ((state.d.get('current') or {}).get('step')))
+            # THE PAUSED SCREEN IS NOW THIS FUNCTION'S JOB (S128). One screen
+            # belongs to the whole pass, so whatever page the pass stopped on is
+            # still on the glass unless somebody replaces it -- and a worker
+            # reading "press the button that is lit" at a pass that has stopped
+            # has no way to know it stopped.
+            drop_screen(a, LV.stopped_words('it was paused'))
             print('PAUSED')
             return
+        except Stopped as why:
+            # RAILS DOWN, REPORT, LOCK RELEASED, ONE PLAIN SENTENCE (S128). The
+            # rails are lowered by the `finally` blocks on the way past this
+            # point in every case the bench has met; this is the backstop for
+            # the cases it has not, and `Analog.down()` is idempotent.
+            print('\nSTOPPED (%s): putting the unit back safe' % why.signame,
+                  flush=True)
+            state.save()
+            lower_rails(glass)
+            try:
+                md, js = write_report(
+                    a, rows, state, live, stale,
+                    {'stopped': why.signame,
+                     'wall': time.time() - getattr(a, '_pass_t0', time.time())})
+                print('report: %s\n        %s' % (md, js), flush=True)
+            except Exception as exc:                        # noqa: BLE001
+                print('the report could not be written: %s' % exc, flush=True)
+            drop_screen(a, LV.stopped_words(why.signame))
+            glass.clear()
+            lock.release()
+            return 130
         resumed = False
         md, js = write_report(a, rows, state, live, stale, timing)
         t = tally(rows, state, live)
@@ -2751,7 +3016,21 @@ def main(argv=None):
         print('report: %s\n        %s' % (md, js))
         glass.progress('pass %d complete - report written - %d of %d rows pass'
                        % (state.d['passes'], t[PASS], len(rows)))
-        if a.no_review or a.auto_only:
+        end_screen(a, t)
+        # THE REVIEW SCREEN IS A DIALOG, AND A PASS WITH A FACTORY SCREEN HAS
+        # NO DIALOGS (S128, found by running it). After the first pass driven
+        # entirely from the glass, the runner posted `prompt.json` kind
+        # `review` and sat on it: the glass said "Finished" with a START button,
+        # the runner held the lock, and START came back "The test is already
+        # running." The unit was stuck with no way out but a terminal -- the
+        # same fault as the station card PW froze on, at the other end of the
+        # pass. The review screen is an ENGINEERING screen; it belongs to the
+        # wizard, which does draw dialogs, and never to a factory pass.
+        if a.no_review or a.auto_only or getattr(a, '_screen_built', False):
+            if getattr(a, '_screen_built', False) and not a.no_review:
+                print('the review screen is not put up: this pass ran on the '
+                      'factory screen, which draws no dialogs. The report is '
+                      'written and START runs the next pass.', flush=True)
             break
         if not review(rows, state, live, glass, a):
             break

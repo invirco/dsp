@@ -586,19 +586,85 @@ def t_nw3(r):
     and the bench-vs-old-interval table proving that halving the interval
     does not itself cost packets lives in `MW/D24/DSP/s116/`. The two targets
     run CONCURRENTLY -- one thread each -- instead of one after the other;
-    `--nw3-runs` and the worst-of-N-per-target scoring are unchanged."""
-    def ping(target):
-        txt = r.out('ping -c 200 -i 0.1 %s 2>&1 | tail -3' % target, timeout=200)
+    `--nw3-runs` and the worst-of-N-per-target scoring are unchanged.
+
+    THIRD, S128, AND IT IS WHY THE VERDICT USED TO BE UNUSABLE: two targets and
+    a worst-of-N say HOW MUCH was lost and nothing about WHERE. PW's first real
+    pass read FAIL at 3-6 % loss and the reading could be believed about the
+    bench, the cable, the switch or the unit with equal ease. Two things are
+    added and neither moves the bar:
+
+      * a LOOPBACK control, 200 packets to 127.0.0.1. That path is inside the
+        unit; it has no socket, no cable and no far host in it.
+      * WHEN the losses happened, from `ping -D`'s own timestamps.
+
+    Measured on MW-D24-2, 2026-09-27: 0.0 % on the loopback, and to BOTH real
+    targets two packets lost every 3.02 s, at the same instants. No path can
+    drop the same packets towards two different hosts at the same moments. The
+    cause was on the unit and it was the display app re-saving the whole screen
+    to a PNG every 3 s (`MX_DRM_CAPTURE_MS`, a diagnostic left switched on);
+    with it off, the same unit and the same bench measured 0.0 % to both targets
+    on three consecutive runs. The bar is unchanged and the unit passes it."""
+    def ping(target, count=200, interval=0.1):
+        # `-D` AND THE WHOLE OUTPUT, not `tail -3` (S128). The summary says how
+        # many were lost; only the per-packet lines say WHEN, and when is the
+        # reading that separates a network from a unit that stalls. Measured on
+        # MW-D24-2 2026-09-27: the losses were two packets every 3.02 s, to both
+        # targets at once, which no path can do and one process on the unit can.
+        txt = r.out('ping -D -c %d -i %s %s 2>&1' % (count, interval, target),
+                    timeout=200)
         loss = re.search(r'([\d.]+)% packet loss', txt)
         rtt = re.search(r'=\s*([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+)\s*ms', txt)
         return txt, (float(loss.group(1)) if loss else None), \
             (float(rtt.group(3)) if rtt else None)
 
+    def when_lost(txt, count=200):
+        """The gaps, in seconds between them: '2 packets every 3.02 s' or ''.
+
+        A run of losses that is EVENLY SPACED is not loss on a path. Something
+        on this unit stops answering for a moment, at a period, and the period
+        is the handle: it names the process to look for.
+        """
+        at = {}
+        for m in re.finditer(r'\[(\d+\.\d+)\] .*icmp_seq=(\d+)', txt):
+            at[int(m.group(2))] = float(m.group(1))
+        if not at:
+            return ''
+        missing = [i for i in range(1, count + 1) if i not in at]
+        if not missing:
+            return ''
+        runs, cur = [], [missing[0]]
+        for i in missing[1:]:
+            if i == cur[-1] + 1:
+                cur.append(i)
+            else:
+                runs.append(cur)
+                cur = [i]
+        runs.append(cur)
+        if len(runs) < 3:
+            return '%d lost in %d burst%s' % (len(missing), len(runs),
+                                              '' if len(runs) == 1 else 's')
+        starts = [at.get(x[0] - 1) for x in runs]
+        gaps = [round(b - a, 2) for a, b in zip(starts, starts[1:])
+                if a is not None and b is not None]
+        if not gaps:
+            return '%d lost in %d bursts' % (len(missing), len(runs))
+        span = max(gaps) - min(gaps)
+        sizes = sorted(set(len(x) for x in runs))
+        shape = ('%d packets' % sizes[0] if len(sizes) == 1
+                 else '%d-%d packets' % (sizes[0], sizes[-1]))
+        if span <= 0.4 * (sum(gaps) / len(gaps)):
+            return ('%s lost every %.2f s, %d times -- evenly spaced'
+                    % (shape, sum(gaps) / len(gaps), len(runs)))
+        return '%d lost in %d bursts, %s apart' % (len(missing), len(runs),
+                                                  '/'.join('%.2f s' % g
+                                                           for g in gaps[:6]))
+
     gw = r.out("ip route | awk '/default/{print $3; exit}'")
     targets = [(label, target) for label, target in
                (('bench host %s' % BENCH_HOST_SELF, BENCH_HOST_SELF),
                 ('gateway %s' % gw, gw)) if target]
-    logs, worst = [], {}
+    logs, worst, last_txt = [], {}, {}
     losses_by = {label: [] for label, _ in targets}
     maxes_by = {label: [] for label, _ in targets}
     for i in range(r.a.nw3_runs):
@@ -615,6 +681,7 @@ def t_nw3(r):
             th.join()
         for label, _ in targets:
             txt, loss, mx = pass_result[label]
+            last_txt[label] = txt
             logs.append('--- %s, pass %d/%d ---\n%s' % (label, i + 1, r.a.nw3_runs, txt))
             if loss is None:
                 continue
@@ -623,7 +690,42 @@ def t_nw3(r):
     for label, _ in targets:
         if losses_by[label]:
             worst[label] = (max(losses_by[label]), max(maxes_by[label]), losses_by[label])
+    # THE CONTROL THAT SEPARATES THE UNIT FROM THE PATH (S128). A loopback run
+    # goes nowhere near the network socket, the cable, the switch or the far
+    # host: it is the unit answering itself. If it is clean and both real
+    # targets are not, the loss is on the way out of this box, and the shape
+    # above says whether something here stops for a moment at a period.
+    lo_txt, lo_loss, _lo_max = ping('127.0.0.1', count=200, interval=0.05)
+    # The SHAPE of the last pass, per target: `last_txt` is filled in the loop
+    # above and is the output of the final pass, which is the one whose
+    # per-packet timestamps are worth printing.
+    shapes = [(lab, when_lost(last_txt[lab])) for lab, _ in targets
+              if lab in last_txt]
+    shapes = [(lab, sh) for lab, sh in shapes if sh]
+    logs.append('--- loopback control (the unit answering itself) ---\n%s'
+                % lo_txt)
     raw = '\n'.join(logs)
+    control = ''
+    if lo_loss is not None:
+        control = ('\nLOOPBACK CONTROL: %.1f %% loss to 127.0.0.1 over 200 '
+                   'packets. That path is inside the unit -- no socket, no '
+                   'cable, no switch.' % lo_loss)
+    if shapes:
+        control += ('\nWHEN THE LOSSES HAPPENED (last pass): %s.'
+                    % '; '.join('%s: %s' % (lab, sh) for lab, sh in shapes))
+        if lo_loss == 0.0 and all('evenly spaced' in sh for _l, sh in shapes):
+            control += (
+                '\nEVENLY SPACED LOSS TO EVERY TARGET AT ONCE, WITH A CLEAN '
+                'LOOPBACK, IS NOT A NETWORK. No path can drop the same packets '
+                'towards two different hosts at the same instants; a process on '
+                'this unit that stops serving the interface for a moment can, '
+                'and the period above is what names it. Measured cause on '
+                'MW-D24-2 2026-09-27 (S128): the display app was re-saving the '
+                'whole screen to a PNG every 3 s under MX_DRM_CAPTURE_MS, '
+                'which is a diagnostic left switched on. With it off the same '
+                'unit measured 0.0 %% to both targets on three consecutive '
+                'runs.')
+    raw += control
     if not worst:
         return NODATA, 'ping did not summarise', '0% loss, max RTT < 5 ms', raw
     host_key = 'bench host %s' % BENCH_HOST_SELF
@@ -706,17 +808,38 @@ def t_nw4(r):
         capped = int(host_mbit) < 1000
     except ValueError:
         capped = True
+    # WHY IT COULD NOT BE GRADED, IN ONE PLAIN SENTENCE (S128). The old text said
+    # "the driving host's lo negotiates 0 Mb/s, so this is the path, not the
+    # unit", which is true and tells a reader nothing: `lo` is the LOOPBACK, and
+    # a run down the loopback never touched the network socket at all. The two
+    # cases are different facts about the bench and they now read differently.
+    if iface == 'lo' or not iface:
+        return (NODATA,
+                'this ran from the unit to itself, so nothing was measured '
+                'about its network socket (unit rx %.0f, tx %.0f Mbit/s, down '
+                'its own loopback)' % (a_rx, a_tx),
+                '>= 900 Mbit/s each way',
+                raw + '\nWHY THERE IS NO READING: a throughput test needs a '
+                      'SECOND machine. Run on the unit itself (`--local`), the '
+                      'driving host IS the unit, so the traffic never leaves it '
+                      '-- the route to %s is `dev lo`. The unit\'s own link is '
+                      '1000Mb/s Full and that is NW1\'s reading, not this one. '
+                      'To grade this row, drive it from a gigabit-attached '
+                      'machine on the same switch.' % BENCH_HOST_SELF)
     if capped:
         return (NODATA,
-                'unit rx %.0f Mbit/s, unit tx %.0f Mbit/s -- but the driving host\'s %s '
-                'negotiates %s Mb/s, so this is the path, not the unit'
-                % (a_rx, a_tx, iface, host_mbit),
+                'the driving host\'s network card is only %s Mb/s, so the bar '
+                'cannot be reached whatever the unit does (unit rx %.0f, tx '
+                '%.0f Mbit/s)' % (host_mbit, a_rx, a_tx),
                 '>= 900 Mbit/s each way',
-                raw + '\nPREREQUISITE: a gigabit path between the unit and the driving host. '
-                      'The unit\'s own link is 1000Mb/s Full (NW1); the dsp machine\'s %s is '
-                      'at %s Mb/s, which caps this measurement below the bar whatever the unit '
-                      'does. Re-run from a gigabit-attached host, or move the unit and that '
-                      'host onto the same gigabit switch port pair.' % (iface, host_mbit))
+                raw + '\nWHY THERE IS NO READING: this measures the SLOWER of '
+                      'the two ends. The unit\'s own link is 1000Mb/s Full '
+                      '(NW1); the driving host\'s %s negotiates %s Mb/s, which '
+                      'caps the figure below the 900 Mbit/s bar however good '
+                      'the unit is. Scoring it FAIL would be a defect invented '
+                      'by the bench. Re-run from a gigabit-attached host, or '
+                      'move the unit and that host onto the same gigabit '
+                      'switch.' % (iface, host_mbit))
     ok = a_rx >= 900.0 and a_tx >= 900.0
     return ((PASS if ok else FAIL),
             'unit rx %.0f Mbit/s, unit tx %.0f Mbit/s' % (a_rx, a_tx),

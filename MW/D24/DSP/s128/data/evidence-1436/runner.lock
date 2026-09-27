@@ -1,0 +1,1 @@
+{"pid": 23176, "started": 1790515492.9369712, "stamp": "2026-09-27T13:24:52Z", "argv": ["/home/app/selftest/d24_patch.py", "--run", "--list-dir", "/home/app/selftest/quick", "--dir", "/home/app/selftest/runall", "--live", "/home/app/selftest/runall"]}

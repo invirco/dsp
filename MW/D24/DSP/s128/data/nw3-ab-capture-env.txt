@@ -1,0 +1,10 @@
+capture png: -rw-r--r-- 1 app app 61752 14:56:42 /home/app/selftest/s105-wizard.png
+capture png: -rw-r--r-- 1 app app 61752 14:56:45 /home/app/selftest/s105-wizard.png
+latency csv: 7470
+### no-capture app: active
+nocap run1 host=0% packet loss
+nocap run2 host=0% packet loss
+nocap run3 host=0% packet loss
+### restored: active
+
+[exited with code 0]

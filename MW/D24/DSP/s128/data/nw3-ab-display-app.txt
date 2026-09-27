@@ -1,0 +1,13 @@
+### testui ACTIVE: active
+on  run1 host=6.66667% packet loss gw=7.33333% packet loss
+on  run2 host=7.33333% packet loss gw=4.66667% packet loss
+on  run3 host=8.66667% packet loss gw=5.33333% packet loss
+### testui STOPPED
+off run1 host=0% packet loss gw=0% packet loss
+off run2 host=0% packet loss gw=0% packet loss
+off run3 host=0% packet loss gw=0% packet loss
+### testui RESTARTED: active
+on2 run1 host=2.66667% packet loss gw=6% packet loss
+on2 run2 host=6.66667% packet loss gw=10% packet loss
+
+[exited with code 0]

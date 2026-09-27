@@ -1,0 +1,25 @@
+{
+ "seq": 1790515514,
+ "kind": "station",
+ "title": "Station 3 - Analog paths",
+ "lines": [
+  "What you need in hand: the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug.",
+  "33 checks at this station.",
+  "The analog supplies are LIVE for this station."
+ ],
+ "buttons": [
+  "ack",
+  "skip",
+  "ignore",
+  "pause"
+ ],
+ "reasons": [
+  "awaiting part",
+  "known rev-C erratum",
+  "fixture not built",
+  "other"
+ ],
+ "stamp": "2026-09-27T13:32:46Z",
+ "station": "M4",
+ "station_num": 3
+}

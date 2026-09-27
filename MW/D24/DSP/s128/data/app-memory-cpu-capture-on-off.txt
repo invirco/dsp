@@ -1,0 +1,43 @@
+=== A: as deployed (capture ON) ===
+## cap_on pid=26707
+cap_on 14:58:23 rss=241824k vm=3478308k avail=400156k swapfree=719732k cpu=2935
+cap_on 14:58:43 rss=242200k vm=3478308k avail=393336k swapfree=719732k cpu=3775
+cap_on 14:59:03 rss=242632k vm=3478304k avail=382384k swapfree=719732k cpu=4637
+cap_on 14:59:23 rss=242732k vm=3478312k avail=391872k swapfree=719732k cpu=5435
+cap_on 14:59:44 rss=243152k vm=3478260k avail=387804k swapfree=719732k cpu=6374
+cap_on 15:00:04 rss=243236k vm=3478260k avail=393640k swapfree=719732k cpu=7117
+cap_on 15:00:24 rss=248360k vm=3478308k avail=396212k swapfree=719732k cpu=7913
+cap_on 15:00:44 rss=248412k vm=3478260k avail=397592k swapfree=719732k cpu=8658
+cap_on 15:01:04 rss=248452k vm=3478284k avail=386176k swapfree=719732k cpu=9398
+cap_on 15:01:24 rss=248452k vm=3478284k avail=384804k swapfree=719732k cpu=10175
+cap_on 15:01:44 rss=248452k vm=3478284k avail=387012k swapfree=719732k cpu=10935
+cap_on 15:02:04 rss=248460k vm=3478260k avail=397608k swapfree=719732k cpu=11675
+cap_on 15:02:24 rss=248464k vm=3478284k avail=366380k swapfree=719732k cpu=12434
+cap_on 15:02:44 rss=248472k vm=3478284k avail=388020k swapfree=719732k cpu=13210
+cap_on 15:03:04 rss=248472k vm=3478260k avail=392140k swapfree=719732k cpu=13955
+cap_on 15:03:24 rss=248472k vm=3478308k avail=399064k swapfree=719732k cpu=14709
+cap_on 15:03:44 rss=248476k vm=3478332k avail=392876k swapfree=719732k cpu=15494
+cap_on 15:04:04 rss=248412k vm=3478260k avail=382792k swapfree=719732k cpu=16237
+=== B: capture OFF ===
+## cap_off pid=27202
+cap_off 15:04:41 rss=225024k vm=3468736k avail=412676k swapfree=719732k cpu=1330
+cap_off 15:05:01 rss=225404k vm=3468768k avail=416604k swapfree=719732k cpu=1464
+cap_off 15:05:21 rss=226492k vm=3468764k avail=418012k swapfree=719732k cpu=1588
+cap_off 15:05:41 rss=226636k vm=3468768k avail=416500k swapfree=719732k cpu=1710
+cap_off 15:06:01 rss=227380k vm=3468744k avail=415328k swapfree=719732k cpu=1820
+cap_off 15:06:21 rss=227380k vm=3468744k avail=415864k swapfree=719732k cpu=1926
+cap_off 15:06:42 rss=229960k vm=3468740k avail=412024k swapfree=719732k cpu=2050
+cap_off 15:07:02 rss=229960k vm=3468764k avail=411320k swapfree=719732k cpu=2154
+cap_off 15:07:22 rss=229960k vm=3468740k avail=410820k swapfree=719732k cpu=2252
+cap_off 15:07:42 rss=230536k vm=3468744k avail=409192k swapfree=719732k cpu=2352
+cap_off 15:08:02 rss=230536k vm=3468744k avail=411360k swapfree=719732k cpu=2452
+cap_off 15:08:22 rss=230536k vm=3468744k avail=410656k swapfree=719732k cpu=2549
+cap_off 15:08:42 rss=230536k vm=3468744k avail=410352k swapfree=719732k cpu=2645
+cap_off 15:09:02 rss=230536k vm=3468744k avail=410076k swapfree=719732k cpu=2739
+cap_off 15:09:22 rss=230536k vm=3468744k avail=409100k swapfree=719732k cpu=2833
+cap_off 15:09:42 rss=230536k vm=3468744k avail=409104k swapfree=719732k cpu=2932
+cap_off 15:10:02 rss=230536k vm=3468744k avail=410100k swapfree=719732k cpu=3032
+cap_off 15:10:22 rss=230536k vm=3468768k avail=411284k swapfree=719732k cpu=3132
+restored: active
+
+[exited with code 0]
