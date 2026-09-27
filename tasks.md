@@ -1,3 +1,41 @@
+## HUB DISPATCH 2026-09-27 23:30Z — S134: overnight no-hands — NW4 must never crash; S131 matrix switch-over runbook (desk, dry-run only)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S134 — overnight, NO HANDS: NW4's crash, then prepare S131 (the matrix switch-over) as a desk runbook
+
+The rules are as for S132/S133: no flashing, no fuses, no app deploy (the app stays `b05e9fd5`; main's app rides S131 only). Leave the unit safe and armed.
+
+## 1. NW4 must never crash
+S133 saw NW4 crash on this 100 Mb/s bench. It is pre-existing; S129 made NW4 "NOT TESTED — no gigabit peer on this bench" when `NW4_PEER` is unset or not gigabit.
+- Find why that path still crashed and fix it. With no peer, or a sub-gigabit link, NW4 records NOT TESTED with the reason, and the network phase finishes normally.
+- Prove it with a full automatic batch from the glass START: no crash, NW4 NOT TESTED, everything else unchanged.
+
+## 2. The S131 runbook (desk only: do NOT execute any of it)
+PW will run the matrix switch-over tomorrow with the hub. Read mx26 `docs/investigation-matrix-generation-2026-09-27.md`: the unit runs the 08-18 pack (generation `e80ccab5d6d8`), and the target is generation `f9677e5fae5e`, at mx26 pin defs-v2026.09.27.5 (the matrix is unchanged from .3). Write `MW/D24/DSP/s131-runbook.md` with:
+- the exact ordered steps:
+  1. the app build from mx26 main (the hub builds it);
+  2. the published `_matrix.mxc` (+csv) from the Dropbox `_Matrix` store;
+  3. regenerating the H1S3/H1S4 `matrix.h` from the published csv (the generator, the command, and the expected diff: which addresses move);
+  4. H1S1's table, if it carries matrix addresses (check);
+  5. building each `.shex`;
+  6. the flash order for H1S3 + H1S4 (+ H1S1) through `app cli loadfw`, together;
+  7. the reboot;
+  8. the checks: the boot log shows `f9677e5fae5e`, every panel press lands on the right cell, the left panel on `Sys001SwLeft001`, talkback on `Sys001SwTalk001`;
+- **a ROLLBACK for every step:** the backups to take first (current `.shex` images, `_matrix.mxc`, the app binary) and the exact commands to restore the 08-18 state;
+- the time per step, and the total;
+- which steps need PW at the bench (probably none but a look at the panels);
+- the pre-checks to run tomorrow before starting: tools in sync (`deploy-bench-tools.sh --check`), the unit safe, the backups verified.
+
+Dry-run whatever can be dry-run: generate the new `matrix.h` and `.shex` into a scratch directory and diff them against the flashed images. Do not flash.
+
+## Report
+`MW/D24/DSP/s134/`. Close 🟢/🔴 with a one-line outcome. Commit and push `main`. No AI attribution. No dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 22:59Z — S133: hands-off screen for the automatic batch; PAUSE drops the rails (hub ruling from PW rules)   [status: 🟢 both fixed and proven on MW-D24-2: `Background.join()` now watches `quiet.flag` (via the panel loop's own `quiet_hold()`) for the whole dsp phase, not only while the panel walk polls -- proven by pre-ignoring every panel row and watching HANDSOFF appear with nothing else driving it; `main()`'s `except Paused:` now unconditionally lowers AN_EN + SAFEs the chain -- proven by pausing at the analog station's own card (rails live, station not yet entered, the one door none of the three existing nested guards covered), then a fresh pass whose `boot_pair()` no longer refuses and AL1 PASSES. Bonus: an unplanned NW4 crash (pre-existing, unrelated -- bench link is 100 Mb/s) proved the "auto set DIED, NO DATA stamped, never reads as finished" fix for real. Report + screens: `MW/D24/DSP/s133/`, PNGs also at `~/hub-staging/s133-screens/`. Unit left safe: AN_EN low, chain SAFE, app still `b05e9fd5`, state reset, bench-harness ignores reverted.]   [model: sonnet]
 
 model: sonnet
