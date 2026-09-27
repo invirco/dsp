@@ -24,9 +24,9 @@ proved, it says that too.
 | 6 | every jack patch reads inverted | **root-caused from the netlist, all 22 sockets**; one alternative left to kill (HANDS 2) |
 | 7 | MIC 7 | hardware **cleared by four measurements**; the remaining cause is the instruction, and that is fixed |
 | 8 | NW2 / NW3 / NW4 (addendum 2) | NW2 and NW4 **built**; NW3 already targets the wired address, evidence hardened |
-| A4 | hands-off steps take control | **not built** — see §9 |
+| A4 | hands-off steps take control | **built** for the one step that needs it (AL1), no app change needed — §10 |
 | A5 | gain step ±0.25 dB | window **set**; the instrument is proved 20× better than it needs to be; the EXPECTED table is not |
-| A7 | AL1, talkback cell | **not built** — see §9 |
+| A7 | AL1 hands-off / talkback cell | AL1's cause **found and fixed** (§10.1); the talkback cell hits §3.2's wall |
 
 ---
 
@@ -516,26 +516,90 @@ meet ±0.25 dB at rev D. **HANDS 4.**
 
 ---
 
-## 10. Not built, and honestly named
+## 10. Hands off, and which steps actually need it (addendum 4)
 
-* **addendum 4** — hands-off steps: a notice, input ignored (not queued), active
-  progress. The mechanism that exists today is a HINT: `quiet_window` raises a
-  flag around the acoustic tone and the panel loop holds its next indicator for
-  up to 8 s (`quiet_hold`). What the ruling asks for is more: a plain line on the
-  glass, the tester TAKING control so a touch is ignored rather than queued, and
-  a moving progress indicator for the whole window. The "ignored, not queued"
-  half is the app's (`FactoryView` must drop presses in that state) and the
-  notice and the progress are the runner's.
-* **addendum 7** — AL1 in that window, and a cell for the talkback switch and
-  its two indicators (catalog #92). The talkback cell is a second defs cell and
-  a second H1S3 firmware change; it belongs with the H1S4 reflash so the panel
-  boards are flashed once, not twice.
+> "If any of the tests require touch display silence then notify user and take
+> control for those tests, with active progress."
+
+**Every candidate, with its duration, and whether it needs the window.** The
+durations are the runner's own measured cost model (`d24_runall.COST`, taken
+from S116's full run).
+
+| step | what it is | s | needs hands off? |
+|---|---|---|---|
+| **AL1** | speaker → panel MEMS microphone loop | **17** | **YES** — the microphone that has to hear the speaker is inches from the finger pressing panel buttons |
+| NW3 | network packet loss | 63 | no — see below |
+| NW2 | network error counters | 30 | no |
+| NW4 | network throughput | 23 | no (and it is now NOT TESTED, so 0 s) |
+| AS-CPLD | logic device identity | 15 | no — SPI only, nothing acoustic, nothing on the panel bus |
+| DR1 / DR2 | audio processor reset / released | 11 / 9 | no |
+| ML1, ML-M, ML-P1, ML-P2 | control and panel processor links | 4–5 each | no, and it is measured: all four PASSED in all three of PW's passes **while the operator was pressing panel buttons**, so the key traffic does not perturb them |
+| the analog station's settle and read windows | 85–340 ms each | <0.35 | no — they are already hands-off by construction: the operator plugs the lead in and then presses ENTER, and the reading is taken after the press |
+
+**Why the network window is not one of them, with the measurement.** What
+perturbed NW3 was not a hand: it was **47 on-demand screen captures**, several
+of them inside NW3's own window, which is bench tooling and is never part of a
+pass — and the same window re-measured with the capture armed and idle read
+**0.0 % loss** (S128). A touch is not a screenshot. Blocking a worker for 116 s
+to protect a ping test would also undo S126's ruling, which put the network
+under the patch pass on purpose.
+
+### 10.1 What was built, and it needed no app change
+
+`quiet_window` on the self-test side already raises a flag around AL1's tone and
+`quiet_hold` on the runner side makes the panel loop wait — but **it gave up
+after 8 s and AL1 takes 17**, so the loop lit the next button while the speaker
+was still sounding. That is why AL1 read NO DATA, "no settled window for: base,
+tone, back", on PW's passes having passed on 09-25 and 09-26 when nothing ran
+under it.
+
+* `QUIET_MAX_S` is **30 s** — longer than the step, still a cap and not a wait
+  for ever;
+* while the flag is up the glass goes to a new state, `handsoff`, carrying
+  **"Hands off - the unit is testing itself (the speaker and the panel
+  microphone, about 17 s)"** and **"Do not touch the screen or the front panel
+  until this clears."**;
+* **active progress**: `n`/`total` count the seconds, which drives both the
+  "n of N" and the progress bar, and `busy` is true so the activity indicator
+  keeps sweeping;
+* **the screen has NO BUTTON AT ALL** in that state (`buttons: []`,
+  `can_pause: false`), which the app already honours — `PrimaryBorder` and
+  `PauseBorder` are both hidden, and a tap on the body of the screen has no
+  handler. So a touch is ignored rather than queued;
+* and the runner **drains** `live.command()` and the keyboard for the whole
+  window and throws away what it finds, so a press cannot be spent on the step
+  after — which is the same class of fault one layer up;
+* when the flag clears the screen is put back exactly as the loop left it.
+
+Verified on the desk: `state=handsoff` → `buttons=[]`, `busy=True`,
+`can_pause=False`; `state=summary` → `buttons=['exit']`; and a return to
+`waiting` restores `['enter','pause']` and clears the summary.
+
+**Not proved on the part.** AL1 passing again from the glass needs a pass, which
+needs the operator. It is in the proof pass.
+
+---
+
+## 11. Not built, and honestly named
+
+* **addendum 7's talkback cell** — catalog #92, the talkback switch and its two
+  indicators, which pass through the panel processor with no matrix cell bound.
+  It is a second new defs cell and an H1S3 firmware change, and it hits exactly
+  the same wall as §3.2: no panel firmware should take a defs-generation address
+  until the app's pack is rebuilt. It belongs in the same single reflash of both
+  boards, not a second one.
+* **addendum 2's touch-panel row** — the back-panel USB socket's device
+  enumerating on the internal hub, graded automatically. The catalog is
+  generated upstream, so the row is an mx26 change and the test beside it is
+  this repo's.
 * **item 4's real cause**, on which the panel firmware change depends.
+* **§4.4's grading design** — stop naming the button, randomise the order —
+  which wants one line from PW because it changes how an operator is graded.
 * **the proof pass**, which is every remaining item at once.
 
 ---
 
-## 11. The unit, as this report is written
+## 12. The unit, as this report is written
 
 `matrix-app` inactive, `d24-testui` active, **AN_EN low** (read back after every
 probe that raised it), **CS_M driven high**, the 595 chain **SAFE and verified**
@@ -546,7 +610,7 @@ block). `d24_patch.py.bak-s129-pre` and friends are the rollback.
 
 ---
 
-## 12. Files
+## 13. Files
 
 * `tools/settle_probe.py` — the drive-step settle, on the part.
 * `tools/floor_probe.py` — every lane's floor, and the instrument's own spread.
