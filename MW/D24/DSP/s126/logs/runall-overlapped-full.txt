@@ -190,3 +190,257 @@ OVERALL: CLEAN
 -- 2026-09-27T10:59:04Z boot_pair end
 DR1 ...
    [dsp] AUTO group A3 - audio processor reset, held - 7 s gone, about 73 s left
+-- 2026-09-27T10:59:08Z DR1 took 3.6 s
+  DR1       PASS     FRAME_COUNT 6774 -> 9550 advancing; after !RST_D (GPIO16) low 200 ms: None -> None
+DR2 ...
+   [dsp] AUTO group A3 - audio processor reset, released - 11 s gone, about 62 s left
+-- 2026-09-27T10:59:17Z DR2 took 9.4 s
+  DR2       PASS     BOOT_STAGE 7/7, BUILD_ID 0x20260812/0x20260812, 31 lanes CARRYING
+DY1-RDY1 ...
+   [dsp] AUTO group A3 - audio processor A ready line - 20 s gone, about 53 s left
+-- 2026-09-27T10:59:17Z DY1-RDY1 took 0.0 s
+  DY1-RDY1  PASS     CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DY1-RDY2 ...
+   [dsp] AUTO group A3 - audio processor B ready line - 20 s gone, about 46 s left
+-- 2026-09-27T10:59:17Z DY1-RDY2 took 0.0 s
+  DY1-RDY2  PASS     CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+DC1-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, asserted - 20 s gone, about 46 s left
+-- 2026-09-27T10:59:17Z DC1-CS1 took 0.3 s
+  DC1-CS1   PASS     CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812
+DC1-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, asserted - 21 s gone, about 45 s left
+-- 2026-09-27T10:59:18Z DC1-CS2 took 0.3 s
+  DC1-CS2   PASS     CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812
+DC1-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, asserted - 21 s gone, about 45 s left
+-- 2026-09-27T10:59:18Z DC1-CS6 took 0.0 s
+  DC1-CS6   NO DATA  CS6 reaches no fitted part
+DC1-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, asserted - 21 s gone, about 45 s left
+-- 2026-09-27T10:59:18Z DC1-CS7 took 0.0 s
+  DC1-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC1-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, asserted - 21 s gone, about 45 s left
+-- 2026-09-27T10:59:18Z DC1-CS8 took 0.0 s
+  DC1-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+DC2-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, answered - 21 s gone, about 45 s left
+-- 2026-09-27T10:59:18Z DC2-CS1 took 0.6 s
+  DC2-CS1   PASS     CS1: CHIP_ID 1 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, answered - 22 s gone, about 45 s left
+-- 2026-09-27T10:59:19Z DC2-CS2 took 0.6 s
+  DC2-CS2   PASS     CS2: CHIP_ID 2 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+DC2-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, answered - 22 s gone, about 44 s left
+-- 2026-09-27T10:59:19Z DC2-CS6 took 0.0 s
+  DC2-CS6   NO DATA  CS6 reaches no fitted part
+DC2-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, answered - 22 s gone, about 44 s left
+-- 2026-09-27T10:59:19Z DC2-CS7 took 0.0 s
+  DC2-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+DC2-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, answered - 22 s gone, about 44 s left
+-- 2026-09-27T10:59:19Z DC2-CS8 took 0.0 s
+  DC2-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+AS-DSPA ...
+   [dsp] AUTO group A4 - audio processor A - 22 s gone, about 44 s left
+-- 2026-09-27T10:59:21Z AS-DSPA took 2.6 s
+  AS-DSPA   PASS     CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 15597->21912 (2986 blocks/s), 28/30 lane
+AS-DSPB ...
+   [dsp] AUTO group A4 - audio processor B - 25 s gone, about 40 s left
+-- 2026-09-27T10:59:22Z AS-DSPB took 0.9 s
+  AS-DSPB   PASS     CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 18561->28106 (3000 blocks/s)
+AS-CPLD ...
+   [dsp] AUTO group A4 - clock master - 26 s gone, about 38 s left
+-- 2026-09-27T10:59:26Z AS-CPLD took 4.0 s
+  AS-CPLD   NO DATA  design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 12 s: chip1 0 chip2 0
+-- 2026-09-27T10:59:26Z rails ensure_pair start
+-- 2026-09-27T10:59:28Z rails ensure_pair end (booted=False)
+0170 FFFFED90
+    c2 words FFFFFC20 FFFFFE60 FFFFFFA0 FFFFFEB0 FFFFFCB0 FFFFFF40 FFFFF980 FFFFF9C0
+  set 0 MAIN_R  c1   -99.99 dBFS  c2  -101.82 dBFS  delta   -1.84
+  set 1 MAIN_R  c1   -98.34 dBFS  c2   -99.44 dBFS  delta   -1.09
+    c1 words FFFFFD10 FFFFFAB0 00000710 FFFFFBB0 000001D0 FFFFFEA0 FFFFFD80 FFFFFB80
+    c2 words FFFFFA40 FFFFFC20 FFFFFB50 00000290 FFFFF940 00000170 FFFFFBC0 FFFFFD50
+-- 2026-09-27T10:59:28Z rails_up start
+AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it once, at the end)
+-- 2026-09-27T10:59:28Z rails_up end
+AS-ADC ...
+   [dsp] AUTO group A5 - input converters - 31 s gone, about 23 s left
+-- 2026-09-27T10:59:29Z AS-ADC took 1.6 s
+  AS-ADC    PASS     lane 0 (U15): 8/8 CARRYING, rms -117.1..-113.7 dBFS; lane 1 (U39): 8/8 CARRYING, rms -112.8..-95
+AS-DAC ...
+   [dsp] AUTO group A5 - output converters - 33 s gone, about 21 s left
+-- 2026-09-27T10:59:29Z AS-DAC took 0.0 s
+  AS-DAC    NO DATA  retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and
+AS-PWR ...
+   [dsp] AUTO group A4 - power processor - 33 s gone, about 17 s left
+-- 2026-09-27T10:59:29Z AS-PWR took 0.0 s
+  AS-PWR    NO DATA  no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi
+AL1 ...
+   [dsp] AUTO group A5 - speaker to microphone loop - 33 s gone, about 17 s left
+-- 2026-09-27T10:59:29Z AL1 codec_init start
+-- 2026-09-27T10:59:31Z AL1 codec_init end
+-- 2026-09-27T10:59:31Z AL1 ensure_pair start
+-- 2026-09-27T10:59:31Z AL1 ensure_pair end (booted=False)
+-- 2026-09-27T10:59:31Z AL1 rxscan start
+-- 2026-09-27T10:59:31Z AL1 rxscan end
+-- 2026-09-27T10:59:31Z AL1 stimulus check start
+-- 2026-09-27T10:59:32Z AL1 stimulus check end
+-- 2026-09-27T10:59:32Z AL1 baseline start
+-- 2026-09-27T10:59:32Z AL1 tone start
+-- 2026-09-27T10:59:32Z AL1 second baseline start
+-- 2026-09-27T10:59:32Z AL1 measure end
+-- 2026-09-27T10:59:33Z AL1 took 3.2 s
+  AL1       NO DATA  no settled window for: base, tone, back
+-- 2026-09-27T10:59:33Z handback start
+
+--- handback ---
+speaker path: already torn down by AL1 (NOT SILENT, live 0.88 s)
+SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 7A C3 00 00 37 AC 10 00 BB BB 30 30 30 30 00 00 00 00 18 18 18 18 00 05 0A
+CS_M: 27: op -- pd | hi // GPIO27 = output
+AN_EN: 26: op -- pd | lo at entry, RAISED this session, LEFT UP (--al1-keep-rails) -> 26: op -- pd | hi // GPIO26 = output
+matrix-app: left stopped (--no-app-restart); the test display owns the screen
+MCU verify (whole log): not read -- the app was not restarted
+-- 2026-09-27T10:59:33Z handback end
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AL1        NO DATA 
+AS-ADC     PASS    
+AS-CPLD    NO DATA 
+AS-DAC     NO DATA 
+AS-DSPA    PASS    
+AS-DSPB    PASS    
+AS-PWR     NO DATA 
+DC1-CS1    PASS    
+DC1-CS2    PASS    
+DC1-CS6    NO DATA 
+DC1-CS7    NO DATA 
+DC1-CS8    NO DATA 
+DC2-CS1    PASS    
+DC2-CS2    PASS    
+DC2-CS6    NO DATA 
+DC2-CS7    NO DATA 
+DC2-CS8    NO DATA 
+DR1        PASS    
+DR2        PASS    
+DY1-RDY1   PASS    
+DY1-RDY2   PASS    
+------------------------------------------------------------------------------
+rows:  14 PASS / 0 FAIL / 11 NO DATA  (25 rows)
+items: 11 PASS / 0 FAIL / 8 NO DATA  (19 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+DR2             9.4
+AS-CPLD         4.0
+DR1             3.6
+AL1             3.2
+AS-DSPA         2.6
+AS-ADC          1.6
+AS-DSPB         0.9
+DC2-CS1         0.6
+DC2-CS2         0.6
+DC1-CS2         0.3
+DC1-CS1         0.3
+AS-PWR          0.0
+DY1-RDY1        0.0
+DY1-RDY2        0.0
+DC1-CS6         0.0
+DC1-CS7         0.0
+DC2-CS6         0.0
+DC2-CS7         0.0
+DC1-CS8         0.0
+AS-DAC          0.0
+DC2-CS8         0.0
+total          27.2  (the tests alone; staging, boots and the handback are outside them)
+
+appended 25 rows to /tmp/s126-runall/item-status.csv
+raw reads: /tmp/s126-runall/logs/2026-09-27T105856Z
+   [dsp] auto set (the audio processor checks) finished in 36 s
+
+--- auto set: 7 tests over 17 rows, about 118 s ---
+/usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /tmp/s126-runall/item-status.csv --section A --only HD0-1,AS-CM4,NW1,NW2,NW3,NW4,HD-PWR --no-app-restart --stage /home/app/s90
+
+== STATION: Station 3 - Analog paths
+   What you need in hand: the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug.
+   45 checks at this station.
+   The analog supplies are LIVE for this station.
+   [ack / skip / ignore / pause]
+   -> skip (fixture not built)
+   .. the analog rails are down (raised earlier in this session, lowered here -- this station closes it)
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+   .. waiting for the network checks to finish
+D24 self-test, section 1 -- sections A -- 2026-09-27T10:59:33Z
+HD0-1 ...
+   [net] AUTO group A1 - screen link - 0 s gone, about 118 s left
+-- 2026-09-27T10:59:33Z HD0-1 took 0.0 s
+  HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+AS-CM4 ...
+   [net] AUTO group A1 - compute module - 0 s gone, about 116 s left
+-- 2026-09-27T10:59:33Z AS-CM4 took 0.1 s
+  AS-CM4    PASS     throttled=0x0 temp=53.5 C core=0.9100V app=d24-testui
+NW1 ...
+   [net] AUTO group A1 - network link - 0 s gone, about 116 s left
+-- 2026-09-27T10:59:33Z NW1 took 0.0 s
+  NW1       PASS     Link detected: yes, Speed: 1000Mb/s, Duplex: Full, carrier=1
+NW3 ...
+   [net] AUTO group A1 - network packet loss - 0 s gone, about 116 s left
+-- 2026-09-27T11:00:36Z NW3 took 62.7 s
+  NW3       FAIL     bench host 192.168.1.211: worst 7.0% loss over 3 passes [5.0, 4.0, 7.0], max RTT 0.694 ms; gatew
+NW4 ...
+   [net] AUTO group A1 - network throughput - 63 s gone, about 53 s left
+-- 2026-09-27T11:01:00Z NW4 took 23.7 s
+  NW4       NO DATA  unit rx 12095 Mbit/s, unit tx 7069 Mbit/s -- but the driving host's lo negotiates 0 Mb/s, so thi
+NW2 ...
+   [net] AUTO group A1 - network error counters - 86 s gone, about 30 s left
+-- 2026-09-27T11:01:30Z NW2 took 30.0 s
+  NW2       FAIL     deltas over NW3+NW4: {'rx_errors': 0, 'rx_dropped': 2, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropp
+HD-PWR ...
+   [net] AUTO group A1 - screen power link - 116 s gone, about 0 s left
+-- 2026-09-27T11:01:30Z HD-PWR took 0.0 s
+  HD-PWR    PASS     inferred from HD0-1 PASS
+
+TEST       VERDICT  MEASURED
+------------------------------------------------------------------------------
+AS-CM4     PASS    
+HD-PWR     PASS    
+HD0-1      PASS    
+NW1        PASS    
+NW2        FAIL    
+NW3        FAIL    
+NW4        NO DATA 
+------------------------------------------------------------------------------
+rows:  5 PASS / 2 FAIL / 1 NO DATA  (8 rows)
+items: 4 PASS / 1 FAIL / 0 NO DATA  (5 of 36 workbook rows covered)
+
+TEST        SECONDS
+--------------------
+NW3            62.7
+NW2            30.0
+NW4            23.7
+AS-CM4          0.1
+HD0-1           0.0
+NW1             0.0
+HD-PWR          0.0
+total         116.5  (the tests alone; staging, boots and the handback are outside them)
+
+appended 8 rows to /tmp/s126-runall/item-status.csv
+raw reads: /tmp/s126-runall/logs/2026-09-27T105933Z
+   [net] auto set (the network checks) finished in 116 s
+   .. read while the test ran: rear USB socket 3 of the double pair NO DATA, rear USB socket 4 of the double pair NO DATA, IEC Power Inlet PASS
+
+pass 1: 22 PASS / 1 FAIL / 14 NO DATA / 0 ignored / 89 skipped / 76 not tested (of 202 rows) in 164 s
+report: /tmp/s126-runall/reports/10000000830b03af-2026-09-27T110130Z.md
+        /tmp/s126-runall/reports/10000000830b03af-2026-09-27T110130Z.json
+   .. pass 1 complete - report written - 22 of 202 rows pass
+FINAL AN_EN:
+
+real	2m45.087s
+user	0m19.279s
+sys	0m24.737s
+26: op -- pd | lo // GPIO26 = output

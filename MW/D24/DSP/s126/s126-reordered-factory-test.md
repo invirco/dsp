@@ -102,6 +102,51 @@ time. One long-lived runner told to run a phase at a time would pay that once.
 That is a session's work and the measured prize is named here rather than
 guessed at: **66 s of machine time, of which about 26 s is wall**.
 
+### The whole thing, end to end, on the part
+
+`d24_runall.py` driven with every operator answer set to Skip, so the hands
+take no time and what is left is the orchestration:
+
+```
+   [bus] auto set (the panel and codec bus checks) finished in 10 s
+== STATION: Station 1 - Front panel switches
+   [dsp] auto set (the audio processor checks) finished in 36 s
+== STATION: Station 3 - Analog paths
+   [net] AUTO group A1 - network throughput - 63 s gone, about 53 s left
+pass 1: 22 PASS / 1 FAIL / 14 NO DATA ... in 164 s
+FINAL AN_EN: 26: op -- pd | lo
+```
+
+**One START, one report, 164 s of wall** — the same wall as the automatic set
+alone in one invocation, with the operator's stations inside it. The front
+panel station ran under the audio-processor phase and the analog station under
+the network phase, exactly as ruled. **And the rails came down**, which they
+did not before the fix below.
+
+Note the audio-processor phase: **36 s here against 74 s standalone**, because
+the stage was warm and the pair was already up. The time table in §9 keeps the
+74 s, which is what the first pass of a session on a cold unit pays.
+
+### 🔴 The two states nothing meant to leave, both found by running it
+
+**The rails.** The automatic set is told to keep the supplies up FOR the analog
+station. A pass that skips that station, ignores it, or is paused out of the
+panel loops never reaches it — and nothing lowered them. The unit sat on the
+bench live, and **the next automatic run REFUSED to boot the audio-processor
+pair**, which is PW's own rule catching it (analog last up, first down). It
+happened twice before it was fixed, once by hand and once through the runner.
+Both ways out now lower them, through the patch station's own teardown so
+there is not a second piece of code that knows PW's order.
+
+**The network phase.** It was started inside the analog station, so **skipping
+that station's card silently lost the network tests** — the first end-to-end
+run reported a whole pass with no network verdicts and did not say so. It now
+brackets the whole manual walk instead, and the socket rows gained a backstop
+for the same reason: a row with no dialog is the easiest kind to leave with no
+verdict at all.
+
+Neither was visible on a desk. Both came from running it.
+
 ### The automatic set's own verdicts
 
 Run whole, today: **33 PASS / 2 FAIL / 16 NO DATA** over 51 rows. S125 left it
@@ -513,10 +558,20 @@ The unit's state as left is in §11 of the handback, below.
 
 ## 11. Handback
 
-**AN_EN** lo (rails down), **CS_M** driven hi, the 595 chain **SAFE**, the
-oscillator off, `matrix-app` **inactive**, `d24-testui` **active**, and the
-factory screen **ARMED with the 59-patch quick list** — the one thing PW
-presses is still START.
+Every line of this was read back, not assumed:
+
+* **AN_EN lo** — the analog supplies are down;
+* **CS_M driven hi** — the link reads real words and not plausible zeros;
+* **the 595 chain SAFE**, written and **verified**: `01` × 24 and `00`, muted,
+  gain 0, phantom off;
+* **the oscillator off** — `Test001OscOn001` 0, `Test001OscLevel001` 0.0;
+* **the panel speaker's transmit slot 0 of 256 words non-zero**, captured
+  coherently;
+* `matrix-app` **inactive**, `d24-testui` **active**;
+* no live file and no prompt in the glass directory, so the factory screen is
+  **ARMED with the 59-patch quick list** — the one thing PW presses is still
+  START;
+* 1.2 GB free.
 
 **No DSP image was flashed and no CPLD bitstream was touched**, so the
 persistent-bitstream rule has nothing owed against it: the shipping bitstream
