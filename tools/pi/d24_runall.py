@@ -1283,6 +1283,115 @@ def pass_screen(a, glass):
     return got
 
 
+# ---------------------------------------------------------------------------
+# THE END-OF-PASS SUMMARY (PW 2026-09-27)
+# ---------------------------------------------------------------------------
+# "When the test completes it should show a summary of what passed and failed,
+# no detail, just pass/fail status for each test."
+#
+# So: every catalog row, by its short name, with its verdict, and nothing else
+# -- no reading, no limit, no reason. The detail stays in the report, which is
+# written before this goes up.
+#
+# THE ORDER IS THE REPORT'S OWN READING ORDER, not the catalog's. A worker who
+# has just finished a pass wants the things that did not pass, and wants them on
+# the first page: FAIL, then what could not answer, then what was set aside,
+# then the passes, then what was never run. Inside each band the rows are in
+# catalog order so a row can be found by its number.
+#
+# THE ROWS PER PAGE ARE A SETTING, NOT A GUESS. `--summary-rows` is what the
+# screen can draw: 69 is three columns of 23 at the size the summary panel uses,
+# and a small number (8 or fewer) makes the runner ALSO write the page as plain
+# text into `extra`, which the screen has always drawn -- so a pass ends on a
+# summary either way, whether or not the app carries the panel yet.
+SUMMARY_BAND = [
+    (FAIL, 'did not pass'),
+    (NODATA, 'could not be measured'),
+    ('', 'have no verdict'),
+    (SKIPPED, 'were skipped'),
+    (IGNORED, 'were set aside'),
+    (PASS, 'passed'),
+    (NOTTESTED, 'were not tested'),
+]
+SUMMARY_NAME_CHARS = 30
+
+
+def summary_items(rows, state, ignored):
+    """(num, short name, verdict) for every catalog row, in reading order."""
+    band = dict((k, i) for i, (k, _w) in enumerate(SUMMARY_BAND))
+    out = []
+    for r in rows:
+        v = IGNORED if r.num in ignored else (state.verdict(r.num) or '')
+        out.append((band.get(v, len(band)), r.num, r.report_name, v))
+    out.sort()
+    return [(n, nm, v) for _b, n, nm, v in out]
+
+
+def summary_pages(rows, state, ignored, per_page):
+    """The summary, cut into pages, each page a list of [name, verdict]."""
+    per_page = max(1, int(per_page))
+    items = summary_items(rows, state, ignored)
+    pages = []
+    for i in range(0, len(items), per_page):
+        chunk = items[i:i + per_page]
+        pages.append([['%d %s' % (num, _short(nm)), (v or 'no verdict').upper()]
+                      for num, nm, v in chunk])
+    return pages or [[]]
+
+
+def _short(name):
+    n = ' '.join((name or '').split())
+    if len(n) <= SUMMARY_NAME_CHARS:
+        return n
+    return n[:SUMMARY_NAME_CHARS - 1].rstrip() + '\u2026'
+
+
+def summary_screen(a, rows, state, ignored, t):
+    """Every test by name with PASS or FAIL, paged with ENTER, on the glass.
+
+    Returns when the last page has been read. A pass that had no screen (an
+    auto-only run from a terminal) prints the same list instead, so the summary
+    exists in both places and says the same thing.
+    """
+    pages = summary_pages(rows, state, ignored, a.summary_rows)
+    title = LV.finished_words(t[PASS], t[FAIL],
+                              t[NODATA] + t[SKIPPED] + t[NOTTESTED])
+    live, keys = getattr(a, '_screen', (None, None))
+    print('\nSUMMARY -- %s' % title)
+    for i, page in enumerate(pages):
+        for nm, v in page:
+            print('   %-34s %s' % (nm, v))
+        if i + 1 < len(pages):
+            print('   -- page %d of %d --' % (i + 1, len(pages)))
+    if live is None:
+        return
+    for i, page in enumerate(pages):
+        head = '%s  Summary, page %d of %d.' % (title, i + 1, len(pages))
+        kw = dict(state=LV.SUMMARY, instruction='', lead_line='',
+                  status=head, summary=page, summary_title=title,
+                  n=i + 1, total=len(pages), lead_n=0, lead_total=0,
+                  extra='')
+        # THE FALLBACK THAT NEEDS NO APP CHANGE. `extra` is a plain wrapped
+        # paragraph the screen has drawn since S123, so a small page fits in it
+        # as text. It is only written when the page is small enough to be read
+        # there; at the panel's own 69 rows it would be unreadable and the
+        # panel is what draws it.
+        if len(page) <= 8:
+            kw['extra'] = '\n'.join('%s   %s' % (nm, v) for nm, v in page)
+        try:
+            live.set(**kw)
+        except Exception:                               # noqa: BLE001
+            return
+        while True:
+            live.beat()
+            cmd = live.command()
+            if cmd in ('enter', 'start', 'pause'):
+                break
+            if keys is not None and keys.pressed():
+                break
+            time.sleep(0.05)
+
+
 def end_screen(a, t):
     """How the pass ended, on the glass, with START under it.
 
@@ -2842,6 +2951,11 @@ def main(argv=None):
     ap.add_argument('--auto-only', action='store_true')
     ap.add_argument('--manual-only', action='store_true')
     ap.add_argument('--report-only', action='store_true')
+    ap.add_argument('--summary-rows', type=int, default=69,
+                    help='rows per page on the end-of-pass summary screen. 69 '
+                         'is three columns of 23 at the size the summary panel '
+                         'draws; 8 or fewer also writes the page as plain text '
+                         'into the screen field that has always been drawn')
     ap.add_argument('--no-review', action='store_true',
                     help='write the report and stop; do not put the review '
                          'screen up')
@@ -3032,6 +3146,10 @@ def main(argv=None):
         print('report: %s\n        %s' % (md, js))
         glass.progress('pass %d complete - report written - %d of %d rows pass'
                        % (state.d['passes'], t[PASS], len(rows)))
+        # THE SUMMARY COMES BEFORE THE END SCREEN (PW 2026-09-27). The report is
+        # already written, so the summary can be built from the same state the
+        # report was built from and cannot disagree with it.
+        summary_screen(a, rows, state, live, t)
         end_screen(a, t)
         # THE REVIEW SCREEN IS A DIALOG, AND A PASS WITH A FACTORY SCREEN HAS
         # NO DIALOGS (S128, found by running it). After the first pass driven

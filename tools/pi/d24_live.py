@@ -60,10 +60,11 @@ CHECKING = 'checking'      # the lead is in, the reading is being taken
 VERDICT = 'verdict'        # a patch has been scored; `banner` carries it
 CHECKLEAD = 'checklead'    # the lead is in the wrong socket, or in nothing
 PAUSED = 'paused'
+SUMMARY = 'summary'        # the end-of-pass summary, one page of it
 FINISHED = 'finished'
 STOPPING = 'stopping'      # the unit is being put back safe
-STATES = (STARTING, WAITING, CHECKING, VERDICT, CHECKLEAD, PAUSED, FINISHED,
-          STOPPING)
+STATES = (STARTING, WAITING, CHECKING, VERDICT, CHECKLEAD, PAUSED, SUMMARY,
+          FINISHED, STOPPING)
 
 # The states during which the little activity indicator must be moving. A
 # still screen must never leave a worker wondering whether it is stuck, which
@@ -615,6 +616,12 @@ def every_string(rows=()):
 # pressing it means something, PAUSE is offered wherever a run can be stopped,
 # and START is what replaces both once the pass is over.
 def buttons_for(state, confirm=True):
+    # THE SUMMARY IS PAGED WITH ENTER AND NOTHING ELSE (PW 2026-09-27). The
+    # pass is over by the time it is up, so there is nothing to PAUSE and it is
+    # too early for START: the only thing to do is read it and press ENTER,
+    # which is also true of the last page -- that press is what ends the pass.
+    if state == SUMMARY:
+        return ['enter']
     if state in (PAUSED, FINISHED):
         return ['start']
     if confirm and state in (WAITING, CHECKLEAD):
@@ -653,6 +660,14 @@ class Live:
             busy=True, banner='', banner_line='', action='',
             n=0, total=int(total), lead_n=0, lead_total=0,
             passed=0, failed=0, failures=[], can_pause=True,
+            # THE END-OF-PASS SUMMARY (PW 2026-09-27): "when the test completes
+            # it should show a summary of what passed and failed, no detail,
+            # just pass/fail status for each test". `summary` is ONE PAGE of it
+            # -- a list of [short name, verdict] pairs, already ordered, already
+            # truncated to what a column can hold -- and `n`/`total` are the
+            # page numbers, so the renderer still counts nothing. `summary` is
+            # empty in every other state.
+            summary=[], summary_title='',
             buttons=buttons_for(STARTING, confirm))
         if self.enabled:
             os.makedirs(dirpath, exist_ok=True)
@@ -709,6 +724,9 @@ class Live:
                 kw.setdefault('banner', '')
                 kw.setdefault('banner_line', '')
                 kw.setdefault('action', '')
+            if state != SUMMARY:
+                kw.setdefault('summary', [])
+                kw.setdefault('summary_title', '')
         self.d.update(kw)
         self._flush()
 

@@ -1,5 +1,45 @@
 ## HUB DISPATCH 2026-09-27 16:17Z — S129: PW's bench findings + rulings — settle (a), summary screen, left-panel cell, panel LEDs, line jack/XLR, polarity, MIC 7, NW2/3   [status: 🟡 dispatched]   [model: opus]
 
+> **HUB ADDENDUM 1 (PW at the bench, after trying it): three things still wrong.**
+> 1. **"it's still not checking correct line level, aux send probably needs to increase."** The line-input check must check the LINE LEVEL window, not just "tone arrived". PW suspects the AUX send drive is too low for a line input. Set a proper line-level drive and window (with the jack-vs-XLR discrimination from item 5), and prove it with a real lead via a HANDS request.
+> 2. **"no left switch board test."** The left board is still not walked on the glass. That is item 3: the own cell, plus a loop step per left switch that the operator actually sees.
+> 3. **"some leds on right sw board still not showing (bottom 3)."** That is item 4. Until the H1S3 indicator outputs are fixed and reflashed, those three cannot light.
+>
+> Say in the block which of these the version PW just used already contained, so the hub can tell PW plainly what is fixed and what is still coming.
+>
+> PW also asked for a plain summary of everything the test actually checks. The hub is building it from the catalog; correct it in the block if the hub gets anything wrong.
+
+
+> ### ANSWER TO HUB ADDENDUM 1 — what the version PW just used contained
+>
+> **None of the three.** PW's third pass ran the tools as they stood at the end
+> of S128 (`/home/app/selftest/d24_patch.py` md5 `94fae1b6`) and app `ae8a545`.
+> Nothing in it had a line-level window, a left-panel cell of its own, or any
+> change to the panel indicator drive. So all three of PW's points are still
+> coming, and 1 and 3 are being built now.
+>
+> **But point 2 needs correcting, and the correction matters: THE LEFT BOARD WAS
+> WALKED AND PW PRESSED ALL SIX OF ITS BUTTONS.** Read off his own pass 3
+> (`factory.log:3644-3727`, report `...T161356Z.json` rows 43-54): "panel loop:
+> the left switch panel, 14 checks on this board", then lights 1..6 (MONO AUX,
+> STEREO AUX, FX, EQ, AUX ON FADERS, OVERVIEW), each acked by the panel in
+> 1.7-2.5 ms, and **six key codes came back — 1, 2, 3, 4, 5, 6 in 4099, 927,
+> 969, 738, 760 and 759 ms.** All six left-board switch rows are PASS in that
+> report. So the left board is not missing from the walk: **it is invisible while
+> nothing on it lights**, which is item 4 and not item 3. Item 3 (its own cell)
+> is still owed and is being built — without it a left press cannot be told from
+> a right press of the same index — but it is not what PW saw.
+>
+> **AND THE SAME CAUSE PUT TWO FAILS ON THE RIGHT BOARD THAT ARE NOT FAULTS.**
+> In the same pass the right loop lit FX MUTE and **no key code arrived in 30 s**;
+> it then lit HOME and got key code **7 (MUTE)**, lit MENU and got **8 (SCENE)**,
+> and both rows are FAIL in the report ("the tester lit HOME and the key code
+> that came back was 7"). Codes 7 and 8 then arrived AGAIN, correctly, when MUTE
+> and SCENE were asked for. That is an operator hunting a dark panel with the
+> button's name on the glass and pressing them in the order he finds them — not
+> a switch fault. It is also the reason the screen must stop NAMING the button:
+> see the design in §4 of the report.
+>
 > ### 🔴 HANDS, PW — REQUEST 1 (two minutes, no leads, unit already powered)
 >
 > **Item 4's root cause is not where S128 put it, and one look settles it.**
@@ -52,6 +92,31 @@
 > **with a continuity meter on lead K4 (XLR-F to 6.35 mm TRS), check that XLR
 > pin 2 beeps to the jack TIP** (and pin 3 to the RING, pin 1 to the SLEEVE).
 > If it is pin 2 -> RING, the lead is the fault and no mod is owed.
+
+> ### 🔴 HANDS, PW — REQUEST 3 (one lead, three moves: the line level)
+>
+> **This is the capture PW offered, and it is what sets the line-level window.**
+> Today the line row drives AUX 2 at **-12 dBFS** with the preamp at **gain 0**
+> and grades only "a tone arrived" (`level_ref=info`, no window) — so PW is
+> right that it checks no level at all. A window has to be built out of one
+> measured number: how much the jack path pads relative to the SAME socket's
+> XLR, which the netlist says is one series resistor per leg that the XLR pins
+> do not have. Nobody has measured it, so nothing in the list can honestly
+> say what a line patch should read.
+>
+> **The moves, one at a time, on MIC 8 (the jack-to-XLR lead's parked input):**
+> 1. **AUX 2 (XLR out) --K1 lead--> MIC 8 XLR.** Tell me when it is in. I take
+>    the reference.
+> 2. **Move the input end to MIC 8's 6.35 mm JACK centre, using the K4 lead**
+>    (its XLR-F stays on AUX 2). Tell me when it is in. I sweep the AUX drive
+>    from -30 dBFS up to -3 dBFS and record the lane at each step — that gives
+>    the pad AND whether a hotter send clips anything.
+> 3. **Repeat step 2 on MIC 12's jack** (one more socket, so the window is not
+>    built on a single channel).
+>
+> That is three lead moves. I will then set the drive and the window from the
+> numbers and say both in the block.
+>
 
 
 model: opus
