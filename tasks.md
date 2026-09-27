@@ -1,3 +1,74 @@
+## HUB DISPATCH 2026-09-27 16:17Z — S129: PW's bench findings + rulings — settle (a), summary screen, left-panel cell, panel LEDs, line jack/XLR, polarity, MIC 7, NW2/3   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S129 — PW's bench findings (27 Sep, three passes) + rulings: fix them all, then READY FOR PW
+
+The UNIT IS YOURS. The hub stopped PW's fourth pass at setup page 1 of 6.
+
+**PW is at the bench and offers his hands for any cable move.** In his words: "let me know if you need a cable move, for example to capture aux to line input level". Write a `🔴 HANDS` line in the block with the exact panel-name instruction (which lead, from which socket to which socket). The hub relays it and tells you when it is done. Use this freely for measurements: one lead move at a time, stated plainly.
+
+Read first:
+- your S128 block (addenda 1-2, the hotfix, the regression note, and your settle options in it);
+- `MW/D24/DSP/s128/`;
+- `factory.log` on the unit (PW's passes at 16:04, ~16:50 and ~17:15);
+- the reports in `reports/`.
+
+Unit state: v2 image, app mx26 `ae8a545` (md5 `311994f5`). Leave it safe at the end: rails down, chain SAFE, armed, and still on v2 unless an item below needs otherwise.
+
+## PW rulings to build (binding)
+1. **Gain-step settle = your option (a):** count the step's settle from the DRIVE change, as the code-0 reference does. Keep the new per-step logging (measured / expected / drive / lane / reference / settle / ms after the change).
+   - Proof on the part: MIC 9 element 6 re-read (PW's 54.9 dB), then the seven steps on MIC 9 and MIC 10 with a real lead, all in tolerance.
+   - Use a HANDS request for the lead.
+2. **End-of-test SUMMARY screen (PW):** "when the test completes it should show a summary of what passed and failed, no detail, just pass/fail status for each test."
+   - When a pass ends, the glass shows one screen: every test by its short name with PASS or FAIL (and NOT TESTED where applicable). No readings, no reasons.
+   - It must fit the factory screen's large type. Page it with ENTER if it does not fit, and keep n of N.
+   - The detail stays in the report.
+   - If it needs an app change in mx26 `src/sw/app` (FactoryView), specify it exactly in the block. The hub builds and deploys the app.
+3. **S120-1 (a): the LEFT switch panel gets its OWN matrix cell.**
+   - A NEW cell name. Cell names are forever: never reuse or repurpose one.
+   - A new address in defs: `defs/products/d24/fw.csv` and wherever cells are declared.
+   - The left board's firmware (H1S4) sends it.
+   - The panel loop grades each board separately.
+   - Do the defs change in the defs repo (invirco/defs) following its rules, and tag it `defs-vYYYY.MM.DD[.n]`. Say the tag in the block; the hub advances the mx26 submodule pin and does the app mapping in mx26 `src/sw/app` (tell the hub exactly what the app must read).
+   - PW's third pass: "left switch board wasn't tested". Confirm whether right-board presses satisfied left steps (the aliasing) and show that it cannot happen after the fix.
+4. **The panel indicators must LIGHT.** You found that the H1S3/H1S4 `MainInit()` block making the indicator pins outputs is commented out, so nothing but H1S3's two always-on whites can light.
+   - Fix the panel firmware (both boards).
+   - Reflash both panels by their established path. Record each flashed hash, and put the source in its repo.
+   - Prove on the glass that every indicator the loop asks for lights, bottom three included. The indicator rows go back from NO DATA to graded.
+   - This screen has no NOT LIT button (PW's one-button rule). So grade an indicator by what the unit can itself measure: the panel's pin readback or ack, if it is a real readback. Otherwise say plainly that the indicator is operator-observed and how the operator reports a dark one. Do not invent a new button without writing the question in the block.
+
+## Bench findings to root-cause and fix
+5. **Line-input coverage hole.** PW used the XLR lead for the MIC 7-11 "line" patches and they PASSED: the test cannot tell the jack socket from the XLR socket.
+   - Make the line check reject an XLR, or make it impossible to do the wrong thing. For example, measure the level difference the line pad / jack path makes, if the hardware has one, and state the discriminator you use.
+   - This is where PW's offer applies: capture AUX into the line input level (jack) against the same into the XLR, with HANDS requests. That tells you whether a level window can tell them apart.
+6. **Every genuine jack patch reads INVERTED** (MIC 12, 17, 18). The hub checked the netlist: every jack socket is wired identically (pin 2 → M0, pin 3 → M1), so the cause is systematic.
+   - Either the jack tip lands on the preamp's cold leg relative to XLR pin 2 (a schematic erratum: say which net and part, and the hub draws the red mod), or the test's expected jack polarity is wrong.
+   - Trace one channel through the netlist (`docs/d24-netlist-global.csv` in mx26 and the analog schematic) and prove it with a real lead on one channel via HANDS.
+7. **MIC 7 fails from every output.** Diagnose the MIC 7 input, not the outputs. Is it a dead input on this unit? Add it to mx26 `docs/d24-pcb-supplier-notes.md` if it is a board fault, with the evidence.
+8. **NW2 rx_dropped 2 FAIL, and NW3 FAIL in PW's third pass,** with no screenshots involved. Find the cause: bench network or unit. Do not lower a bar.
+
+## Keep
+- ENTER on every ENTER-asking screen (your 219/219 check stays in the regression set).
+- One screen per pass.
+- SIGTERM safe.
+- Board named on every panel step.
+
+## Proof, then hand back
+Run one full pass from the app's own START through the glass. Use PW's hands for the patch walk: enough real-lead patches to prove 1, 5, 6 and 7, and the whole walk if he is willing. It must end on the new SUMMARY screen.
+
+Then write **READY FOR PW** at the START of the status line; the hub pings PW on it.
+
+## Tiering
+Main model for the settle, the polarity trace, the panel firmware and the cell. Use sonnet subagents for dry-run regressions, log trawls and the defs/CSV edits.
+
+## Report
+`MW/D24/DSP/s129/`. Never open a question dialog: questions go in the block as 🔴 notes. No AI attribution anywhere. Commit and push `main`.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 13:37Z — S128: PW's first real pass froze at the analog station — fix the freeze and eight more, then READY FOR PW   [status: 🟢 DONE — **READY FOR PW.** **HOTFIX: THE GLASS SAID "press ENTER" WITH ONLY A PAUSE BUTTON, AND THE STATE WAS THE CAUSE.** `buttons` comes from the state and `buttons_for('verdict')` is `['pause']`; the PIPELINE is what leaves the screen there — `announce` puts the next patch up as WAITING and `record` writes the last patch's banner over it as VERDICT, which is the reviewed screen and also takes ENTER off it. **One path climbed back out: `prearm_ok`, true only for a tone row with NO gain code** — so plain tone patches recovered their button and gain steps, the EIN plug and every no-tone row did not. Your artifact says it exactly: patch 13, `state: verdict`, "Plug AUX 1 into MIC 9, then press ENTER.", `buttons: ["pause"]`. Fixed by making the state the job of whoever makes it true: `detect()` sets WAITING once at the top for EVERY path in, `waiting()` carries the banner so the reviewed screen survives, `record(prompted=)` never writes the bad state while a prompt is up (and with no prompt up it clears the instruction, so a banner never sits over "plug in what you just plugged in"), and the hint carries the state too. It also fixes a stale "Signal found - press ENTER." on an empty socket (`_hinted` was never reset per step). **PROVED OVER EVERY SCREEN, NOT A SAMPLE**: `glass_buttons_check.py` hooks `Live._flush` and checks one rule over a whole dry run — **219 of 219** ENTER-asking screens have ENTER, and `verdict` no longer appears as a resting state. Per type: XLR tone, XLR gain step, EIN plug (126/126), TRS 17/17, mini-jack 5/5, line 71/71, **wrong socket 28/28 (6 checklead), no signal 8/8**. Before the fix the same check found **30 bad screens**. **🔴→🟢 THE RIGHT BOARD: IT IS NOT THE BOTTOM THREE, IT IS ALL OF THEM, AND IT IS THE FIRMWARE.** Read off the flashed panel source on the unit: `MX_GPIO_Init()` makes EVERY panel pin an INPUT with a pull-up, and **the block in `MainInit()` that made the indicator pins outputs is COMMENTED OUT — on H1S3 and H1S4 alike.** H1S3 then makes exactly two pins outputs and drives them permanently high, `PB11` and `PF1`, each commented "always on white led next to red led"; H1S4 makes none. `WrRadioLed()` writes ODR bits on input pins. **So no indicator on either switch board can be lit by the host, and the only lights on the front panel are the right board's two always-on whites** — which is exactly "the bottom 3 never illuminated": FX MUTE has one beside it, MONITOR/REC-PLY/STUDIO CTL do not. **Not the board-naming change and not the shared-index aliasing** (12-14 exist only on the right board). Measured: the panel acks every indicator write in **1.7-2.0 ms**, the same for the three as for the eleven — the write arrives, the pin is an input. The ack is now logged per step. **"Exited after a few button clicks" was the loop finishing what a RE-TEST owes** — ten of the fourteen had passed in your first pass (PW 09-26, no test twice for the same proof). Nothing was wrong; nothing said so. The glass now says "N of the M checks on this board passed on an earlier run and are not repeated", and I reset the unit so your next START is a FIRST pass. **AND THE TEST HAS STOPPED CLAIMING A READING NOBODY TOOK**: the indicator row was inferred from a press, which is only sound if the operator could have said "it did not light" — and the armed screen has ENTER and PAUSE and no NOT LIT, while the instruction NAMES the button. Those rows are NO DATA with that reason now; the switch row, which a key code really does prove, is unchanged. **FULL PASS FROM THE APP'S OWN START, 16:30-16:43, 790 s**, every press through uinput→Avalonia→the app's own ENTER: six setup pages → **left board 6 of 6 walked, right board ALL 14 walked including the bottom three** → encoder → Station 3 card by ENTER → 13 analog pages each with ENTER → net phase under it → report, rails down, chain SAFE, lock gone, FINISHED+START on the glass. The one FAIL in it was NW3 at 3-4 % and **it was my screenshots** (47 on-demand captures, several inside NW3's window); re-measured with the capture armed and idle: **NW3 PASS 0.0 %**, so the new drop-in is free between requests and stays. 🔴 **HANDS, PW — one lead closes the last gap:** no patch was completed with a lead in it, so the PIPELINE screen (verdict banner over the next instruction, with ENTER) is proved in the dry run over all 219 screens but not yet seen on the glass. See the HANDS block below. Report `MW/D24/DSP/s128/` (PART TWO, §15-18). `defs.lock` unmoved. Unit: v2 unflashed, rails down, chain SAFE, 0 restarts, no state file, armed.]   [model: opus]
 
 > **HUB ADDENDUM 2 (16:15 BST): PW STOPPED HIS PASS — UNIT FREE AGAIN, FIX BOTH, THEN READY FOR PW.**
