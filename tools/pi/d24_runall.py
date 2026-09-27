@@ -3052,7 +3052,14 @@ def main(argv=None):
     ap.add_argument('--reason', default='other')
     ap.add_argument('--reset-state', action='store_true',
                     help='forget this unit\'s cumulative verdicts and start at '
-                         'pass 1. The ignores file is not touched.')
+                         'pass 1, then RUN A PASS -- running is what this tool '
+                         'does with no other flag. The ignores file is not '
+                         'touched. Use --reset-only to reset and stop.')
+    ap.add_argument('--reset-only', action='store_true',
+                    help='forget this unit\'s cumulative verdicts and STOP. '
+                         'What --reset-state on its own looks like it does '
+                         '(S129: it resets and then starts a whole pass, which '
+                         'is a surprise worth one flag of its own).')
     ap.add_argument('--check-md', metavar='FILE')
     ap.add_argument('--dump-dialogs', metavar='FILE',
                     help='write every manual row\'s dialog text to a CSV and '
@@ -3101,8 +3108,16 @@ def main(argv=None):
         dump_dialogs(rows, a.dump_dialogs)
         return
     state_path = os.path.join(a.runall, 'state.json')
-    if a.reset_state and os.path.exists(state_path):
+    if (a.reset_state or a.reset_only) and os.path.exists(state_path):
         os.remove(state_path)
+        print('the cumulative verdicts for this unit are forgotten: the next '
+              'pass is pass 1 and walks everything')
+    if a.reset_only:
+        State(state_path, a.serial, a.catalog_md5)
+        return 0
+    if a.reset_state:
+        print('--reset-state also RUNS a pass (use --reset-only to reset and '
+              'stop)', flush=True)
     state = State(state_path, a.serial, a.catalog_md5)
     live, stale = read_ignored(a.ignored, a.serial, a.catalog_md5)
 

@@ -26,7 +26,8 @@ proved, it says that too.
 | 8 | NW2 / NW3 / NW4 (addendum 2) | NW2 and NW4 **built**; NW3 already targets the wired address, evidence hardened |
 | A4 | hands-off steps take control | **built** for the one step that needs it (AL1), no app change needed — §10 |
 | A5 | gain step ±0.25 dB | window **set**; the instrument is proved 20× better than it needs to be; the EXPECTED table is not |
-| A7 | AL1 hands-off / talkback cell | AL1's cause **found and fixed** (§10.1); the talkback cell hits §3.2's wall |
+| A7 | AL1 hands-off / talkback cell | AL1's cause **found and fixed** (§10.1); the talkback cell's **defs half is tagged**, its firmware half hits §3.2's wall |
+| A2b | touch-panel row | **test built and PASSING**; the catalog row is upstream |
 
 ---
 
@@ -582,16 +583,27 @@ needs the operator. It is in the proof pass.
 
 ## 11. Not built, and honestly named
 
-* **addendum 7's talkback cell** — catalog #92, the talkback switch and its two
-  indicators, which pass through the panel processor with no matrix cell bound.
-  It is a second new defs cell and an H1S3 firmware change, and it hits exactly
-  the same wall as §3.2: no panel firmware should take a defs-generation address
-  until the app's pack is rebuilt. It belongs in the same single reflash of both
-  boards, not a second one.
-* **addendum 2's touch-panel row** — the back-panel USB socket's device
-  enumerating on the internal hub, graded automatically. The catalog is
-  generated upstream, so the row is an mx26 change and the test beside it is
-  this repo's.
+* **addendum 7's talkback cell** — the DEFS HALF IS DONE and tagged
+  **`defs-v2026.09.27.3`**: `Sys001SwTalk001` = 5006 (Shex `ikpv`), and the three
+  `CON` rows in `fw.csv`'s `SW_RIGHT` section become `SW` and `LED` and name it.
+  The encoding is stated rather than assumed: WRITE is the two-indicator mask
+  (bit0 = `TB_LED0`, bit1 = `TB_LED1`, so 0 both dark and 3 both lit) and READ is
+  the switch, 1 while held and 0 on release, both edges reported — write and read
+  carrying different meanings on one cell exactly as `Sys001Skin001` does. What
+  is NOT done is the H1S3 firmware, and it hits exactly the same wall as §3.2:
+  no panel firmware should take a defs-generation address until the app's pack is
+  rebuilt. It belongs in the same single reflash of both boards, not a second
+  one.
+* **addendum 2's touch-panel row** — THE TEST IS DONE AND PASSES ON THE PART:
+  `USB-TP`, *"the touch panel is on hub port 2 with usbhid bound"*, 0.1 s. It
+  grades three facts the unit reads for itself — `222a:0001` (ILI Multi-Touch
+  Screen) present, on the internal Microchip hub and not straight on the root
+  port, on PORT 2 where the operator's sticks are 3 and 4, and `usbhid` bound,
+  because a panel that enumerates and does not bind is a panel nobody can touch.
+  What is NOT done is the catalog ROW, because the catalog is generated upstream:
+  the row the hub should add is written out in `ITEMS` beside the test (board
+  `Digital`, item `Touch panel (rear USB socket, hub port 2)`, class `USB-A`,
+  tests `USB-TP`, group `A1`).
 * **item 4's real cause**, on which the panel firmware change depends.
 * **§4.4's grading design** — stop naming the button, randomise the order —
   which wants one line from PW because it changes how an operator is graded.
@@ -599,14 +611,42 @@ needs the operator. It is in the proof pass.
 
 ---
 
+## 11a. Two small things found by using the tools
+
+* **`--reset-state` resets AND THEN RUNS A WHOLE PASS.** Running is what the
+  tool does with no other flag, so `d24_runall.py --reset-state` on its own is a
+  full factory pass. It bit this session. Fixed by naming it: the flag's help
+  now says so, and **`--reset-only`** resets and stops, which is what the old one
+  looks like it does.
+* **the per-run `patch-results-<stamp>.csv` files that S127 introduced are not
+  on the unit** for any of PW's three passes — only the 13:00 `patch-results.csv`
+  is. So the per-row notes for those passes (the loop gains, the phase figures,
+  the settle) exist only in the reports' `limit` fields and in `factory.log`,
+  which is why some of the numbers in §5.3 had to be described as absent rather
+  than quoted. Worth a look, and it is not this session's change.
+
+---
+
 ## 12. The unit, as this report is written
 
 `matrix-app` inactive, `d24-testui` active, **AN_EN low** (read back after every
-probe that raised it), **CS_M driven high**, the 595 chain **SAFE and verified**
-after each of the two probes that wrote it, the DSP pair still the factory test
-pair at `/home/app/loopthd/s122`, no firmware flashed, no CPLD touched. The
-tools and the short patch list on the unit match this tree (md5s in the dispatch
-block). `d24_patch.py.bak-s129-pre` and friends are the rollback.
+probe that raised it), **CS_M driven high**, the 595 chain **SAFE and re-verified
+at handback**, the DSP pair still the factory test pair at
+`/home/app/loopthd/s122`, no firmware flashed, no CPLD touched, still on v2. No
+runner holds the lock and the screen file is cleared, so the glass is on its own
+armed page with START.
+
+**The cumulative pass state is RESET**, so PW's next START is a FIRST pass and
+walks everything — which is what every outstanding proof needs, and which also
+answers "exited after a few button clicks": that was the loop declining to
+re-test ten rows that had already passed. The old state is kept at
+`runall/state.json.bak-s129-pre`, and PW's three completed passes are preserved
+in `reports/`. One spurious report, `…T181637Z`, was written when the reset
+command's own pass was stopped on the way out; it records nothing and can be
+deleted.
+
+The tools and the short patch list on the unit match this tree.
+`d24_patch.py.bak-s129-pre` and friends are the rollback.
 
 ---
 
