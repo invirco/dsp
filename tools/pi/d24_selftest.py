@@ -438,7 +438,7 @@ class Rig:
 
     # -- recording ----------------------------------------------------------
     def record(self, test, verdict, measured, limit, evidence):
-        assert verdict in (PASS, FAIL, NODATA), verdict
+        assert verdict in (PASS, FAIL, NODATA, NOTTESTED), verdict
         ev = ' '.join(str(evidence).split())
         self.log(test, '=== %s  %s\n%s' % (stamp(), verdict, evidence))
         if len(ev) > 400:
@@ -3823,26 +3823,28 @@ def check_keys(path):
 def summary(r):
     print('\n%-10s %-8s %s' % ('TEST', 'VERDICT', 'MEASURED'))
     print('-' * 78)
-    tally = {PASS: 0, FAIL: 0, NODATA: 0}
+    tally = {PASS: 0, FAIL: 0, NODATA: 0, NOTTESTED: 0}
     per_item = {}
     for row in r.rows:
         tally[row['verdict']] += 1
         k = (row['board'], row['item'])
         # An item's roll-up is its WORST verdict: a FAIL is not cancelled by a
-        # PASS on another test of the same item.
-        rank = {PASS: 0, NODATA: 1, FAIL: 2}
+        # PASS on another test of the same item. NOT TESTED outranks nothing --
+        # it is not a measurement, so any real one on the same item wins.
+        rank = {NOTTESTED: -1, PASS: 0, NODATA: 1, FAIL: 2}
         if k not in per_item or rank[row['verdict']] > rank[per_item[k]]:
             per_item[k] = row['verdict']
     for t in sorted(r.results):
         print('%-10s %-8s' % (t, r.results[t]))
-    it = {PASS: 0, FAIL: 0, NODATA: 0}
+    it = {PASS: 0, FAIL: 0, NODATA: 0, NOTTESTED: 0}
     for v in per_item.values():
         it[v] += 1
     print('-' * 78)
-    print('rows:  %d PASS / %d FAIL / %d NO DATA  (%d rows)'
-          % (tally[PASS], tally[FAIL], tally[NODATA], len(r.rows)))
-    print('items: %d PASS / %d FAIL / %d NO DATA  (%d of 36 workbook rows covered)'
-          % (it[PASS], it[FAIL], it[NODATA], len(per_item)))
+    print('rows:  %d PASS / %d FAIL / %d NO DATA / %d NOT TESTED  (%d rows)'
+          % (tally[PASS], tally[FAIL], tally[NODATA], tally[NOTTESTED], len(r.rows)))
+    print('items: %d PASS / %d FAIL / %d NO DATA / %d NOT TESTED  '
+          '(%d of 36 workbook rows covered)'
+          % (it[PASS], it[FAIL], it[NODATA], it[NOTTESTED], len(per_item)))
     errs = [t for t in r.results if r.results[t] == NODATA
             and any(x['test'] == t and x['evidence'].startswith('RUNNER ERROR')
                     for x in r.rows)]
