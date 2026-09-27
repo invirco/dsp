@@ -844,3 +844,132 @@ All five tools byte-identical to this repo. No catalog, no firmware, no CPLD, no
 * the factory screen **ARMED** (`quick`, 59 patches);
 * the injected touch device destroyed and its FIFO gone;
 * 757 MB free.
+
+---
+
+# PART THREE — the gain-step "regression", read-only
+
+The hub asked, with PW mid-pass and the unit off limits: AUX 1 into MIC 9 and
+MIC 10 now FAIL gain element 6 at 54.9 dB against an expected 48.0, where the
+16:04 run passed the same steps at 48.5. Only change between them: the §15
+hotfix.
+
+**It is not the hotfix, and the readings are not shifted.**
+
+## 19. Three readings of the evidence
+
+### The whole hotfix diff is screen writes
+
+`git diff 3dee36a0..HEAD -- tools/pi/d24_patch.py`, every non-comment line: a
+new `waiting()` that calls `live.set`; `detect()` gaining a `status=` argument,
+`self._hinted = False`, and one `waiting()` call; two `live.set` → `waiting()`
+substitutions; `record(prompted=)` choosing WAITING over VERDICT and clearing
+three display fields; `find_loop` passing `status=LOOKING`.
+
+`gain_step`, `acquire`, `watch`, `_score_gain_step`, `Analog.chain`,
+`Unit.osc`, `measure`, `SETTLE_WINDOWS`, `GAIN_SETTLE_WINDOWS`,
+`GAIN_READ_WINDOWS` and `limits.csv` are **untouched**. Nothing in the diff
+runs between a chain write and a reading.
+
+### The readings are not shifted — eight of them are dead flat
+
+Element 6, this run, in walk order:
+
+| patch | socket | measured | from expected |
+|---|---|---|---|
+| P13 | MIC 9 | **54.9** | **+6.9 FAIL** |
+| P15 | MIC 10 | 49.4 | +1.4 |
+| P17 | MIC 11 | 48.1 | +0.1 |
+| P19 | MIC 12 | 48.2 | +0.2 |
+| P21 | MIC 17 | 48.2 | +0.2 |
+| P23 | MIC 18 | 48.3 | +0.3 |
+| P25 | MIC 19 | 48.2 | +0.2 |
+| P27 | MIC 20 | 48.2 | +0.2 |
+| P29 | MIC 21 | 48.3 | +0.2 |
+| P31 | MIC 22 | 48.2 | +0.2 |
+
+54.9 → 49.4 → 48.1 → flat. A regression in the shared gain path moves all ten
+by the same amount; this is a transient on the first two patches of the block.
+
+### The 16:04 run only ever measured those two positions
+
+It was stopped at patch 17, so its whole sample is P13 and P15 — exactly the
+two that are elevated now — and it has no later readings to compare against.
+Everything before P13 is identical in the two runs: the same standing write
+(567 cells), the same floors (15 lanes, −114.7 to −88.1 dBFS), and the same
+P1–P12 verdicts.
+
+One thing that reads confusingly and is worth knowing: **the pipeline prints a
+verdict AFTER the next patch's prompt**, so the socket named in the line above
+a verdict is the next patch, not the one being scored. The FAIL text names its
+own socket (`row['in']`) and the PASS text does not — which is why 2888 looks
+like MIC 10's verdict and is MIC 9's.
+
+## 20. What actually changed, and the leading hypothesis
+
+The app. The hub deployed `ae8a545` between the two runs, and with it §5's
+capture went from a `while (true)` costing **42.7 % of a core with a ~180 ms
+UI-thread stall every 3 s** to idle. The CM4 is materially faster and less
+jittery during a reading than it was at 16:04.
+
+`gain_step` changes **two** things and then reads:
+
+```python
+self.an.chain(self.an.step_image(r['send_pos'], code), ...)   # the GAIN, up
+if self.an.wrote: self.u.mark_moved()
+if drive is not None: self.u.osc(level_dbfs=drive)            # the DRIVE, down
+...
+self.u.measure(..., windows=GAIN_READ_WINDOWS,
+               settle=GAIN_SETTLE_WINDOWS)                    # FIXED, 2 windows
+```
+
+The **code-0 reference** pays `settle_owed(SETTLE_WINDOWS)` — up to four
+windows, 341 ms, counted from the change itself. Every **other** element pays a
+fixed **two windows, 171 ms**, and `u.osc()` does not mark the wire moved at
+all. Element 6 is the largest drive move of the seven, about 48 dB. If 171 ms
+is not enough for it, the reading keeps part of the old, higher drive and reads
+**high** — the right direction, the right element, and something that would
+only start to bite once the host stopped being stalled into arriving late.
+
+**That is a hypothesis, not a result.** It cannot be settled from the log,
+because the numbers that would settle it were never in the log.
+
+## 21. Prepared, not staged: the scorer says its numbers out loud
+
+The per-step `notes` have always existed and have always gone only to the
+results CSV, written at the end of a pass. So a reading of 54.9 dB in the
+middle of a walk left nothing in `factory.log` but one verdict sentence.
+
+Each gain step now logs, as it is taken:
+
+```
+gain element 6: measured +48.05 dB, expected +48.05 dB (fitted),
+  drive -78.0 dBFS, lane -33.00 dBFS, reference -33.00 dBFS,
+  settle 2 windows, 259 ms after the drive change
+  (the meter, which is not what this is judged on, read -33.00)
+```
+
+`reference`, `settle windows` and `ms after the drive change` are new, and they
+are the three the hypothesis needs.
+
+**No scoring rule changed and no verdict moved.** The dry run against the
+committed pre-hotfix baseline (`data/sim-fail-and-skip.csv`) is identical row
+for row: **194 PASS / 1 FAIL / 8 SKIPPED of 203**, the same patches and the
+same subs, with the same injected gain fault and skips. The ENTER check of §15
+is still clean.
+
+**Nothing is deployed.** The unit is PW's and the tools on it are unchanged
+from §18.
+
+## 22. Owed
+
+* **PW's ruling before any measurement rule moves.** If the next run's log
+  shows element 6 read short of its settle, the fix is one of: (a) count the
+  gain step's settle from the DRIVE change, as the code-0 reference already
+  counts its own — no constant changes, no cost; (b) raise
+  `GAIN_SETTLE_WINDOWS` from 2 to 4 for the largest element only, about 4 s
+  over a pass; (c) re-read an out-of-tolerance step and keep both readings.
+  (a) is the one that follows a rule already in this file.
+* **MIC 9 element 6 has no verdict worth trusting.** One re-read of that socket
+  when the unit is free says whether 54.9 was a transient or a preamp element
+  6.9 dB out.

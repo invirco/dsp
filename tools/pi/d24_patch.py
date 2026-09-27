@@ -748,10 +748,17 @@ class Scorer:
     law revision, or a different unit.
     """
 
-    def __init__(self, limits):
+    def __init__(self, limits, log=None):
         self.lim = limits
         self.ref = {}                # lane -> {'h_db', 'h_deg'}
         self.results = []
+        # THE SCORER SAYS ITS NUMBERS OUT LOUD (S128). It has always built the
+        # per-step `notes`, and they have always gone only to the results CSV,
+        # written at the END of a pass. A gain step that reads 6.9 dB high in
+        # the middle of a walk therefore left nothing in `factory.log` but the
+        # verdict sentence, and nothing to look at short of running the station
+        # again.
+        self.log = log or (lambda s: None)
 
     def polarity_of(self, lane, deg):
         """normal / inverted / uncertain, against the lane's reference phase."""
@@ -929,14 +936,26 @@ class Scorer:
         if drive_ref is not None and meas.get('drive_dbfs') is not None:
             got += drive_ref - meas['drive_dbfs']
         tol = self.lim['gain_step_tol_db']
-        notes.append('gain element %d: measured %+.2f dB, expected %+.2f dB '
-                     '(%s), drive %+.1f dBFS, lane %.2f dBFS (the meter, which '
-                     'is not what this is judged on, read %s)'
-                     % (int(code).bit_length(), got, want,
-                        meas.get('source') or '?', meas.get('drive_dbfs') or 0.0,
-                        here,
-                        ('%.2f' % meas['meter_db'])
-                        if meas.get('meter_db') is not None else '--'))
+        line = ('gain element %d: measured %+.2f dB, expected %+.2f dB '
+                '(%s), drive %+.1f dBFS, lane %.2f dBFS, reference %.2f dBFS, '
+                'settle %s windows, %s after the drive change (the meter, '
+                'which is not what this is judged on, read %s)'
+                % (int(code).bit_length(), got, want,
+                   meas.get('source') or '?', meas.get('drive_dbfs') or 0.0,
+                   here, ref,
+                   meas.get('settle_windows', '?'),
+                   ('%.0f ms' % (1000 * meas['since_drive_s']))
+                   if meas.get('since_drive_s') is not None else 'n/a',
+                   ('%.2f' % meas['meter_db'])
+                   if meas.get('meter_db') is not None else '--'))
+        notes.append(line)
+        # EVERY STEP'S NUMBERS GO TO THE LOG AS THEY ARE TAKEN (S128).
+        # Until now the only trace a gain step left in `factory.log` was the
+        # patch's one verdict sentence, so a reading of 54.9 dB where the next
+        # eight sockets read 48.2 could not be looked into at all without
+        # running the whole station again. The notes already existed; they only
+        # reached the results CSV, and only at the end of the pass.
+        self.log(line)
         if abs(got - want) <= tol:
             return PASS, ('gain element %d adds %.1f dB, %.1f dB from expected'
                           % (int(code).bit_length(), got, got - want)), notes
@@ -1410,7 +1429,7 @@ class Station:
         self.p = patcher
         self.g = glass
         self.lim = limits
-        self.sc = Scorer(limits)
+        self.sc = Scorer(limits, log=log)
         self.log = log or (lambda s: None)
         self.only = set(blocks or ())
         self.rows_out = []
@@ -1832,8 +1851,10 @@ class Station:
             # A preamp gain change is a change on the wire like any other, and
             # the node cannot tell where it came from.
             self.u.mark_moved()
+        t_drive = None
         if drive is not None:
             self.u.osc(level_dbfs=drive)
+            t_drive = now()
         lvl = self.watch(int(r['lane']))
         m = dict(gain_code=code, drive_dbfs=drive, meter_db=lvl,
                  expected_db=spec.get('expected_db'), source=spec.get('source'))
@@ -1869,6 +1890,16 @@ class Station:
                                     drive if drive is not None else 0.0,
                                     windows=GAIN_READ_WINDOWS,
                                     settle=GAIN_SETTLE_WINDOWS))
+        # HOW LONG THE WIRE HAD BEEN STILL WHEN THIS WAS READ (S128). A gain
+        # step changes TWO things -- the chain, then the drive -- and the
+        # non-zero branch pays a FIXED two windows (171 ms) from the `measure`
+        # call, where the code-0 reference pays up to four (341 ms) counted
+        # from the change itself. Element 6 is the largest drive move of the
+        # seven, and if 171 ms is not enough for it the reading keeps part of
+        # the OLD, HIGHER drive and reads HIGH. Whether that is what happens is
+        # not something the log could answer before this line existed.
+        m['settle_windows'] = (0 if code == 0 else GAIN_SETTLE_WINDOWS)
+        m['since_drive_s'] = now() - t_drive if t_drive else None
         self.cost('gain steps', now() - t0)
         return m
 

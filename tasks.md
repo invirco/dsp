@@ -76,6 +76,86 @@ no AI attribution in commits or any work product.
 
 ---
 
+### 🔴 S128 REGRESSION REPORT (read-only, nothing staged) — the hotfix is NOT the cause
+
+**Asked:** AUX 1 / MIC 9 and MIC 10 now FAIL gain element 6 (54.9 dB, should be
+48.0) where the 16:04 run passed the same steps at 48.5 (lines 2888/2910).
+**Answer: the hotfix cannot have done it, and the readings are not shifted.**
+
+**1. The whole hotfix diff is screen writes.** `git diff 3dee36a0..HEAD --
+tools/pi/d24_patch.py` is: a new `waiting()` (one `live.set`), `detect()`
+gaining a `status=` argument, `self._hinted = False` and one `waiting()` call,
+two `live.set` → `waiting()` substitutions, `record(prompted=)` choosing
+WAITING vs VERDICT and clearing three display fields, and `find_loop` passing
+`status=LOOKING`. **`gain_step`, `acquire`, `watch`, `_score_gain_step`,
+`Analog.chain`, `Unit.osc`, `measure`, the settle constants and `limits.csv`
+are untouched.** Nothing in the diff runs between a chain write and a reading.
+
+**2. It is not a systematic offset. Eight sockets in the SAME run, through the
+SAME code, read 48.1-48.3 against 48.0:**
+
+| patch | socket | element 6 |
+|---|---|---|
+| P13 | MIC 9 | **54.9 FAIL** |
+| P15 | MIC 10 | **49.4** (1.4 from expected) |
+| P17 | MIC 11 | 48.1 |
+| P19 | MIC 12 | 48.2 |
+| P21 | MIC 17 | 48.2 |
+| P23 | MIC 18 | 48.3 |
+| P25 | MIC 19 | 48.2 |
+| P27 | MIC 20 | 48.2 |
+| P29 | MIC 21 | 48.3 |
+| P31 | MIC 22 | 48.2 |
+
+**54.9 → 49.4 → 48.1 → flat is a settling curve on the first two patches of the
+gain block, not a code change.** A regression in the shared gain path moves all
+ten equally.
+
+**3. The 16:04 run measured ONLY those two positions.** It was stopped at patch
+17, so its sample is exactly the two that are elevated now and it has no
+"after" at all. Everything before P13 is identical in the two runs: same
+standing write (567 cells), same floors (15 lanes, -114.7 to -88.1 dBFS), same
+P1-P12 verdicts.
+
+**4. What DID change between the runs is the unit's own load**, and it was the
+hub's app deploy, not the tools: the old binary with the periodic capture burnt
+**42.7 % of a core with a ~180 ms UI-thread stall every 3 s**; `ae8a545` with
+the capture on demand is idle. A gain step raises the GAIN and then drops the
+DRIVE by the expected amount, and the non-zero branch pays a **FIXED two
+windows (171 ms)** of settle — where the code-0 reference pays up to four
+(341 ms) counted from the change itself (`settle_owed`). **Element 6 is the
+largest drive move of the seven (about 48 dB).** If 171 ms is not enough for
+it, the reading keeps part of the old, higher drive and reads HIGH — the right
+direction, the right element, and it would only bite once the host stopped
+being stalled into arriving late. **That is the leading hypothesis and it is
+NOT proved**, because the numbers that would prove it were never logged.
+
+**PREPARED, NOT STAGED (the unit is PW's):** the scorer now says its numbers
+out loud — every gain step logs `measured / expected / drive / lane dBFS /
+reference dBFS / settle windows / ms after the drive change`, as it is taken.
+Until now the only trace of a 54.9 dB reading in `factory.log` was the verdict
+sentence; the notes existed but reached the results CSV only at the end of a
+pass. **No scoring rule changed and no verdict moved**: the dry run against the
+committed pre-hotfix baseline is identical row for row — 194 PASS / 1 FAIL /
+8 SKIPPED of 203, same patches, same subs.
+
+**🔴 QUESTION FOR PW — do not let me change a measurement rule on my own.**
+If the next run's log shows element 6 read short of its settle, the fix is one
+of:
+  (a) count the gain step's settle from the DRIVE change, as the code-0
+      reference already counts its own (`u.osc()` marks the wire moved,
+      `settle_owed(GAIN_SETTLE_WINDOWS)`) — no constant changes, ~0 s cost;
+  (b) raise `GAIN_SETTLE_WINDOWS` from 2 to 4 for the largest element only —
+      +171 ms on one step of seven, about 4 s over a whole pass;
+  (c) re-read a step that lands out of tolerance and record both, scoring the
+      second — cheap on a good unit, but it is re-running until it passes
+      unless the two readings are both kept and compared.
+I would take (a). **Nothing lands until PW rules.**
+
+**Also owed:** MIC 9 element 6 has no verdict anyone should trust yet. When the
+unit is free, one re-read of that socket says whether 54.9 was a transient or
+a preamp element that is genuinely 6.9 dB out.
+
 ### S128 OUTCOME (2026-09-27 16:50Z, after HUB ADDENDUM 2)
 
 **🔴 HANDS, PW — four minutes, and it closes the last proof.** The unit has no
