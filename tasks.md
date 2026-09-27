@@ -1,5 +1,59 @@
 ## HUB DISPATCH 2026-09-27 16:17Z — S129: PW's bench findings + rulings — settle (a), summary screen, left-panel cell, panel LEDs, line jack/XLR, polarity, MIC 7, NW2/3   [status: 🟡 dispatched]   [model: opus]
 
+> ### 🔴 HANDS, PW — REQUEST 1 (two minutes, no leads, unit already powered)
+>
+> **Item 4's root cause is not where S128 put it, and one look settles it.**
+> Read off the FLASHED image (and it is now proved which image that is:
+> `/home/app/firmware/H1S3.shex` is byte-identical to
+> `H1S3/Debug/H1S3.elf` of 2026-08-19 15:55, and the same for H1S4), the panel
+> firmware CAN light an indicator: `WrRadioLed()` does not write an ODR bit on
+> an input pin as S128 concluded — it reconfigures the pin to `OUTPUT_PP` and
+> then drives it high. The commented-out `MainInit()` block is therefore NOT the
+> reason the panel is dark. The netlist agrees the drive should work: HIGH = ON
+> at both kinds of indicator (the two PW sees lit, `PB11`/P25 and `PF1`/P4, are
+> wired straight from the MCU pin through a resistor; every indicator in the
+> radio group goes through a dual-FET high-side pair — e.g. HOME/P21 through
+> `Q13`, FX MUTE red/P24 through `Q18` — whose N-half gate is the MCU pin, so
+> high still means on), and every cathode returns through a brightness rail
+> (`DIM0..DIM4`, lswitch `CONTROLS_DIM0/1`) gated by one net `PANEL_DIM` /
+> `M MCU_DIM` (netlist `G2689`) that MH1 PWMs from `TIM16->CCR1` — and the two
+> whites being lit prove that rail conducts.
+>
+> **So the fault is between the host's write and `matrix[pSys001Skin001][RXD]`,
+> and I cannot see which side of it from here, because the panel publishes no
+> indicator readback at all** — nothing in either board's firmware ever reports
+> LED state, and MH1's `+` ack only says MH1 forwarded the line.
+>
+> **What I need PW to do:** stand in front of the unit and watch the FRONT
+> PANEL while I light the indicators one at a time from the host. I hold each
+> for 4 seconds and log which one it is: RIGHT board 1..14 (HOME, MENU, +48,
+> FEEDBACK, CH ASSIGN, FX MUTE red, MUTE, SCENE, L, C, R, MONITOR, REC/PLY red,
+> STUDIO CTL), then LEFT board 1..6 (MONO AUX, STEREO AUX, FX, EQ, AUX ON
+> FADERS, OVERVIEW), then the eight round the encoder.
+>
+> **Answer needed — just this:** does ANY indicator light, which, and does it go
+> out when the next is lit? "None of them" is a complete answer.
+>
+> **Say the word and I start the cycle.** I need `matrix-app` stopped to own the
+> panel port, so the glass will not be driven while I do it. Nothing is flashed,
+> no rails go up, the chain stays SAFE.
+>
+> ### 🔴 HANDS, PW — REQUEST 2 (one meter check, 30 seconds)
+>
+> **Item 6 has a netlist answer and one alternative left to kill.** On all 22
+> combo sockets the jack TIP lands on the preamp's COLD leg: e.g. MIC 12
+> `analog:J41.T` -> net `MIC_9-12_21-24_MIC_IN_12_L1` -> `R1715` -> net
+> `..._M1`, which is also `J41.3` (XLR pin 3); and `analog:J41.R` -> `L0` ->
+> `R1714` -> `..._M0` = `J41.2` (XLR pin 2). Same pattern, same resistor pair,
+> on MIC 3..24 without exception (MIC 1-2 are XLR-only). That is exactly the
+> inversion PW measured.
+>
+> The one thing that would explain it WITHOUT a board fault is the lead. So:
+> **with a continuity meter on lead K4 (XLR-F to 6.35 mm TRS), check that XLR
+> pin 2 beeps to the jack TIP** (and pin 3 to the RING, pin 1 to the SLEEVE).
+> If it is pin 2 -> RING, the lead is the fault and no mod is owed.
+
+
 model: opus
 
 # S129 — PW's bench findings (27 Sep, three passes) + rulings: fix them all, then READY FOR PW
