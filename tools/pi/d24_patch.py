@@ -82,6 +82,18 @@ import d24_chain as CH                               # noqa: E402
 LIST_DIR_CANDIDATES = (os.path.join(ROOT, 'MW', 'D24', 'DSP', 's121'),
                        os.path.join(HERE, 's121'),
                        '/home/app/selftest/s121')
+# WHICH LIST A RUN THE WIZARD'S OWN START LAUNCHES USES (S126, PW 2026-09-27).
+# `d24-testui`'s START runs `d24_runall.py` through systemd-run with no
+# arguments, so `--patch-list-dir` cannot reach it and the fallback above picks
+# the FULL list. On a unit whose inputs are not all populated that walks the
+# operator across sockets with no front end, every one of them NO DATA.
+#
+# So the unit says which list it has, in a file, exactly as it already says
+# which DSP pair it has (`pair.conf`, d24_selftest.PAIR_CONF). One line, the
+# directory; blank or missing means the fallback, which is the full list and
+# the right answer for a fully populated unit. A bench session that writes it
+# owns removing it.
+LIST_CONF = '/home/app/selftest/list.conf'
 
 FS = 48000.0
 # TEST_MEAS integrates over 4,096 samples (dsp_codegen.py TEST_MEAS_WIN), so a
@@ -220,12 +232,37 @@ def wrap180(deg):
 # ---------------------------------------------------------------------------
 # The list
 # ---------------------------------------------------------------------------
+def list_conf(path=LIST_CONF):
+    """The list directory this unit says it has, or None."""
+    try:
+        with open(path) as fh:
+            for ln in fh:
+                ln = ln.split('#', 1)[0].strip()
+                if ln:
+                    return ln
+    except OSError:
+        pass
+    return None
+
+
 def find_list_dir(explicit=None):
-    for d in ((explicit,) if explicit else LIST_DIR_CANDIDATES):
-        if d and os.path.exists(os.path.join(d, 'patch-paths.csv')):
+    tried = []
+    for d in ((explicit,) if explicit else (list_conf(),) + LIST_DIR_CANDIDATES):
+        if not d:
+            continue
+        tried.append(d)
+        if os.path.exists(os.path.join(d, 'patch-paths.csv')):
             return d
+    # A conf file that names a directory with no list in it is a bench mistake
+    # and has to be loud: silently falling through to the full list is how an
+    # operator ends up walking sockets this unit does not have.
+    named = list_conf()
+    if named and not explicit and named not in [
+            d for d in tried if os.path.exists(os.path.join(d, 'patch-paths.csv'))]:
+        raise SystemExit('%s names %s, and there is no patch-paths.csv there'
+                         % (LIST_CONF, named))
     raise SystemExit('patch-paths.csv not found; looked in %s'
-                     % ', '.join(x for x in LIST_DIR_CANDIDATES if x))
+                     % ', '.join(tried))
 
 
 def read_csv(path):

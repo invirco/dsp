@@ -639,6 +639,20 @@ Proved on the part, with the station reached through RUN ALL:
   buttons     ['enter', 'pause']
 ```
 
+**And START runs RUN ALL with no arguments**, which settles the question §12
+left open. It is `systemd-run --collect --unit=d24-runall ... d24_runall.py`,
+read out of the app's own assembly — so `--patch-list-dir` cannot reach it and
+the fallback picks the FULL list. **The unit therefore says which list it has,
+in a file**, exactly as it already says which DSP pair it has (`pair.conf`):
+`/home/app/selftest/list.conf`, one line, the directory. Missing or blank means
+the full list, which is the right answer for a fully populated unit. A conf
+that names a directory with no list in it is a hard error, not a silent
+fall-through to the full one — that is how an operator ends up walking sockets
+this unit does not have. MW-D24-2's now names its short list, and with no
+arguments at all the station resolves **59 patches, 151 measurements** and
+**seven setup pages** (the mini-jack lead is excluded, so nobody is asked to
+hang it).
+
 **And on the USB keyboard.** `KeyWatch` opens every input device whose key map
 contains Enter and latches on it; in the loop that means exactly what the ENTER
 button means. It is the footswitch path — an off-the-shelf USB footswitch
