@@ -27,14 +27,18 @@ MEASURED ON MW-D24-2 (S120): the host->indicator hop is 1.77 ms to MH1's own ack
 machine part of press->indicator is UNDER 10 ms, against PW's 50 ms bar, with the
 product's firmware untouched.
 
-ONE THING THE WIRE CANNOT TELL YOU, AND IT IS NOT A BUG IN THIS TOOL.  Both
-panels decode the SAME cell and the left panel's six indices are 1..6, which the
-right panel also uses for HOME..FX MUTE.  So a value of 3 lights FX on the left
-panel AND +48 on the right, and a press of either arrives identically.  The loop
-is therefore run ONE PANEL AT A TIME with the operator told which panel is under
-test; what it cannot catch is a press on the other panel's button of the same
-index.  See s120/panel-loop.md, finding S120-1: the fix is a cell of the left
-panel's own, which is a definitions change, not a change here.
+S120-1, CLOSED BY PW's RULING (a) AND defs-v2026.09.27: THE LEFT PANEL HAS A
+CELL OF ITS OWN.  Until then both panels decoded the SAME cell and the left
+panel's six indices 1..6 were the right panel's HOME..FX MUTE, so a value of 3
+lit FX on the left AND +48 on the right and a press of either arrived
+identically: the loop had to be run one panel at a time with the operator told
+which, and a press on the other panel's button of the same index was
+undetectable.  `Sys001SwLeft001` (5005) ends that -- a press on it can only be
+the left board and a press on `Sys001Skin001` can only be the right, and the
+loop now says which board pressed it and FAILS a step answered by the other
+one.  See `cells_for()`: the address has to be in H1S4's own MATRIX[] table
+before it means anything, so while that board is unidentified the loop writes
+both cells and the first press settles it.
 
     d24_panel.py --mode probe                 who is on the bus, and how fast
     d24_panel.py --mode rtt --reps 10         the two hops, timed on the part
@@ -57,8 +61,41 @@ for _p in ('/home/app/dspboot', '/home/app/selftest',
         sys.path.insert(0, _p)
 import codec4619 as C                                    # noqa: E402
 
-SKIN = 0x1524          # Sys001Skin001 = 5412 -- the panel radio group
+SKIN = 0x1524          # Sys001Skin001 = 5412 -- the RIGHT panel's radio group
 ENC = 0x1470           # Sys001Enc001  = 5232 -- the encoder ring
+
+# ---------------------------------------------------------------------------
+# THE LEFT PANEL'S OWN CELL (S120-1, PW ruling (a) 2026-09-27)
+# ---------------------------------------------------------------------------
+# `Sys001SwLeft001`, landed in defs at defs-v2026.09.27 and addressed 5005 by
+# the expansion (`MW/D24/MX/_matrix.csv`, Shex 'ikpu'). Before it, BOTH boards
+# decoded Sys001Skin001 and the left board's radio indices 1..6 were the right
+# board's HOME..FX MUTE, so a value of 3 lit FX on the left AND +48 on the
+# right and a press of either arrived identically. That is the aliasing this
+# address ends.
+#
+# IT ONLY ENDS IT ONCE H1S4 CARRIES IT. The address lives in the panel
+# firmware's own `MATRIX[]` table (`Core/Inc/matrix.cs`), so until H1S4 is
+# rebuilt and reflashed the left board still answers on SKIN and nothing else.
+# The loop therefore does not assume: it lights the left board on BOTH cells
+# until a press tells it which one that board is running, then uses only that
+# one -- and from then on a press arriving on SKIN during a LEFT step is a
+# press on the RIGHT board and is recorded as one. `--left-cell` forces it.
+#
+# AND THE ADDRESS IS THE ONE DEFS ASSIGNS, WHICH IS NOT THE GENERATION THE
+# FIRMWARE WAS BUILT AGAINST. Finding S120-2 is still open: the flashed panel
+# images carry Sys001Skin001 = 5412 while this repo's contract expands it to
+# 4698 and the Dropbox copy gives 17553 -- three live generations of the same
+# cell name. The new cell is baked at its DEFS address in both ends at once
+# (here and in H1S4), so the loop agrees with itself whatever the app does;
+# what the APP reads for this cell is the hub's mapping job, and if its
+# generation differs the app will write somewhere else. Said out loud rather
+# than papered over.
+SW_LEFT = 0x138D       # Sys001SwLeft001 = 5005 -- the LEFT panel's radio group
+CELL_NAME = {0x1524: 'Sys001Skin001', 0x138D: 'Sys001SwLeft001',
+             0x1470: 'Sys001Enc001'}
+# Which cell each panel's radio group is on, once it is known.
+PANEL_CELL = {'right': SKIN, 'left': None}      # None = not yet identified
 
 # ---------------------------------------------------------------------------
 # What is on each panel
@@ -242,7 +279,12 @@ class PanelBus:
 
     def poll(self):
         """Drain the port and return every completed cell event since the last
-        call, as (cell, value) with cell in ('skin', 'enc')."""
+        call, as (cell, value) with cell in ('skin', 'swleft', 'enc').
+
+        'swleft' is the left panel's own cell (S129). A press that arrives on
+        it can only have come from the left board, and a press on 'skin' can
+        only have come from the right -- which is the whole point of giving the
+        left board an address of its own."""
         try:
             self.buf += os.read(self.bus.fd, 1024)
         except BlockingIOError:
@@ -250,7 +292,7 @@ class PanelBus:
         except OSError:
             pass
         events = []
-        for name, addr in (('skin', SKIN), ('enc', ENC)):
+        for name, addr in (('skin', SKIN), ('swleft', SW_LEFT), ('enc', ENC)):
             pre = C.cell_prefix(addr)
             events += [(name, v, pos) for v, pos in _all_replies(self.buf, pre)]
         events.sort(key=lambda e: e[2])
@@ -428,8 +470,28 @@ LED_NOT_SEEN = ('the screen named the button, and it has no way to say an '
                 'nothing about the indicator')
 
 
+def cells_for(panel, known=None):
+    """Which radio cell(s) to write for one panel (S129).
+
+    The right panel is Sys001Skin001 and always has been. The left panel is
+    Sys001SwLeft001 from defs-v2026.09.27 -- but only once H1S4 carries that
+    address in its own `MATRIX[]`, so until a press says which cell that board
+    is running, BOTH are written and the answer identifies the firmware.
+    Writing SKIN for a left step lights the right board's same index too, which
+    is exactly the aliasing the new cell exists to end; it is done only while
+    the board is unidentified, and it stops the moment it answers.
+    """
+    if panel != 'left':
+        return [SKIN]
+    if known == SW_LEFT:
+        return [SW_LEFT]
+    if known == SKIN:
+        return [SKIN]
+    return [SW_LEFT, SKIN]
+
+
 def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
-         can_say_notlit=True):
+         can_say_notlit=True, left_cell='auto'):
     """Walk one panel.  `ask` puts the step in front of the operator and returns
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
@@ -450,6 +512,12 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     LED_NOT_SEEN: the indicator half of each step is then recorded as not
     measured rather than inferred from a press."""
     steps = [Step(*s) for s in PANELS[panel]]
+    # WHICH CELL THIS BOARD IS ON. 'auto' finds out from the first press;
+    # 'new'/'shared' force it, for a bench run that knows what is flashed.
+    known = {'new': SW_LEFT, 'shared': SKIN}.get(left_cell)
+    if panel != 'left':
+        known = SKIN
+    said_cell = False
     if owed is not None:
         # A button whose two rows have both already passed is not lit again:
         # no test runs twice for the same proof (PW 09-26). The sweep keeps its
@@ -458,7 +526,15 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     for n, st in enumerate(steps):
         if hold is not None:
             hold(log)
-        ack = bus.light(st.idx)
+        cells = cells_for(panel, known)
+        if not said_cell:
+            said_cell = True
+            log('the %s is lit on %s'
+                % (PANEL_NAME[panel],
+                   ' and '.join(CELL_NAME.get(c, hex(c)) for c in cells)
+                   + (' (both, until a press says which one this board runs)'
+                      if len(cells) > 1 else '')))
+        ack = bus.light(st.idx, cells)
         # THE ACK IS A MEASUREMENT AND IT IS WORTH PRINTING. It separates "the
         # host could not even get the write to the panel" from "the write went
         # out and nothing lit", which is the whole of the question PW asked
@@ -490,8 +566,33 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
                 st.sw = st.led = SKIPPED
                 st.sw_note = st.led_note = 'the operator skipped this button'
                 break
-            if kind != 'skin':
+            if kind not in ('skin', 'swleft'):
                 continue                       # an encoder detent in the middle
+            # WHICH BOARD PRESSED IT (S129). A press on Sys001SwLeft001 can
+            # only be the LEFT board and a press on Sys001Skin001 can only be
+            # the RIGHT one, so the cell the press arrived on IS the board --
+            # the thing the shared cell could never tell anybody.
+            from_cell = SW_LEFT if kind == 'swleft' else SKIN
+            if known is None:
+                known = from_cell
+                log('the %s answered on %s, so that is the cell this board '
+                    'runs; the other one is not written again'
+                    % (PANEL_NAME[panel], CELL_NAME.get(from_cell)))
+            elif from_cell != known:
+                # The wrong board. Before S129 this arrived on the same cell as
+                # a right press of the same index and was graded as a pass.
+                st.sw = FAIL
+                st.sw_note = ('that press came from the %s, not the %s: it '
+                              'arrived on %s'
+                              % ('left switch panel' if kind == 'swleft'
+                                 else 'right switch panel',
+                                 PANEL_NAME[panel],
+                                 CELL_NAME.get(from_cell)))
+                if st.led is None:
+                    st.led = NODATA
+                    st.led_note = ('not reached: the press came from the other '
+                                   'switch board')
+                break
             st.got, st.ms = value, ms
             if value == st.idx:
                 st.sw = PASS

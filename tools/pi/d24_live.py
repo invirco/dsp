@@ -174,6 +174,30 @@ def move_output(out, into, confirm=True):
             % (out, socket_words(into), ', then press ENTER.' if confirm else '.'))
 
 
+def move_other_end(out, into, confirm=True):
+    """THE PATCH WHERE ONLY THE OUTPUT END MOVES (S129, item 7).
+
+    "Plug AUX 1 into MIC 7" is the right sentence when both ends move. It is
+    the WRONG one when the lead is already in MIC 7 and the only thing that has
+    to move is the other end, because a worker reads it, looks at MIC 7, sees a
+    lead in it, and presses ENTER.
+
+    That is what MIC 7 did on both of PW's completed passes, and the evidence
+    says the hardware is innocent: MIC 7 passes every tone patch in the loop
+    block at -12 dBFS, its 595 byte drives its own preamp and no other (+32.8
+    dB of noise at gain 63, measured lane by lane on 2026-09-27), its lane floor
+    is -113.9 dBFS in the middle of the pack, and its meter node reads a
+    -20 dBFS oscillator exactly. The patch it fails, three attempts running, is
+    the FIRST patch of the input block -- the one where the previous block left
+    the lead in MIC 7 and only the output end moves, from AUX 3 to AUX 1.
+
+    So the sentence says which end, and it says the other one stays put.
+    """
+    return ('Move the OTHER end of the lead to %s - this end stays in %s%s'
+            % (out, socket_words(into),
+               ', then press ENTER.' if confirm else '.'))
+
+
 def swap_for_plug(name, confirm=True):
     """The noise step, which PW ruled is sequential: the lead comes out and
     the plug goes into the socket it just left."""

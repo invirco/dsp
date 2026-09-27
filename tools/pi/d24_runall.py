@@ -2083,7 +2083,14 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                                # The ARMED factory screen draws no dialog, so
                                # it has no NOT LIT button and a press cannot be
                                # read as "I saw it light". See PL.LED_NOT_SEEN.
-                               can_say_notlit=live is None)
+                               can_say_notlit=live is None,
+                               # WHICH CELL THE LEFT BOARD IS ON (S129). 'auto'
+                               # is the only honest default while H1S4 is being
+                               # reflashed: the loop writes both cells until a
+                               # press says which one that board runs, and from
+                               # then on a press from the other board is a FAIL
+                               # naming the board rather than a pass.
+                               left_cell=a.left_cell)
         for step in steps:
             land(step.sw_row, step.sw or NODATA, step.sw_note
                  or 'the loop did not reach this button')
@@ -2981,6 +2988,13 @@ def main(argv=None):
     ap.add_argument('--auto-only', action='store_true')
     ap.add_argument('--manual-only', action='store_true')
     ap.add_argument('--report-only', action='store_true')
+    ap.add_argument('--left-cell', default='auto',
+                    choices=('auto', 'new', 'shared'),
+                    help='which radio cell the LEFT switch board runs: new = '
+                         'Sys001SwLeft001 (defs-v2026.09.27, needs the H1S4 '
+                         'reflash), shared = the old Sys001Skin001 it shares '
+                         'with the right board, auto = write both and let the '
+                         'first press say which')
     ap.add_argument('--summary-rows', type=int, default=112,
                     help='rows per page on the end-of-pass summary grid. 112 '
                          'is four columns of 28 at the size the grid draws, '

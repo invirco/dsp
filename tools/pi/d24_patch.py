@@ -1506,6 +1506,8 @@ class Station:
         self._repark_line = ''   # ditto, for ruling c's one re-park
         self._lead_now = None
         self._last_in = None     # so the noise step can say 'take the lead out'
+        self._last_out = None    # and so a patch where ONLY the other end
+                                 # moves can say which end (S129, item 7)
         # The parked ends, bound by the first step and not before it (S123
         # addendum 3). Until the loop is found there is no such thing as a
         # known-good socket, so there is nothing to park on.
@@ -2450,9 +2452,16 @@ class Station:
         # instead of naming the plug out of nowhere.
         if r['expect'] == 'noise' and self._last_in == r['in']:
             line = LV.swap_for_plug(r['in'], confirm=not self.auto)
+        elif (self._last_in == r['in'] and r.get('out')
+                and self._last_out and self._last_out != r['out']):
+            # ONLY THE OTHER END MOVES (S129, item 7). See LV.move_other_end:
+            # this is the patch MIC 7 failed twice, and "Plug AUX 1 into MIC 7"
+            # reads as done when the lead is already in MIC 7.
+            line = LV.move_other_end(r['out'], r['in'], confirm=not self.auto)
         else:
             line = LV.instruction_for(r, confirm=not self.auto)
         self._last_in = r['in']
+        self._last_out = (r.get('out') or '').strip() or None
         self.live.set(state=LV.WAITING, instruction=line,
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
@@ -2975,6 +2984,15 @@ class World:
     def phase(self, driven, lane):
         d = self.REF_PHASE
         inverted = False
+        # THE JACK CENTRE INVERTS, AND THE MODEL HAS TO KNOW (S129). On every
+        # combo socket from MIC 3 to MIC 24 the board wires the jack TIP to the
+        # preamp's cold leg -- see gen_patch_paths.block_k4 for the netlist
+        # trace -- so a patch into `MIC n line` reads inverted against the same
+        # socket's XLR, and that reading is what tells the two sockets apart. A
+        # simulator that modelled the jack as in-phase would dry-run the whole
+        # line block as the operator putting the lead in the wrong socket.
+        if self.plugged_in and str(self.plugged_in).endswith(' line'):
+            inverted = not inverted
         if ('edge:%s' % self.plugged_out in self.faults) and self.single_ended:
             # only the judged readings, never the reference one: a lane whose
             # reference moved with it would show no difference at all
