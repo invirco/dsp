@@ -616,12 +616,14 @@ def every_string(rows=()):
 # pressing it means something, PAUSE is offered wherever a run can be stopped,
 # and START is what replaces both once the pass is over.
 def buttons_for(state, confirm=True):
-    # THE SUMMARY IS PAGED WITH ENTER AND NOTHING ELSE (PW 2026-09-27). The
-    # pass is over by the time it is up, so there is nothing to PAUSE and it is
-    # too early for START: the only thing to do is read it and press ENTER,
-    # which is also true of the last page -- that press is what ends the pass.
+    # THE SUMMARY HAS ONE BUTTON AND IT IS EXIT (PW 2026-09-27, addendum 3):
+    # "a complete grid of all tests should be shown, and remain until user
+    # exits, otherwise, no time to review anything". So no PAUSE -- the pass is
+    # over -- no START underneath it, and no timeout anywhere: the screen stays
+    # up until EXIT is pressed. On a paged summary EXIT turns the page and the
+    # last press leaves it.
     if state == SUMMARY:
-        return ['enter']
+        return ['exit']
     if state in (PAUSED, FINISHED):
         return ['start']
     if confirm and state in (WAITING, CHECKLEAD):
@@ -778,4 +780,4 @@ class Live:
         if float(c.get('stamp', 0)) < self.t0:
             return None                      # left over from a previous run
         cmd = c.get('command')
-        return cmd if cmd in ('pause', 'enter') else None
+        return cmd if cmd in ('pause', 'enter', 'exit') else None

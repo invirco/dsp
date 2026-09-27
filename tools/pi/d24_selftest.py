@@ -74,6 +74,34 @@ CSV_COLS = ['board', 'item', 'test', 'verdict', 'measured', 'limit', 'evidence',
 
 BENCH = 'app@192.168.1.219'
 BENCH_HOST_SELF = '192.168.1.211'       # this machine, as the unit sees it
+# ---------------------------------------------------------------------------
+# THE GIGABIT PEER NW4 NEEDS (PW ruling, S129 addendum 2)
+# ---------------------------------------------------------------------------
+# NW4 measures throughput, which needs a SECOND machine, and it measures the
+# SLOWER of the two ends. So the row is only a real pass or fail when the peer
+# is itself wired and gigabit, and until one exists on the bench the row is
+# NOT TESTED with that as its reason -- never NO DATA, never FAIL. One value
+# names the peer so nothing has to be edited in two places.
+#
+# THE FACTORY-BENCH REQUIREMENT, stated so it can be bought and cabled:
+#   * one PC on the same switch as the unit, WIRED ONLY -- no Wi-Fi interface
+#     up on the same subnet, because the reply can then leave by the wireless
+#     path and the figure measures that instead;
+#   * its link negotiated at 1000 Mb/s full duplex (`cat
+#     /sys/class/net/<iface>/speed` reads 1000), which needs a gigabit switch
+#     port and a four-pair cable -- a two-pair patch lead negotiates 100;
+#   * `iperf3 -s` reachable on port 5201, or `iperf3` installed so the unit can
+#     serve and the peer can drive;
+#   * nothing else saturating that link while a pass runs.
+#
+# AS THE BENCH STANDS ON 2026-09-27 IT DOES NOT MEET THAT. The driving host's
+# ens9 is a Broadcom BCM57786 -- gigabit silicon -- but the link negotiates
+# 100 Mb/s full duplex (`/sys/class/net/ens9/speed` = 100), so the cable or the
+# switch port is the 100 Mb element and not the PC. The same host also holds
+# 192.168.1.133 on wlp4s0 on the SAME subnet; the route to the unit is
+# `dev ens9 src 192.168.1.211`, so today's path is wired both ways, but a peer
+# for NW4 must have no second interface on that subnet at all.
+NW4_PEER = ''                           # '' = no gigabit peer on this bench
 DSPBOOT = '/home/app/dspboot'
 # THE PAIR THE RUN BOOTS. The signed candidate is the default and the only
 # thing a normal run ever boots. A DSP4_TEST_NODES=1 pair is a DIFFERENT
@@ -91,6 +119,12 @@ CONN = '/sys/class/drm/card0-HDMI-A-1'
 ETHTOOL = '/usr/sbin/ethtool'           # NOT on app's PATH; absolute or nothing
 
 PASS, FAIL, NODATA = 'PASS', 'FAIL', 'NO DATA'
+# NOT TESTED: nobody asked the question, so there is nothing to answer.
+# The same string RUN ALL uses (`d24_runall.NOTTESTED`), and it outranks
+# nothing -- a row that reads NOT TESTED is not a measurement that could
+# be worse than a pass. Used by NW4, which needs a second machine the
+# bench does not have (PW, S129 addendum 2).
+NOTTESTED = 'NOT TESTED'
 
 # Pi GPIO map for the DSP bus, off DSP4 PI header J6 -- dsp4_boot.py:83-86.
 # CS1/CS2 are the two live chip selects; CS3/CS4 come BACK as SPI_RDY and are
@@ -527,7 +561,13 @@ def t_nw2(r):
     the link; if a counter climbs there too it is ambient (this LAN carries
     multicast the unit does not subscribe to, and `rx_dropped` counts
     host-side software drops, not wire errors), and the evidence says so
-    rather than leaving a reader to guess."""
+    rather than leaving a reader to guess.
+
+    AND THAT IS WHY `rx_dropped` NO LONGER GRADES THE ROW (PW, S129 addendum 2).
+    It was the only counter that ever failed this row on this bench, it is the
+    stack and not the NIC, and a factory gate that fails a good unit is worse
+    than no gate. It is recorded in the reading and in the evidence.
+    """
     after, nums_a = _ifstats(r)
     before, nums_b = getattr(r, '_nw2_before', (None, None))
     if not nums_b or len(nums_b) != len(nums_a):
@@ -537,10 +577,23 @@ def t_nw2(r):
     #             TX bytes packets errors dropped carrier collsns
     names = ['rx_bytes', 'rx_packets', 'rx_errors', 'rx_dropped', 'rx_missed', 'rx_mcast',
              'tx_bytes', 'tx_packets', 'tx_errors', 'tx_dropped', 'tx_carrier', 'tx_collsns']
-    fault_keys = ['rx_errors', 'rx_dropped', 'rx_missed',
-                  'tx_errors', 'tx_dropped', 'tx_carrier', 'tx_collsns']
+    # WHAT THE NIC SAYS, AND WHAT THE STACK SAYS (PW ruling, S129 addendum 2:
+    # "it shouldn't be a fail then, how to fix that?"). `rx_dropped` and
+    # `tx_dropped` are the KERNEL discarding a frame it has already received --
+    # a packet for a protocol nothing is listening to, a full socket queue --
+    # and on a bench LAN carrying multicast the unit does not subscribe to they
+    # climb on a perfectly good NIC. They are counted, logged and reported, and
+    # they NEVER fail the row. What fails it is what the wire and the MAC say:
+    # rx_errors (CRC/frame/length), rx_missed (FIFO overrun, the MAC could not
+    # be drained), tx_errors, tx_carrier (no link while transmitting) and
+    # tx_collsns. No hardware bar is lowered by this: every counter that
+    # reports a fault still has to be zero.
+    fault_keys = ['rx_errors', 'rx_missed',
+                  'tx_errors', 'tx_carrier', 'tx_collsns']
+    info_keys = ['rx_dropped', 'tx_dropped']
     delta = dict(zip(names, [a - b for a, b in zip(nums_a, nums_b)]))
     faults = {k: delta[k] for k in fault_keys}
+    info = {k: delta[k] for k in info_keys}
 
     idle_t = 30
     _, nums_i0 = _ifstats(r)
@@ -548,16 +601,26 @@ def t_nw2(r):
     idle_txt, nums_i1 = _ifstats(r)
     idle = dict(zip(names, [x - y for x, y in zip(nums_i1, nums_i0)]))
     idle_faults = {k: idle[k] for k in fault_keys}
+    idle_info = {k: idle[k] for k in info_keys}
 
     bad = {k: v for k, v in faults.items() if v != 0}
     ambient = {k for k, v in idle_faults.items() if v != 0}
     raw = ('--- before NW3 ---\n%s\n--- after NW4 ---\n%s\n'
-           'delta over the tests: %s\n'
+           'hardware counters over the tests: %s\n'
+           'stack drops over the tests (INFORMATIONAL, never a fail): %s\n'
            '--- idle control, %d s with nothing driving the link ---\n%s\n'
-           'delta while idle: %s\ncounters that also climb while idle: %s'
-           % (before, after, faults, idle_t, idle_txt, idle_faults, sorted(ambient) or 'none'))
-    m = 'deltas over NW3+NW4: %s; idle control (%d s): %s' % (faults, idle_t, idle_faults)
-    return ((FAIL if bad else PASS), m, 'all zero for the run', raw)
+           'hardware counters while idle: %s\n'
+           'stack drops while idle: %s\n'
+           'hardware counters that also climb while idle: %s'
+           % (before, after, faults, info, idle_t, idle_txt, idle_faults,
+              idle_info, sorted(ambient) or 'none'))
+    m = ('hardware counters over NW3+NW4: %s; idle control (%d s): %s; '
+         'stack drops (not graded): %s' % (faults, idle_t, idle_faults, info))
+    return ((FAIL if bad else PASS), m,
+            'rx_errors / rx_missed / tx_errors / tx_carrier / tx_collsns all '
+            'zero for the run; rx_dropped and tx_dropped are the kernel '
+            'discarding frames it did receive and are recorded, not graded '
+            '(PW 2026-09-27)', raw)
 
 
 def t_nw3(r):
@@ -770,7 +833,28 @@ def t_nw4(r):
     of whatever machine is driving it. Driving it the other way measures the
     same two directions over the same link and needs nothing opened: without
     `-R` the unit RECEIVES, with `-R` the unit SENDS. The direction is named in
-    the evidence so the numbers are never ambiguous about which way they ran."""
+    the evidence so the numbers are never ambiguous about which way they ran.
+
+    AND IT DOES NOT RUN AT ALL WITHOUT A GIGABIT PEER (PW ruling, S129 addendum
+    2). The row used to read NO DATA after ten seconds of iperf3 each way down a
+    link that could not reach the bar whatever the unit did: twenty-three
+    seconds of a factory pass spent measuring the bench. `NW4_PEER` names the
+    peer, and with no peer named the row is NOT TESTED before anything is run,
+    with the reason in the words PW asked for. The bench requirement is written
+    beside `NW4_PEER`.
+    """
+    if not NW4_PEER:
+        return (NOTTESTED, 'no gigabit peer on this bench',
+                '>= 900 Mbit/s each way, against a wired gigabit peer',
+                'NOT RUN. NW4 measures the SLOWER of two machines, so it is '
+                'only a verdict about the unit when the other end is itself '
+                'wired and gigabit. No peer is configured (`NW4_PEER` is '
+                'empty), so nothing was measured and nothing is claimed -- this '
+                'is NOT TESTED, not NO DATA and not FAIL. The requirement is '
+                'written at NW4_PEER in this file: one wired-only PC on the '
+                'unit\'s switch, link negotiated at 1000 Mb/s full duplex, '
+                'iperf3 available. The unit\'s own link is 1000Mb/s Full and '
+                'that is NW1\'s reading, which is unaffected.')
     # `pkill -x iperf3`, never `pkill -f "iperf3 -s"`: the -f form matches the
     # shell this very command is running in and kills the launcher before it
     # launches anything, which reads downstream as "iperf3 gave no receiver line".
@@ -779,24 +863,25 @@ def t_nw4(r):
     # measures that link and nothing about the unit. Scoring it FAIL would be a
     # defect invented by the bench, so the bottleneck is read first and a run
     # that cannot reach the bar is NO DATA naming the reason.
+    peer = NW4_PEER
     iface = r.sh("ip route get %s | sed -n 's/.*dev \\([^ ]*\\).*/\\1/p' | head -1"
-                 % BENCH.split("@")[1]).stdout.strip()
+                 % peer).stdout.strip()
     host_mbit = r.sh('cat /sys/class/net/%s/speed 2>/dev/null || echo 0' % iface).stdout.strip()
     r.rsh('pkill -x iperf3 >/dev/null 2>&1; '
           'setsid nohup iperf3 -s -p 5201 </dev/null >/tmp/d24_iperf3.log 2>&1 & sleep 1')
     time.sleep(1.5)
     try:
-        rx = r.sh('iperf3 -c %s -p 5201 -t 10 -f m 2>&1 | tail -6' % BENCH.split("@")[1],
+        rx = r.sh('iperf3 -c %s -p 5201 -t 10 -f m 2>&1 | tail -6' % peer,
                   timeout=90).stdout
         time.sleep(1.0)
-        tx = r.sh('iperf3 -c %s -p 5201 -t 10 -R -f m 2>&1 | tail -6' % BENCH.split("@")[1],
+        tx = r.sh('iperf3 -c %s -p 5201 -t 10 -R -f m 2>&1 | tail -6' % peer,
                   timeout=90).stdout
     finally:
         r.rsh('pkill -x iperf3 >/dev/null 2>&1; true')
-    raw = ('driving host %s: iface %s, link %s Mb/s\n'
+    raw = ('peer %s: iface %s, link %s Mb/s\n'
            '--- unit receiving (host -> unit) ---\n%s\n'
            '--- unit sending (unit -> host, -R) ---\n%s'
-           % (BENCH_HOST_SELF, iface, host_mbit, rx, tx))
+           % (peer, iface, host_mbit, rx, tx))
 
     def mbits(txt):
         m = re.findall(r'([\d.]+)\s+Mbits/sec.*receiver', txt)

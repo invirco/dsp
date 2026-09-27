@@ -1299,11 +1299,24 @@ def pass_screen(a, glass):
 # then the passes, then what was never run. Inside each band the rows are in
 # catalog order so a row can be found by its number.
 #
-# THE ROWS PER PAGE ARE A SETTING, NOT A GUESS. `--summary-rows` is what the
-# screen can draw: 69 is three columns of 23 at the size the summary panel uses,
-# and a small number (8 or fewer) makes the runner ALSO write the page as plain
+# IT STAYS UNTIL THE OPERATOR EXITS (PW 2026-09-27, addendum 3): "a complete
+# grid of all tests should be shown, and remain until user exits, otherwise, no
+# time to review anything". There is no timeout in the loop below, the only
+# button on the screen is EXIT, and START is not offered while it is up, so no
+# second run can begin underneath it. EXIT on the last page is what ends the
+# pass, and it ends it on the armed START page rather than on a second screen.
+#
+# THE ROWS PER PAGE ARE A SETTING, NOT A GUESS, AND THE WHOLE PASS DOES NOT FIT
+# ON ONE SCREEN AT A SIZE WORTH READING. Measured against the panel the screen
+# is laid out for -- 1920x1080, 80 px side margins, 50 px top and bottom, and
+# 190 px of buttons that have to stay visible -- the grid has 1760 x 790 px.
+# At 24 px type on a 28 px line that is 28 rows, and a column wide enough for
+# "num  name  VERDICT" is 440 px, so FOUR columns: **112 rows a page**. The D24
+# catalog is 202 rows, so a full pass is TWO pages and the page number is on
+# both. Halving the type would fit it on one and nobody at a bench would read
+# it. A small number (8 or fewer) makes the runner ALSO write the page as plain
 # text into `extra`, which the screen has always drawn -- so a pass ends on a
-# summary either way, whether or not the app carries the panel yet.
+# summary either way, whether or not the app carries the grid yet.
 SUMMARY_BAND = [
     (FAIL, 'did not pass'),
     (NODATA, 'could not be measured'),
@@ -1347,11 +1360,12 @@ def _short(name):
 
 
 def summary_screen(a, rows, state, ignored, t):
-    """Every test by name with PASS or FAIL, paged with ENTER, on the glass.
+    """Every test by name with PASS or FAIL, in a grid, on the glass.
 
-    Returns when the last page has been read. A pass that had no screen (an
-    auto-only run from a terminal) prints the same list instead, so the summary
-    exists in both places and says the same thing.
+    Returns True when the operator has pressed EXIT on the last page and the
+    screen has been taken down; False when there was no screen to put it on (an
+    auto-only run from a terminal), in which case the same list has been printed
+    instead, so the summary exists in both places and says the same thing.
     """
     pages = summary_pages(rows, state, ignored, a.summary_rows)
     title = LV.finished_words(t[PASS], t[FAIL],
@@ -1364,9 +1378,13 @@ def summary_screen(a, rows, state, ignored, t):
         if i + 1 < len(pages):
             print('   -- page %d of %d --' % (i + 1, len(pages)))
     if live is None:
-        return
+        return False
     for i, page in enumerate(pages):
-        head = '%s  Summary, page %d of %d.' % (title, i + 1, len(pages))
+        head = ('%s  Every test in this pass, page %d of %d. Press EXIT when '
+                'you have read it.' % (title, i + 1, len(pages))
+                if len(pages) > 1 else
+                '%s  Every test in this pass. Press EXIT when you have read it.'
+                % title)
         kw = dict(state=LV.SUMMARY, instruction='', lead_line='',
                   status=head, summary=page, summary_title=title,
                   n=i + 1, total=len(pages), lead_n=0, lead_total=0,
@@ -1374,22 +1392,34 @@ def summary_screen(a, rows, state, ignored, t):
         # THE FALLBACK THAT NEEDS NO APP CHANGE. `extra` is a plain wrapped
         # paragraph the screen has drawn since S123, so a small page fits in it
         # as text. It is only written when the page is small enough to be read
-        # there; at the panel's own 69 rows it would be unreadable and the
-        # panel is what draws it.
+        # there; at the grid's own 112 rows it would be unreadable and the
+        # grid is what draws it.
         if len(page) <= 8:
             kw['extra'] = '\n'.join('%s   %s' % (nm, v) for nm, v in page)
         try:
             live.set(**kw)
         except Exception:                               # noqa: BLE001
-            return
+            return False
+        # NO TIMEOUT, ON PURPOSE. The only way past this page is the operator
+        # pressing EXIT (or the one keyboard on the bench, for a run driven
+        # from a terminal). `beat()` keeps the run alive so the screen does not
+        # go stale under them while they read.
         while True:
             live.beat()
             cmd = live.command()
-            if cmd in ('enter', 'start', 'pause'):
+            if cmd in ('exit', 'enter', 'start'):
                 break
             if keys is not None and keys.pressed():
                 break
             time.sleep(0.05)
+    # EXIT LEAVES THE ARMED START PAGE, NOT A SECOND END SCREEN. The summary IS
+    # the end of the pass now, so the screen is taken down and the app draws
+    # its own armed page with START on it -- which is where PW wants to be.
+    try:
+        live.clear()
+    except Exception:                                   # noqa: BLE001
+        pass
+    return True
 
 
 def end_screen(a, t):
@@ -2951,11 +2981,12 @@ def main(argv=None):
     ap.add_argument('--auto-only', action='store_true')
     ap.add_argument('--manual-only', action='store_true')
     ap.add_argument('--report-only', action='store_true')
-    ap.add_argument('--summary-rows', type=int, default=69,
-                    help='rows per page on the end-of-pass summary screen. 69 '
-                         'is three columns of 23 at the size the summary panel '
-                         'draws; 8 or fewer also writes the page as plain text '
-                         'into the screen field that has always been drawn')
+    ap.add_argument('--summary-rows', type=int, default=112,
+                    help='rows per page on the end-of-pass summary grid. 112 '
+                         'is four columns of 28 at the size the grid draws, '
+                         'which is two pages for the D24 catalog; 8 or fewer '
+                         'also writes the page as plain text into the screen '
+                         'field that has always been drawn')
     ap.add_argument('--no-review', action='store_true',
                     help='write the report and stop; do not put the review '
                          'screen up')
@@ -3149,8 +3180,9 @@ def main(argv=None):
         # THE SUMMARY COMES BEFORE THE END SCREEN (PW 2026-09-27). The report is
         # already written, so the summary can be built from the same state the
         # report was built from and cannot disagree with it.
-        summary_screen(a, rows, state, live, t)
-        end_screen(a, t)
+        shown = summary_screen(a, rows, state, live, t)
+        if not shown:
+            end_screen(a, t)
         # THE REVIEW SCREEN IS A DIALOG, AND A PASS WITH A FACTORY SCREEN HAS
         # NO DIALOGS (S128, found by running it). After the first pass driven
         # entirely from the glass, the runner posted `prompt.json` kind

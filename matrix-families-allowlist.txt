@@ -354,6 +354,7 @@ SysScrBright
 SysSelectedAux
 SysSelectedChan
 SysSkin
+SysSwLeft
 SysSwUpd
 SysTest
 TalkDest

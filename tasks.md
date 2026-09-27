@@ -1,5 +1,59 @@
 ## HUB DISPATCH 2026-09-27 16:17Z — S129: PW's bench findings + rulings — settle (a), summary screen, left-panel cell, panel LEDs, line jack/XLR, polarity, MIC 7, NW2/3   [status: 🟡 dispatched]   [model: opus]
 
+> **HUB ADDENDUM 7 (PW asked "spkr/mems mic test?").**
+> - **AL1 (speaker → panel MEMS mic)** read NO DATA "no settled window for: base, tone, back" on PW's passes (factory.log ~5036, 17:04Z). It PASSED on 09-25/26.
+>   - Hub's reading: since S126, AL1 runs UNDER the panel loop, so the operator's clicks and touches reach the MEMS mic and no window settles.
+>   - Put AL1 in a hands-off window (addendum 4): announced, input locked, progress shown. Prove it PASSES again from the glass START. If it still cannot settle, find why.
+> - **Talkback switch + its 2 LEDs (catalog #92, right board): NOT TESTED** — no matrix cell is bound, so the host cannot read TB_SW or light TB_LED0/1. Give them a cell alongside the left-panel cell (item 3): a new cell name, defs, and H1S3 firmware. Then grade PS-TB (switch hold/release) and PM-TBL (both LEDs), with the LED part subject to item 4's indicator fix.
+
+
+> **HUB ADDENDUM 6 (PW, follows addendum 5): "then we can spec 0.1% resistors"** for the gain-setting resistors, at rev D.
+>
+> For your measurement, report the per-element error against the element's gain, on every walked input. The gain elements are switched by 2N7002DW FETs across the LTP tail, so an error that GROWS with gain points at the FET Rds(on), not the resistor tolerance. Say which it is from the numbers. That decides whether 0.1 % resistors alone meet ±0.25 dB.
+
+
+> **HUB ADDENDUM 5 (PW RULING): "gain step resistors should fall within +/- 0.25dB to pass."**
+> - Set `gain_step_tol_db` = **0.25** (it is 3.0). Record the source as "PW 2026-09-27".
+> - This is 12× tighter, so the measurement itself must be good to well under ±0.25 dB. Show it on the part:
+>   - repeatability: the same step read 5× on a good input, spread;
+>   - the settle fix (a) in, and the window long enough.
+>   - If the measurement cannot hold that, say what it needs (longer window, averaging, a better reference). Do NOT relax PW's number.
+> - The EXPECTED value per element must be right to the same standard. Today it comes from defs' averaged mic gain law (09-16 survey across 16 preamps).
+>   - Report each element's measured gain on MIC 9-12 and 17-24 against the table.
+>   - If the table is off by more than a small fraction of 0.25 dB for an element, say so with the numbers; the hub takes a table correction to defs.
+>   - Also say whether a per-element expected value needs its own tolerance because resistor tolerance alone (1 %, ~0.09 dB) eats part of the budget.
+
+
+> **HUB ADDENDUM 4 (PW RULING): "if any of the tests require touch display silence then notify user and take control for those tests, with active progress."**
+> - Find EVERY step that needs the operator hands-off. That means any step that needs no touch on the glass, no panel press, or acoustic quiet. Candidates: the acoustic loop (AL1: the panel mic hears clicks and touches), the network window, the settle/measurement windows, and panel-bus and serial-bus tests. List them in the block with each one's duration.
+> - Before each such step, the glass says so in one plain line, for example "Hands off – the unit is testing itself (12 s)". The tester then TAKES CONTROL: touch input and panel presses are ignored (not queued) for that window.
+> - Show ACTIVE PROGRESS the whole time: a moving bar or countdown plus the step name, so the operator can see it is working, not frozen.
+> - Hand control back with a clear cue (the next instruction appearing). PAUSE stays reachable only if it cannot corrupt the measurement. Otherwise say PAUSE takes effect at the end of the window.
+> - Group hands-off steps together where the order allows, so the operator gets as few interruptions as possible.
+> - App changes (FactoryView: a hands-off overlay that ignores input, plus a progress bar/countdown): specify them in the block. The hub builds and deploys.
+
+
+> **HUB ADDENDUM 3 (PW, refines ruling 2 — the end-of-test summary): "after test completes, a complete grid of all tests should be shown, and remain until user exits, otherwise, no time to review anything."**
+> - When a pass ends, the glass shows ONE grid of EVERY test in the pass: each by its short name with PASS / FAIL / NOT TESTED. No readings, no reasons (PW's earlier "no detail").
+> - Lay it out as a grid (columns), sized so the whole pass fits on one screen at a readable size. Only if it truly cannot fit, page it, with the page number shown. State the count that fits.
+> - **It STAYS until the operator exits.** No timeout, no auto-return to START, and no new run can start underneath it.
+> - The ONE button on it is **EXIT** (or DONE). Pressing it returns to the armed START screen. PAUSE is not needed there.
+> - FAILs must stand out (colour and/or position) so a worker sees them at a glance.
+> - If it needs mx26 app changes (FactoryView: a grid layout plus an EXIT button), specify them exactly in the block. The hub builds and deploys them.
+
+
+> **HUB ADDENDUM 2 (PW: "it shouldn't be a fail then, how to fix that?"): the NETWORK rows must not fail a good unit.** This replaces item 8's "find the cause" with the fix. Do not lower any hardware bar.
+> - **NW2:** grade ONLY the hardware counters: rx_errors, rx_missed/overruns, rx CRC/frame errors, tx_errors (and tx_carrier if exposed). `rx_dropped` becomes INFORMATIONAL: log the count, never FAIL on it. It is the stack discarding unwanted frames, not the NIC.
+> - **NW3:** keep 0 % loss.
+>   - The runner must NOT request any screen capture (`capture.request`) during the network window.
+>   - Ping the bench host's WIRED address only. peters-mbp holds .211 on ens9 (wired) AND .133 on wlp4s0 (Wi-Fi, same subnet): make sure the target and the reply path are wired.
+>   - Prove 0.0 % over three passes.
+> - **NW4:** with no gigabit peer on the bench, record **NOT TESTED — "no gigabit peer on this bench"** (not NO DATA, not FAIL). It becomes a real pass/fail when a wired gigabit peer is configured.
+>   - Make the peer a single config value, and write the factory-bench requirement: a wired-only gigabit PC running iperf3 -s.
+>   - Say whether peters-mbp's ens9 can do 1000 Mb/s. If it can, use it.
+> - **Also add a row:** the touch panel (back USB socket, digital board) enumerates on its hub port, graded automatically.
+
+
 > **HUB ADDENDUM 1 (PW at the bench, after trying it): three things still wrong.**
 > 1. **"it's still not checking correct line level, aux send probably needs to increase."** The line-input check must check the LINE LEVEL window, not just "tone arrived". PW suspects the AUX send drive is too low for a line input. Set a proper line-level drive and window (with the jack-vs-XLR discrimination from item 5), and prove it with a real lead via a HANDS request.
 > 2. **"no left switch board test."** The left board is still not walked on the glass. That is item 3: the own cell, plus a loop step per left switch that the operator actually sees.
