@@ -1,0 +1,605 @@
+D24 RUN ALL -- unit 10000000830b03af -- catalog 28ed8a28ba99 (202 rows) -- 2026-09-27T15:30:13Z
+   catalog warning: #148: automation '1' but group 'M4'
+   auto 34, background 3, manual 77, not-run 88
+   .. START - the unit is checking itself while you set the bench up
+   [serial] 
+   [serial] --- auto set: 11 tests over 34 rows, about 21 s ---
+   [serial] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section B --only ML1,ML2,ML-M,ML-B0,ML-P1,ML-P2,CC1,CC2,MC1,MC2,MC3 --no-app-restart --stage /home/app/s90
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. SETUP 1 of 6 - Plug the network lead into the network socket on the rear panel, then press ENTER.
+   .. SETUP 2 of 6 - Put a USB memory stick into each of the TWO USB sockets on the top panel, then press ENTER.
+   [serial] D24 self-test, section 1 -- sections B -- 2026-09-27T15:30:14Z
+   [serial] -- 2026-09-27T15:30:14Z app_stop start
+   [serial] matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+   [serial] -- 2026-09-27T15:30:14Z app_stop end
+   [serial] -- 2026-09-27T15:30:14Z stage_setup start
+   [serial] pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+   [serial] 7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+   [serial] 9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+   [serial] tools: 8 repo-only tools already current in /home/app/s90 (md5)
+   [serial] -- 2026-09-27T15:30:14Z stage_setup end
+   [serial] codec init (for CC1/CC2): ok
+   [serial] ML1 ...
+   [bus] AUTO group A2 - main control processor link - 2 s gone, about 21 s left
+   [serial] -- 2026-09-27T15:30:17Z ML1 took 0.8 s
+   [serial]   ML1       PASS     Sys001Test001 (5414) x3 = ['0x43', '0x43', '0x43'], [112.0, 111.7, 111.2] ms
+   [serial] ML2 ...
+   [bus] AUTO group A2 - main control processor version - 3 s gone, about 17 s left
+   [serial] -- 2026-09-27T15:30:17Z ML2 took 0.0 s
+   [serial]   ML2       NO DATA  no H1S1 version cell; host side H1S1.shex 272868c889fc87ead0a3b4bb277f55e2
+   [serial] ML-M ...
+   [bus] AUTO group A2 - dispatch processor - 3 s gone, about 17 s left
+   .. SETUP 3 of 6 - Hang the XLR lead on AUX 1 and leave it there, then press ENTER.
+   [serial] -- 2026-09-27T15:30:21Z ML-M took 4.9 s
+   [serial]   ML-M      PASS     ML1=PASS; S_TEST identities: {'H1S1': '// H1S1 DSP', 'H1S4': '// H1S4 SW Left', 'H1S3': '// H1S3
+   [serial] ML-P1 ...
+   [bus] AUTO group A2 - right panel processor link - 8 s gone, about 12 s left
+   [serial] -- 2026-09-27T15:30:22Z ML-P1 took 0.0 s
+   [serial]   ML-P1     PASS     H1S3 S_TEST = '// H1S3 SW Right'; app log: 
+   [serial] ML-P2 ...
+   [bus] AUTO group A2 - left panel processor link - 8 s gone, about 7 s left
+   [serial] -- 2026-09-27T15:30:22Z ML-P2 took 0.0 s
+   [serial]   ML-P2     PASS     H1S4 S_TEST = '// H1S4 SW Left'; app log: 
+   [serial] ML-B0 ...
+   [bus] AUTO group A2 - panel processor reprogramming line - 8 s gone, about 2 s left
+   [serial] -- 2026-09-27T15:30:22Z ML-B0 took 0.0 s
+   [serial]   ML-B0     NO DATA  no BOOT0/NRST drive on H1S1
+   [serial] CC1 ...
+   [bus] AUTO group A2 - converter select - 8 s gone, about 2 s left
+   [serial] -- 2026-09-27T15:30:22Z CC1 took 0.4 s
+   [serial]   CC1       PASS     05H = 0xBB
+   [serial] CC2 ...
+   [bus] AUTO group A2 - converter registers - 8 s gone, about 1 s left
+   [serial] -- 2026-09-27T15:30:23Z CC2 took 1.6 s
+   [serial]   CC2       PASS     05H 0xBB -> MGN2R 5 -> 0xB5 -> restored 0xBB
+   [serial] MC1 ...
+   [bus] AUTO group A2 - microphone gain chain latch - 10 s gone, about 1 s left
+   [serial] -- 2026-09-27T15:30:24Z MC1 took 0.3 s
+   [serial]   MC1       PASS     wrote 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00, read back: VER
+   [serial] MC2 ...
+   [bus] AUTO group A2 - microphone gain chain readback - 10 s gone, about 0 s left
+   .. SETUP 4 of 6 - Hang the XLR-to-jack lead on AUX 2 and leave it there, then press ENTER.
+   [serial] -- 2026-09-27T15:30:24Z MC2 took 0.4 s
+   [serial]   MC2       PASS     wrote SAFE 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, read back
+   [serial] MC3 ...
+   [bus] AUTO group A2 - microphone gain chain, safe image - 10 s gone, about 0 s left
+   [serial] -- 2026-09-27T15:30:24Z MC3 took 0.0 s
+   [serial]   MC3       PASS     MC1 read-back is not all-zeros; guard not invoked; CS_M (GPIO27) = 27: op -- pd | hi // GPIO27 =
+   [serial] -- 2026-09-27T15:30:24Z handback start
+   [serial] --- handback ---
+   [serial] SAFE image: already SAFE (marker 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00, no boot this run) -- write skipped
+   [serial] CS_M: 27: op -- pd | hi // GPIO27 = output
+   [serial] AN_EN: 26: op -- pd | lo // GPIO26 = output (not written by this run)
+   [serial] matrix-app: left stopped (--no-app-restart); the test display owns the screen
+   [serial] MCU verify (whole log): not read -- the app was not restarted
+   [serial] -- 2026-09-27T15:30:24Z handback end
+   [serial] TEST       VERDICT  MEASURED
+   [serial] ------------------------------------------------------------------------------
+   [serial] CC1        PASS    
+   [serial] CC2        PASS    
+   [serial] MC1        PASS    
+   [serial] MC2        PASS    
+   [serial] MC3        PASS    
+   [serial] ML-B0      NO DATA 
+   [serial] ML-M       PASS    
+   [serial] ML-P1      PASS    
+   [serial] ML-P2      PASS    
+   [serial] ML1        PASS    
+   [serial] ML2        NO DATA 
+   [serial] ------------------------------------------------------------------------------
+   [serial] rows:  14 PASS / 0 FAIL / 4 NO DATA  (18 rows)
+   [serial] items: 6 PASS / 0 FAIL / 4 NO DATA  (10 of 36 workbook rows covered)
+   [serial] TEST        SECONDS
+   [serial] --------------------
+   [serial] ML-M            4.9
+   [serial] CC2             1.6
+   [serial] ML1             0.8
+   [serial] MC2             0.4
+   [serial] CC1             0.4
+   [serial] MC1             0.3
+   [serial] ML2             0.0
+   [serial] ML-P1           0.0
+   [serial] MC3             0.0
+   [serial] ML-P2           0.0
+   [serial] ML-B0           0.0
+   [serial] total           8.5  (the tests alone; staging, boots and the handback are outside them)
+   [serial] appended 18 rows to /home/app/selftest/item-status.csv
+   [serial] raw reads: /home/app/selftest/logs/2026-09-27T153014Z
+   [bus] auto set (the panel and codec bus checks) finished in 10 s
+   .. SETUP 5 of 6 - Put the jack-to-XLR lead into MIC 8 and leave it there, then press ENTER.
+   .. SETUP 6 of 6 - Put the 150 ohm plug on the bench, where you can reach it, then press ENTER.
+   .. the bench is set up: 1 of 2 items confirmed by the unit itself
+   [dsp] 
+   [dsp] --- auto set: 21 tests over 34 rows, about 73 s ---
+   [dsp] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section B,C --only DR1,DR2,DY1-RDY1,DY1-RDY2,DC1-CS1,DC2-CS1,DC1-CS2,DC2-CS2,DC1-CS6,DC2-CS6,DC1-CS7,DC2-CS7,DC1-CS8,DC2-CS8,AS-DSPA,AS-DSPB,AS-CPLD,AS-PWR,AS-ADC,AS-DAC,AL1 --quiet-flag /home/app/selftest/runall/quiet.flag --al1-keep-rails --no-app-restart --stage /home/app/s90
+   .. panel loop: the left switch panel, 14 checks on this board, 0 of them already passed on an earlier pass
+   .. light 1 (MONO AUX) - the panel acked the write in 2.0 ms
+
+== INSTRUCT: Panel loop - MONO AUX (left switch panel)
+   On the LEFT switch board: press the button that is lit: MONO AUX.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   [dsp] D24 self-test, section 1 -- sections B,C -- 2026-09-27T15:30:38Z
+   [dsp] -- 2026-09-27T15:30:38Z app_stop start
+   [dsp] matrix-app stopped (was already inactive); AN_EN at start: 26: op -- pd | lo // GPIO26 = output
+   [dsp] -- 2026-09-27T15:30:38Z app_stop end
+   [dsp] -- 2026-09-27T15:30:38Z stage_setup start
+   [dsp] pair: /home/app/loopthd/s122 (/home/app/selftest/pair.conf) -- already staged in /home/app/s90, md5 matches, copy skipped
+   [dsp] 7f226919a5d181410c3804d92678da19  /home/app/s90/chip1.ldr
+   [dsp] 9e8a1a9edf19a90ce7ac3df1586c00f6  /home/app/s90/chip2.ldr
+   [dsp] tools: 8 repo-only tools already current in /home/app/s90 (md5)
+   [dsp] -- 2026-09-27T15:30:38Z stage_setup end
+   [dsp] -- 2026-09-27T15:30:38Z boot_pair start
+   [dsp]  10000000 Hz, SPI mode 1, 0 B/transfer, SPICMD 0x03
+   [dsp] CHIP_ID verified: chip 1 = 1, chip 2 = 2
+   [dsp] --- config cycle 2 chip 1 ---
+   [dsp] wrote 53 registers to chip 1 (CS GPIO6)
+   [dsp] --- config cycle 2 chip 2 ---
+   [dsp] wrote 6 registers to chip 2 (CS GPIO24)
+   [dsp] --- inter-chip link gate (s89_signbit, exit 0) ---
+   [dsp]   lane 0 (SPORT 0)  MAIN L/R    sent bit31  34/ 64 (distinct 57)   received bit31  37/ 64 (distinct 55)
+   [dsp]   lane 1 (SPORT 1)  codec ret   sent bit31  23/ 64 (distinct 64)   received bit31  34/ 64 (distinct 64)
+   [dsp]   VERDICT lane 0 (SPORT 0)  MAIN L/R   CLEAN
+   [dsp]   VERDICT lane 1 (SPORT 1)  codec ret  CLEAN
+   [dsp] OVERALL: CLEAN
+   [dsp] -- 2026-09-27T15:30:46Z boot_pair end
+   [dsp] DR1 ...
+   [dsp] AUTO group A3 - audio processor reset, held - 8 s gone, about 73 s left
+   [dsp] -- 2026-09-27T15:30:50Z DR1 took 3.8 s
+   [dsp]   DR1       PASS     FRAME_COUNT 8506 -> 11593 advancing; after !RST_D (GPIO16) low 200 ms: None -> None
+   [dsp] DR2 ...
+   [dsp] AUTO group A3 - audio processor reset, released - 12 s gone, about 62 s left
+   [dsp] -- 2026-09-27T15:31:00Z DR2 took 10.1 s
+   [dsp]   DR2       PASS     BOOT_STAGE 7/7, BUILD_ID 0x20260812/0x20260812, 31 lanes CARRYING
+   [dsp] DY1-RDY1 ...
+   [dsp] AUTO group A3 - audio processor A ready line - 22 s gone, about 53 s left
+   [dsp] -- 2026-09-27T15:31:00Z DY1-RDY1 took 0.0 s
+   [dsp]   DY1-RDY1  PASS     CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+   [dsp] DY1-RDY2 ...
+   [dsp] AUTO group A3 - audio processor B ready line - 22 s gone, about 46 s left
+   [dsp] -- 2026-09-27T15:31:00Z DY1-RDY2 took 0.0 s
+   [dsp]   DY1-RDY2  PASS     CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)
+   [dsp] DC1-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, asserted - 22 s gone, about 46 s left
+   [dsp] -- 2026-09-27T15:31:01Z DC1-CS1 took 0.4 s
+   [dsp]   DC1-CS1   PASS     CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812
+   [dsp] DC1-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, asserted - 22 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:01Z DC1-CS2 took 0.4 s
+   [dsp]   DC1-CS2   PASS     CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812
+   [dsp] DC1-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, asserted - 23 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:01Z DC1-CS6 took 0.0 s
+   [dsp]   DC1-CS6   NO DATA  CS6 reaches no fitted part
+   [dsp] DC1-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, asserted - 23 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:01Z DC1-CS7 took 0.0 s
+   [dsp]   DC1-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+   [dsp] DC1-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, asserted - 23 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:01Z DC1-CS8 took 0.0 s
+   [dsp]   DC1-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+   [dsp] DC2-CS1 ...
+   [dsp] AUTO group A3 - audio processor select line 1, answered - 23 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:02Z DC2-CS1 took 0.7 s
+   [dsp]   DC2-CS1   PASS     CS1: CHIP_ID 1 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+   [dsp] DC2-CS2 ...
+   [dsp] AUTO group A3 - audio processor select line 2, answered - 24 s gone, about 45 s left
+   [dsp] -- 2026-09-27T15:31:02Z DC2-CS2 took 0.7 s
+   [dsp]   DC2-CS2   PASS     CS2: CHIP_ID 2 BUILD_ID 0x20260812, build cfg triple ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6') 
+   [dsp] DC2-CS6 ...
+   [dsp] AUTO group A3 - audio processor select line 6, answered - 24 s gone, about 44 s left
+   [dsp] -- 2026-09-27T15:31:02Z DC2-CS6 took 0.0 s
+   [dsp]   DC2-CS6   NO DATA  CS6 reaches no fitted part
+   [dsp] DC2-CS7 ...
+   [dsp] AUTO group A3 - audio processor select line 7, answered - 24 s gone, about 44 s left
+   [dsp] -- 2026-09-27T15:31:02Z DC2-CS7 took 0.0 s
+   [dsp]   DC2-CS7   NO DATA  CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned
+   [dsp] DC2-CS8 ...
+   [dsp] AUTO group A3 - audio processor select line 8, answered - 24 s gone, about 44 s left
+   [dsp] -- 2026-09-27T15:31:02Z DC2-CS8 took 0.0 s
+   [dsp]   DC2-CS8   NO DATA  CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned
+   [dsp] AS-DSPA ...
+   [dsp] AUTO group A4 - audio processor A - 24 s gone, about 44 s left
+   [dsp] -- 2026-09-27T15:31:05Z AS-DSPA took 2.8 s
+   [dsp]   AS-DSPA   PASS     CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 20355->24444 (3005 blocks/s), 28/30 lane
+   [dsp] AS-DSPB ...
+   [dsp] AUTO group A4 - audio processor B - 27 s gone, about 40 s left
+   [dsp] -- 2026-09-27T15:31:06Z AS-DSPB took 1.0 s
+   [dsp]   AS-DSPB   PASS     CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 20825->31216 (3008 blocks/s)
+   [dsp] AS-CPLD ...
+   [dsp] AUTO group A4 - clock master - 28 s gone, about 38 s left
+   [dsp] -- 2026-09-27T15:31:10Z AS-CPLD took 4.2 s
+   [dsp]   AS-CPLD   NO DATA  design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 13 s: chip1 0 chip2 0
+   [dsp] -- 2026-09-27T15:31:10Z rails ensure_pair start
+   [dsp] -- 2026-09-27T15:31:12Z rails ensure_pair end (booted=False)
+   [dsp] 0210 00000190
+   [dsp]     c2 words FFFFFA80 00000380 FFFFFF70 00000270 00000840 FFFFFF50 00000450 FFFFFC90
+   [dsp]   set 0 MAIN_R  c1   -99.44 dBFS  c2   -96.57 dBFS  delta   +2.87
+   [dsp]   set 1 MAIN_R  c1  -103.75 dBFS  c2  -100.20 dBFS  delta   +3.55
+   [dsp]     c1 words 000000A0 000002E0 000002F0 FFFFFDC0 FFFFFCD0 FFFFF930 FFFFFED0 FFFFFBE0
+   [dsp]     c2 words 00000530 FFFFFB60 FFFFFD10 00000440 FFFFFF00 000002A0 FFFFF940 FFFFF620
+   [dsp] -- 2026-09-27T15:31:12Z rails_up start
+   [dsp] AN_EN (GPIO26): at entry 26: op -- pd | lo; now 26: op -- pd | hi (RAISED by this run; handback lowers it once, at the end)
+   [dsp] -- 2026-09-27T15:31:12Z rails_up end
+   [dsp] AS-ADC ...
+   [dsp] AUTO group A5 - input converters - 34 s gone, about 23 s left
+   .. light 2 (STEREO AUX) - the panel acked the write in 1.7 ms
+
+== INSTRUCT: Panel loop - STEREO AUX (left switch panel)
+   On the LEFT switch board: press the button that is lit: STEREO AUX.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   [dsp] -- 2026-09-27T15:31:14Z AS-ADC took 1.8 s
+   [dsp]   AS-ADC    PASS     lane 0 (U15): 8/8 CARRYING, rms -117.5..-115.1 dBFS; lane 1 (U39): 8/8 CARRYING, rms -113.0..-97
+   [dsp] AS-DAC ...
+   [dsp] AUTO group A5 - output converters - 36 s gone, about 21 s left
+   [dsp] -- 2026-09-27T15:31:14Z AS-DAC took 0.0 s
+   [dsp]   AS-DAC    NO DATA  retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and
+   [dsp] AS-PWR ...
+   [dsp] AUTO group A4 - power processor - 36 s gone, about 17 s left
+   [dsp] -- 2026-09-27T15:31:14Z AS-PWR took 0.0 s
+   [dsp]   AS-PWR    NO DATA  no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi
+   [dsp] AL1 ...
+   [dsp] AUTO group A5 - speaker to microphone loop - 36 s gone, about 17 s left
+   [dsp] -- 2026-09-27T15:31:14Z AL1 codec_init start
+   [dsp] -- 2026-09-27T15:31:16Z AL1 codec_init end
+   [dsp] -- 2026-09-27T15:31:16Z AL1 ensure_pair start
+   [dsp] -- 2026-09-27T15:31:16Z AL1 ensure_pair end (booted=False)
+   [dsp] -- 2026-09-27T15:31:16Z AL1 rxscan start
+   [dsp] -- 2026-09-27T15:31:16Z AL1 rxscan end
+   [dsp] -- 2026-09-27T15:31:16Z AL1 stimulus check start
+   [dsp] -- 2026-09-27T15:31:16Z AL1 stimulus check end
+   [dsp] -- 2026-09-27T15:31:16Z AL1 baseline start
+   [dsp] -- 2026-09-27T15:31:16Z AL1 tone start
+   [dsp] -- 2026-09-27T15:31:17Z AL1 second baseline start
+   [dsp] -- 2026-09-27T15:31:17Z AL1 measure end
+   [dsp] -- 2026-09-27T15:31:17Z AL1 took 3.4 s
+   [dsp]   AL1       NO DATA  no settled window for: base, tone, back
+   [dsp] -- 2026-09-27T15:31:17Z handback start
+   [dsp] --- handback ---
+   [dsp] speaker path: already torn down by AL1 (NOT SILENT, live 1.06 s)
+   [dsp] SAFE image: VERIFIED 200/200 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 | pass1 7A C3 00 00 37 AC 10 00 BB BB 30 30 30 30 00 00 00 00 18 18 18 18 00 05 0A
+   [dsp] CS_M: 27: op -- pd | hi // GPIO27 = output
+   [dsp] AN_EN: 26: op -- pd | lo at entry, RAISED this session, LEFT UP (--al1-keep-rails) -> 26: op -- pd | hi // GPIO26 = output
+   [dsp] matrix-app: left stopped (--no-app-restart); the test display owns the screen
+   [dsp] MCU verify (whole log): not read -- the app was not restarted
+   [dsp] -- 2026-09-27T15:31:18Z handback end
+   [dsp] TEST       VERDICT  MEASURED
+   [dsp] ------------------------------------------------------------------------------
+   [dsp] AL1        NO DATA 
+   [dsp] AS-ADC     PASS    
+   [dsp] AS-CPLD    NO DATA 
+   [dsp] AS-DAC     NO DATA 
+   [dsp] AS-DSPA    PASS    
+   [dsp] AS-DSPB    PASS    
+   [dsp] AS-PWR     NO DATA 
+   [dsp] DC1-CS1    PASS    
+   [dsp] DC1-CS2    PASS    
+   [dsp] DC1-CS6    NO DATA 
+   [dsp] DC1-CS7    NO DATA 
+   [dsp] DC1-CS8    NO DATA 
+   [dsp] DC2-CS1    PASS    
+   [dsp] DC2-CS2    PASS    
+   [dsp] DC2-CS6    NO DATA 
+   [dsp] DC2-CS7    NO DATA 
+   [dsp] DC2-CS8    NO DATA 
+   [dsp] DR1        PASS    
+   [dsp] DR2        PASS    
+   [dsp] DY1-RDY1   PASS    
+   [dsp] DY1-RDY2   PASS    
+   [dsp] ------------------------------------------------------------------------------
+   [dsp] rows:  14 PASS / 0 FAIL / 11 NO DATA  (25 rows)
+   [dsp] items: 11 PASS / 0 FAIL / 8 NO DATA  (19 of 36 workbook rows covered)
+   [dsp] TEST        SECONDS
+   [dsp] --------------------
+   [dsp] DR2            10.1
+   [dsp] AS-CPLD         4.2
+   [dsp] DR1             3.8
+   [dsp] AL1             3.4
+   [dsp] AS-DSPA         2.8
+   [dsp] AS-ADC          1.8
+   [dsp] AS-DSPB         1.0
+   [dsp] DC2-CS1         0.7
+   [dsp] DC2-CS2         0.7
+   [dsp] DC1-CS2         0.4
+   [dsp] DC1-CS1         0.4
+   [dsp] AS-PWR          0.0
+   [dsp] DY1-RDY1        0.0
+   [dsp] DY1-RDY2        0.0
+   [dsp] DC1-CS6         0.0
+   [dsp] DC2-CS6         0.0
+   [dsp] DC1-CS7         0.0
+   [dsp] DC2-CS7         0.0
+   [dsp] DC2-CS8         0.0
+   [dsp] AS-DAC          0.0
+   [dsp] DC1-CS8         0.0
+   [dsp] total          29.1  (the tests alone; staging, boots and the handback are outside them)
+   [dsp] appended 25 rows to /home/app/selftest/item-status.csv
+   [dsp] raw reads: /home/app/selftest/logs/2026-09-27T153038Z
+   [dsp] auto set (the audio processor checks) finished in 39 s
+   .. light 3 (FX) - the panel acked the write in 2.0 ms
+
+== INSTRUCT: Panel loop - FX (left switch panel)
+   On the LEFT switch board: press the button that is lit: FX.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 4 (EQ) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - EQ (left switch panel)
+   On the LEFT switch board: press the button that is lit: EQ.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 5 (AUX ON FADERS) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - AUX ON FADERS (left switch panel)
+   On the LEFT switch board: press the button that is lit: AUX ON FADERS.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 6 (OVERVIEW) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - OVERVIEW (left switch panel)
+   On the LEFT switch board: press the button that is lit: OVERVIEW.
+   It is the white pair that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. panel loop (left switch panel): 12 rows graded
+   .. panel loop: the right switch panel, 36 checks on this board, 0 of them already passed on an earlier pass
+   .. light 6 (FX MUTE) - the panel acked the write in 2.0 ms
+
+== INSTRUCT: Panel loop - FX MUTE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: FX MUTE.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 1 (HOME) - the panel acked the write in 1.9 ms
+
+== INSTRUCT: Panel loop - HOME (right switch panel)
+   On the RIGHT switch board: press the button that is lit: HOME.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 2 (MENU) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MENU (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MENU.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 3 (+48) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - +48 (right switch panel)
+   On the RIGHT switch board: press the button that is lit: +48.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 4 (FEEDBACK) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - FEEDBACK (right switch panel)
+   On the RIGHT switch board: press the button that is lit: FEEDBACK.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 7 (MUTE) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MUTE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MUTE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 8 (SCENE) - the panel acked the write in 1.9 ms
+
+== INSTRUCT: Panel loop - SCENE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: SCENE.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 9 (L) - the panel acked the write in 1.7 ms
+
+== INSTRUCT: Panel loop - L (right switch panel)
+   On the RIGHT switch board: press the button that is lit: L.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 10 (C) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - C (right switch panel)
+   On the RIGHT switch board: press the button that is lit: C.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 5 (CH ASSIGN) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - CH ASSIGN (right switch panel)
+   On the RIGHT switch board: press the button that is lit: CH ASSIGN.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 11 (R) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - R (right switch panel)
+   On the RIGHT switch board: press the button that is lit: R.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 12 (MONITOR) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MONITOR (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MONITOR.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 13 (REC/PLY) - the panel acked the write in 1.9 ms
+
+== INSTRUCT: Panel loop - REC/PLY (right switch panel)
+   On the RIGHT switch board: press the button that is lit: REC/PLY.
+   It is the RED ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 14 (STUDIO CTL) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - STUDIO CTL (right switch panel)
+   On the RIGHT switch board: press the button that is lit: STUDIO CTL.
+   It is the white ring that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. The always-lit rings: not checked, because this screen cannot ask a yes or no question yet.
+
+== INSTRUCT: Panel loop - the encoder
+   Turn the encoder ONE click clockwise, then ONE click anticlockwise.
+   The tester reads the ring position each time.
+   [notlit / skip / ignore / pause]
+   .. The ring around the encoder: not checked, because this screen cannot ask a yes or no question yet.
+   .. panel loop (right switch panel): 32 rows graded
+   [net] 
+   [net] --- auto set: 7 tests over 17 rows, about 118 s ---
+   [net] /usr/bin/python3 /home/app/selftest/d24_selftest.py --local --csv /home/app/selftest/item-status.csv --section A --only HD0-1,AS-CM4,NW1,NW2,NW3,NW4,HD-PWR --no-app-restart --stage /home/app/s90
+   [net] D24 self-test, section 1 -- sections A -- 2026-09-27T15:41:15Z
+   [net] HD0-1 ...
+   [net] AUTO group A1 - screen link - 0 s gone, about 118 s left
+   [net] -- 2026-09-27T15:41:15Z HD0-1 took 0.1 s
+   [net]   HD0-1     PASS     HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)
+   [net] AS-CM4 ...
+   [net] AUTO group A1 - compute module - 0 s gone, about 116 s left
+   [net] -- 2026-09-27T15:41:15Z AS-CM4 took 0.1 s
+   [net]   AS-CM4    PASS     throttled=0x0 temp=50.1 C core=0.9100V app=d24-testui
+   [net] NW1 ...
+   [net] AUTO group A1 - network link - 0 s gone, about 116 s left
+   [net] -- 2026-09-27T15:41:15Z NW1 took 0.0 s
+   [net]   NW1       PASS     Link detected: yes, Speed: 1000Mb/s, Duplex: Full, carrier=1
+   [net] NW3 ...
+   [net] AUTO group A1 - network packet loss - 0 s gone, about 116 s left
+   .. the analog supplies are live for this station
+   .. the analog rails are up (already up -- raised once, earlier in this session)
+   .. standing write: 567 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity)
+   .. floors: 15 lanes, -114.8 to -87.9 dBFS
+   .. the outputs - 10 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+
+== PATCH: Patch AUX 1 to MIC 7  (lead K1)
+   Patch AUX 1 to MIC 7.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 1 to MIC 9  (lead K1)
+   Patch AUX 1 to MIC 9.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 1 to MIC 10  (lead K1)
+   Patch AUX 1 to MIC 10.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 11  (lead K1)
+   Patch AUX 4 to MIC 11.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 12  (lead K1)
+   Patch AUX 4 to MIC 12.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 4 to MIC 17  (lead K1)
+   Patch AUX 4 to MIC 17.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 18  (lead K1)
+   Patch AUX 5 to MIC 18.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 19  (lead K1)
+   Patch AUX 5 to MIC 19.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 5 to MIC 20  (lead K1)
+   Patch AUX 5 to MIC 20.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 21  (lead K1)
+   Patch AUX 6 to MIC 21.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 22  (lead K1)
+   Patch AUX 6 to MIC 22.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 6 to MIC 23  (lead K1)
+   Patch AUX 6 to MIC 23.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 7 to MIC 24  (lead K1)
+   Patch AUX 7 to MIC 24.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+
+== PATCH: Patch AUX 7 to MIC 8  (lead K1)
+   Patch AUX 7 to MIC 8.
+   It advances on its own when the lead is in.
+   [done / skip / ignore / pause]
+   [net] -- 2026-09-27T15:42:29Z NW3 took 74.0 s
+   [net]   NW3       FAIL     bench host 192.168.1.211: worst 4.0% loss over 3 passes [3.0, 4.0, 4.0], max RTT 1.202 ms; gatew
+   [net] NW4 ...
+   [net] AUTO group A1 - network throughput - 74 s gone, about 53 s left
+   .. no output reached any input: the pass stops here
+   .. the analog rails are down (raised earlier in this session, lowered here -- this station closes it)
+   .. mic-pre chain back to safe (muted, gain 0, phantom off): verified
+   .. analog paths: 0 rows graded from 0 checks
+   .. the analog supplies are off again
+   .. waiting for the network checks to finish
+   [net] -- 2026-09-27T15:42:53Z NW4 took 23.6 s
+   [net]   NW4       NO DATA  this ran from the unit to itself, so nothing was measured about its network socket (unit rx 1314
+   [net] NW2 ...
+   [net] AUTO group A1 - network error counters - 98 s gone, about 30 s left
+   [net] -- 2026-09-27T15:43:23Z NW2 took 30.0 s
+   [net]   NW2       PASS     deltas over NW3+NW4: {'rx_errors': 0, 'rx_dropped': 0, 'rx_missed': 0, 'tx_errors': 0, 'tx_dropp
+   [net] HD-PWR ...
+   [net] AUTO group A1 - screen power link - 128 s gone, about 0 s left
+   [net] -- 2026-09-27T15:43:23Z HD-PWR took 0.0 s
+   [net]   HD-PWR    PASS     inferred from HD0-1 PASS
+   [net] TEST       VERDICT  MEASURED
+   [net] ------------------------------------------------------------------------------
+   [net] AS-CM4     PASS    
+   [net] HD-PWR     PASS    
+   [net] HD0-1      PASS    
+   [net] NW1        PASS    
+   [net] NW2        PASS    
+   [net] NW3        FAIL    
+   [net] NW4        NO DATA 
+   [net] ------------------------------------------------------------------------------
+   [net] rows:  6 PASS / 1 FAIL / 1 NO DATA  (8 rows)
+   [net] items: 4 PASS / 1 FAIL / 0 NO DATA  (5 of 36 workbook rows covered)
+   [net] TEST        SECONDS
+   [net] --------------------
+   [net] NW3            74.0
+   [net] NW2            30.0
+   [net] NW4            23.6
+   [net] AS-CM4          0.1
+   [net] HD0-1           0.1
+   [net] NW1             0.0
+   [net] HD-PWR          0.0
+   [net] total         127.8  (the tests alone; staging, boots and the handback are outside them)
+   [net] appended 8 rows to /home/app/selftest/item-status.csv
+   [net] raw reads: /home/app/selftest/logs/2026-09-27T154115Z
+   [net] auto set (the network checks) finished in 128 s
+   .. read while the test ran: top-panel USB socket (hub port 3) NO DATA, top-panel USB socket (hub port 4) NO DATA, IEC Power Inlet PASS
+
+pass 1: 22 PASS / 1 FAIL / 58 NO DATA / 0 ignored / 0 skipped / 88 not tested (of 202 rows) in 790 s
+report: /home/app/selftest/reports/10000000830b03af-2026-09-27T154323Z.md
+        /home/app/selftest/reports/10000000830b03af-2026-09-27T154323Z.json
+   .. pass 1 complete - report written - 22 of 202 rows pass

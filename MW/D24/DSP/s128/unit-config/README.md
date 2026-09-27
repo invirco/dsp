@@ -14,3 +14,13 @@ configuration nobody can review.
 
 `s123-latency.conf` (`MX_FACTORY_LATENCY_LOG`) is LEFT IN PLACE: it appends one
 CSV line per screen change and costs nothing measurable.
+
+**Added after the app fix (mx26 `ae8a545`): `s128-capture.conf`**, which sets
+`MX_DRM_CAPTURE_PATH=/home/app/selftest/s128-shot.png` and
+`MX_DRM_CAPTURE_MS=on-demand`. In the new app that value is only an on/off
+switch: a capture is taken once, when `/home/app/selftest/capture.request`
+appears, and the trigger file is deleted. **Measured with it armed and no
+request made: NW3 PASS, 0.0 % loss** — so it costs nothing between requests and
+stays on the unit. Taking captures DOES still stall the UI thread for about a
+second each, so do not take them while measuring the network: a run that
+requested 47 of them read NW3 at 3-4 %.

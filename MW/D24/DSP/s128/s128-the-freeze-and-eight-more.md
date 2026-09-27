@@ -761,3 +761,86 @@ The dialog path keeps the old behaviour, because there NOT LIT exists.
 * **The switch side of indices 12, 13 and 14 is still unproven.** They are in
   `rsw[]` (PC1, PF0, PC14) and they returned no key code in pass 1 — but nothing
   was lit to press, so that says nothing. Three presses would settle it.
+
+## 17. Proof — one whole pass from the app's own START, 16:30–16:43
+
+Unit reset first (`--reset-state`), so every switch on both boards was owed and
+the walk was a FIRST pass, not a re-test. Every press went in through
+`/dev/uinput` → libinput → Avalonia → `FactoryView.OnPrimaryPressed` →
+`command.json` → the runner: the app's own button, on the app's own screen.
+
+| | |
+|---|---|
+| START on the glass | 16:30:08 |
+| six setup pages | one USB page, ENTER on each |
+| **left switch board** | **14 checks, all 6 buttons lit and walked**, each page naming the board |
+| **right switch board** | **36 checks, all 14 buttons lit and walked**, bottom three included |
+| the encoder | its own page |
+| Station 3 card | on the glass, entered by ENTER |
+| the analog station | 13 pages, each with ENTER, each advanced by a tap on the app's ENTER |
+| the network phase | under the station, `[net]`-tagged |
+| end | report at 16:43:23, 790 s, rails down, chain SAFE, lock gone, FINISHED + START on the glass |
+
+**All 14 right-board switches, with MH1's ack for each write** — the reading the
+hub asked for, and it is the same 1.7–2.0 ms for the three that never light as
+for the eleven that do not either:
+
+```
+light 12 (MONITOR)    - the panel acked the write in 1.8 ms
+light 13 (REC/PLY)    - the panel acked the write in 1.9 ms
+light 14 (STUDIO CTL) - the panel acked the write in 1.8 ms
+```
+
+The host side and MH1's relay are not in question. The write arrives; the pin
+is an input.
+
+### The one FAIL in this pass is the screenshots, and it is not a unit fault
+
+NW3 read 3–4 %. The **on-demand** capture was armed for this run and the witness
+harness requested 47 of them, several inside NW3's 128 s window — each one a
+full-screen render and PNG encode. Re-measured immediately afterwards with the
+capture armed and **no request made: NW3 PASS, 0.0 % on three passes to each
+target, max RTT 0.607 ms.**
+
+So the new drop-in costs nothing between requests and can stay on the unit: a
+future session gets screenshots for free, as long as it does not take them
+while it is measuring the network.
+
+### What this pass does NOT prove
+
+**No patch was completed with a lead in it**, so no patch was scored, so the
+PIPELINE screen — last patch's verdict banner over the next patch's instruction
+— never appeared on the glass. That is the exact screen §15 fixes. It is proved
+over all 219 ENTER-asking screens of a full dry run, in every row type and in
+the wrong-socket and no-signal cases, and it is NOT yet witnessed on the glass.
+One lead in one socket closes it; that is the HANDS line.
+
+## 18. Deployed, and the unit as left at 15:50Z (16:50 BST)
+
+| file | md5 | rollback |
+|---|---|---|
+| `/home/app/selftest/d24_patch.py` | `94fae1b6e2d2d4af5ab26a3a20cb08cf` | `.bak-s128-pre` |
+| `/home/app/selftest/d24_panel.py` | `108cdaa6c10202dfd8ff9ff29acf9e69` | `.bak-s126-pre` |
+| `/home/app/selftest/d24_runall.py` | `bb8603209370258e3aa0fd6bb36f730c` | `.bak-s128-pre` |
+| `/home/app/selftest/d24_live.py` | `90b2fc9548493be0b58a604928a35fd1` | `.bak-s128-pre` |
+| `/home/app/selftest/d24_selftest.py` | `77d57d9a063552318a9de24b659e154e` | `.bak-s128-pre` |
+| `…/d24-testui.service.d/s128-capture.conf` | new, and free when idle (§17) | delete it |
+| `…/d24-testui.service.d/s128-cores.conf`, `/etc/sysctl.d/90-d24-cores.conf` | as PART ONE | delete them |
+| `/home/app/app` | `311994f5e55760ed8547d906188014e4` (mx26 `ae8a545`, hub-deployed) | `app.bak-pre-ae8a545` |
+
+All five tools byte-identical to this repo. No catalog, no firmware, no CPLD, no
+`pair.conf`; **`defs.lock` unmoved, no contract bump owed.**
+
+**Every line read back:**
+
+* AN_EN **lo**, CS_M driven **hi**; `--guard`: *"no run and no screen: nothing
+  to do"*;
+* the staged pair unchanged and unflashed — `7f226919a5d1…` / `9e8a1a9edf19…`,
+  what S126 left (**v2**);
+* `matrix-app` inactive, `d24-factory` inactive, **`d24-testui` active with
+  0 restarts** and no core since the capture went on demand;
+* `runall/` holds only `patch-results.csv` and `progress.txt` — **no state
+  file**, so PW's START is a FIRST pass and walks every switch on both boards;
+* the factory screen **ARMED** (`quick`, 59 patches);
+* the injected touch device destroyed and its FIFO gone;
+* 757 MB free.
