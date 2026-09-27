@@ -1040,6 +1040,29 @@ class Builder:
         selection cell, measures the path, and reports the level rather than
         judging it -- the tone-present verdict is the factory question either
         way. See the report's open items.
+
+        AND THE SOCKET IS JUDGED, NOT ASSUMED (S129, PW's finding). A tester
+        with the XLR lead in hand can put it in the SAME socket's XLR and every
+        one of these patches passes, which is what happened on 2026-09-27: MIC
+        7, 9, 10 and 11 were patched XLR and passed, MIC 12 and 17..22 were
+        patched jack and all seven came back inverted. Those eleven readings in
+        one pass are the discriminator, and the netlist says why it is sound --
+        see `add_k4_patch`'s note. So the expectation is `inverted`, and a
+        `normal` reading on a line row is reported as the lead being in the
+        wrong socket rather than as a polarity fault.
+
+        THE ERRATUM, ONE CHANNEL TRACED (mx26 `docs/d24-netlist-global.csv`):
+        MIC 12's jack TIP is `analog:J41.T` -> net `MIC_9-12_21-24_MIC_IN_12_L1`
+        -> `R1715` -> net `..._M1`, and `..._M1` is also `analog:J41.3`, XLR
+        pin 3 -- the preamp's COLD leg. The RING is `analog:J41.R` -> `..._L0`
+        -> `R1714` -> `..._M0` = `analog:J41.2`, XLR pin 2, the HOT leg. Every
+        combo socket from MIC 3 to MIC 24 is wired the same way round through
+        its own pair of resistors (MIC 1-2 are XLR-only and have no jack), so
+        a standard TRS lead -- tip to pin 2, which is how K4 is wired --
+        presents the signal on the cold leg and the channel reads inverted.
+        The mod is the same two parts on every channel whichever way the
+        connector symbol's T/R pins are labelled: cross the two resistors'
+        inner ends so the tip reaches M0 and the ring reaches M1.
         """
         if self.input_order == 'one-stop':
             return                        # every K4 patch rode the input walk
@@ -1055,12 +1078,15 @@ class Builder:
         self.add(lead='K4', block=block, out=out,
                  in_='MIC %d line' % strip, drive=drive, lane=strip,
                  donor=donor_for(strip), expect='tone', level_ref='info',
-                 polarity='normal', rows='',
+                 polarity='inverted', rows='',
                  prompt='Patch %s to the TRS centre of MIC %d' % (out, strip),
                  park=PARK_OUT_END,
-                 note='no catalog row declares the combo TRS line path, and '
-                      'nothing in defs says how it is selected: level '
-                      'reported, tone presence judged')
+                 note='the jack centre reads INVERTED against this socket\'s '
+                      'own XLR reference: the board wires the jack TIP to the '
+                      'preamp cold leg on MIC 3..24 (S129 erratum, red mod '
+                      'owed -- see block_k4). That reading is also what tells '
+                      'the jack from the XLR, so an XLR lead is refused here. '
+                      'Level reported, tone presence and socket judged')
 
     def block_k2(self):
         """The TRS output jacks, read through the input the jack-to-XLR lead

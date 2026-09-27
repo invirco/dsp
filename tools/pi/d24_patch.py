@@ -846,6 +846,21 @@ class Scorer:
         elif ref_mode == 'info':
             notes.append('%.2f dB loop gain, reported: no window is ruled for '
                          'this path yet' % h)
+            # AND AGAINST THE SAME SOCKET'S XLR, WHEN THERE IS ONE (S129).
+            # The line path enters the same combo socket through its jack
+            # centre, and the jack legs reach the preamp through one extra
+            # series resistor per leg that the XLR pins do not. So the
+            # difference between this reading and the lane's own balanced
+            # reference IS the jack path's pad, measured on the unit under
+            # test, and it is what a level window for this path would have to
+            # be built out of. Recorded on every line patch of every pass;
+            # nothing is judged on it yet.
+            _r = self.ref.get(lane)
+            if _r is not None and _r.get('h_db') is not None:
+                notes.append('%+.2f dB against this socket\'s own XLR '
+                             'reference of %.2f dB -- the jack path\'s pad, '
+                             'recorded, not judged'
+                             % (h - _r['h_db'], _r['h_db']))
 
         # -- the two halves of a stereo jack must match each other -----------
         sibs = [s for s in siblings if s.get('level_ref') == 'single'
@@ -880,11 +895,38 @@ class Scorer:
                 if pol_want == 'normal' and got == 'inverted':
                     return (FAIL, 'this channel came back inverted, which on a '
                             'stereo jack is tip and ring swapped', notes)
+                # THE LINE ROWS: `normal` MEANS THE WRONG SOCKET (S129).
+                # A line patch goes into the combo socket's 6.35 mm jack
+                # centre, which this board wires tip-to-cold and which
+                # therefore reads INVERTED. An XLR lead in the SAME socket's
+                # XLR reads normal and used to pass, so the test could not
+                # tell the two sockets apart. It can now, and it says which
+                # mistake was made rather than reporting a polarity fault.
+                if pol_want == 'inverted' and got == 'normal' \
+                        and str(row['in']).endswith(' line'):
+                    return (FAIL, 'the lead is in the XLR socket, not the '
+                            '6.35 mm jack centre of %s: this reading is in '
+                            'phase with the XLR reference, and the jack '
+                            'centre reads inverted'
+                            % str(row['in'])[:-5].strip(), notes)
                 return (FAIL, 'this channel came back %s and should be %s'
                         % (got, pol_want), notes)
             else:
                 notes.append('polarity %s, %.0f deg from the reference'
                              % (got, d))
+                # A LINE ROW THAT READS INVERTED IS THE ERRATUM, NOT HEALTH
+                # (S129). It is the reading that proves the lead is in the
+                # jack and not the XLR, and it is also the board fault: the
+                # jack tip lands on the preamp's cold leg on MIC 3..24. The
+                # pass is a pass of the SOCKET; the erratum is said out loud
+                # in every pass so the red mod is not forgotten.
+                if pol_want == 'inverted' and str(row['in']).endswith(' line'):
+                    notes.append('ERRATUM: the jack centre is in the right '
+                                 'socket and inverted, which is how this board '
+                                 'revision is built (jack TIP on the preamp '
+                                 'cold leg, one resistor pair per channel, MIC '
+                                 '3..24) -- a red mod is owed and this row '
+                                 'passes the SOCKET, not the wiring')
         elif pol_want == 'info' and deg is not None:
             notes.append('phase %.1f deg, reported only' % deg)
 
@@ -938,12 +980,13 @@ class Scorer:
         tol = self.lim['gain_step_tol_db']
         line = ('gain element %d: measured %+.2f dB, expected %+.2f dB '
                 '(%s), drive %+.1f dBFS, lane %.2f dBFS, reference %.2f dBFS, '
-                'settle %s windows, %s after the drive change (the meter, '
-                'which is not what this is judged on, read %s)'
+                'settle %s of %s windows owed from the drive change, %s after '
+                'it (the meter, which is not what this is judged on, read %s)'
                 % (int(code).bit_length(), got, want,
                    meas.get('source') or '?', meas.get('drive_dbfs') or 0.0,
                    here, ref,
                    meas.get('settle_windows', '?'),
+                   meas.get('settle_full', '?'),
                    ('%.0f ms' % (1000 * meas['since_drive_s']))
                    if meas.get('since_drive_s') is not None else 'n/a',
                    ('%.2f' % meas['meter_db'])
@@ -1880,25 +1923,60 @@ class Station:
             m.update(self.u.measure(float(r['freq_hz']) if r['freq_hz'] else None,
                                     drive if drive is not None else 0.0,
                                     settle=settle))
+            owed = settle
         else:
             # The honest reading, and the one the verdict is on. `freq` is
             # passed so the coherent pair comes back too -- it costs nothing
             # extra, the windows are already being taken -- but the level the
             # scorer uses is the node's RMS, which is the quantity the
             # live-against-dead separation above was measured on.
+            #
+            # PW's RULING (a), S129: THE SETTLE IS COUNTED FROM THE DRIVE
+            # CHANGE, AS THE CODE-0 REFERENCE COUNTS ITS OWN. Until S129 this
+            # branch paid a FIXED GAIN_SETTLE_WINDOWS from the `measure` CALL,
+            # and the readings that failed failed HIGH and by more the bigger
+            # the element: MIC 9 element 1 +3.4 dB, MIC 10 element 3 +4.3 dB,
+            # MIC 9 element 6 +6.9 dB, all at lane levels around -24 dBFS and
+            # all against a clean code-0 reference taken seconds earlier
+            # through the same lead. That shape is a transient still inside the
+            # read window, not a wrong element: the same steps on the same
+            # sockets passed in an earlier pass of the same afternoon.
+            #
+            # WHAT WAS MEASURED, AND WHAT IT RULES OUT (s129/settle-probe):
+            # the measurement node itself is exactly linear from -96 to -6
+            # dBFS (RMS = commanded - 3.01 dB, the sine's own RMS factor, and
+            # |H| 0.00 dB at every one of 31 levels), and it follows a 48 dB
+            # DRIVE step within one or two windows. So neither the instrument
+            # nor the oscillator is slow. What is left in the loop is the
+            # preamp and its coupling: a gain change steps the preamp's
+            # operating point and the settling of that step is inside an 85 ms
+            # RMS window, which reads HIGH and reads higher the bigger the
+            # step. The code-0 reference never sees it, because it pays its
+            # settle from the change.
+            #
+            # THE BUDGET IS THE REFERENCE'S OWN, and deliberately so. Counting
+            # GAIN_SETTLE_WINDOWS from the change instead of from the call
+            # would pay LESS than the code did before, not more -- `watch()`
+            # is one SPI peek, so the change is only milliseconds old by the
+            # time `measure` is entered -- and it could not fix a reading that
+            # is short of its settle. "As the code-0 reference does" is
+            # therefore read as the reference's own constant, SETTLE_WINDOWS.
+            # Cost: at worst two extra windows on six steps of thirteen
+            # sockets, about 13 s on a whole pass.
+            if self.an.wrote:
+                self.u.mark_moved()
+            owed = self.u.settle_owed(SETTLE_WINDOWS)
             m.update(self.u.measure(float(r['freq_hz']) if r['freq_hz'] else None,
                                     drive if drive is not None else 0.0,
                                     windows=GAIN_READ_WINDOWS,
-                                    settle=GAIN_SETTLE_WINDOWS))
-        # HOW LONG THE WIRE HAD BEEN STILL WHEN THIS WAS READ (S128). A gain
-        # step changes TWO things -- the chain, then the drive -- and the
-        # non-zero branch pays a FIXED two windows (171 ms) from the `measure`
-        # call, where the code-0 reference pays up to four (341 ms) counted
-        # from the change itself. Element 6 is the largest drive move of the
-        # seven, and if 171 ms is not enough for it the reading keeps part of
-        # the OLD, HIGHER drive and reads HIGH. Whether that is what happens is
-        # not something the log could answer before this line existed.
-        m['settle_windows'] = (0 if code == 0 else GAIN_SETTLE_WINDOWS)
+                                    settle=owed))
+        # HOW LONG THE WIRE HAD BEEN STILL WHEN THIS WAS READ (S128, kept).
+        # `settle_windows` is now what was actually PAID -- the windows still
+        # owed from the drive change at the moment `measure` was entered -- so
+        # a step that read short of its settle says so in its own log line
+        # rather than being inferred from a constant.
+        m['settle_windows'] = owed
+        m['settle_full'] = SETTLE_WINDOWS
         m['since_drive_s'] = now() - t_drive if t_drive else None
         self.cost('gain steps', now() - t0)
         return m
