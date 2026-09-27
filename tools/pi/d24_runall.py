@@ -411,6 +411,15 @@ NO_HARNESS = 'the loopback lead set is not built'
 
 
 _PATCH_ROWS = None
+# WHICH PATCH LIST THE ANALOG STATION RUNS (S126, PW 2026-09-27). Set once from
+# `--patch-list-dir` before anything reads it. It matters more than it looks:
+# `find_list_dir()` picks the FULL list, and on a unit whose inputs are not all
+# populated -- MW-D24-2 has ten of twenty-four with no front end -- that walks
+# the operator across thirty-two sockets that can only ever be NO DATA. The
+# armed standalone run has always been pointed at the short list; this is how
+# RUN ALL is pointed at the same one, so the two cannot disagree about what
+# test the unit just had.
+LIST_DIR = None
 
 
 def PATCH_ROWS():
@@ -423,7 +432,7 @@ def PATCH_ROWS():
     """
     global _PATCH_ROWS
     if _PATCH_ROWS is None:
-        plist = PT.PatchList(PT.find_list_dir())
+        plist = PT.PatchList(PT.find_list_dir(LIST_DIR))
         out = set()
         for row in plist.paths:
             out.update(int(x) for x in row['rows'].split())
@@ -1397,8 +1406,14 @@ class Setup:
 
 
 def setup_pages(a):
-    """The pages, from the generated kit list. See PT.setup_pages."""
-    return PT.setup_pages(PT.PatchList(PT.find_list_dir()))
+    """The pages, from the generated kit list. See PT.setup_pages.
+
+    The SAME list directory the analog station will run, so the kit the
+    operator is asked to park at START is the kit that pass actually uses --
+    a short list with a lead excluded has one page fewer, and nobody should be
+    asked to hang a lead nothing will ask for.
+    """
+    return PT.setup_pages(PT.PatchList(PT.find_list_dir(LIST_DIR)))
 
 
 def run_background_rows(a, rows, state, ignored, glass, passno):
@@ -1751,14 +1766,29 @@ def patch_station(a, st, rows, state, ignored, glass, passno):
     owed = set(r.num for r in rows
                if r.group == st and r.num not in ignored
                and state.verdict(r.num) != PASS)
-    plist = PT.PatchList(PT.find_list_dir())
+    plist = PT.PatchList(PT.find_list_dir(LIST_DIR))
     limits = PT.Limits.load(plist.dir)
     unit = PT.Unit(symdir=a.patch_symdir)
     patcher = PT.pick_patcher(glass)
     an = PT.Analog(enabled=True, log=glass.progress,
                    own_rails=bool(getattr(a, 'keep_rails_from_auto', False)))
+    # THE FACTORY SCREEN, ALWAYS (S126, PW 2026-09-27: "as close to factory
+    # operation as possible"). This station used to be built with no `live`
+    # and no `keys`, so a pass reached through RUN ALL got the app's dialogs
+    # where the same pass reached through `d24_patch.py --run` got the one
+    # big instruction, `n of N` and ENTER -- two different tests wearing the
+    # same name, and only one of them is the one PW reviewed on the glass.
+    # Both now get the screen, built exactly as `cmd_run` builds it.
+    #
+    # The dialog is NOT replaced by it and never was: `ManualPatcher` posts
+    # one in both paths, because that is what carries SKIP, IGNORE and the
+    # patch's own identity. The screen is what the operator reads; the dialog
+    # is what the runner is answered through.
+    live = LV.Live(a.runall, run='patch', enabled=True, confirm=True)
+    keys = PT.KeyWatch(enabled=not getattr(a, 'no_keyboard', False),
+                       log=glass.progress)
     station = PT.Station(plist, unit, patcher, glass, limits,
-                         log=glass.progress, analog=an)
+                         log=glass.progress, analog=an, live=live, keys=keys)
     try:
         results = station.run()
     finally:
@@ -1766,6 +1796,10 @@ def patch_station(a, st, rows, state, ignored, glass, passno):
             station.teardown()
         except Exception as e:
             glass.progress('the analog station could not be torn down: %s' % e)
+        keys.stop()
+        # The screen is left showing how the pass ended -- the tally and who
+        # the unit goes to -- exactly as a standalone run leaves it. The next
+        # pass's setup pages are what take it down.
     # -- fold the paths onto the catalog rows -----------------------------
     per_row = {}
     for res in results:
@@ -2288,7 +2322,7 @@ def dump_dialogs(rows, path):
         # grade nothing, but they are the FIRST thing the operator reads and
         # PW reviews the wording out of this file, so they belong in it.
         try:
-            pages = PT.setup_pages(PT.PatchList(PT.find_list_dir()))
+            pages = PT.setup_pages(PT.PatchList(PT.find_list_dir(LIST_DIR)))
         except SystemExit:
             pages = []
         for i, page in enumerate(pages, start=1):
@@ -2342,6 +2376,13 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
     passno = state.d['passes'] + 1
     t0 = time.time()
     timing = {}
+    # DID THE OVERLAPPED OPENING ACTUALLY RUN? Only then has the operator's
+    # first half already happened, and only then is the manual set that
+    # follows the ANALOG STATION ALONE. `--manual-only` and a resumed pass
+    # never reach it and must still walk every station, which is what this
+    # flag is for: without it `--manual-only` silently walked one station of
+    # three and reported a whole pass (found on the part, 2026-09-27).
+    opened = False
     if resumed and (state.d.get('current') or {}).get('phase') == 'manual':
         # Straight back to the step it stopped on. `current` is NOT touched
         # here -- run_manual() reads the step out of it.
@@ -2374,6 +2415,7 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
                 secs_auto, results = overlapped(a, rows, state, ignored, glass,
                                                 csv_path, passno,
                                                 patch_to_come, timing)
+                opened = True
             else:
                 secs_auto, results, _owed = run_auto(
                     a, rows, state, ignored, glass, csv_path,
@@ -2388,11 +2430,11 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
             state.save()
     if a.auto_only:
         timing['manual'] = None
-    elif a.overlap and not (resumed and (state.d.get('current') or {})
-                            .get('phase') == 'manual'):
-        # The overlapped pass has already run the operator's first half under
-        # the machine's; what is left is the analog station with the network
-        # phase running under IT.
+    elif opened and not (resumed and (state.d.get('current') or {})
+                         .get('phase') == 'manual'):
+        # The overlapped opening has already run the operator's first half
+        # under the machine's; what is left is the analog station, with the
+        # network phase running under IT.
         timing['manual'] = run_manual(a, rows, state, ignored, glass, passno,
                                       only=PATCH_STATIONS,
                                       t0=timing.pop('_manual_t0', None))
@@ -2422,6 +2464,11 @@ def main():
                                     'beside this file)')
     ap.add_argument('--patch-symdir', default=PT.FACTORY_TEST_PAIR_DIR,
                     help='the staged pair the analog station measures through')
+    ap.add_argument('--patch-list-dir',
+                    help='where the analog station\'s patch list lives. The '
+                         'default is the full list; a unit whose inputs are '
+                         'not all populated wants the short one generated for '
+                         'it, and the setup pages follow the same list')
     ap.add_argument('--catalog')
     ap.add_argument('--csv', help='the results file the auto runner appends to')
     ap.add_argument('--stage', default='/home/app/s90')
@@ -2437,6 +2484,12 @@ def main():
                          'after it, as RUN ALL did before PW\'s ruling of '
                          '2026-09-27. For a before/after timing run, and for a '
                          'bench where one of the two halves is being debugged')
+    ap.add_argument('--no-keyboard', action='store_true',
+                    help='do not read the Enter key off a USB keyboard during '
+                         'the analog station. The keyboard path is the one a '
+                         'USB footswitch would use (PW deferred the pedal, '
+                         'S126 ruling b); a factory pass presses ENTER on the '
+                         'glass and has no keyboard plugged in at all')
     ap.add_argument('--pedal-station', action='store_true',
                     help='visit the foot pedal station. Hidden by default '
                          '(ruling f): its fixture is not built, so its rows '
@@ -2478,6 +2531,9 @@ def main():
         sys.exit(check_md(a.check_md))
 
     a.tools = a.tools or HERE
+    if a.patch_list_dir:
+        global LIST_DIR
+        LIST_DIR = a.patch_list_dir
     a.catalog = a.catalog or os.path.join(a.dir, 'test-catalog.csv')
     csv_path = a.csv or os.path.join(a.dir, 'item-status.csv')
     a.runall = os.path.join(a.dir, 'runall')

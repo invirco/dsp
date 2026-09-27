@@ -595,7 +595,64 @@ is not a second piece of code that knows PW's order.
 
 ---
 
-## 12. What is owed next
+## 12. Addendum: the analog station gets the factory screen, and two bugs that
+found
+
+PW, after the report was written: *"I want to run as close to factory operation
+as possible."* Three things were in the way, and all three were found by trying
+it rather than by reading.
+
+**The station under RUN ALL had no screen.** It was built with no `live` and no
+`keys`, so the same pass reached through RUN ALL got the app's dialogs where
+the same pass reached through the station on its own got the one big
+instruction, `n of N` and ENTER — two different tests wearing one name, and
+only one of them is the one PW reviewed on the glass. Both get the screen now,
+built exactly as the standalone path builds it. The dialog is not replaced and
+never was: it is what carries SKIP, IGNORE and the patch's identity, and the
+standalone path posts one too. The screen is what the operator reads.
+
+**🔴 `--manual-only` walked ONE station of three and reported a whole pass.**
+The overlapped order leaves only the analog station for the manual phase — but
+that is true only when the overlapped opening actually ran, and `--manual-only`
+never reaches it. It ran the analog station, skipped the two panel stations
+without a word, and wrote a report. Now flagged explicitly: the slice is taken
+only when the opening ran, and a resumed pass and `--manual-only` walk
+everything. Caught on the part.
+
+**🔴 RUN ALL ran the FULL 91-patch list on a unit that has 59 patches' worth of
+sockets.** `find_list_dir()` picks the full list; the armed standalone run has
+always been pointed at the short one. On MW-D24-2 that is thirty-two patches
+across sockets with no front end, every one of them NO DATA, and several
+minutes of an operator's hands. `--patch-list-dir` points RUN ALL at the same
+list, and **the setup pages follow it** — a short list with a lead excluded has
+one page fewer, and nobody should be asked to hang a lead nothing will ask for.
+
+Proved on the part, with the station reached through RUN ALL:
+
+```
+  state       waiting
+  instruction Plug AUX 1 into MIC 7, then press ENTER.
+  lead_line   Pick up the XLR lead, hanging on AUX 1.
+  status      Waiting for the lead...
+  n of N      1 of 59
+  lead        1 of 4
+  buttons     ['enter', 'pause']
+```
+
+**And on the USB keyboard.** `KeyWatch` opens every input device whose key map
+contains Enter and latches on it; in the loop that means exactly what the ENTER
+button means. It is the footswitch path — an off-the-shelf USB footswitch
+enumerates as a keyboard — kept because ruling (b) deferred the pedal and said
+a later trial should need no code. **It is not kit and a factory pass has no
+keyboard plugged in**, for a second reason beyond realism: the USB socket check
+only asks whether a non-hub device has enumerated on rear port 3 or 4, so a
+keyboard in either one would **falsely pass that socket's row**.
+`--no-keyboard` now exists on RUN ALL as well, so it can be proved out of the
+way rather than assumed absent.
+
+---
+
+## 13. What is owed next
 
 | | |
 |---|---|
