@@ -1,3 +1,37 @@
+## HUB DISPATCH 2026-09-27 22:02Z — S132: overnight no-hands — root-cause AL1 speaker/MEMS NO DATA with zero operator input   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S132 — overnight, NO HANDS: root-cause AL1 (panel speaker → MEMS mic) reading NO DATA "no settled window" with zero operator input
+
+**What we know:**
+- AL1 PASSED on 09-25/26.
+- It read NO DATA on all of PW's passes today.
+- S129 blamed operator clicks under it and built the hands-off overlay (the cap was 8 s → 30 s).
+- **S130 then got NO DATA "no settled window for: base, tone, back" in TWO unattended runs, one with zero touch input.**
+
+So the hands-off explanation is incomplete. Read S130's report `MW/D24/DSP/s130/s130-report.md` (the AL1 section) and S115/S122/S124 for AL1's history.
+
+**Rules:**
+- Unattended.
+- No panel/MCU/CPLD flashing, no fuses, no app deploy. The app on the unit is b05e9fd5 (mx26 5cf57b2) and MUST stay: main's app carries the new matrix generation and rides S131 only.
+- Leave the unit safe: rails down, chain SAFE, armed, v2.
+- The speaker will make tones overnight; that's fine.
+
+**Find out, with numbers:**
+- What changed since the 09-26 PASS. Bisect the runner/code by git (S122's haptic node separation, S124, S125's settle-from-the-event, S126's overlap/phases, S128/S129's state and hands-off changes, S130's PanelBus.light() fix).
+- Run AL1 standalone at each candidate commit where it is safe to do so.
+- Show each of the three windows' raw readings: base, tone, back.
+- Say what "settled" requires and why it isn't met: the level, a drifting noise floor, the MEMS lane, the speaker slot, the TDM slot map, the codec init order (the AK4619 config is by H1S1), or the window length.
+- Fix it so AL1 PASSES from the glass START, in its hands-off window, three times in a row.
+- If the cause is hardware (the speaker or the mic not responding), prove it with the raw captures and say so plainly for the supplier list.
+
+**Report:** `MW/D24/DSP/s132/`. Close 🟢 or 🔴 with a one-line outcome. Commit and push `main`. No AI attribution. Never open a question dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 20:47Z — S130: overnight no-hands improvements — grid + AL1 on glass, PSU rails, mini-jacks, random-order LEDs (flag), bench script, gain-table tool   [status: 🔴 SIX OF EIGHT ITEMS DONE; ITEM 2 (AL1) ESCALATED, NOT A GRIND — a real same-day PanelBus.light() regression was found and fixed (S129 18:55 broke every panel step, dry-run included) or nothing else in items 1-2 was provable; item 1 (summary grid) PROVEN with a real app bug found (post-EXIT the grid stays composited over armed START — FactoryView.axaml.cs DrawIdle() never hides SummaryList, not fixed here, app pack); item 2 (AL1) NOT proven — AL1 still returns NO DATA "no settled window" in two independent unattended runs, one with zero touch input at all, contradicting S129's "PASSED" claim -- 🔴 needs opus-tier or PW's own eyes, see MW/D24/DSP/s130/s130-report.md; item 3 (PSU) NOT built -- defs' own fw.csv says PAD0-11 are N/C on this rev with a dated PW ruling not to test them, and no code path reads them at all; items 4 (mini-jack, deployed+dry-run PASS), 5 (random-order flag, default off, proven), 6 (bench script), 7 (gain table -- landed in defs as mic-gain-codes.csv, defs-v2026.09.27.5, three addenda answered including a defs-publish.sh bash-3.2 portability fix), 8 (catalog rows) are done -- full detail in the report]   [model: sonnet]
 
 > **HUB ADDENDUM 3 (small, in the same defs tag as addendum 2):**
