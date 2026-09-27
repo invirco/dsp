@@ -1,3 +1,39 @@
+## HUB DISPATCH 2026-09-27 23:57Z — S135: overnight, no flash — talkback cell logic for H1S3 as an optional image for S131   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+# S135 — overnight, NO FLASH: write + compile the talkback cell logic for H1S3, as an OPTIONAL image for tomorrow's S131 window
+
+Hub ruling on S134's §7 (runbook): S131 ships with `Sys001SwTalk001` declared but UNBOUND (option 2), so nothing regresses. This session prepares option 1 as a SEPARATE optional H1S3 image that PW can verify at the bench tomorrow before it is included.
+
+**Write** bespoke H1S3 logic for `Sys001SwTalk001`, per its defs note:
+- WRITE = a two-indicator bit mask (bit0 = TB_LED0, bit1 = TB_LED1; 3 = both lit);
+- READ = the switch, 1 while held and 0 on release, with BOTH edges reported.
+
+Put it in `MainLoop()`/`Eol()` alongside the existing radio mechanism, touching nothing else:
+- the existing `RdRadioSwitch()`/`WrRadioLed()` behaviour for every other button must be byte-for-byte unchanged in its effect;
+- debounce the switch;
+- pins from `fw.csv`/the netlist (TB_SW, TB_LED0, TB_LED1 through the panel processor);
+- LED drive polarity per the netlist (S129 found HIGH = ON on both indicator kinds).
+
+**Build:** two H1S3 `.shex` variants from S134's dry-run tree:
+- **A** = the runbook's step-5 mechanical build (unbound);
+- **B** = A + the talkback logic.
+
+Diff B against A at the source and map level to show that only the talkback code changed.
+
+**Add to the runbook** `MW/D24/DSP/s131-runbook.md` a step 5b "OPTIONAL talkback image" with:
+- PW's bench check: press and hold talkback, and the host sees 1 then 0 on release; write 1/2/3, and PW sees LED0 / LED1 / both;
+- the rollback to variant A.
+
+**Rules:**
+- **DO NOT FLASH ANYTHING.** Do not deploy the app. Leave the unit untouched: it is idle and safe; you should not need it at all.
+- Close 🟢/🔴, commit and push `main`. No AI attribution. No dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 23:30Z — S134: overnight no-hands — NW4 must never crash; S131 matrix switch-over runbook (desk, dry-run only)   [status: 🟢 both done: NW4's crash was `d24_selftest.py::record()`'s own assertion (and `summary()`'s tallies) never having been taught `NOTTESTED` was legal -- fixed, proven with a real `--auto-only` pass from a clean state (NW4 NOT TESTED, no crash, exit 0, AL1 PASS). `MW/D24/DSP/s131-runbook.md` written with ordered steps + rollback + timing, and a REAL dry run: matrix.h regenerated and diffed (0 of 2103 shared names keep their address -- a full generation swap, not a patch), all three panel MCU images (H1S1/H1S3/H1S4) rebuilt clean from scratch copies and packed to `.shex`, nothing flashed. 🔴 ONE FOR THE HUB, in the runbook §7: `Sys001SwTalk001`'s defs note wants bitmask LED writes + edge-reported switch reads that H1S3's existing one-hot radio-scan mechanism can't express -- step 5 is not the same shape as step 4's H1S4 repoint, and this session did not invent that firmware logic blind. Three options given. Unit untouched: `app` `b05e9fd5`, AN_EN low, CS_M high, chain SAFE, self-test state reset. Report: `MW/D24/DSP/s134/s134-report.md`]   [model: sonnet]
 
 model: sonnet
