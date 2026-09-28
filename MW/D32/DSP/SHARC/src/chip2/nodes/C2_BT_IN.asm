@@ -2,7 +2,7 @@
  * BT Input (AUX_INPUT)
  * Node ID:    C2_BT_IN
  * Chip:       2
- * Channels:   2
+ * Channels:   1
  * SPI Page:   1
  * SPI Addr:   1799
  * RampProfile: GainFast

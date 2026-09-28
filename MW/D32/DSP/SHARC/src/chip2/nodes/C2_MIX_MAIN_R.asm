@@ -17,7 +17,7 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_BT_IN;
-.extern _buf_C2_CODEC_AUX_IN;
+.extern _buf_C2_CODEC_AUX_IN_R;
 .extern _buf_C2_FX_FDR_01;
 .extern _buf_C2_FX_FDR_02;
 .extern _buf_C2_FX_FDR_03;
@@ -28,7 +28,7 @@
 .extern _buf_C2_GRP_COMP_02;
 .extern _buf_C2_GRP_COMP_03;
 .extern _buf_C2_GRP_COMP_04;
-.extern _buf_C2_PI_IN;
+.extern _buf_C2_PI_IN_R;
 .extern _buf_C2_RECV_MAIN_R;
 .extern _buf_C2_SNK_IN_01;
 .extern _buf_C2_SNK_IN_02;
@@ -54,8 +54,8 @@
         .extern _blk_C2_GRP_COMP_04;
         .extern _blk_C2_USB_IN;
         .extern _blk_C2_BT_IN;
-        .extern _blk_C2_CODEC_AUX_IN;
-        .extern _blk_C2_PI_IN;
+        .extern _blk_C2_CODEC_AUX_IN_R;
+        .extern _blk_C2_PI_IN_R;
         .extern _blk_C2_SNK_IN_01;
         .extern _blk_C2_SNK_IN_02;
         .extern _blk_C2_SNK_IN_03;
@@ -181,10 +181,10 @@ _C2_MIX_MAIN_R_process:
             i4 = _blk_C2_BT_IN;
             r3 = i4;
             dm(_bw_s6_C2_MIX_MAIN_R) = r3;
-            i4 = _blk_C2_CODEC_AUX_IN;
+            i4 = _blk_C2_CODEC_AUX_IN_R;
             r3 = i4;
             dm(_bw_s7_C2_MIX_MAIN_R) = r3;
-            i4 = _blk_C2_PI_IN;
+            i4 = _blk_C2_PI_IN_R;
             r3 = i4;
             dm(_bw_s8_C2_MIX_MAIN_R) = r3;
             i4 = _blk_C2_SNK_IN_01;
@@ -282,13 +282,13 @@ _C2_MIX_MAIN_R_process:
                 r3 = dm(_bw_s7_C2_MIX_MAIN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_CODEC_AUX_IN) = r0;
+                dm(_buf_C2_CODEC_AUX_IN_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s7_C2_MIX_MAIN_R) = r3;
                 r3 = dm(_bw_s8_C2_MIX_MAIN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_PI_IN) = r0;
+                dm(_buf_C2_PI_IN_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s8_C2_MIX_MAIN_R) = r3;
                 r3 = dm(_bw_s9_C2_MIX_MAIN_R);
@@ -430,13 +430,13 @@ _C2_MIX_MAIN_R_process:
                 r3 = dm(_bw_s7_C2_MIX_MAIN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_CODEC_AUX_IN) = r0;
+                dm(_buf_C2_CODEC_AUX_IN_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s7_C2_MIX_MAIN_R) = r3;
                 r3 = dm(_bw_s8_C2_MIX_MAIN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_PI_IN) = r0;
+                dm(_buf_C2_PI_IN_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s8_C2_MIX_MAIN_R) = r3;
                 r3 = dm(_bw_s9_C2_MIX_MAIN_R);
@@ -670,10 +670,10 @@ _C2_MIX_MAIN_R_process:
         r0 = dm(_buf_C2_BT_IN);
         r1 = dm(_mix_gq_C2_MIX_MAIN_R + 6);
         mrf = mrf + r0 * r1 (ssi);
-        r0 = dm(_buf_C2_CODEC_AUX_IN);
+        r0 = dm(_buf_C2_CODEC_AUX_IN_R);
         r1 = dm(_mix_gq_C2_MIX_MAIN_R + 7);
         mrf = mrf + r0 * r1 (ssi);
-        r0 = dm(_buf_C2_PI_IN);
+        r0 = dm(_buf_C2_PI_IN_R);
         r1 = dm(_mix_gq_C2_MIX_MAIN_R + 8);
         mrf = mrf + r0 * r1 (ssi);
         r0 = dm(_buf_C2_SNK_IN_01);

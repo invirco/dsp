@@ -2,7 +2,7 @@
  * FX 2 Engine (FX_ENGINE)
  * Node ID:    C2_FX_ENG_02
  * Chip:       2
- * Channels:   2
+ * Channels:   1
  * SPI Page:   1
  * SPI Addr:   1648
  * RampProfile: GainSafe

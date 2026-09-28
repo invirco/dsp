@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
- * Main Stereo Out (DAC MAIN) (OUTPUT_TDM)
+ * Main Stereo Out L (DAC MAIN) (OUTPUT_TDM)
  * Node ID:    C2_MAIN_ST_OUT
  * Chip:       2
- * Channels:   2
+ * Channels:   1
  * SPI Page:   1
  * SPI Addr:   1877
  * RampProfile: (none)

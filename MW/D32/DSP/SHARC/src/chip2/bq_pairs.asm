@@ -422,6 +422,7 @@ _bqp_tap_eq.end:
 .extern _blk_C2_MAIN_OEQ_03;
 .extern _blk_C2_MAIN_OEQ_04;
 .extern _blk_C2_MAIN_XOVER;
+.extern _blk_C2_MAIN_XOVER_R;
 .extern _bq_fx_cascade_simd;
 .extern _buf_C2_AUX_AFB_01;
 .extern _buf_C2_AUX_AFB_02;
@@ -5640,7 +5641,7 @@ _C2BQP_MOUT_OEQ_01_02_process:
     /* the two input blocks, interleaved -- the only per-block
      * gather left */
     i3 = _blk_C2_MAIN_XOVER;
-    i4 = _blk_C2_MAIN_XOVER;
+    i4 = _blk_C2_MAIN_XOVER_R;
     i2 = _bqi_sig;
     lcntr = DSP4_BLOCK_SIZE, do .bqiXI_MOUT_OEQ_01_02 until lce;
         r0 = dm(i3, 1);

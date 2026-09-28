@@ -903,6 +903,215 @@ XFADE_STEP    = 1.0 / XFADE_SAMPLES               # ≈ 0.001736 per sample
 FORMAT = 'fixed'
 
 
+# ===========================================================================
+# STEREO FOLLOWERS — TWO INSTANCES, ONE PARAMETER SET (S143, from S142-1)
+# ===========================================================================
+#
+# WHAT WENT WRONG, so the mechanism is read against the defect it closes.
+# Until today `C2_MAIN_FDR` declared `inputs = C2_MIX_MAIN_L;C2_MIX_MAIN_R`
+# and `ch_count = 2`, and the generator read `inputs[0]`. `ch_count` was
+# comment text; `inputs` was documentation past position 0. So the right
+# main mix was computed every block and read by NOTHING, and both MAIN
+# XLRs, both DAC MAIN slots, the codec aux out and the monitor carried the
+# LEFT bus (S142-1). `C2_CODEC_AUX_IN` and `C2_PI_IN` had the same defect:
+# both are stereo sources whose right leg reached no MAC.
+#
+# TWO THINGS CLOSE IT AND BOTH ARE HERE.
+#
+# 1. THE ARITY CONTRACT, below. Every node type states how many of its
+#    `inputs` its generator actually reads, and a row that declares more
+#    than that is a build error naming this comment. There is no way back
+#    to a silently dropped input.
+#
+# 2. THE FOLLOWER, this section. `follows=<master>` on a row makes that row
+#    a SECOND INSTANCE of its master: same type, same kernel, same
+#    coefficients -- read from the master's own symbols by `.extern` -- and
+#    its OWN state, its own `_buf_`/`_blk_`, its own delay line. It takes NO
+#    cell, NO SPI address and needs no dispatch change, because there is
+#    nothing new for a host to write: the parameter set it runs is the one
+#    the master already owns. That is D5's "TWO DSP instances (Main L, Main
+#    R) sharing ONE parameter set", built as the mechanism rather than as a
+#    special case, and S142 §3.1 is its design.
+#
+# WHAT A FOLLOWER SHARES AND WHAT IT OWNS is stated per generator, not
+# here, because it is a property of the kernel; the rule they all keep is
+# that a word the HOST writes is shared and a word the SIGNAL moves through
+# is owned. The three hazards S142 §3.1 wrote down are handled as follows,
+# and where the implementation differs from that report it is because the
+# stronger construction was available:
+#
+#   1. CROSSFADE LOCKSTEP. The report specified a latched copy of the
+#      master's bank select, because a follower running after the master
+#      would read `_active_`/`_xfade_alpha_` AFTER the master's own body
+#      had advanced them -- the wrong bank for its block, silently, and
+#      only during a coefficient change. What is built instead removes the
+#      shared word altogether: the follower keeps its OWN `_active_`,
+#      `_xfade_alpha_`, `_xfade_step_` and `_swap_pending_`, and the master
+#      KICKS the follower's `_swap_pending_` at the point it commits to a
+#      fade. Both then run the same alpha ramp, by the same step, over the
+#      same number of samples, from the same `_active_`, and flip on the
+#      same sample. There is no race because there is nothing shared to
+#      race on, and the coefficient banks the two select are the same
+#      arrays. (A latch would have been correct too; this needs no ordering
+#      argument at all, which is why it was preferred.)
+#
+#   2. LINKED, NOT DUPLICATED, DYNAMICS. A stereo bus compressor must apply
+#      ONE gain to both legs or the image walks under compression. The
+#      report had the follower read the master's gain word. That word is
+#      per SAMPLE and the two nodes run a whole BLOCK apart, so reading it
+#      would have meant a gain BLOCK and a walking pointer. What is built
+#      instead is exact and needs neither: both legs detect on
+#      max(|L|,|R|) -- the `link_in=` input below -- from the SAME
+#      parameters and the SAME initial envelope, so they compute the same
+#      envelope and the same gain, sample for sample, by construction. One
+#      gain, two instances, nothing shared but the parameters.
+#
+#   3. THE PAIRING GROUPS. Followers are inserted in ROW order beside their
+#      masters (gen_dsp_csv.py), and `c2_pair_groups` is checked on the
+#      result. A follower is never SIMD-paired: see `_c2_pair_excluded`.
+#
+# A FOLLOWER MUST RUN AFTER ITS MASTER. That is not implied by `inputs` --
+# `C2_MAIN_FDR_R` reads `C2_MIX_MAIN_R`, not `C2_MAIN_FDR` -- so the
+# `follows` edge is added to the graph the process-order repair works on.
+
+# How many of a node's `inputs` its generator READS. The default is 1: a
+# node reads `inputs[0]` and nothing else, which is what `inputs_str` is.
+# 'all' means the generator consumes the whole list.
+_INPUT_ARITY = {
+    # MACs over every source, by name (chip 2) or through the routing
+    # fabric's pointer tables (chip 1) -- see _rtg_gathered_sources().
+    'MIX_BUS': 'all',
+    # `taps=` names the tap points; the METER kernel reads each one.
+    'METER': 'all',
+}
+
+# Types that may take a SECOND input as a detector link (`link_in=`), and
+# the arity that gives them. A stereo bus compressor detects on
+# max(|L|,|R|) so that both legs compute the same gain (hazard 2 above).
+_LINK_IN_TYPES = ('COMPRESSOR', 'LIMITER')
+
+
+def node_input_arity(node):
+    """How many of this node's `inputs` its generator reads."""
+    a = _INPUT_ARITY.get(node['type'], 1)
+    if a == 'all':
+        return len(node['inputs'])
+    if node['type'] in _LINK_IN_TYPES and node['params'].get('link_in'):
+        return 2
+    return a
+
+
+def follow_kick(node, sym_prefix, ind=12):
+    """The store that starts each of this node's followers in lockstep.
+
+    `sym_prefix` is the follower word the master raises -- a swap-pending
+    flag, a dirty flag: whatever this kernel's own transient entry point
+    is. Emitted only for a node that HAS a follower, so every other node
+    in the graph is byte-identical to what it was before followers
+    existed.
+    """
+    fol = node.get('followers') or ()
+    if not fol:
+        return ''
+    sp = ' ' * ind
+    L = [f'{sp}/* S143: start this node\'s stereo follower(s) on the SAME',
+         f'{sp} * block, from the same state, so the two run the transient',
+         f'{sp} * in lockstep. */',
+         f'{sp}r4 = 1;']
+    for f in fol:
+        L.append(f'{sp}dm({sym_prefix}{f}) = r4;')
+    return '\n'.join(L) + '\n'
+
+
+def check_input_arity(nodes):
+    """Refuse a graph in which a declared input reaches no arithmetic.
+
+    THIS IS S142-1's GATE. A row that declares more inputs than its
+    generator reads used to compute a whole bus and throw it away with
+    nothing said. Now it names the row, the input, and the two ways out:
+    give the node a follower that reads it, or stop declaring it.
+    """
+    for n in nodes:
+        ins = [i for i in n['inputs'] if i != n['id']]
+        arity = node_input_arity(n)
+        if len(ins) <= arity:
+            continue
+        raise ValueError(
+            f"{n['id']} ({n['type']}) declares {len(ins)} inputs and its "
+            f"generator reads {arity}: {', '.join(ins[arity:])} would be "
+            f"computed every block and read by nothing. That is S142-1, "
+            f"in which the whole right main bus was discarded one node "
+            f"into chip 2 and both MAIN XLRs carried LEFT. Either give "
+            f"this node a FOLLOWER that reads the extra input "
+            f"(`follows={n['id']}` -- see STEREO FOLLOWERS in "
+            f"dsp_codegen.py), or take the input off the row. Declaring "
+            f"it and not reading it is not one of the choices.")
+
+
+def resolve_followers(nodes):
+    """Wire up `follows=` and check every rule a follower has to keep."""
+    by_id = {n['id']: n for n in nodes}
+    order = {n['id']: i for i, n in enumerate(nodes)}
+    for n in nodes:
+        n['follows'] = n['params'].get('follows') or None
+        n.setdefault('followers', [])
+    for n in nodes:
+        m = n['follows']
+        if not m:
+            continue
+        if m not in by_id:
+            raise ValueError(f"{n['id']}: follows={m}, which is not a node")
+        master = by_id[m]
+        if master['type'] != n['type']:
+            raise ValueError(
+                f"{n['id']} follows {m} but is a {n['type']} and {m} is a "
+                f"{master['type']}: a follower is a SECOND INSTANCE of its "
+                f"master's kernel, so the two types must be the same.")
+        if master['chip'] != n['chip']:
+            raise ValueError(
+                f"{n['id']} follows {m} across chips ({n['chip']} vs "
+                f"{master['chip']}): a follower reads its master's "
+                f"coefficient symbols, which do not cross the TDM fabric.")
+        if master['follows']:
+            raise ValueError(
+                f"{n['id']} follows {m}, which is itself a follower. "
+                f"Followers are one deep: follow the master directly.")
+        if str(n['spi_addr']).strip() not in ('-1', ''):
+            raise ValueError(
+                f"{n['id']} is a follower and carries SPI address "
+                f"{n['spi_addr']}. A follower runs its MASTER's parameter "
+                f"set, so it has nothing for a host to write and must take "
+                f"no address -- that is what keeps the mechanism free of a "
+                f"contract bump.")
+        if order[n['id']] < order[m]:
+            raise ValueError(
+                f"{n['id']} follows {m} but appears BEFORE it in dsp.csv. "
+                f"A follower reads coefficients its master prepares, so it "
+                f"runs after -- insert it in row order beside its master "
+                f"(S23-3's precedent; c2_pair_groups wants contiguous runs).")
+        master['followers'].append(n['id'])
+    # ch_count stops being comment text: on a node whose generator reads one
+    # input, it is the number of audio channels the node and its followers
+    # carry between them. This is the other half of S142-1's gate.
+    for n in nodes:
+        if _INPUT_ARITY.get(n['type']) == 'all' or n['follows']:
+            continue
+        try:
+            ch = int(str(n['ch_count']).strip() or '1')
+        except ValueError:
+            raise ValueError(f"{n['id']}: ch_count is not an integer")
+        if ch != 1 + len(n['followers']):
+            raise ValueError(
+                f"{n['id']} ({n['type']}) declares ch_count={ch} and has "
+                f"{len(n['followers'])} follower(s), so it carries "
+                f"{1 + len(n['followers'])} channel(s). Until S143 ch_count "
+                f"was comment text and this is exactly how the main bus "
+                f"came to be mono behind a `ch_count=2` (S142-1). Add the "
+                f"follower(s), or state the channel count the node really "
+                f"has.")
+    return by_id
+
+
 def comp_par_default(params):
     """CompPar's power-on value: (percent, Q0.31 word).
 
@@ -2127,6 +2336,72 @@ def gen_delay(node):
     rc = ramp_comment(node['ramp_profile'])
 
     use_shared_pool = ('pool_slot' in p) and (local_samples < max_samples)
+
+    if node.get('follows'):
+        # A DELAY FOLLOWER (S143). The parameter is the READ OFFSET -- one
+        # word, written by the master's `Delay` cell -- and the state is
+        # the LINE, which is per channel by definition. `_dly_max_` is the
+        # line's own length and stays local: it is a compile-time constant
+        # equal to the master's, and sharing it would tie the clamp of one
+        # ring to the size of another.
+        mid = node['follows']
+        if use_shared_pool:
+            raise ValueError(
+                f"{node['id']}: a POOLED delay cannot be followed. The pool "
+                f"slot is the chip-1 strip's shared head window and its "
+                f"write pointer is the slot's, not the node's.")
+        return dedent(f"""\
+            {rc}
+
+            /* DELAY FOLLOWER (S143) — the second instance of {mid}. */
+            /* Read offset: _dly_read_offset_{mid} ({mid}'s `Delay` cell). */
+            /* Max: {max_ms}ms = {max_samples} samples, its own line. */
+
+            .section/dm seg_delay;
+            .var _dly_buf_{node['id']}[{max_samples}];  /* L2 SRAM delay buffer */
+            .section/dm seg_dmda;
+            .extern _dly_read_offset_{mid};
+            .var _dly_write_ptr_{node['id']} = 0;
+            .var _dly_max_{node['id']} = {max_samples};
+            .var _tap_pre_fader_{node['id']};   /* pre-fader tap */
+            .var _buf_{node['id']};
+
+            .section/pm seg_pmco;
+            .global _{node['id']}_process;
+            _{node['id']}_process:
+                r0 = dm(_buf_{node['inputs_str']});
+
+                /* Write to circular buffer at write pointer */
+                i0 = _dly_buf_{node['id']};
+                r1 = dm(_dly_write_ptr_{node['id']});
+                m0 = r1;
+                modify(i0, m0);
+                dm(i0, 0) = r0;
+
+                /* Read from (write_ptr - read_offset) with wrap */
+                r2 = dm(_dly_read_offset_{mid});
+                r1 = r1 - r2;
+                r3 = dm(_dly_max_{node['id']});
+                if lt r1 = r1 + r3;
+                i0 = _dly_buf_{node['id']};
+                m0 = r1;
+                modify(i0, m0);
+                r0 = dm(i0, 0);
+
+                /* Advance write pointer with wrap */
+                r1 = dm(_dly_write_ptr_{node['id']});
+                r15 = 1;
+                r1 = r1 + r15;
+                r3 = dm(_dly_max_{node['id']});
+                comp(r1, r3);
+                if ge r1 = r1 - r3;
+                dm(_dly_write_ptr_{node['id']}) = r1;
+
+                dm(_tap_pre_fader_{node['id']}) = r0;
+                dm(_buf_{node['id']}) = r0;
+                rts;
+            _{node['id']}_process.end:
+        """)
 
     if not use_shared_pool:
         return dedent(f"""\
@@ -8581,7 +8856,8 @@ def gen_eq_biquad_fixed(node):
         # (review finding D16). The tap store rides inside it so a block
         # build publishes the same post-EQ word the per-sample build does.
         blk_eq_body = _C2_CASCADE_BLK.format(
-            pfx='eq', nid=node['id'], inp=node['inputs_str'],
+            pfx='eq', nid=node['id'], cid=node['id'],
+            inp=node['inputs_str'],
             stages=int(node['params'].get('bands', '4')),
             extra_store=f"            dm(_tap_post_eq_{node['id']}) = r0;\n")
     else:
@@ -9083,6 +9359,11 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
     from SPI (wire unchanged), _bq_fx_convert_N at swap time, Q4.28
     offset coefficients, 6-word/stage state, fixed sample blend with
     float control-plane alpha.
+
+    A FOLLOWER (`follows=<master>` in the row's params, S143) emits the
+    SAME sample path against the master's coefficient banks and its own
+    state.  What it does NOT emit is the staging half: no wire array, no
+    conversion, no sizing, no design hook.  See _FOLLOW_NOTE.
     """
     n5 = stages * 5
     n6 = stages * 6
@@ -9090,20 +9371,117 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
     bypass = _fx_bypass5(stages)
     nid = node['id']
     inp = node['inputs_str']
+    follow = node.get('follows')
+    cid = follow or nid          # whose COEFFICIENTS this cascade runs
+    kick = follow_kick(node, f'_{pfx}_swap_pending_')
     blk_body = ('' if node['chip'] != '2' else
-                _C2_CASCADE_BLK.format(pfx=pfx, nid=nid, inp=inp,
+                _C2_CASCADE_BLK.format(pfx=pfx, nid=nid, cid=cid, inp=inp,
                                        stages=stages,
                                        extra_store=extra_store))
-    hdrA = _bq_hdr_var(f'_{pfx}_coeffs_A_{nid}', n5, bypass)
-    hdrB = _bq_hdr_var(f'_{pfx}_coeffs_B_{nid}', n5, bypass)
-    wirePFX = _bq_wire_var_uninit(f'_{pfx}_coeffs_next_{nid}', n5)
-    hrvars = _bq_hr_vars(pfx, nid, 1)
-    hrpend = _bq_hr_pending(pfx, nid)
-    hrseq = _bq_hr_seq(pfx, nid,
-                       [(f'_{pfx}_coeffs_A_{nid}', f'_{pfx}_coeffs_B_{nid}',
-                         stages)],
-                       [])
+    if follow:
+        # THE BANKS, THE WIRE STAGING AND THE SIZING WORDS ARE THE
+        # MASTER'S, BY NAME. They are declared `.extern` here rather than
+        # found, because add_extern_decls() only sees dm(_sym) loads and a
+        # coefficient block arrives in an index register.
+        coefdecl = '\n'.join([
+            f'        /* FOLLOWER (S143): the coefficient banks, the wire staging and',
+            f'         * the sizing words belong to {cid}. ONE parameter set, two',
+            f'         * instances -- D5\'s own words. This node owns nothing the host',
+            f'         * writes, which is why it takes no cell and no SPI address.',
+            f'         *',
+            f'         * WHAT IT DOES OWN is the biquad STATE (a filter\'s memory is',
+            f'         * per channel or it is not a filter) and the whole crossfade',
+            f'         * bookkeeping -- `_active_`, `_xfade_alpha_`, `_xfade_step_`,',
+            f'         * `_swap_pending_`. That is the S142 §3.1 hazard-1 fix, and it',
+            f'         * is stronger than the latch that report specified: there is no',
+            f'         * shared transient word for the master\'s mid-block update to',
+            f'         * race against. The two stay in lockstep BY CONSTRUCTION -- the',
+            f'         * master kicks this node\'s `_swap_pending_` on the block it',
+            f'         * starts its own fade, both then advance the same alpha by the',
+            f'         * same step over the same number of samples, and both flip',
+            f'         * `_active_` on the same sample. */',
+            f'        .extern _{pfx}_coeffs_A_{cid};',
+            f'        .extern _{pfx}_coeffs_B_{cid};',
+            f'        .extern _{pfx}_coeffs_next_{cid};',
+            f'        .var _{pfx}_state_A_{nid}[{n6}];',
+            f'        .var _{pfx}_state_B_{nid}[{n6}];',
+            f'        .var _{pfx}_swap_pending_{nid} = 0;',
+            f'        #if DSP4_BQ_GUARD',
+            f'        .extern _{pfx}_hrw_{cid};',
+            f'        .extern _{pfx}_hrl_{cid};',
+            f'        #endif',
+        ])
+        hrpend = _bq_hr_pending(pfx, cid)
+        # THE FOLLOWER STAGES NOTHING. The master has already converted the
+        # wire words into the shared dormant bank and, under the guard,
+        # already sized it -- and it kicks this word only once both are
+        # done. So all that is left is to zero THIS node's dormant state
+        # and start THIS node's alpha, from the same `_active_` the master
+        # had, on the same block.
+        startx = '\n'.join([
+            f'            /* Nothing to stage: {cid} converted the wire words into',
+            f'             * the shared dormant bank (and sized it, under the guard)',
+            f'             * before it kicked this node. Zero THIS node\'s dormant',
+            f'             * state and start THIS node\'s alpha. */',
+            f'            r4 = 0;',
+            f'            dm(_{pfx}_swap_pending_{nid}) = r4;',
+            f'            r4 = dm(_{pfx}_active_{nid});',
+            f'            r4 = pass r4;',
+            f'            if ne jump (pc, .{pfx}_st_a_{nid});',
+            f'            i2 = _{pfx}_state_B_{nid};',
+            f'            jump (pc, .{pfx}_st_go_{nid});',
+            f'        .{pfx}_st_a_{nid}:',
+            f'            i2 = _{pfx}_state_A_{nid};',
+            f'        .{pfx}_st_go_{nid}:',
+        ])
+    else:
+        hdrA = _bq_hdr_var(f'_{pfx}_coeffs_A_{nid}', n5, bypass)
+        hdrB = _bq_hdr_var(f'_{pfx}_coeffs_B_{nid}', n5, bypass)
+        wirePFX = _bq_wire_var_uninit(f'_{pfx}_coeffs_next_{nid}', n5)
+        hrvars = _bq_hr_vars(pfx, nid, 1)
+        hrpend = _bq_hr_pending(pfx, nid)
+        hrseq = _bq_hr_seq(pfx, nid,
+                           [(f'_{pfx}_coeffs_A_{nid}',
+                             f'_{pfx}_coeffs_B_{nid}', stages)],
+                           [])
+        coefdecl = '\n'.join([
+            f'        {hdrA}',
+            f'        .var _{pfx}_state_A_{nid}[{n6}];',
+            f'        {hdrB}',
+            f'        .var _{pfx}_state_B_{nid}[{n6}];',
+            f'',
+            f'        /* SPI staging (FLOAT RBJ words — wire format unchanged) */',
+            f'        {wirePFX}',
+            f'        .var _{pfx}_swap_pending_{nid} = 0;',
+            f'        {hrvars}',
+        ])
+        startx = '\n'.join([
+            f'            {hrseq}',
+            f'        #if !DSP4_BQ_GUARD',
+            f'            r4 = 0;',
+            f'            dm(_{pfx}_swap_pending_{nid}) = r4;',
+            f'            i0 = _{pfx}_coeffs_next_{nid};',
+            f'            r4 = dm(_{pfx}_active_{nid});',
+            f'            r4 = pass r4;',
+            f'            if ne jump (pc, .{pfx}_st_a_{nid});',
+            f'            i1 = _{pfx}_coeffs_B_{nid};',
+            f'            i2 = _{pfx}_state_B_{nid};',
+            f'            jump (pc, .{pfx}_st_go_{nid});',
+            f'        .{pfx}_st_a_{nid}:',
+            f'            i1 = _{pfx}_coeffs_A_{nid};',
+            f'            i2 = _{pfx}_state_A_{nid};',
+            f'        .{pfx}_st_go_{nid}:',
+            f'            r4 = {stages};',
+            f'            call _bq_fx_convert_N;',
+            f'        #endif',
+        ])
     dext, dpro, dsub = (design if design else ('', '', ''))
+    if follow:
+        # The design hook is the MASTER's: one parameter set, designed
+        # once. A follower that ran it too would design the same
+        # coefficients into the same shared array a second time and raise
+        # its own swap on a block the master did not.
+        dext, dpro, dsub = '', '', ''
     return dedent(f"""\
         {rc}
 
@@ -9113,15 +9491,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
 
         .section/dm seg_dmda;
 {extra_dm}
-        {hdrA}
-        .var _{pfx}_state_A_{nid}[{n6}];
-        {hdrB}
-        .var _{pfx}_state_B_{nid}[{n6}];
-
-        /* SPI staging (FLOAT RBJ words — wire format unchanged) */
-        {wirePFX}
-        .var _{pfx}_swap_pending_{nid} = 0;
-        {hrvars}
+{coefdecl}
 
         .var _{pfx}_active_{nid} = 0;
         .var _{pfx}_xfade_alpha_{nid} = 0.0;
@@ -9156,11 +9526,11 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
             r4 = dm(_{pfx}_active_{nid});
             r4 = pass r4;
             if ne jump (pc, .{pfx}_ss_b_{nid});
-            i0 = _{pfx}_coeffs_A_{nid};
+            i0 = _{pfx}_coeffs_A_{cid};
             i1 = _{pfx}_state_A_{nid};
             jump (pc, .{pfx}_ss_go_{nid});
         .{pfx}_ss_b_{nid}:
-            i0 = _{pfx}_coeffs_B_{nid};
+            i0 = _{pfx}_coeffs_B_{cid};
             i1 = _{pfx}_state_B_{nid};
         .{pfx}_ss_go_{nid}:
             r4 = {stages};
@@ -9173,13 +9543,13 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
         .{pfx}_xfade_{nid}:
             r0 = dm(_buf_{inp});
             r13 = r0;                     /* input (r13-r15 preserved by lib) */
-            i0 = _{pfx}_coeffs_A_{nid};
+            i0 = _{pfx}_coeffs_A_{cid};
             i1 = _{pfx}_state_A_{nid};
             r4 = {stages};
             call _bq_fx_cascade_N;
             r14 = r0;                     /* ya */
             r0 = r13;
-            i0 = _{pfx}_coeffs_B_{nid};
+            i0 = _{pfx}_coeffs_B_{cid};
             i1 = _{pfx}_state_B_{nid};
             r4 = {stages};
             call _bq_fx_cascade_N;        /* r0 = yb */
@@ -9215,24 +9585,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
 
             /* ===== stage new coeffs into dormant ===== */
         _{pfx}_start_xfade_{nid}:
-            {hrseq}
-        #if !DSP4_BQ_GUARD
-            r4 = 0;
-            dm(_{pfx}_swap_pending_{nid}) = r4;
-            i0 = _{pfx}_coeffs_next_{nid};
-            r4 = dm(_{pfx}_active_{nid});
-            r4 = pass r4;
-            if ne jump (pc, .{pfx}_st_a_{nid});
-            i1 = _{pfx}_coeffs_B_{nid};
-            i2 = _{pfx}_state_B_{nid};
-            jump (pc, .{pfx}_st_go_{nid});
-        .{pfx}_st_a_{nid}:
-            i1 = _{pfx}_coeffs_A_{nid};
-            i2 = _{pfx}_state_A_{nid};
-        .{pfx}_st_go_{nid}:
-            r4 = {stages};
-            call _bq_fx_convert_N;
-        #endif
+{startx}
             r4 = 0;
             r5 = {n6};
             lcntr = r5, do .{pfx}_zst_{nid} until lce;
@@ -9242,7 +9595,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
             dm(_{pfx}_xfade_step_{nid}) = f0;
             r4 = 0;
             dm(_{pfx}_xfade_alpha_{nid}) = r4;
-            rts;
+{kick}            rts;
 {dsub}        _{nid}_process.end:
     """)
 
@@ -9272,7 +9625,7 @@ _C2_CASCADE_BLK = """\
             r5 = dm(_{pfx}_xfade_step_{nid});
             r4 = r4 or r5;
         #if DSP4_BQ_GUARD
-            r5 = dm(_{pfx}_hrw_{nid});
+            r5 = dm(_{pfx}_hrw_{cid});
             r4 = r4 or r5;      /* a sizing in flight is a transient too */
         #endif
             r4 = pass r4;
@@ -9299,11 +9652,11 @@ _C2_CASCADE_BLK = """\
             r4 = dm(_{pfx}_active_{nid});
             r4 = pass r4;
             if ne jump (pc, .{pfx}kb_b_{nid});
-            i0 = _{pfx}_coeffs_A_{nid};
+            i0 = _{pfx}_coeffs_A_{cid};
             i1 = _{pfx}_state_A_{nid};
             jump (pc, .{pfx}kb_go_{nid});
         .{pfx}kb_b_{nid}:
-            i0 = _{pfx}_coeffs_B_{nid};
+            i0 = _{pfx}_coeffs_B_{cid};
             i1 = _{pfx}_state_B_{nid};
         .{pfx}kb_go_{nid}:
             i2 = _blk_{nid};
@@ -9452,6 +9805,16 @@ def _afb_design_hook(nid, notches):
 def gen_geq_fixed(node):
     bands = int(node['params'].get('bands', '28'))
     nid = node['id']
+    if node.get('follows'):
+        # The gains ARE the cell and the design is the master's: a
+        # follower declares neither. `.extern`ed rather than omitted so
+        # that a reader of this file can see where its coefficients come
+        # from without chasing the master.
+        mid = node['follows']
+        extra = (f"        /* The per-band gains and the design belong to {mid}\n"
+                 f"         * (S143): one `Geq[1-{bands}]` set, two instances. */\n"
+                 f"        .extern _geq_gains_{mid};\n")
+        return _fx_cascade_node(node, 'geq', bands, extra_dm=extra)
     extra = (f"        .var _geq_gains_{nid}[{bands}];              "
              f"/* per-band gain, dB — the landed contract's cell */\n"
              f"        .var _geq_dirty_{nid} = 0;                   "
@@ -9463,6 +9826,16 @@ def gen_geq_fixed(node):
 def gen_anti_fb_fixed(node):
     notches = int(node['params'].get('notch_count', '6'))
     nid = node['id']
+    if node.get('follows'):
+        # No graph declares a followed ANTI_FB yet (S144's item 4 will:
+        # `C2_MAIN_AFB` is 2-channel). The split is the GEQ's -- notch
+        # parameters and design on the master, state and crossfade here --
+        # and it is stated now rather than left to be rediscovered.
+        mid = node['follows']
+        extra = (f"        /* The notch set and the design belong to {mid}\n"
+                 f"         * (S143): one `AntiFb*` parameter set, two instances. */\n"
+                 f"        .extern _afb_on_{mid};\n")
+        return _fx_cascade_node(node, 'afb', notches, extra_dm=extra)
     extra = dedent(f"""\
         .var _afb_on_{nid} = 0;
         .var _afb_ctrl_on_{nid} = 0;   /* the AUTOMATIC detector's switch — no
@@ -9817,21 +10190,139 @@ def gen_crossover_fixed(node):
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
+    follow = node.get('follows')
+    cid = follow or nid          # whose COEFFICIENTS these cascades run
+    kick = follow_kick(node, '_xover_swap_pending_')
     byp10 = ('0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, '
              '0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000')
-    hdrLA = _bq_hdr_var(f'_xover_lp_A_{nid}', 10, byp10)
-    wireXO = _bq_wire_var(f'_xover_coeffs_next_{nid}', 20)
-    hdrHA = _bq_hdr_var(f'_xover_hp_A_{nid}', 10, byp10)
-    hdrLB = _bq_hdr_var(f'_xover_lp_B_{nid}', 10, byp10)
-    hdrHB = _bq_hdr_var(f'_xover_hp_B_{nid}', 10, byp10)
-    hrvars = _bq_hr_vars('xover', nid, 2)
-    hrpend = _bq_hr_pending('xover', nid)
     hdrskip = _bq_hdr_skip('i1')
-    # LP and HP are two SEPARATE cascades on the same input, so they are
-    # two entries in one sizing job and each gets its own headroom.
-    hrseq = _bq_hr_ask2('xover', nid,
-                        f'_xover_lp_A_{nid}', f'_xover_lp_B_{nid}', 2,
-                        f'_xover_hp_A_{nid}', f'_xover_hp_B_{nid}', 2)
+    if follow:
+        # Same split as the single cascade's: the banks, the wire staging,
+        # the design cells and the sizing words are {cid}'s; the four
+        # FILTER STATES and the whole crossfade bookkeeping are this
+        # node's. See STEREO FOLLOWERS.
+        coefdecl = '\n'.join([
+            f'        /* FOLLOWER (S143): both cascades run {cid}\'s coefficients',
+            f'         * -- one `Main Crossover*` parameter set, two instances,',
+            f'         * which is D5\'s ruling in as many words. This node owns',
+            f'         * the four filter states and its own crossfade, so the',
+            f'         * master\'s mid-block bank flip has nothing to race. */',
+            f'        .extern _xover_lp_A_{cid};',
+            f'        .extern _xover_hp_A_{cid};',
+            f'        .var _xover_lp_state_A_{nid}[12];',
+            f'        .var _xover_hp_state_A_{nid}[12];',
+            f'        .extern _xover_lp_B_{cid};',
+            f'        .extern _xover_hp_B_{cid};',
+            f'        .var _xover_lp_state_B_{nid}[12];',
+            f'        .var _xover_hp_state_B_{nid}[12];',
+            f'        .extern _xover_coeffs_next_{cid};',
+            f'        .var _xover_swap_pending_{nid} = 0;',
+        ])
+        design_ext = ''
+        design_pro = ''
+        design_sub = ''
+        hrvars = ('#if DSP4_BQ_GUARD\n'
+                  f'        .extern _xover_hrw_{cid};\n'
+                  f'        .extern _xover_hrl_{cid};\n'
+                  '        #endif')
+        hrpend = _bq_hr_pending('xover', cid)
+        startx = '\n'.join([
+            f'            /* Nothing to stage: {cid} converted both cascades into',
+            f'             * the shared dormant banks (and sized them, under the',
+            f'             * guard) before it kicked this node. */',
+            f'            r4 = 0;',
+            f'            dm(_xover_swap_pending_{nid}) = r4;',
+        ])
+    else:
+        hdrLA = _bq_hdr_var(f'_xover_lp_A_{nid}', 10, byp10)
+        wireXO = _bq_wire_var(f'_xover_coeffs_next_{nid}', 20)
+        hdrHA = _bq_hdr_var(f'_xover_hp_A_{nid}', 10, byp10)
+        hdrLB = _bq_hdr_var(f'_xover_lp_B_{nid}', 10, byp10)
+        hdrHB = _bq_hdr_var(f'_xover_hp_B_{nid}', 10, byp10)
+        hrvars = _bq_hr_vars('xover', nid, 2)
+        hrpend = _bq_hr_pending('xover', nid)
+        # LP and HP are two SEPARATE cascades on the same input, so they are
+        # two entries in one sizing job and each gets its own headroom.
+        hrseq = _bq_hr_ask2('xover', nid,
+                            f'_xover_lp_A_{nid}', f'_xover_lp_B_{nid}', 2,
+                            f'_xover_hp_A_{nid}', f'_xover_hp_B_{nid}', 2)
+        coefdecl = '\n'.join([
+            f'        {hdrLA}',
+            f'        {hdrHA}',
+            f'        .var _xover_lp_state_A_{nid}[12];',
+            f'        .var _xover_hp_state_A_{nid}[12];',
+            f'        {hdrLB}',
+            f'        {hdrHB}',
+            f'        .var _xover_lp_state_B_{nid}[12];',
+            f'        .var _xover_hp_state_B_{nid}[12];',
+            f'        #if DSP4_XOVER_DESIGN',
+            f'        /* THE TWO LANDED CELLS, and the one flag the SPI handler raises',
+            f'         * on either. The four sections\' CrossoverFreq cells all resolve',
+            f'         * to the first word and their four CrossoverSlope cells all',
+            f'         * resolve to the second -- ONE crossover node, one split, one',
+            f'         * order. Only a word inside the frequency table\'s 50-500 Hz is',
+            f'         * taken as a frequency and only 12 or 24 is taken as a slope;',
+            f'         * anything else leaves the split where it was. freq 0 means',
+            f'         * "never set", which is why the banks stay at their compiled',
+            f'         * identity until a host writes a real corner. The slope boots at',
+            f'         * 24 = LR4, the order this node has always run. */',
+            f'        .var _xover_freq_{nid} = 0.0;',
+            f'        .var _xover_slope_{nid} = 24;',
+            f'        .var _xover_dirty_{nid} = 0;',
+            f'        #endif',
+            f'',
+            f'        /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct',
+            f'         * form under the fixed arm, D5\'s offset encoding as float32',
+            f'         * under the float arm. */',
+            f'        {wireXO}',
+            f'        .var _xover_swap_pending_{nid} = 0;',
+        ])
+        design_ext = ('        #if DSP4_XOVER_DESIGN\n'
+                      '        .extern _xover_design_LR;\n'
+                      '        #endif')
+        design_pro = '\n'.join([
+            '        #if DSP4_XOVER_DESIGN',
+            '            /* ---- LR design (control rate; lib/xover_design_fx.asm) ---- */',
+            f'            r4 = dm(_xover_dirty_{nid});',
+            '            r4 = pass r4;',
+            f'            if ne call _xover_redesign_{nid};',
+            '        #endif',
+            '',
+        ])
+        design_sub = _XOVER_REDESIGN.format(nid=nid)
+        startx = '\n'.join([
+            f'        #if DSP4_BQ_GUARD',
+            f'            r4 = dm(_xover_hrw_{nid});',
+            f'            r4 = pass r4;',
+            f'            if ne jump (pc, .xover_hrp_{nid});   /* already converted */',
+            f'        #endif',
+            f'            r4 = 0;',
+            f'            dm(_xover_swap_pending_{nid}) = r4;',
+            f'            i0 = _xover_coeffs_next_{nid};',
+            f'            r4 = dm(_xover_active_{nid});',
+            f'            r4 = pass r4;',
+            f'            if ne jump (pc, .xo_st_a_{nid});',
+            f'            i1 = _xover_lp_B_{nid};',
+            f'            jump (pc, .xo_st_go_{nid});',
+            f'        .xo_st_a_{nid}:',
+            f'            i1 = _xover_lp_A_{nid};',
+            f'        .xo_st_go_{nid}:',
+            f'            {hdrskip}',
+            f'            r4 = 2;',
+            f'            call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */',
+            f'            r4 = dm(_xover_active_{nid});',
+            f'            r4 = pass r4;',
+            f'            if ne jump (pc, .xo_st2a_{nid});',
+            f'            i1 = _xover_hp_B_{nid};',
+            f'            jump (pc, .xo_st2go_{nid});',
+            f'        .xo_st2a_{nid}:',
+            f'            i1 = _xover_hp_A_{nid};',
+            f'        .xo_st2go_{nid}:',
+            f'            {hdrskip}',
+            f'            r4 = 2;',
+            f'            call _bq_fx_convert_N;',
+            f'            {hrseq}',
+        ])
     return dedent(f"""\
         {rc}
 
@@ -9840,35 +10331,7 @@ def gen_crossover_fixed(node):
 
         .section/dm seg_dmda;
 
-        {hdrLA}
-        {hdrHA}
-        .var _xover_lp_state_A_{nid}[12];
-        .var _xover_hp_state_A_{nid}[12];
-        {hdrLB}
-        {hdrHB}
-        .var _xover_lp_state_B_{nid}[12];
-        .var _xover_hp_state_B_{nid}[12];
-        #if DSP4_XOVER_DESIGN
-        /* THE TWO LANDED CELLS, and the one flag the SPI handler raises
-         * on either. The four sections' CrossoverFreq cells all resolve
-         * to the first word and their four CrossoverSlope cells all
-         * resolve to the second -- ONE crossover node, one split, one
-         * order. Only a word inside the frequency table's 50-500 Hz is
-         * taken as a frequency and only 12 or 24 is taken as a slope;
-         * anything else leaves the split where it was. freq 0 means
-         * "never set", which is why the banks stay at their compiled
-         * identity until a host writes a real corner. The slope boots at
-         * 24 = LR4, the order this node has always run. */
-        .var _xover_freq_{nid} = 0.0;
-        .var _xover_slope_{nid} = 24;
-        .var _xover_dirty_{nid} = 0;
-        #endif
-
-        /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct
-         * form under the fixed arm, D5's offset encoding as float32
-         * under the float arm. */
-        {wireXO}
-        .var _xover_swap_pending_{nid} = 0;
+{coefdecl}
 
         .var _xover_active_{nid} = 0;
         .var _xover_xfade_alpha_{nid} = 0.0;
@@ -9885,18 +10348,10 @@ def gen_crossover_fixed(node):
         #if DSP4_BQ_GUARD
         .extern _bq_hr_node1;
         #endif
-        #if DSP4_XOVER_DESIGN
-        .extern _xover_design_LR;
-        #endif
+{design_ext}
         .global _{nid}_process;
         _{nid}_process:
-        #if DSP4_XOVER_DESIGN
-            /* ---- LR design (control rate; lib/xover_design_fx.asm) ---- */
-            r4 = dm(_xover_dirty_{nid});
-            r4 = pass r4;
-            if ne call _xover_redesign_{nid};
-        #endif
-
+{design_pro}
             r4 = dm(_xover_swap_pending_{nid});
             {hrpend}
             r4 = pass r4;
@@ -9912,13 +10367,13 @@ def gen_crossover_fixed(node):
             r4 = dm(_xover_active_{nid});
             r4 = pass r4;
             if ne jump (pc, .xo_ss_b_{nid});
-            i0 = _xover_lp_A_{nid};
+            i0 = _xover_lp_A_{cid};
             i1 = _xover_lp_state_A_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
             dm(_buf_lp_{nid}) = r0;
             r0 = r13;
-            i0 = _xover_hp_A_{nid};
+            i0 = _xover_hp_A_{cid};
             i1 = _xover_hp_state_A_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
@@ -9926,13 +10381,13 @@ def gen_crossover_fixed(node):
             dm(_buf_{nid}) = r0;
             rts;
         .xo_ss_b_{nid}:
-            i0 = _xover_lp_B_{nid};
+            i0 = _xover_lp_B_{cid};
             i1 = _xover_lp_state_B_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
             dm(_buf_lp_{nid}) = r0;
             r0 = r13;
-            i0 = _xover_hp_B_{nid};
+            i0 = _xover_hp_B_{cid};
             i1 = _xover_hp_state_B_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
@@ -9945,13 +10400,13 @@ def gen_crossover_fixed(node):
             r0 = dm(_buf_{inp});
             r13 = r0;
             /* LP: A then B */
-            i0 = _xover_lp_A_{nid};
+            i0 = _xover_lp_A_{cid};
             i1 = _xover_lp_state_A_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
             r14 = r0;                     /* lp_a */
             r0 = r13;
-            i0 = _xover_lp_B_{nid};
+            i0 = _xover_lp_B_{cid};
             i1 = _xover_lp_state_B_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;        /* r0 = lp_b */
@@ -9967,13 +10422,13 @@ def gen_crossover_fixed(node):
 
             /* HP: A then B */
             r0 = r13;
-            i0 = _xover_hp_A_{nid};
+            i0 = _xover_hp_A_{cid};
             i1 = _xover_hp_state_A_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
             r14 = r0;
             r0 = r13;
-            i0 = _xover_hp_B_{nid};
+            i0 = _xover_hp_B_{cid};
             i1 = _xover_hp_state_B_{nid};
             r4 = 2;
             call _bq_fx_cascade_N;
@@ -10007,37 +10462,7 @@ def gen_crossover_fixed(node):
 
             /* ===== stage into dormant ===== */
         _xover_start_xfade_{nid}:
-        #if DSP4_BQ_GUARD
-            r4 = dm(_xover_hrw_{nid});
-            r4 = pass r4;
-            if ne jump (pc, .xover_hrp_{nid});   /* already converted */
-        #endif
-            r4 = 0;
-            dm(_xover_swap_pending_{nid}) = r4;
-            i0 = _xover_coeffs_next_{nid};
-            r4 = dm(_xover_active_{nid});
-            r4 = pass r4;
-            if ne jump (pc, .xo_st_a_{nid});
-            i1 = _xover_lp_B_{nid};
-            jump (pc, .xo_st_go_{nid});
-        .xo_st_a_{nid}:
-            i1 = _xover_lp_A_{nid};
-        .xo_st_go_{nid}:
-            {hdrskip}
-            r4 = 2;
-            call _bq_fx_convert_N;        /* LP stages; i0 -> HP staging */
-            r4 = dm(_xover_active_{nid});
-            r4 = pass r4;
-            if ne jump (pc, .xo_st2a_{nid});
-            i1 = _xover_hp_B_{nid};
-            jump (pc, .xo_st2go_{nid});
-        .xo_st2a_{nid}:
-            i1 = _xover_hp_A_{nid};
-        .xo_st2go_{nid}:
-            {hdrskip}
-            r4 = 2;
-            call _bq_fx_convert_N;
-            {hrseq}
+{startx}
             /* zero dormant states (lp 12 + hp 12) */
             r4 = dm(_xover_active_{nid});
             r4 = pass r4;
@@ -10062,7 +10487,12 @@ def gen_crossover_fixed(node):
             dm(_xover_xfade_step_{nid}) = f0;
             r4 = 0;
             dm(_xover_xfade_alpha_{nid}) = r4;
-            rts;
+{kick}            rts;
+{design_sub}        _{nid}_process.end:
+    """)
+
+
+_XOVER_REDESIGN = """\
         #if DSP4_XOVER_DESIGN
         _xover_redesign_{nid}:
             /* Cleared FIRST, for the reason the GEQ's is: a write that
@@ -10081,8 +10511,7 @@ def gen_crossover_fixed(node):
             dm(_xover_swap_pending_{nid}) = r4;
             rts;
         #endif
-        _{nid}_process.end:
-    """)
+"""
 
 
 
@@ -10722,10 +11151,88 @@ _FDR_BLK_PAIR = """\
 """
 
 
+def gen_fader_pan_follow(node):
+    """A FADER_PAN follower (S143): the master's coefficient, its own audio.
+
+    A fader's whole control plane -- two float ramps, the mute, the
+    conversion to Q4.28 -- produces exactly ONE word the sample path
+    reads, `_fdr_gq_`. So the follower is that word and the same loop:
+    the level, the mute and the ramp timing are the master's by
+    construction, and there is no second set of anything for a host to
+    get out of step with.
+    """
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    mid = node['follows']
+    inp = node['inputs_str']
+    if node['chip'] != '2':
+        raise ValueError(
+            f'{nid}: FADER_PAN followers are a chip-2 mechanism. On chip 1 '
+            f'the fader also publishes the pan legs ROUTING folds into the '
+            f'bus crosspoints, and those are per strip, not per channel.')
+    if node['params'].get('mtr_sink'):
+        raise ValueError(
+            f'{nid}: a FADER_PAN follower cannot carry mtr_sink -- the '
+            f'metered loop hands its accumulators to the meter and two '
+            f'instances would fold the same sink twice.')
+    return dedent(f"""\
+        {rc}
+
+        #include "blk_pool.h"
+
+        /* FADER_PAN FOLLOWER (S143) — the second instance of {mid}. */
+        /* Coefficient: _fdr_gq_{mid} (level x mute, prepared by {mid}). */
+        /* No cell, no SPI address: nothing here is host-writable. */
+
+        .section/dm seg_dmda;
+        .extern _fdr_gq_{mid};
+        .var _tap_post_fader_{nid};
+        .var _buf_{nid};
+        #if DSP4_BLOCK_KERNELS
+        .extern _blk_{inp};
+        .var _blk_{nid}[DSP4_BLOCK_SIZE];
+        #endif
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+        #if DSP4_BLOCK_KERNELS
+            /* The master's coefficient, hoisted; the same fused loop it
+             * runs, so the two legs are the same arithmetic word for
+             * word. */
+            r1 = dm(_fdr_gq_{mid});
+            r7 = 0x08000000;                  /* rounding half */
+            r12 = 1;
+            r10 = 0x7FFFFFFF;
+            l0 = 0;
+            l1 = 0;
+            l2 = 0;
+            l3 = 0;
+            i0 = _blk_{inp};                 /* input  */
+            i1 = _blk_{nid};                 /* mono   */
+{_FDR_BLK_PAIR.format(nid=nid, blk_lr_body='')}#else
+            r0 = dm(_buf_{inp});
+            r1 = dm(_fdr_gq_{mid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            dm(_tap_post_fader_{nid}) = r0;
+            dm(_buf_{nid}) = r0;
+
+            rts;
+#endif
+        _{nid}_process.end:
+    """)
+
+
 def gen_fader_pan_fixed(node):
     """Fixed FADER_PAN (D5): float control (level/pan/dca ramps
     unchanged); block-rate conversion of the composite gains to Q4.28
     shadows (mono, L, R); fixed sample path."""
+    if node.get('follows'):
+        return gen_fader_pan_follow(node)
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
@@ -15233,9 +15740,65 @@ def gen_tube_sat_fixed(node):
     """)
 
 
+def gen_aux_input_follow(node):
+    """An AUX_INPUT follower (S143): the other leg of a stereo source.
+
+    `C2_CODEC_AUX_IN` and `C2_PI_IN` are stereo returns that declared both
+    interchip receives and MAC-ed only the first -- S142-1's other two
+    instances, found by the arity gate rather than by reading. The
+    follower runs the master's one coefficient (`_auxin_q_`, level x the
+    on-gate) on the R receive.
+    """
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    mid = node['follows']
+    inp = node['inputs_str']
+    return dedent(f"""\
+        {rc}
+
+        /* AUX_INPUT FOLLOWER (S143) — the second instance of {mid}. */
+        /* Coefficient: _auxin_q_{mid} (level x on, prepared by {mid}). */
+        /* No cell, no SPI address: nothing here is host-writable. */
+
+        .section/dm seg_dmda;
+        .extern _auxin_q_{mid};
+        .extern _auxin_on_{mid};
+        #if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+        /* This node's own half of the chain gate (S32): the park sets it
+         * after publishing silence, the body clears it on the way back
+         * in. The `on` word it is gated by is the master's. */
+        .var _auxin_byp_{nid} = 0;
+        #endif
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+        #if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS
+            r2 = dm(_auxin_byp_{nid});
+            r2 = pass r2;
+            if eq jump (pc, .auxin_live_{nid});
+            r2 = 0;
+            dm(_auxin_byp_{nid}) = r2;
+        .auxin_live_{nid}:
+        #endif
+            r0 = dm(_buf_{inp});
+            r1 = dm(_auxin_q_{mid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_aux_input_fixed(node):
     """Fixed AUX_INPUT (D5): float level ramp per sample + FIX shadow,
     MRF sample path, integer on-gate."""
+    if node.get('follows'):
+        return gen_aux_input_follow(node)
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
@@ -15340,6 +15903,49 @@ def gen_aux_input_fixed(node):
     """)
 
 
+def gen_monitor_follow(node):
+    """A MONITOR follower (S143): the master's OTHER level leg.
+
+    The monitor is the one node whose two legs are two DIFFERENT cells
+    (`Mon Level[1-2]`), not one parameter set applied twice -- so what the
+    follower shares is not "the coefficient" but "the coefficient the
+    master prepared for this leg". Both are converted by the master at
+    block rate; this node reads `_mon_q_<leg>_` and does the MAC.
+    """
+    rc = ramp_comment(node['ramp_profile'])
+    nid = node['id']
+    mid = node['follows']
+    inp = node['inputs_str']
+    leg = (node['params'].get('follow_leg') or 'r').lower()
+    if leg not in ('l', 'r'):
+        raise ValueError(f'{nid}: follow_leg={leg!r}; MONITOR has legs l and r')
+    return dedent(f"""\
+        {rc}
+
+        /* MONITOR FOLLOWER (S143) — the {leg.upper()} leg of {mid}. */
+        /* Coefficient: _mon_q_{leg}_{mid} (Mon Level[{1 if leg == 'l' else 2}], converted by {mid}). */
+        /* No cell, no SPI address: nothing here is host-writable. */
+
+        .section/dm seg_dmda;
+        .extern _mon_q_{leg}_{mid};
+        .extern _mon_source_{mid};
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r1 = dm(_mon_q_{leg}_{mid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_monitor_fixed(node):
     """Fixed MONITOR (D5): level ramps and Q4.28 conversion at CONTROL rate,
     one MAC in the sample path.
@@ -15361,11 +15967,18 @@ def gen_monitor_fixed(node):
 
     Each level now carries its own complete quad in the standard order.
 
-    NOT FIXED HERE, and recorded rather than papered over: the sample path
-    is MONO and uses the L level only, so _mon_level_r is settable but has
-    no effect. Making MONITOR genuinely stereo is a graph change, not a
-    coefficient fold, and is out of this mandate's scope.
+    THE R LEVEL HAS A READER SINCE S143. This body is still one leg -- it
+    converts BOTH levels at block rate and multiplies by the one its
+    `follow_leg` names -- and the second leg is a FOLLOWER node reading
+    `_mon_q_r_` off this node. So `Mon Level[1-2]` is two cells on one
+    node driving two instances, which is what the master always said it
+    was; what was missing was the second instance, not the second word.
+    (Before S143 the sample path used the L level only and `_mon_level_r`
+    was settable with no effect at all -- the S122-5 monitor half of
+    S142-1.)
     """
+    if node.get('follows'):
+        return gen_monitor_follow(node)
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
@@ -15987,11 +16600,18 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
             # CUE_MON_SOURCE (Cue) reads chip 2's receive of cue L. The
             # node is mono end to end (MON, MON_DLY, MON_OUT), so it
             # carries L only; Aux 1-12 are still unread.
+            # A MONITOR FOLLOWER (S143) selects on its MASTER's source word
+            # -- one `Mon InputSel`, both legs, or the two could land on
+            # different sources for a block -- and taps the cue bus's OWN
+            # other side. The cue receive has been a stereo pair since S65
+            # (CUE_IC); nothing read the R half until there was a second
+            # monitor instance to read it.
+            _cue = (node['params'].get('follow_leg', 'l') or 'l').upper()
             a('        #if DSP4_CUE')
-            a('        .extern _rx_ic_slot_C2_RECV_CUE_L;')
+            a(f'        .extern _rx_ic_slot_C2_RECV_CUE_{_cue};')
             a(f'            r3 = _blk_{inp};')
-            a('            r5 = _rx_ic_slot_C2_RECV_CUE_L;')
-            a(f'            r4 = dm(_mon_source_{nid});')
+            a(f'            r5 = _rx_ic_slot_C2_RECV_CUE_{_cue};')
+            a(f"            r4 = dm(_mon_source_{node.get('follows') or nid});")
             a(f'            r6 = {CUE_MON_SOURCE};')
             a('            comp(r4, r6);')
             a('            if eq r3 = r5;')
@@ -16212,7 +16832,11 @@ def c2_block_wrap(node, body):
                 f'{nid}: a parked node cannot also publish a wide meter '
                 f'block -- the park would leave _mtr_wblk_{nid} stale. '
                 f'Zero it in the park path before allowing this.')
-        park += nid
+        # The on/off word is the MASTER's on a follower (S143): one cell,
+        # both instances, or one leg of a stereo source could park while
+        # the other ran. The bypass FLAG is per node -- it is the chain's
+        # note that THIS node's block is already silence.
+        park += (node.get('follows') or nid)
         if park_flag is not None:
             park_flag += nid
     else:
@@ -16239,7 +16863,173 @@ def c2_block_wrap(node, body):
 
 
 
+def dyn_detect_asm(node, ind=12):
+    """The detector input: |dry|, or max(|L|,|R|) on a stereo-linked pair.
+
+    `link_in=<node>` (S143) is the SECOND channel of a linked stereo bus
+    dynamics pair, declared as this node's second input so the block
+    wrapper stages its `_buf_` word beside the dry one. Detecting on the
+    larger of the two is what makes a stereo compressor apply ONE gain:
+    the master and its follower see the SAME detector value every sample,
+    from the same parameters and the same initial envelope, so they
+    compute the same envelope and the same gain -- by construction,
+    without a shared per-sample word between them. The alternative, one
+    detector and a gain the other leg reads, needs a gain BLOCK and a
+    walking pointer because the two nodes run a whole block apart.
+
+    Detecting on ONE leg is not an option: a stereo bus compressor that
+    ignores the right channel lets a hard-panned transient through, and
+    two INDEPENDENT detectors make the image walk under compression --
+    which is hazard 2 of S142 §3.1.
+
+    r13 holds the dry sample; r0 is the detector input _envq_fx wants.
+    """
+    sp = ' ' * ind
+    link = node['params'].get('link_in')
+    if not link:
+        return f'{sp}r0 = abs r13;'
+    return '\n'.join([
+        f'{sp}/* STEREO-LINKED DETECTOR (S143): max(|L|,|R|), symmetric, so',
+        f'{sp} * this node and its stereo partner compute the same gain. */',
+        f'{sp}r0 = abs r13;',
+        f'{sp}r1 = dm(_buf_{link});',
+        f'{sp}r1 = abs r1;',
+        f'{sp}r0 = max(r0, r1);',
+    ])
+
+
+def gen_compressor_follow(node):
+    """A COMPRESSOR follower (S143): the master's curve, its own envelope.
+
+    Everything the host writes is the master's, by name -- the threshold,
+    ratio, knee, attack/release coefficients, makeup, the parallel blend
+    and the level->gain table. What this node owns is the envelope and
+    the sample it applies the gain to.
+
+    IT RUNS ITS OWN GAIN COMPUTER AND THAT IS THE POINT. Fed the same
+    max(|L|,|R|) detector (`link_in`, above) from the same parameters and
+    the same initial envelope, the two instances produce the same gain
+    sample for sample. One gain, two legs, nothing shared per sample.
+    """
+    nid = node['id']
+    mid = node['follows']
+    inp = node['inputs_str']
+    if node['params'].get('mtr_sink'):
+        raise ValueError(f'{nid}: a COMPRESSOR follower cannot carry mtr_sink')
+    if not node['params'].get('link_in'):
+        raise ValueError(
+            f'{nid} follows {mid} and declares no link_in. A dynamics '
+            f'follower with its own detector on its own leg is two '
+            f'INDEPENDENT compressors, and the stereo image walks under '
+            f'compression (S142 §3.1 hazard 2). Declare the partner leg.')
+    rc = ramp_comment(node['ramp_profile'])
+    return dedent(f"""\
+        {rc}
+
+        /* COMPRESSOR FOLLOWER (S143) — the second instance of {mid}. */
+        /* Curve, makeup, blend and table: {mid}'s, by name. */
+        /* No cell, no SPI address: nothing here is host-writable. */
+
+#include "blk_pool.h"
+
+.section/dm seg_dmda;
+        .extern _comp_on_{mid};
+        .extern _comp_attq_{mid};
+        .extern _comp_relq_{mid};
+        .extern _comp_mkq_{mid};
+        .extern _comp_parq_{mid};
+        .extern _comp_cgp_{mid};
+#if DSP4_DYN_LUT
+        .extern _comp_lut_{mid};
+        .extern _comp_lutc_{mid};
+#endif
+        .var _comp_envelope_{nid} = 0;        /* Q4.28 — this leg's own */
+        .var _comp_gain_{nid} = 0x10000000;   /* Q4.28 (display) */
+        .var _buf_{nid};
+#if DSP4_BLOCK_KERNELS
+.var _comp_saved_idx_{nid};
+#endif
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _compgain_fx;
+        .extern _mrf_rns28;
+#if DSP4_DYN_LUT
+        .extern _dyn_lut_gain;
+#endif
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r2 = dm(_comp_on_{mid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .comp_bypass_{nid});
+            r13 = r0;                     /* dry (r13-r15 lib-safe) */
+
+            /* NO BLOCK-RATE CONVERSION HERE. {mid} converted the curve,
+             * the makeup and the blend, and stepped the table design,
+             * before this node ran -- one parameter set. */
+
+            /* --- envelope (fixed) --- */
+{dyn_detect_asm(node)}
+            r1 = dm(_comp_envelope_{nid});
+            r2 = dm(_comp_attq_{mid});
+            r3 = dm(_comp_relq_{mid});
+            call _envq_fx;
+            dm(_comp_envelope_{nid}) = r0;
+
+            /* --- gain computer --- */
+#if DSP4_DYN_LUT
+            r4 = dm(_comp_lutc_{mid});
+            r5 = DYN_LUT_N;
+            comp(r4, r5);
+            if lt jump (pc, .clutpoly_{nid});
+            i0 = _comp_lut_{mid};
+            call _dyn_lut_gain;           /* r0 = gain Q4.28 */
+            jump (pc, .clutgain_{nid});
+        .clutpoly_{nid}:
+#endif
+            i0 = _comp_cgp_{mid};
+            call _compgain_fx;            /* r0 = gain Q4.28 */
+#if DSP4_DYN_LUT
+        .clutgain_{nid}:
+#endif
+            dm(_comp_gain_{nid}) = r0;
+
+            /* wet = dry * gain * makeup */
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            r1 = dm(_comp_mkq_{mid});
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+
+            /* parallel: out = dry + par*(wet - dry) */
+            r5 = r0 - r13;
+            r4 = dm(_comp_parq_{mid});
+            mrf = r5 * r4 (ssi);
+            r1 = 0x40000000;
+            r12 = 1;
+            mrf = mrf + r1 * r12 (ssi);
+            r1 = mr0f;
+            r12 = mr1f;
+            r1 = lshift r1 by -31;
+            r12 = lshift r12 by 1;
+            r1 = r1 or r12;
+            r0 = r13 + r1;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .comp_bypass_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_compressor_fixed(node):
+    if node.get('follows'):
+        return gen_compressor_follow(node)
     import re as _re
     if _re.match(r'^C\d+_COMP_\d+$', node['id']):
         blk_comp_body = _COMP_BLK_BODY.format(nid=node['id'], inp=node['inputs_str'])
@@ -16451,7 +17241,7 @@ def gen_compressor_fixed(node):
         .comp_go_{nid}:
 
             /* --- envelope (fixed) --- */
-            r0 = abs r13;
+{dyn_detect_asm(node)}
             r1 = dm(_comp_envelope_{nid});
             r2 = dm(_comp_attq_{nid});
             r3 = dm(_comp_relq_{nid});
@@ -16515,9 +17305,102 @@ def gen_compressor_fixed(node):
     """)
 
 
+def gen_limiter_follow(node):
+    """A LIMITER follower (S143): the master's threshold, its own envelope.
+
+    Same construction as the compressor's, for the same reason: the
+    stereo-linked detector makes both instances compute the same gain,
+    so a brick wall on a stereo bus pulls both legs together and the
+    image does not move.
+    """
+    nid = node['id']
+    mid = node['follows']
+    inp = node['inputs_str']
+    if not node['params'].get('link_in'):
+        raise ValueError(
+            f'{nid} follows {mid} and declares no link_in -- see '
+            f'gen_compressor_follow: two independent brick walls on a '
+            f'stereo bus move the image.')
+    rc = ramp_comment(node['ramp_profile'])
+    return dedent(f"""\
+        {rc}
+
+        /* LIMITER FOLLOWER (S143) — the second instance of {mid}. */
+        /* Threshold, attack/release and table: {mid}'s, by name. */
+        /* No cell, no SPI address: nothing here is host-writable. */
+
+        .section/dm seg_dmda;
+        .extern _lim_on_{mid};
+        .extern _lim_attq_{mid};
+        .extern _lim_relq_{mid};
+        .extern _lim_cgp_{mid};
+#if DSP4_DYN_LUT
+        .extern _lim_lut_{mid};
+        .extern _lim_lutc_{mid};
+#endif
+        .var _lim_envelope_{nid} = 0;         /* this leg's own */
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _envq_fx;
+        .extern _compgain_fx;
+        .extern _mrf_rns28;
+#if DSP4_DYN_LUT
+        .extern _dyn_lut_gain;
+#endif
+        .global _{nid}_process;
+        _{nid}_process:
+            r0 = dm(_buf_{inp});
+            r2 = dm(_lim_on_{mid});
+            r3 = 0;
+            comp(r2, r3);
+            if eq jump (pc, .lim_bypass_{nid});
+            r13 = r0;
+
+            /* NO BLOCK-RATE CONVERSION HERE: {mid} converted the curve and
+             * stepped the table design before this node ran. */
+
+{dyn_detect_asm(node)}
+            r1 = dm(_lim_envelope_{nid});
+            r2 = dm(_lim_attq_{mid});
+            r3 = dm(_lim_relq_{mid});
+            call _envq_fx;
+            dm(_lim_envelope_{nid}) = r0;
+
+#if DSP4_DYN_LUT
+            r4 = dm(_lim_lutc_{mid});
+            r5 = DYN_LUT_N;
+            comp(r4, r5);
+            if lt jump (pc, .llutpoly_{nid});
+            i0 = _lim_lut_{mid};
+            call _dyn_lut_gain;           /* r0 = gain Q4.28 */
+            jump (pc, .llutgain_{nid});
+        .llutpoly_{nid}:
+#endif
+            i0 = _lim_cgp_{mid};
+            call _compgain_fx;
+#if DSP4_DYN_LUT
+        .llutgain_{nid}:
+#endif
+            r1 = r0;
+            r0 = r13;
+            mrf = r0 * r1 (ssi);
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        .lim_bypass_{nid}:
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_limiter_fixed(node):
     """Fixed LIMITER (D5): brick wall = _compgain_fx with slope ~1,
     hard knee."""
+    if node.get('follows'):
+        return gen_limiter_follow(node)
     rc = ramp_comment(node['ramp_profile'])
     nid = node['id']
     inp = node['inputs_str']
@@ -16616,7 +17499,7 @@ def gen_limiter_fixed(node):
 #endif
         .lim_go_{nid}:
 
-            r0 = abs r13;
+{dyn_detect_asm(node)}
             r1 = dm(_lim_envelope_{nid});
             r2 = dm(_lim_attq_{nid});
             r3 = dm(_lim_relq_{nid});
@@ -17089,6 +17972,18 @@ FIXED_GENERATORS = {
     # float and fixed arms are the same kernel.
     'HAPTIC': gen_haptic,
 }
+
+
+# THE TYPES WHOSE GENERATOR UNDERSTANDS `follows=` (S143). It is a FIXED-arm
+# property: the float kernels are the archived D5 reference (git tag
+# float-kernels-2026-07-31) and were not taught followers, so a follower in
+# a `--format float` run is a build error rather than a second independent
+# instance nobody notices. See STEREO FOLLOWERS at the top of this file.
+_FOLLOW_TYPES_FIXED = {
+    'FADER_PAN', 'GEQ', 'ANTI_FB', 'COMPRESSOR', 'LIMITER', 'DELAY',
+    'CROSSOVER', 'MONITOR', 'AUX_INPUT',
+}
+FOLLOW_TYPES = _FOLLOW_TYPES_FIXED
 
 
 
@@ -18328,6 +19223,33 @@ _C2_PAIR_KERNEL = {
 }
 
 
+def _c2_pair_excluded(node):
+    """Why this node cannot be SIMD-paired, or None.
+
+    THE PAIR KERNELS ARE ONE INSTRUCTION STREAM OVER TWO CHANNELS, and
+    they read exactly what the scalar bodies read: one input block each,
+    one parameter record each. Two shapes do not fit that and must be
+    named rather than silently dropped -- a node that is quietly left out
+    of a pair still WORKS, it just costs what it always did, and the S142
+    audit found several features that had been "working" like that.
+
+      * a FOLLOWER runs its master's parameter record, not its own, so a
+        pair driver that gathers `_<pfx>_attq_<node>` for each member
+        would gather a word that does not exist;
+      * a STEREO-LINKED node (`link_in=`) detects on max(|L|,|R|), and the
+        pair kernel has no second detector input -- `_comp_pair_blk` reads
+        one block per channel. Pairing it would drop the link and give the
+        two legs independent detectors, which is exactly the image walk
+        the link exists to prevent.
+    """
+    if node.get('follows'):
+        return f"it follows {node['follows']} and runs that node's parameters"
+    if node['params'].get('link_in'):
+        return (f"it is stereo-linked to {node['params']['link_in']} and the "
+                f"pair kernel has no second detector input")
+    return None
+
+
 def c2_pair_groups(chip_label, chip_nodes, call_sequence):
     """The chip-2 pairable families present in this graph, validated.
 
@@ -18356,9 +19278,21 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
         bqpaired = {c: v for c, v in bqpaired.items() if c in classes}
         nid = {}
         complete = []
+        by_id = {n['id']: n for n in chip_nodes}
         for n in insts:
             ids = {c: tmpl.format(cls=c, n=n) for c in classes}
             if not all(i in have for i in ids.values()):
+                continue
+            # An instance carrying an unpairable node (a follower, or a
+            # stereo-linked detector) drops out of the family whole: the
+            # family's classes are one run of the chain and a per-class
+            # hole would break the contiguity the reorder rests on.
+            _ex = [(i, _c2_pair_excluded(by_id[i])) for i in ids.values()]
+            _ex = [(i, why) for i, why in _ex if why]
+            if _ex:
+                for i, why in _ex:
+                    print(f'  note: chip 2 pair family {tag} instance {n} '
+                          f'is not paired: {i} -- {why}.', file=sys.stderr)
                 continue
             complete.append(n)
             for c, i in ids.items():
@@ -18455,8 +19389,24 @@ def c2_cross_pairs(chip_label, chip_nodes):
     if chip_label != 'chip2':
         return []
     have = {n['id'] for n in chip_nodes}
+    by_id = {n['id']: n for n in chip_nodes}
     out = []
     for tag, kern, na, nb in _C2_CROSS_PAIRS:
+        # A stereo-linked or following member takes the pair out (S143).
+        # Said out loud on stderr with the node and the reason, because a
+        # pair that quietly stops forming is a cost the next capacity row
+        # reads as noise.
+        excl = [(d, _c2_pair_excluded(by_id[d]))
+                for d in (na, nb) if d in by_id]
+        excl = [(d, why) for d, why in excl if why]
+        if excl:
+            for d, why in excl:
+                print(f'  note: chip 2 cross pair {tag} is not formed: '
+                      f'{d} cannot be paired -- {why}. Both members fall '
+                      f'back to their scalar bodies (the same path '
+                      f'`.c2s_{tag}` already takes when either is off).',
+                      file=sys.stderr)
+            continue
         if na in have and nb in have:
             out.append({'tag': tag, 'kern': kern, 'a': na, 'b': nb})
         elif na in have or nb in have:
@@ -19318,11 +20268,20 @@ def process_order_violations(seq, by_id):
     call order — that is the whole point. Cross-chip inputs are not
     edges here: they arrive over the TDM fabric, one block delayed by
     construction, and the chain cannot order them.
+
+    `follows=` IS AN EDGE TOO (S143). A follower reads coefficients its
+    master prepares and, on a cascade, is kicked into its crossfade by
+    the master's own body — but it does not read the master's `_buf_`,
+    so `inputs` alone would leave the two orderable either way. Stating
+    it here is what makes the repair and this check see it.
     """
     pos = {nid: i for i, nid in enumerate(seq)}
     bad = []
     for i, nid in enumerate(seq):
-        for src in by_id[nid]['inputs']:
+        srcs = list(by_id[nid]['inputs'])
+        if by_id[nid].get('follows'):
+            srcs.append(by_id[nid]['follows'])
+        for src in srcs:
             j = pos.get(src)
             if j is not None and j > i:
                 bad.append((nid, i, src, j))
@@ -19405,8 +20364,15 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             'params_raw': row.get('params', ''),
             'ramp_profile': row.get('ramp_profile', '').strip(),
         }
+        # `inputs_str` IS THE ONE INPUT A SINGLE-INPUT GENERATOR READS, and
+        # since S143 that is a checked property rather than a convention:
+        # check_input_arity() below refuses a row whose generator cannot
+        # reach every input it declares. See STEREO FOLLOWERS.
         node['inputs_str'] = node['inputs'][0] if node['inputs'] else node['id']
         nodes.append(node)
+
+    check_input_arity(nodes)
+    resolve_followers(nodes)
 
     chip1_nodes = [n for n in nodes if n['chip'] == '1']
     chip2_nodes = [n for n in nodes if n['chip'] == '2']
@@ -19561,6 +20527,23 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     f"GENERATORS/FIXED_GENERATORS, or -- if the family is "
                     f"MCU-only and should never reach the DSP -- keep it out "
                     f"of dsp.csv via gen_dsp_csv.py.")
+
+            # A FOLLOWER NEEDS A FOLLOWER-AWARE GENERATOR, and the same
+            # no-fallback rule applies: a generator that does not know what
+            # `follows=` means would emit a second, INDEPENDENT instance
+            # with its own parameter words -- which looks right, links, runs
+            # and is silently NOT the master's parameter set. The float arm
+            # is the case this catches today: it has no follower support.
+            if node.get('follows') and node['type'] not in FOLLOW_TYPES:
+                raise ValueError(
+                    f"{node['id']} declares follows={node['follows']} and "
+                    f"there is no {FORMAT} follower generator for "
+                    f"{node['type']!r}. A follower shares its master's "
+                    f"parameter words by name; a generator that does not "
+                    f"know that emits a second independent instance instead "
+                    f"and nothing says so. Add {node['type']!r} to "
+                    f"FOLLOW_TYPES and teach its generator, or drop the "
+                    f"follower from dsp.csv.")
 
             ramp_line = f'RampProfile: {node["ramp_profile"]}' if node['ramp_profile'] else 'RampProfile: (none)'
 
@@ -19749,12 +20732,19 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             # THE AUX_INPUT BYPASS (S32). Two words a node: the `on` cell
             # the host writes, and the park's flag saying this node's block
             # is already the silence the mix bus is about to read.
+            #
+            # A FOLLOWER GATES ON ITS MASTER'S `on` WORD (S143) and on its
+            # OWN bypass flag: one cell, both legs of a stereo return, or
+            # one side could go on paying while the other was parked.
             _aux_ids = [n['id'] for n in chip_nodes
                         if n['type'] == 'AUX_INPUT']
+            _aux_on_of = {n['id']: (n.get('follows') or n['id'])
+                          for n in chip_nodes if n['type'] == 'AUX_INPUT'}
             if _aux_ids:
                 f.write('#if DSP4_BLOCK_KERNELS && DSP4_AUXIN_BYPASS\n')
-                for _a in _aux_ids:
+                for _a in sorted({_aux_on_of[_x] for _x in _aux_ids}):
                     f.write(f'.extern _auxin_on_{_a};\n')
+                for _a in _aux_ids:
                     f.write(f'.extern _auxin_byp_{_a};\n')
                 f.write('#endif\n')
             f.write(f'.global _{chip_label}_process_all;\n')
@@ -20156,7 +21146,7 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                 'DSP4_AUXIN_BYPASS\n')
                         f.write(f'    /* {nid}: skip while `on` is 0 and '
                                 f'the block is already silent */\n')
-                        f.write(f'    r2 = dm(_auxin_on_{nid});\n')
+                        f.write(f'    r2 = dm(_auxin_on_{_aux_on_of[nid]});\n')
                         f.write('    r2 = pass r2;\n')
                         f.write(f'    if ne jump (pc, .{sgpfx}ab{nid}_run);\n')
                         f.write(f'    r2 = dm(_auxin_byp_{nid});\n')
@@ -21040,5 +22030,8 @@ if __name__ == '__main__':
 
     FORMAT = args.format
     globals()['FORMAT'] = args.format
+    # Followers are a FIXED-arm mechanism (see _FOLLOW_TYPES_FIXED).
+    globals()['FOLLOW_TYPES'] = (_FOLLOW_TYPES_FIXED if args.format == 'fixed'
+                                 else set())
     sys.exit(generate(csv_path, out_dir, force=args.force,
                       node_type_filter=set(args.node_types) if args.node_types else None))

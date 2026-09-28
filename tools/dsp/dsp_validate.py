@@ -174,8 +174,35 @@ EXTRA_PARAMS = {
     'HAPTIC':         {'scope'},
 }
 
+# STEREO FOLLOWERS (S143) — params any type may carry, and the types that
+# may carry them. `follows=<master>` makes a row a second instance of its
+# master's kernel running its master's parameter set; `link_in=<node>` is
+# the other leg of a stereo-linked dynamics pair, detected on max(|L|,|R|);
+# `follow_leg` says which of a two-legged master's coefficients an instance
+# runs (MONITOR, whose two levels are two different cells). The mechanism
+# and its rationale are in dsp_codegen.py under STEREO FOLLOWERS; this file
+# checks the graph's half of the contract.
+FOLLOW_PARAM = 'follows'
+FOLLOW_TYPES = {
+    'FADER_PAN', 'GEQ', 'ANTI_FB', 'COMPRESSOR', 'LIMITER', 'DELAY',
+    'CROSSOVER', 'MONITOR', 'AUX_INPUT',
+}
+LINK_IN_TYPES = {'COMPRESSOR', 'LIMITER'}
+FOLLOW_LEG_TYPES = {'MONITOR'}
+
+# How many of a node's `inputs` its generator READS (mirrors
+# dsp_codegen._INPUT_ARITY). Default 1. A row that declares more is
+# S142-1: an input computed every block and read by nothing.
+INPUT_ARITY = {'MIX_BUS': 'all', 'METER': 'all'}
+
 ALLOWED_PARAMS = {t: REQUIRED_PARAMS.get(t, set()) | EXTRA_PARAMS.get(t, set())
                    for t in VALID_TYPES}
+for _t in FOLLOW_TYPES:
+    ALLOWED_PARAMS[_t] = ALLOWED_PARAMS[_t] | {FOLLOW_PARAM}
+for _t in LINK_IN_TYPES:
+    ALLOWED_PARAMS[_t] = ALLOWED_PARAMS[_t] | {'link_in'}
+for _t in FOLLOW_LEG_TYPES:
+    ALLOWED_PARAMS[_t] = ALLOWED_PARAMS[_t] | {'follow_leg'}
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +386,23 @@ def validate(csv_path):
 
         has_valid_spi = spi_page is not None and spi_addr is not None and spi_page >= 0 and spi_addr >= 0
 
-        if not has_valid_spi and ntype not in NO_SPI_TYPES:
+        # A FOLLOWER TAKES NO ADDRESS AND THAT IS THE POINT (S143): it runs
+        # its master's parameter set, so there is nothing for a host to
+        # write and nothing for the contract to name. One that DOES carry
+        # an address is an error, not a warning -- it would be a second,
+        # separately-writable copy of a control that is supposed to be one.
+        follows = params.get(FOLLOW_PARAM)
+        if follows:
+            if ntype not in FOLLOW_TYPES:
+                err(row_num, nid,
+                    f'{ntype} carries follows={follows} and is not a '
+                    f'follower-capable type ({sorted(FOLLOW_TYPES)})')
+            if has_valid_spi:
+                err(row_num, nid,
+                    f'follows={follows} and carries SPI address '
+                    f'page={spi_page} addr={spi_addr}. A follower runs its '
+                    f'master\'s parameter set and must take no address.')
+        elif not has_valid_spi and ntype not in NO_SPI_TYPES:
             warn(row_num, nid, f'No SPI address (page={spi_page_str}, addr={spi_addr_str}) for type {ntype}')
 
         # ── Check 8: SPI address uniqueness ─────────────────────────────────
@@ -373,7 +416,12 @@ def validate(csv_path):
                 spi_addresses[key] = nid
 
         # ── Check 10: Required + recognized params ──────────────────────────
-        required = REQUIRED_PARAMS.get(ntype, set())
+        # A follower's required params are its MASTER's: restating them on
+        # the follower row would be two declarations of one value, which is
+        # the thing `follows=` exists to avoid. (`max_ms` on a followed
+        # DELAY is the exception the row carries anyway -- the line length
+        # is the follower's own memory, not the master's parameter.)
+        required = set() if follows else REQUIRED_PARAMS.get(ntype, set())
         missing_params = required - set(params.keys())
         if missing_params:
             err(row_num, nid, f'Missing required params for {ntype}: {sorted(missing_params)}')
@@ -396,6 +444,93 @@ def validate(csv_path):
         for ref in outputs:
             if ref not in all_ids:
                 err(row_num, nid, f'Output reference "{ref}" does not exist')
+
+    # ── Check 9b: input arity and the follower graph (S143) ─────────────────
+    #
+    # THE S142-1 GATE, on the graph rather than on the generator. A node
+    # that declares more inputs than its generator reads used to compute a
+    # whole bus and discard it in silence: `C2_MAIN_FDR` declared
+    # `C2_MIX_MAIN_L;C2_MIX_MAIN_R` with `ch_count=2` and read the left one,
+    # so both MAIN XLRs carried LEFT. The way to read the second input is a
+    # FOLLOWER, and the rules a follower keeps are checked here too --
+    # dsp_codegen.py checks the same things, and it matters that the
+    # standalone validator does not have to be believed on trust.
+    by_row = {}
+    for row_num, row in enumerate(rows, start=2):
+        if row_num in duplicate_rows:
+            continue
+        by_row[(row.get('id') or '').strip()] = (row_num, row)
+    order_of = {nid: i for i, nid in enumerate(
+        (r.get('id') or '').strip() for r in rows)}
+    for nid, (row_num, row) in by_row.items():
+        ntype = row['type'].strip()
+        params = parse_params(row.get('params', ''))
+        ins = [i for i in parse_id_list(row.get('inputs', '')) if i != nid]
+        arity = INPUT_ARITY.get(ntype, 1)
+        if arity == 'all':
+            arity = len(ins)
+        elif ntype in LINK_IN_TYPES and params.get('link_in'):
+            arity = 2
+        if len(ins) > arity:
+            err(row_num, nid,
+                f'declares {len(ins)} inputs and a {ntype} reads {arity}: '
+                f'{", ".join(ins[arity:])} would be computed every block and '
+                f'read by nothing (S142-1). Give the node a follower that '
+                f'reads it, or take it off the row.')
+        link = params.get('link_in')
+        if link:
+            if ntype not in LINK_IN_TYPES:
+                err(row_num, nid, f'{ntype} cannot carry link_in')
+            elif link not in by_row:
+                err(row_num, nid, f'link_in={link} is not a node')
+            elif link not in ins:
+                err(row_num, nid,
+                    f'link_in={link} is not one of this row\'s inputs, so '
+                    f'the block wrapper never stages its buffer and the '
+                    f'detector would read a stale word.')
+        m = params.get(FOLLOW_PARAM)
+        if not m:
+            continue
+        if m not in by_row:
+            err(row_num, nid, f'follows={m}, which is not a node')
+            continue
+        mrow = by_row[m][1]
+        if mrow['type'].strip() != ntype:
+            err(row_num, nid,
+                f'follows {m}, which is a {mrow["type"].strip()} and this '
+                f'is a {ntype}: a follower is a second instance of its '
+                f'master\'s kernel.')
+        if mrow['chip'].strip() != row['chip'].strip():
+            err(row_num, nid, f'follows {m} across chips')
+        if parse_params(mrow.get('params', '')).get(FOLLOW_PARAM):
+            err(row_num, nid, f'follows {m}, which is itself a follower')
+        if order_of.get(nid, 0) < order_of.get(m, 0):
+            err(row_num, nid,
+                f'follows {m} but appears before it: a follower reads '
+                f'coefficients its master prepares, so it runs after.')
+    # ch_count stops being comment text: on a node whose generator reads one
+    # input, it is the number of channels the node and its followers carry.
+    followers_of = {}
+    for nid, (row_num, row) in by_row.items():
+        m = parse_params(row.get('params', '')).get(FOLLOW_PARAM)
+        if m:
+            followers_of.setdefault(m, []).append(nid)
+    for nid, (row_num, row) in by_row.items():
+        ntype = row['type'].strip()
+        params = parse_params(row.get('params', ''))
+        if INPUT_ARITY.get(ntype) == 'all' or params.get(FOLLOW_PARAM):
+            continue
+        try:
+            ch = int(row['ch_count'].strip() or '1')
+        except ValueError:
+            continue
+        nf = len(followers_of.get(nid, ()))
+        if ch != 1 + nf:
+            err(row_num, nid,
+                f'ch_count={ch} with {nf} follower(s), so the node carries '
+                f'{1 + nf} channel(s). Until S143 ch_count was comment text '
+                f'and that is how the main bus came to be mono behind a '
+                f'`ch_count=2` (S142-1).')
 
     # ── Check 11: process order / acyclicity, per chip ───────────────────────
     # Resolved from the graph, never from an emitted call order. A node

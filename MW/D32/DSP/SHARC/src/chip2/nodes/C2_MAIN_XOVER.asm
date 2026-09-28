@@ -20,6 +20,7 @@
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_DLY;
 .extern _sample_idx;
+.extern _xover_swap_pending_C2_MAIN_XOVER_R;
 
 #if DSP4_BQ_FLOAT
 .global _xover_lp_A_C2_MAIN_XOVER;
@@ -539,6 +540,11 @@ modify(i1, 1);            /* past the headroom header */
     dm(_xover_xfade_step_C2_MAIN_XOVER) = f0;
     r4 = 0;
     dm(_xover_xfade_alpha_C2_MAIN_XOVER) = r4;
+    /* S143: start this node's stereo follower(s) on the SAME
+     * block, from the same state, so the two run the transient
+     * in lockstep. */
+    r4 = 1;
+    dm(_xover_swap_pending_C2_MAIN_XOVER_R) = r4;
     rts;
 #if DSP4_XOVER_DESIGN
 _xover_redesign_C2_MAIN_XOVER:

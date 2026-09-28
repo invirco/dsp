@@ -2,7 +2,7 @@
  * USB Input (AUX_INPUT)
  * Node ID:    C2_USB_IN
  * Chip:       2
- * Channels:   2
+ * Channels:   1
  * SPI Page:   1
  * SPI Addr:   1797
  * RampProfile: GainFast

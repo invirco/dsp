@@ -20,6 +20,7 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_FDR;
+.extern _geq_swap_pending_C2_MAIN_GEQ_R;
 .extern _sample_idx;
 .global _geq_gains_C2_MAIN_GEQ;
 .var _geq_gains_C2_MAIN_GEQ[31];              /* per-band gain, dB — the landed contract's cell */
@@ -445,6 +446,11 @@ _geq_start_xfade_C2_MAIN_GEQ:
     dm(_geq_xfade_step_C2_MAIN_GEQ) = f0;
     r4 = 0;
     dm(_geq_xfade_alpha_C2_MAIN_GEQ) = r4;
+    /* S143: start this node's stereo follower(s) on the SAME
+     * block, from the same state, so the two run the transient
+     * in lockstep. */
+    r4 = 1;
+    dm(_geq_swap_pending_C2_MAIN_GEQ_R) = r4;
     rts;
 #if DSP4_GEQ_DESIGN
 _geq_redesign_C2_MAIN_GEQ:

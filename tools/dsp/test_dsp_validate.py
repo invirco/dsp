@@ -136,12 +136,100 @@ def t_valid_row_passes():
     check('a well-formed row passes (control)', code == 0)
 
 
+# ---------------------------------------------------------------------------
+# S143 — the arity contract and the follower rules (from finding S142-1)
+# ---------------------------------------------------------------------------
+
+def _fdr(nid, **over):
+    r = {'id': nid, 'chip': '2', 'type': 'FADER_PAN', 'ch_count': '1',
+         'inputs': '', 'outputs': '', 'spi_page': '1', 'spi_addr': '0',
+         'params': 'level_db=0.0;mute=0', 'ramp_profile': ''}
+    r.update(over)
+    return r
+
+
+def t_unread_second_input():
+    """S142-1 itself: two inputs, a generator that reads one, nothing said."""
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            _fdr('F', inputs='L;R', ch_count='2', spi_addr='2')]
+    code, out = run_validate(rows)
+    check('S142-1: a declared input the generator cannot read is rejected',
+          code == 1 and 'read by nothing' in out and 'S142-1' in out)
+
+
+def t_ch_count_without_follower():
+    """`ch_count` stops being comment text."""
+    rows = [base_row(id='L', spi_addr='0'),
+            _fdr('F', inputs='L', ch_count='2', spi_addr='2')]
+    code, out = run_validate(rows)
+    check('S143: ch_count=2 with no follower is rejected',
+          code == 1 and 'ch_count=2' in out and 'follower' in out)
+
+
+def t_follower_with_address():
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            _fdr('F', inputs='L', ch_count='2', spi_addr='2'),
+            _fdr('F_R', inputs='R', spi_addr='3',
+                 params='follows=F')]
+    code, out = run_validate(rows)
+    check('S143: a follower carrying an SPI address is rejected',
+          code == 1 and 'must take no address' in out)
+
+
+def t_follower_before_master():
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            _fdr('F_R', inputs='R', spi_page='-1', spi_addr='-1',
+                 params='follows=F'),
+            _fdr('F', inputs='L', ch_count='2', spi_addr='2')]
+    code, out = run_validate(rows)
+    check('S143: a follower placed before its master is rejected',
+          code == 1 and 'appears before it' in out)
+
+
+def t_follower_type_mismatch():
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            _fdr('F', inputs='L', ch_count='2', spi_addr='2'),
+            base_row(id='F_R', chip='2', inputs='R', spi_page='-1',
+                     spi_addr='-1',
+                     params='gain_db=0.0;mute=0;polarity=0;follows=F')]
+    code, out = run_validate(rows)
+    check('S143: a follower of a different type is rejected',
+          code == 1 and 'second instance' in out)
+
+
+def t_link_in_not_an_input():
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            {'id': 'C', 'chip': '2', 'type': 'LIMITER', 'ch_count': '1',
+             'inputs': 'L', 'outputs': '', 'spi_page': '1', 'spi_addr': '2',
+             'params': 'threshold_db=-0.5;attack_ms=0.1;release_ms=50.0;'
+                       'link_in=R',
+             'ramp_profile': ''}]
+    code, out = run_validate(rows)
+    check('S143: link_in that is not also an input is rejected',
+          code == 1 and 'never stages its buffer' in out)
+
+
+def t_valid_follower_passes():
+    """The control: the S143 shape the graph actually uses."""
+    rows = [base_row(id='L', spi_addr='0'), base_row(id='R', spi_addr='1'),
+            _fdr('F', inputs='L', ch_count='2', spi_addr='2'),
+            _fdr('F_R', inputs='R', spi_page='-1', spi_addr='-1',
+                 params='follows=F')]
+    code, out = run_validate(rows)
+    check('S143: a well-formed master/follower pair passes (control)',
+          code == 0)
+
+
 def main():
     for t in (t_empty_id, t_duplicate_id, t_bad_chip, t_unknown_type,
               t_unknown_ramp_profile, t_bad_ch_count, t_non_integer_spi,
               t_spi_collision, t_missing_required_param,
               t_unrecognized_param, t_dangling_reference, t_cycle,
-              t_valid_row_passes):
+              t_valid_row_passes,
+              t_unread_second_input, t_ch_count_without_follower,
+              t_follower_with_address, t_follower_before_master,
+              t_follower_type_mismatch, t_link_in_not_an_input,
+              t_valid_follower_passes):
         t()
     fails = 0
     for name, ok in results:

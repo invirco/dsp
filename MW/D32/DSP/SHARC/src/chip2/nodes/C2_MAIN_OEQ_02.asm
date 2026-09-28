@@ -20,7 +20,7 @@
 /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
-.extern _buf_C2_MAIN_XOVER;
+.extern _buf_C2_MAIN_XOVER_R;
 .extern _sample_idx;
 
 #if DSP4_BQ_FLOAT
@@ -80,7 +80,7 @@
 .var _buf_C2_MAIN_OEQ_02;
 
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_MAIN_XOVER;
+        .extern _blk_C2_MAIN_XOVER_R;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MAIN_OEQ_02;
@@ -145,7 +145,7 @@ _C2_MAIN_OEQ_02_process:
      * the main mix bus reading seventeen -- so filtering it where it
      * stands would corrupt every other reader. Two memory operations
      * per sample against a 4-stage cascade. */
-    i3 = _blk_C2_MAIN_XOVER;
+    i3 = _blk_C2_MAIN_XOVER_R;
     i4 = _blk_C2_MAIN_OEQ_02;
     lcntr = DSP4_BLOCK_SIZE, do .eqkb_cp_C2_MAIN_OEQ_02 until lce;
         r0 = dm(i3, 1);
@@ -208,7 +208,7 @@ _C2_MAIN_OEQ_02_process:
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_MAIN_XOVER;
+            i4 = _blk_C2_MAIN_XOVER_R;
             r3 = i4;
             dm(_bw_s0_C2_MAIN_OEQ_02) = r3;
             i4 = _blk_C2_MAIN_OEQ_02;
@@ -222,7 +222,7 @@ _C2_MAIN_OEQ_02_process:
                 r3 = dm(_bw_s0_C2_MAIN_OEQ_02);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_XOVER) = r0;
+                dm(_buf_C2_MAIN_XOVER_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_OEQ_02) = r3;
                 call _C2_MAIN_OEQ_02_process_sample;
@@ -238,7 +238,7 @@ _C2_MAIN_OEQ_02_process:
                 r3 = dm(_bw_s0_C2_MAIN_OEQ_02);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_XOVER) = r0;
+                dm(_buf_C2_MAIN_XOVER_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_OEQ_02) = r3;
                 call _C2_MAIN_OEQ_02_process_sample;
@@ -272,7 +272,7 @@ _C2_MAIN_OEQ_02_process:
     if ne jump (pc, .eq_xfade_C2_MAIN_OEQ_02);
 
     /* ===== steady state: active instance only ===== */
-    r0 = dm(_buf_C2_MAIN_XOVER);
+    r0 = dm(_buf_C2_MAIN_XOVER_R);
     r4 = dm(_eq_active_C2_MAIN_OEQ_02);
     r4 = pass r4;
     if ne jump (pc, .eq_ss_b_C2_MAIN_OEQ_02);
@@ -291,7 +291,7 @@ _C2_MAIN_OEQ_02_process:
 
     /* ===== crossfade: run both, blend fixed ===== */
 .eq_xfade_C2_MAIN_OEQ_02:
-    r0 = dm(_buf_C2_MAIN_XOVER);
+    r0 = dm(_buf_C2_MAIN_XOVER_R);
     r13 = r0;                     /* input (r13-r15 preserved by lib) */
     i0 = _eq_coeffs_A_C2_MAIN_OEQ_02;
     i1 = _eq_state_A_C2_MAIN_OEQ_02;

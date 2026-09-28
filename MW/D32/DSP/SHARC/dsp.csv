@@ -467,9 +467,9 @@ C2_RECV_FX_04,2,INTERCHIP_RECV,FX 4 Recv,1,,C2_FX_ENG_04,-1,-1,sport_id=1;slot=6
 C2_RECV_FX_05,2,INTERCHIP_RECV,FX 5 Recv,1,,C2_FX_ENG_05,-1,-1,sport_id=1;slot=7;global_slot=23;sport_slots=16;signal=BUS_FX_05,
 C2_RECV_FX_06,2,INTERCHIP_RECV,FX 6 Recv,1,,C2_FX_ENG_06,-1,-1,sport_id=1;slot=8;global_slot=24;sport_slots=16;signal=BUS_FX_06,
 C2_XR_CODEC_AUX_L,2,INTERCHIP_RECV,XFER_CODEC_AUX_L Recv,1,,C2_CODEC_AUX_IN,-1,-1,sport_id=1;slot=9;global_slot=25;sport_slots=16;signal=XFER_CODEC_AUX_L,
-C2_XR_CODEC_AUX_R,2,INTERCHIP_RECV,XFER_CODEC_AUX_R Recv,1,,C2_CODEC_AUX_IN,-1,-1,sport_id=1;slot=10;global_slot=26;sport_slots=16;signal=XFER_CODEC_AUX_R,
+C2_XR_CODEC_AUX_R,2,INTERCHIP_RECV,XFER_CODEC_AUX_R Recv,1,,C2_CODEC_AUX_IN_R,-1,-1,sport_id=1;slot=10;global_slot=26;sport_slots=16;signal=XFER_CODEC_AUX_R,
 C2_XR_PI_L,2,INTERCHIP_RECV,XFER_PI_L Recv,1,,C2_PI_IN,-1,-1,sport_id=1;slot=11;global_slot=27;sport_slots=16;signal=XFER_PI_L,
-C2_XR_PI_R,2,INTERCHIP_RECV,XFER_PI_R Recv,1,,C2_PI_IN,-1,-1,sport_id=1;slot=12;global_slot=28;sport_slots=16;signal=XFER_PI_R,
+C2_XR_PI_R,2,INTERCHIP_RECV,XFER_PI_R Recv,1,,C2_PI_IN_R,-1,-1,sport_id=1;slot=12;global_slot=28;sport_slots=16;signal=XFER_PI_R,
 C2_XR_SNAKE_01,2,INTERCHIP_RECV,XFER_SNAKE_01 Recv,1,,C2_SNK_IN_01,-1,-1,sport_id=1;slot=13;global_slot=29;sport_slots=16;signal=XFER_SNAKE_01;scope=D32,
 C2_XR_SNAKE_02,2,INTERCHIP_RECV,XFER_SNAKE_02 Recv,1,,C2_SNK_IN_02,-1,-1,sport_id=1;slot=14;global_slot=30;sport_slots=16;signal=XFER_SNAKE_02;scope=D32,
 C2_XR_SNAKE_03,2,INTERCHIP_RECV,XFER_SNAKE_03 Recv,1,,C2_SNK_IN_03,-1,-1,sport_id=1;slot=15;global_slot=31;sport_slots=16;signal=XFER_SNAKE_03;scope=D32,
@@ -478,8 +478,10 @@ C2_XR_SNAKE_05,2,INTERCHIP_RECV,XFER_SNAKE_05 Recv,1,,C2_SNK_IN_05,-1,-1,sport_i
 C2_XR_SNAKE_06,2,INTERCHIP_RECV,XFER_SNAKE_06 Recv,1,,C2_SNK_IN_06,-1,-1,sport_id=2;slot=2;global_slot=34;sport_slots=16;signal=XFER_SNAKE_06;scope=D32,
 C2_XR_SNAKE_07,2,INTERCHIP_RECV,XFER_SNAKE_07 Recv,1,,C2_SNK_IN_07,-1,-1,sport_id=2;slot=3;global_slot=35;sport_slots=16;signal=XFER_SNAKE_07;scope=D32,
 C2_XR_SNAKE_08,2,INTERCHIP_RECV,XFER_SNAKE_08 Recv,1,,C2_SNK_IN_08,-1,-1,sport_id=2;slot=4;global_slot=36;sport_slots=16;signal=XFER_SNAKE_08;scope=D32,
-C2_CODEC_AUX_IN,2,AUX_INPUT,Codec Aux Input,2,C2_XR_CODEC_AUX_L;C2_XR_CODEC_AUX_R,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1857,level_db=-6.0;on=0,GainFast
-C2_PI_IN,2,AUX_INPUT,Pi Playback Input,2,C2_XR_PI_L;C2_XR_PI_R,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1859,level_db=-6.0;on=0,GainFast
+C2_CODEC_AUX_IN,2,AUX_INPUT,Codec Aux Input,2,C2_XR_CODEC_AUX_L,C2_MIX_MAIN_L,1,1857,level_db=-6.0;on=0,GainFast
+C2_CODEC_AUX_IN_R,2,AUX_INPUT,Codec Aux Input R,1,C2_XR_CODEC_AUX_R,C2_MIX_MAIN_R,-1,-1,follows=C2_CODEC_AUX_IN,GainFast
+C2_PI_IN,2,AUX_INPUT,Pi Playback Input,2,C2_XR_PI_L,C2_MIX_MAIN_L,1,1859,level_db=-6.0;on=0,GainFast
+C2_PI_IN_R,2,AUX_INPUT,Pi Playback Input R,1,C2_XR_PI_R,C2_MIX_MAIN_R,-1,-1,follows=C2_PI_IN,GainFast
 C2_SNK_IN_01,2,AUX_INPUT,Snake Return 1 Input,1,C2_XR_SNAKE_01,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1861,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_02,2,AUX_INPUT,Snake Return 2 Input,1,C2_XR_SNAKE_02,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1863,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_03,2,AUX_INPUT,Snake Return 3 Input,1,C2_XR_SNAKE_03,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1865,level_db=-6.0;on=0;scope=D32,GainFast
@@ -488,12 +490,12 @@ C2_SNK_IN_05,2,AUX_INPUT,Snake Return 5 Input,1,C2_XR_SNAKE_05,C2_MIX_MAIN_L;C2_
 C2_SNK_IN_06,2,AUX_INPUT,Snake Return 6 Input,1,C2_XR_SNAKE_06,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1871,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_07,2,AUX_INPUT,Snake Return 7 Input,1,C2_XR_SNAKE_07,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1873,level_db=-6.0;on=0;scope=D32,GainFast
 C2_SNK_IN_08,2,AUX_INPUT,Snake Return 8 Input,1,C2_XR_SNAKE_08,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1875,level_db=-6.0;on=0;scope=D32,GainFast
-C2_FX_ENG_01,2,FX_ENGINE,FX 1 Engine,2,C2_RECV_FX_01,C2_FX_FDR_01,1,1620,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_ENG_02,2,FX_ENGINE,FX 2 Engine,2,C2_RECV_FX_02,C2_FX_FDR_02,1,1648,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_ENG_03,2,FX_ENGINE,FX 3 Engine,2,C2_RECV_FX_03,C2_FX_FDR_03,1,1676,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_ENG_04,2,FX_ENGINE,FX 4 Engine,2,C2_RECV_FX_04,C2_FX_FDR_04,1,1704,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_ENG_05,2,FX_ENGINE,FX 5 Engine,2,C2_RECV_FX_05,C2_FX_FDR_05,1,1732,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
-C2_FX_ENG_06,2,FX_ENGINE,FX 6 Engine,2,C2_RECV_FX_06,C2_FX_FDR_06,1,1760,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_01,2,FX_ENGINE,FX 1 Engine,1,C2_RECV_FX_01,C2_FX_FDR_01,1,1620,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_02,2,FX_ENGINE,FX 2 Engine,1,C2_RECV_FX_02,C2_FX_FDR_02,1,1648,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_03,2,FX_ENGINE,FX 3 Engine,1,C2_RECV_FX_03,C2_FX_FDR_03,1,1676,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_04,2,FX_ENGINE,FX 4 Engine,1,C2_RECV_FX_04,C2_FX_FDR_04,1,1704,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_05,2,FX_ENGINE,FX 5 Engine,1,C2_RECV_FX_05,C2_FX_FDR_05,1,1732,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
+C2_FX_ENG_06,2,FX_ENGINE,FX 6 Engine,1,C2_RECV_FX_06,C2_FX_FDR_06,1,1760,type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10,GainSafe
 C2_FX_FDR_01,2,FADER_PAN,FX 1 Return,1,C2_FX_ENG_01,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1644,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_FX_FDR_02,2,FADER_PAN,FX 2 Return,1,C2_FX_ENG_02,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1672,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_FX_FDR_03,2,FADER_PAN,FX 3 Return,1,C2_FX_ENG_03,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1700,"level_db=-6.0;mute=0;host_cells=Dca,DcaOn",GainFast
@@ -623,18 +625,24 @@ C2_SUB_LIM,2,LIMITER,Sub Lim,1,C2_SUB_COMP,C2_SUB_DLY,1,1364,threshold_db=-0.5;a
 C2_SUB_DLY,2,DELAY,Sub Delay,1,C2_SUB_LIM,C2_SUB_OUT,1,1368,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_SUB_OUT,2,OUTPUT_TDM,Sub Out,1,C2_SUB_DLY,,1,1370,sport_id=4;slot_start=0;slot_count=1;sport_slots=8;signal=NET_OUT_01,
 C2_MIX_MAIN_L,2,MIX_BUS,Main Mix L,1,C2_RECV_MAIN_L;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR,1,1371,bus_id=0,
-C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR,1,1375,bus_id=1,
-C2_MAIN_FDR,2,FADER_PAN,Main Fader,2,C2_MIX_MAIN_L;C2_MIX_MAIN_R,C2_MAIN_GEQ,1,1379,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN_R;C2_PI_IN_R;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR_R,1,1375,bus_id=1,
+C2_MAIN_FDR,2,FADER_PAN,Main Fader,2,C2_MIX_MAIN_L,C2_MAIN_GEQ,1,1379,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_MAIN_FDR_R,2,FADER_PAN,Main Fader R,1,C2_MIX_MAIN_R,C2_MAIN_GEQ_R,-1,-1,follows=C2_MAIN_FDR,GainFast
 C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_COMP,1,1383,bands=31,EqSafe
-C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA,DynSafe
-C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP,C2_MAIN_DLY,1,1430,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
+C2_MAIN_GEQ_R,2,GEQ,Main GEQ R,1,C2_MAIN_FDR_R,C2_MAIN_COMP_R,-1,-1,bands=31;follows=C2_MAIN_GEQ,EqSafe
+C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ;C2_MAIN_GEQ_R,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;link_in=C2_MAIN_GEQ_R,DynSafe
+C2_MAIN_COMP_R,2,COMPRESSOR,Main Comp R,1,C2_MAIN_GEQ_R;C2_MAIN_GEQ,C2_MAIN_LIM_R,-1,-1,follows=C2_MAIN_COMP;link_in=C2_MAIN_GEQ,DynSafe
+C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP;C2_MAIN_COMP_R,C2_MAIN_DLY,1,1430,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0;link_in=C2_MAIN_COMP_R,DynSafe
+C2_MAIN_LIM_R,2,LIMITER,Main Lim R,1,C2_MAIN_COMP_R;C2_MAIN_COMP,C2_MAIN_DLY_R,-1,-1,follows=C2_MAIN_LIM;link_in=C2_MAIN_COMP,DynSafe
 C2_MAIN_DLY,2,DELAY,Main Delay,2,C2_MAIN_LIM,C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT,1,1434,delay_ms=0.0;max_ms=250.0,InstantCtl
-C2_MAIN_XOVER,2,CROSSOVER,Main Xover,2,C2_MAIN_DLY,C2_MAIN_OUT_01;C2_MAIN_OUT_02;C2_MAIN_OUT_03;C2_MAIN_OUT_04,1,1436,freq=120.0;slope=24,EqSafe
+C2_MAIN_DLY_R,2,DELAY,Main Delay R,1,C2_MAIN_LIM_R,C2_MAIN_XOVER_R;C2_MAIN_ST_OUT_R;C2_CODEC_AUX_OUT_R,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MAIN_DLY,InstantCtl
+C2_MAIN_XOVER,2,CROSSOVER,Main Xover,2,C2_MAIN_DLY,C2_MAIN_OUT_01;C2_MAIN_OUT_03;C2_MAIN_OUT_04,1,1436,freq=120.0;slope=24,EqSafe
+C2_MAIN_XOVER_R,2,CROSSOVER,Main Xover R,1,C2_MAIN_DLY_R,C2_MAIN_OUT_02,-1,-1,freq=120.0;slope=24;follows=C2_MAIN_XOVER,EqSafe
 C2_MAIN_OEQ_01,2,EQ_BIQUAD,Main Out 1 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_01,1,1440,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_01,2,COMPRESSOR,Main Out 1 Comp,1,C2_MAIN_OEQ_01,C2_MAIN_OLIM_01,1,1464,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_01,2,LIMITER,Main Out 1 Lim,1,C2_MAIN_OCOMP_01,C2_MAIN_OUT_01,1,1480,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_01,2,OUTPUT_TDM,Main Out 1,1,C2_MAIN_OLIM_01,,1,1484,sport_id=1;slot_start=3;slot_count=1;sport_slots=8;signal=DAC_12;mo_page=1;mo_addr=2167,
-C2_MAIN_OEQ_02,2,EQ_BIQUAD,Main Out 2 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_02,1,1485,bands=4;coeffs=default,EqSafe
+C2_MAIN_OEQ_02,2,EQ_BIQUAD,Main Out 2 EQ,1,C2_MAIN_XOVER_R,C2_MAIN_OCOMP_02,1,1485,bands=4;coeffs=default,EqSafe
 C2_MAIN_OCOMP_02,2,COMPRESSOR,Main Out 2 Comp,1,C2_MAIN_OEQ_02,C2_MAIN_OLIM_02,1,1509,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_02,2,LIMITER,Main Out 2 Lim,1,C2_MAIN_OCOMP_02,C2_MAIN_OUT_02,1,1525,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_02,2,OUTPUT_TDM,Main Out 2,1,C2_MAIN_OLIM_02,,1,1529,sport_id=1;slot_start=2;slot_count=1;sport_slots=8;signal=DAC_11;mo_page=1;mo_addr=2169,
@@ -646,12 +654,14 @@ C2_MAIN_OEQ_04,2,EQ_BIQUAD,Main Out 4 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_04,1,1575
 C2_MAIN_OCOMP_04,2,COMPRESSOR,Main Out 4 Comp,1,C2_MAIN_OEQ_04,C2_MAIN_OLIM_04,1,1599,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
 C2_MAIN_OLIM_04,2,LIMITER,Main Out 4 Lim,1,C2_MAIN_OCOMP_04,C2_MAIN_OUT_04,1,1615,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_04,2,OUTPUT_TDM,Main Out 4,1,C2_MAIN_OLIM_04,,1,1619,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16;mo_page=1;mo_addr=2173,
-C2_MON,2,MONITOR,Monitor,2,C2_MAIN_FDR,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main,GainFast
+C2_MON,2,MONITOR,Monitor,2,C2_MAIN_FDR,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l,GainFast
+C2_MON_R,2,MONITOR,Monitor R,1,C2_MAIN_FDR_R,C2_MON_DLY_R,-1,-1,follows=C2_MON;follow_leg=r,GainFast
 C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,,1,1794,delay_ms=0.0;max_ms=250.0,InstantCtl
+C2_MON_DLY_R,2,DELAY,Monitor Delay R,1,C2_MON_R,,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY,InstantCtl
 C2_HPT_01,2,HAPTIC,Panel Haptic,1,,C2_SPKR_OUT,1,2175,trig=0;sample=1;level=1.0;test_on=0;test_level=0.0;click_hz=2500:3000:1500;click_tau_ms=2.5:1.8:3.0;click_peak=0.94;click_end_db=-60.0;tone_hz=1000.0;scope=D24,InstantCtl
 C2_SPKR_OUT,2,OUTPUT_TDM,Panel Speaker Out,1,C2_HPT_01,,1,1796,sport_id=2;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_OUT_1;scope=D24;sink=SPKR,
-C2_USB_IN,2,AUX_INPUT,USB Input,2,,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1797,level_db=-6.0;on=0,GainFast
-C2_BT_IN,2,AUX_INPUT,BT Input,2,,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1799,level_db=-6.0;on=0,GainFast
+C2_USB_IN,2,AUX_INPUT,USB Input,1,,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1797,level_db=-6.0;on=0,GainFast
+C2_BT_IN,2,AUX_INPUT,BT Input,1,,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1799,level_db=-6.0;on=0,GainFast
 C2_DCA_01,2,DCA,DCA 1,1,,,1,1801,level_db=0.0;mute=0,GainFast
 C2_DCA_02,2,DCA,DCA 2,1,,,1,1803,level_db=0.0;mute=0,GainFast
 C2_DCA_03,2,DCA,DCA 3,1,,,1,1805,level_db=0.0;mute=0,GainFast
@@ -687,8 +697,10 @@ C2_MTR_FX_03,2,METER,FX 3 Meter,1,C2_FX_FDR_03,,1,1844,taps=peak,
 C2_MTR_FX_04,2,METER,FX 4 Meter,1,C2_FX_FDR_04,,1,1845,taps=peak,
 C2_MTR_FX_05,2,METER,FX 5 Meter,1,C2_FX_FDR_05,,1,1846,taps=peak,
 C2_MTR_FX_06,2,METER,FX 6 Meter,1,C2_FX_FDR_06,,1,1847,taps=peak,
-C2_MAIN_ST_OUT,2,OUTPUT_TDM,Main Stereo Out (DAC MAIN),2,C2_MAIN_DLY,,1,1877,sport_id=3;slot_start=0;slot_count=2;sport_slots=8;signal=DAC_MAIN_L,
-C2_CODEC_AUX_OUT,2,OUTPUT_TDM,Codec Aux Out,2,C2_MAIN_DLY,,1,1878,sport_id=2;slot_start=2;slot_count=2;sport_slots=8;signal=CODEC_OUT_3;scope=D24;sink=DNP,
+C2_MAIN_ST_OUT,2,OUTPUT_TDM,Main Stereo Out L (DAC MAIN),1,C2_MAIN_DLY,,1,1877,sport_id=3;slot_start=0;slot_count=1;sport_slots=8;signal=DAC_MAIN_L,
+C2_MAIN_ST_OUT_R,2,OUTPUT_TDM,Main Stereo Out R (DAC MAIN),1,C2_MAIN_DLY_R,,1,2183,sport_id=3;slot_start=1;slot_count=1;sport_slots=8;signal=DAC_MAIN_R,
+C2_CODEC_AUX_OUT,2,OUTPUT_TDM,Codec Aux Out L,1,C2_MAIN_DLY,,1,1878,sport_id=2;slot_start=2;slot_count=1;sport_slots=8;signal=CODEC_OUT_3;scope=D24;sink=DNP,
+C2_CODEC_AUX_OUT_R,2,OUTPUT_TDM,Codec Aux Out R,1,C2_MAIN_DLY_R,,1,2184,sport_id=2;slot_start=3;slot_count=1;sport_slots=8;signal=CODEC_OUT_4;scope=D24;sink=DNP,
 C2_RECV_MTX_01,2,INTERCHIP_RECV,Matrix 1 Recv,1,,C2_MTX_FDR_01,-1,-1,sport_id=2;slot=5;global_slot=37;sport_slots=16;signal=BUS_MTX_01,
 C2_MTX_FDR_01,2,FADER_PAN,Matrix 1 Master,1,C2_RECV_MTX_01,C2_MTX_OUT_01,1,2003,level_db=0.0;mute=0,GainFast
 C2_MTX_OUT_01,2,OUTPUT_TDM,Matrix 1 Out,1,C2_MTX_FDR_01,,1,2007,sport_id=4;slot_start=1;slot_count=1;sport_slots=8;signal=NET_OUT_02,

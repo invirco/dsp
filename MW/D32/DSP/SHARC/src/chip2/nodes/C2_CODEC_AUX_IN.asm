@@ -19,7 +19,6 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_XR_CODEC_AUX_L;
-.extern _buf_C2_XR_CODEC_AUX_R;
 .global _auxin_on_C2_CODEC_AUX_IN;
 .var _auxin_on_C2_CODEC_AUX_IN = 0;
 .global _auxin_level_C2_CODEC_AUX_IN;
@@ -44,7 +43,6 @@
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_XR_CODEC_AUX_L;
-        .extern _blk_C2_XR_CODEC_AUX_R;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_CODEC_AUX_IN;
@@ -53,8 +51,6 @@
         .var _bw_k_C2_CODEC_AUX_IN;        /* the caller's _sample_idx */
         .global _bw_s0_C2_CODEC_AUX_IN;
         .var _bw_s0_C2_CODEC_AUX_IN;       /* walking source pointer */
-        .global _bw_s1_C2_CODEC_AUX_IN;
-        .var _bw_s1_C2_CODEC_AUX_IN;       /* walking source pointer */
         .global _bw_d0_C2_CODEC_AUX_IN;
         .var _bw_d0_C2_CODEC_AUX_IN;       /* walking sink pointer */
         #endif
@@ -112,9 +108,6 @@ _C2_CODEC_AUX_IN_process:
             i4 = _blk_C2_XR_CODEC_AUX_L;
             r3 = i4;
             dm(_bw_s0_C2_CODEC_AUX_IN) = r3;
-            i4 = _blk_C2_XR_CODEC_AUX_R;
-            r3 = i4;
-            dm(_bw_s1_C2_CODEC_AUX_IN) = r3;
             i4 = _blk_C2_CODEC_AUX_IN;
             r3 = i4;
             dm(_bw_d0_C2_CODEC_AUX_IN) = r3;
@@ -129,12 +122,6 @@ _C2_CODEC_AUX_IN_process:
                 dm(_buf_C2_XR_CODEC_AUX_L) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_CODEC_AUX_IN) = r3;
-                r3 = dm(_bw_s1_C2_CODEC_AUX_IN);
-                i4 = r3;
-                r0 = dm(i4, 0);
-                dm(_buf_C2_XR_CODEC_AUX_R) = r0;
-                r3 = r3 + 1;
-                dm(_bw_s1_C2_CODEC_AUX_IN) = r3;
                 call _C2_CODEC_AUX_IN_process_sample;
                 r0 = dm(_buf_C2_CODEC_AUX_IN);
                 r3 = dm(_bw_d0_C2_CODEC_AUX_IN);
@@ -151,12 +138,6 @@ _C2_CODEC_AUX_IN_process:
                 dm(_buf_C2_XR_CODEC_AUX_L) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_CODEC_AUX_IN) = r3;
-                r3 = dm(_bw_s1_C2_CODEC_AUX_IN);
-                i4 = r3;
-                r0 = dm(i4, 0);
-                dm(_buf_C2_XR_CODEC_AUX_R) = r0;
-                r3 = r3 + 1;
-                dm(_bw_s1_C2_CODEC_AUX_IN) = r3;
                 call _C2_CODEC_AUX_IN_process_sample;
                 r0 = dm(_buf_C2_CODEC_AUX_IN);
                 r3 = dm(_bw_d0_C2_CODEC_AUX_IN);

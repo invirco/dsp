@@ -942,13 +942,24 @@ add('C2_SUB_OUT', 2, 'OUTPUT_TDM', 'Sub Out', 1, 'C2_SUB_DLY', '',
 # node and is dispatched-but-uncelled; the engine is mono end to end, so
 # the two mix legs read the same block. That a stereo FX return would need
 # a `Fx*Pan` cell is a question for PW, not a thing to invent.)
-aux_input_ids = ['C2_USB_IN', 'C2_BT_IN', 'C2_CODEC_AUX_IN', 'C2_PI_IN'] + \
+# THE STEREO SUPERSET RETURNS FEED THE MIX LEG THAT IS THEIR OWN SIDE
+# (S143). `C2_CODEC_AUX_IN` and `C2_PI_IN` are stereo pairs -- master
+# (L) and follower (R) -- so the right mix reads the followers. USB, BT
+# and the eight snake returns are single nodes and feed both legs, which
+# is what they have always done: the host writes ONE word for USB and BT
+# (see their rows) and a snake return is one fabric slot. Making those
+# genuinely stereo is a graph change with a wire behind it, so it is
+# RECORDED here rather than invented.
+aux_input_l = ['C2_USB_IN', 'C2_BT_IN', 'C2_CODEC_AUX_IN', 'C2_PI_IN'] + \
+    [f'C2_SNK_IN_{s:02d}' for s in range(1, 9)]
+aux_input_r = ['C2_USB_IN', 'C2_BT_IN', 'C2_CODEC_AUX_IN_R', 'C2_PI_IN_R'] + \
     [f'C2_SNK_IN_{s:02d}' for s in range(1, 9)]
 grp_comp_ids = ';'.join(f'C2_GRP_COMP_{g:02d}' for g in range(1, NUM_GRP + 1))
-aux_in_str = ';'.join(aux_input_ids)
+aux_in_str = ';'.join(aux_input_l)
+aux_in_str_r = ';'.join(aux_input_r)
 fx_fdr_ids = ';'.join(f'C2_FX_FDR_{f:02d}' for f in range(1, NUM_FX + 1))
 main_l_sources = f'{recv_ids["main_l"]};{grp_comp_ids};{aux_in_str};{fx_fdr_ids}'
-main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids};{aux_in_str};{fx_fdr_ids}'
+main_r_sources = f'{recv_ids["main_r"]};{grp_comp_ids};{aux_in_str_r};{fx_fdr_ids}'
 
 for r in rows:
     if r['id'] == recv_ids['main_l']:
@@ -962,15 +973,53 @@ add('C2_MIX_MAIN_L', 2, 'MIX_BUS', 'Main Mix L', 1, main_l_sources, 'C2_MAIN_FDR
     params='bus_id=0')
 
 p, a2 = c2_alloc.next(4)
-add('C2_MIX_MAIN_R', 2, 'MIX_BUS', 'Main Mix R', 1, main_r_sources, 'C2_MAIN_FDR',
+add('C2_MIX_MAIN_R', 2, 'MIX_BUS', 'Main Mix R', 1, main_r_sources,
+    'C2_MAIN_FDR_R',
     spi_page=p, spi_addr=a2,
     params='bus_id=1')
 
+# ===========================================================================
+# THE MAIN BUS IS STEREO FROM THE MASTER FADER ON (S143, closing S142-1)
+# ===========================================================================
+#
+# IT WAS NOT, AND NOTHING SAID SO. `C2_MAIN_FDR` declared
+# `inputs=C2_MIX_MAIN_L;C2_MIX_MAIN_R` and `ch_count=2`; the generator read
+# `inputs[0]`. So `_blk_C2_MIX_MAIN_R` was computed every block by a mix bus
+# with seventeen sources and read by NOTHING, and both MAIN XLRs (DAC_12
+# J56, DAC_11 J57), both DAC MAIN slots, the codec aux out and the monitor
+# all carried the LEFT bus. The stereo image exists on chip 1 -- S121
+# measured a hard-panned strip reading exact digital zero on the other side
+# -- and was discarded one node into chip 2.
+#
+# THE SHAPE OF THE FIX is D5's own ruling: "TWO DSP instances (Main L, Main
+# R) sharing ONE parameter set". Each stage of the chain is a MASTER and a
+# FOLLOWER; the follower reads the master's coefficient symbols by name,
+# keeps its own state, takes NO cell and NO SPI address, and therefore
+# needs no dispatch change and no contract bump. The mechanism is general
+# (`follows=` in params) and lives in dsp_codegen.py under STEREO FOLLOWERS.
+#
+# THE TWO DYNAMICS STAGES ARE LINKED, NOT DUPLICATED. `link_in=` names the
+# other leg, both legs detect on max(|L|,|R|), and from one parameter set
+# and one initial envelope they compute the SAME gain sample for sample --
+# so the bus compressor and the brick wall pull both sides together and the
+# image does not walk. That costs the two cross-chain SIMD pairs
+# (`_C2_CROSS_PAIRS`, MAIN_COMP+SUB_COMP and MAIN_LIM+SUB_LIM): the pair
+# kernel reads one block per channel and has no second detector input, so
+# those four nodes fall back to their scalar bodies. Stated, priced, and
+# due to dissolve anyway -- S142 §3.2 deletes `C2_SUB_COMP`.
+#
+# ROW ORDER IS THE PROCESS ORDER (S23-3's precedent): each follower sits
+# immediately after its master, so `repair_process_order` has nothing to
+# move and `c2_pair_groups` still sees contiguous runs.
 p, a2 = c2_alloc.next(4)
-add('C2_MAIN_FDR', 2, 'FADER_PAN', 'Main Fader', 2, 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+add('C2_MAIN_FDR', 2, 'FADER_PAN', 'Main Fader', 2, 'C2_MIX_MAIN_L',
     'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_COMP',
     spi_page=p, spi_addr=a2,
     params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
+    ramp_profile='GainFast')
+add('C2_MAIN_FDR_R', 2, 'FADER_PAN', 'Main Fader R', 1, 'C2_MIX_MAIN_R',
+    'C2_MAIN_GEQ_R' if 'main' in GEQ_ON else 'C2_MAIN_COMP_R',
+    params='follows=C2_MAIN_FDR',
     ramp_profile='GainFast')
 
 if 'main' in GEQ_ON:
@@ -979,18 +1028,36 @@ if 'main' in GEQ_ON:
         spi_page=p, spi_addr=a2,
         params=f'bands={GEQ_BANDS}',
         ramp_profile='EqSafe')
+    add('C2_MAIN_GEQ_R', 2, 'GEQ', 'Main GEQ R', 1, 'C2_MAIN_FDR_R',
+        'C2_MAIN_COMP_R',
+        params=f'bands={GEQ_BANDS};follows=C2_MAIN_GEQ',
+        ramp_profile='EqSafe')
+
+_main_dyn_l = 'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_FDR'
+_main_dyn_r = _main_dyn_l + '_R'
 
 p, a2 = c2_alloc.next(16)
 add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2,
-    'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_FDR', 'C2_MAIN_LIM',
+    f'{_main_dyn_l};{_main_dyn_r}', 'C2_MAIN_LIM',
     spi_page=p, spi_addr=a2,
-    params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA',
+    params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA'
+           f';link_in={_main_dyn_r}',
+    ramp_profile='DynSafe')
+add('C2_MAIN_COMP_R', 2, 'COMPRESSOR', 'Main Comp R', 1,
+    f'{_main_dyn_r};{_main_dyn_l}', 'C2_MAIN_LIM_R',
+    params=f'follows=C2_MAIN_COMP;link_in={_main_dyn_l}',
     ramp_profile='DynSafe')
 
 p, a2 = c2_alloc.next(4)
-add('C2_MAIN_LIM', 2, 'LIMITER', 'Main Lim', 2, 'C2_MAIN_COMP', 'C2_MAIN_DLY',
+add('C2_MAIN_LIM', 2, 'LIMITER', 'Main Lim', 2,
+    'C2_MAIN_COMP;C2_MAIN_COMP_R', 'C2_MAIN_DLY',
     spi_page=p, spi_addr=a2,
-    params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0',
+    params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0'
+           ';link_in=C2_MAIN_COMP_R',
+    ramp_profile='DynSafe')
+add('C2_MAIN_LIM_R', 2, 'LIMITER', 'Main Lim R', 1,
+    'C2_MAIN_COMP_R;C2_MAIN_COMP', 'C2_MAIN_DLY_R',
+    params='follows=C2_MAIN_LIM;link_in=C2_MAIN_COMP',
     ramp_profile='DynSafe')
 
 p, a2 = c2_alloc.next(2)
@@ -999,16 +1066,35 @@ add('C2_MAIN_DLY', 2, 'DELAY', 'Main Delay', 2, 'C2_MAIN_LIM',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
     ramp_profile='InstantCtl')
+add('C2_MAIN_DLY_R', 2, 'DELAY', 'Main Delay R', 1, 'C2_MAIN_LIM_R',
+    'C2_MAIN_XOVER_R;C2_MAIN_ST_OUT_R;C2_CODEC_AUX_OUT_R',
+    params='delay_ms=0.0;max_ms=250.0;follows=C2_MAIN_DLY',
+    ramp_profile='InstantCtl')
 
 p, a2 = c2_alloc.next(4)
 add('C2_MAIN_XOVER', 2, 'CROSSOVER', 'Main Xover', 2,
-    'C2_MAIN_DLY', 'C2_MAIN_OUT_01;C2_MAIN_OUT_02;C2_MAIN_OUT_03;C2_MAIN_OUT_04',
+    'C2_MAIN_DLY', 'C2_MAIN_OUT_01;C2_MAIN_OUT_03;C2_MAIN_OUT_04',
     spi_page=p, spi_addr=a2,
     params='freq=120.0;slope=24',
+    ramp_profile='EqSafe')
+add('C2_MAIN_XOVER_R', 2, 'CROSSOVER', 'Main Xover R', 1,
+    'C2_MAIN_DLY_R', 'C2_MAIN_OUT_02',
+    params='freq=120.0;slope=24;follows=C2_MAIN_XOVER',
     ramp_profile='EqSafe')
 
 # --- Per-output processing (Main ×4) ---
 # Output patch: MAIN_OUT_DAC above — outs 1/2 on the MAIN XLRs
+#
+# OUTPUT 2 IS MainR AND NOW READS THE RIGHT CROSSOVER (S143). Outputs 3
+# and 4 are MainCtr and MainSub and still read the LEFT leg: the centre is
+# a sum and the sub is an LF sum, and both are rebuilt by S142 §3.2's item
+# 1 (the Centre strip off `C2_SUB_*` and the Woof strip off the two LF
+# legs), which is a ruled graph change of its own. Feeding them the left
+# leg alone is what they have always had; it is recorded here rather than
+# guessed at, because a half-migrated centre would be worse than a stated
+# one.
+_xover_of_out = {1: 'C2_MAIN_XOVER', 2: 'C2_MAIN_XOVER_R',
+                 3: 'C2_MAIN_XOVER', 4: 'C2_MAIN_XOVER'}
 for out_n in range(1, 5):
     oo = f'{out_n:02d}'
     n_eq   = f'C2_MAIN_OEQ_{oo}'
@@ -1017,7 +1103,8 @@ for out_n in range(1, 5):
     n_out  = f'C2_MAIN_OUT_{oo}'
 
     p, a2 = c2_alloc.next(24)
-    add(n_eq, 2, 'EQ_BIQUAD', f'Main Out {out_n} EQ', 1, 'C2_MAIN_XOVER', n_comp,
+    add(n_eq, 2, 'EQ_BIQUAD', f'Main Out {out_n} EQ', 1,
+        _xover_of_out[out_n], n_comp,
         spi_page=p, spi_addr=a2,
         params='bands=4;coeffs=default',
         ramp_profile='EqSafe')
@@ -1052,7 +1139,10 @@ for f in range(1, NUM_FX + 1):
             r['outputs'] = n_eng
 
     p, a2 = c2_alloc.next(24)  # all FX params: type + decay + predelay + delay_time + feedback + balance + damp + eq×3 + hpf + mod_rate + mod_level + lfo + width + mix + duck
-    add(n_eng, 2, 'FX_ENGINE', f'FX {f} Engine', 2, recv, n_fdr,
+    # ch_count 1: the engine is MONO end to end (see the return's note
+    # below -- the two mix legs read the same block), so a `2` here would
+    # be the comment text S142-1 was hiding behind.
+    add(n_eng, 2, 'FX_ENGINE', f'FX {f} Engine', 1, recv, n_fdr,
         spi_page=p, spi_addr=a2,
         params='type=Reverb;room_size=0.7;damping=0.5;decay=2.0;predelay_ms=20.0;delay_ms=300.0;feedback=50;balance=50;eq_lo=0;eq_mid=0;eq_hi=0;hpf=80;mod_rate=1.0;mod_level=50;mix=30;duck_on=0;duck_sens=-10',
         ramp_profile='GainSafe')
@@ -1090,16 +1180,29 @@ for f in range(1, NUM_FX + 1):
 # does not invent an answer. The nodes, their addresses and their cells
 # (`Mon001Level001/002`, `Mon001InputSel001`) are UNCHANGED and unmoved --
 # what changed is that writing them can no longer make a sound.
+# THE MONITOR IS TWO INSTANCES SINCE S143, and that is what `Mon Level[1-2]`
+# always meant. The node converts BOTH level cells at block rate and the
+# sample path used the L shadow only, so `Mon001Level002` was settable with
+# no effect -- the monitor half of S142-1, and gen_monitor_fixed's own
+# "NOT FIXED HERE" note from the 08-27 audit. The follower is the R leg: it
+# reads `_mon_q_r_`, the master's own converted word, off the master's own
+# source select.
 p, a2 = c2_alloc.next(6)
 add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MAIN_FDR', 'C2_MON_DLY',
     spi_page=p, spi_addr=a2,
-    params='level_l_db=0.0;level_r_db=0.0;source=main',
+    params='level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l',
+    ramp_profile='GainFast')
+add('C2_MON_R', 2, 'MONITOR', 'Monitor R', 1, 'C2_MAIN_FDR_R', 'C2_MON_DLY_R',
+    params='follows=C2_MON;follow_leg=r',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(2)
 add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', '',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
+    ramp_profile='InstantCtl')
+add('C2_MON_DLY_R', 2, 'DELAY', 'Monitor Delay R', 1, 'C2_MON_R', '',
+    params='delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY',
     ramp_profile='InstantCtl')
 
 # --- THE PANEL SPEAKER (Chip 2) ---
@@ -1123,13 +1226,17 @@ add('C2_SPKR_OUT', 2, 'OUTPUT_TDM', 'Panel Speaker Out', 1, 'C2_HPT_01', '',
 
 # --- USB / BT (Chip 2) ---
 p, a2 = c2_alloc.next(2)
-add('C2_USB_IN', 2, 'AUX_INPUT', 'USB Input', 2, '', 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+# ch_count 1: the host writes ONE word into `_buf_C2_USB_IN` over SPI and
+# both mix legs read it. A stereo USB return needs a second host word and
+# a second node, which is a wire question, not a graph tidy-up -- recorded
+# (S143), not invented.
+add('C2_USB_IN', 2, 'AUX_INPUT', 'USB Input', 1, '', 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
     spi_page=p, spi_addr=a2,
     params='level_db=-6.0;on=0',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(2)
-add('C2_BT_IN', 2, 'AUX_INPUT', 'BT Input', 2, '', 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+add('C2_BT_IN', 2, 'AUX_INPUT', 'BT Input', 1, '', 'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
     spi_page=p, spi_addr=a2,
     params='level_db=-6.0;on=0',
     ramp_profile='GainFast')
@@ -1204,25 +1311,40 @@ def wire_recv(sig, consumer):
         if r['id'] == xfer_recv[sig]:
             r['outputs'] = consumer
 
+# THE TWO STEREO SUPERSET RETURNS ARE TWO INSTANCES EACH (S143).
+#
+# Both declared their L AND R interchip receives and the generator MAC-ed
+# `inputs[0]`, so the right half of the codec aux return and of the Pi
+# playback return was received over the fabric, staged into a buffer and
+# read by nothing. That is S142-1's defect in two more places, and it was
+# found by the arity gate rather than by reading. The follower takes no
+# address: it runs the master's one coefficient (level x the on-gate), so
+# `CodecAux[1-1]Level` and `Pi[1-1]Level` still mean one control.
 p, a2 = c2_alloc.next(2)
 add('C2_CODEC_AUX_IN', 2, 'AUX_INPUT', 'Codec Aux Input', 2,
-    f'{xfer_recv["XFER_CODEC_AUX_L"]};{xfer_recv["XFER_CODEC_AUX_R"]}',
-    'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+    xfer_recv["XFER_CODEC_AUX_L"], 'C2_MIX_MAIN_L',
     spi_page=p, spi_addr=a2,
     params='level_db=-6.0;on=0',
     ramp_profile='GainFast')
+add('C2_CODEC_AUX_IN_R', 2, 'AUX_INPUT', 'Codec Aux Input R', 1,
+    xfer_recv["XFER_CODEC_AUX_R"], 'C2_MIX_MAIN_R',
+    params='follows=C2_CODEC_AUX_IN',
+    ramp_profile='GainFast')
 wire_recv('XFER_CODEC_AUX_L', 'C2_CODEC_AUX_IN')
-wire_recv('XFER_CODEC_AUX_R', 'C2_CODEC_AUX_IN')
+wire_recv('XFER_CODEC_AUX_R', 'C2_CODEC_AUX_IN_R')
 
 p, a2 = c2_alloc.next(2)
 add('C2_PI_IN', 2, 'AUX_INPUT', 'Pi Playback Input', 2,
-    f'{xfer_recv["XFER_PI_L"]};{xfer_recv["XFER_PI_R"]}',
-    'C2_MIX_MAIN_L;C2_MIX_MAIN_R',
+    xfer_recv["XFER_PI_L"], 'C2_MIX_MAIN_L',
     spi_page=p, spi_addr=a2,
     params='level_db=-6.0;on=0',
     ramp_profile='GainFast')
+add('C2_PI_IN_R', 2, 'AUX_INPUT', 'Pi Playback Input R', 1,
+    xfer_recv["XFER_PI_R"], 'C2_MIX_MAIN_R',
+    params='follows=C2_PI_IN',
+    ramp_profile='GainFast')
 wire_recv('XFER_PI_L', 'C2_PI_IN')
-wire_recv('XFER_PI_R', 'C2_PI_IN')
+wire_recv('XFER_PI_R', 'C2_PI_IN_R')
 
 for s in range(1, 9):
     sig = f'XFER_SNAKE_{s:02d}'
@@ -1238,17 +1360,30 @@ for s in range(1, 9):
 superset_c2_end = len(rows)
 
 # --- Extra outputs (allocated + appended last; sources run earlier) ---
+#
+# ONE NODE IS ONE TDM SLOT (S143). These two used to declare
+# `slot_count=2` and `ch_count=2` off ONE input, and an OUTPUT_TDM node
+# writes exactly one `_tx_out_slot_` word per sample: the gather copies
+# `off[i] + sample*stride[i]`, one word per node per frame. So the second
+# slot of each pair -- DAC_MAIN_R and CODEC_OUT_4 -- had its chip-select
+# bit widened for it and was never WRITTEN at all. The right main DAC
+# carried whatever the TX buffer last held, not even a copy of left.
+#
+# A stereo output is therefore two nodes, one slot each, reading the two
+# legs. The R nodes' addresses are allocated at the very end of the chip-2
+# map (below, beside the haptic node's) so this ADDS two words and MOVES
+# none.
 p, a2 = c2_alloc.next(1)
-add('C2_MAIN_ST_OUT', 2, 'OUTPUT_TDM', 'Main Stereo Out (DAC MAIN)', 2,
+add('C2_MAIN_ST_OUT', 2, 'OUTPUT_TDM', 'Main Stereo Out L (DAC MAIN)', 1,
     'C2_MAIN_DLY', '',
     spi_page=p, spi_addr=a2,
-    params=output_params('DAC_MAIN_L', slot_count=2))
+    params=output_params('DAC_MAIN_L', slot_count=1))
 
 p, a2 = c2_alloc.next(1)
-add('C2_CODEC_AUX_OUT', 2, 'OUTPUT_TDM', 'Codec Aux Out', 2,
+add('C2_CODEC_AUX_OUT', 2, 'OUTPUT_TDM', 'Codec Aux Out L', 1,
     'C2_MAIN_DLY', '',
     spi_page=p, spi_addr=a2,
-    params=output_params('CODEC_OUT_3', slot_count=2, scope='D24',
+    params=output_params('CODEC_OUT_3', slot_count=1, scope='D24',
                          sink='DNP'))
 
 # Splice superset recv/aux-input rows after the bus RECV block so process
@@ -1528,6 +1663,31 @@ add('C2_HPT_01', 2, 'HAPTIC', 'Panel Haptic', 1, '', 'C2_SPKR_OUT',
 _hpt_row = rows.pop()
 _at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_SPKR_OUT')
 rows[_at:_at] = [_hpt_row]
+
+# ===========================================================================
+# THE RIGHT-HAND STEREO OUTPUT NODES (S143)
+# ===========================================================================
+#
+# DAC_MAIN_R and CODEC_OUT_4 -- the two TDM slots that were enabled in the
+# chip-select mask and never written (see the note on `C2_MAIN_ST_OUT`).
+# They are ordinary OUTPUT_TDM nodes reading the right main delay, and
+# their addresses are allocated HERE, after the haptic node's, so they ADD
+# two words and MOVE none. Neither carries `mo_page`, so neither reaches a
+# master cell -- the same as the L nodes they pair with.
+for _sid, _sig, _lbl, _scope in (
+        ('C2_MAIN_ST_OUT_R', 'DAC_MAIN_R', 'Main Stereo Out R (DAC MAIN)', None),
+        ('C2_CODEC_AUX_OUT_R', 'CODEC_OUT_4', 'Codec Aux Out R', 'D24')):
+    p, a2 = c2_alloc.next(1)
+    _kw = {'scope': _scope, 'sink': 'DNP'} if _scope else {}
+    add(_sid, 2, 'OUTPUT_TDM', _lbl, 1, 'C2_MAIN_DLY_R', '',
+        spi_page=p, spi_addr=a2,
+        params=output_params(_sig, slot_count=1, **_kw))
+    # RUN beside their left-hand partners, which is where the chain wants
+    # them; only the ADDRESS is last.
+    _row = rows.pop()
+    _at = next(i for i, r in enumerate(rows)
+               if r['id'] == _sid[:-2])
+    rows[_at + 1:_at + 1] = [_row]
 
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #

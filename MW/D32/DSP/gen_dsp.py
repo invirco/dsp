@@ -1544,6 +1544,27 @@ def _main_out_strip(n):
     return _MAIN_OUT_STRIP[n]
 
 _NODE_PATTERNS = [
+    # ── STEREO FOLLOWERS (S143) — no cells, and that is the mechanism ──
+    #
+    # A `follows=<master>` node is a SECOND INSTANCE of its master's kernel
+    # running its master's parameter set: it reads the master's coefficient
+    # symbols by name, keeps its own state, and has nothing a host can
+    # write. So it takes no SPI address (dsp_codegen.py and dsp_validate.py
+    # both refuse one that does) and reaches no master cell -- which is why
+    # closing S142-1, the mono chip-2 main bus, needed NO cell, NO address
+    # move, NO dispatch change and no contract bump.
+    #
+    # Matched FIRST and by exact id, not by an `_R$` wildcard: a suffix
+    # rule would quietly swallow a future node that ends in _R and has real
+    # cells. The list is the graph's, and a node added to it there without
+    # being added here fails the no-fallback check below.
+    (re.compile(r'^C2_(?:MAIN_(?:FDR|GEQ|COMP|LIM|DLY|XOVER)|MON|MON_DLY'
+                r'|CODEC_AUX_IN|PI_IN)_R$'),        lambda m: None),
+    # The right-hand halves of the two stereo TDM outputs (S143). One node
+    # is one slot: DAC_MAIN_R and CODEC_OUT_4 used to be chip-select bits
+    # that nothing wrote. Neither carries `mo_page`, so neither reaches a
+    # master cell -- the same as the L nodes they pair with.
+    (re.compile(r'^C2_(?:MAIN_ST_OUT|CODEC_AUX_OUT)_R$'), lambda m: None),
     # Channel strip (Chip 1)
     (re.compile(r'^C1_IN_(\d+)$'),                     lambda m: None),  # TDM input, no cells
     (re.compile(rf'^C1_(?:{_CHAN_TYPES})_(\d+)$'),     lambda m: ('Chan', int(m.group(1)))),

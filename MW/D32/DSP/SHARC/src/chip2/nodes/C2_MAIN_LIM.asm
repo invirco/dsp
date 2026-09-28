@@ -19,6 +19,7 @@
 
         .section/dm seg_dmda;
 .extern _buf_C2_MAIN_COMP;
+.extern _buf_C2_MAIN_COMP_R;
         .global _lim_on_C2_MAIN_LIM;
         .var _lim_on_C2_MAIN_LIM = 1;
         .global _lim_threshold_C2_MAIN_LIM;
@@ -67,6 +68,7 @@
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_MAIN_COMP;
+        .extern _blk_C2_MAIN_COMP_R;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MAIN_LIM;
@@ -75,6 +77,8 @@
         .var _bw_k_C2_MAIN_LIM;        /* the caller's _sample_idx */
         .global _bw_s0_C2_MAIN_LIM;
         .var _bw_s0_C2_MAIN_LIM;       /* walking source pointer */
+        .global _bw_s1_C2_MAIN_LIM;
+        .var _bw_s1_C2_MAIN_LIM;       /* walking source pointer */
         .global _bw_d0_C2_MAIN_LIM;
         .var _bw_d0_C2_MAIN_LIM;       /* walking sink pointer */
         #endif
@@ -122,6 +126,9 @@
             i4 = _blk_C2_MAIN_COMP;
             r3 = i4;
             dm(_bw_s0_C2_MAIN_LIM) = r3;
+            i4 = _blk_C2_MAIN_COMP_R;
+            r3 = i4;
+            dm(_bw_s1_C2_MAIN_LIM) = r3;
             i4 = _blk_C2_MAIN_LIM;
             r3 = i4;
             dm(_bw_d0_C2_MAIN_LIM) = r3;
@@ -136,6 +143,12 @@
                 dm(_buf_C2_MAIN_COMP) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_LIM) = r3;
+                r3 = dm(_bw_s1_C2_MAIN_LIM);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_MAIN_COMP_R) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s1_C2_MAIN_LIM) = r3;
                 call _C2_MAIN_LIM_process_sample;
                 r0 = dm(_buf_C2_MAIN_LIM);
                 r3 = dm(_bw_d0_C2_MAIN_LIM);
@@ -152,6 +165,12 @@
                 dm(_buf_C2_MAIN_COMP) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_LIM) = r3;
+                r3 = dm(_bw_s1_C2_MAIN_LIM);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_MAIN_COMP_R) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s1_C2_MAIN_LIM) = r3;
                 call _C2_MAIN_LIM_process_sample;
                 r0 = dm(_buf_C2_MAIN_LIM);
                 r3 = dm(_bw_d0_C2_MAIN_LIM);
@@ -229,7 +248,12 @@
 #endif
         .lim_go_C2_MAIN_LIM:
 
+            /* STEREO-LINKED DETECTOR (S143): max(|L|,|R|), symmetric, so
+             * this node and its stereo partner compute the same gain. */
             r0 = abs r13;
+            r1 = dm(_buf_C2_MAIN_COMP_R);
+            r1 = abs r1;
+            r0 = max(r0, r1);
             r1 = dm(_lim_envelope_C2_MAIN_LIM);
             r2 = dm(_lim_attq_C2_MAIN_LIM);
             r3 = dm(_lim_relq_C2_MAIN_LIM);
