@@ -381,7 +381,98 @@ Nothing in this session is flashed. Queued, with the pass criterion:
   cited; the arithmetic that stacks them on a whole-graph baseline is checked
   only by §8 item 1.
 
-## 10. The recommendation
+## 10. ADDENDUM — S142-1: there is no Main R on chip 2, and three of the four items need one
+
+Written after §1–§10, during the item-1 build. It changes the totals; §7's
+table is superseded by the one at the end of this section.
+
+**`_blk_C2_MIX_MAIN_R` is computed every block and read by nothing.** The full
+evidence is in `findings.md` under S142-1; the mechanism is one line —
+`dsp_codegen.py:19408` sets `inputs_str = inputs[0]`, `ch_count` generates
+nothing, and every chip-2 node past `C2_MAIN_FDR` therefore runs on the left
+bus alone. Both MAIN XLRs, both DAC MAIN slots, the codec aux out and the
+monitor all carry left.
+
+It is in the way of three of the four ruled items:
+
+- **D5** rules the crossover as *"TWO DSP instances (Main L, Main R) sharing
+  ONE parameter set"*. There is one instance.
+- **D6** feeds the Woof from the *"Main L/R sum"*. There is no R to sum.
+- **D7** gives the phones a pair off the same source select as the monitor, and
+  `Mon Level` already declares L and R cells that both drive one block.
+- **D3** lists Main L and Main R as separate aux-matrix sources
+  (`MainL AuxSend`, `MainR AuxSend`, eight each). One of the two would be a
+  copy of the other.
+
+Only item 4's Centre anti-feedback is untouched by it, because the centre bus
+genuinely is mono.
+
+### What closing it costs
+
+The mechanism D5 asks for — two instances, one parameter set — is the general
+answer and is needed anyway. Each R instance keeps its **own filter and
+envelope state** and reads the **master's coefficient words** by `.extern`,
+selected by a `follows=<master node id>` param. No new SPI word, no new cell,
+no address moved. The bus dynamics link rather than duplicate: one detector
+over max(|L|,|R|), one gain applied to both, which is what a stereo bus
+limiter has to do regardless or the image walks under compression.
+
+| node | change | c/blk |
+|---|---|--:|
+| `C2_MAIN_FDR_R` — FADER_PAN, follows `C2_MAIN_FDR` | NEW | +210 |
+| `C2_MAIN_GEQ_R` — GEQ 31, follows | NEW | +3,566 |
+| `C2_MAIN_COMP_R` — COMPRESSOR, detector linked | NEW | +878 |
+| `C2_MAIN_LIM_R` — LIMITER, detector linked | NEW | +257 |
+| `C2_MAIN_DLY_R` — DELAY (+48,000 B of L2) | NEW | +109 |
+| `C2_MAIN_XOVER_R` — CROSSOVER, follows (this IS D5's second instance) | NEW | +3,140 |
+| second TX slot walk on `C2_MAIN_ST_OUT` and `C2_CODEC_AUX_OUT` | CHANGE | +210 |
+| `C2_MON` reading a second block | CHANGE | +440 |
+| **total** | | **+8,810 = +2.69 %** |
+
+With `DSP4_C2_BQ_GRAPH=1` the two main GEQs and the two crossovers become
+exactly the adjacent pair that lever pairs, so most of the 6,706 cycles those
+four nodes cost comes back — the lever is worth more after this change than
+before it.
+
+### The capacity table, superseding §7
+
+| | chip 2 c/blk | chip 2 % |
+|---|--:|--:|
+| baseline (S86 driven, signed, six Echoes) | 276,750 | **84.47** |
+| **S142-1 — stereo main path (prerequisite)** | **+8,810** | **+2.69** |
+| item 1 — Centre/LF | +5,003 | +1.53 |
+| item 2 — phones pair + pick-off | +1,937 | +0.59 |
+| item 3 — aux matrix + pairing | +7,070 | +2.16 |
+| item 4 — anti-feedback | +9,498 | +2.90 |
+| **after** | **309,068** | **94.32** |
+| margin | 18,612 | **5.68 %** |
+
+Chip 1 is unmoved: the R bus already exists there and already costs what it
+costs.
+
+**5.68 % of margin, on a row whose boot-to-boot spread is 0.53 points, is not
+a margin — it is a hope.** The four items still fit on the shipping FX default
+and still do not fit with six reverbs (109.2 %). What this addendum changes is
+the strength of §11's recommendation, not its direction: with
+`DSP4_C2_BQ_GRAPH=1` the whole set lands at about 77 % with the Echo default
+and about 92 % in the reverb case, and that is the configuration this should
+ship on.
+
+### Memory, superseding §7
+
+One more 250 ms mono delay line for `C2_MAIN_DLY_R` (+48,000 bytes), so chip 2's
+delay pool goes to 1,838,112 / 2,072,576 = **88.7 %** — inside the 90 % warn
+line and with about four mono 250 ms channels left. That pool, not the cycle
+budget, is now the first thing the next feature runs out of.
+
+### 🔴 What this means for the build order
+
+Every one of the four items depends on this, so it is built first, as its own
+commit, ahead of item 1. It is not scope this session invented: it is the
+implementation of D5's own words, and without it there is nothing for D6's
+"Main L/R sum" to sum.
+
+## 11. The recommendation
 
 Build all four. They fit.
 

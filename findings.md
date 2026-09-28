@@ -6,6 +6,59 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE MAIN BUS IS MONO FROM THE MASTER FADER ONWARD, AND BOTH MAIN XLRs CARRY LEFT (2026-09-28, session 142)
+
+Hub dispatch `tasks.md` 2026-09-28 11:52Z. Found while pricing the Centre/LF
+ruling (D5/D6), which needs the Main L/R sum and therefore needs an R.
+
+**S142-1 `_blk_C2_MIX_MAIN_R` IS COMPUTED EVERY BLOCK AND READ BY NOTHING.**
+`dsp_codegen.py:19408` sets `node['inputs_str'] = node['inputs'][0]`, and every
+single-input generator interpolates `_buf_{inputs_str}` / `_blk_{inputs_str}`.
+`C2_MAIN_FDR` declares `inputs = C2_MIX_MAIN_L;C2_MIX_MAIN_R` and `ch_count=2`,
+but `ch_count` appears in the generator only as a line of comment text
+(`dsp_codegen.py:1016`, `19572`) — it generates nothing — so the fader reads
+`_blk_C2_MIX_MAIN_L` and the emitted file says so in as many words:
+`i0 = _blk_C2_MIX_MAIN_L;  /* input */` / `i1 = _blk_C2_MAIN_FDR;  /* mono */`
+(`SHARC/src/chip2/nodes/C2_MAIN_FDR.asm:200-201`).
+
+Verified by grep over the whole generated tree: the only two files that name
+`_blk_C2_MIX_MAIN_R` or `_buf_C2_MIX_MAIN_R` are the node's own file and
+`process_chain.asm`, which calls it and publishes its block. **No consumer.**
+
+So on chip 2 today:
+
+| node | reads | should read |
+|---|---|---|
+| `C2_MAIN_FDR` (`ch_count=2`) | `_blk_C2_MIX_MAIN_L` | L and R |
+| `C2_MAIN_GEQ`/`COMP`/`LIM`/`DLY`/`XOVER` | the L chain | L and R |
+| `C2_MAIN_OEQ_01` (MainL → `DAC_12`, J56) | `_blk_C2_MAIN_XOVER` | the L leg |
+| `C2_MAIN_OEQ_02` (MainR → `DAC_11`, J57) | `_blk_C2_MAIN_XOVER` — **the same block** | the R leg |
+| `C2_MAIN_ST_OUT` (`slot_count=2`, DAC MAIN) | `_blk_C2_MAIN_DLY`, one TX slot symbol | two |
+| `C2_CODEC_AUX_OUT` | `_blk_C2_MAIN_DLY` | two |
+| `C2_MON` (`ch_count=2`, `Mon Level` L **and** R) | `_blk_C2_MAIN_FDR` | L and R |
+
+**Both MAIN XLRs carry the left bus. The monitor carries the left bus. Both DAC
+MAIN slots carry the left bus.** The stereo image exists on chip 1 — the two
+mix buses are separate all the way across the fabric and S121 measured a
+hard-panned strip reading an exact digital zero on the other side — and it is
+discarded one node into chip 2.
+
+This is S22-2's defect one level up, and S22-2's own sentence is the diagnosis:
+*"`outputs` is documentation; `inputs` is the graph."* Here even `inputs` is
+documentation past position 0.
+
+**It blocks three of the four S142 items, so it is not deferrable.** D5 rules
+the crossover as "TWO DSP instances (Main L, Main R) sharing ONE parameter
+set"; D6 feeds the Woof from the "Main L/R sum"; D7 gives the phones a pair off
+the same source select as a monitor whose `Mon Level` already declares L and R
+cells. None of the three can be built honestly on one channel. Priced and built
+as the prerequisite inside S142 item 1 — see
+`MW/D24/DSP/s142/s142-pricing.md` §10.
+
+**Not yet measured on the part.** The reading that settles it is one patch: a
+tone into a strip panned hard left, an XLR meter on J56 and J57. The desk says
+they will read the same; the desk has been wrong about this hardware before.
+
 ## THE PANEL `.shex` MCU ID IS THE SLAVE SOCKET, AND FOR H1S3/H1S4 IT IS CROSSED (2026-09-28, session 135)
 
 Hub dispatch `tasks.md` 2026-09-27 23:57Z. Report: `MW/D24/DSP/s135/s135-report.md`,
