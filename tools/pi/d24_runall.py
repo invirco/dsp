@@ -2115,33 +2115,25 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                  lead_line='',
                  extra=LV.panel_already_passed(already, total_steps),
                  status=panel_name.capitalize(),
-                 n=0, total=total_steps, lead_n=0, lead_total=0)
+                 n=0, total=total_steps, lead_n=0, lead_total=0,
+                 buttons=LV.PANEL_BUTTONS)
     glass.progress('panel loop: the %s, %d checks on this board, %d of them '
                    'already passed on an earlier pass'
                    % (panel_name, total_steps, already))
 
     random_order = getattr(a, 'random_panel_order', False)
 
-    def ask(step, n, total, tries):
-        # S130 (behind --random-panel-order, default OFF, PW has not ruled):
-        # the button's NAME is what let an operator hunt a dark panel by
-        # reading the glass rather than finding the light (S129 addendum 7).
-        # With the flag on, no name and no indicator description reach the
-        # worker on either the dialog or the glass -- only "find the light".
+    def ask(step, n, total):
+        # S130 (behind --random-panel-order, default OFF, and STAYS off --
+        # S137, PW chose the fixed order): the button's NAME is what let an
+        # operator hunt a dark panel by reading the glass rather than finding
+        # the light (S129 addendum 7). With the flag on, no name and no
+        # indicator description reach the worker on either the dialog or the
+        # glass -- only "find the light".
         if random_order:
-            if tries:
-                lines = ['It did not light.',
-                         'On the %s: press it anyway, so the switch itself '
-                         'is still checked.' % LV.panel_side_words(panel_name)]
-            else:
-                lines = ['On the %s: press the button that is lit.'
-                         % LV.panel_side_words(panel_name),
-                         'If nothing lit, press NOT LIT.']
-        elif tries:
-            lines = ['%s did not light.' % step.what.capitalize(),
-                     'On the %s: press %s anyway, so the switch itself is '
-                     'still checked.'
-                     % (LV.panel_side_words(panel_name), step.name)]
+            lines = ['On the %s: press the button that is lit.'
+                     % LV.panel_side_words(panel_name),
+                     'If nothing lit, press NOT LIT.']
         else:
             lines = ['On the %s: press the button that is lit: %s.'
                      % (LV.panel_side_words(panel_name), step.name),
@@ -2149,22 +2141,21 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                      'If nothing lit, press NOT LIT.']
         # EVERY STEP PUTS ITS OWN INSTRUCTION ON THE GLASS (S128). The sweep
         # used to write one standing page and never touch it again, so a step
-        # that asked for something else -- a retry after an indicator stayed
-        # dark, the encoder -- left the worker reading the wrong sentence.
+        # that asked for something else -- the encoder -- left the worker
+        # reading the wrong sentence.
         if live is not None:
-            if random_order:
-                instruction = (LV.panel_retry_words_blind('it', panel_name)
-                               if tries else
-                               LV.panel_press_words_blind(panel_name))
-            else:
-                instruction = (LV.panel_retry_words(step.name, step.what,
-                                                    panel_name)
-                               if tries else
-                               LV.panel_press_words(step.name, step.what,
-                                                    panel_name))
+            instruction = (LV.panel_press_words_blind(panel_name)
+                           if random_order else
+                           LV.panel_press_words(step.name, step.what,
+                                                panel_name))
+            # NOT LIT (S137, PW's panel-loop ruling): the glass's own second
+            # button for this step, replacing the dead ENTER a panel step
+            # never needed -- the step is completed by a press ON THE UNIT,
+            # never by the glass. See `LV.PANEL_BUTTONS`.
             live.set(state=LV.WAITING, instruction=instruction,
                      lead_line='', extra='', status=panel_name.capitalize(),
-                     n=min(n, total_steps), total=total_steps)
+                     n=min(n, total_steps), total=total_steps,
+                     buttons=LV.PANEL_BUTTONS)
         title = ('Panel loop (%s)' % panel_name if random_order else
                  'Panel loop - %s (%s)' % (step.name, panel_name))
         btns = glass.post('instruct', title, lines,
@@ -2181,9 +2172,15 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                 return 'skip'
             if live is not None:
                 live.beat()
-                if live.command() == 'pause':
+                cmd = live.command()
+                if cmd == 'pause':
                     pending['paused'] = True
                     return 'skip'
+                if cmd == 'notlit':
+                    # S137: the armed screen's own NOT LIT press. `PL.loop`
+                    # reads this exactly as it reads the dialog's NOT LIT
+                    # button -- kind 'glass', value 'notlit'.
+                    return 'notlit'
                 live.set(n=min(n, total_steps), total=total_steps)
             ans = glass.poll(btns)
             if ans is None:
@@ -2209,10 +2206,13 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                                hold=quiet_hold(quiet_flag, live=live,
                                                keys=keys,
                                                secs=COST.get('AL1', 17)),
-                               # The ARMED factory screen draws no dialog, so
-                               # it has no NOT LIT button and a press cannot be
-                               # read as "I saw it light". See PL.LED_NOT_SEEN.
-                               can_say_notlit=live is None,
+                               # The armed screen has its own NOT LIT button
+                               # now (S137), same as the dialog: a press can
+                               # always be read as "I saw it light". See
+                               # PL.LED_NOT_SEEN for the one caller (a bare
+                               # terminal driver with no channel at all) that
+                               # still passes False.
+                               can_say_notlit=True,
                                # WHICH CELL THE LEFT BOARD IS ON (S129). 'auto'
                                # is the only honest default while H1S4 is being
                                # reflashed: the loop writes both cells until a
@@ -2412,11 +2412,17 @@ def panel_encoder(bus, glass, st, timeout, live=None, panel=''):
     and it timed out at 30 s.
     """
     if live is not None:
+        # PAUSE only (S137 audit): this step is read off the bus, not
+        # confirmed on the glass, so the default WAITING button set's ENTER
+        # would be exactly as dead here as it was on the switch loop's own
+        # screens before S137 gave those NOT LIT instead. There is no NOT
+        # LIT judgement to make for the ring turning, so it is not offered.
         live.set(state=LV.WAITING,
                  instruction=(('%s: ' % LV.panel_side_words(panel))
                               if panel else '') + LV.ENCODER_WORDS,
                  lead_line='', extra='',
-                 status=(panel.capitalize() if panel else 'Front panel'))
+                 status=(panel.capitalize() if panel else 'Front panel'),
+                 buttons=['pause'])
     btns = glass.post('instruct', 'Panel loop - the encoder',
                       ['Turn the encoder ONE click clockwise, then ONE click '
                        'anticlockwise.',
@@ -3160,7 +3166,8 @@ def main(argv=None):
                     help='how long one button in the panel loop waits for a '
                          'press before it lands NO DATA (default 30 s)')
     ap.add_argument('--random-panel-order', action='store_true',
-                    help='S130, default OFF, PW has not ruled on it: walk '
+                    help='S130, default OFF and STAYS off (S137: PW chose '
+                         'the fixed order for operator speed): walk '
                          'each panel in a random order and stop naming the '
                          'button on the glass and the dialog (only "press '
                          'the button that is lit"). A correct key code then '

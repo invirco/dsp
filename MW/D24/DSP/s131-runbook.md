@@ -18,20 +18,35 @@ Background: `mx26 docs/investigation-matrix-generation-2026-09-27.md` (read in
 full before starting). Summary: MW-D24-2 is running matrix generation
 `e80ccab5d6d8` (the unit's own 2026-08-18 pack, 5412 names, `Sys001Skin001` =
 5412) — a generation built before S0 from a pre-purge master, not from any
-defs tag. The target is `f9677e5fae5e` (5006 names, `Sys001Skin001` = 4698),
-which is what `defs-v2026.09.27.3` publishes and what dsp's own
-`defs.lock` already pins (`D24_MATRIX_GEN=f9677e5fae5e`). `defs-v2026.09.27.5`
-is the mx26 pin target for tomorrow; its two commits over `.3`
-(`mic-gain-codes.csv` schema + `defs-publish.sh` portability) do not touch
-the D24 matrix, confirmed by `git -C defs log defs-v2026.09.27.3..defs-v2026.09.27.5`
-here — **the matrix itself is `.3`, unchanged since**.
+defs tag.
 
-**This is not an incremental patch.** Comparing the unit's live pack against
-this repo's own `MW/D24/MX/_matrix.csv` (same generation as the published
-`_matrix.csv` — `matrix_gen_id.py` reports the same base-id `f9677e5fae5e`
-and the same `Sys001Skin001` = 4698 for both; only the exact CSV bytes differ,
-because this copy carries `gen_dsp.py`'s DSP-address backfill columns the
-raw published export does not):
+🔴 **S137, HUB ADDENDUM 2: the target moved again, past `defs-v2026.09.27.5`.**
+It is now **`b630825d8fed`** at `defs-v2026.09.28` (5031 names,
+`Sys001Skin001` still = 4698 — append-only, existing addresses do not move).
+`defs-v2026.09.28` appends `Sys001SelectedFx001` (1 cell) and
+`Chan{N}DynMtr001` (24 cells, one per channel) over `.27.3`/`.27.5`, which is
+why this is a real matrix move and not the no-op `.3`→`.5` comparison the
+paragraph below originally described. Verified this session by checking
+`defs` out to the tag read-only (`git -C defs checkout defs-v2026.09.28`),
+expanding `d24-mx-master.csv` and running `matrix_gen_id.py`, then restoring
+the submodule to the pinned commit — **`defs.lock` itself is untouched, still
+pinned at `defs-v2026.09.27.3` / `D24_MATRIX_GEN=f9677e5fae5e`, and moving it
+is its own dispatch** (`sync-defs.sh --update-lock` +
+`regenerate-dsp-contract.sh`, all four products, the families allowlist
+regenerated), not done in this NO-FLASH session. `MW/D32/DSP/gen_dsp.py`
+needed a `('Chan', 'DynMtr')` host-managed no-fallback reason before that
+contract move can even run clean (added this session; see the S137 report)
+— **but adding it is not enough on its own**: `gen_dsp.py --dry-run` against
+a `defs-v2026.09.28` checkout still errors ("d32/dsp-unmapped.csv cell set
+disagrees with the graph ... 33 the landed file has and the graph does not
+propose", 25 for d24) because the local `dsp.csv` graph does not know about
+the new cells at all yet — that side needs the full `sync-defs.sh` pipeline
+to actually regenerate `dsp.csv`/`dsp-unmapped.csv` together, not a
+one-line patch. The `('Chan', 'DynMtr')` reason is necessary groundwork, not
+sufficient by itself.
+
+**This is not an incremental patch.** The unit's live pack against the
+*previous* target (`f9677e5fae5e`, 5006 names) was:
 
 | | count |
 |---|---|
@@ -40,7 +55,16 @@ raw published export does not):
 | names in both | 2103 |
 | **names in both at the same address** | **0** |
 
-Every one of those 2103 shared names moves. Confirmed by dry run (§6): the
+Against the now-current target (`b630825d8fed`, 5031 names) the shared/
+unit-only rows are unchanged in kind — the 25 new cells are new names, not
+matched by anything in the unit's pre-purge pack — so **names in both stays
+2103 and names only in the target rises to 2928 (2903 + 25) = 5031 total**.
+This is arithmetic from the verified counts above, not a re-run of the dry
+diff against the unit's live pack; re-run §6's dry run against
+`b630825d8fed` before relying on it at the bench.
+
+Every one of those 2103 shared names moves. Confirmed by dry run (§6, against
+the `f9677e5fae5e` target — re-run against `b630825d8fed` before S131): the
 newly generated `matrix.h` and the flashed one disagree on literally every
 line but the three-line header comment.
 
@@ -96,8 +120,10 @@ whole window per the "one window, together" rule). Copy the published
 `_Matrix/Products/D24/pd/generated/_matrix.mxc` to
 `/home/app/config/_matrix.mxc`. Verify sha256
 `c66a9d4bdb71e2f081af17365c038d5878f4858cc67b2de7fb61a7409c48fa68` (per the
-mx26 investigation doc — reverify against the Dropbox file at execution time,
-don't trust this document's copy of the hash). Delete
+mx26 investigation doc — this was hashed against the `f9677e5fae5e` pack;
+**§0, HUB ADDENDUM 2 moved the target to `b630825d8fed`, so this hash is
+stale and must be retaken from the current published file, not compared
+against the number above**). Delete
 `config/matrix-integrity.json` (it already mismatches today's pack and
 nothing regenerates it automatically) or regenerate it if there's a known
 generator — check before assuming there isn't one.
@@ -115,8 +141,10 @@ the CSV's `_Cell`/`MxAdd` columns). Copy the regenerated `matrix.h` into
 `H1S1/Core/Inc/`, `H1S3/Core/Inc/`, and `H1S4/Core/Inc/`, replacing the
 existing file in each build tree.
 Then: `python3 defs/tools/matrix_gen_id.py --compare <published _matrix.csv>
-<matrix.h>` for each — must report `ALIGNED (full-id f9677e5fae5e, base-id
-f9677e5fae5e)`. Tonight's dry run got exactly that (§6).
+<matrix.h>` for each — must report `ALIGNED (full-id b630825d8fed, base-id
+b630825d8fed)` (§0, HUB ADDENDUM 2: the target moved past what tonight's dry
+run in §6 actually exercised — re-run §6 against the current published
+`_matrix.csv` before trusting its `ALIGNED` line at execution time).
 **Rollback:** the three build trees' `matrix.h` files are source, not
 on-unit state — restoring them costs nothing (they're never flashed by
 themselves). If images were already built/flashed from a bad header, the
@@ -313,11 +341,34 @@ routine boots.
 **§6a is closed (S136): the bench tools resolve every address by name, so no
 edit is owed here.** Run `d24_panel.py --mode resolve` first and confirm its
 header alone before anything else below.
-- `d24_panel.py --mode resolve` header shows generation `f9677e5fae5e`, and
+
+🔴 **HUB ADDENDUM 2 folded in (S137): the target generation has moved again,
+past this runbook's own numbers.** Verified independently this session by
+checking `defs` out to `defs-v2026.09.28` read-only, expanding
+`d24-mx-master.csv` and running `matrix_gen_id.py` against it (then
+restoring the submodule to the pinned commit — no `defs.lock` change made):
+the D24 base-id is **`b630825d8fed`**, not `f9677e5fae5e`, and the cell count
+is **5031 names / 5031 addresses**, not 5006 — defs-v2026.09.28 appends
+`Sys001SelectedFx001` (1 cell) and `Chan{N}DynMtr001` (24 cells, one per
+channel) to the master. `Sys001Skin001` is **unchanged at 4698** (append-only:
+existing addresses do not move), and so are `Sys001Enc001` (4514),
+`Sys001SwLeft001` (5005) and `Sys001SwTalk001` (5006) — only the checks below
+that name the WHOLE-SET generation id/count need the new numbers; the
+per-cell checks do not. Every other `f9677e5fae5e`/"5006 names" reference
+elsewhere in this runbook (§0, §6, §6a) is now STALE by the same margin and
+needs the same re-verification before S131 runs — not done wholesale in this
+NO-FLASH session, which touched only this step. `MW/D32/DSP/gen_dsp.py` also
+needed a `(Chan, DynMtr)` "host-managed" no-fallback reason before the
+contract can move at all (added this session — see the S137 report); moving
+`defs.lock` itself (`./sync-defs.sh` + `regenerate-dsp-contract.sh`, all four
+products, the allowlist regen) is its own dispatch, not folded into S131's
+checks here.
+
+- `d24_panel.py --mode resolve` header shows generation `b630825d8fed`, and
   `Sys001Skin001` = 4698 / `Sys001Enc001` = 4514 / `Sys001SwLeft001` = 5005 /
   `Sys001SwTalk001` = 5006, none of them NOT TESTED any more.
-- Boot log: `Matrix generation base-id f9677e5fae5e (5006 names / 5006
-  addresses, max 5006)` (grep the app's own log, same line format the mx26
+- Boot log: `Matrix generation base-id b630825d8fed (5031 names / 5031
+  addresses, max 5031)` (grep the app's own log, same line format the mx26
   doc quotes for the current `e80ccab5d6d8` boot).
 - `Sys001Skin001` = 4698 on the right panel; a left-panel press arrives on
   5005 and **never** on 4698 (the aliasing this whole change exists to
@@ -330,6 +381,21 @@ header alone before anything else below.
   `MW/D24/DSP/s129/data/panel-build-repro.md`).
 - Record the md5 of every flashed `.shex` (and the app binary, and the pack)
   on the gate line, per the mx26 doc's own closing instruction.
+- **The post-switch panel check is the panel loop itself (S137), not a
+  one-off press per board.** Run both boards through
+  `d24_runall.py --manual-only` (or the factory screen's own START, which
+  reaches the same `panel_station()`) and confirm, per PW's panel-loop
+  ruling: the walk order is the fixed defs/fw.csv order on both boards
+  (unchanged pass to pass — `--random-panel-order` stays off); every switch
+  is reached in turn (`panel_coverage.py --check` reports "every control is
+  either graded or named with its reason", 20 of 20 switches); the armed
+  screen's NOT LIT button is present and working (a deliberate dark-panel
+  press records the LED **FAIL — "operator saw no light"** and the switch
+  **NOT TESTED — "skipped: LED dark"**, and the walk advances at once with no
+  retry); a correct press records both rows PASS; a wrong-board or
+  wrong-button press FAILs the switch and names the board. See
+  `MW/D24/DSP/s137/` for the scripted desk proof of all of this with no
+  finger at the bench.
 - Run a fresh automatic self-test pass (`--auto-only`, as this session's §
   fix to `d24_selftest.py`/`d24_runall.py` now handles NW4 and a died batch
   correctly) to confirm nothing else regressed.
@@ -382,6 +448,14 @@ optional and separable from the rest of the window.
 ---
 
 ## 6. Tonight's dry run (evidence, nothing flashed)
+
+🔴 **STALE (S137, HUB ADDENDUM 2): this section's numbers are S134's real
+dry-run evidence against the `f9677e5fae5e` target and are kept as a record
+of what was actually run — but the target has since moved to `b630825d8fed`
+(§0). This dry run was NOT re-run against the new target in this (NO-FLASH,
+D24-panel-loop) session; re-running it — new `matrix.h`, new `.shex`, diffed
+against the currently-flashed images, exactly as below — is still owed
+before S131 executes.**
 
 All work done in `/home/app/s134fw/{H1S1,H1S3,H1S4}/`, `rsync -a` from
 `/home/app/fwbuild/{H1S1,H1S3,H1S4}/`. Deleted after. `arm-none-eabi-gcc
@@ -450,7 +524,8 @@ aliasing guess. Proved on MW-D24-2 itself, S136 report
 tools resolve `Sys001Skin001`/`Sys001Enc001`/`Sys001SwLeft001`/
 `Sys001SwTalk001` off whatever pack is deployed. What step 10 should check
 instead: `d24_panel.py --mode resolve`'s header reports **generation
-`f9677e5fae5e`** (not `e80ccab5d6d8`), and its `resolved` block then reads
+`b630825d8fed`** (§0, HUB ADDENDUM 2 — not `f9677e5fae5e`, and not
+`e80ccab5d6d8`), and its `resolved` block then reads
 `Sys001Skin001: 4698`, `Sys001Enc001: 4514`, `Sys001SwLeft001: 5005`,
 `Sys001SwTalk001: 5006` — no longer NOT TESTED, because the switch-over
 landed the names this session could only report absent.

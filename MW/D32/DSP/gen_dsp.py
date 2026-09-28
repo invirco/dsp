@@ -2698,6 +2698,12 @@ _UNMAPPED_REASONS = {
         'app batch control, not a DSP word: it writes every channel\'s '
         'Chan*AuxPick* for that aux, which is the only DSP truth '
         '(PW ruling R4, 2026-09-10 — was open question Q4)'),
+    ('Chan', 'DynMtr'): ('host-managed',
+        'Chan{N}DynMtr001 is HOST-DERIVED, per the cell master\'s own note: '
+        'the app sums Chan{N}GateMtr001 + Chan{N}CompMtr001, both of which '
+        'it already receives, into one combined dynamics-meter byte for '
+        'skins that show a single meter. Never sent to or from the DSP and '
+        'not on any wire (PW ruling, defs-v2026.09.28)'),
     ('Bt', 'Src'): ('hardware-control', 'Bluetooth receiver source select — MCU hardware control'),
     ('Card', 'Type'): ('hardware-control', 'option-card type, reported by the MCU'),
     ('Usb', 'HostSync'): ('hardware-control',

@@ -1,0 +1,8 @@
+# S137 proof script -- left panel, fixed sweep order (MONO AUX, STEREO AUX,
+# FX, EQ, AUX ON FADERS, OVERVIEW)
+30 glass notlit   # MONO AUX -- NOT LIT: LED FAIL, switch NOT TESTED, advances at once
+30 2         # STEREO AUX   -- correct press: PASS/PASS (also identifies the board's cell)
+30 4         # FX (idx 3)   -- WRONG key (sends EQ's code): switch FAILs, names the board
+30 4         # EQ           -- correct press: PASS/PASS
+30 5         # AUX ON FADERS -- correct press: PASS/PASS
+30 6         # OVERVIEW     -- correct press: PASS/PASS

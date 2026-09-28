@@ -491,6 +491,11 @@ class InjectedBus:
 # The loop
 # ---------------------------------------------------------------------------
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
+# Same string d24_runall.State/d24_selftest use for "nobody asked the
+# question" (S137): NOT LIT is PW's ruling that a dark LED is never asked
+# about the switch underneath it, so the switch is NOT TESTED, not SKIPPED
+# (SKIPPED is the operator declining a button that WAS asked).
+NOTTESTED = 'NOT TESTED'
 
 
 class Step(object):
@@ -510,9 +515,13 @@ class Step(object):
 # The loop grades TWO rows off one press: the switch, and the indicator above
 # it. The indicator half is an INFERENCE -- "it lit, and the operator pressed
 # the button under it" -- and the inference is only sound if an operator who
-# saw nothing light had a way to SAY SO. On the dialog they do: NOT LIT is one
-# of the buttons. On the armed factory screen there are two buttons, ENTER and
-# PAUSE, and no way to report a dark indicator at all.
+# saw nothing light had a way to SAY SO. NOT LIT is that way, on the dialog
+# AND on the armed factory screen (S137, PW's panel-loop ruling: a second
+# button, NOT LIT, is the explicit exception to the armed screen's
+# one-button rule, for this step only). `can_say_notlit` stays as a
+# parameter for a caller with genuinely no NOT LIT channel at all
+# (mode_loop's bare terminal driver, unscripted); every real caller now
+# passes True.
 #
 # It matters because the instruction NAMES the button ("press the button that
 # is lit: MONO AUX"). A worker who can read will press MONO AUX whether or not
@@ -574,19 +583,21 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
 
-    `random_order`: S130 item 5, behind a flag, default OFF (PW has not ruled
-    on it). The design problem it answers is S129 item 4's: with no
-    indicator readback, a
-    dark panel and a screen that NAMES the button are indistinguishable from a
-    dead switch that just happens to be lit -- PW's own pass proved it (S129
-    HANDS ADDENDUM 7 / the FX MUTE / HOME / MENU mis-fires, an operator hunting
-    a dark panel, not three switch faults). With `random_order` the walk order
-    is shuffled and `ask` is expected to stop naming the button (see
-    `d24_live.panel_press_words_blind`/`panel_retry_words_blind`): a correct
-    key code then proves both that the switch works AND that the operator saw
-    the light, because reading the name off the glass can no longer produce
-    it. Grading is unchanged -- `st.idx` is still matched by VALUE, never by
-    position -- so this only permutes `steps` before the walk.
+    `random_order`: S130 item 5, behind a flag, default OFF -- and STAYS off
+    (S137, PW's panel-loop ruling of 2026-09-28: "keeping the leds in the
+    same order will speed up operator time"; PW chose the fixed order). The
+    design problem it would answer is S129 item 4's: with no indicator
+    readback, a dark panel and a screen that NAMES the button are
+    indistinguishable from a dead switch that just happens to be lit -- PW's
+    own pass proved it (S129 HANDS ADDENDUM 7 / the FX MUTE / HOME / MENU
+    mis-fires, an operator hunting a dark panel, not three switch faults).
+    With `random_order` the walk order is shuffled and `ask` is expected to
+    stop naming the button (see `d24_live.panel_press_words_blind`): a
+    correct key code then proves both that the switch works AND that the
+    operator saw the light, because reading the name off the glass can no
+    longer produce it. Grading is unchanged -- `st.idx` is still matched by
+    VALUE, never by position -- so this only permutes `steps` before the
+    walk.
 
     `hold`, if given, is called before each indicator is lit and may block. It
     is how the panel loop stays out of the acoustic test's way (S126, ruling a):
@@ -599,10 +610,12 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     the sweep: the always-lit indicators, the encoder, and the rows this station
     cannot reach.
 
-    `can_say_notlit` is False when the operator is behind the ARMED FACTORY
-    SCREEN, which draws no dialog and therefore offers no NOT LIT button. See
-    LED_NOT_SEEN: the indicator half of each step is then recorded as not
-    measured rather than inferred from a press."""
+    `can_say_notlit` is False only for a caller with no NOT LIT channel at
+    all -- the armed factory screen has one now (S137: `live.json`'s
+    `buttons` carries `notlit` and `command.json` carries the press, since
+    the dialog protocol the ARMED screen draws no prompt for). See
+    LED_NOT_SEEN: with no channel, the indicator half of each step is
+    recorded as not measured rather than inferred from a press."""
     steps = [Step(*s) for s in PANELS[panel]]
     if panel == 'left' and SW_LEFT is None:
         # S136: Sys001SwLeft001 is not on this unit's deployed pack (it lands
@@ -648,9 +661,8 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
             st.sw = st.led = NODATA
             st.sw_note = st.led_note = 'the panel bus did not acknowledge the write'
             continue
-        tries = 0
         while True:
-            answer = ask(st, n, len(steps), tries)
+            answer = ask(st, n, len(steps))
             got = bus.wait_key(timeout, tick=answer)
             if got is None:
                 st.sw = NODATA
@@ -661,10 +673,17 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
             kind, value, ms = got
             if kind == 'glass':
                 if value == 'notlit':
+                    # S137, PW's panel-loop ruling, verbatim: "a button to
+                    # press if led change is not observed so machine can
+                    # note, and skip to next." The LED is FAILED on the
+                    # operator's word; the switch underneath it was never
+                    # asked about, so it is NOT TESTED, not FAILED -- and the
+                    # step ends here, at once, with no retry.
                     st.led = FAIL
-                    st.led_note = '%s did not light when the tester lit it' % st.what
-                    tries += 1
-                    continue
+                    st.led_note = 'operator saw no light'
+                    st.sw = NOTTESTED
+                    st.sw_note = 'skipped: LED dark'
+                    break
                 st.sw = st.led = SKIPPED
                 st.sw_note = st.led_note = 'the operator skipped this button'
                 break
@@ -710,9 +729,10 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
                 break
             other = dict((s.idx, s.name) for s in steps).get(value)
             st.sw = FAIL
-            st.sw_note = ('the tester lit %s and the key code that came back was '
-                          '%d%s' % (st.name, value,
-                                    ' (%s)' % other if other else ''))
+            st.sw_note = ('on the %s, the tester lit %s and the key code that '
+                          'came back was %d%s'
+                          % (PANEL_NAME[panel], st.name, value,
+                             ' (%s)' % other if other else ''))
             if st.led is None:
                 st.led = NODATA
                 st.led_note = 'not reached: the wrong key code came back'
@@ -848,13 +868,9 @@ def mode_watch(a):
 def mode_loop(a):
     bus = InjectedBus(a.inject) if a.inject else PanelBus(a.port)
 
-    def ask(st, n, total, tries):
-        if tries:
-            print('\n   %s did not light. Press %s anyway.' % (st.what, st.name),
-                  flush=True)
-        else:
-            print('\n[%d/%d] press the button that is lit: %s   (%s)'
-                  % (n + 1, total, st.name, st.what), flush=True)
+    def ask(st, n, total):
+        print('\n[%d/%d] press the button that is lit: %s   (%s)'
+              % (n + 1, total, st.name, st.what), flush=True)
         return lambda: None
 
     try:

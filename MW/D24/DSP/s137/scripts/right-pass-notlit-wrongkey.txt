@@ -1,0 +1,17 @@
+# S137 proof script -- right panel, fixed sweep order (FX MUTE, HOME, MENU,
+# +48, FEEDBACK, MUTE, SCENE, L, C, CH ASSIGN, R, MONITOR, REC/PLY, STUDIO CTL)
+30 6        # FX MUTE      -- correct press: PASS/PASS
+30 glass notlit   # HOME    -- NOT LIT: LED FAIL "operator saw no light",
+                  #            switch NOT TESTED "skipped: LED dark", advances at once
+30 3         # MENU (idx 2) -- WRONG key (sends +48's code): switch FAILs, names the board
+30 3         # +48          -- correct press: PASS/PASS
+30 4         # FEEDBACK     -- correct press: PASS/PASS
+30 7         # MUTE         -- correct press: PASS/PASS
+30 8         # SCENE        -- correct press: PASS/PASS
+30 9         # L            -- correct press: PASS/PASS
+30 10        # C            -- correct press: PASS/PASS
+30 5         # CH ASSIGN    -- correct press: PASS/PASS
+30 11        # R            -- correct press: PASS/PASS
+30 12        # MONITOR      -- correct press: PASS/PASS
+30 13        # REC/PLY      -- correct press: PASS/PASS
+30 14        # STUDIO CTL   -- correct press: PASS/PASS

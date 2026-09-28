@@ -523,17 +523,6 @@ def panel_side_words(panel):
 ENCODER_WORDS = 'Turn the encoder one click clockwise, then one back.'
 
 
-def panel_retry_words(name, what, panel=''):
-    """The indicator did not light, and the switch under it is still worth a
-    press. Said on the glass as well as in the dialog, because the dialog is
-    what the runner is answered through and the glass is what is read."""
-    if panel:
-        return ('%s: %s did not light. Press %s anyway.'
-                % (panel_side_words(panel), what, name))
-    return ('%s did not light. Press %s anyway, so the switch itself is still '
-            'checked.' % (what.capitalize(), name))
-
-
 def panel_press_words(name, what, panel=''):
     """One named button of the sweep, for the glass.
 
@@ -550,18 +539,6 @@ def panel_press_words(name, what, panel=''):
                 % (panel_side_words(panel), name, what[:1].upper() + what[1:]))
     return ('Press the button that is lit: %s. It is %s that should be lit.'
             % (name, what))
-
-
-def panel_retry_words_blind(what, panel=''):
-    """S130, behind the `random_order` flag (PW has not ruled on it): the
-    NOT-random-order retry names the button (`panel_retry_words`); this does
-    not, on purpose -- naming it is what let an operator hunt a dark panel by
-    reading the glass instead of finding the light (S129 addendum 7)."""
-    if panel:
-        return ('%s: %s did not light. Press it anyway.'
-                % (panel_side_words(panel), what))
-    return ('%s did not light. Press it anyway, so the switch itself is still '
-            'checked.' % what.capitalize())
 
 
 def panel_press_words_blind(panel=''):
@@ -645,13 +622,10 @@ def every_string(rows=()):
             panel_loop_words('left switch panel'),
             panel_loop_words('right switch panel'),
             panel_already_passed(0, 36), panel_already_passed(24, 36),
-            panel_retry_words('MONO AUX', 'the white pair',
-                              'left switch panel'),
             panel_press_words('MONO AUX', 'the white pair',
                               'left switch panel'),
             panel_press_words('FX MUTE', 'the RED ring',
                               'right switch panel'),
-            panel_retry_words_blind('it', 'left switch panel'),
             panel_press_words_blind('right switch panel'),
             panel_judgement_missed('The always-lit rings'),
             panel_judgement_missed('The ring around the encoder'),
@@ -684,6 +658,17 @@ def every_string(rows=()):
         out.append(action_wrong_socket('MIC 6', r.get('in'), confirm=False))
     out.append(hold_note(3))
     return [s for s in out if s]
+
+
+# THE PANEL LOOP'S OWN BUTTONS (S137, PW's ruling, verbatim: "a button to
+# press if led change is not observed so machine can note, and skip to
+# next"). PW's explicit exception to the one-button rule: NOT LIT stands in
+# for ENTER while one panel is being walked, in the SAME slot/geometry ENTER
+# would otherwise use -- the panel step is completed by a press ON THE UNIT,
+# never by anything on the glass, so ENTER has nothing to confirm here and
+# NOT LIT is the one judgement a physical press cannot make. PAUSE stays,
+# because a run can still be stopped mid-panel. See `panel_station`'s `ask`.
+PANEL_BUTTONS = ['notlit', 'pause']
 
 
 # The buttons on the glass, per state. The screen draws what it is given and
@@ -866,4 +851,6 @@ class Live:
         if float(c.get('stamp', 0)) < self.t0:
             return None                      # left over from a previous run
         cmd = c.get('command')
-        return cmd if cmd in ('pause', 'enter', 'exit') else None
+        # 'notlit' (S137): the panel loop's own second button, drawn only
+        # while `buttons` is `PANEL_BUTTONS`; see `panel_station`'s `ask`.
+        return cmd if cmd in ('pause', 'enter', 'exit', 'notlit') else None
