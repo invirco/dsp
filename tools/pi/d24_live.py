@@ -354,12 +354,27 @@ STATUS_WORDS = {
 
 
 # The hint, and it is ONLY a hint: the tester can see the signal arrive and
-# says so, but the step still waits for ENTER (PW 2026-09-26).
+# says so, but the step still waits for ENTER (PW 2026-09-26). CONFIRM MODE
+# ONLY -- it is the one sentence that names a button that is not on the screen
+# once signal arrival is the go-ahead.
 SIGNAL_SEEN = 'Signal found - press ENTER.'
+# ... and what the same moment says when ARRIVAL IS THE GO-AHEAD (PW
+# 2026-09-28): the tone is there, the station is holding it still for its
+# stability window, and the operator is asked for nothing. "Hold still" is the
+# only thing they could usefully do with the quarter second it lasts, and it is
+# not a button.
+SIGNAL_HOLDING = 'Signal found - hold still.'
 
 
 def status_words(state):
     return STATUS_WORDS.get(state, '')
+
+
+# WHAT A TONE ON THE WRONG INPUT SAYS, IN PW'S OWN SHAPE (2026-09-28):
+# "signal on MIC 7, expected MIC 5". It is a STATUS line, not a verdict: the
+# row that was asked for is not graded from it, and the operator re-patches.
+def status_wrong_input(actual, wanted):
+    return 'Signal on %s, expected %s.' % (actual, socket_words(wanted))
 
 
 # The one plain action a red screen offers. Exactly one, always something the
@@ -371,8 +386,29 @@ def action_wrong_socket(actual, wanted, confirm=True):
 
 
 def action_no_signal(confirm=True):
-    return ('Push the lead in firmly at both ends%s'
-            % (', then press ENTER again.' if confirm else '.'))
+    """The red screen's action when nothing arrived.
+
+    In CONFIRM mode it asks for ENTER again. With arrival as the go-ahead there
+    is nothing to press to try again -- pushing the lead home IS the retry --
+    so the sentence names the one button the screen does carry, which is the
+    operator's way of saying the socket is dead.
+    """
+    if confirm:
+        return 'Push the lead in firmly at both ends, then press ENTER again.'
+    return 'Push the lead in firmly at both ends, or say NO SIGNAL.'
+
+
+# THE TIMEOUT RAISES THE SAME QUESTION, AND SAYS HOW LONG IT WAITED (PW
+# 2026-09-28: "plus a timeout that raises the same prompt"). The number is the
+# list's own `detect_timeout_s`, passed in rather than repeated here.
+def timeout_words(socket, secs):
+    return ('Nothing has arrived at %s for %d seconds.'
+            % (socket_words(socket), int(round(secs))))
+
+
+# The row a NO SIGNAL press records, in PW's words. It is a FAIL: the operator
+# has looked at a patch they made and says the path is not carrying.
+NO_SIGNAL_FAIL = 'no signal detected'
 
 
 def action_failed():
@@ -659,7 +695,10 @@ def every_string(rows=()):
     instructions and not just the fixed furniture.
     """
     out = list(STATUS_WORDS.values())
-    out += [SIGNAL_SEEN, NO_LOOP, LOOKING,
+    out += [SIGNAL_SEEN, SIGNAL_HOLDING, NO_LOOP, LOOKING,
+            status_wrong_input('MIC 7', 'MIC 5'),
+            status_wrong_input('MIC 7', 'MIC 5 line'),
+            timeout_words('MIC 5', 20.0), 'NO SIGNAL', NO_SIGNAL_FAIL,
             move_input('MIC 6'), move_input('MIC 6', False),
             move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
             swap_for_plug('MIC 7'), swap_for_plug('MIC 7', False),
@@ -727,6 +766,23 @@ def every_string(rows=()):
 PANEL_BUTTONS = ['notlit', 'pause']
 
 
+# THE PATCH LOOP'S OWN BUTTONS ONCE ARRIVAL IS THE GO-AHEAD (PW 2026-09-28,
+# pipeline.md, verbatim: "when input signal cables are moved, they are
+# automatically detected, and if so they can be measured and pass/failed and
+# prompt next move without a required enter; a button would only need to be
+# pressed to move on if signal is not detected").
+#
+# It is the SAME SHAPE as the panel loop's NOT LIT and for the same reason: the
+# step is completed by an action on the UNIT -- there, a finger on a switch;
+# here, a lead going into a socket -- so ENTER has nothing left to confirm and
+# would be a button that does nothing. What a press is still needed for is the
+# one judgement the unit cannot make on its own: the operator has made the
+# patch, nothing came through, and they say so. That is NO SIGNAL, it sits in
+# the slot ENTER used to have, and PAUSE stays because a run can always be
+# stopped.
+NOSIGNAL_BUTTONS = ['nosignal', 'pause']
+
+
 # The buttons on the glass, per state. The screen draws what it is given and
 # owns no rule about when a button exists: PW's ENTER is only offered where
 # pressing it means something, PAUSE is offered wherever a run can be stopped,
@@ -751,6 +807,13 @@ def buttons_for(state, confirm=True):
         return ['start']
     if confirm and state in (WAITING, CHECKLEAD):
         return ['enter', 'pause']
+    # ARRIVAL IS THE GO-AHEAD, SO THE WAITING SCREEN IS NOT BUTTONLESS (PW
+    # 2026-09-28). Until this line it was: `confirm=False` fell straight through
+    # to PAUSE, so auto-advance drew a screen on which the operator could say
+    # nothing at all about a socket that would not carry -- which is the one
+    # thing PW's ruling says a button is still for. See NOSIGNAL_BUTTONS.
+    if state in (WAITING, CHECKLEAD):
+        return list(NOSIGNAL_BUTTONS)
     return ['pause']
 
 
@@ -909,4 +972,10 @@ class Live:
         cmd = c.get('command')
         # 'notlit' (S137): the panel loop's own second button, drawn only
         # while `buttons` is `PANEL_BUTTONS`; see `panel_station`'s `ask`.
-        return cmd if cmd in ('pause', 'enter', 'exit', 'notlit') else None
+        # 'nosignal' (PW 2026-09-28): the patch loop's, drawn on every WAITING
+        # and CHECKLEAD screen once arrival is the go-ahead. Accepted here
+        # because `Live.command` is the ONLY channel the glass has -- a button
+        # the screen draws and this method drops is a dead button, which is the
+        # class of fault S137 found on the panel loop.
+        return (cmd if cmd in ('pause', 'enter', 'exit', 'notlit', 'nosignal')
+                else None)

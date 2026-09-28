@@ -117,7 +117,16 @@ def main():
 
     tmp = tempfile.mkdtemp(prefix='s128-glass-')
     every, unhook = record_every_screen()
-    argv = ['--simulate', '--list-dir', a.list_dir, '--live', tmp, '--dir', tmp]
+    # `--confirm-enter` IS THE MODE THIS CHECK IS ABOUT, and since PW's ruling
+    # of 2026-09-28 it has to be asked for: signal arrival is the go-ahead, so a
+    # default run puts no ENTER on any screen and there would be nothing here to
+    # check. The ENTER path still exists -- it is what a before/after timing run
+    # uses -- and S128's fault (an instruction that says "press ENTER" on a
+    # screen with no ENTER button) is still a fault in it. The auto path has its
+    # own check, S145's `patch_auto_advance_check.py`, which asserts the
+    # opposite: no ENTER anywhere, and NO SIGNAL on every waiting screen.
+    argv = ['--simulate', '--confirm-enter',
+            '--list-dir', a.list_dir, '--live', tmp, '--dir', tmp]
     for b in (a.block or []):
         argv += ['--block', b]
     for f in (a.fault or []):

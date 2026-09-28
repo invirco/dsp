@@ -14,12 +14,21 @@ next patch will be prompted, until all signal paths are tested", and then
 the figure of merit is OPERATOR SECONDS. So this file is written around the
 operator's hands, and every machine cost is pushed out of their way:
 
-  * NOBODY PRESSES ENTER. The prompt goes up, the tone is already running, and
-    the runner watches the input the patch is supposed to reach. The moment the
-    lead goes in, the meter on that lane rises and the step is over -- the
-    operator is already moving to the next socket while the reading is taken.
-    Enter stays on the glass as a fallback and for a step that will not
-    auto-advance on its own.
+  * NOBODY PRESSES ENTER, and since PW's ruling of 2026-09-28 that is the whole
+    of it: "when input signal cables are moved, they are automatically detected,
+    and if so they can be measured and pass/failed and prompt next move without
+    a required enter; a button would only need to be pressed to move on if
+    signal is not detected." The prompt goes up, the tone is already running,
+    and the runner watches the input the patch is supposed to reach. The lead
+    goes in, the lane holds still for a quarter second (DETECT_STABLE_BLOCKS --
+    nothing is graded mid-insertion), the step is over, and the operator is
+    already moving to the next socket while the reading is taken. There is NO
+    ENTER on a detected patch: the one button on the screen is NO SIGNAL, which
+    is what an operator presses when they have made a patch and nothing came
+    through. A tone that arrives on the WRONG input is named while they are
+    standing there -- "Signal on MIC 7, expected MIC 5" -- and is never graded
+    as the row that was asked for. `--confirm-enter` is the 09-26 loop, kept
+    for a before/after timing run.
   * THE NOISE ROWS AUTO-ADVANCE TOO. A 150 ohm terminator makes no tone, so
     there is nothing to detect -- except that fitting it DROPS the lane's own
     noise, because an open mic input is much noisier than a terminated one.
@@ -164,6 +173,84 @@ PREARM_AGREE_DB = 0.5
 # The armed reading is thrown away if its own windows disagree by more than
 # this: that is a reading taken through a connector that was still moving.
 PREARM_STABLE_DB = 0.5
+
+# ---------------------------------------------------------------------------
+# SIGNAL ARRIVAL IS THE GO-AHEAD (PW 2026-09-28, pipeline.md ~18:1x BST)
+# ---------------------------------------------------------------------------
+# "when input signal cables are moved, they are automatically detected, and if
+# so they can be measured and pass/failed and prompt next move without a
+# required enter; a button would only need to be pressed to move on if signal is
+# not detected."
+#
+# This SUPERSEDES the 09-26 review's "ENTER still decides" for every patch the
+# detector can see, and it is why `--auto-advance` is no longer a flag that is
+# off: it is what the station does, and `--confirm-enter` is the old loop kept
+# for a before/after timing run and for nothing else.
+#
+# THE STABILITY WINDOW, AND WHY THERE HAS TO BE ONE. The detector fires on the
+# FIRST poll in which the lane has risen, and the first poll in which a lane has
+# risen is in the middle of the operator's hand movement: an XLR latches after
+# the pins mate, a TRS is wiped along its full travel, and a mini-jack passes
+# through both legs shorted on the way in. Ending the step there would hand the
+# reading a connector that is still moving -- which is the same fault the
+# pre-arm's `PREARM_STABLE_DB` exists to catch on the ENTER path, only now there
+# is no ENTER behind it to catch it. So the step ends when the lane has been
+# PRESENT AND STEADY for a window, and not when it first went loud.
+#
+# N = 3 BLOCKS, and the block is the instrument's own: TEST_MEAS integrates over
+# 4,096 samples, so WIN_S is 85.3 ms and three of them are 256 ms. Three,
+# because:
+#
+#   * it must outlast the mechanical event. S125 measured the strip meter's
+#     decay at 6.52 dB/s and the gain step needs 167 ms (two settle windows plus
+#     one read) to read the node honestly; 256 ms is longer than both, so a
+#     window that satisfies this test cannot be a transient the meter is still
+#     holding.
+#   * it must not be longer than the operator's own hand. The projected hand
+#     move is 3-8 s (S123's table), so 256 ms is 3-8 % of one step: the whole
+#     window is spent while their hand is still on the connector and it comes
+#     off the pass's clock, not out of it.
+#   * and it must be more than one block, or it is not a window at all: one
+#     poll is what the old detector already did.
+#
+# STEADY IS 1.0 dB ACROSS THE WINDOW. The instrument here is the strip meter,
+# which is a peak-hold latch and not the measurement node, so it is coarser than
+# the 0.5 dB the pre-arm holds the node to -- a steady tone reads flat on it
+# (peak hold on a continuous sine does not decay), and anything that moves the
+# connector moves it by much more than a dB. 1.0 dB is twice PREARM_STABLE_DB on
+# an instrument that is at least twice as coarse; a reading that passes it and
+# is still wrong is caught downstream by `rms_spread` on the node itself.
+DETECT_STABLE_BLOCKS = 3
+DETECT_STEADY_DB = 1.0
+# The detector's poll, and it is NOT the whole cadence -- the read itself costs
+# something, and how much depends on which instrument the lane has:
+#
+#   * the 24 mic strips have a meter word, which needs no settling window at all
+#     (S121 measured all twenty-four at 32 ms), so a poll is 50 ms + ~1 ms and
+#     the 256 ms window carries five or six samples.
+#   * the three codec return lanes -- the talkback XLR and the two mini-jack legs
+#     -- have NO meter of their own, so `watch` reads the measurement node's own
+#     RmsResult instead, and that costs one 85.3 ms window. A poll there is
+#     ~135 ms and the same 256 ms window carries TWO samples.
+#
+# Which is why the count the window insists on is TWO and not three: two is what
+# makes it a window rather than a point, and it is the floor the coarsest lane on
+# the unit can actually deliver. A three-sample rule reads as stricter and is
+# not: it would simply never be satisfiable on the talkback or either mini-jack
+# leg, so those three patches would run to the timeout on a good unit. (Measured,
+# not reasoned: the dry run does exactly that, and did, until this was two.)
+DETECT_POLL_S = 0.05
+DETECT_STABLE_SAMPLES = 2
+
+# HOW OFTEN THE OTHER TWENTY-THREE LANES ARE LOOKED AT WHILE WAITING (PW
+# 2026-09-28: "a tone arriving on an input OTHER than the one asked for is named
+# on the screen"). The sweep is one peeked word per strip and S121 measured all
+# twenty-four at 32 ms, so a second between sweeps costs 3 % of the detector's
+# own time and names a misplaced lead within a second of it going in -- which is
+# while the operator's hand is still there, not after they have walked away.
+# Before this, the sweep only ran when a step had already FAILED to detect, so a
+# lead in the wrong socket was silent for the whole 20 s timeout.
+WRONG_INPUT_POLL_S = 1.0
 
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 IGNORED = 'IGNORED'
@@ -667,9 +754,17 @@ class ManualPatcher(Patcher):
 
     kind = 'manual'
 
-    def __init__(self, glass):
+    def __init__(self, glass, auto=True):
         self.glass = glass
         self.last = None
+        # WHICH BUTTON THE DIALOG CARRIES. The dialog is the second channel --
+        # the factory screen is what the operator reads, the dialog is what the
+        # runner is answered through -- and since PW's ruling of 2026-09-28 the
+        # answer it needs is not DONE (the lead going in says that) but NO
+        # SIGNAL. It matters that this channel has it too: `Live.command` needs
+        # the app to draw a button it has never drawn before, and until it does,
+        # this is the only way an operator can say a socket is dead.
+        self.auto = bool(auto)
 
     def connect(self, patch, rows, glass):
         r = rows[0]
@@ -680,8 +775,8 @@ class ManualPatcher(Patcher):
                          'until the next instruction.' % len(rows))
         lines.append('It advances on its own when the lead is in.')
         btns = glass.post('patch', '%s  (lead %s)' % (r['prompt'], lead),
-                          lines, ['done'], patch=patch, lead=lead,
-                          row=r['rows'])
+                          lines, ['nosignal'] if self.auto else ['done'],
+                          patch=patch, lead=lead, row=r['rows'])
         self.last = patch
         return btns
 
@@ -720,13 +815,13 @@ class HarnessPatcher(Patcher):
             'every path it needs.')
 
 
-def pick_patcher(glass, want='auto'):
+def pick_patcher(glass, want='auto', auto_advance=True):
     """MANUAL unless a harness answers IDENT on a /dev/ttyACM* -- and since the
     harness back end is not built, MANUAL either way today. The probe is left
     in as the one line that has to change."""
     if want == 'harness':
         return HarnessPatcher()
-    return ManualPatcher(glass)
+    return ManualPatcher(glass, auto=auto_advance)
 
 
 # ---------------------------------------------------------------------------
@@ -1786,7 +1881,7 @@ class Station:
     """
 
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
-                 blocks=None, live=None, analog=None, auto_advance=False,
+                 blocks=None, live=None, analog=None, auto_advance=True,
                  keys=None, prearm=True, trials=False, trial_only=None,
                  mj_input=None):
         # 1.2(b). OFF unless asked for, because it is the one thing in this
@@ -1815,9 +1910,12 @@ class Station:
         self.floors = {}
         self.live = live or LV.Live(None, enabled=False)
         self.an = analog or Analog(enabled=False)
-        # PW 2026-09-26: the step is CONFIRMED by the operator, not advanced
-        # under their hands. Auto-advance is the same loop with this on, and
-        # it is off unless somebody asks for it.
+        # PW 2026-09-28: SIGNAL ARRIVAL IS THE GO-AHEAD. This is ON, and
+        # `--confirm-enter` is the 09-26 loop kept for a before/after timing run
+        # -- that ruling ("let me plug the cable in, then hit Enter") is
+        # superseded for every patch the detector can see. The two paths are the
+        # same loop; what changes is which event ends a step and which button the
+        # screen carries.
         self.auto = bool(auto_advance)
         # RULING d. On by default; `--no-pre-arm` is what a before/after
         # timing run turns off, and auto-advance has nothing to pre-arm for
@@ -1860,6 +1958,28 @@ class Station:
         self.reparked = {}       # dead socket -> (panel name, drive)
         self.unparked = set()    # sockets whose parked lead is already off
         self.costs = {}          # where the machine seconds went, by name
+        self._confirm_was = None
+        self._own_the_screen()
+
+    def _own_the_screen(self):
+        """This station's screens carry this station's buttons.
+
+        THE SCREEN IS SHARED AND THE RULE IS NOT (S128's one-screen-per-pass, and
+        this is the seam it leaves). `Live.confirm` is what `buttons_for` reads,
+        and under RUN ALL one `Live` is built for the whole pass with
+        `confirm=True` -- which is right for the setup pages, because they really
+        do ask for ENTER. Left alone, every WAITING screen this station wrote
+        under RUN ALL would carry an ENTER button that ends nothing: the same
+        dead-button fault S137 found on the panel loop, one station along.
+
+        So the station takes the flag for as long as it owns the screen and
+        `teardown` puts it back. A standalone run's `Live` was built with the
+        right value already and this changes nothing there.
+        """
+        want = not self.auto
+        if self.live.confirm != want:
+            self._confirm_was = self.live.confirm
+            self.live.confirm = want
 
     # -- setup -------------------------------------------------------------
     def standing(self):
@@ -2196,13 +2316,34 @@ class Station:
         its own; everything else gets WAITING's own words -- which also clears
         a **stale** "Signal found - press ENTER." left over from the patch
         before, visible in that same artifact.
+
+        WHAT PW'S RULING OF 2026-09-28 ADDS, ALL OF IT INSIDE THIS LOOP:
+
+          * the step ends on the SIGNAL, not on a press -- and not on the first
+            poll that sees it either, but on a STABILITY WINDOW
+            (DETECT_STABLE_BLOCKS, DETECT_STEADY_DB). Nothing is graded while
+            the connector is still moving.
+          * a REMOVAL EDGE is required first on any lane that is already
+            carrying when the prompt goes up. Those are the real patches where
+            only the far end moves ("Move the other end to AUX 2") and the noise
+            swap, and without it the detector would grade a socket the operator
+            has not touched yet.
+          * the other twenty-three lanes are swept while waiting, so a tone on
+            the WRONG input is named on the screen within a second of arriving
+            -- "Signal on MIC 7, expected MIC 5" -- and is never graded as the
+            row that was asked for.
+          * NO SIGNAL is the one button, and the TIMEOUT raises the same
+            question rather than deciding anything.
         """
         r = rows[0]
         lane = prep['lane']
         rise = self.lim['detect_rise_db']
         drop = self.lim['detect_drop_db']
+        tone = r['expect'] != 'noise'
         t0 = now()
         self._met_at = None
+        self._stable = []
+        self._wrong = None
         # THE HINT IS PER STEP, NOT PER PASS. `_hinted` used to carry across
         # patches, so a patch that followed one where the tone was seen started
         # with the hint already "on" -- the status said "Signal found - press
@@ -2211,9 +2352,13 @@ class Station:
         self._hinted = False
         self.waiting(status=status or LV.status_words(LV.WAITING))
         # A step that waits for a PERSON cannot use the list's tone timeout:
-        # somebody who has walked off to find the right lead has not failed.
-        deadline = t0 + self.lim['detect_timeout_s'] * (1 if self.auto
-                                                        else ENTER_PATIENCE)
+        # somebody who has walked off to find the right lead has not failed. On
+        # the ENTER path that is ENTER_PATIENCE times the list's own number; on
+        # the ruled path the number IS the list's, because it no longer ENDS the
+        # step -- it raises the question and the loop carries on (see the bottom
+        # of this loop). `detect_timeout_s` is 20.0 s in every list in the tree.
+        deadline_s = self.lim['detect_timeout_s'] * (1 if self.auto
+                                                     else ENTER_PATIENCE)
         # THE BASELINE IS NOT prepare()'s READING, and this is the one place
         # that matters. When the prompt goes up the PREVIOUS patch's lead is
         # still in the unit -- the operator has not pulled it yet -- so a
@@ -2222,10 +2367,41 @@ class Station:
         # the quietest it has been for a tone row, the loudest for a noise row.
         # Pulling the old lead and fitting the new one is exactly the shape
         # that produces, and it needs no knowledge of what came before.
-        lo = hi = None
-        while now() < deadline:
+        # THE REMOVAL EDGE (PW 2026-09-28: "Removal edge confirms the operator
+        # moved on before the next grade can start"). `lvl0` is the lane as the
+        # prompt goes up, and it is read HERE and not in `_prepare`: the
+        # pipeline prepares the next patch while the last one is still being
+        # scored, so `prep['watch']` can be a lane the operator has not reached.
+        #
+        # A lane that is ALREADY carrying is the case that matters, and it is a
+        # real one, not a defensive one: "Move the other end to AUX 2" leaves the
+        # lead in the same socket, and the noise swap ("Take the lead out and put
+        # the 150 ohm plug in") does too. On those the tone is there before the
+        # operator touches anything, so a detector that only looked for a rise
+        # would grade a patch nobody had made yet. The gate is therefore: until
+        # the lane has been seen to LEAVE the state it was prompted in, no
+        # arrival counts.
+        lvl0 = self.watch(lane)
+        floor = prep.get('floor')
+        hot0 = bool(tone and lvl0 is not None and math.isfinite(lvl0)
+                    and floor is not None and lvl0 - floor >= rise)
+        removal = 'not needed' if not hot0 else None
+        # AND IT SEEDS THE EXTREMES. The lane at the prompt is part of "since the
+        # prompt went up" -- it IS the moment the prompt went up -- so the
+        # quietest-so-far and loudest-so-far start there rather than at the first
+        # poll afterwards. Without this the first poll is its own baseline and a
+        # lane that was quiet at the prompt and loud one poll later never shows a
+        # rise at all.
+        lo = hi = (lvl0 if lvl0 is not None and math.isfinite(lvl0) else None)
+        # The wrong-input sweep's own clock. The first one is owed a moment's
+        # grace: at t0 the PREVIOUS patch's lead is very often still in its
+        # socket, and naming that as a misplaced lead would be a red screen
+        # about something the operator is in the middle of doing right.
+        next_sweep = t0 + WRONG_INPUT_POLL_S
+        raised = False              # the timeout's prompt, put up once
+        while True:
             # The screen is alive while this loop runs, and both buttons are
-            # polled in the same breath as the meter -- so ENTER and PAUSE
+            # polled in the same breath as the meter -- so NO SIGNAL and PAUSE
             # land within one poll of the press wherever the loop is waiting.
             self.live.beat()
             # 2.2, PW ADDENDUM 1: the mini-jack sense is drained HERE, in the
@@ -2239,13 +2415,17 @@ class Station:
                 return ('glass', dict(button='pause', reason='the screen'),
                         now() - t0)
             entered = (cmd == 'enter') or self.keys.pressed()
+            said_nothing = (cmd == 'nosignal')
             ans = self.p.poll(token)
             if ans is not None:
+                b = ans.get('button')
                 # DONE on the old dialog, and Enter on a terminal, mean the
                 # same thing as the ENTER button: the operator says the lead
                 # is in. Anything else is a decision and goes back to the loop.
-                if ans.get('button') in ('done', 'ack', 'retry'):
+                if b in ('done', 'ack', 'retry'):
                     entered = True
+                elif b == 'nosignal':
+                    said_nothing = True
                 else:
                     return ('glass', ans, now() - t0)
             met = False
@@ -2253,34 +2433,126 @@ class Station:
             if lvl is not None and math.isfinite(lvl):
                 lo = lvl if lo is None else min(lo, lvl)
                 hi = lvl if hi is None else max(hi, lvl)
-                # NOT STICKY, and that is what makes ENTER honest: the test is
+                # NOT STICKY, and that is what makes the test honest: it is
                 # against the level RIGHT NOW, so a lead that went in and came
                 # out again reads as out.
-                met = ((hi - lvl >= drop) if r['expect'] == 'noise'
+                met = ((hi - lvl >= drop) if not tone
                        else (lvl - lo >= rise))
+                # THE REMOVAL EDGE, for a lane that was already carrying. Until
+                # it has fallen back by the same threshold an arrival has to
+                # clear, nothing on this lane is an arrival.
+                if removal is None and lvl0 - lvl >= rise:
+                    removal = 'seen'
+                    self.log('%s: the lead came out of %s (%.1f -> %.1f dBFS)'
+                             % (r['patch'], r['in'], lvl0, lvl))
+                if hot0 and removal is None:
+                    met = False
             if met and self._met_at is None:
                 # THE LEAD WENT IN. A physical connection is a change on the
                 # wire the node cannot tell from a cell write, so the settle
                 # clock starts here too (S125). On the ENTER path this is
                 # about a second before the reading and nothing is owed; on
-                # auto-advance the step ends at once and the remainder is
-                # paid, which is what stops a window with a half-seated
-                # connector in it being read as the measurement.
+                # auto-advance the stability window is what pays it, which is
+                # what stops a window with a half-seated connector in it being
+                # read as the measurement.
                 self._met_at = now()
+                self._stable = [(now(), lvl)]
                 self.u.mark_moved()
+                self._wrong = None
                 # RULING d: the reading starts HERE, not on ENTER. The loop
                 # goes straight back to polling the buttons afterwards, so
-                # PAUSE and ENTER stay live across it.
+                # PAUSE and the fault button stay live across it.
                 if self.prearm_ok(rows):
                     self.live.set(state=LV.CHECKING)
                     self.arm(rows, prep)
                     self.waiting(status=LV.SIGNAL_SEEN)
                     self._hinted = True
-            if met and self.auto:
-                return (('drop' if r['expect'] == 'noise' else 'rise'),
-                        None, now() - t0)
-            if entered:
+                elif self.auto:
+                    # AND THE RED SCREEN COMES DOWN WITH IT. `waiting` carries
+                    # the banner across on purpose (S128: the last patch's
+                    # verdict sits over the next patch's instruction), so a
+                    # CHECK THE LEAD banner left by the wrong-input sweep or the
+                    # timeout would still be up while the right socket was being
+                    # read. The arrival is the answer to both.
+                    self.waiting(status=LV.SIGNAL_HOLDING, banner='',
+                                 banner_line='', action='')
+                    self._hinted = True
+            elif met:
+                self._stable.append((now(), lvl))
+            elif self._met_at is not None:
+                # IT WENT AWAY AGAIN, MID-INSERTION. The window starts over --
+                # and it has to start over rather than be forgiven, because a
+                # connector that made and broke inside 256 ms is exactly the one
+                # whose reading would be wrong.
+                self.log('%s: the signal went away again after %.0f ms -- the '
+                         'stability window starts over'
+                         % (r['patch'], 1000.0 * (now() - self._met_at)))
+                self._met_at, self._stable = None, []
+                self._hinted = False
+                self.waiting(status=status or LV.status_words(LV.WAITING),
+                             banner='', banner_line='', action='')
+            if self.auto and self._met_at is not None:
+                ok, why = self._stable_ok()
+                if ok:
+                    self.log('%s: %s after %.0f ms, present and steady '
+                             '(%d blocks, %d readings, spread %s)'
+                             % (r['patch'], 'drop' if not tone else 'rise',
+                                1000.0 * (now() - t0), DETECT_STABLE_BLOCKS,
+                                len(self._stable), why))
+                    return (('drop' if not tone else 'rise'), None, now() - t0)
+            # THE OTHER TWENTY-THREE LANES, WHILE WAITING. Only while nothing is
+            # arriving on the asked-for lane: once the stability window is open
+            # the answer is already here and a sweep would only cost the step
+            # 32 ms of its own settle.
+            if self._met_at is None and now() >= next_sweep:
+                next_sweep = now() + WRONG_INPUT_POLL_S
+                self._look_elsewhere(r, lane, status, raised)
+            # ENTER IS NOT WHAT ENDS A STEP ANY MORE (PW 2026-09-28). In auto
+            # mode a press can never grade a patch: if the signal is there the
+            # step is about to end on its own and the press is worth nothing, and
+            # if it is not, the press raises the NO SIGNAL question instead of
+            # answering it.
+            #
+            # A SECOND PRESS, WITH THE QUESTION ALREADY UP, IS THE ANSWER -- and
+            # that is the one concession to a factory app that may not draw a
+            # button it has never been given. `Live.command` carries `enter`,
+            # `pause`, `start`, `exit` and `notlit` because something app-side
+            # already draws each of those; `nosignal` is new, and whether the
+            # deployed app draws it cannot be settled from this repo (the app is
+            # not in it -- same wall S138b hit over STILL LIT). So the ENTER
+            # channel, which certainly exists, reaches the same answer in two
+            # presses: the first asks, the second says yes. Nothing about it
+            # weakens the ruling -- neither press can grade a detected patch, and
+            # neither can be made before the question is on the screen.
+            if entered and not self.auto:
                 return (('enter-ok' if met else 'enter-no'), None, now() - t0)
+            if entered and self.auto and self._met_at is None:
+                if raised:
+                    self.log('%s: ENTER with the no-signal question already up '
+                             '-- taken as the answer' % r['patch'])
+                    said_nothing = True
+                else:
+                    raised = True
+                    self._raise_no_signal(r, lane, now() - t0)
+            elif entered and self.auto:
+                self.log('%s: ENTER while the signal is arriving -- the step '
+                         'ends on the signal, so it changes nothing'
+                         % r['patch'])
+            if said_nothing:
+                # THE ONE BUTTON. A tone that is arriving SOMEWHERE is not a
+                # dead socket, so the press is answered with where it is and the
+                # patch is offered again -- it is never graded as the asked row.
+                where = self._wrong or self.where_is_it(
+                    int(r['lane']), self.u.meter_sweep(MIC_STRIPS),
+                    int(r['donor']))
+                if where:
+                    self.log('%s: NO SIGNAL pressed, but the tone is on %s -- '
+                             'not graded; asking again' % (r['patch'], where))
+                    self._say_wrong(r, where)
+                    continue
+                self.log('%s: NO SIGNAL pressed on %s after %.1f s'
+                         % (r['patch'], r['in'], now() - t0))
+                return ('nosignal', None, now() - t0)
             # The hint. It says what the tester can see and never advances.
             # IT CARRIES THE STATE TOO (S128 hotfix): a bare `status=` change
             # leaves whatever state the screen was in, and the state is what
@@ -2289,8 +2561,110 @@ class Station:
                 self._hinted = met
                 self.waiting(status=(LV.SIGNAL_SEEN if met
                                      else LV.status_words(LV.WAITING)))
-            nap(0.05)
-        return ('timeout', None, now() - t0)
+            # THE TIMEOUT RAISES THE QUESTION; IT DOES NOT ANSWER IT (PW
+            # 2026-09-28). It used to end the step, which on the ENTER path was
+            # harmless -- the caller swept and re-prompted -- and on this one
+            # would be a station that gave up on a socket while the operator was
+            # still walking back to it. So the red screen goes up with the
+            # number on it, the NO SIGNAL button under it, and the loop carries
+            # on watching.
+            waited = now() - t0
+            if self.auto and not raised and waited >= deadline_s:
+                raised = True
+                self._raise_no_signal(r, lane, waited)
+            # AND THEN IT STILL HAS TO END, or a station left alone would sit on
+            # one patch for ever. The hard bound is the same number again:
+            # prompt raised at N seconds, given up at 2N. The ENTER path is
+            # UNCHANGED -- it ends at its own deadline, as it always did, and
+            # never puts this screen up.
+            if waited >= (2 * deadline_s if self.auto else deadline_s):
+                return ('timeout', None, waited)
+            nap(DETECT_POLL_S)
+
+    def _stable_ok(self):
+        """Has the lane been present and steady long enough to grade?
+
+        THE WINDOW SLIDES, and it has to. A window measured from the first poll
+        that saw the signal is a window that never recovers: a connector that
+        wobbles 4 dB as it seats puts a 4 dB spread in the list and the spread
+        would still be 4 dB a minute after it went still, so the step would sit
+        there for ever with a good patch in front of it. What the test is about is
+        the LAST DETECT_STABLE_BLOCKS blocks, so that is what it reads.
+
+        Three things, and all three are asserted rather than assumed: the signal
+        has been present for DETECT_STABLE_BLOCKS instrument blocks without a
+        break (`_met_at` is reset by the caller if it breaks), the sliding window
+        carries at least DETECT_STABLE_SAMPLES readings -- two, which is what
+        makes it a window rather than a point, and the most the coarsest lane on
+        the unit can deliver in 256 ms -- and its spread is inside
+        DETECT_STEADY_DB.
+        """
+        span = DETECT_STABLE_BLOCKS * WIN_S
+        if now() - self._met_at < span:
+            return False, ''
+        edge = now() - span
+        vals = [v for t, v in self._stable if v is not None and t >= edge]
+        if len(vals) < DETECT_STABLE_SAMPLES:
+            return False, ''
+        spread = max(vals) - min(vals)
+        if spread > DETECT_STEADY_DB:
+            return False, ''
+        return True, '%.2f dB' % spread
+
+    def _say_wrong(self, r, where):
+        """Name the input the tone is actually on, and grade nothing.
+
+        PW 2026-09-28, verbatim shape: "signal on MIC 7, expected MIC 5". It is
+        a red screen with one action on it and the same patch stays up.
+        """
+        self._wrong = where
+        self.live.set(state=LV.CHECKLEAD, banner='CHECK THE LEAD',
+                      banner_line='',
+                      status=LV.status_wrong_input(where, r['in']),
+                      action=LV.action_wrong_socket(where, r['in'],
+                                                    confirm=not self.auto))
+
+    def _look_elsewhere(self, r, lane, status, raised):
+        """One sweep of all twenty-four lanes, and what it changes on the screen.
+
+        Nothing is graded and nothing is recorded: the only output is the line
+        the operator reads. A sweep that finds the tone back where it belongs --
+        or finds nothing at all -- takes the red screen down again, so a lead
+        that was moved to the right socket does not leave a stale accusation up.
+        """
+        t = now()
+        where = self.where_is_it(lane, self.u.meter_sweep(MIC_STRIPS),
+                                 int(r['donor']))
+        self.cost('looking for a misplaced lead', now() - t)
+        if where and where != self._wrong:
+            self.log('%s: the tone is on %s, not %s' % (r['patch'], where,
+                                                        r['in']))
+            self._say_wrong(r, where)
+        elif not where and self._wrong and not raised:
+            self._wrong = None
+            self.waiting(status=status or LV.status_words(LV.WAITING),
+                         banner='', banner_line='', action='')
+
+    def _raise_no_signal(self, r, lane, waited):
+        """The red screen the timeout puts up, and the one an ENTER press gets.
+
+        It is the SAME screen either way -- that is the ruling's own word,
+        "raises the same prompt" -- and it decides nothing: the loop goes back to
+        watching the lane, so a lead pushed home after it is up still advances
+        the step on its own.
+        """
+        where = self._wrong or self.where_is_it(
+            lane, self.u.meter_sweep(MIC_STRIPS), int(r['donor']))
+        if where:
+            self._say_wrong(r, where)
+            return
+        self.log('%s: nothing has reached %s in %.1f s -- asking'
+                 % (r['patch'], r['in'], waited))
+        self.live.set(state=LV.CHECKLEAD, banner='CHECK THE LEAD',
+                      banner_line='',
+                      status=LV.timeout_words(r['in'],
+                                              self.lim['detect_timeout_s']),
+                      action=LV.action_no_signal(confirm=not self.auto))
 
     def gain_step(self, r):
         """One of PW's seven gain steps: chain, drive, settle, level.
@@ -3033,6 +3407,16 @@ class Station:
                         self.p.done(tok)
                         tok = self.p.connect(pid, rows, self.g)
                         continue
+                    if how == 'nosignal':
+                        # THE ONE BUTTON, AND IT RECORDS (PW 2026-09-28): the
+                        # operator has made the patch, looked at it, and says
+                        # nothing is coming through. `detect` has already ruled
+                        # out the tone being on another socket, so this is a
+                        # statement about the path and it is a FAIL -- not the
+                        # NO DATA the station records when IT gives up.
+                        self.p.done(tok)
+                        self.record(self.no_signal(rows))
+                        break
                     if how in ('rise', 'drop', 'enter-ok'):
                         t1 = now()
                         self.live.set(state=LV.CHECKING)
@@ -3479,6 +3863,28 @@ class Station:
                      h_db=None, h_deg=None, thd_db=None, noise_db=None,
                      rms_db=None) for r in rows]
 
+    def no_signal(self, rows):
+        """The row the NO SIGNAL button records: FAIL, in PW's own words.
+
+        WHY THIS IS A FAIL AND `nodata` IS NOT. The station's standing rule is
+        that a wrong patch is a prompt and never a fail, and it holds: `detect`
+        sweeps every lane before it will honour the press, so a tone that is
+        anywhere on the unit sends the operator back to re-patch instead of
+        landing this row. What is left is a patch the operator made, looked at,
+        and says is not carrying -- which is the one judgement about the PATH
+        that only a person standing in front of it can make. It is the same shape
+        as the panel loop's NOT LIT, and like NOT LIT it advances at once.
+        """
+        why = LV.NO_SIGNAL_FAIL
+        detail = ('the operator said no signal reached %s; no tone was on any '
+                  'other input either' % rows[0]['in'])
+        self.log('%s: recorded FAIL -- %s' % (rows[0]['patch'], why))
+        return [dict(path=r['path'], patch=r['patch'], lead=r['lead'],
+                     out=r['out'], **{'in': r['in']}, sub=r['sub'],
+                     rows=r['rows'], verdict=FAIL, why=why, detail=detail,
+                     h_db=None, h_deg=None, thd_db=None, noise_db=None,
+                     rms_db=None) for r in rows]
+
     def decided(self, rows, ans):
         """SKIP or IGNORE on the patch that is up. One patch, not the pass.
 
@@ -3577,6 +3983,10 @@ class Station:
         if getattr(self, '_torn', False):
             return
         self._torn = True
+        # The screen goes back to whatever the pass around this station had it
+        # set to (see `_own_the_screen`).
+        if self._confirm_was is not None:
+            self.live.confirm = self._confirm_was
         # The listener, if `run` was never entered (a --lamp-sweep run) or left
         # by a path that bypassed its own finally. Idempotent.
         try:
@@ -3942,11 +4352,17 @@ PRESS_S = 0.8
 
 
 class SimPatcher(ManualPatcher):
-    """The operator's hands: a fixed number of seconds, then the lead is in,
-    and then -- since PW's ruling of 2026-09-26 -- a reach for ENTER."""
+    """The operator's hands: a fixed number of seconds, then the lead is in.
 
-    def __init__(self, glass, world, hand_s, log, press_s=PRESS_S):
-        ManualPatcher.__init__(self, glass)
+    `press_s` is the reach for ENTER that PW's ruling of 2026-09-26 added, and
+    `press_s=None` is the ruling of 2026-09-28 taking it away again: the
+    simulated operator presses NOTHING, because on a detected patch there is
+    nothing to press. It is None on the ruled path and a number only in
+    `--confirm-enter`, so a dry run cannot quietly prove the old loop.
+    """
+
+    def __init__(self, glass, world, hand_s, log, press_s=PRESS_S, auto=True):
+        ManualPatcher.__init__(self, glass, auto=auto)
         self.w = world
         self.hand_s = hand_s
         self.press_s = press_s
@@ -3989,7 +4405,8 @@ class SimPatcher(ManualPatcher):
             else:
                 self.w.plug(out, inp, lanes)
             self.at = None
-            self.press_at = now() + self.press_s
+            self.press_at = (None if self.press_s is None
+                             else now() + self.press_s)
         if self.press_at is not None and now() >= self.press_at:
             self.press_at = None
             return dict(button='done', reason='')
@@ -4264,7 +4681,8 @@ def cmd_simulate(a, plist):
     world = World(faults=a.fault or ())
     glass = SimGlass(log)
     unit = SimUnit(world)
-    patcher = SimPatcher(glass, world, a.hand, log, press_s=a.press)
+    patcher = SimPatcher(glass, world, a.hand, log, auto=a.auto_advance,
+                         press_s=None if a.auto_advance else a.press)
     send_pos = {}
     for r in plist.paths:
         if r.get('send_pos') != '' and str(r['lane']).isdigit():
@@ -4272,9 +4690,10 @@ def cmd_simulate(a, plist):
     an = SimAnalog(world, plist.gain, send_pos, log=log)
     live = LV.Live(a.live, run='patch', enabled=bool(a.live) and not a.no_live,
                    confirm=not a.auto_advance)
-    # The dry run has no hands to press ENTER with, so the simulated operator
-    # presses it: SimPatcher answers `done` the moment its virtual hand has
-    # made the connection, which is the same message the button sends.
+    # The dry run's operator presses nothing on the ruled path: the lead going
+    # in is the whole of their half of the step. In `--confirm-enter` SimPatcher
+    # answers `done` `--press` seconds after its virtual hand has made the
+    # connection, which is the same message the ENTER button sends.
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
                  blocks=a.block, live=live, analog=an,
                  auto_advance=a.auto_advance, prearm=a.prearm,
@@ -4384,8 +4803,14 @@ def setup_pages(plist):
     return pages
 
 
-def screen_walk(plist):
-    """The states, in the order a pass reaches them, each with a name."""
+def screen_walk(plist, confirm=False):
+    """The states, in the order a pass reaches them, each with a name.
+
+    `confirm` is the station's own mode, and it has to be passed in rather than
+    assumed: the instructions end in "then press ENTER" on one path and in a full
+    stop on the other, and the walk exists so each screen can be PHOTOGRAPHED as
+    the operator will see it. Default False -- the ruled path (PW 2026-09-28).
+    """
     first = plist.paths[0]
     tone = _row_by(plist, lead='K1', **{'in': 'MIC 5'})
     noise = _row_by(plist, lead='K5')
@@ -4394,7 +4819,8 @@ def screen_walk(plist):
     total = len({r['patch'] for r in plist.paths})
 
     def at(r, n, **kw):
-        d = dict(instruction=LV.instruction_for(r), extra=LV.extra_for(r),
+        d = dict(instruction=LV.instruction_for(r, confirm),
+                 extra=LV.extra_for(r),
                  n=n, total=total, lead_n=1, lead_total=4)
         d.update(kw)
         return d
@@ -4425,27 +4851,45 @@ def screen_walk(plist):
             extra=LV.take_off('K4', 'AUX 2'))),
         ('08-walk-to-the-next-input',
          at(tone, 1, state=LV.WAITING, lead_line='',
-            instruction=LV.move_input('MIC %d' % (int(tone['lane']) + 1)),
+            instruction=LV.move_input('MIC %d' % (int(tone['lane']) + 1),
+                                      confirm),
             status=LV.LOOKING)),
         ('09-waiting', at(tone, 5, state=LV.WAITING, lead_line='')),
         ('10-signal-found', at(tone, 5, state=LV.WAITING, lead_line='',
-                               status=LV.SIGNAL_SEEN)),
+                               status=(LV.SIGNAL_SEEN if confirm
+                                       else LV.SIGNAL_HOLDING))),
         ('11-checking', at(tone, 5, state=LV.CHECKING, lead_line='')),
         ('12-pass', at(tone, 6, state=LV.VERDICT, banner='PASS',
                        banner_line=LV.patch_words(tone), passed=5, failed=0)),
         ('13-wrong-socket', at(tone, 6, state=LV.CHECKLEAD,
                                banner='CHECK THE LEAD', banner_line='',
-                               action=LV.action_wrong_socket('MIC 6',
-                                                             tone['in']))),
+                               status=LV.status_wrong_input('MIC 7',
+                                                            tone['in']),
+                               action=LV.action_wrong_socket('MIC 7',
+                                                             tone['in'],
+                                                             confirm))),
         ('14-no-signal', at(tone, 6, state=LV.CHECKLEAD,
                             banner='CHECK THE LEAD', banner_line='',
-                            action=LV.action_no_signal())),
+                            status=LV.timeout_words(tone['in'], 20.0),
+                            action=LV.action_no_signal(confirm))),
+        # PW 2026-09-28: the row the one button records, as the operator sees it
+        # land. It is a FAIL banner like any other -- there is no separate
+        # "operator said so" colour, because to the person in front of the unit
+        # it is the same thing: this path did not carry.
+        ('14b-no-signal-recorded',
+         at(tone, 7, state=LV.VERDICT, banner='FAIL',
+            banner_line=LV.patch_words(tone), action=LV.action_failed(),
+            passed=5, failed=1)),
         ('15-fail', at(tone, 7, state=LV.VERDICT, banner='FAIL',
                        banner_line=LV.patch_words(tone),
                        action=LV.action_failed(), passed=5, failed=1)),
         ('16-terminator-step',
          at(noise, 20, state=LV.WAITING, lead_n=2, lead_line='',
-            instruction=LV.swap_for_plug(noise['in']))),
+            instruction=LV.swap_for_plug(noise['in'], confirm))),
+        ('16b-terminator-holding',
+         at(noise, 20, state=LV.WAITING, lead_n=2, lead_line='',
+            instruction=LV.swap_for_plug(noise['in'], confirm),
+            status=(LV.SIGNAL_SEEN if confirm else LV.SIGNAL_HOLDING))),
         ('17-line-step', at(line, 34, state=LV.WAITING, lead_n=3,
                             lead_line=LV.pick_up(line['lead']))),
         ('18-trs-output-step', at(trs, 48, state=LV.WAITING, lead_n=4,
@@ -4497,11 +4941,12 @@ def cmd_screens(a, plist):
     out = a.screens
     os.makedirs(out, exist_ok=True)
     live = LV.Live(a.live or a.dir, run='patch',
-                   total=len({r['patch'] for r in plist.paths}))
+                   total=len({r['patch'] for r in plist.paths}),
+                   confirm=not a.auto_advance)
     cap = a.capture
     shots = []
     try:
-        for name, state in screen_walk(plist):
+        for name, state in screen_walk(plist, confirm=not a.auto_advance):
             if state is None:
                 live.clear()                      # the armed screen: no run
             else:
@@ -4769,11 +5214,17 @@ def cmd_run(a, plist):
     stopped_why = ''
     try:
         unit = Unit(symdir=a.symdir)
-        patcher = pick_patcher(glass, a.back_end)
+        patcher = pick_patcher(glass, a.back_end, auto_advance=a.auto_advance)
         an = Analog(enabled=not a.no_analog, log=glass.progress,
                     own_rails=a.own_rails)
-        keys = KeyWatch(enabled=not (a.auto_advance or a.no_keyboard),
-                        log=glass.progress)
+        # THE KEYBOARD IS READ ON BOTH PATHS NOW. It used to be switched off
+        # whenever the step did not end on a press, which was right while a press
+        # could only mean "the lead is in" -- there was nothing for it to say. PW's
+        # ruling of 2026-09-28 gives it something: the no-signal answer. It is the
+        # one channel that certainly reaches this station on today's app (see the
+        # note in `detect` about the button the glass may not draw), and a press
+        # on it can still never grade a patch.
+        keys = KeyWatch(enabled=not a.no_keyboard, log=glass.progress)
         st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
                      log=glass.progress, blocks=a.block, live=live, analog=an,
                      auto_advance=a.auto_advance, keys=keys,
@@ -4938,10 +5389,16 @@ def main(argv=None):
                     help='wait for ENTER before taking any reading, as the '
                          'station did before PW\'s ruling of 2026-09-27. For '
                          'a before/after timing run')
-    ap.add_argument('--auto-advance', action='store_true',
-                    help='end each step on the tone instead of on ENTER. OFF '
-                         'by default: PW ruled on 2026-09-26 that the operator '
-                         'plugs the lead in and then presses ENTER')
+    ap.add_argument('--auto-advance', dest='auto_advance',
+                    action='store_true', default=True,
+                    help='end each step on the signal, not on a press. This is '
+                         'what the station does (PW 2026-09-28); the flag is '
+                         'kept so a script that passes it still works')
+    ap.add_argument('--confirm-enter', dest='auto_advance',
+                    action='store_false',
+                    help='the 2026-09-26 loop: the operator plugs the lead in '
+                         'and then presses ENTER. Superseded, kept for a '
+                         'before/after timing run')
     ap.add_argument('--no-keyboard', action='store_true',
                     help='do not read the Enter key off a USB keyboard')
     ap.add_argument('--own-rails', action='store_true',

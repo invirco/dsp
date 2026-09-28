@@ -2383,6 +2383,10 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     plist = PT.PatchList(PT.find_list_dir(LIST_DIR))
     limits = PT.Limits.load(plist.dir)
     unit = PT.Unit(symdir=a.patch_symdir)
+    # No `auto_advance` argument anywhere on this path, and that is deliberate:
+    # RUN ALL runs what the factory runs, and since PW's ruling of 2026-09-28
+    # that is signal arrival as the go-ahead. Both this and `PT.Station` below
+    # take it from their own defaults, so the two cannot drift apart.
     patcher = PT.pick_patcher(glass)
     an = PT.Analog(enabled=True, log=glass.progress,
                    own_rails=bool(getattr(a, 'keep_rails_from_auto', False)))

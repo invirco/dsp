@@ -30,6 +30,22 @@ dry-run numbers below (matrix.h/`.shex` diffs) are unaffected — they never
 depended on the DSP-side landed map — and stand as verified. Nothing
 flashed, unit untouched.
 
+🟢 **S145 (2026-09-28, desk, nothing flashed) advances the pin to
+`defs-v2026.09.28.4`** (defs commit `dd951d6`), which takes `.28.3` as well
+since that tag was never pinned here. **D24 generation is STILL
+`46109e9fb812`, unchanged** — no def, master, `fw.csv`, wire table or
+cell-master hash moved, and neither did any matrix expansion, so every
+per-cell address this document names below at that generation is still
+correct. What moved is the DSP-side landed map: **`MW/D24/MX/_matrix.csv`
+now carries 3,800 of 3,800 mapped cells with a DSP address** (was
+3,632/3,632 at `.28.2`; +168 cells, S143's group→aux crosspoints plus
+S144's Centre/LF, phones and anti-feedback mappings), and 40 `MainCtr*` /
+`MainSub*` cells moved address onto the dedicated `C2_CTR_*` / `C2_WOOF_*`
+nodes — the ruled D6/R5 outcome. D32: 5,890/5,890. `gen_dsp.py` (no
+`--propose`) still clean, `./regenerate-dsp-contract.sh` passes every gate
+end to end, and a second regeneration leaves the tree byte-identical.
+Detail: `MW/D24/DSP/s145/s145-report.md`.
+
 Background: `mx26 docs/investigation-matrix-generation-2026-09-27.md` (read in
 full before starting). Summary: MW-D24-2 is running matrix generation
 `e80ccab5d6d8` (the unit's own 2026-08-18 pack, 5412 names, `Sys001Skin001` =

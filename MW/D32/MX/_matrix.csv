@@ -273,7 +273,7 @@ MainR001Mute001,1,1,1,,,Main R output mute on/off,271,ihw,2,,,,,,,,,,,,,,,2,1,21
 MainR001Delay001,1,1,1,,,Main R output delay up to 250ms,272,iih,255,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
 MainR001Mtr001,1,1,1,,false,Main R output level meter,273,iii,80,,,,,,,,,,,,,,,2,1,1831,0x0727,,,,-,,Instant,0,0,Linear,Scalar
 MainR001Name001,1,1,1,,,Main R output name,274,iij,255,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-MainSub001Mtr001,1,1,1,,false,Subwoofer output level meter,275,iik,80,,,,,,,,Chan_Mtr,,,,,,,2,1,1835,0x072B,,,,-,,Instant,0,0,Linear,Scalar
+MainSub001Mtr001,1,1,1,,false,Subwoofer output level meter,275,iik,80,,,,,,,,Chan_Mtr,,,,,,,,,,,,,,-,,,,,,
 Aux001Delay001,1,1,1,,,Aux output delay up to 250ms,276,iil,255,,,,,,,,,,0=0/127=250/[Log],,,,,2,1,87,0x0057,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Aux002Delay001,1,2,1,,,Aux output delay up to 250ms,277,iim,255,,,,,,,,,,0=0/127=250/[Log],,,,,2,1,177,0x00B1,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Aux003Delay001,1,3,1,,,Aux output delay up to 250ms,278,iin,255,,,,,,,,,,0=0/127=250/[Log],,,,,2,1,267,0x010B,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
@@ -6371,48 +6371,48 @@ Grp001Mute001,1,1,1,,,Group master mute on/off,6369,ipvi,2,,,,,,,,,,,,,,,2,1,108
 Grp002Mute001,1,2,1,,,Group master mute on/off,6370,ipvj,2,,,,,,,,,,,,,,,2,1,1142,0x0476,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Grp003Mute001,1,3,1,,,Group master mute on/off,6371,ipvk,2,,,,,,,,,,,,,,,2,1,1202,0x04B2,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Grp004Mute001,1,4,1,,,Group master mute on/off,6372,ipvl,2,,,,,,,,,,,,,,,2,1,1262,0x04EE,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompAtt001,1,1,1,,,Subwoofer compressor attack,6373,ipvm,255,,,,,,,,SubComp,,0=0/254=250/[Log],,,,,2,1,1602,0x0642,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompKnee001,1,1,1,,,Subwoofer compressor soft/hard knee,6374,ipvn,2,,,,,,,,SubComp,,,,,,,2,1,1605,0x0645,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,6375,ipvo,33,,,,,,,,SubComp,,0=0/127=20/[Lin],,,,,2,1,1604,0x0644,,,,0,GainFast,Slew,3,8,Exp,Scalar
-MainSub001CompOn001,1,1,1,,,Subwoofer compressor on/off,6376,ipvp,2,,,,,,,,SubComp,,,,,,,2,1,1599,0x063F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,6377,ipvq,33,,,,,,,,SubComp,,0=0/127=100/[Lin],,,,,2,1,1606,0x0646,,,,0,GainFast,Slew,3,8,Exp,Scalar
-MainSub001CompRat001,1,1,1,,,Subwoofer compressor ratio,6378,ipvr,128,,,,,,,,SubComp,,0=1/127=30/[Log],,,,,2,1,1601,0x0641,,,,0,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompRel001,1,1,1,,,Subwoofer compressor release,6379,ipvs,255,,,,,,,,SubComp,,0=5/254=5000/[Log],,,,,2,1,1603,0x0643,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompDetSrc001,1,1,1,,,Subwoofer compressor self-key tap source (PreEQ/PostEQ),6380,ipvt,2,,,,,,,,SubComp,,,,,,,2,1,1609,0x0649,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompEqPos001,1,1,1,,,Subwoofer compressor EQ position (Pre/Post),6381,ipvu,2,,,,,,,,SubComp,,,,,,,2,1,1611,0x064B,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterHpf001,1,1,1,,,Subwoofer compressor sidechain HPF frequency,6382,ipvv,65,32,,,,,,,SubComp,,0=20/64=1000/[Log],,,,,2,1,1613,0x064D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterLpf001,1,1,1,,,Subwoofer compressor sidechain LPF frequency,6383,ipvw,255,127,,,,,,,SubComp,,0=500/127=20000/[Log],,,,,2,1,1613,0x064D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterOn001,1,1,1,,,Subwoofer compressor sidechain filter on/off,6384,ipwh,2,,,,,,,,SubComp,,,,,,,2,1,1612,0x064C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompFilterQ001,1,1,1,,,Subwoofer compressor sidechain filter Q,6385,ipwi,15,7,,,,,,,SubComp,,0=0.1/14=10/[Log],,,,,2,1,1613,0x064D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompKey001,1,1,1,,,Subwoofer compressor sidechain key source,6386,ipwj,33,,,,,,,,SubComp,,,,,,,2,1,1608,0x0648,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompLimMode001,1,1,1,,,Subwoofer compressor/limiter mode toggle,6387,ipwk,2,,,,,,,,SubComp,,,,,,,2,1,1610,0x064A,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001CompThr001,1,1,1,,,Subwoofer compressor threshold,6388,ipwl,141,,,,,,,,SubComp,,0=-60/140=10/[Lin],,,,,2,1,1600,0x0640,,,,140,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001CompType001,1,1,1,,,Subwoofer compressor type (Tube/FET/VCA/Optical),6389,ipwm,4,,,,,,,,SubComp,,,,,,,2,1,1607,0x0647,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CompAtt001,1,1,1,,,Subwoofer compressor attack,6373,ipvm,255,,,,,,,,SubComp,,0=0/254=250/[Log],,,,,,,,,,,,-,,,,,,
+MainSub001CompKnee001,1,1,1,,,Subwoofer compressor soft/hard knee,6374,ipvn,2,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
+MainSub001CompMake001,1,1,1,,,Subwoofer compressor makeup gain,6375,ipvo,33,,,,,,,,SubComp,,0=0/127=20/[Lin],,,,,,,,,,,,0,,,,,,
+MainSub001CompOn001,1,1,1,,,Subwoofer compressor on/off,6376,ipvp,2,,,,,,,,SubComp,,,,,,,,,,,,,,0,,,,,,
+MainSub001CompPar001,1,1,1,,,Subwoofer parallel compression blend,6377,ipvq,33,,,,,,,,SubComp,,0=0/127=100/[Lin],,,,,,,,,,,,0,,,,,,
+MainSub001CompRat001,1,1,1,,,Subwoofer compressor ratio,6378,ipvr,128,,,,,,,,SubComp,,0=1/127=30/[Log],,,,,,,,,,,,0,,,,,,
+MainSub001CompRel001,1,1,1,,,Subwoofer compressor release,6379,ipvs,255,,,,,,,,SubComp,,0=5/254=5000/[Log],,,,,,,,,,,,-,,,,,,
+MainSub001CompDetSrc001,1,1,1,,,Subwoofer compressor self-key tap source (PreEQ/PostEQ),6380,ipvt,2,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
+MainSub001CompEqPos001,1,1,1,,,Subwoofer compressor EQ position (Pre/Post),6381,ipvu,2,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
+MainSub001CompFilterHpf001,1,1,1,,,Subwoofer compressor sidechain HPF frequency,6382,ipvv,65,32,,,,,,,SubComp,,0=20/64=1000/[Log],,,,,,,,,,,,-,,,,,,
+MainSub001CompFilterLpf001,1,1,1,,,Subwoofer compressor sidechain LPF frequency,6383,ipvw,255,127,,,,,,,SubComp,,0=500/127=20000/[Log],,,,,,,,,,,,-,,,,,,
+MainSub001CompFilterOn001,1,1,1,,,Subwoofer compressor sidechain filter on/off,6384,ipwh,2,,,,,,,,SubComp,,,,,,,,,,,,,,0,,,,,,
+MainSub001CompFilterQ001,1,1,1,,,Subwoofer compressor sidechain filter Q,6385,ipwi,15,7,,,,,,,SubComp,,0=0.1/14=10/[Log],,,,,,,,,,,,-,,,,,,
+MainSub001CompKey001,1,1,1,,,Subwoofer compressor sidechain key source,6386,ipwj,33,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
+MainSub001CompLimMode001,1,1,1,,,Subwoofer compressor/limiter mode toggle,6387,ipwk,2,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
+MainSub001CompThr001,1,1,1,,,Subwoofer compressor threshold,6388,ipwl,141,,,,,,,,SubComp,,0=-60/140=10/[Lin],,,,,,,,,,,,140,,,,,,
+MainSub001CompType001,1,1,1,,,Subwoofer compressor type (Tube/FET/VCA/Optical),6389,ipwm,4,,,,,,,,SubComp,,,,,,,,,,,,,,-,,,,,,
 MainSub001Delay001,1,1,1,,,Subwoofer output delay up to 250ms,6390,ipwn,255,,,,,,,,,,0=0/127=250/[Log],,,,,,,,,,,,0,,,,,,
-MainSub001EqFreq001,1,1,1,,,Subwoofer 4-band parametric EQ frequency,6391,ipwo,255,127,,,,,,,SubEq,,0=20/254=200/[Log],,,,,2,1,1575,0x0627,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq002,1,1,2,,,Subwoofer 4-band parametric EQ frequency,6392,ipwp,255,127,,,,,,,SubEq,,0=100/254=1000/[Log],,,,,2,1,1580,0x062C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq003,1,1,3,,,Subwoofer 4-band parametric EQ frequency,6393,ipwq,255,127,,,,,,,SubEq,,0=800/254=5000/[Log],,,,,2,1,1585,0x0631,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqFreq004,1,1,4,,,Subwoofer 4-band parametric EQ frequency,6394,ipwr,255,127,,,,,,,SubEq,,0=3000/254=20000/[Log],,,,,2,1,1590,0x0636,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain001,1,1,1,,,Subwoofer 4-band parametric EQ gain ±15dB,6395,ipws,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,1575,0x0627,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain002,1,1,2,,,Subwoofer 4-band parametric EQ gain ±15dB,6396,ipwt,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,1580,0x062C,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain003,1,1,3,,,Subwoofer 4-band parametric EQ gain ±15dB,6397,ipwu,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,1585,0x0631,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqGain004,1,1,4,,,Subwoofer 4-band parametric EQ gain ±15dB,6398,ipwv,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,1590,0x0636,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqHpf001,1,1,1,,,Subwoofer high-pass filter frequency,6399,ipww,65,32,,,,,,,SubEq,,0=20/64=1000/[Log],,,,,2,1,1575,0x0627,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqOn001,1,1,1,,,Subwoofer EQ on/off,6400,iqhh,2,,,,,,,,SubEq,,,,,,,2,1,1596,0x063C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001EqQ001,1,1,1,,,Subwoofer 4-band parametric EQ Q/bandwidth,6401,iqhi,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,1575,0x0627,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ002,1,1,2,,,Subwoofer 4-band parametric EQ Q/bandwidth,6402,iqhj,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,1580,0x062C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ003,1,1,3,,,Subwoofer 4-band parametric EQ Q/bandwidth,6403,iqhk,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,1585,0x0631,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqQ004,1,1,4,,,Subwoofer 4-band parametric EQ Q/bandwidth,6404,iqhl,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,1590,0x0636,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001EqShelf001,1,1,1,,,Subwoofer EQ shelf mode on/off for bands 1/4,6405,iqhm,2,,,,,,,,SubEq,,,,,,,2,1,1575,0x0627,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001EqShelf002,1,1,2,,,Subwoofer EQ shelf mode on/off for bands 1/4,6406,iqhn,2,,,,,,,,SubEq,,,,,,,2,1,1590,0x0636,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001LimiterAtt001,1,1,1,,,Subwoofer limiter attack,6407,iqho,33,,,,,,,,SubLimiter,,0=0.1/127=100/[Log],,,,,2,1,1617,0x0651,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001LimiterOn001,1,1,1,,,Subwoofer limiter on/off,6408,iqhp,2,,,,,,,,SubLimiter,,,,,,,2,1,1615,0x064F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
-MainSub001LimiterRel001,1,1,1,,,Subwoofer limiter release,6409,iqhq,33,,,,,,,,SubLimiter,,0=5/127=2000/[Log],,,,,2,1,1618,0x0652,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
-MainSub001LimiterThr001,1,1,1,,,Subwoofer limiter threshold,6410,iqhr,255,,,,,,,,SubLimiter,,0=-30/127=0/[Lin],,,,,2,1,1616,0x0650,,,,254,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001EqFreq001,1,1,1,,,Subwoofer 4-band parametric EQ frequency,6391,ipwo,255,127,,,,,,,SubEq,,0=20/254=200/[Log],,,,,2,1,2372,0x0944,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq002,1,1,2,,,Subwoofer 4-band parametric EQ frequency,6392,ipwp,255,127,,,,,,,SubEq,,0=100/254=1000/[Log],,,,,2,1,2377,0x0949,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq003,1,1,3,,,Subwoofer 4-band parametric EQ frequency,6393,ipwq,255,127,,,,,,,SubEq,,0=800/254=5000/[Log],,,,,2,1,2382,0x094E,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqFreq004,1,1,4,,,Subwoofer 4-band parametric EQ frequency,6394,ipwr,255,127,,,,,,,SubEq,,0=3000/254=20000/[Log],,,,,2,1,2387,0x0953,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain001,1,1,1,,,Subwoofer 4-band parametric EQ gain ±15dB,6395,ipws,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,2372,0x0944,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain002,1,1,2,,,Subwoofer 4-band parametric EQ gain ±15dB,6396,ipwt,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,2377,0x0949,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain003,1,1,3,,,Subwoofer 4-band parametric EQ gain ±15dB,6397,ipwu,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,2382,0x094E,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqGain004,1,1,4,,,Subwoofer 4-band parametric EQ gain ±15dB,6398,ipwv,121,60,,,,,,,SubEq,,0=-15/120=15/[Lin],,,,,2,1,2387,0x0953,,,,60,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqHpf001,1,1,1,,,Subwoofer high-pass filter frequency,6399,ipww,65,32,,,,,,,SubEq,,0=20/64=1000/[Log],,,,,2,1,2372,0x0944,,,,0,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqOn001,1,1,1,,,Subwoofer EQ on/off,6400,iqhh,2,,,,,,,,SubEq,,,,,,,2,1,2393,0x0959,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001EqQ001,1,1,1,,,Subwoofer 4-band parametric EQ Q/bandwidth,6401,iqhi,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,2372,0x0944,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ002,1,1,2,,,Subwoofer 4-band parametric EQ Q/bandwidth,6402,iqhj,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,2377,0x0949,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ003,1,1,3,,,Subwoofer 4-band parametric EQ Q/bandwidth,6403,iqhk,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,2382,0x094E,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqQ004,1,1,4,,,Subwoofer 4-band parametric EQ Q/bandwidth,6404,iqhl,121,60,,,,,,,SubEq,,0=0.1/120=10/[Log],,,,,2,1,2387,0x0953,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001EqShelf001,1,1,1,,,Subwoofer EQ shelf mode on/off for bands 1/4,6405,iqhm,2,,,,,,,,SubEq,,,,,,,2,1,2372,0x0944,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001EqShelf002,1,1,2,,,Subwoofer EQ shelf mode on/off for bands 1/4,6406,iqhn,2,,,,,,,,SubEq,,,,,,,2,1,2387,0x0953,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001LimiterAtt001,1,1,1,,,Subwoofer limiter attack,6407,iqho,33,,,,,,,,SubLimiter,,0=0.1/127=100/[Log],,,,,2,1,2398,0x095E,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001LimiterOn001,1,1,1,,,Subwoofer limiter on/off,6408,iqhp,2,,,,,,,,SubLimiter,,,,,,,2,1,2396,0x095C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001LimiterRel001,1,1,1,,,Subwoofer limiter release,6409,iqhq,33,,,,,,,,SubLimiter,,0=5/127=2000/[Log],,,,,2,1,2399,0x095F,,,,-,DynSafe,LinearFrames,6,20,Exp,Scalar
+MainSub001LimiterThr001,1,1,1,,,Subwoofer limiter threshold,6410,iqhr,255,,,,,,,,SubLimiter,,0=-30/127=0/[Lin],,,,,2,1,2397,0x095D,,,,254,DynSafe,LinearFrames,6,20,Exp,Scalar
 MainSub001Dca001,1,1,1,,,Subwoofer DCA assignment (1-8 or off),6411,iqhs,9,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
 MainSub001DcaOn001,1,1,1,,,DCA follow on/off (assignment kept while off),6412,iqht,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-MainSub001Level001,1,1,1,,,Subwoofer master output level,6413,iqhu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2173,0x087D,,,,190,GainFast,Slew,3,8,Exp,Scalar
-MainSub001Mute001,1,1,1,,,Subwoofer master mute on/off,6414,iqhv,2,,,,,,,,,,,,,,,2,1,2174,0x087E,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001Level001,1,1,1,,,Subwoofer master output level,6413,iqhu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2368,0x0940,,,,190,GainFast,Slew,3,8,Exp,Scalar
+MainSub001Mute001,1,1,1,,,Subwoofer master mute on/off,6414,iqhv,2,,,,,,,,,,,,,,,2,1,2370,0x0942,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Sys001AuxOnFdr001,1,1,1,,false,Aux-on-faders mode toggle,6415,iqhw,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Sys001BtnBright001,1,1,1,,false,Physical button LED brightness,6416,iqih,32,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Sys001Cue001,1,1,1,,false,Cue/solo state per channel,6417,iqii,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
@@ -7000,8 +7000,8 @@ Grp002Name001,16,2,1,,,Group name,6998,ismn,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Grp003Name001,16,3,1,,,Group name,6999,ismo,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Grp004Name001,16,4,1,,,Group name,7000,ismp,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 MainSub001Name001,16,1,1,,,Subwoofer name,7001,ismq,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-MainSub001CrossoverFreq001,1,1,1,,,Woof LPF crossover frequency: applies when Main CrossoverLink = 0 (UNLINK); linked it follows Main CrossoverFreq (PW ruling D5 2026-09-28),7002,ismr,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
-MainSub001CrossoverSlope001,1,1,1,,,Woof LPF crossover slope 6/12/18/24 dB/oct (codes 0-3): applies when Main CrossoverLink = 0 (UNLINK); linked it follows Main CrossoverSlope (PW ruling D5 2026-09-28; the old HPF 36/48 dB/oct note never matched the table),7003,isms,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001CrossoverFreq001,1,1,1,,,Woof LPF crossover frequency: applies when Main CrossoverLink = 0 (UNLINK); linked it follows Main CrossoverFreq (PW ruling D5 2026-09-28),7002,ismr,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,2364,0x093C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+MainSub001CrossoverSlope001,1,1,1,,,Woof LPF crossover slope 6/12/18/24 dB/oct (codes 0-3): applies when Main CrossoverLink = 0 (UNLINK); linked it follows Main CrossoverSlope (PW ruling D5 2026-09-28; the old HPF 36/48 dB/oct note never matched the table),7003,isms,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,2365,0x093D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 MainSub001LimiterRng001,1,1,1,,,Subwoofer output limiter range/depth,7004,ismt,33,,,,,,,,MainLimiter,,0=0/127=60/[Lin],,,,,,,,,,,,0,,,,,,
 Main001Name001,16,1,1,,,Main L/R master name,7005,ismu,1,,,,,,,,,,,,,,,,,,,,Master,,-,,,,,,
 Matrix001Name001,16,1,1,,,Matrix output name,7006,ismv,1,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
@@ -7559,39 +7559,39 @@ Aux009LimiterFilterQ001,1,9,1,,,Aux limiter sidechain filter Q (block B20/L23 - 
 Aux010LimiterFilterQ001,1,10,1,,,Aux limiter sidechain filter Q (block B20/L23 - PW ruling D4 2026-09-28),7558,iupn,15,7,,,,,,,AuxLimiter,,0=0.1/14=10/[Log],,,,,,,,,,,,-,,,,,,
 Aux011LimiterFilterQ001,1,11,1,,,Aux limiter sidechain filter Q (block B20/L23 - PW ruling D4 2026-09-28),7559,iupo,15,7,,,,,,,AuxLimiter,,0=0.1/14=10/[Log],,,,,,,,,,,,-,,,,,,
 Aux012LimiterFilterQ001,1,12,1,,,Aux limiter sidechain filter Q (block B20/L23 - PW ruling D4 2026-09-28),7560,iupp,15,7,,,,,,,AuxLimiter,,0=0.1/14=10/[Log],,,,,,,,,,,,-,,,,,,
-Main001CrossoverFreq001,1,1,1,,,Main L/R HPF crossover frequency: ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7561,iupq,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,,,,,,,,-,,,,,,
-Main001CrossoverSlope001,1,1,1,,,Main L/R crossover slope 6/12/18/24 dB/oct (codes 0-3): ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7562,iupr,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,,,,,,,,-,,,,,,
-Main001CrossoverOn001,1,1,1,,,Main L/R crossover IN on/off (block B24 IN): ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7563,iups,2,,,,,,,,MainCrossover,,,,,,,,,,,,,,0,,,,,,
-Main001CrossoverLink001,1,1,1,,,Woof LPF crossover follows the Main HPF frequency and slope: 1 = linked / 0 = UNLINK (MainSub CrossoverFreq and CrossoverSlope then apply) (block D24 - PW ruling D5 2026-09-28),7564,iupt,2,,,,,,,,MainCrossover,,,,,,,,,,,,,,0,,,,,,
-MainSub001Src001,1,1,1,,,Woof (sub) source select: 0 = Main L/R sum / 1-16 = Aux N (D24: aux 1-8); when a mic/line channel is the LF source its aux sends auto-set post fader (block E19 - PW ruling D6 2026-09-28),7565,iupu,17,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Mon001PhonesLevel001,1,1,1,,,Phones output level: its own DAC pair (DAC 09/10) off the same Cue / Main L-R source select as the monitor output; separate from Mon Level (block G17 - PW ruling D7 2026-09-28),7566,iupv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,,,,,,,,-,,,,,,
-Mon001PhonesDelay001,1,1,1,,,Phones output delay up to 250ms: separate from Mon Delay (block G16 - PW ruling D7 2026-09-28),7567,iupw,255,,,,,,,,,,0=0/127=250/[Log],,,,,,,,,,,,-,,,,,,
-Mon001PickOff001,1,1,1,,,Monitor Main L-R source pick-off point for Main L / R / C: 0=pre-processing 1=post-processing 2=post-fader (block F19-G23 - PW ruling D8 2026-09-28),7568,iuqh,3,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
+Main001CrossoverFreq001,1,1,1,,,Main L/R HPF crossover frequency: ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7561,iupq,255,,,,,,,,MainCrossover,,0=50/127=500/[Log],,,,,2,1,1436,0x059C,,,,-,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic
+Main001CrossoverSlope001,1,1,1,,,Main L/R crossover slope 6/12/18/24 dB/oct (codes 0-3): ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7562,iupr,4,,,,,,,,MainCrossover,,0=6/3=24/[Lin],,,,,2,1,1437,0x059D,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Main001CrossoverOn001,1,1,1,,,Main L/R crossover IN on/off (block B24 IN): ONE parameter set driving the two DSP crossover instances (Main L and Main R); LF summed to the mono Sub (PW ruling D5 2026-09-28),7563,iups,2,,,,,,,,MainCrossover,,,,,,,2,1,1438,0x059E,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Main001CrossoverLink001,1,1,1,,,Woof LPF crossover follows the Main HPF frequency and slope: 1 = linked / 0 = UNLINK (MainSub CrossoverFreq and CrossoverSlope then apply) (block D24 - PW ruling D5 2026-09-28),7564,iupt,2,,,,,,,,MainCrossover,,,,,,,2,1,1439,0x059F,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+MainSub001Src001,1,1,1,,,Woof (sub) source select: 0 = Main L/R sum / 1-16 = Aux N (D24: aux 1-8); when a mic/line channel is the LF source its aux sends auto-set post fader (block E19 - PW ruling D6 2026-09-28),7565,iupu,17,,,,,,,,,,,,,,,2,1,2360,0x0938,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Mon001PhonesLevel001,1,1,1,,,Phones output level: its own DAC pair (DAC 09/10) off the same Cue / Main L-R source select as the monitor output; separate from Mon Level (block G17 - PW ruling D7 2026-09-28),7566,iupv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:10,,,,,2,1,2409,0x0969,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Mon001PhonesDelay001,1,1,1,,,Phones output delay up to 250ms: separate from Mon Delay (block G16 - PW ruling D7 2026-09-28),7567,iupw,255,,,,,,,,,,0=0/127=250/[Log],,,,,2,1,2414,0x096E,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
+Mon001PickOff001,1,1,1,,,Monitor Main L-R source pick-off point for Main L / R / C: 0=pre-processing 1=post-processing 2=post-fader (block F19-G23 - PW ruling D8 2026-09-28),7568,iuqh,3,,,,,,,,,,,,,,,2,1,2404,0x0964,,,,-,InstantCtl,Instant,0,0,Linear,Scalar
 Mon001CueOn001,1,1,1,,,Monitor CUE switch: 1 = the cue bus replaces the Main L-R source on the monitor and phones outputs (block F16 - PW ruling D8 2026-09-28),7569,iuqi,2,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
-Aux001AntiFbGain001,1,1,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7570,iuqj,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux002AntiFbGain001,1,2,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7571,iuqk,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux003AntiFbGain001,1,3,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7572,iuql,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux004AntiFbGain001,1,4,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7573,iuqm,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux005AntiFbGain001,1,5,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7574,iuqn,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux006AntiFbGain001,1,6,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7575,iuqo,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux007AntiFbGain001,1,7,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7576,iuqp,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux008AntiFbGain001,1,8,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7577,iuqq,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux009AntiFbGain001,1,9,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7578,iuqr,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux010AntiFbGain001,1,10,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7579,iuqs,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux011AntiFbGain001,1,11,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7580,iuqt,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux012AntiFbGain001,1,12,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7581,iuqu,21,,,,,,,,,,0=0/20=20/[Lin],,,,,,,,,,,,-,,,,,,
-Aux001AntiFbLimOn001,1,1,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7582,iuqv,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux002AntiFbLimOn001,1,2,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7583,iuqw,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux003AntiFbLimOn001,1,3,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7584,iurh,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux004AntiFbLimOn001,1,4,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7585,iuri,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux005AntiFbLimOn001,1,5,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7586,iurj,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux006AntiFbLimOn001,1,6,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7587,iurk,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux007AntiFbLimOn001,1,7,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7588,iurl,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux008AntiFbLimOn001,1,8,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7589,iurm,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux009AntiFbLimOn001,1,9,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7590,iurn,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux010AntiFbLimOn001,1,10,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7591,iuro,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux011AntiFbLimOn001,1,11,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7592,iurp,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
-Aux012AntiFbLimOn001,1,12,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7593,iurq,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,,
+Aux001AntiFbGain001,1,1,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7570,iuqj,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,79,0x004F,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux002AntiFbGain001,1,2,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7571,iuqk,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,169,0x00A9,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux003AntiFbGain001,1,3,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7572,iuql,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,259,0x0103,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux004AntiFbGain001,1,4,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7573,iuqm,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,349,0x015D,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux005AntiFbGain001,1,5,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7574,iuqn,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,439,0x01B7,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux006AntiFbGain001,1,6,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7575,iuqo,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,529,0x0211,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux007AntiFbGain001,1,7,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7576,iuqp,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,619,0x026B,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux008AntiFbGain001,1,8,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7577,iuqq,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,709,0x02C5,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux009AntiFbGain001,1,9,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7578,iuqr,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,799,0x031F,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux010AntiFbGain001,1,10,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7579,iuqs,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,889,0x0379,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux011AntiFbGain001,1,11,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7580,iuqt,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,979,0x03D3,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux012AntiFbGain001,1,12,1,,,Aux anti-feedback feedback GAIN: the gain the auto ring-out adds to provoke feedback (auto/manual; range provisional) (block B25 - PW ruling D9 2026-09-28),7581,iuqu,21,,,,,,,,,,0=0/20=20/[Lin],,,,,2,1,1069,0x042D,,,,-,GainFast,Slew,3,8,Exp,Scalar
+Aux001AntiFbLimOn001,1,1,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7582,iuqv,2,,,,,,,,,,,,,,,2,1,80,0x0050,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux002AntiFbLimOn001,1,2,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7583,iuqw,2,,,,,,,,,,,,,,,2,1,170,0x00AA,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux003AntiFbLimOn001,1,3,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7584,iurh,2,,,,,,,,,,,,,,,2,1,260,0x0104,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux004AntiFbLimOn001,1,4,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7585,iuri,2,,,,,,,,,,,,,,,2,1,350,0x015E,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux005AntiFbLimOn001,1,5,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7586,iurj,2,,,,,,,,,,,,,,,2,1,440,0x01B8,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux006AntiFbLimOn001,1,6,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7587,iurk,2,,,,,,,,,,,,,,,2,1,530,0x0212,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux007AntiFbLimOn001,1,7,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7588,iurl,2,,,,,,,,,,,,,,,2,1,620,0x026C,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux008AntiFbLimOn001,1,8,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7589,iurm,2,,,,,,,,,,,,,,,2,1,710,0x02C6,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux009AntiFbLimOn001,1,9,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7590,iurn,2,,,,,,,,,,,,,,,2,1,800,0x0320,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux010AntiFbLimOn001,1,10,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7591,iuro,2,,,,,,,,,,,,,,,2,1,890,0x037A,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux011AntiFbLimOn001,1,11,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7592,iurp,2,,,,,,,,,,,,,,,2,1,980,0x03D4,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
+Aux012AntiFbLimOn001,1,12,1,,,Aux anti-feedback feedback LIMITER on/off (manual/auto feedback limiter) (block B25 - PW ruling D9 2026-09-28),7593,iurq,2,,,,,,,,,,,,,,,2,1,1070,0x042E,,,,0,InstantCtl,Instant,0,0,Linear,Scalar
 Grp001Trim001,1,1,1,,,Group fader trim ±20dB ahead of the group master fader (block C5-F9 - PW ruling D10 2026-09-28),7594,iurr,81,,,,,,,,,,0=-20/80=20/[Lin],,,,,,,,,,,,40,,,,,,
 Grp002Trim001,1,2,1,,,Group fader trim ±20dB ahead of the group master fader (block C5-F9 - PW ruling D10 2026-09-28),7595,iurs,81,,,,,,,,,,0=-20/80=20/[Lin],,,,,,,,,,,,40,,,,,,
 Grp003Trim001,1,3,1,,,Group fader trim ±20dB ahead of the group master fader (block C5-F9 - PW ruling D10 2026-09-28),7596,iurt,81,,,,,,,,,,0=-20/80=20/[Lin],,,,,,,,,,,,40,,,,,,
@@ -7656,102 +7656,102 @@ Grp004FxOn003,1,4,3,,,Group FX send on/off per FX bus (block C5-F9 - PW ruling D
 Grp004FxOn004,1,4,4,,,Group FX send on/off per FX bus (block C5-F9 - PW ruling D10 2026-09-28),7655,iuvo,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
 Grp004FxOn005,1,4,5,,,Group FX send on/off per FX bus (block C5-F9 - PW ruling D10 2026-09-28),7656,iuvp,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
 Grp004FxOn006,1,4,6,,,Group FX send on/off per FX bus (block C5-F9 - PW ruling D10 2026-09-28),7657,iuvq,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxSend001,1,1,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7658,iuvr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend002,1,1,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7659,iuvs,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend003,1,1,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7660,iuvt,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend004,1,1,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7661,iuvu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend005,1,1,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7662,iuvv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend006,1,1,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7663,iuvw,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend007,1,1,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7664,iuwh,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend008,1,1,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7665,iuwi,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend009,1,1,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7666,iuwj,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend010,1,1,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7667,iuwk,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend011,1,1,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7668,iuwl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxSend012,1,1,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7669,iuwm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend001,1,2,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7670,iuwn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend002,1,2,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7671,iuwo,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend003,1,2,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7672,iuwp,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend004,1,2,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7673,iuwq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend005,1,2,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7674,iuwr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend006,1,2,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7675,iuws,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend007,1,2,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7676,iuwt,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend008,1,2,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7677,iuwu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend009,1,2,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7678,iuwv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend010,1,2,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7679,iuww,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend011,1,2,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7680,ivhh,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp002AuxSend012,1,2,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7681,ivhi,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend001,1,3,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7682,ivhj,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend002,1,3,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7683,ivhk,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend003,1,3,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7684,ivhl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend004,1,3,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7685,ivhm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend005,1,3,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7686,ivhn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend006,1,3,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7687,ivho,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend007,1,3,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7688,ivhp,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend008,1,3,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7689,ivhq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend009,1,3,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7690,ivhr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend010,1,3,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7691,ivhs,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend011,1,3,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7692,ivht,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp003AuxSend012,1,3,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7693,ivhu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend001,1,4,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7694,ivhv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend002,1,4,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7695,ivhw,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend003,1,4,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7696,ivih,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend004,1,4,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7697,ivii,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend005,1,4,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7698,ivij,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend006,1,4,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7699,ivik,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend007,1,4,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7700,ivil,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend008,1,4,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7701,ivim,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend009,1,4,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7702,ivin,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend010,1,4,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7703,ivio,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend011,1,4,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7704,ivip,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp004AuxSend012,1,4,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7705,iviq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,,,,,,,,254,,,,,,
-Grp001AuxOn001,1,1,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7706,ivir,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn002,1,1,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7707,ivis,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn003,1,1,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7708,ivit,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn004,1,1,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7709,iviu,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn005,1,1,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7710,iviv,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn006,1,1,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7711,iviw,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn007,1,1,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7712,ivjh,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn008,1,1,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7713,ivji,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn009,1,1,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7714,ivjj,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn010,1,1,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7715,ivjk,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn011,1,1,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7716,ivjl,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp001AuxOn012,1,1,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7717,ivjm,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn001,1,2,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7718,ivjn,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn002,1,2,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7719,ivjo,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn003,1,2,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7720,ivjp,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn004,1,2,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7721,ivjq,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn005,1,2,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7722,ivjr,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn006,1,2,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7723,ivjs,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn007,1,2,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7724,ivjt,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn008,1,2,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7725,ivju,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn009,1,2,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7726,ivjv,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn010,1,2,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7727,ivjw,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn011,1,2,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7728,ivkh,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp002AuxOn012,1,2,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7729,ivki,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn001,1,3,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7730,ivkj,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn002,1,3,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7731,ivkk,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn003,1,3,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7732,ivkl,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn004,1,3,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7733,ivkm,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn005,1,3,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7734,ivkn,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn006,1,3,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7735,ivko,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn007,1,3,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7736,ivkp,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn008,1,3,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7737,ivkq,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn009,1,3,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7738,ivkr,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn010,1,3,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7739,ivks,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn011,1,3,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7740,ivkt,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp003AuxOn012,1,3,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7741,ivku,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn001,1,4,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7742,ivkv,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn002,1,4,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7743,ivkw,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn003,1,4,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7744,ivlh,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn004,1,4,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7745,ivli,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn005,1,4,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7746,ivlj,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn006,1,4,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7747,ivlk,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn007,1,4,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7748,ivll,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn008,1,4,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7749,ivlm,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn009,1,4,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7750,ivln,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn010,1,4,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7751,ivlo,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn011,1,4,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7752,ivlp,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
-Grp004AuxOn012,1,4,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7753,ivlq,1,,,,,,,,,,,,,,,,,,,,,,1,,,,,,
+Grp001AuxSend001,1,1,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7658,iuvr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2189,0x088D,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend002,1,1,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7659,iuvs,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2197,0x0895,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend003,1,1,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7660,iuvt,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2205,0x089D,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend004,1,1,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7661,iuvu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2213,0x08A5,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend005,1,1,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7662,iuvv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2221,0x08AD,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend006,1,1,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7663,iuvw,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2229,0x08B5,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend007,1,1,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7664,iuwh,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2237,0x08BD,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend008,1,1,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7665,iuwi,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2245,0x08C5,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend009,1,1,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7666,iuwj,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2253,0x08CD,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend010,1,1,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7667,iuwk,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2261,0x08D5,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend011,1,1,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7668,iuwl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2269,0x08DD,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxSend012,1,1,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7669,iuwm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2277,0x08E5,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend001,1,2,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7670,iuwn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2190,0x088E,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend002,1,2,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7671,iuwo,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2198,0x0896,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend003,1,2,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7672,iuwp,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2206,0x089E,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend004,1,2,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7673,iuwq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2214,0x08A6,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend005,1,2,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7674,iuwr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2222,0x08AE,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend006,1,2,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7675,iuws,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2230,0x08B6,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend007,1,2,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7676,iuwt,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2238,0x08BE,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend008,1,2,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7677,iuwu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2246,0x08C6,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend009,1,2,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7678,iuwv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2254,0x08CE,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend010,1,2,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7679,iuww,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2262,0x08D6,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend011,1,2,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7680,ivhh,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2270,0x08DE,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp002AuxSend012,1,2,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7681,ivhi,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2278,0x08E6,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend001,1,3,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7682,ivhj,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2191,0x088F,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend002,1,3,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7683,ivhk,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2199,0x0897,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend003,1,3,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7684,ivhl,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2207,0x089F,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend004,1,3,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7685,ivhm,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2215,0x08A7,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend005,1,3,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7686,ivhn,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2223,0x08AF,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend006,1,3,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7687,ivho,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2231,0x08B7,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend007,1,3,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7688,ivhp,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2239,0x08BF,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend008,1,3,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7689,ivhq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2247,0x08C7,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend009,1,3,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7690,ivhr,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2255,0x08CF,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend010,1,3,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7691,ivhs,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2263,0x08D7,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend011,1,3,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7692,ivht,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2271,0x08DF,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp003AuxSend012,1,3,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7693,ivhu,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2279,0x08E7,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend001,1,4,1,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7694,ivhv,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2192,0x0890,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend002,1,4,2,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7695,ivhw,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2200,0x0898,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend003,1,4,3,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7696,ivih,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2208,0x08A0,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend004,1,4,4,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7697,ivii,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2216,0x08A8,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend005,1,4,5,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7698,ivij,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2224,0x08B0,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend006,1,4,6,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7699,ivik,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2232,0x08B8,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend007,1,4,7,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7700,ivil,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2240,0x08C0,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend008,1,4,8,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7701,ivim,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2248,0x08C8,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend009,1,4,9,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7702,ivin,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2256,0x08D0,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend010,1,4,10,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7703,ivio,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2264,0x08D8,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend011,1,4,11,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7704,ivip,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2272,0x08E0,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp004AuxSend012,1,4,12,,,Group send level to each aux (stereo or dual mono per Aux Link) (block C5-F9 - PW ruling D10 2026-09-28),7705,iviq,255,,,,,,,,,,dB:Off:-50@31:-30@63:-10@127:0,,,,,2,1,2280,0x08E8,,,,254,GainFast,Slew,3,8,Exp,Scalar
+Grp001AuxOn001,1,1,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7706,ivir,1,,,,,,,,,,,,,,,2,1,2185,0x0889,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn002,1,1,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7707,ivis,1,,,,,,,,,,,,,,,2,1,2193,0x0891,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn003,1,1,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7708,ivit,1,,,,,,,,,,,,,,,2,1,2201,0x0899,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn004,1,1,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7709,iviu,1,,,,,,,,,,,,,,,2,1,2209,0x08A1,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn005,1,1,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7710,iviv,1,,,,,,,,,,,,,,,2,1,2217,0x08A9,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn006,1,1,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7711,iviw,1,,,,,,,,,,,,,,,2,1,2225,0x08B1,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn007,1,1,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7712,ivjh,1,,,,,,,,,,,,,,,2,1,2233,0x08B9,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn008,1,1,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7713,ivji,1,,,,,,,,,,,,,,,2,1,2241,0x08C1,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn009,1,1,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7714,ivjj,1,,,,,,,,,,,,,,,2,1,2249,0x08C9,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn010,1,1,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7715,ivjk,1,,,,,,,,,,,,,,,2,1,2257,0x08D1,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn011,1,1,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7716,ivjl,1,,,,,,,,,,,,,,,2,1,2265,0x08D9,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp001AuxOn012,1,1,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7717,ivjm,1,,,,,,,,,,,,,,,2,1,2273,0x08E1,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn001,1,2,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7718,ivjn,1,,,,,,,,,,,,,,,2,1,2186,0x088A,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn002,1,2,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7719,ivjo,1,,,,,,,,,,,,,,,2,1,2194,0x0892,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn003,1,2,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7720,ivjp,1,,,,,,,,,,,,,,,2,1,2202,0x089A,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn004,1,2,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7721,ivjq,1,,,,,,,,,,,,,,,2,1,2210,0x08A2,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn005,1,2,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7722,ivjr,1,,,,,,,,,,,,,,,2,1,2218,0x08AA,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn006,1,2,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7723,ivjs,1,,,,,,,,,,,,,,,2,1,2226,0x08B2,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn007,1,2,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7724,ivjt,1,,,,,,,,,,,,,,,2,1,2234,0x08BA,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn008,1,2,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7725,ivju,1,,,,,,,,,,,,,,,2,1,2242,0x08C2,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn009,1,2,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7726,ivjv,1,,,,,,,,,,,,,,,2,1,2250,0x08CA,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn010,1,2,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7727,ivjw,1,,,,,,,,,,,,,,,2,1,2258,0x08D2,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn011,1,2,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7728,ivkh,1,,,,,,,,,,,,,,,2,1,2266,0x08DA,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp002AuxOn012,1,2,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7729,ivki,1,,,,,,,,,,,,,,,2,1,2274,0x08E2,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn001,1,3,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7730,ivkj,1,,,,,,,,,,,,,,,2,1,2187,0x088B,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn002,1,3,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7731,ivkk,1,,,,,,,,,,,,,,,2,1,2195,0x0893,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn003,1,3,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7732,ivkl,1,,,,,,,,,,,,,,,2,1,2203,0x089B,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn004,1,3,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7733,ivkm,1,,,,,,,,,,,,,,,2,1,2211,0x08A3,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn005,1,3,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7734,ivkn,1,,,,,,,,,,,,,,,2,1,2219,0x08AB,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn006,1,3,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7735,ivko,1,,,,,,,,,,,,,,,2,1,2227,0x08B3,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn007,1,3,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7736,ivkp,1,,,,,,,,,,,,,,,2,1,2235,0x08BB,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn008,1,3,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7737,ivkq,1,,,,,,,,,,,,,,,2,1,2243,0x08C3,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn009,1,3,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7738,ivkr,1,,,,,,,,,,,,,,,2,1,2251,0x08CB,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn010,1,3,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7739,ivks,1,,,,,,,,,,,,,,,2,1,2259,0x08D3,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn011,1,3,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7740,ivkt,1,,,,,,,,,,,,,,,2,1,2267,0x08DB,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp003AuxOn012,1,3,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7741,ivku,1,,,,,,,,,,,,,,,2,1,2275,0x08E3,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn001,1,4,1,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7742,ivkv,1,,,,,,,,,,,,,,,2,1,2188,0x088C,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn002,1,4,2,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7743,ivkw,1,,,,,,,,,,,,,,,2,1,2196,0x0894,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn003,1,4,3,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7744,ivlh,1,,,,,,,,,,,,,,,2,1,2204,0x089C,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn004,1,4,4,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7745,ivli,1,,,,,,,,,,,,,,,2,1,2212,0x08A4,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn005,1,4,5,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7746,ivlj,1,,,,,,,,,,,,,,,2,1,2220,0x08AC,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn006,1,4,6,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7747,ivlk,1,,,,,,,,,,,,,,,2,1,2228,0x08B4,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn007,1,4,7,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7748,ivll,1,,,,,,,,,,,,,,,2,1,2236,0x08BC,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn008,1,4,8,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7749,ivlm,1,,,,,,,,,,,,,,,2,1,2244,0x08C4,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn009,1,4,9,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7750,ivln,1,,,,,,,,,,,,,,,2,1,2252,0x08CC,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn010,1,4,10,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7751,ivlo,1,,,,,,,,,,,,,,,2,1,2260,0x08D4,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn011,1,4,11,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7752,ivlp,1,,,,,,,,,,,,,,,2,1,2268,0x08DC,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
+Grp004AuxOn012,1,4,12,,,Group-to-aux send on/off (block C5-F9 - PW ruling D10 2026-09-28),7753,ivlq,1,,,,,,,,,,,,,,,2,1,2276,0x08E4,,,,1,InstantCtl,Instant,0,0,Linear,Scalar
 Grp001AuxPick001,1,1,1,,,Group per-aux pickoff (PreEQ/PostEQ/PreFdr/PostFdr) (block C5-F9 - PW ruling D10 2026-09-28),7754,ivlr,4,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Grp001AuxPick002,1,1,2,,,Group per-aux pickoff (PreEQ/PostEQ/PreFdr/PostFdr) (block C5-F9 - PW ruling D10 2026-09-28),7755,ivls,4,,,,,,,,,,,,,,,,,,,,,,-,,,,,,
 Grp001AuxPick003,1,1,3,,,Group per-aux pickoff (PreEQ/PostEQ/PreFdr/PostFdr) (block C5-F9 - PW ruling D10 2026-09-28),7756,ivlt,4,,,,,,,,,,,,,,,,,,,,,,-,,,,,,

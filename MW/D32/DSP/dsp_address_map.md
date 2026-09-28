@@ -4141,6 +4141,8 @@
 | 76 | 0x004C | `Aux001AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 77 | 0x004D | `Aux001AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 78 | 0x004E | `Aux001AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 79 | 0x004F | `Aux001AntiFbGain001` |  | GainFast |
+| 80 | 0x0050 | `Aux001AntiFbLimOn001` |  | InstantCtl |
 | 83 | 0x0053 | `Aux001LimiterOn001` |  | InstantCtl |
 | 84 | 0x0054 | `Aux001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 85 | 0x0055 | `Aux001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4216,6 +4218,8 @@
 | 166 | 0x00A6 | `Aux002AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 167 | 0x00A7 | `Aux002AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 168 | 0x00A8 | `Aux002AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 169 | 0x00A9 | `Aux002AntiFbGain001` |  | GainFast |
+| 170 | 0x00AA | `Aux002AntiFbLimOn001` |  | InstantCtl |
 | 173 | 0x00AD | `Aux002LimiterOn001` |  | InstantCtl |
 | 174 | 0x00AE | `Aux002LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 175 | 0x00AF | `Aux002LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4291,6 +4295,8 @@
 | 256 | 0x0100 | `Aux003AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 257 | 0x0101 | `Aux003AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 258 | 0x0102 | `Aux003AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 259 | 0x0103 | `Aux003AntiFbGain001` |  | GainFast |
+| 260 | 0x0104 | `Aux003AntiFbLimOn001` |  | InstantCtl |
 | 263 | 0x0107 | `Aux003LimiterOn001` |  | InstantCtl |
 | 264 | 0x0108 | `Aux003LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 265 | 0x0109 | `Aux003LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4366,6 +4372,8 @@
 | 346 | 0x015A | `Aux004AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 347 | 0x015B | `Aux004AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 348 | 0x015C | `Aux004AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 349 | 0x015D | `Aux004AntiFbGain001` |  | GainFast |
+| 350 | 0x015E | `Aux004AntiFbLimOn001` |  | InstantCtl |
 | 353 | 0x0161 | `Aux004LimiterOn001` |  | InstantCtl |
 | 354 | 0x0162 | `Aux004LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 355 | 0x0163 | `Aux004LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4441,6 +4449,8 @@
 | 436 | 0x01B4 | `Aux005AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 437 | 0x01B5 | `Aux005AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 438 | 0x01B6 | `Aux005AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 439 | 0x01B7 | `Aux005AntiFbGain001` |  | GainFast |
+| 440 | 0x01B8 | `Aux005AntiFbLimOn001` |  | InstantCtl |
 | 443 | 0x01BB | `Aux005LimiterOn001` |  | InstantCtl |
 | 444 | 0x01BC | `Aux005LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 445 | 0x01BD | `Aux005LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4516,6 +4526,8 @@
 | 526 | 0x020E | `Aux006AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 527 | 0x020F | `Aux006AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 528 | 0x0210 | `Aux006AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 529 | 0x0211 | `Aux006AntiFbGain001` |  | GainFast |
+| 530 | 0x0212 | `Aux006AntiFbLimOn001` |  | InstantCtl |
 | 533 | 0x0215 | `Aux006LimiterOn001` |  | InstantCtl |
 | 534 | 0x0216 | `Aux006LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 535 | 0x0217 | `Aux006LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4591,6 +4603,8 @@
 | 616 | 0x0268 | `Aux007AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 617 | 0x0269 | `Aux007AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 618 | 0x026A | `Aux007AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 619 | 0x026B | `Aux007AntiFbGain001` |  | GainFast |
+| 620 | 0x026C | `Aux007AntiFbLimOn001` |  | InstantCtl |
 | 623 | 0x026F | `Aux007LimiterOn001` |  | InstantCtl |
 | 624 | 0x0270 | `Aux007LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 625 | 0x0271 | `Aux007LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4666,6 +4680,8 @@
 | 706 | 0x02C2 | `Aux008AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 707 | 0x02C3 | `Aux008AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 708 | 0x02C4 | `Aux008AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 709 | 0x02C5 | `Aux008AntiFbGain001` |  | GainFast |
+| 710 | 0x02C6 | `Aux008AntiFbLimOn001` |  | InstantCtl |
 | 713 | 0x02C9 | `Aux008LimiterOn001` |  | InstantCtl |
 | 714 | 0x02CA | `Aux008LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 715 | 0x02CB | `Aux008LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4741,6 +4757,8 @@
 | 796 | 0x031C | `Aux009AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 797 | 0x031D | `Aux009AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 798 | 0x031E | `Aux009AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 799 | 0x031F | `Aux009AntiFbGain001` |  | GainFast |
+| 800 | 0x0320 | `Aux009AntiFbLimOn001` |  | InstantCtl |
 | 803 | 0x0323 | `Aux009LimiterOn001` |  | InstantCtl |
 | 804 | 0x0324 | `Aux009LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 805 | 0x0325 | `Aux009LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4816,6 +4834,8 @@
 | 886 | 0x0376 | `Aux010AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 887 | 0x0377 | `Aux010AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 888 | 0x0378 | `Aux010AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 889 | 0x0379 | `Aux010AntiFbGain001` |  | GainFast |
+| 890 | 0x037A | `Aux010AntiFbLimOn001` |  | InstantCtl |
 | 893 | 0x037D | `Aux010LimiterOn001` |  | InstantCtl |
 | 894 | 0x037E | `Aux010LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 895 | 0x037F | `Aux010LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4891,6 +4911,8 @@
 | 976 | 0x03D0 | `Aux011AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 977 | 0x03D1 | `Aux011AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 978 | 0x03D2 | `Aux011AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 979 | 0x03D3 | `Aux011AntiFbGain001` |  | GainFast |
+| 980 | 0x03D4 | `Aux011AntiFbLimOn001` |  | InstantCtl |
 | 983 | 0x03D7 | `Aux011LimiterOn001` |  | InstantCtl |
 | 984 | 0x03D8 | `Aux011LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 985 | 0x03D9 | `Aux011LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -4966,6 +4988,8 @@
 | 1066 | 0x042A | `Aux012AntiFbNotchQ004` | 0=1/127=20/[Log] | InstantCtl |
 | 1067 | 0x042B | `Aux012AntiFbNotchQ005` | 0=1/127=20/[Log] | InstantCtl |
 | 1068 | 0x042C | `Aux012AntiFbNotchQ006` | 0=1/127=20/[Log] | InstantCtl |
+| 1069 | 0x042D | `Aux012AntiFbGain001` |  | GainFast |
+| 1070 | 0x042E | `Aux012AntiFbLimOn001` |  | InstantCtl |
 | 1073 | 0x0431 | `Aux012LimiterOn001` |  | InstantCtl |
 | 1074 | 0x0432 | `Aux012LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 1075 | 0x0433 | `Aux012LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -5159,6 +5183,31 @@
 | 1318 | 0x0526 | `Grp004CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
 | 1318 | 0x0526 | `Grp004CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
 | 1318 | 0x0526 | `Grp004CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
+| 1320 | 0x0528 | `MainCtr001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 1324 | 0x052C | `MainCtr001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
+| 1324 | 0x052C | `MainCtr001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
+| 1324 | 0x052C | `MainCtr001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
+| 1324 | 0x052C | `MainCtr001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
+| 1324 | 0x052C | `MainCtr001EqShelf001` |  | InstantCtl |
+| 1329 | 0x0531 | `MainCtr001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
+| 1329 | 0x0531 | `MainCtr001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 1329 | 0x0531 | `MainCtr001EqHpf002` | 0=20/64=1000/[Log] | EqSafe |
+| 1329 | 0x0531 | `MainCtr001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
+| 1334 | 0x0536 | `MainCtr001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
+| 1334 | 0x0536 | `MainCtr001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 1334 | 0x0536 | `MainCtr001EqHpf003` | 0=20/64=1000/[Log] | EqSafe |
+| 1334 | 0x0536 | `MainCtr001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
+| 1339 | 0x053B | `MainCtr001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
+| 1339 | 0x053B | `MainCtr001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 1339 | 0x053B | `MainCtr001EqHpf004` | 0=20/64=1000/[Log] | EqSafe |
+| 1339 | 0x053B | `MainCtr001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
+| 1339 | 0x053B | `MainCtr001EqShelf002` |  | InstantCtl |
+| 1345 | 0x0541 | `MainCtr001EqOn001` |  | InstantCtl |
+| 1364 | 0x0554 | `MainCtr001LimiterOn001` |  | InstantCtl |
+| 1365 | 0x0555 | `MainCtr001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
+| 1366 | 0x0556 | `MainCtr001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
+| 1367 | 0x0557 | `MainCtr001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
+| 1368 | 0x0558 | `Main001Out3Delay001` |  | InstantCtl |
 | 1379 | 0x0563 | `Main001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 1381 | 0x0565 | `Main001Mute001` |  | InstantCtl |
 | 1383 | 0x0567 | `Main001Geq001` | 0=-12/127=12/[Lin] | EqSafe |
@@ -5193,12 +5242,14 @@
 | 1412 | 0x0584 | `Main001Geq030` | 0=-12/127=12/[Lin] | EqSafe |
 | 1413 | 0x0585 | `Main001Geq031` | 0=-12/127=12/[Lin] | EqSafe |
 | 1434 | 0x059A | `Main001Delay001` | 0=0/127=250.0/[Log] | InstantCtl |
+| 1436 | 0x059C | `Main001CrossoverFreq001` |  | EqSafe |
 | 1436 | 0x059C | `MainL001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1436 | 0x059C | `MainR001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
-| 1436 | 0x059C | `MainSub001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
+| 1437 | 0x059D | `Main001CrossoverSlope001` |  | InstantCtl |
 | 1437 | 0x059D | `MainL001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1437 | 0x059D | `MainR001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
-| 1437 | 0x059D | `MainSub001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
+| 1438 | 0x059E | `Main001CrossoverOn001` |  | InstantCtl |
+| 1439 | 0x059F | `Main001CrossoverLink001` |  | InstantCtl |
 | 1440 | 0x05A0 | `MainL001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
 | 1440 | 0x05A0 | `MainL001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
 | 1440 | 0x05A0 | `MainL001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
@@ -5279,66 +5330,6 @@
 | 1526 | 0x05F6 | `MainR001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 1527 | 0x05F7 | `MainR001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
 | 1528 | 0x05F8 | `MainR001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
-| 1530 | 0x05FA | `MainCtr001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
-| 1530 | 0x05FA | `MainCtr001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
-| 1530 | 0x05FA | `MainCtr001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
-| 1530 | 0x05FA | `MainCtr001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
-| 1530 | 0x05FA | `MainCtr001EqShelf001` |  | InstantCtl |
-| 1535 | 0x05FF | `MainCtr001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
-| 1535 | 0x05FF | `MainCtr001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
-| 1535 | 0x05FF | `MainCtr001EqHpf002` | 0=20/64=1000/[Log] | EqSafe |
-| 1535 | 0x05FF | `MainCtr001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
-| 1540 | 0x0604 | `MainCtr001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
-| 1540 | 0x0604 | `MainCtr001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
-| 1540 | 0x0604 | `MainCtr001EqHpf003` | 0=20/64=1000/[Log] | EqSafe |
-| 1540 | 0x0604 | `MainCtr001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
-| 1545 | 0x0609 | `MainCtr001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
-| 1545 | 0x0609 | `MainCtr001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
-| 1545 | 0x0609 | `MainCtr001EqHpf004` | 0=20/64=1000/[Log] | EqSafe |
-| 1545 | 0x0609 | `MainCtr001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
-| 1545 | 0x0609 | `MainCtr001EqShelf002` |  | InstantCtl |
-| 1551 | 0x060F | `MainCtr001EqOn001` |  | InstantCtl |
-| 1570 | 0x0622 | `MainCtr001LimiterOn001` |  | InstantCtl |
-| 1571 | 0x0623 | `MainCtr001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
-| 1572 | 0x0624 | `MainCtr001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
-| 1573 | 0x0625 | `MainCtr001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
-| 1575 | 0x0627 | `MainSub001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
-| 1575 | 0x0627 | `MainSub001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
-| 1575 | 0x0627 | `MainSub001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
-| 1575 | 0x0627 | `MainSub001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
-| 1575 | 0x0627 | `MainSub001EqShelf001` |  | InstantCtl |
-| 1580 | 0x062C | `MainSub001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
-| 1580 | 0x062C | `MainSub001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
-| 1580 | 0x062C | `MainSub001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
-| 1585 | 0x0631 | `MainSub001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
-| 1585 | 0x0631 | `MainSub001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
-| 1585 | 0x0631 | `MainSub001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
-| 1590 | 0x0636 | `MainSub001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
-| 1590 | 0x0636 | `MainSub001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
-| 1590 | 0x0636 | `MainSub001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
-| 1590 | 0x0636 | `MainSub001EqShelf002` |  | InstantCtl |
-| 1596 | 0x063C | `MainSub001EqOn001` |  | InstantCtl |
-| 1599 | 0x063F | `MainSub001CompOn001` |  | InstantCtl |
-| 1600 | 0x0640 | `MainSub001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
-| 1601 | 0x0641 | `MainSub001CompRat001` | 0=1/127=30/[Log] | DynSafe |
-| 1602 | 0x0642 | `MainSub001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
-| 1603 | 0x0643 | `MainSub001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
-| 1604 | 0x0644 | `MainSub001CompMake001` | 0=0/127=20/[Lin] | GainFast |
-| 1605 | 0x0645 | `MainSub001CompKnee001` |  | InstantCtl |
-| 1606 | 0x0646 | `MainSub001CompPar001` | 0=0/127=100/[Lin] | GainFast |
-| 1607 | 0x0647 | `MainSub001CompType001` |  | InstantCtl |
-| 1608 | 0x0648 | `MainSub001CompKey001` |  | InstantCtl |
-| 1609 | 0x0649 | `MainSub001CompDetSrc001` |  | InstantCtl |
-| 1610 | 0x064A | `MainSub001CompLimMode001` |  | InstantCtl |
-| 1611 | 0x064B | `MainSub001CompEqPos001` |  | InstantCtl |
-| 1612 | 0x064C | `MainSub001CompFilterOn001` |  | InstantCtl |
-| 1613 | 0x064D | `MainSub001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
-| 1613 | 0x064D | `MainSub001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
-| 1613 | 0x064D | `MainSub001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
-| 1615 | 0x064F | `MainSub001LimiterOn001` |  | InstantCtl |
-| 1616 | 0x0650 | `MainSub001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
-| 1617 | 0x0651 | `MainSub001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
-| 1618 | 0x0652 | `MainSub001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
 | 1620 | 0x0654 | `Fx001On001` |  | InstantCtl |
 | 1621 | 0x0655 | `Fx001Type001` |  | InstantCtl |
 | 1622 | 0x0656 | `Fx001Decay001` | 0=0.1/127=10/[Log] | GainSafe |
@@ -5503,11 +5494,11 @@
 | 1828 | 0x0724 | `Aux012Mtr001` |  |  |
 | 1829 | 0x0725 | `MainL001Mtr001` |  |  |
 | 1831 | 0x0727 | `MainR001Mtr001` |  |  |
-| 1835 | 0x072B | `MainSub001Mtr001` |  |  |
 | 1837 | 0x072D | `Grp001Mtr001` |  |  |
 | 1838 | 0x072E | `Grp002Mtr001` |  |  |
 | 1839 | 0x072F | `Grp003Mtr001` |  |  |
 | 1840 | 0x0730 | `Grp004Mtr001` |  |  |
+| 1841 | 0x0731 | `Main001Out3Mtr001` |  |  |
 | 1842 | 0x0732 | `Fx001Mtr001` |  |  |
 | 1843 | 0x0733 | `Fx002Mtr001` |  |  |
 | 1844 | 0x0734 | `Fx003Mtr001` |  |  |
@@ -5814,9 +5805,208 @@
 | 2168 | 0x0878 | `MainL001Mute001` |  | InstantCtl |
 | 2169 | 0x0879 | `MainR001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 2170 | 0x087A | `MainR001Mute001` |  | InstantCtl |
-| 2171 | 0x087B | `MainCtr001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
-| 2173 | 0x087D | `MainSub001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
-| 2174 | 0x087E | `MainSub001Mute001` |  | InstantCtl |
+| 2185 | 0x0889 | `Grp001AuxOn001` |  | InstantCtl |
+| 2186 | 0x088A | `Grp002AuxOn001` |  | InstantCtl |
+| 2187 | 0x088B | `Grp003AuxOn001` |  | InstantCtl |
+| 2188 | 0x088C | `Grp004AuxOn001` |  | InstantCtl |
+| 2189 | 0x088D | `Grp001AuxSend001` |  | GainFast |
+| 2190 | 0x088E | `Grp002AuxSend001` |  | GainFast |
+| 2191 | 0x088F | `Grp003AuxSend001` |  | GainFast |
+| 2192 | 0x0890 | `Grp004AuxSend001` |  | GainFast |
+| 2193 | 0x0891 | `Grp001AuxOn002` |  | InstantCtl |
+| 2194 | 0x0892 | `Grp002AuxOn002` |  | InstantCtl |
+| 2195 | 0x0893 | `Grp003AuxOn002` |  | InstantCtl |
+| 2196 | 0x0894 | `Grp004AuxOn002` |  | InstantCtl |
+| 2197 | 0x0895 | `Grp001AuxSend002` |  | GainFast |
+| 2198 | 0x0896 | `Grp002AuxSend002` |  | GainFast |
+| 2199 | 0x0897 | `Grp003AuxSend002` |  | GainFast |
+| 2200 | 0x0898 | `Grp004AuxSend002` |  | GainFast |
+| 2201 | 0x0899 | `Grp001AuxOn003` |  | InstantCtl |
+| 2202 | 0x089A | `Grp002AuxOn003` |  | InstantCtl |
+| 2203 | 0x089B | `Grp003AuxOn003` |  | InstantCtl |
+| 2204 | 0x089C | `Grp004AuxOn003` |  | InstantCtl |
+| 2205 | 0x089D | `Grp001AuxSend003` |  | GainFast |
+| 2206 | 0x089E | `Grp002AuxSend003` |  | GainFast |
+| 2207 | 0x089F | `Grp003AuxSend003` |  | GainFast |
+| 2208 | 0x08A0 | `Grp004AuxSend003` |  | GainFast |
+| 2209 | 0x08A1 | `Grp001AuxOn004` |  | InstantCtl |
+| 2210 | 0x08A2 | `Grp002AuxOn004` |  | InstantCtl |
+| 2211 | 0x08A3 | `Grp003AuxOn004` |  | InstantCtl |
+| 2212 | 0x08A4 | `Grp004AuxOn004` |  | InstantCtl |
+| 2213 | 0x08A5 | `Grp001AuxSend004` |  | GainFast |
+| 2214 | 0x08A6 | `Grp002AuxSend004` |  | GainFast |
+| 2215 | 0x08A7 | `Grp003AuxSend004` |  | GainFast |
+| 2216 | 0x08A8 | `Grp004AuxSend004` |  | GainFast |
+| 2217 | 0x08A9 | `Grp001AuxOn005` |  | InstantCtl |
+| 2218 | 0x08AA | `Grp002AuxOn005` |  | InstantCtl |
+| 2219 | 0x08AB | `Grp003AuxOn005` |  | InstantCtl |
+| 2220 | 0x08AC | `Grp004AuxOn005` |  | InstantCtl |
+| 2221 | 0x08AD | `Grp001AuxSend005` |  | GainFast |
+| 2222 | 0x08AE | `Grp002AuxSend005` |  | GainFast |
+| 2223 | 0x08AF | `Grp003AuxSend005` |  | GainFast |
+| 2224 | 0x08B0 | `Grp004AuxSend005` |  | GainFast |
+| 2225 | 0x08B1 | `Grp001AuxOn006` |  | InstantCtl |
+| 2226 | 0x08B2 | `Grp002AuxOn006` |  | InstantCtl |
+| 2227 | 0x08B3 | `Grp003AuxOn006` |  | InstantCtl |
+| 2228 | 0x08B4 | `Grp004AuxOn006` |  | InstantCtl |
+| 2229 | 0x08B5 | `Grp001AuxSend006` |  | GainFast |
+| 2230 | 0x08B6 | `Grp002AuxSend006` |  | GainFast |
+| 2231 | 0x08B7 | `Grp003AuxSend006` |  | GainFast |
+| 2232 | 0x08B8 | `Grp004AuxSend006` |  | GainFast |
+| 2233 | 0x08B9 | `Grp001AuxOn007` |  | InstantCtl |
+| 2234 | 0x08BA | `Grp002AuxOn007` |  | InstantCtl |
+| 2235 | 0x08BB | `Grp003AuxOn007` |  | InstantCtl |
+| 2236 | 0x08BC | `Grp004AuxOn007` |  | InstantCtl |
+| 2237 | 0x08BD | `Grp001AuxSend007` |  | GainFast |
+| 2238 | 0x08BE | `Grp002AuxSend007` |  | GainFast |
+| 2239 | 0x08BF | `Grp003AuxSend007` |  | GainFast |
+| 2240 | 0x08C0 | `Grp004AuxSend007` |  | GainFast |
+| 2241 | 0x08C1 | `Grp001AuxOn008` |  | InstantCtl |
+| 2242 | 0x08C2 | `Grp002AuxOn008` |  | InstantCtl |
+| 2243 | 0x08C3 | `Grp003AuxOn008` |  | InstantCtl |
+| 2244 | 0x08C4 | `Grp004AuxOn008` |  | InstantCtl |
+| 2245 | 0x08C5 | `Grp001AuxSend008` |  | GainFast |
+| 2246 | 0x08C6 | `Grp002AuxSend008` |  | GainFast |
+| 2247 | 0x08C7 | `Grp003AuxSend008` |  | GainFast |
+| 2248 | 0x08C8 | `Grp004AuxSend008` |  | GainFast |
+| 2249 | 0x08C9 | `Grp001AuxOn009` |  | InstantCtl |
+| 2250 | 0x08CA | `Grp002AuxOn009` |  | InstantCtl |
+| 2251 | 0x08CB | `Grp003AuxOn009` |  | InstantCtl |
+| 2252 | 0x08CC | `Grp004AuxOn009` |  | InstantCtl |
+| 2253 | 0x08CD | `Grp001AuxSend009` |  | GainFast |
+| 2254 | 0x08CE | `Grp002AuxSend009` |  | GainFast |
+| 2255 | 0x08CF | `Grp003AuxSend009` |  | GainFast |
+| 2256 | 0x08D0 | `Grp004AuxSend009` |  | GainFast |
+| 2257 | 0x08D1 | `Grp001AuxOn010` |  | InstantCtl |
+| 2258 | 0x08D2 | `Grp002AuxOn010` |  | InstantCtl |
+| 2259 | 0x08D3 | `Grp003AuxOn010` |  | InstantCtl |
+| 2260 | 0x08D4 | `Grp004AuxOn010` |  | InstantCtl |
+| 2261 | 0x08D5 | `Grp001AuxSend010` |  | GainFast |
+| 2262 | 0x08D6 | `Grp002AuxSend010` |  | GainFast |
+| 2263 | 0x08D7 | `Grp003AuxSend010` |  | GainFast |
+| 2264 | 0x08D8 | `Grp004AuxSend010` |  | GainFast |
+| 2265 | 0x08D9 | `Grp001AuxOn011` |  | InstantCtl |
+| 2266 | 0x08DA | `Grp002AuxOn011` |  | InstantCtl |
+| 2267 | 0x08DB | `Grp003AuxOn011` |  | InstantCtl |
+| 2268 | 0x08DC | `Grp004AuxOn011` |  | InstantCtl |
+| 2269 | 0x08DD | `Grp001AuxSend011` |  | GainFast |
+| 2270 | 0x08DE | `Grp002AuxSend011` |  | GainFast |
+| 2271 | 0x08DF | `Grp003AuxSend011` |  | GainFast |
+| 2272 | 0x08E0 | `Grp004AuxSend011` |  | GainFast |
+| 2273 | 0x08E1 | `Grp001AuxOn012` |  | InstantCtl |
+| 2274 | 0x08E2 | `Grp002AuxOn012` |  | InstantCtl |
+| 2275 | 0x08E3 | `Grp003AuxOn012` |  | InstantCtl |
+| 2276 | 0x08E4 | `Grp004AuxOn012` |  | InstantCtl |
+| 2277 | 0x08E5 | `Grp001AuxSend012` |  | GainFast |
+| 2278 | 0x08E6 | `Grp002AuxSend012` |  | GainFast |
+| 2279 | 0x08E7 | `Grp003AuxSend012` |  | GainFast |
+| 2280 | 0x08E8 | `Grp004AuxSend012` |  | GainFast |
+| 2281 | 0x08E9 | `MainCtr001Geq001` |  | EqSafe |
+| 2282 | 0x08EA | `MainCtr001Geq002` |  | EqSafe |
+| 2283 | 0x08EB | `MainCtr001Geq003` |  | EqSafe |
+| 2284 | 0x08EC | `MainCtr001Geq004` |  | EqSafe |
+| 2285 | 0x08ED | `MainCtr001Geq005` |  | EqSafe |
+| 2286 | 0x08EE | `MainCtr001Geq006` |  | EqSafe |
+| 2287 | 0x08EF | `MainCtr001Geq007` |  | EqSafe |
+| 2288 | 0x08F0 | `MainCtr001Geq008` |  | EqSafe |
+| 2289 | 0x08F1 | `MainCtr001Geq009` |  | EqSafe |
+| 2290 | 0x08F2 | `MainCtr001Geq010` |  | EqSafe |
+| 2291 | 0x08F3 | `MainCtr001Geq011` |  | EqSafe |
+| 2292 | 0x08F4 | `MainCtr001Geq012` |  | EqSafe |
+| 2293 | 0x08F5 | `MainCtr001Geq013` |  | EqSafe |
+| 2294 | 0x08F6 | `MainCtr001Geq014` |  | EqSafe |
+| 2295 | 0x08F7 | `MainCtr001Geq015` |  | EqSafe |
+| 2296 | 0x08F8 | `MainCtr001Geq016` |  | EqSafe |
+| 2297 | 0x08F9 | `MainCtr001Geq017` |  | EqSafe |
+| 2298 | 0x08FA | `MainCtr001Geq018` |  | EqSafe |
+| 2299 | 0x08FB | `MainCtr001Geq019` |  | EqSafe |
+| 2300 | 0x08FC | `MainCtr001Geq020` |  | EqSafe |
+| 2301 | 0x08FD | `MainCtr001Geq021` |  | EqSafe |
+| 2302 | 0x08FE | `MainCtr001Geq022` |  | EqSafe |
+| 2303 | 0x08FF | `MainCtr001Geq023` |  | EqSafe |
+| 2304 | 0x0900 | `MainCtr001Geq024` |  | EqSafe |
+| 2305 | 0x0901 | `MainCtr001Geq025` |  | EqSafe |
+| 2306 | 0x0902 | `MainCtr001Geq026` |  | EqSafe |
+| 2307 | 0x0903 | `MainCtr001Geq027` |  | EqSafe |
+| 2308 | 0x0904 | `MainCtr001Geq028` |  | EqSafe |
+| 2309 | 0x0905 | `MainCtr001Geq029` |  | EqSafe |
+| 2310 | 0x0906 | `MainCtr001Geq030` |  | EqSafe |
+| 2311 | 0x0907 | `MainCtr001Geq031` |  | EqSafe |
+| 2312 | 0x0908 | `MainCtr001AntiFbOn001` |  | InstantCtl |
+| 2313 | 0x0909 | `MainCtr001AntiFbCtrlOn001` |  | InstantCtl |
+| 2314 | 0x090A | `MainCtr001AntiFbNotchFreq001` |  | InstantCtl |
+| 2315 | 0x090B | `MainCtr001AntiFbNotchFreq002` |  | InstantCtl |
+| 2316 | 0x090C | `MainCtr001AntiFbNotchFreq003` |  | InstantCtl |
+| 2317 | 0x090D | `MainCtr001AntiFbNotchFreq004` |  | InstantCtl |
+| 2318 | 0x090E | `MainCtr001AntiFbNotchFreq005` |  | InstantCtl |
+| 2319 | 0x090F | `MainCtr001AntiFbNotchFreq006` |  | InstantCtl |
+| 2320 | 0x0910 | `MainCtr001AntiFbNotchGain001` |  | InstantCtl |
+| 2321 | 0x0911 | `MainCtr001AntiFbNotchGain002` |  | InstantCtl |
+| 2322 | 0x0912 | `MainCtr001AntiFbNotchGain003` |  | InstantCtl |
+| 2323 | 0x0913 | `MainCtr001AntiFbNotchGain004` |  | InstantCtl |
+| 2324 | 0x0914 | `MainCtr001AntiFbNotchGain005` |  | InstantCtl |
+| 2325 | 0x0915 | `MainCtr001AntiFbNotchGain006` |  | InstantCtl |
+| 2326 | 0x0916 | `MainCtr001AntiFbNotchQ001` |  | InstantCtl |
+| 2327 | 0x0917 | `MainCtr001AntiFbNotchQ002` |  | InstantCtl |
+| 2328 | 0x0918 | `MainCtr001AntiFbNotchQ003` |  | InstantCtl |
+| 2329 | 0x0919 | `MainCtr001AntiFbNotchQ004` |  | InstantCtl |
+| 2330 | 0x091A | `MainCtr001AntiFbNotchQ005` |  | InstantCtl |
+| 2331 | 0x091B | `MainCtr001AntiFbNotchQ006` |  | InstantCtl |
+| 2332 | 0x091C | `MainCtr001AntiFbGain001` |  | GainFast |
+| 2333 | 0x091D | `MainCtr001AntiFbLimOn001` |  | InstantCtl |
+| 2336 | 0x0920 | `Main001AntiFbOn001` |  | InstantCtl |
+| 2337 | 0x0921 | `Main001AntiFbCtrlOn001` |  | InstantCtl |
+| 2338 | 0x0922 | `Main001AntiFbNotchFreq001` |  | InstantCtl |
+| 2339 | 0x0923 | `Main001AntiFbNotchFreq002` |  | InstantCtl |
+| 2340 | 0x0924 | `Main001AntiFbNotchFreq003` |  | InstantCtl |
+| 2341 | 0x0925 | `Main001AntiFbNotchFreq004` |  | InstantCtl |
+| 2342 | 0x0926 | `Main001AntiFbNotchFreq005` |  | InstantCtl |
+| 2343 | 0x0927 | `Main001AntiFbNotchFreq006` |  | InstantCtl |
+| 2344 | 0x0928 | `Main001AntiFbNotchGain001` |  | InstantCtl |
+| 2345 | 0x0929 | `Main001AntiFbNotchGain002` |  | InstantCtl |
+| 2346 | 0x092A | `Main001AntiFbNotchGain003` |  | InstantCtl |
+| 2347 | 0x092B | `Main001AntiFbNotchGain004` |  | InstantCtl |
+| 2348 | 0x092C | `Main001AntiFbNotchGain005` |  | InstantCtl |
+| 2349 | 0x092D | `Main001AntiFbNotchGain006` |  | InstantCtl |
+| 2350 | 0x092E | `Main001AntiFbNotchQ001` |  | InstantCtl |
+| 2351 | 0x092F | `Main001AntiFbNotchQ002` |  | InstantCtl |
+| 2352 | 0x0930 | `Main001AntiFbNotchQ003` |  | InstantCtl |
+| 2353 | 0x0931 | `Main001AntiFbNotchQ004` |  | InstantCtl |
+| 2354 | 0x0932 | `Main001AntiFbNotchQ005` |  | InstantCtl |
+| 2355 | 0x0933 | `Main001AntiFbNotchQ006` |  | InstantCtl |
+| 2356 | 0x0934 | `Main001AntiFbGain001` |  | GainFast |
+| 2357 | 0x0935 | `Main001AntiFbLimOn001` |  | InstantCtl |
+| 2360 | 0x0938 | `MainSub001Src001` |  | InstantCtl |
+| 2364 | 0x093C | `MainSub001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
+| 2365 | 0x093D | `MainSub001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
+| 2368 | 0x0940 | `MainSub001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
+| 2370 | 0x0942 | `MainSub001Mute001` |  | InstantCtl |
+| 2372 | 0x0944 | `MainSub001EqFreq001` | 0=20/254=200/[Log] | EqSafe |
+| 2372 | 0x0944 | `MainSub001EqGain001` | 0=-15/60=15/[Lin] | EqSafe |
+| 2372 | 0x0944 | `MainSub001EqHpf001` | 0=20/64=1000/[Log] | EqSafe |
+| 2372 | 0x0944 | `MainSub001EqQ001` | 0=0.1/14=10/[Log] | EqSafe |
+| 2372 | 0x0944 | `MainSub001EqShelf001` |  | InstantCtl |
+| 2377 | 0x0949 | `MainSub001EqFreq002` | 0=100/254=1000/[Log] | EqSafe |
+| 2377 | 0x0949 | `MainSub001EqGain002` | 0=-15/60=15/[Lin] | EqSafe |
+| 2377 | 0x0949 | `MainSub001EqQ002` | 0=0.1/14=10/[Log] | EqSafe |
+| 2382 | 0x094E | `MainSub001EqFreq003` | 0=800/254=5000/[Log] | EqSafe |
+| 2382 | 0x094E | `MainSub001EqGain003` | 0=-15/60=15/[Lin] | EqSafe |
+| 2382 | 0x094E | `MainSub001EqQ003` | 0=0.1/14=10/[Log] | EqSafe |
+| 2387 | 0x0953 | `MainSub001EqFreq004` | 0=3000/254=20000/[Log] | EqSafe |
+| 2387 | 0x0953 | `MainSub001EqGain004` | 0=-15/60=15/[Lin] | EqSafe |
+| 2387 | 0x0953 | `MainSub001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
+| 2387 | 0x0953 | `MainSub001EqShelf002` |  | InstantCtl |
+| 2393 | 0x0959 | `MainSub001EqOn001` |  | InstantCtl |
+| 2396 | 0x095C | `MainSub001LimiterOn001` |  | InstantCtl |
+| 2397 | 0x095D | `MainSub001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
+| 2398 | 0x095E | `MainSub001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
+| 2399 | 0x095F | `MainSub001LimiterRel001` | 0=5/127=2000/[Log] | DynSafe |
+| 2400 | 0x0960 | `Main001Out3Mode001` |  | InstantCtl |
+| 2401 | 0x0961 | `Main001Out3Link001` |  | InstantCtl |
+| 2404 | 0x0964 | `Mon001PickOff001` |  | InstantCtl |
+| 2409 | 0x0969 | `Mon001PhonesLevel001` |  | GainFast |
+| 2414 | 0x096E | `Mon001PhonesDelay001` |  | InstantCtl |
+| 2417 | 0x0971 | `Main001Out3Mute001` |  | InstantCtl |
 
-**Total Chip 2 cells:** 1746
+**Total Chip 2 cells:** 1936
 

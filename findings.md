@@ -6,6 +6,65 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PIN TO `.28.4`, AND SIGNAL ARRIVAL AS THE GO-AHEAD (2026-09-28, session 145)
+
+Hub dispatch `tasks.md` 2026-09-28 17:17Z. Report
+`MW/D24/DSP/s145/s145-report.md`. No flash, no bench, nothing deployed.
+
+**S145-1 — 104 cells the D32 graph will answer on that the D32 master does not
+name.** `gen_dsp.py`'s own validation reports it at every regeneration:
+`Main001AntiFb*` and the rest of S144's item 4. Not a regression of the pin
+advance — the graph and the D32 expansion are both unchanged since S144, so the
+count was already 104 at `.28.2` — but the consequence is that the DSP carries
+live SPI addresses no product definition declares, which is the same shape as
+the three long-standing uncatalogued-node warnings (`C2_HPT_01`,
+`C2_MAIN_COMP`, `C2_MAIN_LIM`). Owed to the hub: either the D32 mx-master
+declares them, or the graph stops reaching them.
+
+**S145-2 — 🔴 THE RULED SCREEN'S ONE BUTTON NEEDS THE FACTORY APP, AND THE APP
+IS NOT IN THIS REPO.** PW's ruling of 2026-09-28 makes NO SIGNAL the only
+button on the patch screen. `d24_live.Live.command` carries `enter`, `pause`,
+`start`, `exit` and `notlit` because something app-side already draws each of
+those; `nosignal` is new. S137 added `notlit` through this repo alone and it
+worked on the glass — which means either the app draws an arbitrary button name
+or `notlit` already existed app-side, and **which of those is true cannot be
+established from here**; settling it needs the unit, which the dispatch forbids.
+If the app does not draw it, a patch that will not detect leaves only PAUSE on
+the glass, and PAUSE ends the pass. Two mitigations are built — a two-press
+ENTER path (the first press raises the no-signal question, the second answers
+it; neither can ever grade a patch) and the USB keyboard re-enabled on this
+path — but the armed factory screen draws no dialogs and S123 recorded that no
+keyboard is on the unit. So the three station files are built, proved and **not
+deployed**; the hub's answer is one of: confirm the app draws unknown buttons
+and deploy; add NO SIGNAL to the app and then deploy; or deploy anyway and
+accept PAUSE as the escape. Same wall S138b-2 hit over STILL LIT.
+
+**S145-3 — A PER-LANE POLL WINDOW CANNOT BE STATED IN READINGS, BECAUSE THREE
+OF THIS UNIT'S LANES ARE TEN TIMES SLOWER TO WATCH THAN THE OTHER TWENTY-FOUR.**
+The 24 mic strips have a meter word that needs no settling window (S121: all
+twenty-four in 32 ms), so the auto-advance polls them at 50 ms. The talkback XLR
+and both mini-jack legs have no meter at all, so `watch` reads the measurement
+node instead and one read costs an 85.3 ms `TEST_MEAS` window — a cadence of
+~135 ms. A stability window of "three readings in 256 ms" is therefore
+satisfiable on 24 of 27 lanes and **impossible** on the other three, and the
+failure mode is silent: those three patches (`P59` TALKBACK, `P90`/`P91`
+MINI-JACK) run to the timeout on a perfectly good unit and land NO DATA. Found
+by the dry run, not by reading the code. The window is now stated in TIME
+(3 blocks) with a floor of TWO readings, which is what the coarsest lane can
+deliver. Worth keeping because the asymmetry will bite anything else that times
+a per-lane poll on this product.
+
+**S145-4 — the dispatch header's counts are S144's slice, not this repo's
+intake.** `.28.3` (S143's group→aux crosspoints) was never pinned here, so
+advancing `.28.2 → .28.4` takes it as well: d24 gains **168** DSP-mapped cells,
+not the 104 of the `.28.3 → .28.4` slice the header quotes (d32 128 not 32, d16
+68 not 20, d12 32 not 16; the 40 changed addresses and the 18 stale
+`MainSub Comp*`/`Mtr` are the same either way). S144's own report carries the
+same seam — its table says +104 while its prose correctly predicts
+3,632 → 3,800, which is +168 — so the prose was right and the table was the
+slice. Nothing in the artifact is wrong; the number to quote for this repo is
+168, and it is what `_matrix.csv` now carries (3,800 of 3,800 mapped cells).
+
 ## THE DESIGN HALF OF THE GAPS-DOC ROWS, AND WHAT THE PRIMARY SOURCE SAID (2026-09-28, session 138b)
 
 Hub dispatch `tasks.md` 2026-09-28 16:16Z plus HUB ADDENDUM 1. Everything S138
