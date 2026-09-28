@@ -1,3 +1,25 @@
+## HUB DISPATCH 2026-09-28 08:51Z — S139: NO FLASH — move dsp to the block-audit generation 46109e9fb812 (defs-v2026.09.28.1): regenerate dsp.csv/dsp-unmapped.csv, runbook, dry run   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S139 — NO FLASH: bring dsp onto D24 generation `46109e9fb812` before S131
+
+**Why:** PW's block-audit rulings (28 Sep, D1–D17) landed in ONE defs tag, `defs-v2026.09.28.1` (defs 877ea5f, mx26 `48f0b6f`). New D24 generation `46109e9fb812` has 5,767 cells (was 5,031 in `b630825d8fed`): +1,098 declared, −362 dropped (obsolete for D24 by PW ruling), and a ruled ONE-TIME address move (4,555 of 5,031 D24 names changed address; e.g. `Sys001Skin001` 4698 → 4360, `Sys001Def001` 2557 → 4175). S131 now targets THIS generation, not `b630825d8fed`.
+
+**Build:**
+- **Advance dsp's defs pin** (defs.lock / submodule, whichever dsp uses) to `defs-v2026.09.28.1` — this also closes S137's owed "full defs.lock advance to .28".
+- **Regenerate `dsp.csv` and `dsp-unmapped.csv`** with `gen_dsp` against `46109e9fb812`. Rows for the 362 dropped cells go (none may linger); the new cells appear unmapped unless an existing DSP node already implements them. No hand edits to generated files.
+- **Report the DSP-side diff** in `MW/D24/DSP/s139/s139-report.md`: mapped / unmapped counts before vs after, every dropped cell that WAS DSP-mapped (these are DSP nodes now with no cell — list, don't delete code), and every newly declared cell that maps onto an existing node.
+- **Grep dsp for any D24 matrix-address literal** outside generated outputs (PW 09-28 standing rule: nothing outside defs + its generated outputs may hold a D24 address). S136 made station tools name-resolved; confirm nothing regressed; fix any literal found by resolving by name.
+- **Update `MW/D24/DSP/s131-runbook.md`** to name generation `46109e9fb812` / tag `defs-v2026.09.28.1` everywhere it names the old one, and note the fw.csv panel tables are the regenerated ones.
+- **Re-run S134's matrix.h / .shex dry run against `46109e9fb812`** and record the result (build OK, hashes) in the report and the runbook.
+
+**Rules:** NO flashing, no app deploy, unit untouched (leave safe and armed). No DSP graph work here (Centre/LF, phones pair, aux matrix, anti-feedback are later dispatches). Close 🟢/🔴 with a short outcome, commit and push `main`. No AI attribution. No dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-28 06:38Z — S137: PW panel-loop ruling — fixed order, every switch in turn, NOT LIT records and skips   [status: 🟢 done — fixed order confirmed already-fixed and defs-reconciled (`panel_coverage.py --check`, 20/20 switches, no reorder needed or made); `d24_panel.py::loop`'s NOT LIT now records LED FAIL "operator saw no light" + switch NOT TESTED "skipped: LED dark" and advances at once (old retry-and-ask-again machinery removed, not left dead); the armed factory screen has a working NOT LIT button (`d24_live.PANEL_BUTTONS`, `Live.command()`, `d24_runall.py`'s panel `ask`/`tick`) where before it had a dead ENTER and no way to say NOT LIT at all — same dead-ENTER bug also found and fixed on the encoder-turn screen; random order stays OFF. Proved with two scripted (no-bus, no-unit) drives: `MW/D24/DSP/s137/scripts/{right,left}-pass-notlit-wrongkey.txt` exercise PASS/NOT LIT/wrong-key on each board through `d24_panel.py --mode loop --inject`, and `MW/D24/DSP/s137/panel_glass_buttons_check.py` drives `d24_runall.panel_station()` directly on both boards and confirms every panel-step screen carries its key prompt plus NOT LIT with no dead ENTER (23 screens, OK). `s131-runbook.md` step 10 now runs the panel loop as the post-switch check. Both HUB ADDENDA folded in — see their own 🔵 replies above and `MW/D24/DSP/s137/s137-report.md` for full detail, including what's still owed (the mx26 catalog fix, the full defs.lock advance to `.28`, re-running S134's matrix.h/.shex dry run against `b630825d8fed`). Nothing flashed, no app deploy, unit never touched.]   [model: sonnet]
 
 > **HUB ADDENDUM 2 (28 Sep): the S131 target generation has MOVED, and the dsp generator needs one line before it.**
