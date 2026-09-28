@@ -6,6 +6,135 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CENTRE/LF OUTPUT, THE PHONES PAIR AND THE ANTI-FEEDBACK (2026-09-28, session 144)
+
+Hub dispatch `tasks.md` 2026-09-28 13:40Z. Items 1, 2 and 4 of S142, built on
+top of S143's stereo main bus. Eight findings; three of them are PW-level and
+are recorded rather than asked (no dialogs).
+
+**S144-1 THE "SUB" OUTPUT CARRIED THE HIGH-PASSED MAIN BUS.** `C2_MAIN_OUT_04`
+was MainSub, DAC_16, and its chain read `C2_MAIN_XOVER` — whose `_buf_` is the
+crossover's HIGH-pass leg (`gen_crossover_fixed` writes hp into both
+`_buf_hp_<nid>` and `_buf_<nid>`; the low-pass leg is `_buf_lp_<nid>` and was
+read by nothing). So the output the block calls the sub carried everything
+ABOVE the corner and nothing below it, which is the opposite of a sub. It was
+measured by nothing because the four post-crossover outputs were never read
+against each other on the part, and it dissolves with this work rather than
+being fixed: outputs 3 and 4 are gone, the Centre strip is fed from the Ctr
+Channel Bus and the Woof strip from the Main L/R sum through its own LPF.
+Recorded because anyone reading the S121-6 measurement ("the rear Monitor
+jacks carry the crossover's centre and sub legs") should know that the sub leg
+was not the sub.
+
+**S144-2 THE WOOF TAKES THE MAIN L/R SUM, NOT THE CROSSOVER'S LP LEG — A
+CORRECTION TO S142 §3.2.** That design has `C2_MAIN_XOVER(LP) +
+C2_MAIN_XOVER_R(LP) -> C2_WOOF_MIX`, and the Woof strip then has its own LPF
+off `MainSub Crossover*`. Built that way, the LF path is low-passed TWICE at
+the same corner whenever `MainSub Src` is 0 and `Main CrossoverLink` is 1 —
+LR4 then LR4, 12 dB down at the corner instead of 6, and LP + HP no longer
+summing flat, which is the whole point of a Linkwitz-Riley alignment. The
+cells say which filter is where in as many words: `Main CrossoverFreq` is
+"Main L/R **HPF** crossover frequency … LF summed", `MainSub CrossoverFreq` is
+"**Woof LPF** crossover frequency: applies when Main CrossoverLink = 0
+(UNLINK); linked it follows Main CrossoverFreq", and `MainSub Src` = 0 is
+spelled "Main L/R **sum**". Two filters, one corner when linked. So
+`C2_WOOF_MIX` sums `C2_MAIN_DLY` and `C2_MAIN_DLY_R` and the only low-pass in
+the LF path is the Woof's own. The main crossover's LP leg is now computed and
+unread, which it already was.
+
+**S144-3 `Main Out3Link` IS BUILT AS A DSP LEVEL LINK, AND THE OTHER READING
+IS PW's. 🔴** The cell is "L.R. Fader Link: the output-3 master fader (Centre
+or Woof per Out3Mode) follows the Main L/R fader", Neutral 0. Two readings:
+(a) the DSP scales the Out3 tail by the main master fader's own ramped gain —
+what is built, on `C2_OUT3_SEL`, one MAC per sample while the link word is
+set; (b) the HOST mirrors `Main Level` into `MainCtr/MainSub Level`, in which
+case the cell needs no DSP word at all. (a) was built because the cell is
+declared in D24's DSP generation `46109e9fb812` and a declared cell with no
+reader is the shape S21-4 named. **What (a) costs on one path**: the Centre
+strip is fed from the Ctr Channel Bus and never passes the main fader, which
+is the path the link exists for; the Woof fed from `MainSub Src` = 0 is
+ALREADY post-master, so linking applies the master fader to it twice. If PW
+means (b), the fix is to stop dispatching the word and mark the cell
+host-managed — one line in `expand_source_sel` and no address moves.
+
+**S144-4 TALKBACK INJECTION INTO THE PHONES NEEDS A WIRE, NOT A GRAPH EDIT.
+🔴** The dispatch asks for "talkback injection" on the phones pair (PW ruling
+D7). It cannot be built here, for two reasons that are both upstream of this
+repo:
+
+  * `C1_TALK_01` and `C1_TALK_02` have EMPTY `outputs` columns and reach no
+    bus at all. That is the pre-existing `Talk Dest` gap — S25 diagnosed it
+    ("what is missing is the FAN-OUT"), S26 went to build it and declined
+    because the enumeration names a count and no destination. So there is
+    nothing arriving on chip 2 to inject.
+  * Reaching the chip-2 phones from a chip-1 talkback node needs a MIX-FABRIC
+    SLOT. The fabric's slot map is single-sourced in `shared/dsp4-logic/`
+    (`dsp4-architecture-decisions.md`) and is a wire contract; 41 of 128 slots
+    are in use, so there is room, but taking one is not a graph change.
+
+`Talk Dest`'s own note also makes the destination ORDER provisional: "Main
+L/R + Aux 1-8 + phones … y order provisional until the skin audit — PW ruling
+D13". So the phones pair is built with the summing point it will need and the
+injection is left named. What it takes: one fabric slot for a talkback send,
+one `INTERCHIP_RECV` on chip 2, and the phones node gaining one more input at
+a crosspoint coefficient — after the Dest order is ruled.
+
+**S144-5 `AntiFbCtrlOn` STILL REACHES NO DSP ARITHMETIC, AND THAT IS THE
+PROPOSAL STANDING. 🔴** S142 §3.5 placed the ring-out DECISION on the host:
+the DSP owns the 1/3-octave filterbank, the ring metric and the notch
+biquads, and the host's Antifeedback skin reads the metric, picks the band and
+writes `AntiFbNotchFreq/Gain/Q`. S144 built the metric — the half that did not
+exist — so the algorithm is now complete on both sides of the SPI link, with
+the decision on the host side of it. If PW wants the ring-out to run with the
+screen off, the peak-picking moves into `rta.asm` and the item costs more (a
+per-band argmax and a notch-allocation policy). The cell set does not change
+either way, which is why the build is correct under both rulings.
+
+**S144-6 AUX ANTI-FEEDBACK CANNOT "FOLLOW THE PAIRING" UNTIL THE PAIRING
+EXISTS.** The dispatch asks for aux anti-feedback following the aux pairing.
+The pairing is `Aux Link` (PW ruling D12), which is unmapped and whose aux
+matrix S143 handed back as S143-2. The twelve aux AFB nodes are per bus and
+independent, which is right for dual mono; what a linked pair needs is ONE
+notch set across both members, and that is exactly the `follows=` mechanism
+this item just built for `C2_MAIN_AFB_R`. It is one row per odd aux the day
+`Aux Link` lands, and nothing else.
+
+**S144-7 THE GENERIC CHIP-2 BLOCK WRAPPER CHARGES SIX INSTRUCTIONS PER
+DECLARED INPUT PER SAMPLE, AND NO PRICING IN THIS TREE CARRIES THAT TERM.**
+`blk_wrap_body` stages every input into the scalar `_buf_` word the
+per-sample body reads, and the staging is a load of the walking pointer, an
+index-register move, the read, the store, an increment and a store-back — six
+instructions, per input, per sample. On the 13-source Woof select that is
+13 × 6 × 16 = **1,248 instructions a block for staging alone**, against 992
+for the arithmetic it stages. Counted off the emitted files, the four
+SOURCE_SEL nodes cost 5,360 instructions a block between them, about 1.64 %
+of chip 2 at BLOCK 16 / 983.04 MHz, and rather more than half of that is
+staging. S142 priced a select as "a per-sample body reading the selected
+`_buf_`" and the measured class rates it used (210 c/blk for MIX_BUS and
+friends) are floor charges taken on nodes with few inputs, so neither carries
+this.
+
+**It is removable and it is named rather than done:** a SOURCE_SEL does not
+need the generic wrapper at all. Its own block kernel could walk the source
+BLOCKS directly — thirteen `dm(i, 1)` reads against thirteen coefficients,
+inside a hardware loop, with no scalar round trip — which is what `MIX_BUS`
+already does in its fast path and what `_bq_fx_cascade_blk` does for the
+cascades. That takes the class out of `_C2_WRAP_TYPES` and is worth about
+1.0 % of chip 2 on the four instances built here. Out of this dispatch's
+scope; recorded with the number so the next capacity row does not read it as
+noise.
+
+**S144-8 `Main CrossoverOn` DEFAULTS TO 0, SO WRITING A CROSSOVER FREQUENCY NO
+LONGER ENGAGES THE CROSSOVER.** Before this the crossover had no on/off word:
+a legal `Main CrossoverFreq` inside 50–500 Hz designed the split and that was
+that. The cell now exists, its Neutral is 0, and `on = 0` designs the compiled
+identity into both cascades — so a host that writes a corner and expects a
+split must also write `Main CrossoverOn = 1`. The default is what the block
+draws (the crossover is a switch marked IN) and it is what the cell's Neutral
+says, and the transition goes through the node's own 576-sample dual-instance
+crossfade either way, so it is click-free. Recorded because it is a
+host-visible behaviour change that no test in this tree can see.
+
 ## THE AUX -> AUX MATRIX AND THE AUX SIMD PAIRING CANNOT BOTH EXIST (2026-09-28, session 143)
 
 Hub dispatch `tasks.md` 2026-09-28 12:29Z, item 3. Found while building the
