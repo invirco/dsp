@@ -620,8 +620,16 @@ def process_node(node, state, node_states, nodes, links=None,
 class DSPSimulator:
     def __init__(self, csv_path=None):
         if csv_path is None:
+            # THE DEFAULT POINTED AT NOTHING. `tools/dsp/../dsp.csv` is
+            # `tools/dsp.csv`, which has never existed -- a leftover from
+            # when this script lived beside the graph. Running it with no
+            # --csv raised FileNotFoundError, which is why every recorded
+            # use of it passes one. The graph is where the codegen reads
+            # it from (S143).
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            csv_path = os.path.join(script_dir, '..', 'dsp.csv')
+            repo = os.path.dirname(os.path.dirname(script_dir))
+            csv_path = os.path.join(repo, 'MW', 'D32', 'DSP', 'SHARC',
+                                    'dsp.csv')
         self.nodes   = load_nodes(csv_path)
         self.order   = topo_sort(self.nodes)
         self.links   = fabric_links(self.nodes)

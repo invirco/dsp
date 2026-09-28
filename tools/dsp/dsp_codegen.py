@@ -11603,6 +11603,49 @@ def gen_fader_pan_fixed(node):
     """)
 
 
+
+# ---------------------------------------------------------------------------
+# THE SECOND CROSSPOINT BLOCK (S143)
+# ---------------------------------------------------------------------------
+#
+# `xp_map=Grp:1,2,3,4` on a chip-2 MIX_BUS says: after the `fx_sends`
+# crosspoints, this node takes four more, sourced from Grp 1..4, and their
+# SPI words live in a second address block at `xp_page`/`xp_addr` laid out
+# per category as On[..] then Send[..]. The list is the SOURCE INDICES and
+# not a count, because the aux -> aux half of the matrix takes only the
+# sources below its own number (the loop-free order) and a count could not
+# say which.
+#
+# It is a map and not another `*_sends` integer for the reason `fx_sends`
+# already shows: gen_dsp.py has to name the CELLS, and a bare count leaves
+# the category to be inferred from the node id. One statement, read by the
+# kernel for how many coefficients and by gen_dsp.py for which cells.
+
+def parse_xp_map(params):
+    """[(category, [source index, ...]), ...] from `xp_map`, in order."""
+    raw = (params.get('xp_map') or '').strip()
+    if not raw:
+        return []
+    out = []
+    for part in raw.split('|'):
+        part = part.strip()
+        if not part:
+            continue
+        if ':' not in part:
+            raise ValueError(
+                f'xp_map entry {part!r} is not `<Category>:<i,j,k>`')
+        cat, idx = part.split(':', 1)
+        idxs = [int(x) for x in idx.split(',') if x.strip()]
+        if not idxs:
+            raise ValueError(f'xp_map entry {part!r} names no source index')
+        out.append((cat.strip(), idxs))
+    return out
+
+
+def xp_map_count(params):
+    return sum(len(i) for _, i in parse_xp_map(params))
+
+
 def gen_mix_bus_fixed(node):
     """Fixed MIX_BUS (D5). Chip 1: read the 64-bit bus accumulator with
     ONE rns+saturate (exact summing, fixed_ref.mix_sum). Chip 2:
@@ -11731,11 +11774,21 @@ def gen_mix_bus_fixed(node):
     # A dsp.csv without `fx_sends` emits none of this and the generated
     # text is byte-identical to the pre-S23 generator, which is what makes
     # the main mixes' own diff readable.
-    n_send = int(p.get('fx_sends', 0) or 0)
+    # THE SWITCHED SOURCES ARE THE LAST OF THE LIST, IN TWO DECLARED
+    # BLOCKS (S143). `fx_sends` is the FX returns' block, which owns the
+    # node's own SPI words and has since S23 gate 3; `xp_map` is a SECOND
+    # block of crosspoints -- today the four group sends -- whose words
+    # live at `xp_page`/`xp_addr`, allocated after every other chip-2
+    # address so that adding them moved none. The kernel does not care
+    # which block a coefficient came from: both fold an on/off flag and a
+    # ramped level into one Q4.28 word at block rate, and `_mix_gq_` is
+    # what the accumulate reads.
+    n_send = int(p.get('fx_sends', 0) or 0) + xp_map_count(p)
     if n_send > n_src:
         raise ValueError(
-            f'{nid}: fx_sends={n_send} but the node has only {n_src} '
-            f'inputs. The switched sends are the LAST fx_sends of them.')
+            f'{nid}: fx_sends + xp_map = {n_send} switched source(s) but '
+            f'the node has only {n_src} inputs. The switched sends are the '
+            f'LAST of them.')
     n_plain = n_src - n_send
     cvts = []
     for k in range(max(n_plain, 1)):

@@ -5,15 +5,15 @@
 # address typed here is an address no kernel answers on.
 #
 # Proposed by dsp, landed by the hub at the gate (PW ruling
-# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.1.
+# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.2.
 #
 # ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
 # graph is expanded once and this file is the intersection of that
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 1792 of 2704 defined cells reach a DSP address.
-# The other 912 are named in dsp-unmapped.csv with the
+# 1808 of 2704 defined cells reach a DSP address.
+# The other 896 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -1474,6 +1474,14 @@ Fx004On001,C2_FX_ENG_04,FX_ENGINE,2,1,1704,0x06A8,rw,InstantCtl,Instant,0,0,Line
 Fx004PreDelay001,C2_FX_ENG_04,FX_ENGINE,2,1,1707,0x06AB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Fx004StereoWidth001,C2_FX_ENG_04,FX_ENGINE,2,1,1723,0x06BB,rw,GainSafe,Slew,10,30,Exp,Scalar,,
 Fx004Type001,C2_FX_ENG_04,FX_ENGINE,2,1,1705,0x06A9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp001AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2185,0x0889,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp001AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2193,0x0891,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp001AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2201,0x0899,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp001AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2209,0x08A1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp001AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2189,0x088D,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp001AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2197,0x0895,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp001AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2205,0x089D,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp001AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2213,0x08A5,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp001CompAtt001,C2_GRP_COMP_01,COMPRESSOR,2,1,1127,0x0467,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 Grp001CompDetSrc001,C2_GRP_COMP_01,COMPRESSOR,2,1,1134,0x046E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Grp001CompEqPos001,C2_GRP_COMP_01,COMPRESSOR,2,1,1136,0x0470,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1553,6 +1561,14 @@ Grp001Geq031,C2_GRP_GEQ_01,GEQ,2,1,1909,0x0775,rw,EqSafe,LinearFrames,12,12,Line
 Grp001Level001,C2_GRP_FDR_01,FADER_PAN,2,1,1080,0x0438,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp001Mtr001,C2_MTR_GRP_01,METER,2,1,1837,0x072D,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp001Mute001,C2_GRP_FDR_01,FADER_PAN,2,1,1082,0x043A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp002AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2186,0x088A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp002AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2194,0x0892,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp002AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2202,0x089A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp002AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2210,0x08A2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Grp002AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2190,0x088E,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp002AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2198,0x0896,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp002AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2206,0x089E,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Grp002AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2214,0x08A6,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp002CompAtt001,C2_GRP_COMP_02,COMPRESSOR,2,1,1187,0x04A3,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 Grp002CompDetSrc001,C2_GRP_COMP_02,COMPRESSOR,2,1,1194,0x04AA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Grp002CompEqPos001,C2_GRP_COMP_02,COMPRESSOR,2,1,1196,0x04AC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

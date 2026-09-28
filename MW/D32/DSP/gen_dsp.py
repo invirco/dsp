@@ -39,7 +39,7 @@ REPO_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 sys.path.insert(0, os.path.join(REPO_ROOT, 'tools', 'dsp'))
 try:
     from dsp_codegen import (BLOCK as DSP_BLOCK, FRAME_MS, ms_to_frames,
-                             SAMPLE_RATE_HZ)
+                             SAMPLE_RATE_HZ, parse_xp_map)
     import master_names
 except ImportError as exc:                       # no-fallback policy
     raise SystemExit(
@@ -1404,6 +1404,62 @@ def expand_dca(node, cat, inst):
 
 
 # ── MIX_BUS (bus pre-sum, mostly internal) ───────────────────────────────
+
+def _expand_mix_xpoints(node, prm, chip, nid, aux, n_fx):
+    """The SECOND crosspoint block on a chip-2 aux sum (S143).
+
+    `xp_map=Grp:1,2,3,4` says which sources the block carries and in what
+    order; `xp_page`/`xp_addr` say where its words live. A SECOND address
+    block for one node, for the same reason ROUTING's `mtx_page`/`mtx_addr`
+    and OUTPUT_TDM's `mo_page`/`mo_addr` are: growing the node's first block
+    would move every chip-2 address above it, and these crosspoints are an
+    ADDITION to a shipped map.
+
+    Layout, per category in `xp_map` order: On[sources] then Send[sources],
+    which is the FX block's own layout one level out. The kernel does not
+    distinguish the blocks -- `_mix_on_`/`_mix_send_` are one array each and
+    this block's k-th crosspoint is index n_fx + k -- so the only thing that
+    has to agree is this index, and it is computed here from the same list
+    dsp_codegen.py counts.
+
+    NO `AuxPick`. `Grp[1-4]AuxPick[1-12]` selects which tap of the group
+    strip the send comes from, which is a pointer select and not a
+    coefficient; the graph takes the group's OUTPUT and the cell stays
+    unmapped with its reason rather than being given an address nothing
+    reads (S21-4's shape).
+    """
+    xmap = parse_xp_map(prm)
+    if not xmap:
+        return
+    xpg = prm.get('xp_page')
+    xpa = prm.get('xp_addr')
+    if xpg is None or xpa is None:
+        sys.exit(f'ERROR: {nid} declares xp_map={prm.get("xp_map")!r} and no '
+                 f'xp_page/xp_addr, so its crosspoint words have no address. '
+                 f'gen_dsp_csv.py allocates them; refusing to guess.')
+    xpg, xpa = int(xpg), int(xpa)
+    k = n_fx
+    off = 0
+    for cat, srcs in xmap:
+        for i in srcs:
+            add_cell(cn(cat, i, 'AuxOn', aux), chip, xpg, xpa + off,
+                     ramp_profile='InstantCtl')
+            add_dispatch(chip, xpa + off,
+                         f'_mix_on_{nid} + {k}' if k else f'_mix_on_{nid}',
+                         f'{nid} {cat}{i} AuxOn')
+            k += 1
+            off += 1
+        k -= len(srcs)
+        for i in srcs:
+            add_cell(cn(cat, i, 'AuxSend', aux), chip, xpg, xpa + off,
+                     ramp_profile='GainFast')
+            add_dispatch(chip, xpa + off,
+                         f'_mix_send_{nid} + {k}' if k else f'_mix_send_{nid}',
+                         f'{nid} {cat}{i} AuxSend')
+            k += 1
+            off += 1
+
+
 def expand_mix_bus(node, cat, inst):
     chip, pg, base, nid, ramp = _parse_node(node)
     if base < 0:
@@ -1441,6 +1497,7 @@ def expand_mix_bus(node, cat, inst):
             add_dispatch(chip, base + off,
                          f'_mix_send_{nid} + {x-1}' if x > 1 else f'_mix_send_{nid}',
                          f'{nid} Fx{x} AuxSend')
+        _expand_mix_xpoints(node, prm, chip, nid, aux, n_send)
         return
     # 2 words: bus_id + source_count (internal, no _Cell)
     add_dispatch(chip, base, None, f'{nid} bus_id')

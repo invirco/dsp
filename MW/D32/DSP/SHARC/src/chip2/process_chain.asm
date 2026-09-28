@@ -283,10 +283,6 @@
 .extern _C2_RECV_MAIN_L_process;
 .extern _C2_RECV_MAIN_R_process;
 .extern _C2_RECV_SUB_process;
-.extern _C2_RECV_GRP_01_process;
-.extern _C2_RECV_GRP_02_process;
-.extern _C2_RECV_GRP_03_process;
-.extern _C2_RECV_GRP_04_process;
 .extern _C2_RECV_AUX_01_process;
 .extern _C2_RECV_AUX_02_process;
 .extern _C2_RECV_AUX_03_process;
@@ -341,6 +337,30 @@
 .extern _C2_FX_FDR_04_process;
 .extern _C2_FX_FDR_05_process;
 .extern _C2_FX_FDR_06_process;
+.extern _C2_RECV_GRP_01_process;
+.extern _C2_RECV_GRP_02_process;
+.extern _C2_RECV_GRP_03_process;
+.extern _C2_RECV_GRP_04_process;
+.extern _C2_GRP_FDR_01_process;
+.extern _C2_GRP_EQ_01_process;
+.extern _C2_GRP_GEQ_01_process;
+.extern _C2_GRP_GATE_01_process;
+.extern _C2_GRP_COMP_01_process;
+.extern _C2_GRP_FDR_02_process;
+.extern _C2_GRP_EQ_02_process;
+.extern _C2_GRP_GEQ_02_process;
+.extern _C2_GRP_GATE_02_process;
+.extern _C2_GRP_COMP_02_process;
+.extern _C2_GRP_FDR_03_process;
+.extern _C2_GRP_EQ_03_process;
+.extern _C2_GRP_GEQ_03_process;
+.extern _C2_GRP_GATE_03_process;
+.extern _C2_GRP_COMP_03_process;
+.extern _C2_GRP_FDR_04_process;
+.extern _C2_GRP_EQ_04_process;
+.extern _C2_GRP_GEQ_04_process;
+.extern _C2_GRP_GATE_04_process;
+.extern _C2_GRP_COMP_04_process;
 .extern _C2_MIX_AUX_01_process;
 .extern _C2_MIX_AUX_02_process;
 .extern _C2_MIX_AUX_03_process;
@@ -437,26 +457,6 @@
 .extern _C2_AUX_LIM_12_process;
 .extern _C2_AUX_DLY_12_process;
 .extern _C2_AUX_OUT_12_process;
-.extern _C2_GRP_FDR_01_process;
-.extern _C2_GRP_EQ_01_process;
-.extern _C2_GRP_GEQ_01_process;
-.extern _C2_GRP_GATE_01_process;
-.extern _C2_GRP_COMP_01_process;
-.extern _C2_GRP_FDR_02_process;
-.extern _C2_GRP_EQ_02_process;
-.extern _C2_GRP_GEQ_02_process;
-.extern _C2_GRP_GATE_02_process;
-.extern _C2_GRP_COMP_02_process;
-.extern _C2_GRP_FDR_03_process;
-.extern _C2_GRP_EQ_03_process;
-.extern _C2_GRP_GEQ_03_process;
-.extern _C2_GRP_GATE_03_process;
-.extern _C2_GRP_COMP_03_process;
-.extern _C2_GRP_FDR_04_process;
-.extern _C2_GRP_EQ_04_process;
-.extern _C2_GRP_GEQ_04_process;
-.extern _C2_GRP_GATE_04_process;
-.extern _C2_GRP_COMP_04_process;
 .extern _C2_SUB_FDR_process;
 .extern _C2_SUB_EQ_process;
 .extern _C2_SUB_COMP_process;
@@ -634,45 +634,13 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_01;
-    r1 = _blk_C2_RECV_GRP_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_02;
-    r1 = _blk_C2_RECV_GRP_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_03;
-    r1 = _blk_C2_RECV_GRP_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_04;
-    r1 = _blk_C2_RECV_GRP_04;
-    call _scope_tap;
-#endif
-#endif
 #if DSP4_CHAN_MASK
-    /* aux 1: entries 7..7, gate group 0 */
+    /* aux 1: entries 3..3, gate group 0 */
     r2 = dm(_mask_on + 0);
     r2 = pass r2;
     if eq jump (pc, .c2brunm0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_01;
@@ -684,12 +652,12 @@ _chip2_process_all:
 .c2brunm0_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 2: entries 8..8, gate group 1 */
+    /* aux 2: entries 4..4, gate group 1 */
     r2 = dm(_mask_on + 1);
     r2 = pass r2;
     if eq jump (pc, .c2brunm1_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_02;
@@ -701,12 +669,12 @@ _chip2_process_all:
 .c2brunm1_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 3: entries 9..9, gate group 2 */
+    /* aux 3: entries 5..5, gate group 2 */
     r2 = dm(_mask_on + 2);
     r2 = pass r2;
     if eq jump (pc, .c2brunm2_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_03;
@@ -718,12 +686,12 @@ _chip2_process_all:
 .c2brunm2_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 4: entries 10..10, gate group 3 */
+    /* aux 4: entries 6..6, gate group 3 */
     r2 = dm(_mask_on + 3);
     r2 = pass r2;
     if eq jump (pc, .c2brunm3_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_04;
@@ -735,12 +703,12 @@ _chip2_process_all:
 .c2brunm3_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 5: entries 11..11, gate group 4 */
+    /* aux 5: entries 7..7, gate group 4 */
     r2 = dm(_mask_on + 4);
     r2 = pass r2;
     if eq jump (pc, .c2brunm4_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_05;
@@ -752,12 +720,12 @@ _chip2_process_all:
 .c2brunm4_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 6: entries 12..12, gate group 5 */
+    /* aux 6: entries 8..8, gate group 5 */
     r2 = dm(_mask_on + 5);
     r2 = pass r2;
     if eq jump (pc, .c2brunm5_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_06;
@@ -769,12 +737,12 @@ _chip2_process_all:
 .c2brunm5_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 7: entries 13..13, gate group 6 */
+    /* aux 7: entries 9..9, gate group 6 */
     r2 = dm(_mask_on + 6);
     r2 = pass r2;
     if eq jump (pc, .c2brunm6_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_07;
@@ -786,12 +754,12 @@ _chip2_process_all:
 .c2brunm6_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 8: entries 14..14, gate group 7 */
+    /* aux 8: entries 10..10, gate group 7 */
     r2 = dm(_mask_on + 7);
     r2 = pass r2;
     if eq jump (pc, .c2brunm7_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_08;
@@ -803,12 +771,12 @@ _chip2_process_all:
 .c2brunm7_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 9: entries 15..15, gate group 8 */
+    /* aux 9: entries 11..11, gate group 8 */
     r2 = dm(_mask_on + 8);
     r2 = pass r2;
     if eq jump (pc, .c2brunm8_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_09_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_09;
@@ -820,12 +788,12 @@ _chip2_process_all:
 .c2brunm8_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 10: entries 16..16, gate group 9 */
+    /* aux 10: entries 12..12, gate group 9 */
     r2 = dm(_mask_on + 9);
     r2 = pass r2;
     if eq jump (pc, .c2brunm9_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_10_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_10;
@@ -837,12 +805,12 @@ _chip2_process_all:
 .c2brunm9_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 11: entries 17..17, gate group 10 */
+    /* aux 11: entries 13..13, gate group 10 */
     r2 = dm(_mask_on + 10);
     r2 = pass r2;
     if eq jump (pc, .c2brunm10_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_11_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_11;
@@ -854,12 +822,12 @@ _chip2_process_all:
 .c2brunm10_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 12: entries 18..18, gate group 11 */
+    /* aux 12: entries 14..14, gate group 11 */
     r2 = dm(_mask_on + 11);
     r2 = pass r2;
     if eq jump (pc, .c2brunm11_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_12_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_12;
@@ -870,7 +838,7 @@ _chip2_process_all:
 #if DSP4_CHAN_MASK
 .c2brunm11_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_01;
@@ -878,7 +846,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_02;
@@ -886,7 +854,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_03;
@@ -894,7 +862,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_04;
@@ -902,7 +870,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_05;
@@ -910,7 +878,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_06;
@@ -918,7 +886,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_L;
@@ -926,7 +894,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_R;
@@ -934,7 +902,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_L;
@@ -942,7 +910,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_R;
@@ -951,13 +919,13 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 29..36 are D32-only */
+    /* nodes 25..32 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .c2brun0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_01;
@@ -965,7 +933,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_02;
@@ -973,7 +941,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_03;
@@ -981,7 +949,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_04;
@@ -989,7 +957,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_05;
@@ -997,7 +965,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_06;
@@ -1005,7 +973,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_07;
@@ -1013,7 +981,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_08;
@@ -1034,7 +1002,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_CODEC_AUX_IN_end);
 .c2brunabC2_CODEC_AUX_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN;
@@ -1055,7 +1023,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_CODEC_AUX_IN_R_end);
 .c2brunabC2_CODEC_AUX_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN_R;
@@ -1076,7 +1044,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_PI_IN_end);
 .c2brunabC2_PI_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN;
@@ -1097,7 +1065,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_PI_IN_R_end);
 .c2brunabC2_PI_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN_R;
@@ -1109,7 +1077,7 @@ _chip2_process_all:
 .c2brunabC2_PI_IN_R_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 41..48 are D32-only */
+    /* nodes 37..44 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
@@ -1125,7 +1093,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_01_end);
 .c2brunabC2_SNK_IN_01_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_01;
@@ -1146,7 +1114,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_02_end);
 .c2brunabC2_SNK_IN_02_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_02;
@@ -1167,7 +1135,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_03_end);
 .c2brunabC2_SNK_IN_03_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_03;
@@ -1188,7 +1156,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_04_end);
 .c2brunabC2_SNK_IN_04_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_04;
@@ -1209,7 +1177,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_05_end);
 .c2brunabC2_SNK_IN_05_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_05;
@@ -1230,7 +1198,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_06_end);
 .c2brunabC2_SNK_IN_06_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_06;
@@ -1251,7 +1219,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_07_end);
 .c2brunabC2_SNK_IN_07_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_07;
@@ -1272,7 +1240,7 @@ _chip2_process_all:
     if ne jump (pc, .c2brunabC2_SNK_IN_08_end);
 .c2brunabC2_SNK_IN_08_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_08;
@@ -1286,7 +1254,7 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2brun1_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_01;
@@ -1294,7 +1262,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_02;
@@ -1302,7 +1270,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_03;
@@ -1310,7 +1278,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_04;
@@ -1318,7 +1286,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_05;
@@ -1326,7 +1294,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_06;
@@ -1334,7 +1302,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_01;
@@ -1343,11 +1311,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_02;
@@ -1356,11 +1324,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_03;
@@ -1369,11 +1337,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_04;
@@ -1382,11 +1350,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_05;
@@ -1395,11 +1363,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_06;
@@ -1408,1145 +1376,43 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_06_process;
 #endif
 #endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 61..61, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm12_end);
+#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_01;
+    r1 = _blk_C2_RECV_GRP_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_02;
+    r1 = _blk_C2_RECV_GRP_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_03;
+    r1 = _blk_C2_RECV_GRP_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_04;
+    r1 = _blk_C2_RECV_GRP_04;
+    call _scope_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 61 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_01;
-    r1 = _blk_C2_MIX_AUX_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm12_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 62..62, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm13_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_02;
-    r1 = _blk_C2_MIX_AUX_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm13_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 63..63, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm14_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_03;
-    r1 = _blk_C2_MIX_AUX_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm14_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 64..64, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm15_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_04;
-    r1 = _blk_C2_MIX_AUX_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm15_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 65..65, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm16_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_05;
-    r1 = _blk_C2_MIX_AUX_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm16_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 66..66, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm17_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_06;
-    r1 = _blk_C2_MIX_AUX_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm17_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 67..67, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm18_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_07;
-    r1 = _blk_C2_MIX_AUX_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm18_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 68..68, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm19_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_08;
-    r1 = _blk_C2_MIX_AUX_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm19_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 69..69, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm20_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_09;
-    r1 = _blk_C2_MIX_AUX_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm20_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 70..70, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm21_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_10;
-    r1 = _blk_C2_MIX_AUX_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm21_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 71..71, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm22_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_11;
-    r1 = _blk_C2_MIX_AUX_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm22_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 72..72, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm23_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_12;
-    r1 = _blk_C2_MIX_AUX_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm23_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 73..73, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm24_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_01;
-    r1 = _blk_C2_AUX_FDR_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm24_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 74..74, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm25_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_02;
-    r1 = _blk_C2_AUX_FDR_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm25_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1+2: entries 75..78, gate group 12 */
-    r2 = dm(_mask_on + 12);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm26_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_01_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_01;
-    r1 = _blk_C2_AUX_EQ_01;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_02;
-    r1 = _blk_C2_AUX_EQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_01_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_01;
-    r1 = _blk_C2_AUX_GEQ_01;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_02;
-    r1 = _blk_C2_AUX_GEQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_01_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_01;
-    r1 = _blk_C2_AUX_AFB_01;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_02;
-    r1 = _blk_C2_AUX_AFB_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_01_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_01;
-    r1 = _blk_C2_AUX_LIM_01;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_02;
-    r1 = _blk_C2_AUX_LIM_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm26_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 79..80, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm27_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_01;
-    r1 = _blk_C2_AUX_DLY_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_01;
-    r1 = _blk_C2_AUX_OUT_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_01_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm27_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 81..82, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm28_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_02;
-    r1 = _blk_C2_AUX_DLY_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_02;
-    r1 = _blk_C2_AUX_OUT_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_02_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm28_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 83..83, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm29_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_03;
-    r1 = _blk_C2_AUX_FDR_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm29_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 84..84, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm30_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_04;
-    r1 = _blk_C2_AUX_FDR_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm30_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3+4: entries 85..88, gate group 13 */
-    r2 = dm(_mask_on + 13);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm31_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_03_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_03;
-    r1 = _blk_C2_AUX_EQ_03;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_04;
-    r1 = _blk_C2_AUX_EQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_03_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_03;
-    r1 = _blk_C2_AUX_GEQ_03;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_04;
-    r1 = _blk_C2_AUX_GEQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_03_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_03;
-    r1 = _blk_C2_AUX_AFB_03;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_04;
-    r1 = _blk_C2_AUX_AFB_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_03_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_03;
-    r1 = _blk_C2_AUX_LIM_03;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_04;
-    r1 = _blk_C2_AUX_LIM_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm31_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 89..90, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm32_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_03;
-    r1 = _blk_C2_AUX_DLY_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_03;
-    r1 = _blk_C2_AUX_OUT_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_03_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm32_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 91..92, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm33_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_04;
-    r1 = _blk_C2_AUX_DLY_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_04;
-    r1 = _blk_C2_AUX_OUT_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_04_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm33_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 93..93, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm34_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_05;
-    r1 = _blk_C2_AUX_FDR_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm34_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 94..94, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm35_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_06;
-    r1 = _blk_C2_AUX_FDR_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm35_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5+6: entries 95..98, gate group 14 */
-    r2 = dm(_mask_on + 14);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm36_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_05_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_05;
-    r1 = _blk_C2_AUX_EQ_05;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_06;
-    r1 = _blk_C2_AUX_EQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_05_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_05;
-    r1 = _blk_C2_AUX_GEQ_05;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_06;
-    r1 = _blk_C2_AUX_GEQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_05_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_05;
-    r1 = _blk_C2_AUX_AFB_05;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_06;
-    r1 = _blk_C2_AUX_AFB_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_05_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_05;
-    r1 = _blk_C2_AUX_LIM_05;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_06;
-    r1 = _blk_C2_AUX_LIM_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm36_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 99..100, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm37_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_05;
-    r1 = _blk_C2_AUX_DLY_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_05;
-    r1 = _blk_C2_AUX_OUT_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_05_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm37_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 101..102, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm38_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_06;
-    r1 = _blk_C2_AUX_DLY_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_06;
-    r1 = _blk_C2_AUX_OUT_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_06_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm38_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 103..103, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm39_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_07;
-    r1 = _blk_C2_AUX_FDR_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm39_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 104..104, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm40_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_08;
-    r1 = _blk_C2_AUX_FDR_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm40_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7+8: entries 105..108, gate group 15 */
-    r2 = dm(_mask_on + 15);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm41_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_07_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_07;
-    r1 = _blk_C2_AUX_EQ_07;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_08;
-    r1 = _blk_C2_AUX_EQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_07_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_07;
-    r1 = _blk_C2_AUX_GEQ_07;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_08;
-    r1 = _blk_C2_AUX_GEQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_07_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_07;
-    r1 = _blk_C2_AUX_AFB_07;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_08;
-    r1 = _blk_C2_AUX_AFB_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_07_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_07;
-    r1 = _blk_C2_AUX_LIM_07;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_08;
-    r1 = _blk_C2_AUX_LIM_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm41_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 109..110, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm42_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_07;
-    r1 = _blk_C2_AUX_DLY_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_07;
-    r1 = _blk_C2_AUX_OUT_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_07_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm42_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 111..112, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm43_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_08;
-    r1 = _blk_C2_AUX_DLY_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_08;
-    r1 = _blk_C2_AUX_OUT_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_08_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm43_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 113..113, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm44_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_09;
-    r1 = _blk_C2_AUX_FDR_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm44_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 114..114, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm45_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_10;
-    r1 = _blk_C2_AUX_FDR_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm45_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9+10: entries 115..118, gate group 16 */
-    r2 = dm(_mask_on + 16);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm46_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_09_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_09;
-    r1 = _blk_C2_AUX_EQ_09;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_10;
-    r1 = _blk_C2_AUX_EQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_09_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_09;
-    r1 = _blk_C2_AUX_GEQ_09;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_10;
-    r1 = _blk_C2_AUX_GEQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_09_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_09;
-    r1 = _blk_C2_AUX_AFB_09;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_10;
-    r1 = _blk_C2_AUX_AFB_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_09_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_09;
-    r1 = _blk_C2_AUX_LIM_09;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_10;
-    r1 = _blk_C2_AUX_LIM_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm46_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 119..120, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm47_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_09;
-    r1 = _blk_C2_AUX_DLY_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_09;
-    r1 = _blk_C2_AUX_OUT_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_09_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm47_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 121..122, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm48_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_10;
-    r1 = _blk_C2_AUX_DLY_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_10;
-    r1 = _blk_C2_AUX_OUT_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_10_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm48_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 123..123, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm49_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_11;
-    r1 = _blk_C2_AUX_FDR_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm49_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 124..124, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm50_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_12;
-    r1 = _blk_C2_AUX_FDR_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm50_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11+12: entries 125..128, gate group 17 */
-    r2 = dm(_mask_on + 17);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm51_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_EQ_11_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_11;
-    r1 = _blk_C2_AUX_EQ_11;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_12;
-    r1 = _blk_C2_AUX_EQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_GEQ_11_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_11;
-    r1 = _blk_C2_AUX_GEQ_11;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_12;
-    r1 = _blk_C2_AUX_GEQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
-    call _C2BQP_AUX_AFB_11_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_11;
-    r1 = _blk_C2_AUX_AFB_11;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_12;
-    r1 = _blk_C2_AUX_AFB_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_11_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_11;
-    r1 = _blk_C2_AUX_LIM_11;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_12;
-    r1 = _blk_C2_AUX_LIM_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm51_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 129..130, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm52_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_11;
-    r1 = _blk_C2_AUX_DLY_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_11;
-    r1 = _blk_C2_AUX_OUT_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_11_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm52_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 131..132, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2brunm53_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_12;
-    r1 = _blk_C2_AUX_DLY_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_12;
-    r1 = _blk_C2_AUX_OUT_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_12_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2brunm53_end:
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_01;
@@ -2554,7 +1420,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_02;
@@ -2562,7 +1428,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
     call _C2BQP_GRP_EQ_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_01;
@@ -2575,7 +1441,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
     call _C2BQP_GRP_GEQ_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_01;
@@ -2588,7 +1454,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_GATE_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_01;
@@ -2611,7 +1477,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_COMP_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_01;
@@ -2635,16 +1501,16 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_01_process;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_03;
@@ -2652,7 +1518,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_04;
@@ -2660,7 +1526,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
     call _C2BQP_GRP_EQ_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_03;
@@ -2673,7 +1539,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
     call _C2BQP_GRP_GEQ_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_03;
@@ -2686,7 +1552,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_GATE_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_03;
@@ -2709,7 +1575,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_COMP_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_03;
@@ -2733,14 +1599,1148 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_03_process;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_04_process;
 #endif
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 73..73, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm12_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_01;
+    r1 = _blk_C2_MIX_AUX_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm12_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 74..74, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm13_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_02;
+    r1 = _blk_C2_MIX_AUX_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm13_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 75..75, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm14_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_03;
+    r1 = _blk_C2_MIX_AUX_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm14_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 76..76, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm15_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_04;
+    r1 = _blk_C2_MIX_AUX_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm15_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 77..77, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm16_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_05;
+    r1 = _blk_C2_MIX_AUX_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm16_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 78..78, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm17_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_06;
+    r1 = _blk_C2_MIX_AUX_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm17_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 79..79, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm18_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_07;
+    r1 = _blk_C2_MIX_AUX_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm18_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 80..80, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm19_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_08;
+    r1 = _blk_C2_MIX_AUX_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm19_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 81..81, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm20_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_09;
+    r1 = _blk_C2_MIX_AUX_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm20_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 82..82, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm21_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_10;
+    r1 = _blk_C2_MIX_AUX_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm21_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 83..83, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm22_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_11;
+    r1 = _blk_C2_MIX_AUX_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm22_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 84..84, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm23_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_12;
+    r1 = _blk_C2_MIX_AUX_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm23_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 85..85, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm24_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_01;
+    r1 = _blk_C2_AUX_FDR_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm24_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 86..86, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm25_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_02;
+    r1 = _blk_C2_AUX_FDR_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm25_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1+2: entries 87..90, gate group 12 */
+    r2 = dm(_mask_on + 12);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm26_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_01_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_01;
+    r1 = _blk_C2_AUX_EQ_01;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_02;
+    r1 = _blk_C2_AUX_EQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_01_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_01;
+    r1 = _blk_C2_AUX_GEQ_01;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_02;
+    r1 = _blk_C2_AUX_GEQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_01_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_01;
+    r1 = _blk_C2_AUX_AFB_01;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_02;
+    r1 = _blk_C2_AUX_AFB_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_01_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_01;
+    r1 = _blk_C2_AUX_LIM_01;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_02;
+    r1 = _blk_C2_AUX_LIM_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm26_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 91..92, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm27_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_01;
+    r1 = _blk_C2_AUX_DLY_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_01;
+    r1 = _blk_C2_AUX_OUT_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_01_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm27_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 93..94, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm28_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_02;
+    r1 = _blk_C2_AUX_DLY_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_02;
+    r1 = _blk_C2_AUX_OUT_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_02_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm28_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 95..95, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm29_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_03;
+    r1 = _blk_C2_AUX_FDR_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm29_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 96..96, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm30_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_04;
+    r1 = _blk_C2_AUX_FDR_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm30_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3+4: entries 97..100, gate group 13 */
+    r2 = dm(_mask_on + 13);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm31_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_03_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_03;
+    r1 = _blk_C2_AUX_EQ_03;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_04;
+    r1 = _blk_C2_AUX_EQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_03_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_03;
+    r1 = _blk_C2_AUX_GEQ_03;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_04;
+    r1 = _blk_C2_AUX_GEQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_03_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_03;
+    r1 = _blk_C2_AUX_AFB_03;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_04;
+    r1 = _blk_C2_AUX_AFB_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_03_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_03;
+    r1 = _blk_C2_AUX_LIM_03;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_04;
+    r1 = _blk_C2_AUX_LIM_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm31_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 101..102, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm32_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_03;
+    r1 = _blk_C2_AUX_DLY_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_03;
+    r1 = _blk_C2_AUX_OUT_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_03_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm32_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 103..104, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm33_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_04;
+    r1 = _blk_C2_AUX_DLY_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_04;
+    r1 = _blk_C2_AUX_OUT_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_04_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm33_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 105..105, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm34_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_05;
+    r1 = _blk_C2_AUX_FDR_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm34_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 106..106, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm35_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_06;
+    r1 = _blk_C2_AUX_FDR_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm35_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5+6: entries 107..110, gate group 14 */
+    r2 = dm(_mask_on + 14);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm36_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_05_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_05;
+    r1 = _blk_C2_AUX_EQ_05;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_06;
+    r1 = _blk_C2_AUX_EQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_05_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_05;
+    r1 = _blk_C2_AUX_GEQ_05;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_06;
+    r1 = _blk_C2_AUX_GEQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_05_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_05;
+    r1 = _blk_C2_AUX_AFB_05;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_06;
+    r1 = _blk_C2_AUX_AFB_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_05_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_05;
+    r1 = _blk_C2_AUX_LIM_05;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_06;
+    r1 = _blk_C2_AUX_LIM_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm36_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 111..112, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm37_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_05;
+    r1 = _blk_C2_AUX_DLY_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_05;
+    r1 = _blk_C2_AUX_OUT_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_05_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm37_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 113..114, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm38_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_06;
+    r1 = _blk_C2_AUX_DLY_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_06;
+    r1 = _blk_C2_AUX_OUT_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_06_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm38_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 115..115, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm39_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_07;
+    r1 = _blk_C2_AUX_FDR_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm39_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 116..116, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm40_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_08;
+    r1 = _blk_C2_AUX_FDR_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm40_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7+8: entries 117..120, gate group 15 */
+    r2 = dm(_mask_on + 15);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm41_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_07_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_07;
+    r1 = _blk_C2_AUX_EQ_07;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_08;
+    r1 = _blk_C2_AUX_EQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_07_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_07;
+    r1 = _blk_C2_AUX_GEQ_07;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_08;
+    r1 = _blk_C2_AUX_GEQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_07_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_07;
+    r1 = _blk_C2_AUX_AFB_07;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_08;
+    r1 = _blk_C2_AUX_AFB_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_07_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_07;
+    r1 = _blk_C2_AUX_LIM_07;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_08;
+    r1 = _blk_C2_AUX_LIM_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm41_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 121..122, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm42_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_07;
+    r1 = _blk_C2_AUX_DLY_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_07;
+    r1 = _blk_C2_AUX_OUT_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_07_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm42_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 123..124, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm43_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_08;
+    r1 = _blk_C2_AUX_DLY_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_08;
+    r1 = _blk_C2_AUX_OUT_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_08_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm43_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 125..125, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm44_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_09;
+    r1 = _blk_C2_AUX_FDR_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm44_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 126..126, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm45_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_10;
+    r1 = _blk_C2_AUX_FDR_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm45_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9+10: entries 127..130, gate group 16 */
+    r2 = dm(_mask_on + 16);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm46_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_09_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_09;
+    r1 = _blk_C2_AUX_EQ_09;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_10;
+    r1 = _blk_C2_AUX_EQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_09_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_09;
+    r1 = _blk_C2_AUX_GEQ_09;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_10;
+    r1 = _blk_C2_AUX_GEQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_09_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_09;
+    r1 = _blk_C2_AUX_AFB_09;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_10;
+    r1 = _blk_C2_AUX_AFB_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_09_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_09;
+    r1 = _blk_C2_AUX_LIM_09;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_10;
+    r1 = _blk_C2_AUX_LIM_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm46_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 131..132, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm47_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_09;
+    r1 = _blk_C2_AUX_DLY_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_09;
+    r1 = _blk_C2_AUX_OUT_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_09_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm47_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 133..134, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm48_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_10;
+    r1 = _blk_C2_AUX_DLY_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_10;
+    r1 = _blk_C2_AUX_OUT_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_10_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm48_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 135..135, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm49_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_11;
+    r1 = _blk_C2_AUX_FDR_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm49_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 136..136, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm50_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_12;
+    r1 = _blk_C2_AUX_FDR_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm50_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11+12: entries 137..140, gate group 17 */
+    r2 = dm(_mask_on + 17);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm51_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_EQ_11_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_11;
+    r1 = _blk_C2_AUX_EQ_11;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_12;
+    r1 = _blk_C2_AUX_EQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_GEQ_11_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_11;
+    r1 = _blk_C2_AUX_GEQ_11;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_12;
+    r1 = _blk_C2_AUX_GEQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+    call _C2BQP_AUX_AFB_11_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_11;
+    r1 = _blk_C2_AUX_AFB_11;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_12;
+    r1 = _blk_C2_AUX_AFB_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_11_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_11;
+    r1 = _blk_C2_AUX_LIM_11;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_12;
+    r1 = _blk_C2_AUX_LIM_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm51_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 141..142, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm52_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_11;
+    r1 = _blk_C2_AUX_DLY_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_11;
+    r1 = _blk_C2_AUX_OUT_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_11_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm52_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 143..144, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2brunm53_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_12;
+    r1 = _blk_C2_AUX_DLY_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_12;
+    r1 = _blk_C2_AUX_OUT_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_12_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2brunm53_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
     call _C2_SUB_FDR_process;
@@ -3222,7 +3222,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm54_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_01_process;
 #endif
@@ -3236,7 +3236,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm55_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_02_process;
 #endif
@@ -3250,7 +3250,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm56_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_03_process;
 #endif
@@ -3264,7 +3264,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm57_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_04_process;
 #endif
@@ -3278,7 +3278,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm58_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_05_process;
 #endif
@@ -3292,7 +3292,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm59_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_06_process;
 #endif
@@ -3306,7 +3306,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm60_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_07_process;
 #endif
@@ -3320,7 +3320,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm61_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_08_process;
 #endif
@@ -3334,7 +3334,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm62_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_09_process;
 #endif
@@ -3348,7 +3348,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm63_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_10_process;
 #endif
@@ -3362,7 +3362,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm64_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_11_process;
 #endif
@@ -3376,7 +3376,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2brunm65_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_12_process;
 #endif
@@ -3404,22 +3404,22 @@ _chip2_process_all:
     call _C2_MTR_MAIN_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_04_process;
 #endif
@@ -3429,32 +3429,32 @@ _chip2_process_all:
     call _C2_MTR_SUB_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_06_process;
 #endif
@@ -3664,45 +3664,13 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_01;
-    r1 = _blk_C2_RECV_GRP_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_02;
-    r1 = _blk_C2_RECV_GRP_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_03;
-    r1 = _blk_C2_RECV_GRP_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_04;
-    r1 = _blk_C2_RECV_GRP_04;
-    call _scope_tap;
-#endif
-#endif
 #if DSP4_CHAN_MASK
-    /* aux 1: entries 7..7, gate group 0 */
+    /* aux 1: entries 3..3, gate group 0 */
     r2 = dm(_mask_on + 0);
     r2 = pass r2;
     if eq jump (pc, .c2grunm0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_01;
@@ -3714,12 +3682,12 @@ _chip2_process_all:
 .c2grunm0_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 2: entries 8..8, gate group 1 */
+    /* aux 2: entries 4..4, gate group 1 */
     r2 = dm(_mask_on + 1);
     r2 = pass r2;
     if eq jump (pc, .c2grunm1_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_02;
@@ -3731,12 +3699,12 @@ _chip2_process_all:
 .c2grunm1_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 3: entries 9..9, gate group 2 */
+    /* aux 3: entries 5..5, gate group 2 */
     r2 = dm(_mask_on + 2);
     r2 = pass r2;
     if eq jump (pc, .c2grunm2_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_03;
@@ -3748,12 +3716,12 @@ _chip2_process_all:
 .c2grunm2_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 4: entries 10..10, gate group 3 */
+    /* aux 4: entries 6..6, gate group 3 */
     r2 = dm(_mask_on + 3);
     r2 = pass r2;
     if eq jump (pc, .c2grunm3_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_04;
@@ -3765,12 +3733,12 @@ _chip2_process_all:
 .c2grunm3_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 5: entries 11..11, gate group 4 */
+    /* aux 5: entries 7..7, gate group 4 */
     r2 = dm(_mask_on + 4);
     r2 = pass r2;
     if eq jump (pc, .c2grunm4_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_05;
@@ -3782,12 +3750,12 @@ _chip2_process_all:
 .c2grunm4_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 6: entries 12..12, gate group 5 */
+    /* aux 6: entries 8..8, gate group 5 */
     r2 = dm(_mask_on + 5);
     r2 = pass r2;
     if eq jump (pc, .c2grunm5_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_06;
@@ -3799,12 +3767,12 @@ _chip2_process_all:
 .c2grunm5_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 7: entries 13..13, gate group 6 */
+    /* aux 7: entries 9..9, gate group 6 */
     r2 = dm(_mask_on + 6);
     r2 = pass r2;
     if eq jump (pc, .c2grunm6_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_07;
@@ -3816,12 +3784,12 @@ _chip2_process_all:
 .c2grunm6_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 8: entries 14..14, gate group 7 */
+    /* aux 8: entries 10..10, gate group 7 */
     r2 = dm(_mask_on + 7);
     r2 = pass r2;
     if eq jump (pc, .c2grunm7_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_08;
@@ -3833,12 +3801,12 @@ _chip2_process_all:
 .c2grunm7_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 9: entries 15..15, gate group 8 */
+    /* aux 9: entries 11..11, gate group 8 */
     r2 = dm(_mask_on + 8);
     r2 = pass r2;
     if eq jump (pc, .c2grunm8_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_09_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_09;
@@ -3850,12 +3818,12 @@ _chip2_process_all:
 .c2grunm8_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 10: entries 16..16, gate group 9 */
+    /* aux 10: entries 12..12, gate group 9 */
     r2 = dm(_mask_on + 9);
     r2 = pass r2;
     if eq jump (pc, .c2grunm9_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_10_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_10;
@@ -3867,12 +3835,12 @@ _chip2_process_all:
 .c2grunm9_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 11: entries 17..17, gate group 10 */
+    /* aux 11: entries 13..13, gate group 10 */
     r2 = dm(_mask_on + 10);
     r2 = pass r2;
     if eq jump (pc, .c2grunm10_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_11_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_11;
@@ -3884,12 +3852,12 @@ _chip2_process_all:
 .c2grunm10_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 12: entries 18..18, gate group 11 */
+    /* aux 12: entries 14..14, gate group 11 */
     r2 = dm(_mask_on + 11);
     r2 = pass r2;
     if eq jump (pc, .c2grunm11_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_12_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_12;
@@ -3900,7 +3868,7 @@ _chip2_process_all:
 #if DSP4_CHAN_MASK
 .c2grunm11_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_01;
@@ -3908,7 +3876,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_02;
@@ -3916,7 +3884,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_03;
@@ -3924,7 +3892,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_04;
@@ -3932,7 +3900,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_05;
@@ -3940,7 +3908,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_06;
@@ -3948,7 +3916,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_L;
@@ -3956,7 +3924,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_R;
@@ -3964,7 +3932,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_L;
@@ -3972,7 +3940,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_R;
@@ -3981,13 +3949,13 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 29..36 are D32-only */
+    /* nodes 25..32 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .c2grun0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_01;
@@ -3995,7 +3963,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_02;
@@ -4003,7 +3971,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_03;
@@ -4011,7 +3979,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_04;
@@ -4019,7 +3987,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_05;
@@ -4027,7 +3995,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_06;
@@ -4035,7 +4003,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_07;
@@ -4043,7 +4011,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_08;
@@ -4064,7 +4032,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_CODEC_AUX_IN_end);
 .c2grunabC2_CODEC_AUX_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN;
@@ -4085,7 +4053,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_CODEC_AUX_IN_R_end);
 .c2grunabC2_CODEC_AUX_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN_R;
@@ -4106,7 +4074,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_PI_IN_end);
 .c2grunabC2_PI_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN;
@@ -4127,7 +4095,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_PI_IN_R_end);
 .c2grunabC2_PI_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN_R;
@@ -4139,7 +4107,7 @@ _chip2_process_all:
 .c2grunabC2_PI_IN_R_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 41..48 are D32-only */
+    /* nodes 37..44 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
@@ -4155,7 +4123,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_01_end);
 .c2grunabC2_SNK_IN_01_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_01;
@@ -4176,7 +4144,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_02_end);
 .c2grunabC2_SNK_IN_02_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_02;
@@ -4197,7 +4165,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_03_end);
 .c2grunabC2_SNK_IN_03_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_03;
@@ -4218,7 +4186,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_04_end);
 .c2grunabC2_SNK_IN_04_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_04;
@@ -4239,7 +4207,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_05_end);
 .c2grunabC2_SNK_IN_05_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_05;
@@ -4260,7 +4228,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_06_end);
 .c2grunabC2_SNK_IN_06_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_06;
@@ -4281,7 +4249,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_07_end);
 .c2grunabC2_SNK_IN_07_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_07;
@@ -4302,7 +4270,7 @@ _chip2_process_all:
     if ne jump (pc, .c2grunabC2_SNK_IN_08_end);
 .c2grunabC2_SNK_IN_08_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_08;
@@ -4316,7 +4284,7 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2grun1_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_01;
@@ -4324,7 +4292,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_02;
@@ -4332,7 +4300,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_03;
@@ -4340,7 +4308,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_04;
@@ -4348,7 +4316,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_05;
@@ -4356,7 +4324,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_06;
@@ -4364,7 +4332,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_01;
@@ -4373,11 +4341,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_02;
@@ -4386,11 +4354,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_03;
@@ -4399,11 +4367,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_04;
@@ -4412,11 +4380,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_05;
@@ -4425,11 +4393,11 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_06;
@@ -4438,1199 +4406,43 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
     call _C2_MTR_FX_06_process;
 #endif
 #endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 61..61, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm12_end);
+#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_01;
+    r1 = _blk_C2_RECV_GRP_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_02;
+    r1 = _blk_C2_RECV_GRP_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_03;
+    r1 = _blk_C2_RECV_GRP_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_04;
+    r1 = _blk_C2_RECV_GRP_04;
+    call _scope_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 61 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_01;
-    r1 = _blk_C2_MIX_AUX_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm12_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 62..62, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm13_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_02;
-    r1 = _blk_C2_MIX_AUX_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm13_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 63..63, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm14_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_03;
-    r1 = _blk_C2_MIX_AUX_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm14_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 64..64, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm15_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_04;
-    r1 = _blk_C2_MIX_AUX_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm15_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 65..65, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm16_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_05;
-    r1 = _blk_C2_MIX_AUX_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm16_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 66..66, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm17_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_06;
-    r1 = _blk_C2_MIX_AUX_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm17_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 67..67, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm18_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_07;
-    r1 = _blk_C2_MIX_AUX_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm18_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 68..68, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm19_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_08;
-    r1 = _blk_C2_MIX_AUX_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm19_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 69..69, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm20_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_09;
-    r1 = _blk_C2_MIX_AUX_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm20_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 70..70, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm21_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_10;
-    r1 = _blk_C2_MIX_AUX_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm21_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 71..71, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm22_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_11;
-    r1 = _blk_C2_MIX_AUX_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm22_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 72..72, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm23_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_12;
-    r1 = _blk_C2_MIX_AUX_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm23_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 73..76, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm24_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_01;
-    r1 = _blk_C2_AUX_FDR_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_01;
-    r1 = _blk_C2_AUX_EQ_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_01;
-    r1 = _blk_C2_AUX_GEQ_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_01;
-    r1 = _blk_C2_AUX_AFB_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm24_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 77..80, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm25_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_02;
-    r1 = _blk_C2_AUX_FDR_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_02;
-    r1 = _blk_C2_AUX_EQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_02;
-    r1 = _blk_C2_AUX_GEQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_02;
-    r1 = _blk_C2_AUX_AFB_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm25_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1+2: entries 81..81, gate group 12 */
-    r2 = dm(_mask_on + 12);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm26_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_01_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_01;
-    r1 = _blk_C2_AUX_LIM_01;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_02;
-    r1 = _blk_C2_AUX_LIM_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm26_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 82..83, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm27_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_01;
-    r1 = _blk_C2_AUX_DLY_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_01;
-    r1 = _blk_C2_AUX_OUT_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_01_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm27_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 84..85, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm28_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_02;
-    r1 = _blk_C2_AUX_DLY_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_02;
-    r1 = _blk_C2_AUX_OUT_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_02_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm28_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 86..89, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm29_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_03;
-    r1 = _blk_C2_AUX_FDR_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_03;
-    r1 = _blk_C2_AUX_EQ_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_03;
-    r1 = _blk_C2_AUX_GEQ_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_03;
-    r1 = _blk_C2_AUX_AFB_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm29_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 90..93, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm30_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_04;
-    r1 = _blk_C2_AUX_FDR_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_04;
-    r1 = _blk_C2_AUX_EQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_04;
-    r1 = _blk_C2_AUX_GEQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_04;
-    r1 = _blk_C2_AUX_AFB_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm30_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3+4: entries 94..94, gate group 13 */
-    r2 = dm(_mask_on + 13);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm31_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_03_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_03;
-    r1 = _blk_C2_AUX_LIM_03;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_04;
-    r1 = _blk_C2_AUX_LIM_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm31_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 95..96, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm32_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_03;
-    r1 = _blk_C2_AUX_DLY_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_03;
-    r1 = _blk_C2_AUX_OUT_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_03_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm32_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 97..98, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm33_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_04;
-    r1 = _blk_C2_AUX_DLY_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_04;
-    r1 = _blk_C2_AUX_OUT_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_04_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm33_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 99..102, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm34_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_05;
-    r1 = _blk_C2_AUX_FDR_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_05;
-    r1 = _blk_C2_AUX_EQ_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_05;
-    r1 = _blk_C2_AUX_GEQ_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_05;
-    r1 = _blk_C2_AUX_AFB_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm34_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 103..106, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm35_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_06;
-    r1 = _blk_C2_AUX_FDR_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_06;
-    r1 = _blk_C2_AUX_EQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_06;
-    r1 = _blk_C2_AUX_GEQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_06;
-    r1 = _blk_C2_AUX_AFB_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm35_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5+6: entries 107..107, gate group 14 */
-    r2 = dm(_mask_on + 14);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm36_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_05_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_05;
-    r1 = _blk_C2_AUX_LIM_05;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_06;
-    r1 = _blk_C2_AUX_LIM_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm36_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 108..109, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm37_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_05;
-    r1 = _blk_C2_AUX_DLY_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_05;
-    r1 = _blk_C2_AUX_OUT_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_05_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm37_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 110..111, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm38_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_06;
-    r1 = _blk_C2_AUX_DLY_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_06;
-    r1 = _blk_C2_AUX_OUT_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_06_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm38_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 112..115, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm39_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_07;
-    r1 = _blk_C2_AUX_FDR_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_07;
-    r1 = _blk_C2_AUX_EQ_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_07;
-    r1 = _blk_C2_AUX_GEQ_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_07;
-    r1 = _blk_C2_AUX_AFB_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm39_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 116..119, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm40_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_08;
-    r1 = _blk_C2_AUX_FDR_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_08;
-    r1 = _blk_C2_AUX_EQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_08;
-    r1 = _blk_C2_AUX_GEQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_08;
-    r1 = _blk_C2_AUX_AFB_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm40_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7+8: entries 120..120, gate group 15 */
-    r2 = dm(_mask_on + 15);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm41_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_07_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_07;
-    r1 = _blk_C2_AUX_LIM_07;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_08;
-    r1 = _blk_C2_AUX_LIM_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm41_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 121..122, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm42_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_07;
-    r1 = _blk_C2_AUX_DLY_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_07;
-    r1 = _blk_C2_AUX_OUT_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_07_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm42_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 123..124, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm43_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_08;
-    r1 = _blk_C2_AUX_DLY_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_08;
-    r1 = _blk_C2_AUX_OUT_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_08_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm43_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 125..128, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm44_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_09;
-    r1 = _blk_C2_AUX_FDR_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_09;
-    r1 = _blk_C2_AUX_EQ_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_09;
-    r1 = _blk_C2_AUX_GEQ_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_09;
-    r1 = _blk_C2_AUX_AFB_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm44_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 129..132, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm45_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_10;
-    r1 = _blk_C2_AUX_FDR_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_10;
-    r1 = _blk_C2_AUX_EQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_10;
-    r1 = _blk_C2_AUX_GEQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_10;
-    r1 = _blk_C2_AUX_AFB_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm45_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9+10: entries 133..133, gate group 16 */
-    r2 = dm(_mask_on + 16);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm46_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_09_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_09;
-    r1 = _blk_C2_AUX_LIM_09;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_10;
-    r1 = _blk_C2_AUX_LIM_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm46_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 134..135, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm47_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_09;
-    r1 = _blk_C2_AUX_DLY_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_09;
-    r1 = _blk_C2_AUX_OUT_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_09_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm47_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 136..137, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm48_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_10;
-    r1 = _blk_C2_AUX_DLY_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_10;
-    r1 = _blk_C2_AUX_OUT_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_10_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm48_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 138..141, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm49_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_11;
-    r1 = _blk_C2_AUX_FDR_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_11;
-    r1 = _blk_C2_AUX_EQ_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_11;
-    r1 = _blk_C2_AUX_GEQ_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_11;
-    r1 = _blk_C2_AUX_AFB_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm49_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 142..145, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm50_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_12;
-    r1 = _blk_C2_AUX_FDR_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_12;
-    r1 = _blk_C2_AUX_EQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_12;
-    r1 = _blk_C2_AUX_GEQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_12;
-    r1 = _blk_C2_AUX_AFB_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm50_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11+12: entries 146..146, gate group 17 */
-    r2 = dm(_mask_on + 17);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm51_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
-    call _C2PAIR_AUX_LIM_11_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_11;
-    r1 = _blk_C2_AUX_LIM_11;
-    call _scope_tap;
-#endif
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_12;
-    r1 = _blk_C2_AUX_LIM_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm51_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 147..148, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm52_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_11;
-    r1 = _blk_C2_AUX_DLY_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_11;
-    r1 = _blk_C2_AUX_OUT_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_11_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm52_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 149..150, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .c2grunm53_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_12;
-    r1 = _blk_C2_AUX_DLY_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_12;
-    r1 = _blk_C2_AUX_OUT_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_12_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.c2grunm53_end:
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_01;
@@ -5638,7 +4450,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_01;
@@ -5646,7 +4458,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_01;
@@ -5654,7 +4466,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_02;
@@ -5662,7 +4474,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_02;
@@ -5670,7 +4482,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_02;
@@ -5678,7 +4490,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_GATE_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_01;
@@ -5701,7 +4513,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_COMP_01_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_01;
@@ -5725,16 +4537,16 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_01_process;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_03;
@@ -5742,7 +4554,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_03;
@@ -5750,7 +4562,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_03;
@@ -5758,7 +4570,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_04;
@@ -5766,7 +4578,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_04;
@@ -5774,7 +4586,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_04;
@@ -5782,7 +4594,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_GATE_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_03;
@@ -5805,7 +4617,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
     call _C2PAIR_GRP_COMP_03_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_03;
@@ -5829,14 +4641,1202 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_03_process;
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_04_process;
 #endif
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 77..77, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm12_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_01;
+    r1 = _blk_C2_MIX_AUX_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm12_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 78..78, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm13_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_02;
+    r1 = _blk_C2_MIX_AUX_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm13_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 79..79, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm14_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_03;
+    r1 = _blk_C2_MIX_AUX_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm14_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 80..80, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm15_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_04;
+    r1 = _blk_C2_MIX_AUX_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm15_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 81..81, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm16_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_05;
+    r1 = _blk_C2_MIX_AUX_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm16_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 82..82, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm17_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_06;
+    r1 = _blk_C2_MIX_AUX_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm17_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 83..83, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm18_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_07;
+    r1 = _blk_C2_MIX_AUX_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm18_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 84..84, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm19_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_08;
+    r1 = _blk_C2_MIX_AUX_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm19_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 85..85, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm20_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_09;
+    r1 = _blk_C2_MIX_AUX_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm20_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 86..86, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm21_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_10;
+    r1 = _blk_C2_MIX_AUX_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm21_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 87..87, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm22_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_11;
+    r1 = _blk_C2_MIX_AUX_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm22_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 88..88, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm23_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_12;
+    r1 = _blk_C2_MIX_AUX_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm23_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 89..92, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm24_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_01;
+    r1 = _blk_C2_AUX_FDR_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_01;
+    r1 = _blk_C2_AUX_EQ_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_01;
+    r1 = _blk_C2_AUX_GEQ_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_01;
+    r1 = _blk_C2_AUX_AFB_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm24_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 93..96, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm25_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_02;
+    r1 = _blk_C2_AUX_FDR_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_02;
+    r1 = _blk_C2_AUX_EQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_02;
+    r1 = _blk_C2_AUX_GEQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_02;
+    r1 = _blk_C2_AUX_AFB_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm25_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1+2: entries 97..97, gate group 12 */
+    r2 = dm(_mask_on + 12);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm26_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_01_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_01;
+    r1 = _blk_C2_AUX_LIM_01;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_02;
+    r1 = _blk_C2_AUX_LIM_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm26_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 98..99, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm27_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_01;
+    r1 = _blk_C2_AUX_DLY_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_01;
+    r1 = _blk_C2_AUX_OUT_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_01_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm27_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 100..101, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm28_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_02;
+    r1 = _blk_C2_AUX_DLY_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_02;
+    r1 = _blk_C2_AUX_OUT_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_02_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm28_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 102..105, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm29_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_03;
+    r1 = _blk_C2_AUX_FDR_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_03;
+    r1 = _blk_C2_AUX_EQ_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_03;
+    r1 = _blk_C2_AUX_GEQ_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_03;
+    r1 = _blk_C2_AUX_AFB_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm29_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 106..109, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm30_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_04;
+    r1 = _blk_C2_AUX_FDR_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_04;
+    r1 = _blk_C2_AUX_EQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_04;
+    r1 = _blk_C2_AUX_GEQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_04;
+    r1 = _blk_C2_AUX_AFB_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm30_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3+4: entries 110..110, gate group 13 */
+    r2 = dm(_mask_on + 13);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm31_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_03_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_03;
+    r1 = _blk_C2_AUX_LIM_03;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_04;
+    r1 = _blk_C2_AUX_LIM_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm31_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 111..112, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm32_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_03;
+    r1 = _blk_C2_AUX_DLY_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_03;
+    r1 = _blk_C2_AUX_OUT_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_03_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm32_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 113..114, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm33_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_04;
+    r1 = _blk_C2_AUX_DLY_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_04;
+    r1 = _blk_C2_AUX_OUT_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_04_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm33_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 115..118, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm34_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_05;
+    r1 = _blk_C2_AUX_FDR_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_05;
+    r1 = _blk_C2_AUX_EQ_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_05;
+    r1 = _blk_C2_AUX_GEQ_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_05;
+    r1 = _blk_C2_AUX_AFB_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm34_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 119..122, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm35_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_06;
+    r1 = _blk_C2_AUX_FDR_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_06;
+    r1 = _blk_C2_AUX_EQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_06;
+    r1 = _blk_C2_AUX_GEQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_06;
+    r1 = _blk_C2_AUX_AFB_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm35_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5+6: entries 123..123, gate group 14 */
+    r2 = dm(_mask_on + 14);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm36_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_05_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_05;
+    r1 = _blk_C2_AUX_LIM_05;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_06;
+    r1 = _blk_C2_AUX_LIM_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm36_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 124..125, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm37_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_05;
+    r1 = _blk_C2_AUX_DLY_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_05;
+    r1 = _blk_C2_AUX_OUT_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_05_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm37_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 126..127, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm38_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_06;
+    r1 = _blk_C2_AUX_DLY_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_06;
+    r1 = _blk_C2_AUX_OUT_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_06_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm38_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 128..131, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm39_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_07;
+    r1 = _blk_C2_AUX_FDR_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_07;
+    r1 = _blk_C2_AUX_EQ_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_07;
+    r1 = _blk_C2_AUX_GEQ_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_07;
+    r1 = _blk_C2_AUX_AFB_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm39_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 132..135, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm40_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_08;
+    r1 = _blk_C2_AUX_FDR_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_08;
+    r1 = _blk_C2_AUX_EQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_08;
+    r1 = _blk_C2_AUX_GEQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_08;
+    r1 = _blk_C2_AUX_AFB_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm40_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7+8: entries 136..136, gate group 15 */
+    r2 = dm(_mask_on + 15);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm41_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_07_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_07;
+    r1 = _blk_C2_AUX_LIM_07;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_08;
+    r1 = _blk_C2_AUX_LIM_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm41_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 137..138, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm42_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_07;
+    r1 = _blk_C2_AUX_DLY_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_07;
+    r1 = _blk_C2_AUX_OUT_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_07_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm42_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 139..140, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm43_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_08;
+    r1 = _blk_C2_AUX_DLY_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_08;
+    r1 = _blk_C2_AUX_OUT_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_08_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm43_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 141..144, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm44_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_09;
+    r1 = _blk_C2_AUX_FDR_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_09;
+    r1 = _blk_C2_AUX_EQ_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_09;
+    r1 = _blk_C2_AUX_GEQ_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_09;
+    r1 = _blk_C2_AUX_AFB_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm44_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 145..148, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm45_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_10;
+    r1 = _blk_C2_AUX_FDR_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_10;
+    r1 = _blk_C2_AUX_EQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_10;
+    r1 = _blk_C2_AUX_GEQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_10;
+    r1 = _blk_C2_AUX_AFB_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm45_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9+10: entries 149..149, gate group 16 */
+    r2 = dm(_mask_on + 16);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm46_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_09_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_09;
+    r1 = _blk_C2_AUX_LIM_09;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_10;
+    r1 = _blk_C2_AUX_LIM_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm46_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 150..151, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm47_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_09;
+    r1 = _blk_C2_AUX_DLY_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_09;
+    r1 = _blk_C2_AUX_OUT_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_09_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm47_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 152..153, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm48_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_10;
+    r1 = _blk_C2_AUX_DLY_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_10;
+    r1 = _blk_C2_AUX_OUT_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_10_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm48_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 154..157, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm49_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_11;
+    r1 = _blk_C2_AUX_FDR_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_11;
+    r1 = _blk_C2_AUX_EQ_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_11;
+    r1 = _blk_C2_AUX_GEQ_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_11;
+    r1 = _blk_C2_AUX_AFB_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm49_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 158..161, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm50_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_12;
+    r1 = _blk_C2_AUX_FDR_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_12;
+    r1 = _blk_C2_AUX_EQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_12;
+    r1 = _blk_C2_AUX_GEQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_12;
+    r1 = _blk_C2_AUX_AFB_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm50_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11+12: entries 162..162, gate group 17 */
+    r2 = dm(_mask_on + 17);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm51_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
+    call _C2PAIR_AUX_LIM_11_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_11;
+    r1 = _blk_C2_AUX_LIM_11;
+    call _scope_tap;
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_12;
+    r1 = _blk_C2_AUX_LIM_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm51_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 163..164, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm52_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_11;
+    r1 = _blk_C2_AUX_DLY_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_11;
+    r1 = _blk_C2_AUX_OUT_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_11_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm52_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 165..166, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .c2grunm53_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_12;
+    r1 = _blk_C2_AUX_DLY_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_12;
+    r1 = _blk_C2_AUX_OUT_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_12_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.c2grunm53_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 167 < DSP4_NODE_LIMIT2)
     call _C2_SUB_FDR_process;
@@ -6324,7 +6324,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm54_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_01_process;
 #endif
@@ -6338,7 +6338,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm55_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_02_process;
 #endif
@@ -6352,7 +6352,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm56_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_03_process;
 #endif
@@ -6366,7 +6366,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm57_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_04_process;
 #endif
@@ -6380,7 +6380,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm58_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_05_process;
 #endif
@@ -6394,7 +6394,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm59_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_06_process;
 #endif
@@ -6408,7 +6408,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm60_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_07_process;
 #endif
@@ -6422,7 +6422,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm61_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_08_process;
 #endif
@@ -6436,7 +6436,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm62_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_09_process;
 #endif
@@ -6450,7 +6450,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm63_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_10_process;
 #endif
@@ -6464,7 +6464,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm64_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_11_process;
 #endif
@@ -6478,7 +6478,7 @@ _chip2_process_all:
     r2 = pass r2;
     if eq jump (pc, .c2grunm65_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_AUX_12_process;
 #endif
@@ -6506,22 +6506,22 @@ _chip2_process_all:
     call _C2_MTR_MAIN_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_GRP_04_process;
 #endif
@@ -6531,32 +6531,32 @@ _chip2_process_all:
     call _C2_MTR_SUB_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
 #if !DSP4_BLOCK_KERNELS
     call _C2_MTR_FX_06_process;
 #endif
@@ -6766,45 +6766,13 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_01;
-    r1 = _blk_C2_RECV_GRP_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_02;
-    r1 = _blk_C2_RECV_GRP_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_03;
-    r1 = _blk_C2_RECV_GRP_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
-    call _C2_RECV_GRP_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_RECV_GRP_04;
-    r1 = _blk_C2_RECV_GRP_04;
-    call _scope_tap;
-#endif
-#endif
 #if DSP4_CHAN_MASK
-    /* aux 1: entries 7..7, gate group 0 */
+    /* aux 1: entries 3..3, gate group 0 */
     r2 = dm(_mask_on + 0);
     r2 = pass r2;
     if eq jump (pc, .sgrunm0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 3 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_01;
@@ -6816,12 +6784,12 @@ _chip2_process_all:
 .sgrunm0_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 2: entries 8..8, gate group 1 */
+    /* aux 2: entries 4..4, gate group 1 */
     r2 = dm(_mask_on + 1);
     r2 = pass r2;
     if eq jump (pc, .sgrunm1_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 4 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_02;
@@ -6833,12 +6801,12 @@ _chip2_process_all:
 .sgrunm1_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 3: entries 9..9, gate group 2 */
+    /* aux 3: entries 5..5, gate group 2 */
     r2 = dm(_mask_on + 2);
     r2 = pass r2;
     if eq jump (pc, .sgrunm2_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 5 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_03;
@@ -6850,12 +6818,12 @@ _chip2_process_all:
 .sgrunm2_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 4: entries 10..10, gate group 3 */
+    /* aux 4: entries 6..6, gate group 3 */
     r2 = dm(_mask_on + 3);
     r2 = pass r2;
     if eq jump (pc, .sgrunm3_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 6 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_04;
@@ -6867,12 +6835,12 @@ _chip2_process_all:
 .sgrunm3_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 5: entries 11..11, gate group 4 */
+    /* aux 5: entries 7..7, gate group 4 */
     r2 = dm(_mask_on + 4);
     r2 = pass r2;
     if eq jump (pc, .sgrunm4_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 7 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_05;
@@ -6884,12 +6852,12 @@ _chip2_process_all:
 .sgrunm4_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 6: entries 12..12, gate group 5 */
+    /* aux 6: entries 8..8, gate group 5 */
     r2 = dm(_mask_on + 5);
     r2 = pass r2;
     if eq jump (pc, .sgrunm5_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 8 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_06;
@@ -6901,12 +6869,12 @@ _chip2_process_all:
 .sgrunm5_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 7: entries 13..13, gate group 6 */
+    /* aux 7: entries 9..9, gate group 6 */
     r2 = dm(_mask_on + 6);
     r2 = pass r2;
     if eq jump (pc, .sgrunm6_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 9 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_07;
@@ -6918,12 +6886,12 @@ _chip2_process_all:
 .sgrunm6_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 8: entries 14..14, gate group 7 */
+    /* aux 8: entries 10..10, gate group 7 */
     r2 = dm(_mask_on + 7);
     r2 = pass r2;
     if eq jump (pc, .sgrunm7_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 10 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_08;
@@ -6935,12 +6903,12 @@ _chip2_process_all:
 .sgrunm7_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 9: entries 15..15, gate group 8 */
+    /* aux 9: entries 11..11, gate group 8 */
     r2 = dm(_mask_on + 8);
     r2 = pass r2;
     if eq jump (pc, .sgrunm8_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 11 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_09_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_09;
@@ -6952,12 +6920,12 @@ _chip2_process_all:
 .sgrunm8_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 10: entries 16..16, gate group 9 */
+    /* aux 10: entries 12..12, gate group 9 */
     r2 = dm(_mask_on + 9);
     r2 = pass r2;
     if eq jump (pc, .sgrunm9_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 12 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_10_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_10;
@@ -6969,12 +6937,12 @@ _chip2_process_all:
 .sgrunm9_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 11: entries 17..17, gate group 10 */
+    /* aux 11: entries 13..13, gate group 10 */
     r2 = dm(_mask_on + 10);
     r2 = pass r2;
     if eq jump (pc, .sgrunm10_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 13 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_11_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_11;
@@ -6986,12 +6954,12 @@ _chip2_process_all:
 .sgrunm10_end:
 #endif
 #if DSP4_CHAN_MASK
-    /* aux 12: entries 18..18, gate group 11 */
+    /* aux 12: entries 14..14, gate group 11 */
     r2 = dm(_mask_on + 11);
     r2 = pass r2;
     if eq jump (pc, .sgrunm11_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 14 < DSP4_NODE_LIMIT2)
     call _C2_RECV_AUX_12_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_AUX_12;
@@ -7002,7 +6970,7 @@ _chip2_process_all:
 #if DSP4_CHAN_MASK
 .sgrunm11_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 15 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_01;
@@ -7010,7 +6978,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 16 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_02;
@@ -7018,7 +6986,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 17 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_03;
@@ -7026,7 +6994,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 18 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_04;
@@ -7034,7 +7002,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 19 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_05;
@@ -7042,7 +7010,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 20 < DSP4_NODE_LIMIT2)
     call _C2_RECV_FX_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_RECV_FX_06;
@@ -7050,7 +7018,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 21 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_L;
@@ -7058,7 +7026,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 22 < DSP4_NODE_LIMIT2)
     call _C2_XR_CODEC_AUX_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_CODEC_AUX_R;
@@ -7066,7 +7034,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 23 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_L_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_L;
@@ -7074,7 +7042,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 24 < DSP4_NODE_LIMIT2)
     call _C2_XR_PI_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_PI_R;
@@ -7083,13 +7051,13 @@ _chip2_process_all:
 #endif
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 29..36 are D32-only */
+    /* nodes 25..32 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
     if ne jump (pc, .sgrun0_end);
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 25 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_01;
@@ -7097,7 +7065,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 26 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_02;
@@ -7105,7 +7073,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 27 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_03;
@@ -7113,7 +7081,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 28 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_04;
@@ -7121,7 +7089,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 29 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_05;
@@ -7129,7 +7097,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 30 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_06;
@@ -7137,7 +7105,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 31 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_07;
@@ -7145,7 +7113,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 32 < DSP4_NODE_LIMIT2)
     call _C2_XR_SNAKE_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_XR_SNAKE_08;
@@ -7166,7 +7134,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_CODEC_AUX_IN_end);
 .sgrunabC2_CODEC_AUX_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 33 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN;
@@ -7187,7 +7155,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_CODEC_AUX_IN_R_end);
 .sgrunabC2_CODEC_AUX_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 34 < DSP4_NODE_LIMIT2)
     call _C2_CODEC_AUX_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_CODEC_AUX_IN_R;
@@ -7208,7 +7176,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_PI_IN_end);
 .sgrunabC2_PI_IN_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 35 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN;
@@ -7229,7 +7197,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_PI_IN_R_end);
 .sgrunabC2_PI_IN_R_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 36 < DSP4_NODE_LIMIT2)
     call _C2_PI_IN_R_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_PI_IN_R;
@@ -7241,7 +7209,7 @@ _chip2_process_all:
 .sgrunabC2_PI_IN_R_end:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
-    /* nodes 41..48 are D32-only */
+    /* nodes 37..44 are D32-only */
     r2 = dm(_product_id);
     r3 = 0;
     comp(r2, r3);
@@ -7257,7 +7225,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_01_end);
 .sgrunabC2_SNK_IN_01_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 37 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_01;
@@ -7278,7 +7246,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_02_end);
 .sgrunabC2_SNK_IN_02_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 38 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_02;
@@ -7299,7 +7267,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_03_end);
 .sgrunabC2_SNK_IN_03_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 39 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_03;
@@ -7320,7 +7288,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_04_end);
 .sgrunabC2_SNK_IN_04_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 40 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_04;
@@ -7341,7 +7309,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_05_end);
 .sgrunabC2_SNK_IN_05_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 41 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_05;
@@ -7362,7 +7330,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_06_end);
 .sgrunabC2_SNK_IN_06_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 42 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_06;
@@ -7383,7 +7351,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_07_end);
 .sgrunabC2_SNK_IN_07_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 43 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_07_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_07;
@@ -7404,7 +7372,7 @@ _chip2_process_all:
     if ne jump (pc, .sgrunabC2_SNK_IN_08_end);
 .sgrunabC2_SNK_IN_08_run:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 44 < DSP4_NODE_LIMIT2)
     call _C2_SNK_IN_08_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_SNK_IN_08;
@@ -7418,7 +7386,7 @@ _chip2_process_all:
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .sgrun1_end:
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_01;
@@ -7426,7 +7394,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 46 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_02;
@@ -7434,7 +7402,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 47 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_03;
@@ -7442,7 +7410,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 48 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_04;
@@ -7450,7 +7418,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 49 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_05;
@@ -7458,7 +7426,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 50 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_ENG_06;
@@ -7466,7 +7434,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 51 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_01;
@@ -7479,7 +7447,7 @@ _chip2_process_all:
     call _C2_MTR_FX_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 52 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_02;
@@ -7492,7 +7460,7 @@ _chip2_process_all:
     call _C2_MTR_FX_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 53 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_03;
@@ -7505,7 +7473,7 @@ _chip2_process_all:
     call _C2_MTR_FX_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 54 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_04;
@@ -7518,7 +7486,7 @@ _chip2_process_all:
     call _C2_MTR_FX_04_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 55 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_05_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_05;
@@ -7531,7 +7499,7 @@ _chip2_process_all:
     call _C2_MTR_FX_05_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 56 < DSP4_NODE_LIMIT2)
     call _C2_FX_FDR_06_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_FX_FDR_06;
@@ -7544,1051 +7512,39 @@ _chip2_process_all:
     call _C2_MTR_FX_06_process;
 #endif
 #endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 61..61, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm12_end);
+#if (DSP4_NODE_LIMIT2 == 0 || 57 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_01;
+    r1 = _blk_C2_RECV_GRP_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 58 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_02;
+    r1 = _blk_C2_RECV_GRP_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 59 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_03;
+    r1 = _blk_C2_RECV_GRP_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 60 < DSP4_NODE_LIMIT2)
+    call _C2_RECV_GRP_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_RECV_GRP_04;
+    r1 = _blk_C2_RECV_GRP_04;
+    call _scope_tap;
+#endif
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 61 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_01;
-    r1 = _blk_C2_MIX_AUX_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm12_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 62..62, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm13_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_02;
-    r1 = _blk_C2_MIX_AUX_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm13_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 63..63, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm14_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_03;
-    r1 = _blk_C2_MIX_AUX_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm14_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 64..64, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm15_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_04;
-    r1 = _blk_C2_MIX_AUX_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm15_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 65..65, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm16_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_05;
-    r1 = _blk_C2_MIX_AUX_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm16_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 66..66, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm17_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_06;
-    r1 = _blk_C2_MIX_AUX_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm17_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 67..67, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm18_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_07;
-    r1 = _blk_C2_MIX_AUX_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm18_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 68..68, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm19_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_08;
-    r1 = _blk_C2_MIX_AUX_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm19_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 69..69, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm20_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_09;
-    r1 = _blk_C2_MIX_AUX_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm20_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 70..70, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm21_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_10;
-    r1 = _blk_C2_MIX_AUX_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm21_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 71..71, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm22_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_11;
-    r1 = _blk_C2_MIX_AUX_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm22_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 72..72, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm23_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
-    call _C2_MIX_AUX_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_MIX_AUX_12;
-    r1 = _blk_C2_MIX_AUX_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm23_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 1: entries 73..79, gate group 0 */
-    r2 = dm(_mask_on + 0);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm24_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_01;
-    r1 = _blk_C2_AUX_FDR_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_01;
-    r1 = _blk_C2_AUX_EQ_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_01;
-    r1 = _blk_C2_AUX_GEQ_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_01;
-    r1 = _blk_C2_AUX_AFB_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_01;
-    r1 = _blk_C2_AUX_LIM_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_01;
-    r1 = _blk_C2_AUX_DLY_01;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_01_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_01;
-    r1 = _blk_C2_AUX_OUT_01;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 229 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_01_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm24_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 2: entries 80..86, gate group 1 */
-    r2 = dm(_mask_on + 1);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm25_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_02;
-    r1 = _blk_C2_AUX_FDR_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_02;
-    r1 = _blk_C2_AUX_EQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_02;
-    r1 = _blk_C2_AUX_GEQ_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_02;
-    r1 = _blk_C2_AUX_AFB_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_02;
-    r1 = _blk_C2_AUX_LIM_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_02;
-    r1 = _blk_C2_AUX_DLY_02;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_02_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_02;
-    r1 = _blk_C2_AUX_OUT_02;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 230 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_02_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm25_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 3: entries 87..93, gate group 2 */
-    r2 = dm(_mask_on + 2);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm26_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_03;
-    r1 = _blk_C2_AUX_FDR_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_03;
-    r1 = _blk_C2_AUX_EQ_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_03;
-    r1 = _blk_C2_AUX_GEQ_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_03;
-    r1 = _blk_C2_AUX_AFB_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_03;
-    r1 = _blk_C2_AUX_LIM_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_03;
-    r1 = _blk_C2_AUX_DLY_03;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_03_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_03;
-    r1 = _blk_C2_AUX_OUT_03;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 231 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_03_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm26_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 4: entries 94..100, gate group 3 */
-    r2 = dm(_mask_on + 3);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm27_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_04;
-    r1 = _blk_C2_AUX_FDR_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_04;
-    r1 = _blk_C2_AUX_EQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_04;
-    r1 = _blk_C2_AUX_GEQ_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_04;
-    r1 = _blk_C2_AUX_AFB_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_04;
-    r1 = _blk_C2_AUX_LIM_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_04;
-    r1 = _blk_C2_AUX_DLY_04;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_04_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_04;
-    r1 = _blk_C2_AUX_OUT_04;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 232 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_04_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm27_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 5: entries 101..107, gate group 4 */
-    r2 = dm(_mask_on + 4);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm28_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_05;
-    r1 = _blk_C2_AUX_FDR_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_05;
-    r1 = _blk_C2_AUX_EQ_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_05;
-    r1 = _blk_C2_AUX_GEQ_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_05;
-    r1 = _blk_C2_AUX_AFB_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_05;
-    r1 = _blk_C2_AUX_LIM_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_05;
-    r1 = _blk_C2_AUX_DLY_05;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_05_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_05;
-    r1 = _blk_C2_AUX_OUT_05;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 233 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_05_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm28_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 6: entries 108..114, gate group 5 */
-    r2 = dm(_mask_on + 5);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm29_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_06;
-    r1 = _blk_C2_AUX_FDR_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_06;
-    r1 = _blk_C2_AUX_EQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_06;
-    r1 = _blk_C2_AUX_GEQ_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_06;
-    r1 = _blk_C2_AUX_AFB_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_06;
-    r1 = _blk_C2_AUX_LIM_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_06;
-    r1 = _blk_C2_AUX_DLY_06;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_06_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_06;
-    r1 = _blk_C2_AUX_OUT_06;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 234 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_06_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm29_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 7: entries 115..121, gate group 6 */
-    r2 = dm(_mask_on + 6);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm30_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_07;
-    r1 = _blk_C2_AUX_FDR_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_07;
-    r1 = _blk_C2_AUX_EQ_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_07;
-    r1 = _blk_C2_AUX_GEQ_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_07;
-    r1 = _blk_C2_AUX_AFB_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_07;
-    r1 = _blk_C2_AUX_LIM_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_07;
-    r1 = _blk_C2_AUX_DLY_07;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_07_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_07;
-    r1 = _blk_C2_AUX_OUT_07;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 235 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_07_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm30_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 8: entries 122..128, gate group 7 */
-    r2 = dm(_mask_on + 7);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm31_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_08;
-    r1 = _blk_C2_AUX_FDR_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_08;
-    r1 = _blk_C2_AUX_EQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_08;
-    r1 = _blk_C2_AUX_GEQ_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_08;
-    r1 = _blk_C2_AUX_AFB_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_08;
-    r1 = _blk_C2_AUX_LIM_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_08;
-    r1 = _blk_C2_AUX_DLY_08;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_08_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_08;
-    r1 = _blk_C2_AUX_OUT_08;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 236 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_08_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm31_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 9: entries 129..135, gate group 8 */
-    r2 = dm(_mask_on + 8);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm32_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_09;
-    r1 = _blk_C2_AUX_FDR_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_09;
-    r1 = _blk_C2_AUX_EQ_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_09;
-    r1 = _blk_C2_AUX_GEQ_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_09;
-    r1 = _blk_C2_AUX_AFB_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_09;
-    r1 = _blk_C2_AUX_LIM_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_09;
-    r1 = _blk_C2_AUX_DLY_09;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_09_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_09;
-    r1 = _blk_C2_AUX_OUT_09;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 237 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_09_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm32_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 10: entries 136..142, gate group 9 */
-    r2 = dm(_mask_on + 9);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm33_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_10;
-    r1 = _blk_C2_AUX_FDR_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_10;
-    r1 = _blk_C2_AUX_EQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_10;
-    r1 = _blk_C2_AUX_GEQ_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_10;
-    r1 = _blk_C2_AUX_AFB_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_10;
-    r1 = _blk_C2_AUX_LIM_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_10;
-    r1 = _blk_C2_AUX_DLY_10;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_10_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_10;
-    r1 = _blk_C2_AUX_OUT_10;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 238 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_10_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm33_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 11: entries 143..149, gate group 10 */
-    r2 = dm(_mask_on + 10);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm34_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_11;
-    r1 = _blk_C2_AUX_FDR_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_11;
-    r1 = _blk_C2_AUX_EQ_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_11;
-    r1 = _blk_C2_AUX_GEQ_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_11;
-    r1 = _blk_C2_AUX_AFB_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_11;
-    r1 = _blk_C2_AUX_LIM_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_11;
-    r1 = _blk_C2_AUX_DLY_11;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_11_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_11;
-    r1 = _blk_C2_AUX_OUT_11;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 239 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_11_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm34_end:
-#endif
-#if DSP4_CHAN_MASK
-    /* aux 12: entries 150..156, gate group 11 */
-    r2 = dm(_mask_on + 11);
-    r2 = pass r2;
-    if eq jump (pc, .sgrunm35_end);
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_FDR_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_FDR_12;
-    r1 = _blk_C2_AUX_FDR_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_EQ_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_EQ_12;
-    r1 = _blk_C2_AUX_EQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_GEQ_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_GEQ_12;
-    r1 = _blk_C2_AUX_GEQ_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_AFB_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_AFB_12;
-    r1 = _blk_C2_AUX_AFB_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_LIM_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_LIM_12;
-    r1 = _blk_C2_AUX_LIM_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_DLY_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_DLY_12;
-    r1 = _blk_C2_AUX_DLY_12;
-    call _scope_tap;
-#endif
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
-    call _C2_AUX_OUT_12_process;
-#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
-    r0 = _buf_C2_AUX_OUT_12;
-    r1 = _blk_C2_AUX_OUT_12;
-    call _scope_tap;
-#endif
-#endif
-#if DSP4_BLOCK_KERNELS
-#if (DSP4_NODE_LIMIT2 == 0 || 240 < DSP4_NODE_LIMIT2)
-    call _C2_MTR_AUX_12_process;
-#endif
-#endif
-#if DSP4_CHAN_MASK
-.sgrunm35_end:
-#endif
-#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_01;
@@ -8596,7 +7552,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 62 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_01;
@@ -8604,7 +7560,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 63 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_01;
@@ -8612,7 +7568,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 64 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GATE_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_01;
@@ -8625,7 +7581,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 65 < DSP4_NODE_LIMIT2)
     call _C2_GRP_COMP_01_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_01;
@@ -8643,7 +7599,7 @@ _chip2_process_all:
     call _C2_MTR_GRP_01_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 66 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_02;
@@ -8651,7 +7607,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 67 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_02;
@@ -8659,7 +7615,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 68 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_02;
@@ -8667,7 +7623,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 69 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GATE_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_02;
@@ -8680,7 +7636,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 70 < DSP4_NODE_LIMIT2)
     call _C2_GRP_COMP_02_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_02;
@@ -8698,7 +7654,7 @@ _chip2_process_all:
     call _C2_MTR_GRP_02_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 167 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 71 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_03;
@@ -8706,7 +7662,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 168 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 72 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_03;
@@ -8714,7 +7670,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 169 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 73 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_03;
@@ -8722,7 +7678,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 170 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 74 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GATE_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_03;
@@ -8735,7 +7691,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 171 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 75 < DSP4_NODE_LIMIT2)
     call _C2_GRP_COMP_03_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_03;
@@ -8753,7 +7709,7 @@ _chip2_process_all:
     call _C2_MTR_GRP_03_process;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 172 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 76 < DSP4_NODE_LIMIT2)
     call _C2_GRP_FDR_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_FDR_04;
@@ -8761,7 +7717,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 173 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 77 < DSP4_NODE_LIMIT2)
     call _C2_GRP_EQ_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_EQ_04;
@@ -8769,7 +7725,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 174 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 78 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GEQ_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GEQ_04;
@@ -8777,7 +7733,7 @@ _chip2_process_all:
     call _scope_tap;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 175 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 79 < DSP4_NODE_LIMIT2)
     call _C2_GRP_GATE_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_GATE_04;
@@ -8790,7 +7746,7 @@ _chip2_process_all:
     call _scope_tap1;
 #endif
 #endif
-#if (DSP4_NODE_LIMIT2 == 0 || 176 < DSP4_NODE_LIMIT2)
+#if (DSP4_NODE_LIMIT2 == 0 || 80 < DSP4_NODE_LIMIT2)
     call _C2_GRP_COMP_04_process;
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
     r0 = _buf_C2_GRP_COMP_04;
@@ -8807,6 +7763,1050 @@ _chip2_process_all:
 #if (DSP4_NODE_LIMIT2 == 0 || 248 < DSP4_NODE_LIMIT2)
     call _C2_MTR_GRP_04_process;
 #endif
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 81..81, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm12_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 81 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_01;
+    r1 = _blk_C2_MIX_AUX_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm12_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 82..82, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm13_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 82 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_02;
+    r1 = _blk_C2_MIX_AUX_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm13_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 83..83, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm14_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 83 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_03;
+    r1 = _blk_C2_MIX_AUX_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm14_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 84..84, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm15_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 84 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_04;
+    r1 = _blk_C2_MIX_AUX_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm15_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 85..85, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm16_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 85 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_05;
+    r1 = _blk_C2_MIX_AUX_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm16_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 86..86, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm17_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 86 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_06;
+    r1 = _blk_C2_MIX_AUX_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm17_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 87..87, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm18_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 87 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_07;
+    r1 = _blk_C2_MIX_AUX_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm18_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 88..88, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm19_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 88 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_08;
+    r1 = _blk_C2_MIX_AUX_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm19_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 89..89, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm20_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 89 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_09;
+    r1 = _blk_C2_MIX_AUX_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm20_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 90..90, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm21_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 90 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_10;
+    r1 = _blk_C2_MIX_AUX_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm21_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 91..91, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm22_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 91 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_11;
+    r1 = _blk_C2_MIX_AUX_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm22_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 92..92, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm23_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 92 < DSP4_NODE_LIMIT2)
+    call _C2_MIX_AUX_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_MIX_AUX_12;
+    r1 = _blk_C2_MIX_AUX_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm23_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 1: entries 93..99, gate group 0 */
+    r2 = dm(_mask_on + 0);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm24_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 93 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_01;
+    r1 = _blk_C2_AUX_FDR_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 94 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_01;
+    r1 = _blk_C2_AUX_EQ_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 95 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_01;
+    r1 = _blk_C2_AUX_GEQ_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 96 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_01;
+    r1 = _blk_C2_AUX_AFB_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 97 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_01;
+    r1 = _blk_C2_AUX_LIM_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 98 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_01;
+    r1 = _blk_C2_AUX_DLY_01;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 99 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_01_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_01;
+    r1 = _blk_C2_AUX_OUT_01;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 229 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_01_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm24_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 2: entries 100..106, gate group 1 */
+    r2 = dm(_mask_on + 1);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm25_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 100 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_02;
+    r1 = _blk_C2_AUX_FDR_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 101 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_02;
+    r1 = _blk_C2_AUX_EQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 102 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_02;
+    r1 = _blk_C2_AUX_GEQ_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 103 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_02;
+    r1 = _blk_C2_AUX_AFB_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 104 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_02;
+    r1 = _blk_C2_AUX_LIM_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 105 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_02;
+    r1 = _blk_C2_AUX_DLY_02;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 106 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_02_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_02;
+    r1 = _blk_C2_AUX_OUT_02;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 230 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_02_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm25_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 3: entries 107..113, gate group 2 */
+    r2 = dm(_mask_on + 2);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm26_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 107 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_03;
+    r1 = _blk_C2_AUX_FDR_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 108 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_03;
+    r1 = _blk_C2_AUX_EQ_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 109 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_03;
+    r1 = _blk_C2_AUX_GEQ_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 110 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_03;
+    r1 = _blk_C2_AUX_AFB_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 111 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_03;
+    r1 = _blk_C2_AUX_LIM_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 112 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_03;
+    r1 = _blk_C2_AUX_DLY_03;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 113 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_03_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_03;
+    r1 = _blk_C2_AUX_OUT_03;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 231 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_03_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm26_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 4: entries 114..120, gate group 3 */
+    r2 = dm(_mask_on + 3);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm27_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 114 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_04;
+    r1 = _blk_C2_AUX_FDR_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 115 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_04;
+    r1 = _blk_C2_AUX_EQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 116 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_04;
+    r1 = _blk_C2_AUX_GEQ_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 117 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_04;
+    r1 = _blk_C2_AUX_AFB_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 118 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_04;
+    r1 = _blk_C2_AUX_LIM_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 119 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_04;
+    r1 = _blk_C2_AUX_DLY_04;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 120 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_04_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_04;
+    r1 = _blk_C2_AUX_OUT_04;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 232 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_04_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm27_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 5: entries 121..127, gate group 4 */
+    r2 = dm(_mask_on + 4);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm28_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 121 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_05;
+    r1 = _blk_C2_AUX_FDR_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 122 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_05;
+    r1 = _blk_C2_AUX_EQ_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 123 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_05;
+    r1 = _blk_C2_AUX_GEQ_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 124 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_05;
+    r1 = _blk_C2_AUX_AFB_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 125 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_05;
+    r1 = _blk_C2_AUX_LIM_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 126 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_05;
+    r1 = _blk_C2_AUX_DLY_05;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 127 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_05_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_05;
+    r1 = _blk_C2_AUX_OUT_05;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 233 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_05_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm28_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 6: entries 128..134, gate group 5 */
+    r2 = dm(_mask_on + 5);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm29_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 128 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_06;
+    r1 = _blk_C2_AUX_FDR_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 129 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_06;
+    r1 = _blk_C2_AUX_EQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 130 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_06;
+    r1 = _blk_C2_AUX_GEQ_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 131 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_06;
+    r1 = _blk_C2_AUX_AFB_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 132 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_06;
+    r1 = _blk_C2_AUX_LIM_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 133 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_06;
+    r1 = _blk_C2_AUX_DLY_06;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 134 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_06_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_06;
+    r1 = _blk_C2_AUX_OUT_06;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 234 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_06_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm29_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 7: entries 135..141, gate group 6 */
+    r2 = dm(_mask_on + 6);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm30_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 135 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_07;
+    r1 = _blk_C2_AUX_FDR_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 136 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_07;
+    r1 = _blk_C2_AUX_EQ_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 137 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_07;
+    r1 = _blk_C2_AUX_GEQ_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 138 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_07;
+    r1 = _blk_C2_AUX_AFB_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 139 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_07;
+    r1 = _blk_C2_AUX_LIM_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 140 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_07;
+    r1 = _blk_C2_AUX_DLY_07;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 141 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_07_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_07;
+    r1 = _blk_C2_AUX_OUT_07;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 235 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_07_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm30_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 8: entries 142..148, gate group 7 */
+    r2 = dm(_mask_on + 7);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm31_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 142 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_08;
+    r1 = _blk_C2_AUX_FDR_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 143 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_08;
+    r1 = _blk_C2_AUX_EQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 144 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_08;
+    r1 = _blk_C2_AUX_GEQ_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 145 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_08;
+    r1 = _blk_C2_AUX_AFB_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 146 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_08;
+    r1 = _blk_C2_AUX_LIM_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 147 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_08;
+    r1 = _blk_C2_AUX_DLY_08;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 148 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_08_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_08;
+    r1 = _blk_C2_AUX_OUT_08;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 236 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_08_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm31_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 9: entries 149..155, gate group 8 */
+    r2 = dm(_mask_on + 8);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm32_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 149 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_09;
+    r1 = _blk_C2_AUX_FDR_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 150 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_09;
+    r1 = _blk_C2_AUX_EQ_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 151 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_09;
+    r1 = _blk_C2_AUX_GEQ_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 152 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_09;
+    r1 = _blk_C2_AUX_AFB_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 153 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_09;
+    r1 = _blk_C2_AUX_LIM_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 154 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_09;
+    r1 = _blk_C2_AUX_DLY_09;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 155 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_09_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_09;
+    r1 = _blk_C2_AUX_OUT_09;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 237 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_09_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm32_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 10: entries 156..162, gate group 9 */
+    r2 = dm(_mask_on + 9);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm33_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 156 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_10;
+    r1 = _blk_C2_AUX_FDR_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 157 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_10;
+    r1 = _blk_C2_AUX_EQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 158 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_10;
+    r1 = _blk_C2_AUX_GEQ_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 159 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_10;
+    r1 = _blk_C2_AUX_AFB_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 160 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_10;
+    r1 = _blk_C2_AUX_LIM_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 161 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_10;
+    r1 = _blk_C2_AUX_DLY_10;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 162 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_10_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_10;
+    r1 = _blk_C2_AUX_OUT_10;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 238 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_10_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm33_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 11: entries 163..169, gate group 10 */
+    r2 = dm(_mask_on + 10);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm34_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 163 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_11;
+    r1 = _blk_C2_AUX_FDR_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 164 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_11;
+    r1 = _blk_C2_AUX_EQ_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 165 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_11;
+    r1 = _blk_C2_AUX_GEQ_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 166 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_11;
+    r1 = _blk_C2_AUX_AFB_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 167 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_11;
+    r1 = _blk_C2_AUX_LIM_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 168 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_11;
+    r1 = _blk_C2_AUX_DLY_11;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 169 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_11_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_11;
+    r1 = _blk_C2_AUX_OUT_11;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 239 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_11_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm34_end:
+#endif
+#if DSP4_CHAN_MASK
+    /* aux 12: entries 170..176, gate group 11 */
+    r2 = dm(_mask_on + 11);
+    r2 = pass r2;
+    if eq jump (pc, .sgrunm35_end);
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 170 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_FDR_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_FDR_12;
+    r1 = _blk_C2_AUX_FDR_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 171 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_EQ_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_EQ_12;
+    r1 = _blk_C2_AUX_EQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 172 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_GEQ_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_GEQ_12;
+    r1 = _blk_C2_AUX_GEQ_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 173 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_AFB_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_AFB_12;
+    r1 = _blk_C2_AUX_AFB_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 174 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_LIM_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_LIM_12;
+    r1 = _blk_C2_AUX_LIM_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 175 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_DLY_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_DLY_12;
+    r1 = _blk_C2_AUX_DLY_12;
+    call _scope_tap;
+#endif
+#endif
+#if (DSP4_NODE_LIMIT2 == 0 || 176 < DSP4_NODE_LIMIT2)
+    call _C2_AUX_OUT_12_process;
+#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_BLK_TAP
+    r0 = _buf_C2_AUX_OUT_12;
+    r1 = _blk_C2_AUX_OUT_12;
+    call _scope_tap;
+#endif
+#endif
+#if DSP4_BLOCK_KERNELS
+#if (DSP4_NODE_LIMIT2 == 0 || 240 < DSP4_NODE_LIMIT2)
+    call _C2_MTR_AUX_12_process;
+#endif
+#endif
+#if DSP4_CHAN_MASK
+.sgrunm35_end:
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 177 < DSP4_NODE_LIMIT2)
     call _C2_SUB_FDR_process;

@@ -1114,6 +1114,56 @@ def print_fx_cost(got, sizes):
         print(f'    {p.upper():10}{n:>9}{d2:>12.2f}{d2 / n:>13.2f}{d1:>+12.2f}')
 
 
+
+# ---------------------------------------------------------------------------
+# THE BOOT TABLE AGAINST THE DEFS (S143)
+# ---------------------------------------------------------------------------
+
+def check_config_masks():
+    """`CFG_MTX_MASK` in the boot table must be what the cells say.
+
+    WHY THIS EXISTS. `tools/pi/dsp4_config.py` carries the four config
+    words the host writes at boot as LITERALS, because it runs on the Pi
+    where the defs submodule is not checked out. A literal cannot notice
+    that the contract moved: D24's `CFG_MTX_MASK` stayed at 0x3 -- two
+    matrix buses -- through the whole of 2026-09-28, while generation
+    `46109e9fb812` had already taken every `Matrix*` cell out of the
+    product. Six chip-2 instances were called every block for cells that
+    no longer existed.
+
+    The answer is not "remember to edit it": it is this check, on the desk
+    where the defs ARE present. Reachability is a CELL question, so it is
+    answered the same way `matrix_bus_cells()` answers it -- by counting
+    the `Matrix0NN` buses the product's own landed dsp.csv addresses -- and
+    the mask must be exactly that population, capped at the four chains the
+    firmware builds.
+    """
+    sys.path.insert(0, os.path.join(REPO_ROOT, 'tools', 'pi'))
+    try:
+        import dsp4_config as cfg
+    except ImportError as e:
+        print(f'product_fit --check-masks: cannot import dsp4_config: {e}')
+        return 2
+    bad = 0
+    print('CFG_MTX_MASK — the boot table against the landed defs')
+    for p in PRODUCTS:
+        want_n = min(matrix_bus_cells(p), MTX_CHAINS)
+        want = (1 << want_n) - 1
+        got = cfg.PRODUCT_CONFIG[p][cfg.CFG_MTX_MASK]
+        ok = (got == want)
+        bad += (not ok)
+        print(f'  {p.upper():5s} defs address {want_n} matrix bus(es) -> '
+              f'0x{want:08X}, dsp4_config has 0x{got:08X}  '
+              f'{"OK" if ok else "MISMATCH"}')
+    if bad:
+        print(f'\n{bad} product(s) disagree. dsp4_config.py\'s literal is '
+              f'the one that can go stale; the cells are authoritative.')
+        return 1
+    print('\nOK — every product\'s mask is the population of the matrix '
+          'buses its own cells address')
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1124,7 +1174,14 @@ def main():
     ap.add_argument('--measured', default=None,
                     help='JSON {product: {row: [chip1, chip2]}} to score the '
                          'construction against')
+    ap.add_argument('--check-masks', action='store_true',
+                    help="check tools/pi/dsp4_config.py's CFG_MTX_MASK "
+                         'table against the landed defs and exit nonzero on '
+                         'a disagreement (S143)')
     a = ap.parse_args()
+
+    if a.check_masks:
+        return check_config_masks()
 
     products = [p.strip() for p in a.products.split(',') if p.strip()]
     nodes, sizes, cells, cens = collect(products)

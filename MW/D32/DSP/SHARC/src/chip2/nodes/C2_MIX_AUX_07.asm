@@ -12,8 +12,8 @@
 #include "dsp_block.h"
 #include "lib/dyn_lut.h"
 
-/* MIX_BUS (FIXED, D5): bus_id=aux07 — 7 sources, exact MRF sum */
-/* 1 fixed feed(s) + 6 switched send(s) */
+/* MIX_BUS (FIXED, D5): bus_id=aux07 — 11 sources, exact MRF sum */
+/* 1 fixed feed(s) + 10 switched send(s) */
 
 .section/dm seg_dmda;
 .extern _buf_C2_FX_FDR_01;
@@ -22,21 +22,25 @@
 .extern _buf_C2_FX_FDR_04;
 .extern _buf_C2_FX_FDR_05;
 .extern _buf_C2_FX_FDR_06;
+.extern _buf_C2_GRP_COMP_01;
+.extern _buf_C2_GRP_COMP_02;
+.extern _buf_C2_GRP_COMP_03;
+.extern _buf_C2_GRP_COMP_04;
 .extern _buf_C2_RECV_AUX_07;
 .global _mix_gains_C2_MIX_AUX_07;
 .var _mix_gains_C2_MIX_AUX_07[1] = 1.0;   /* FLOAT (host) */
 .global _mix_gq_C2_MIX_AUX_07;
-.var _mix_gq_C2_MIX_AUX_07[7];               /* Q4.28 shadow */
+.var _mix_gq_C2_MIX_AUX_07[11];               /* Q4.28 shadow */
 .global _mix_on_C2_MIX_AUX_07;
-.var _mix_on_C2_MIX_AUX_07[6] = 0, 0, 0, 0, 0, 0;        /* crosspoint on/off      */
+.var _mix_on_C2_MIX_AUX_07[10] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;        /* crosspoint on/off      */
 .global _mix_send_C2_MIX_AUX_07;
-.var _mix_send_C2_MIX_AUX_07[6] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;        /* send level, FLOAT      */
+.var _mix_send_C2_MIX_AUX_07[10] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;        /* send level, FLOAT      */
 .global _mix_send_target_C2_MIX_AUX_07;
-.var _mix_send_target_C2_MIX_AUX_07[6] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+.var _mix_send_target_C2_MIX_AUX_07[10] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 .global _mix_send_step_C2_MIX_AUX_07;
-.var _mix_send_step_C2_MIX_AUX_07[6] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+.var _mix_send_step_C2_MIX_AUX_07[10] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 .global _mix_send_frames_C2_MIX_AUX_07;
-.var _mix_send_frames_C2_MIX_AUX_07[6] = 0, 0, 0, 0, 0, 0;
+.var _mix_send_frames_C2_MIX_AUX_07[10] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 .global _buf_C2_MIX_AUX_07;
 .var _buf_C2_MIX_AUX_07;
 
@@ -48,6 +52,10 @@
         .extern _blk_C2_FX_FDR_04;
         .extern _blk_C2_FX_FDR_05;
         .extern _blk_C2_FX_FDR_06;
+        .extern _blk_C2_GRP_COMP_01;
+        .extern _blk_C2_GRP_COMP_02;
+        .extern _blk_C2_GRP_COMP_03;
+        .extern _blk_C2_GRP_COMP_04;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MIX_AUX_07;
@@ -68,6 +76,14 @@
         .var _bw_s5_C2_MIX_AUX_07;       /* walking source pointer */
         .global _bw_s6_C2_MIX_AUX_07;
         .var _bw_s6_C2_MIX_AUX_07;       /* walking source pointer */
+        .global _bw_s7_C2_MIX_AUX_07;
+        .var _bw_s7_C2_MIX_AUX_07;       /* walking source pointer */
+        .global _bw_s8_C2_MIX_AUX_07;
+        .var _bw_s8_C2_MIX_AUX_07;       /* walking source pointer */
+        .global _bw_s9_C2_MIX_AUX_07;
+        .var _bw_s9_C2_MIX_AUX_07;       /* walking source pointer */
+        .global _bw_s10_C2_MIX_AUX_07;
+        .var _bw_s10_C2_MIX_AUX_07;       /* walking source pointer */
         .global _bw_d0_C2_MIX_AUX_07;
         .var _bw_d0_C2_MIX_AUX_07;       /* walking sink pointer */
         #endif
@@ -91,7 +107,7 @@ _C2_MIX_AUX_07_process:
     i6 = _mix_send_frames_C2_MIX_AUX_07;
     i3 = _mix_send_target_C2_MIX_AUX_07;
     i2 = _mix_gq_C2_MIX_AUX_07 + 1;
-    lcntr = 6, do .msrmp_C2_MIX_AUX_07 until lce;
+    lcntr = 10, do .msrmp_C2_MIX_AUX_07 until lce;
         r4 = dm(i6, 0);
         r6 = DSP4_BLOCK_SIZE;
         comp(r4, r6);
@@ -202,6 +218,18 @@ _C2_MIX_AUX_07_process:
             i4 = _blk_C2_FX_FDR_06;
             r3 = i4;
             dm(_bw_s6_C2_MIX_AUX_07) = r3;
+            i4 = _blk_C2_GRP_COMP_01;
+            r3 = i4;
+            dm(_bw_s7_C2_MIX_AUX_07) = r3;
+            i4 = _blk_C2_GRP_COMP_02;
+            r3 = i4;
+            dm(_bw_s8_C2_MIX_AUX_07) = r3;
+            i4 = _blk_C2_GRP_COMP_03;
+            r3 = i4;
+            dm(_bw_s9_C2_MIX_AUX_07) = r3;
+            i4 = _blk_C2_GRP_COMP_04;
+            r3 = i4;
+            dm(_bw_s10_C2_MIX_AUX_07) = r3;
             i4 = _blk_C2_MIX_AUX_07;
             r3 = i4;
             dm(_bw_d0_C2_MIX_AUX_07) = r3;
@@ -252,6 +280,30 @@ _C2_MIX_AUX_07_process:
                 dm(_buf_C2_FX_FDR_06) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s6_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s7_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s7_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s8_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s8_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s9_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s9_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s10_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s10_C2_MIX_AUX_07) = r3;
                 call _C2_MIX_AUX_07_process_sample;
                 r0 = dm(_buf_C2_MIX_AUX_07);
                 r3 = dm(_bw_d0_C2_MIX_AUX_07);
@@ -304,6 +356,30 @@ _C2_MIX_AUX_07_process:
                 dm(_buf_C2_FX_FDR_06) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s6_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s7_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_01) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s7_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s8_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_02) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s8_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s9_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_03) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s9_C2_MIX_AUX_07) = r3;
+                r3 = dm(_bw_s10_C2_MIX_AUX_07);
+                i4 = r3;
+                r0 = dm(i4, 0);
+                dm(_buf_C2_GRP_COMP_04) = r0;
+                r3 = r3 + 1;
+                dm(_bw_s10_C2_MIX_AUX_07) = r3;
                 call _C2_MIX_AUX_07_process_sample;
                 r0 = dm(_buf_C2_MIX_AUX_07);
                 r3 = dm(_bw_d0_C2_MIX_AUX_07);
@@ -351,7 +427,7 @@ _C2_MIX_AUX_07_process:
     i6 = _mix_send_frames_C2_MIX_AUX_07;
     i3 = _mix_send_target_C2_MIX_AUX_07;
     i2 = _mix_gq_C2_MIX_AUX_07 + 1;
-    lcntr = 6, do .msrmp_C2_MIX_AUX_07 until lce;
+    lcntr = 10, do .msrmp_C2_MIX_AUX_07 until lce;
         r4 = dm(i6, 0);
         r6 = DSP4_BLOCK_SIZE;
         comp(r4, r6);
@@ -412,6 +488,18 @@ _C2_MIX_AUX_07_process:
         mrf = mrf + r0 * r1 (ssi);
         r0 = dm(_buf_C2_FX_FDR_06);
         r1 = dm(_mix_gq_C2_MIX_AUX_07 + 6);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_GRP_COMP_01);
+        r1 = dm(_mix_gq_C2_MIX_AUX_07 + 7);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_GRP_COMP_02);
+        r1 = dm(_mix_gq_C2_MIX_AUX_07 + 8);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_GRP_COMP_03);
+        r1 = dm(_mix_gq_C2_MIX_AUX_07 + 9);
+        mrf = mrf + r0 * r1 (ssi);
+        r0 = dm(_buf_C2_GRP_COMP_04);
+        r1 = dm(_mix_gq_C2_MIX_AUX_07 + 10);
         mrf = mrf + r0 * r1 (ssi);
     call _mrf_rns28;
     dm(_buf_C2_MIX_AUX_07) = r0;

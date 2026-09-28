@@ -1664,6 +1664,7 @@ _hpt_row = rows.pop()
 _at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_SPKR_OUT')
 rows[_at:_at] = [_hpt_row]
 
+
 # ===========================================================================
 # THE RIGHT-HAND STEREO OUTPUT NODES (S143)
 # ===========================================================================
@@ -1688,6 +1689,50 @@ for _sid, _sig, _lbl, _scope in (
     _at = next(i for i, r in enumerate(rows)
                if r['id'] == _sid[:-2])
     rows[_at + 1:_at + 1] = [_row]
+
+# ===========================================================================
+# THE GROUP -> AUX CROSSPOINTS (S143, item 3's group half; PW ruling D10)
+# ===========================================================================
+#
+# `Grp[1-4]AuxSend[1-12]` and `Grp[1-4]AuxOn[1-12]`: every group feeds every
+# aux, at a level, through a switch. Forty-eight crosspoints on the superset
+# (thirty-two of them reach a D24 cell, which is where the dispatch's count
+# comes from).
+#
+# IT IS NOT A NEW FABRIC. `C2_MIX_AUX_j` has had a SWITCHED-SEND half since
+# S23 gate 3 -- per-source on/off plus a ramped level folded into ONE Q4.28
+# coefficient at block rate -- and it was proved on the part there (the aux
+# sum reproduced `_buf_C2_RECV_AUX_01` in 32 of 32 words with every send
+# off, and both negative controls read exactly zero). This adds four more
+# sources of the same kind to the same node.
+#
+# THE ADDRESSES ARE A SECOND BLOCK, allocated HERE -- after the main
+# outputs' Level/Mute and after the haptic node, i.e. after every other
+# chip-2 allocation -- so the crosspoints ADD words and MOVE NONE. Same
+# mechanism, and the same reason, as ROUTING's `mtx_page`/`mtx_addr` and
+# OUTPUT_TDM's `mo_page`/`mo_addr`: growing a node's first block would move
+# every chip-2 address above it.
+#
+# `Grp[1-4]AuxPick[1-12]` IS NOT BUILT AND IS NOT DISPATCHED. It selects
+# which tap of the group strip the send is taken from (PreEQ / PostEQ /
+# PreFdr / PostFdr), which is a pointer select over blocks that exist but
+# needs the taps published and a per-crosspoint source pointer -- a
+# different mechanism from a coefficient, and cheap only once it is the
+# same one the channel sends use (`Chan*AuxPick`). Giving it an address it
+# had no reader for is the shape this repo calls a defect (S21-4), so it
+# stays unmapped with its reason, and the send is taken from the group's
+# OUTPUT (`C2_GRP_COMP_g`), which is what PostFdr means here.
+_grp_srcs = [f'C2_GRP_COMP_{g:02d}' for g in range(1, NUM_GRP + 1)]
+_by_id_xp = {r['id']: r for r in rows}
+for a in range(1, NUM_AUX + 1):
+    _r = _by_id_xp[mix_aux_ids[a]]
+    _r['inputs'] += ';' + ';'.join(_grp_srcs)
+    p, a2 = c2_alloc.next(2 * NUM_GRP)
+    _r['params'] = _r['params'].replace(
+        f';source_count={1 + NUM_FX}',
+        f';source_count={1 + NUM_FX + NUM_GRP}')
+    _r['params'] += (f';xp_page={p};xp_addr={a2}'
+                     f';xp_map=Grp:{",".join(str(g) for g in range(1, NUM_GRP + 1))}')
 
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #
@@ -1716,6 +1761,23 @@ assert len(_moved) == len(_pre_aux), 'a spliced row is missing from rows'
 rows[:] = [r for r in rows if r['id'] not in _pre_aux_set]
 _at = next(i for i, r in enumerate(rows) if r['id'] == 'C2_AUX_FDR_01')
 rows[_at:_at] = _moved
+
+# THE GROUP CHAIN RUNS BEFORE THE AUX SUMS NOW, and the whole chain moves
+# as one. Every aux sum reads `C2_GRP_COMP_g` (the group -> aux
+# crosspoints above), and `repair_process_order` would otherwise move each
+# of the four COMPs on its own to just before `C2_MIX_AUX_01` -- which
+# splits the GRP pair family (FDR, EQ, GEQ, GATE, COMP), and
+# `c2_pair_groups` refuses a family whose nodes are not a contiguous run of
+# the chain. Rows are reordered; addresses are not. Same splice, same
+# reason, as the FX one immediately above -- and it has to come AFTER it,
+# because that one moves the aux sums themselves.
+_grp_set = {r['id'] for r in rows
+            if r['id'].startswith('C2_GRP_')
+            or r['id'].startswith('C2_RECV_GRP_')}
+_moved_grp = [r for r in rows if r['id'] in _grp_set]
+rows[:] = [r for r in rows if r['id'] not in _grp_set]
+_at = next(i for i, r in enumerate(rows) if r['id'] == mix_aux_ids[1])
+rows[_at:_at] = _moved_grp
 
 # ===========================================================================
 # THE SPEAKER IS DECLARED, AND IT IS THE HAPTIC NODE'S (S122)

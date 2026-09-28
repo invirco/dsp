@@ -134,7 +134,14 @@ EXTRA_PARAMS = {
     # fixed unity feeds. `aux` names which aux bus the node sums, and it is
     # what gen_dsp.py addresses the Fx*AuxOn/AuxSend cells from; a node with
     # fx_sends and no aux is refused there rather than guessed at.
-    'MIX_BUS':        {'source_count', 'fx_sends', 'aux'},
+    # `xp_page`/`xp_addr`/`xp_map` (S143): the SECOND crosspoint block on a
+    # chip-2 aux sum -- the group -> aux sends. A second address block for
+    # one node, for ROUTING's `mtx_*` reason: growing the first would move
+    # every chip-2 address above it. `xp_map` names the SOURCE INDICES, not
+    # a count, because the aux -> aux half takes only the sources below its
+    # own number and a count could not say which.
+    'MIX_BUS':        {'source_count', 'fx_sends', 'aux',
+                       'xp_page', 'xp_addr', 'xp_map'},
     'MONITOR':        {'level_l_db', 'level_r_db'},
     'NOISE_GEN':      {'hpf_on'},
     'TEST_OSC':       {'sweep_on', 'sweep_step', 'meas_src'},

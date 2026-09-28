@@ -137,7 +137,22 @@ PRODUCT_CONFIG = {
         CFG_PRODUCT_ID: 1,
         CFG_CHAN_MASK: 0x00FFFFFF,   # 24 strips; 25-32 NET-only
         CFG_AUX_MASK: 0x000000FF,    # 8 aux buses
-        CFG_MTX_MASK: 0x00000003,    # 2 matrix buses (Matrix001/002)
+        # NO MATRIX BUSES SINCE GENERATION 46109e9fb812 (S143, from S142's
+        # pricing). PW's 2026-09-28 block audit ruled that matrix outputs
+        # ARE aux outputs, and it took every `Matrix*` and `Chan*Matrix*`
+        # cell out of D24: zero rows in MW/D24/MX/_matrix.csv, zero in
+        # defs/products/d24/dsp.csv and zero in its dsp-unmapped.csv. So a
+        # D24 addressed two matrix buses no cell could reach and paid for
+        # both -- `C2_RECV_MTX_01/02`, `C2_MTX_FDR_01/02`, `C2_MTX_OUT_01/02`,
+        # six chip-2 instances called every block, about 840 c/blk.
+        #
+        # It is 0 and not 2 by DERIVATION, not by editing a number: this
+        # table is cross-checked against the landed defs by
+        # `product_fit.py --check-masks`, which counts the Matrix0NN buses
+        # each product's own dsp.csv addresses. That is the check this line
+        # was missing -- the mask sat at 2 for the whole day the cells were
+        # already gone.
+        CFG_MTX_MASK: 0x00000000,    # no Matrix cells at all (was 0x3)
         CFG_OUT_MUX: 0,          # B_O2 = codec
         'input_patch': D24_INPUT_PATCH,   # chip 1 only
     },

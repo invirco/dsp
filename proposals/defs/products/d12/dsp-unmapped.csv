@@ -471,18 +471,10 @@ Fx004ReturnWetLock001,surface-state,UI lock on the return wet control
 Fx004SamplePlay001,host-managed,"host-managed: the host plays the sample into the FX input - no DSP address, no kernel read (PW ruling D15 2026-09-28)"
 Fx004Tap001,control-plane,tap tempo; the host computes and writes Fx*DelayTime*
 Fx004Trim001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D15); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxOn004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001AuxPick001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001AuxPick002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001AuxPick003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001AuxPick004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxSend001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxSend002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxSend003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp001AuxSend004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001CueSel001,control-plane,cue select; the host folds it into the one monitor source word Mon001InputSel001 (PW ruling D10 2026-09-28)
 Grp001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Grp001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
@@ -498,18 +490,10 @@ Grp001InsertOn001,no-graph-node,declared by the 2026-09-28 block audit (PW rulin
 Grp001MainOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Grp001Trim001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxOn004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp002AuxPick001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp002AuxPick002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp002AuxPick003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp002AuxPick004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxSend001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxSend002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxSend003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
-Grp002AuxSend004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D10); no node in the DSP graph builds it yet - queued DSP graph work
 Grp002CueSel001,control-plane,cue select; the host folds it into the one monitor source word Mon001InputSel001 (PW ruling D10 2026-09-28)
 Grp002Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Grp002DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
