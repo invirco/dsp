@@ -5,15 +5,15 @@
 # address typed here is an address no kernel answers on.
 #
 # Proposed by dsp, landed by the hub at the gate (PW ruling
-# 2026-09-08 #5). defs-v* pin: defs-v2026.09.27.2.
+# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.1.
 #
 # ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
 # graph is expanded once and this file is the intersection of that
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 5780 of 7018 defined cells reach a DSP address.
-# The other 1238 are named in dsp-unmapped.csv with the
+# 5780 of 8737 defined cells reach a DSP address.
+# The other 2957 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:

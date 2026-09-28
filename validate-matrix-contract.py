@@ -64,7 +64,22 @@ NON_D32_FAMILIES = {
         "CrossoverSlope", "Dca", "DcaOn", "Delay", "EqFreq", "EqGain",
         "EqHpf", "EqOn", "EqQ", "EqShelf", "Level", "LimiterAtt",
         "LimiterOn", "LimiterRel", "LimiterRng", "LimiterThr", "Mtr",
-        "Mute", "Name", "PeqGain")} | {"MainOut3Mode"},
+        "Mute", "Name", "PeqGain")} | {"MainOut3Mode"}
+    # S139 (defs-v2026.09.28.1): the block audit (PW rulings D6/D9, 2026-09-28)
+    # added anti-feedback, GEQ, and a third main output to D24's stereo main
+    # bus and centre cluster -- D32 has neither a centre cluster nor this
+    # anti-feedback/GEQ/third-output shape on its own Main family, so these
+    # are adopted here rather than tolerated by a wildcard, same as the rest
+    # of this set.
+    | {f"Main{suffix}" for suffix in (
+        "AntiFbCtrlOn", "AntiFbGain", "AntiFbLimOn", "AntiFbNotchFreq",
+        "AntiFbNotchGain", "AntiFbNotchQ", "AntiFbOn")}
+    | {f"MainCtr{suffix}" for suffix in (
+        "AntiFbCtrlOn", "AntiFbGain", "AntiFbLimOn", "AntiFbNotchFreq",
+        "AntiFbNotchGain", "AntiFbNotchQ", "AntiFbOn", "AuxOn", "AuxSend",
+        "Geq", "LimiterDetSrc", "LimiterFilterHpf", "LimiterFilterLpf",
+        "LimiterFilterOn", "LimiterFilterQ")}
+    | {f"MainOut3{suffix}" for suffix in ("Delay", "Link", "Mtr", "Mute")},
 }
 
 CELL_RE = re.compile(r"^([A-Za-z]+)(\d{3})([A-Za-z0-9]+)(\d{3})$")

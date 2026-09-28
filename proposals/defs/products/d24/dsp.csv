@@ -5,15 +5,15 @@
 # address typed here is an address no kernel answers on.
 #
 # Proposed by dsp, landed by the hub at the gate (PW ruling
-# 2026-09-08 #5). defs-v* pin: defs-v2026.09.27.2.
+# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.1.
 #
 # ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
 # graph is expanded once and this file is the intersection of that
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 3989 of 5006 defined cells reach a DSP address.
-# The other 1017 are named in dsp-unmapped.csv with the
+# 3632 of 5767 defined cells reach a DSP address.
+# The other 2135 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -739,10 +739,6 @@ Chan001GrpOn004,C1_RTG_01,ROUTING,1,1,89,0x0059,rw,InstantCtl,Instant,0,0,Linear
 Chan001InputSel001,C1_GAIN_01,GAIN,1,1,3,0x0003,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan001Level001,C1_FDR_01,FADER_PAN,1,1,80,0x0050,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan001MainOn001,C1_RTG_01,ROUTING,1,1,84,0x0054,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan001MatrixOn001,C1_RTG_01,ROUTING,1,1,4806,0x12C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan001MatrixOn002,C1_RTG_01,ROUTING,1,1,4807,0x12C7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan001MatrixSend001,C1_RTG_01,ROUTING,1,1,4808,0x12C8,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan001MatrixSend002,C1_RTG_01,ROUTING,1,1,4809,0x12C9,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan001Mtr001,C1_MTR_01,METER,1,1,4608,0x1200,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan001Mtr002,C1_MTR_01,METER,1,1,4609,0x1201,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan001Mute001,C1_FDR_01,FADER_PAN,1,1,82,0x0052,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -846,10 +842,6 @@ Chan002GrpOn004,C1_RTG_02,ROUTING,1,1,233,0x00E9,rw,InstantCtl,Instant,0,0,Linea
 Chan002InputSel001,C1_GAIN_02,GAIN,1,1,147,0x0093,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan002Level001,C1_FDR_02,FADER_PAN,1,1,224,0x00E0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan002MainOn001,C1_RTG_02,ROUTING,1,1,228,0x00E4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan002MatrixOn001,C1_RTG_02,ROUTING,1,1,4810,0x12CA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan002MatrixOn002,C1_RTG_02,ROUTING,1,1,4811,0x12CB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan002MatrixSend001,C1_RTG_02,ROUTING,1,1,4812,0x12CC,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan002MatrixSend002,C1_RTG_02,ROUTING,1,1,4813,0x12CD,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan002Mtr001,C1_MTR_02,METER,1,1,4612,0x1204,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan002Mtr002,C1_MTR_02,METER,1,1,4613,0x1205,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan002Mute001,C1_FDR_02,FADER_PAN,1,1,226,0x00E2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -953,10 +945,6 @@ Chan003GrpOn004,C1_RTG_03,ROUTING,1,1,377,0x0179,rw,InstantCtl,Instant,0,0,Linea
 Chan003InputSel001,C1_GAIN_03,GAIN,1,1,291,0x0123,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan003Level001,C1_FDR_03,FADER_PAN,1,1,368,0x0170,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan003MainOn001,C1_RTG_03,ROUTING,1,1,372,0x0174,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan003MatrixOn001,C1_RTG_03,ROUTING,1,1,4814,0x12CE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan003MatrixOn002,C1_RTG_03,ROUTING,1,1,4815,0x12CF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan003MatrixSend001,C1_RTG_03,ROUTING,1,1,4816,0x12D0,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan003MatrixSend002,C1_RTG_03,ROUTING,1,1,4817,0x12D1,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan003Mtr001,C1_MTR_03,METER,1,1,4616,0x1208,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan003Mtr002,C1_MTR_03,METER,1,1,4617,0x1209,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan003Mute001,C1_FDR_03,FADER_PAN,1,1,370,0x0172,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1060,10 +1048,6 @@ Chan004GrpOn004,C1_RTG_04,ROUTING,1,1,521,0x0209,rw,InstantCtl,Instant,0,0,Linea
 Chan004InputSel001,C1_GAIN_04,GAIN,1,1,435,0x01B3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan004Level001,C1_FDR_04,FADER_PAN,1,1,512,0x0200,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan004MainOn001,C1_RTG_04,ROUTING,1,1,516,0x0204,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan004MatrixOn001,C1_RTG_04,ROUTING,1,1,4818,0x12D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan004MatrixOn002,C1_RTG_04,ROUTING,1,1,4819,0x12D3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan004MatrixSend001,C1_RTG_04,ROUTING,1,1,4820,0x12D4,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan004MatrixSend002,C1_RTG_04,ROUTING,1,1,4821,0x12D5,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan004Mtr001,C1_MTR_04,METER,1,1,4620,0x120C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan004Mtr002,C1_MTR_04,METER,1,1,4621,0x120D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan004Mute001,C1_FDR_04,FADER_PAN,1,1,514,0x0202,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1167,10 +1151,6 @@ Chan005GrpOn004,C1_RTG_05,ROUTING,1,1,665,0x0299,rw,InstantCtl,Instant,0,0,Linea
 Chan005InputSel001,C1_GAIN_05,GAIN,1,1,579,0x0243,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan005Level001,C1_FDR_05,FADER_PAN,1,1,656,0x0290,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan005MainOn001,C1_RTG_05,ROUTING,1,1,660,0x0294,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan005MatrixOn001,C1_RTG_05,ROUTING,1,1,4822,0x12D6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan005MatrixOn002,C1_RTG_05,ROUTING,1,1,4823,0x12D7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan005MatrixSend001,C1_RTG_05,ROUTING,1,1,4824,0x12D8,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan005MatrixSend002,C1_RTG_05,ROUTING,1,1,4825,0x12D9,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan005Mtr001,C1_MTR_05,METER,1,1,4624,0x1210,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan005Mtr002,C1_MTR_05,METER,1,1,4625,0x1211,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan005Mute001,C1_FDR_05,FADER_PAN,1,1,658,0x0292,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1274,10 +1254,6 @@ Chan006GrpOn004,C1_RTG_06,ROUTING,1,1,809,0x0329,rw,InstantCtl,Instant,0,0,Linea
 Chan006InputSel001,C1_GAIN_06,GAIN,1,1,723,0x02D3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan006Level001,C1_FDR_06,FADER_PAN,1,1,800,0x0320,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan006MainOn001,C1_RTG_06,ROUTING,1,1,804,0x0324,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan006MatrixOn001,C1_RTG_06,ROUTING,1,1,4826,0x12DA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan006MatrixOn002,C1_RTG_06,ROUTING,1,1,4827,0x12DB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan006MatrixSend001,C1_RTG_06,ROUTING,1,1,4828,0x12DC,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan006MatrixSend002,C1_RTG_06,ROUTING,1,1,4829,0x12DD,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan006Mtr001,C1_MTR_06,METER,1,1,4628,0x1214,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan006Mtr002,C1_MTR_06,METER,1,1,4629,0x1215,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan006Mute001,C1_FDR_06,FADER_PAN,1,1,802,0x0322,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1381,10 +1357,6 @@ Chan007GrpOn004,C1_RTG_07,ROUTING,1,1,953,0x03B9,rw,InstantCtl,Instant,0,0,Linea
 Chan007InputSel001,C1_GAIN_07,GAIN,1,1,867,0x0363,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan007Level001,C1_FDR_07,FADER_PAN,1,1,944,0x03B0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan007MainOn001,C1_RTG_07,ROUTING,1,1,948,0x03B4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan007MatrixOn001,C1_RTG_07,ROUTING,1,1,4830,0x12DE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan007MatrixOn002,C1_RTG_07,ROUTING,1,1,4831,0x12DF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan007MatrixSend001,C1_RTG_07,ROUTING,1,1,4832,0x12E0,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan007MatrixSend002,C1_RTG_07,ROUTING,1,1,4833,0x12E1,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan007Mtr001,C1_MTR_07,METER,1,1,4632,0x1218,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan007Mtr002,C1_MTR_07,METER,1,1,4633,0x1219,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan007Mute001,C1_FDR_07,FADER_PAN,1,1,946,0x03B2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1488,10 +1460,6 @@ Chan008GrpOn004,C1_RTG_08,ROUTING,1,1,1097,0x0449,rw,InstantCtl,Instant,0,0,Line
 Chan008InputSel001,C1_GAIN_08,GAIN,1,1,1011,0x03F3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan008Level001,C1_FDR_08,FADER_PAN,1,1,1088,0x0440,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan008MainOn001,C1_RTG_08,ROUTING,1,1,1092,0x0444,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan008MatrixOn001,C1_RTG_08,ROUTING,1,1,4834,0x12E2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan008MatrixOn002,C1_RTG_08,ROUTING,1,1,4835,0x12E3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan008MatrixSend001,C1_RTG_08,ROUTING,1,1,4836,0x12E4,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan008MatrixSend002,C1_RTG_08,ROUTING,1,1,4837,0x12E5,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan008Mtr001,C1_MTR_08,METER,1,1,4636,0x121C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan008Mtr002,C1_MTR_08,METER,1,1,4637,0x121D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan008Mute001,C1_FDR_08,FADER_PAN,1,1,1090,0x0442,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1595,10 +1563,6 @@ Chan009GrpOn004,C1_RTG_09,ROUTING,1,1,1241,0x04D9,rw,InstantCtl,Instant,0,0,Line
 Chan009InputSel001,C1_GAIN_09,GAIN,1,1,1155,0x0483,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan009Level001,C1_FDR_09,FADER_PAN,1,1,1232,0x04D0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan009MainOn001,C1_RTG_09,ROUTING,1,1,1236,0x04D4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan009MatrixOn001,C1_RTG_09,ROUTING,1,1,4838,0x12E6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan009MatrixOn002,C1_RTG_09,ROUTING,1,1,4839,0x12E7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan009MatrixSend001,C1_RTG_09,ROUTING,1,1,4840,0x12E8,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan009MatrixSend002,C1_RTG_09,ROUTING,1,1,4841,0x12E9,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan009Mtr001,C1_MTR_09,METER,1,1,4640,0x1220,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan009Mtr002,C1_MTR_09,METER,1,1,4641,0x1221,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan009Mute001,C1_FDR_09,FADER_PAN,1,1,1234,0x04D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1702,10 +1666,6 @@ Chan010GrpOn004,C1_RTG_10,ROUTING,1,1,1385,0x0569,rw,InstantCtl,Instant,0,0,Line
 Chan010InputSel001,C1_GAIN_10,GAIN,1,1,1299,0x0513,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan010Level001,C1_FDR_10,FADER_PAN,1,1,1376,0x0560,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan010MainOn001,C1_RTG_10,ROUTING,1,1,1380,0x0564,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan010MatrixOn001,C1_RTG_10,ROUTING,1,1,4842,0x12EA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan010MatrixOn002,C1_RTG_10,ROUTING,1,1,4843,0x12EB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan010MatrixSend001,C1_RTG_10,ROUTING,1,1,4844,0x12EC,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan010MatrixSend002,C1_RTG_10,ROUTING,1,1,4845,0x12ED,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan010Mtr001,C1_MTR_10,METER,1,1,4644,0x1224,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan010Mtr002,C1_MTR_10,METER,1,1,4645,0x1225,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan010Mute001,C1_FDR_10,FADER_PAN,1,1,1378,0x0562,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1809,10 +1769,6 @@ Chan011GrpOn004,C1_RTG_11,ROUTING,1,1,1529,0x05F9,rw,InstantCtl,Instant,0,0,Line
 Chan011InputSel001,C1_GAIN_11,GAIN,1,1,1443,0x05A3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan011Level001,C1_FDR_11,FADER_PAN,1,1,1520,0x05F0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan011MainOn001,C1_RTG_11,ROUTING,1,1,1524,0x05F4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan011MatrixOn001,C1_RTG_11,ROUTING,1,1,4846,0x12EE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan011MatrixOn002,C1_RTG_11,ROUTING,1,1,4847,0x12EF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan011MatrixSend001,C1_RTG_11,ROUTING,1,1,4848,0x12F0,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan011MatrixSend002,C1_RTG_11,ROUTING,1,1,4849,0x12F1,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan011Mtr001,C1_MTR_11,METER,1,1,4648,0x1228,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan011Mtr002,C1_MTR_11,METER,1,1,4649,0x1229,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan011Mute001,C1_FDR_11,FADER_PAN,1,1,1522,0x05F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -1916,10 +1872,6 @@ Chan012GrpOn004,C1_RTG_12,ROUTING,1,1,1673,0x0689,rw,InstantCtl,Instant,0,0,Line
 Chan012InputSel001,C1_GAIN_12,GAIN,1,1,1587,0x0633,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan012Level001,C1_FDR_12,FADER_PAN,1,1,1664,0x0680,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan012MainOn001,C1_RTG_12,ROUTING,1,1,1668,0x0684,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan012MatrixOn001,C1_RTG_12,ROUTING,1,1,4850,0x12F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan012MatrixOn002,C1_RTG_12,ROUTING,1,1,4851,0x12F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan012MatrixSend001,C1_RTG_12,ROUTING,1,1,4852,0x12F4,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan012MatrixSend002,C1_RTG_12,ROUTING,1,1,4853,0x12F5,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan012Mtr001,C1_MTR_12,METER,1,1,4652,0x122C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan012Mtr002,C1_MTR_12,METER,1,1,4653,0x122D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan012Mute001,C1_FDR_12,FADER_PAN,1,1,1666,0x0682,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2023,10 +1975,6 @@ Chan013GrpOn004,C1_RTG_13,ROUTING,1,1,1817,0x0719,rw,InstantCtl,Instant,0,0,Line
 Chan013InputSel001,C1_GAIN_13,GAIN,1,1,1731,0x06C3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan013Level001,C1_FDR_13,FADER_PAN,1,1,1808,0x0710,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan013MainOn001,C1_RTG_13,ROUTING,1,1,1812,0x0714,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan013MatrixOn001,C1_RTG_13,ROUTING,1,1,4854,0x12F6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan013MatrixOn002,C1_RTG_13,ROUTING,1,1,4855,0x12F7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan013MatrixSend001,C1_RTG_13,ROUTING,1,1,4856,0x12F8,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan013MatrixSend002,C1_RTG_13,ROUTING,1,1,4857,0x12F9,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan013Mtr001,C1_MTR_13,METER,1,1,4656,0x1230,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan013Mtr002,C1_MTR_13,METER,1,1,4657,0x1231,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan013Mute001,C1_FDR_13,FADER_PAN,1,1,1810,0x0712,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2130,10 +2078,6 @@ Chan014GrpOn004,C1_RTG_14,ROUTING,1,1,1961,0x07A9,rw,InstantCtl,Instant,0,0,Line
 Chan014InputSel001,C1_GAIN_14,GAIN,1,1,1875,0x0753,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan014Level001,C1_FDR_14,FADER_PAN,1,1,1952,0x07A0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan014MainOn001,C1_RTG_14,ROUTING,1,1,1956,0x07A4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan014MatrixOn001,C1_RTG_14,ROUTING,1,1,4858,0x12FA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan014MatrixOn002,C1_RTG_14,ROUTING,1,1,4859,0x12FB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan014MatrixSend001,C1_RTG_14,ROUTING,1,1,4860,0x12FC,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan014MatrixSend002,C1_RTG_14,ROUTING,1,1,4861,0x12FD,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan014Mtr001,C1_MTR_14,METER,1,1,4660,0x1234,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan014Mtr002,C1_MTR_14,METER,1,1,4661,0x1235,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan014Mute001,C1_FDR_14,FADER_PAN,1,1,1954,0x07A2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2237,10 +2181,6 @@ Chan015GrpOn004,C1_RTG_15,ROUTING,1,1,2105,0x0839,rw,InstantCtl,Instant,0,0,Line
 Chan015InputSel001,C1_GAIN_15,GAIN,1,1,2019,0x07E3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan015Level001,C1_FDR_15,FADER_PAN,1,1,2096,0x0830,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan015MainOn001,C1_RTG_15,ROUTING,1,1,2100,0x0834,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan015MatrixOn001,C1_RTG_15,ROUTING,1,1,4862,0x12FE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan015MatrixOn002,C1_RTG_15,ROUTING,1,1,4863,0x12FF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan015MatrixSend001,C1_RTG_15,ROUTING,1,1,4864,0x1300,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan015MatrixSend002,C1_RTG_15,ROUTING,1,1,4865,0x1301,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan015Mtr001,C1_MTR_15,METER,1,1,4664,0x1238,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan015Mtr002,C1_MTR_15,METER,1,1,4665,0x1239,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan015Mute001,C1_FDR_15,FADER_PAN,1,1,2098,0x0832,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2344,10 +2284,6 @@ Chan016GrpOn004,C1_RTG_16,ROUTING,1,1,2249,0x08C9,rw,InstantCtl,Instant,0,0,Line
 Chan016InputSel001,C1_GAIN_16,GAIN,1,1,2163,0x0873,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan016Level001,C1_FDR_16,FADER_PAN,1,1,2240,0x08C0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan016MainOn001,C1_RTG_16,ROUTING,1,1,2244,0x08C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan016MatrixOn001,C1_RTG_16,ROUTING,1,1,4866,0x1302,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan016MatrixOn002,C1_RTG_16,ROUTING,1,1,4867,0x1303,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan016MatrixSend001,C1_RTG_16,ROUTING,1,1,4868,0x1304,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan016MatrixSend002,C1_RTG_16,ROUTING,1,1,4869,0x1305,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan016Mtr001,C1_MTR_16,METER,1,1,4668,0x123C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan016Mtr002,C1_MTR_16,METER,1,1,4669,0x123D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan016Mute001,C1_FDR_16,FADER_PAN,1,1,2242,0x08C2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2451,10 +2387,6 @@ Chan017GrpOn004,C1_RTG_17,ROUTING,1,1,2393,0x0959,rw,InstantCtl,Instant,0,0,Line
 Chan017InputSel001,C1_GAIN_17,GAIN,1,1,2307,0x0903,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan017Level001,C1_FDR_17,FADER_PAN,1,1,2384,0x0950,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan017MainOn001,C1_RTG_17,ROUTING,1,1,2388,0x0954,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan017MatrixOn001,C1_RTG_17,ROUTING,1,1,4870,0x1306,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan017MatrixOn002,C1_RTG_17,ROUTING,1,1,4871,0x1307,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan017MatrixSend001,C1_RTG_17,ROUTING,1,1,4872,0x1308,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan017MatrixSend002,C1_RTG_17,ROUTING,1,1,4873,0x1309,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan017Mtr001,C1_MTR_17,METER,1,1,4672,0x1240,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan017Mtr002,C1_MTR_17,METER,1,1,4673,0x1241,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan017Mute001,C1_FDR_17,FADER_PAN,1,1,2386,0x0952,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2558,10 +2490,6 @@ Chan018GrpOn004,C1_RTG_18,ROUTING,1,1,2537,0x09E9,rw,InstantCtl,Instant,0,0,Line
 Chan018InputSel001,C1_GAIN_18,GAIN,1,1,2451,0x0993,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan018Level001,C1_FDR_18,FADER_PAN,1,1,2528,0x09E0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan018MainOn001,C1_RTG_18,ROUTING,1,1,2532,0x09E4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan018MatrixOn001,C1_RTG_18,ROUTING,1,1,4874,0x130A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan018MatrixOn002,C1_RTG_18,ROUTING,1,1,4875,0x130B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan018MatrixSend001,C1_RTG_18,ROUTING,1,1,4876,0x130C,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan018MatrixSend002,C1_RTG_18,ROUTING,1,1,4877,0x130D,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan018Mtr001,C1_MTR_18,METER,1,1,4676,0x1244,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan018Mtr002,C1_MTR_18,METER,1,1,4677,0x1245,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan018Mute001,C1_FDR_18,FADER_PAN,1,1,2530,0x09E2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2665,10 +2593,6 @@ Chan019GrpOn004,C1_RTG_19,ROUTING,1,1,2681,0x0A79,rw,InstantCtl,Instant,0,0,Line
 Chan019InputSel001,C1_GAIN_19,GAIN,1,1,2595,0x0A23,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan019Level001,C1_FDR_19,FADER_PAN,1,1,2672,0x0A70,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan019MainOn001,C1_RTG_19,ROUTING,1,1,2676,0x0A74,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan019MatrixOn001,C1_RTG_19,ROUTING,1,1,4878,0x130E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan019MatrixOn002,C1_RTG_19,ROUTING,1,1,4879,0x130F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan019MatrixSend001,C1_RTG_19,ROUTING,1,1,4880,0x1310,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan019MatrixSend002,C1_RTG_19,ROUTING,1,1,4881,0x1311,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan019Mtr001,C1_MTR_19,METER,1,1,4680,0x1248,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan019Mtr002,C1_MTR_19,METER,1,1,4681,0x1249,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan019Mute001,C1_FDR_19,FADER_PAN,1,1,2674,0x0A72,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2772,10 +2696,6 @@ Chan020GrpOn004,C1_RTG_20,ROUTING,1,1,2825,0x0B09,rw,InstantCtl,Instant,0,0,Line
 Chan020InputSel001,C1_GAIN_20,GAIN,1,1,2739,0x0AB3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan020Level001,C1_FDR_20,FADER_PAN,1,1,2816,0x0B00,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan020MainOn001,C1_RTG_20,ROUTING,1,1,2820,0x0B04,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan020MatrixOn001,C1_RTG_20,ROUTING,1,1,4882,0x1312,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan020MatrixOn002,C1_RTG_20,ROUTING,1,1,4883,0x1313,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan020MatrixSend001,C1_RTG_20,ROUTING,1,1,4884,0x1314,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan020MatrixSend002,C1_RTG_20,ROUTING,1,1,4885,0x1315,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan020Mtr001,C1_MTR_20,METER,1,1,4684,0x124C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan020Mtr002,C1_MTR_20,METER,1,1,4685,0x124D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan020Mute001,C1_FDR_20,FADER_PAN,1,1,2818,0x0B02,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2879,10 +2799,6 @@ Chan021GrpOn004,C1_RTG_21,ROUTING,1,1,2969,0x0B99,rw,InstantCtl,Instant,0,0,Line
 Chan021InputSel001,C1_GAIN_21,GAIN,1,1,2883,0x0B43,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan021Level001,C1_FDR_21,FADER_PAN,1,1,2960,0x0B90,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan021MainOn001,C1_RTG_21,ROUTING,1,1,2964,0x0B94,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan021MatrixOn001,C1_RTG_21,ROUTING,1,1,4886,0x1316,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan021MatrixOn002,C1_RTG_21,ROUTING,1,1,4887,0x1317,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan021MatrixSend001,C1_RTG_21,ROUTING,1,1,4888,0x1318,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan021MatrixSend002,C1_RTG_21,ROUTING,1,1,4889,0x1319,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan021Mtr001,C1_MTR_21,METER,1,1,4688,0x1250,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan021Mtr002,C1_MTR_21,METER,1,1,4689,0x1251,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan021Mute001,C1_FDR_21,FADER_PAN,1,1,2962,0x0B92,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2986,10 +2902,6 @@ Chan022GrpOn004,C1_RTG_22,ROUTING,1,1,3113,0x0C29,rw,InstantCtl,Instant,0,0,Line
 Chan022InputSel001,C1_GAIN_22,GAIN,1,1,3027,0x0BD3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan022Level001,C1_FDR_22,FADER_PAN,1,1,3104,0x0C20,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan022MainOn001,C1_RTG_22,ROUTING,1,1,3108,0x0C24,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan022MatrixOn001,C1_RTG_22,ROUTING,1,1,4890,0x131A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan022MatrixOn002,C1_RTG_22,ROUTING,1,1,4891,0x131B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan022MatrixSend001,C1_RTG_22,ROUTING,1,1,4892,0x131C,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan022MatrixSend002,C1_RTG_22,ROUTING,1,1,4893,0x131D,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan022Mtr001,C1_MTR_22,METER,1,1,4692,0x1254,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan022Mtr002,C1_MTR_22,METER,1,1,4693,0x1255,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan022Mute001,C1_FDR_22,FADER_PAN,1,1,3106,0x0C22,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3093,10 +3005,6 @@ Chan023GrpOn004,C1_RTG_23,ROUTING,1,1,3257,0x0CB9,rw,InstantCtl,Instant,0,0,Line
 Chan023InputSel001,C1_GAIN_23,GAIN,1,1,3171,0x0C63,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan023Level001,C1_FDR_23,FADER_PAN,1,1,3248,0x0CB0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan023MainOn001,C1_RTG_23,ROUTING,1,1,3252,0x0CB4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan023MatrixOn001,C1_RTG_23,ROUTING,1,1,4894,0x131E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan023MatrixOn002,C1_RTG_23,ROUTING,1,1,4895,0x131F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan023MatrixSend001,C1_RTG_23,ROUTING,1,1,4896,0x1320,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan023MatrixSend002,C1_RTG_23,ROUTING,1,1,4897,0x1321,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan023Mtr001,C1_MTR_23,METER,1,1,4696,0x1258,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan023Mtr002,C1_MTR_23,METER,1,1,4697,0x1259,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan023Mute001,C1_FDR_23,FADER_PAN,1,1,3250,0x0CB2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3200,10 +3108,6 @@ Chan024GrpOn004,C1_RTG_24,ROUTING,1,1,3401,0x0D49,rw,InstantCtl,Instant,0,0,Line
 Chan024InputSel001,C1_GAIN_24,GAIN,1,1,3315,0x0CF3,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,MCU hardware control
 Chan024Level001,C1_FDR_24,FADER_PAN,1,1,3392,0x0D40,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan024MainOn001,C1_RTG_24,ROUTING,1,1,3396,0x0D44,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan024MatrixOn001,C1_RTG_24,ROUTING,1,1,4898,0x1322,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan024MatrixOn002,C1_RTG_24,ROUTING,1,1,4899,0x1323,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Chan024MatrixSend001,C1_RTG_24,ROUTING,1,1,4900,0x1324,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Chan024MatrixSend002,C1_RTG_24,ROUTING,1,1,4901,0x1325,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Chan024Mtr001,C1_MTR_24,METER,1,1,4700,0x125C,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Chan024Mtr002,C1_MTR_24,METER,1,1,4701,0x125D,ro,,Instant,0,0,Linear,Scalar,,meter word +1: linear true RMS
 Chan024Mute001,C1_FDR_24,FADER_PAN,1,1,3394,0x0D42,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3491,49 +3395,6 @@ Grp001EqQ003,C2_GRP_EQ_01,EQ_BIQUAD,2,1,1094,0x0446,rw,EqSafe,LinearFrames,12,12
 Grp001EqQ004,C2_GRP_EQ_01,EQ_BIQUAD,2,1,1099,0x044B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 Grp001EqShelf001,C2_GRP_EQ_01,EQ_BIQUAD,2,1,1084,0x043C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 Grp001EqShelf002,C2_GRP_EQ_01,EQ_BIQUAD,2,1,1099,0x044B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-Grp001GateAtt001,C2_GRP_GATE_01,GATE,2,1,1110,0x0456,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp001GateDetSrc001,C2_GRP_GATE_01,GATE,2,1,1115,0x045B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp001GateFilterHpf001,C2_GRP_GATE_01,GATE,2,1,1117,0x045D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain HPF
-Grp001GateFilterLpf001,C2_GRP_GATE_01,GATE,2,1,1122,0x0462,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain LPF coeff base
-Grp001GateFilterOn001,C2_GRP_GATE_01,GATE,2,1,1116,0x045C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp001GateFilterQ001,C2_GRP_GATE_01,GATE,2,1,1117,0x045D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares HPF base"
-Grp001GateHold001,C2_GRP_GATE_01,GATE,2,1,1111,0x0457,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp001GateKey001,C2_GRP_GATE_01,GATE,2,1,1114,0x045A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp001GateOn001,C2_GRP_GATE_01,GATE,2,1,1108,0x0454,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp001GateRel001,C2_GRP_GATE_01,GATE,2,1,1112,0x0458,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp001GateRng001,C2_GRP_GATE_01,GATE,2,1,1113,0x0459,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp001GateThr001,C2_GRP_GATE_01,GATE,2,1,1109,0x0455,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp001Geq001,C2_GRP_GEQ_01,GEQ,2,1,1879,0x0757,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq002,C2_GRP_GEQ_01,GEQ,2,1,1880,0x0758,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq003,C2_GRP_GEQ_01,GEQ,2,1,1881,0x0759,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq004,C2_GRP_GEQ_01,GEQ,2,1,1882,0x075A,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq005,C2_GRP_GEQ_01,GEQ,2,1,1883,0x075B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq006,C2_GRP_GEQ_01,GEQ,2,1,1884,0x075C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq007,C2_GRP_GEQ_01,GEQ,2,1,1885,0x075D,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq008,C2_GRP_GEQ_01,GEQ,2,1,1886,0x075E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq009,C2_GRP_GEQ_01,GEQ,2,1,1887,0x075F,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq010,C2_GRP_GEQ_01,GEQ,2,1,1888,0x0760,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq011,C2_GRP_GEQ_01,GEQ,2,1,1889,0x0761,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq012,C2_GRP_GEQ_01,GEQ,2,1,1890,0x0762,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq013,C2_GRP_GEQ_01,GEQ,2,1,1891,0x0763,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq014,C2_GRP_GEQ_01,GEQ,2,1,1892,0x0764,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq015,C2_GRP_GEQ_01,GEQ,2,1,1893,0x0765,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq016,C2_GRP_GEQ_01,GEQ,2,1,1894,0x0766,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq017,C2_GRP_GEQ_01,GEQ,2,1,1895,0x0767,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq018,C2_GRP_GEQ_01,GEQ,2,1,1896,0x0768,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq019,C2_GRP_GEQ_01,GEQ,2,1,1897,0x0769,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq020,C2_GRP_GEQ_01,GEQ,2,1,1898,0x076A,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq021,C2_GRP_GEQ_01,GEQ,2,1,1899,0x076B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq022,C2_GRP_GEQ_01,GEQ,2,1,1900,0x076C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq023,C2_GRP_GEQ_01,GEQ,2,1,1901,0x076D,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq024,C2_GRP_GEQ_01,GEQ,2,1,1902,0x076E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq025,C2_GRP_GEQ_01,GEQ,2,1,1903,0x076F,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq026,C2_GRP_GEQ_01,GEQ,2,1,1904,0x0770,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq027,C2_GRP_GEQ_01,GEQ,2,1,1905,0x0771,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq028,C2_GRP_GEQ_01,GEQ,2,1,1906,0x0772,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq029,C2_GRP_GEQ_01,GEQ,2,1,1907,0x0773,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq030,C2_GRP_GEQ_01,GEQ,2,1,1908,0x0774,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp001Geq031,C2_GRP_GEQ_01,GEQ,2,1,1909,0x0775,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Grp001Level001,C2_GRP_FDR_01,FADER_PAN,2,1,1080,0x0438,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp001Mtr001,C2_MTR_GRP_01,METER,2,1,1837,0x072D,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp001Mute001,C2_GRP_FDR_01,FADER_PAN,2,1,1082,0x043A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3570,49 +3431,6 @@ Grp002EqQ003,C2_GRP_EQ_02,EQ_BIQUAD,2,1,1154,0x0482,rw,EqSafe,LinearFrames,12,12
 Grp002EqQ004,C2_GRP_EQ_02,EQ_BIQUAD,2,1,1159,0x0487,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 Grp002EqShelf001,C2_GRP_EQ_02,EQ_BIQUAD,2,1,1144,0x0478,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 Grp002EqShelf002,C2_GRP_EQ_02,EQ_BIQUAD,2,1,1159,0x0487,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-Grp002GateAtt001,C2_GRP_GATE_02,GATE,2,1,1170,0x0492,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp002GateDetSrc001,C2_GRP_GATE_02,GATE,2,1,1175,0x0497,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp002GateFilterHpf001,C2_GRP_GATE_02,GATE,2,1,1177,0x0499,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain HPF
-Grp002GateFilterLpf001,C2_GRP_GATE_02,GATE,2,1,1182,0x049E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain LPF coeff base
-Grp002GateFilterOn001,C2_GRP_GATE_02,GATE,2,1,1176,0x0498,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp002GateFilterQ001,C2_GRP_GATE_02,GATE,2,1,1177,0x0499,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares HPF base"
-Grp002GateHold001,C2_GRP_GATE_02,GATE,2,1,1171,0x0493,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp002GateKey001,C2_GRP_GATE_02,GATE,2,1,1174,0x0496,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp002GateOn001,C2_GRP_GATE_02,GATE,2,1,1168,0x0490,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp002GateRel001,C2_GRP_GATE_02,GATE,2,1,1172,0x0494,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp002GateRng001,C2_GRP_GATE_02,GATE,2,1,1173,0x0495,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp002GateThr001,C2_GRP_GATE_02,GATE,2,1,1169,0x0491,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp002Geq001,C2_GRP_GEQ_02,GEQ,2,1,1910,0x0776,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq002,C2_GRP_GEQ_02,GEQ,2,1,1911,0x0777,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq003,C2_GRP_GEQ_02,GEQ,2,1,1912,0x0778,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq004,C2_GRP_GEQ_02,GEQ,2,1,1913,0x0779,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq005,C2_GRP_GEQ_02,GEQ,2,1,1914,0x077A,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq006,C2_GRP_GEQ_02,GEQ,2,1,1915,0x077B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq007,C2_GRP_GEQ_02,GEQ,2,1,1916,0x077C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq008,C2_GRP_GEQ_02,GEQ,2,1,1917,0x077D,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq009,C2_GRP_GEQ_02,GEQ,2,1,1918,0x077E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq010,C2_GRP_GEQ_02,GEQ,2,1,1919,0x077F,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq011,C2_GRP_GEQ_02,GEQ,2,1,1920,0x0780,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq012,C2_GRP_GEQ_02,GEQ,2,1,1921,0x0781,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq013,C2_GRP_GEQ_02,GEQ,2,1,1922,0x0782,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq014,C2_GRP_GEQ_02,GEQ,2,1,1923,0x0783,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq015,C2_GRP_GEQ_02,GEQ,2,1,1924,0x0784,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq016,C2_GRP_GEQ_02,GEQ,2,1,1925,0x0785,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq017,C2_GRP_GEQ_02,GEQ,2,1,1926,0x0786,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq018,C2_GRP_GEQ_02,GEQ,2,1,1927,0x0787,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq019,C2_GRP_GEQ_02,GEQ,2,1,1928,0x0788,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq020,C2_GRP_GEQ_02,GEQ,2,1,1929,0x0789,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq021,C2_GRP_GEQ_02,GEQ,2,1,1930,0x078A,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq022,C2_GRP_GEQ_02,GEQ,2,1,1931,0x078B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq023,C2_GRP_GEQ_02,GEQ,2,1,1932,0x078C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq024,C2_GRP_GEQ_02,GEQ,2,1,1933,0x078D,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq025,C2_GRP_GEQ_02,GEQ,2,1,1934,0x078E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq026,C2_GRP_GEQ_02,GEQ,2,1,1935,0x078F,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq027,C2_GRP_GEQ_02,GEQ,2,1,1936,0x0790,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq028,C2_GRP_GEQ_02,GEQ,2,1,1937,0x0791,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq029,C2_GRP_GEQ_02,GEQ,2,1,1938,0x0792,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq030,C2_GRP_GEQ_02,GEQ,2,1,1939,0x0793,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp002Geq031,C2_GRP_GEQ_02,GEQ,2,1,1940,0x0794,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Grp002Level001,C2_GRP_FDR_02,FADER_PAN,2,1,1140,0x0474,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp002Mtr001,C2_MTR_GRP_02,METER,2,1,1838,0x072E,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp002Mute001,C2_GRP_FDR_02,FADER_PAN,2,1,1142,0x0476,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3649,49 +3467,6 @@ Grp003EqQ003,C2_GRP_EQ_03,EQ_BIQUAD,2,1,1214,0x04BE,rw,EqSafe,LinearFrames,12,12
 Grp003EqQ004,C2_GRP_EQ_03,EQ_BIQUAD,2,1,1219,0x04C3,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 Grp003EqShelf001,C2_GRP_EQ_03,EQ_BIQUAD,2,1,1204,0x04B4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 Grp003EqShelf002,C2_GRP_EQ_03,EQ_BIQUAD,2,1,1219,0x04C3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-Grp003GateAtt001,C2_GRP_GATE_03,GATE,2,1,1230,0x04CE,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp003GateDetSrc001,C2_GRP_GATE_03,GATE,2,1,1235,0x04D3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp003GateFilterHpf001,C2_GRP_GATE_03,GATE,2,1,1237,0x04D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain HPF
-Grp003GateFilterLpf001,C2_GRP_GATE_03,GATE,2,1,1242,0x04DA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain LPF coeff base
-Grp003GateFilterOn001,C2_GRP_GATE_03,GATE,2,1,1236,0x04D4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp003GateFilterQ001,C2_GRP_GATE_03,GATE,2,1,1237,0x04D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares HPF base"
-Grp003GateHold001,C2_GRP_GATE_03,GATE,2,1,1231,0x04CF,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp003GateKey001,C2_GRP_GATE_03,GATE,2,1,1234,0x04D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp003GateOn001,C2_GRP_GATE_03,GATE,2,1,1228,0x04CC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp003GateRel001,C2_GRP_GATE_03,GATE,2,1,1232,0x04D0,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp003GateRng001,C2_GRP_GATE_03,GATE,2,1,1233,0x04D1,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp003GateThr001,C2_GRP_GATE_03,GATE,2,1,1229,0x04CD,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp003Geq001,C2_GRP_GEQ_03,GEQ,2,1,1941,0x0795,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq002,C2_GRP_GEQ_03,GEQ,2,1,1942,0x0796,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq003,C2_GRP_GEQ_03,GEQ,2,1,1943,0x0797,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq004,C2_GRP_GEQ_03,GEQ,2,1,1944,0x0798,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq005,C2_GRP_GEQ_03,GEQ,2,1,1945,0x0799,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq006,C2_GRP_GEQ_03,GEQ,2,1,1946,0x079A,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq007,C2_GRP_GEQ_03,GEQ,2,1,1947,0x079B,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq008,C2_GRP_GEQ_03,GEQ,2,1,1948,0x079C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq009,C2_GRP_GEQ_03,GEQ,2,1,1949,0x079D,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq010,C2_GRP_GEQ_03,GEQ,2,1,1950,0x079E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq011,C2_GRP_GEQ_03,GEQ,2,1,1951,0x079F,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq012,C2_GRP_GEQ_03,GEQ,2,1,1952,0x07A0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq013,C2_GRP_GEQ_03,GEQ,2,1,1953,0x07A1,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq014,C2_GRP_GEQ_03,GEQ,2,1,1954,0x07A2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq015,C2_GRP_GEQ_03,GEQ,2,1,1955,0x07A3,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq016,C2_GRP_GEQ_03,GEQ,2,1,1956,0x07A4,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq017,C2_GRP_GEQ_03,GEQ,2,1,1957,0x07A5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq018,C2_GRP_GEQ_03,GEQ,2,1,1958,0x07A6,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq019,C2_GRP_GEQ_03,GEQ,2,1,1959,0x07A7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq020,C2_GRP_GEQ_03,GEQ,2,1,1960,0x07A8,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq021,C2_GRP_GEQ_03,GEQ,2,1,1961,0x07A9,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq022,C2_GRP_GEQ_03,GEQ,2,1,1962,0x07AA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq023,C2_GRP_GEQ_03,GEQ,2,1,1963,0x07AB,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq024,C2_GRP_GEQ_03,GEQ,2,1,1964,0x07AC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq025,C2_GRP_GEQ_03,GEQ,2,1,1965,0x07AD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq026,C2_GRP_GEQ_03,GEQ,2,1,1966,0x07AE,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq027,C2_GRP_GEQ_03,GEQ,2,1,1967,0x07AF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq028,C2_GRP_GEQ_03,GEQ,2,1,1968,0x07B0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq029,C2_GRP_GEQ_03,GEQ,2,1,1969,0x07B1,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq030,C2_GRP_GEQ_03,GEQ,2,1,1970,0x07B2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp003Geq031,C2_GRP_GEQ_03,GEQ,2,1,1971,0x07B3,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Grp003Level001,C2_GRP_FDR_03,FADER_PAN,2,1,1200,0x04B0,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp003Mtr001,C2_MTR_GRP_03,METER,2,1,1839,0x072F,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp003Mute001,C2_GRP_FDR_03,FADER_PAN,2,1,1202,0x04B2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3728,49 +3503,6 @@ Grp004EqQ003,C2_GRP_EQ_04,EQ_BIQUAD,2,1,1274,0x04FA,rw,EqSafe,LinearFrames,12,12
 Grp004EqQ004,C2_GRP_EQ_04,EQ_BIQUAD,2,1,1279,0x04FF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 Grp004EqShelf001,C2_GRP_EQ_04,EQ_BIQUAD,2,1,1264,0x04F0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
 Grp004EqShelf002,C2_GRP_EQ_04,EQ_BIQUAD,2,1,1279,0x04FF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-Grp004GateAtt001,C2_GRP_GATE_04,GATE,2,1,1290,0x050A,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp004GateDetSrc001,C2_GRP_GATE_04,GATE,2,1,1295,0x050F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp004GateFilterHpf001,C2_GRP_GATE_04,GATE,2,1,1297,0x0511,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain HPF
-Grp004GateFilterLpf001,C2_GRP_GATE_04,GATE,2,1,1302,0x0516,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Sidechain LPF coeff base
-Grp004GateFilterOn001,C2_GRP_GATE_04,GATE,2,1,1296,0x0510,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp004GateFilterQ001,C2_GRP_GATE_04,GATE,2,1,1297,0x0511,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares HPF base"
-Grp004GateHold001,C2_GRP_GATE_04,GATE,2,1,1291,0x050B,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp004GateKey001,C2_GRP_GATE_04,GATE,2,1,1294,0x050E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp004GateOn001,C2_GRP_GATE_04,GATE,2,1,1288,0x0508,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Grp004GateRel001,C2_GRP_GATE_04,GATE,2,1,1292,0x050C,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp004GateRng001,C2_GRP_GATE_04,GATE,2,1,1293,0x050D,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp004GateThr001,C2_GRP_GATE_04,GATE,2,1,1289,0x0509,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-Grp004Geq001,C2_GRP_GEQ_04,GEQ,2,1,1972,0x07B4,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq002,C2_GRP_GEQ_04,GEQ,2,1,1973,0x07B5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq003,C2_GRP_GEQ_04,GEQ,2,1,1974,0x07B6,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq004,C2_GRP_GEQ_04,GEQ,2,1,1975,0x07B7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq005,C2_GRP_GEQ_04,GEQ,2,1,1976,0x07B8,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq006,C2_GRP_GEQ_04,GEQ,2,1,1977,0x07B9,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq007,C2_GRP_GEQ_04,GEQ,2,1,1978,0x07BA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq008,C2_GRP_GEQ_04,GEQ,2,1,1979,0x07BB,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq009,C2_GRP_GEQ_04,GEQ,2,1,1980,0x07BC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq010,C2_GRP_GEQ_04,GEQ,2,1,1981,0x07BD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq011,C2_GRP_GEQ_04,GEQ,2,1,1982,0x07BE,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq012,C2_GRP_GEQ_04,GEQ,2,1,1983,0x07BF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq013,C2_GRP_GEQ_04,GEQ,2,1,1984,0x07C0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq014,C2_GRP_GEQ_04,GEQ,2,1,1985,0x07C1,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq015,C2_GRP_GEQ_04,GEQ,2,1,1986,0x07C2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq016,C2_GRP_GEQ_04,GEQ,2,1,1987,0x07C3,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq017,C2_GRP_GEQ_04,GEQ,2,1,1988,0x07C4,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq018,C2_GRP_GEQ_04,GEQ,2,1,1989,0x07C5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq019,C2_GRP_GEQ_04,GEQ,2,1,1990,0x07C6,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq020,C2_GRP_GEQ_04,GEQ,2,1,1991,0x07C7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq021,C2_GRP_GEQ_04,GEQ,2,1,1992,0x07C8,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq022,C2_GRP_GEQ_04,GEQ,2,1,1993,0x07C9,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq023,C2_GRP_GEQ_04,GEQ,2,1,1994,0x07CA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq024,C2_GRP_GEQ_04,GEQ,2,1,1995,0x07CB,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq025,C2_GRP_GEQ_04,GEQ,2,1,1996,0x07CC,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq026,C2_GRP_GEQ_04,GEQ,2,1,1997,0x07CD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq027,C2_GRP_GEQ_04,GEQ,2,1,1998,0x07CE,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq028,C2_GRP_GEQ_04,GEQ,2,1,1999,0x07CF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq029,C2_GRP_GEQ_04,GEQ,2,1,2000,0x07D0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq030,C2_GRP_GEQ_04,GEQ,2,1,2001,0x07D1,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
-Grp004Geq031,C2_GRP_GEQ_04,GEQ,2,1,2002,0x07D2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Grp004Level001,C2_GRP_FDR_04,FADER_PAN,2,1,1260,0x04EC,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp004Mtr001,C2_MTR_GRP_04,METER,2,1,1840,0x0730,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp004Mute001,C2_GRP_FDR_04,FADER_PAN,2,1,1262,0x04EE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -3808,25 +3540,6 @@ Main001Geq030,C2_MAIN_GEQ,GEQ,2,1,1412,0x0584,rw,EqSafe,LinearFrames,12,12,Linea
 Main001Geq031,C2_MAIN_GEQ,GEQ,2,1,1413,0x0585,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Main001Level001,C2_MAIN_FDR,FADER_PAN,2,1,1379,0x0563,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Main001Mute001,C2_MAIN_FDR,FADER_PAN,2,1,1381,0x0565,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompAtt001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1557,0x0615,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainCtr001CompDetSrc001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1564,0x061C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompEqPos001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1566,0x061E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompFilterHpf001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1568,0x0620,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompFilterLpf001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1568,0x0620,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares filter base"
-MainCtr001CompFilterOn001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1567,0x061F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompFilterQ001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1568,0x0620,rw,InstantCtl,Instant,0,0,Linear,Scalar,,MCU-computed
-MainCtr001CompKey001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1563,0x061B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompKnee001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1560,0x0618,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompLimMode001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1565,0x061D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompMake001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1559,0x0617,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainCtr001CompOn001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1554,0x0612,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CompPar001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1561,0x0619,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainCtr001CompRat001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1556,0x0614,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainCtr001CompRel001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1558,0x0616,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainCtr001CompThr001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1555,0x0613,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainCtr001CompType001,C2_MAIN_OCOMP_03,COMPRESSOR,2,1,1562,0x061A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainCtr001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
-MainCtr001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
 MainCtr001EqFreq001,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1530,0x05FA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 MainCtr001EqFreq002,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1535,0x05FF,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
 MainCtr001EqFreq003,C2_MAIN_OEQ_03,EQ_BIQUAD,2,1,1540,0x0604,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
@@ -3851,27 +3564,6 @@ MainCtr001LimiterAtt001,C2_MAIN_OLIM_03,LIMITER,2,1,1572,0x0624,rw,DynSafe,Linea
 MainCtr001LimiterOn001,C2_MAIN_OLIM_03,LIMITER,2,1,1570,0x0622,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainCtr001LimiterRel001,C2_MAIN_OLIM_03,LIMITER,2,1,1573,0x0625,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainCtr001LimiterThr001,C2_MAIN_OLIM_03,LIMITER,2,1,1571,0x0623,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainCtr001Mtr001,C2_MTR_MAIN_03,METER,2,1,1833,0x0729,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
-MainCtr001Mute001,C2_MAIN_OUT_03,OUTPUT_TDM,2,1,2172,0x087C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompAtt001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1467,0x05BB,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainL001CompDetSrc001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1474,0x05C2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompEqPos001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1476,0x05C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompFilterHpf001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1478,0x05C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompFilterLpf001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1478,0x05C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares filter base"
-MainL001CompFilterOn001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1477,0x05C5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompFilterQ001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1478,0x05C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,MCU-computed
-MainL001CompKey001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1473,0x05C1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompKnee001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1470,0x05BE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompLimMode001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1475,0x05C3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompMake001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1469,0x05BD,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainL001CompOn001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1464,0x05B8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CompPar001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1471,0x05BF,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainL001CompRat001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1466,0x05BA,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainL001CompRel001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1468,0x05BC,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainL001CompThr001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1465,0x05B9,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainL001CompType001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1472,0x05C0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainL001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
-MainL001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
 MainL001EqFreq001,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1440,0x05A0,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 MainL001EqFreq002,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1445,0x05A5,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
 MainL001EqFreq003,C2_MAIN_OEQ_01,EQ_BIQUAD,2,1,1450,0x05AA,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
@@ -3898,25 +3590,6 @@ MainL001LimiterRel001,C2_MAIN_OLIM_01,LIMITER,2,1,1483,0x05CB,rw,DynSafe,LinearF
 MainL001LimiterThr001,C2_MAIN_OLIM_01,LIMITER,2,1,1481,0x05C9,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainL001Mtr001,C2_MTR_MAIN_01,METER,2,1,1829,0x0725,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 MainL001Mute001,C2_MAIN_OUT_01,OUTPUT_TDM,2,1,2168,0x0878,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompAtt001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1512,0x05E8,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainR001CompDetSrc001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1519,0x05EF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompEqPos001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1521,0x05F1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompFilterHpf001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1523,0x05F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompFilterLpf001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1523,0x05F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares filter base"
-MainR001CompFilterOn001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1522,0x05F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompFilterQ001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1523,0x05F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,MCU-computed
-MainR001CompKey001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1518,0x05EE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompKnee001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1515,0x05EB,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompLimMode001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1520,0x05F0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompMake001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1514,0x05EA,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainR001CompOn001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1509,0x05E5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CompPar001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1516,0x05EC,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainR001CompRat001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1511,0x05E7,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainR001CompRel001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1513,0x05E9,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainR001CompThr001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1510,0x05E6,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainR001CompType001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1517,0x05ED,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainR001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
-MainR001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
 MainR001EqFreq001,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1485,0x05CD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 MainR001EqFreq002,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1490,0x05D2,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
 MainR001EqFreq003,C2_MAIN_OEQ_02,EQ_BIQUAD,2,1,1495,0x05D7,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
@@ -3943,52 +3616,22 @@ MainR001LimiterRel001,C2_MAIN_OLIM_02,LIMITER,2,1,1528,0x05F8,rw,DynSafe,LinearF
 MainR001LimiterThr001,C2_MAIN_OLIM_02,LIMITER,2,1,1526,0x05F6,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainR001Mtr001,C2_MTR_MAIN_02,METER,2,1,1831,0x0727,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 MainR001Mute001,C2_MAIN_OUT_02,OUTPUT_TDM,2,1,2170,0x087A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompAtt001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1602,0x0642,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompDetSrc001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1609,0x0649,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompEqPos001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1611,0x064B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterHpf001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterLpf001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares filter base"
-MainSub001CompFilterOn001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1612,0x064C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterQ001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,MCU-computed
-MainSub001CompKey001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1608,0x0648,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompKnee001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1605,0x0645,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompLimMode001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1610,0x064A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompMake001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1604,0x0644,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001CompOn001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1599,0x063F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompPar001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1606,0x0646,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001CompRat001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1601,0x0641,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompRel001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1603,0x0643,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompThr001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1600,0x0640,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompType001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1607,0x0647,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
 MainSub001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
 MainSub001EqFreq001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 MainSub001EqFreq002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
-MainSub001EqFreq003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
-MainSub001EqFreq004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 coeff base
 MainSub001EqGain001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
 MainSub001EqGain002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqGain003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqGain004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 MainSub001EqHpf001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,HPF via EQ band 1
 MainSub001EqOn001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1596,0x063C,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001EqQ001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
 MainSub001EqQ002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqQ003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqQ004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
 MainSub001EqShelf001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
-MainSub001EqShelf002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
 MainSub001Level001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2173,0x087D,rw,GainFast,Slew,3,8,Exp,Scalar,,
 MainSub001LimiterAtt001,C2_MAIN_OLIM_04,LIMITER,2,1,1617,0x0651,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainSub001LimiterOn001,C2_MAIN_OLIM_04,LIMITER,2,1,1615,0x064F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainSub001LimiterRel001,C2_MAIN_OLIM_04,LIMITER,2,1,1618,0x0652,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainSub001LimiterThr001,C2_MAIN_OLIM_04,LIMITER,2,1,1616,0x0650,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001Mtr001,C2_MTR_MAIN_04,METER,2,1,1835,0x072B,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
-MainSub001Mute001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2174,0x087E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Matrix001Level001,C2_MTX_FDR_01,FADER_PAN,2,1,2003,0x07D3,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Matrix001Mute001,C2_MTX_FDR_01,FADER_PAN,2,1,2005,0x07D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Matrix002Level001,C2_MTX_FDR_02,FADER_PAN,2,1,2008,0x07D8,rw,GainFast,Slew,3,8,Exp,Scalar,,
-Matrix002Mute001,C2_MTX_FDR_02,FADER_PAN,2,1,2010,0x07DA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Delay001,C2_MON_DLY,DELAY,2,1,1794,0x0702,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001InputSel001,C2_MON,MONITOR,2,1,1788,0x06FC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Level001,C2_MON,MONITOR,2,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,,L
