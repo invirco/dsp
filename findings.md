@@ -21,23 +21,31 @@ the three long-standing uncatalogued-node warnings (`C2_HPT_01`,
 `C2_MAIN_COMP`, `C2_MAIN_LIM`). Owed to the hub: either the D32 mx-master
 declares them, or the graph stops reaching them.
 
-**S145-2 — 🔴 THE RULED SCREEN'S ONE BUTTON NEEDS THE FACTORY APP, AND THE APP
-IS NOT IN THIS REPO.** PW's ruling of 2026-09-28 makes NO SIGNAL the only
-button on the patch screen. `d24_live.Live.command` carries `enter`, `pause`,
-`start`, `exit` and `notlit` because something app-side already draws each of
-those; `nosignal` is new. S137 added `notlit` through this repo alone and it
-worked on the glass — which means either the app draws an arbitrary button name
-or `notlit` already existed app-side, and **which of those is true cannot be
-established from here**; settling it needs the unit, which the dispatch forbids.
-If the app does not draw it, a patch that will not detect leaves only PAUSE on
-the glass, and PAUSE ends the pass. Two mitigations are built — a two-press
-ENTER path (the first press raises the no-signal question, the second answers
-it; neither can ever grade a patch) and the USB keyboard re-enabled on this
-path — but the armed factory screen draws no dialogs and S123 recorded that no
-keyboard is on the unit. So the three station files are built, proved and **not
-deployed**; the hub's answer is one of: confirm the app draws unknown buttons
-and deploy; add NO SIGNAL to the app and then deploy; or deploy anyway and
-accept PAUSE as the escape. Same wall S138b-2 hit over STILL LIT.
+**S145-2 — 🟢 ANSWERED, AND WHAT IS LEFT IS A CONTRACT THAT SPANS TWO REPOS.**
+PW's ruling of 2026-09-28 makes NO SIGNAL the only button on the patch screen,
+and this session could not establish whether the factory app would draw
+`nosignal` at all: `d24_live.Live.command` carries `enter`, `pause`, `start`,
+`exit` and `notlit` because something app-side already draws each of those,
+`nosignal` was new, S137's `notlit` settled nothing either way, and the app is
+not in this tree. Held the deploy and asked. **The hub read it out of the app
+source: `mx26 src/sw/app/Core/TestSkinStore.RunAll.cs` draws prompt buttons as
+generic slots `ACT1..ACT6`, labelled from `SlotLabel` or from the id
+upper-cased, and only `skip`/`ignore` open a reason list — so `nosignal` renders
+as NOSIGNAL on the deployed app and the press answers straight through.** The
+NO SIGNAL label landed in mx26 `1d22bae` for the next app deploy, and the three
+station files are now deployed and md5-verified on the unit.
+
+**The finding worth keeping is the shape, not the answer.** A station tool in
+this repo can put a button on the glass that the app silently does not draw, and
+nothing in this tree can tell: `Live.command`'s accept-list is this side's half
+of the contract, the app's slot labelling is the other half, and the two live in
+different repos with no check across them. S137 hit it over STILL LIT, S138b-2
+hit it again, and this session hit it a third time and had to spend a hub round
+trip on it. What would end it is one line the app publishes — the slot mechanism
+and the labels it knows — carried into `defs` or named in an mx26 doc the spoke
+reads, so a new button is either known to work or known not to. Until then:
+**assume nothing about a button name that is not already in `Live.command`, and
+ask the hub before shipping one.**
 
 **S145-3 — A PER-LANE POLL WINDOW CANNOT BE STATED IN READINGS, BECAUSE THREE
 OF THIS UNIT'S LANES ARE TEN TIMES SLOWER TO WATCH THAN THE OTHER TWENTY-FOUR.**

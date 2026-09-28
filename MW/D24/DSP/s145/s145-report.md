@@ -325,18 +325,40 @@ Two new screens are in the `--screens` walk so they can be photographed on the
 unit: `14b-no-signal-recorded` and `16b-terminator-holding`.
 `13-wrong-socket` and `14-no-signal` now carry the ruled status lines.
 
-## 2.11 NOT DEPLOYED, and why
+## 2.11 Deployed, after the hub settled the one question this repo could not
 
-`deploy-bench-tools.sh --check` is clean and would deploy exactly the three
-changed files (`d24_patch.py`, `d24_live.py`, `d24_runall.py`; repo md5s
-`d5c8065e…`, `535743c8…`, `ee4e6184…`). **It was not run.** See finding S145-2:
-the ruled screen's one button is `nosignal`, and until the factory app draws it,
-deploying would put PW's next live pass on a screen where a patch that will not
-detect can only be escaped with PAUSE (which ends the pass) or with a USB
-keyboard, which S123 recorded as not present on the unit. The two-press ENTER
-fallback of §2.7 needs a channel the operator can reach, and on the armed factory
-screen there are no dialogs. So the deploy is queued behind one app-side
-question, and it is one line for the hub to answer.
+The deploy was held back at first, because the ruled screen's one button is
+`nosignal` and nothing in this tree can say whether the factory app draws a
+button name it has never been given (finding S145-2). **The hub answered it from
+the app source:** `mx26 src/sw/app/Core/TestSkinStore.RunAll.cs` draws prompt
+buttons as **generic slots `ACT1..ACT6`**, labelled from `SlotLabel` or from the
+id upper-cased, so `nosignal` renders as NOSIGNAL on the app that is on the unit
+today and a press answers `nosignal` straight through — only `skip` and `ignore`
+open the reason list. The proper NO SIGNAL label landed in mx26 `1d22bae` and
+ships with the next app deploy. So the glass channel works now and the two-press
+ENTER path of §2.7 plus the re-enabled keyboard are belt-and-braces rather than
+the only way through.
+
+**Deployed via `deploy-bench-tools.sh`, every guard clean**
+(`check-no-hardcoded-matrix-addr.py` OK; `STAGE_TOOLS` complete). Three files
+copied, previous copies kept as `*.bak-20260928-192707`, the stale
+runner-stage copies purged, and re-verified — then verified again **against the
+artifact rather than the script's word**, by reading the unit's own md5s:
+
+```
+/home/app/selftest/d24_patch.py    d5c8065ece0336fa549ec28faa6a6078
+/home/app/selftest/d24_live.py     535743c81ab23ad372fd81e5a1b0fc3d
+/home/app/selftest/d24_runall.py   ee4e61842cb6e332df0f0fc207d49e8d
+```
+
+Each equal to this repo's. `--check` now reads **"nothing to deploy", 19 of 19
+same**, pair drop (`codec4619.py`, `matrix_addr.py`) included and untouched.
+
+That copy is the only thing that reached the unit. Witnessed before and after,
+unchanged either side: **GPIO26 (AN_EN) `op pd | lo`**, GPIO27 (CS_M)
+`ip pd | lo` — left exactly as found, because it is the running app's own state
+and nothing in this dispatch has any business moving it — `matrix-app` active,
+`d24-testui` inactive.
 
 ---
 
@@ -351,21 +373,29 @@ DSP has live SPI addresses no product definition declares — the same shape as 
 three long-standing uncatalogued-node warnings. Owed to the hub: either the D32
 mx-master declares them or the graph stops reaching them.
 
-**S145-2 — 🔴 the ruled screen's one button needs the factory app, and the app is
-not in this repo.** `Live.command` carries `enter`, `pause`, `start`, `exit` and
-`notlit` because something app-side already draws each; `nosignal` is new. S137
-added `notlit` through this repo alone and it worked on the glass, which means
-either the app draws an arbitrary button name or `notlit` already existed
-app-side — and which of those is true **cannot be established from here**, and
-settling it would need the unit, which this dispatch forbids. Consequence if the
-app does not draw it: on a patch that will not detect, the glass carries only
-PAUSE, and PAUSE ends the pass. Mitigations built: the two-press ENTER fallback
-(§2.7) and the USB keyboard re-enabled on this path — but the armed factory
-screen draws no dialogs, and S123 recorded that no keyboard is on the unit. So
-the three station files are **built, proved and not deployed**, and the hub's
-answer is one of: (a) confirm the app draws unknown buttons, and deploy; (b) add
-NO SIGNAL to the app, then deploy; (c) deploy anyway and accept PAUSE as the
-escape.
+**S145-2 — 🟢 CLOSED BY THE HUB: the factory app draws unknown buttons, and the
+answer was in a file this repo cannot see.** The question was whether the glass
+would draw `nosignal`, the one button the ruled screen carries.
+`Live.command` carries `enter`, `pause`, `start`, `exit` and `notlit` because
+something app-side already draws each of those; `nosignal` was new, S137's
+`notlit` settled nothing either way, and establishing it needed the app, which is
+not in this tree. The hub read it: `mx26
+src/sw/app/Core/TestSkinStore.RunAll.cs` draws prompt buttons as **generic slots
+`ACT1..ACT6`**, labelled from `SlotLabel` or from the id upper-cased, and only
+`skip`/`ignore` open a reason list — so `nosignal` renders as NOSIGNAL on the
+deployed app and the press answers straight through. The NO SIGNAL label landed
+in mx26 `1d22bae` for the next app deploy. The three station files are deployed
+and md5-verified on the unit (§2.11).
+
+**The finding worth keeping is the shape of it, not the answer.** A station tool
+in this repo can put a button on the glass that the app silently does not draw,
+and nothing in this tree can tell. `Live.command`'s accept-list is this side's
+half of that contract and the app's slot labelling is the other, and the two are
+in different repos with no check across them. S137 hit it (STILL LIT), S138b hit
+it, and this session hit it again. What would end it is one line the app
+publishes — the slot mechanism and the labels it knows — carried into `defs` or
+named in an mx26 doc the spoke reads, so that a new button is either known to
+work or known not to, rather than needing a hub round trip each time.
 
 **S145-3 — the stability window cannot be three readings, and the reason is a
 hardware asymmetry worth writing down.** The talkback XLR and both mini-jack
@@ -391,20 +421,23 @@ the number to quote for this repo is 168.
 
 # Not touched
 
-No flashing. No app deploy. No station-tool deploy. No SPI, no matrix bus, no
-serial port, no GPIO, no rails, AN_EN never raised, no phantom, no 595 chain
-write, no display. The unit's state is whatever S138b left it and was not
-re-verified here, because nothing in this session could have changed it.
+No flashing. No app deploy. No pair, no MCU or CPLD image. No SPI, no matrix bus,
+no serial port, no GPIO write, no rails, AN_EN never raised, no phantom, no 595
+chain write, no display. The three station-tool files of §2.11 are the only thing
+that reached the unit. GPIO26 `op pd | lo` and GPIO27 `ip pd | lo` read the same
+before and after; `matrix-app` active and `d24-testui` inactive, both unchanged.
 
 # Outcome
 
-🟢 Both parts done, with one item recorded rather than guessed past.
+🟢 Both parts done, and the one item that was blocked is closed.
 
 - **Part 1 closed.** `defs.lock` at `defs-v2026.09.28.4`, `gen_dsp.py` clean
   with no `--propose`, `./regenerate-dsp-contract.sh` passes every gate end to
   end, D24's DSP-address backfill for generation `46109e9fb812` installed at
   3,800/3,800 (D32 5,890/5,890), determinism re-checked independently.
-- **Part 2 built and proved desk-side**, 85 new checks green and every earlier
-  proof still green. **Queued, not done: the deploy**, behind S145-2 — one
-  app-side question about whether the factory screen can draw a NO SIGNAL
-  button.
+- **Part 2 built, proved and deployed**, 85 new checks green and every earlier
+  proof still green. S145-2 answered by the hub — the app draws unknown buttons
+  from generic slots, so NOSIGNAL renders today — and the three station files are
+  on the unit, md5-verified, with `--check` reading nothing to deploy.
+- Still owed upstream: S145-1 (104 cells the D32 graph reaches that the D32
+  master does not name) and the cross-repo button contract in S145-2's tail.
