@@ -1411,23 +1411,122 @@ for f in range(1, NUM_FX + 1):
 # "NOT FIXED HERE" note from the 08-27 audit. The follower is the R leg: it
 # reads `_mon_q_r_`, the master's own converted word, off the master's own
 # source select.
+# ===========================================================================
+# S144 (PW rulings D7 + D8): THE MONITOR REACHES ITS JACKS, THE PHONES ARE
+# THEIR OWN PAIR, AND THE SOURCE IS A PICK-OFF
+# ===========================================================================
+#
+# THE THREE OPEN SOCKETS ARE ANSWERED. The rear Monitor jacks J53/J54
+# (DAC_15/16) carry the MONITOR bus -- which is what they are labelled for,
+# and what they have not carried since the graph was written (S121-6 found
+# them carrying the crossover's centre and sub legs; S122-5 recorded that
+# the monitor chain ended on a block nothing read). The headphone jack J10
+# (DAC_09/10) carries a SEPARATE phones pair with its own level and delay
+# (ruling D7), not aux 9/10, which a D24 does not declare.
+#
+# `Mon PickOff` (ruling D8) is the tap: "0=pre-processing 1=post-processing
+# 2=post-fader". Three taps of the main chain, one cell, both legs -- a
+# SOURCE_SEL master and a follower, so the switch is one coefficient set and
+# the two legs cannot land on different taps for a block. It powers up at 2,
+# post-fader, which is the tap the monitor has always read (`C2_MAIN_FDR`),
+# so the shipping default is what it was.
+#
+# `Mon InputSel` is UNCHANGED and still on C2_MON: "0 = the Main L-R source
+# at the Mon PickOff tap / 1 = the cue bus". The pick-off chooses WHICH main
+# tap; InputSel chooses main-or-cue. The phones read the SAME source select
+# -- `source_from=C2_MON`, one word, both destinations, which is the
+# ruling's "off the same Cue / Main L-R source select as the monitor
+# output" -- and their own level and delay.
+#
+# `Mon CueOn` costs nothing: the host folds it and the cue state into the
+# one `Mon InputSel` word (ruling D8, and the cell's own note says so).
+#
+# 🔴 TALKBACK INJECTION IS NOT BUILT AND IT IS NOT A GRAPH CHANGE. The
+# talkback mics are CHIP-1 nodes with EMPTY outputs columns -- `C1_TALK_01`
+# and `C1_TALK_02` reach no bus at all, which is the pre-existing `Talk
+# Dest` gap S25 diagnosed and S26 declined -- so there is nothing on chip 2
+# to inject. Reaching the phones from chip 1 needs a MIX-FABRIC SLOT for
+# the talkback, and the fabric's slot map is single-sourced in
+# shared/dsp4-logic/ (dsp4-architecture-decisions.md) and is a wire
+# contract, not a graph edit. On top of that `Talk Dest`'s own note makes
+# the destination ORDER provisional: "Main L/R + Aux 1-8 + phones ... y
+# order provisional until the skin audit - PW ruling D13". So the phones
+# are built with the crosspoint they will need and the injection is
+# recorded as S144-4, with what it takes, rather than invented.
+_late_c2('C2_MON_PICK', 4)
+add('C2_MON_PICK', 2, 'SOURCE_SEL', 'Monitor Pick-off', 2,
+    'C2_MIX_MAIN_L;C2_MAIN_DLY;C2_MAIN_FDR', 'C2_MON;C2_PHN',
+    params='sources=3;sel=2;xfade_ms=12.0;cell_suffix=PickOff',
+    ramp_profile='InstantCtl')
+add('C2_MON_PICK_R', 2, 'SOURCE_SEL', 'Monitor Pick-off R', 1,
+    'C2_MIX_MAIN_R;C2_MAIN_DLY_R;C2_MAIN_FDR_R', 'C2_MON_R;C2_PHN_R',
+    params='sources=3;follows=C2_MON_PICK',
+    ramp_profile='InstantCtl')
+
 p, a2 = c2_alloc.next(6)
-add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MAIN_FDR', 'C2_MON_DLY',
+add('C2_MON', 2, 'MONITOR', 'Monitor', 2, 'C2_MON_PICK', 'C2_MON_DLY',
     spi_page=p, spi_addr=a2,
     params='level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l',
     ramp_profile='GainFast')
-add('C2_MON_R', 2, 'MONITOR', 'Monitor R', 1, 'C2_MAIN_FDR_R', 'C2_MON_DLY_R',
+add('C2_MON_R', 2, 'MONITOR', 'Monitor R', 1, 'C2_MON_PICK_R', 'C2_MON_DLY_R',
     params='follows=C2_MON;follow_leg=r',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(2)
-add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', '',
+add('C2_MON_DLY', 2, 'DELAY', 'Monitor Delay', 2, 'C2_MON', 'C2_MON_OUT_L',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
     ramp_profile='InstantCtl')
-add('C2_MON_DLY_R', 2, 'DELAY', 'Monitor Delay R', 1, 'C2_MON_R', '',
+add('C2_MON_DLY_R', 2, 'DELAY', 'Monitor Delay R', 1, 'C2_MON_R',
+    'C2_MON_OUT_R',
     params='delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY',
     ramp_profile='InstantCtl')
+
+# ONE NODE IS ONE SLOT (S143): the monitor pair is two OUTPUT_TDM nodes,
+# one each, reading the two legs. No `mo_page`: the masters give the
+# monitor a Level and a Delay and NO Mute, so there is no strip cell for
+# this node to carry and it emits none.
+add('C2_MON_OUT_L', 2, 'OUTPUT_TDM', 'Monitor Out L', 1, 'C2_MON_DLY', '',
+    params=output_params('DAC_15', scope='D24'))
+add('C2_MON_OUT_R', 2, 'OUTPUT_TDM', 'Monitor Out R', 1, 'C2_MON_DLY_R', '',
+    params=output_params('DAC_16', scope='D24'))
+
+# --- THE PHONES PAIR (Chip 2, ruling D7) ---
+#
+# The MONITOR kernel again, because it is exactly the right one: a source
+# select it does not own (`source_from`) and one ramped level it does. Six
+# words for the shape the kernel has, of which ONE carries a cell --
+# `Mon PhonesLevel`, at +1 where `Mon Level[1]` sits on the monitor. The
+# +0 word is the monitor's source and this node does not have one; +2 is
+# the kernel's second level shadow, which both legs of a ONE-LEVEL pair
+# leave alone. `mon_cells` says which, so no cell is emitted that no
+# product defines.
+_late_c2('C2_PHN', 6)
+add('C2_PHN', 2, 'MONITOR', 'Phones', 2, 'C2_MON_PICK', 'C2_PHN_DLY',
+    params='level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l'
+           ';source_from=C2_MON;cell_prefix=Phones;mon_cells=Level1',
+    ramp_profile='GainFast')
+# follow_leg=l on BOTH legs: `Mon PhonesLevel` is ONE cell for the pair
+# (the master's note: "separate from Mon Level"), so both instances run the
+# same converted word. That is the difference from the monitor, whose two
+# legs are two different cells.
+add('C2_PHN_R', 2, 'MONITOR', 'Phones R', 1, 'C2_MON_PICK_R', 'C2_PHN_DLY_R',
+    params='follows=C2_PHN;follow_leg=l',
+    ramp_profile='GainFast')
+
+_late_c2('C2_PHN_DLY', 2)
+add('C2_PHN_DLY', 2, 'DELAY', 'Phones Delay', 2, 'C2_PHN', 'C2_PHN_OUT_L',
+    params='delay_ms=0.0;max_ms=250.0;cell_prefix=Phones',
+    ramp_profile='InstantCtl')
+add('C2_PHN_DLY_R', 2, 'DELAY', 'Phones Delay R', 1, 'C2_PHN_R',
+    'C2_PHN_OUT_R',
+    params='delay_ms=0.0;max_ms=250.0;follows=C2_PHN_DLY',
+    ramp_profile='InstantCtl')
+
+add('C2_PHN_OUT_L', 2, 'OUTPUT_TDM', 'Phones Out L', 1, 'C2_PHN_DLY', '',
+    params=output_params('DAC_09', scope='D24'))
+add('C2_PHN_OUT_R', 2, 'OUTPUT_TDM', 'Phones Out R', 1, 'C2_PHN_DLY_R', '',
+    params=output_params('DAC_10', scope='D24'))
 
 # --- THE PANEL SPEAKER (Chip 2) ---
 #

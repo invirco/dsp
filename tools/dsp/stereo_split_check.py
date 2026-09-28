@@ -218,11 +218,18 @@ _SIDE_EXPECT = {
     'C2_CODEC_AUX_OUT': ('L', 'CODEC_OUT_3 (D24, DNP).'),
     'C2_CODEC_AUX_OUT_R': ('R', 'CODEC_OUT_4 (D24, DNP) — the other half '
                                 'of the same unwritten pair.'),
-    'C2_MON_DLY': ('L', 'Monitor L. The chain ends here: a D24 has no '
-                        'connector for the monitor bus yet (S122). The '
-                        'phones/monitor outputs are S142 §3.3 item 2.'),
-    'C2_MON_DLY_R': ('R', 'Monitor R — `Mon Level[2]` had no reader at all '
-                          'before S143.'),
+    # S144 built item 2: the monitor chain no longer ends on a block nothing
+    # reads, and the phones are their own pair.
+    'C2_MON_OUT_L': ('L', 'Monitor L — DAC_15, rear jack J53. What that '
+                          'jack is labelled for, and what it has never '
+                          'carried: until S144 it carried main output 3, '
+                          'the crossover\'s centre leg (S121-6).'),
+    'C2_MON_OUT_R': ('R', 'Monitor R — DAC_16, rear jack J54.'),
+    'C2_PHN_OUT_L': ('L', 'Phones L — DAC_09, J10 tip (PW ruling D7). Its '
+                          'own level and delay off the monitor\'s source '
+                          'select; it was aux 9, which a D24 does not '
+                          'declare (S121-5).'),
+    'C2_PHN_OUT_R': ('R', 'Phones R — DAC_10, J10 ring.'),
     'C2_SPKR_OUT': ('none', 'The panel speaker carries HAPTICS ONLY and '
                             'nothing else may reach it (PW ruling '
                             '2026-09-26; both speaker-slot guards enforce '

@@ -162,7 +162,12 @@ EXTRA_PARAMS = {
     # bus that lost its address by accident is still caught.
     'MIX_BUS':        {'source_count', 'fx_sends', 'aux',
                        'xp_page', 'xp_addr', 'xp_map', 'no_spi'},
-    'MONITOR':        {'level_l_db', 'level_r_db'},
+    # `source_from` / `mon_cells` / `cell_prefix` (S144): the phones pair
+    # runs the MONITOR kernel off the monitor's own source select and
+    # carries one level cell instead of two, so which of the node's three
+    # words reach cells is declared rather than assumed by type.
+    'MONITOR':        {'level_l_db', 'level_r_db', 'source_from',
+                       'mon_cells', 'cell_prefix'},
     # SOURCE_SEL (S144). `cell_suffix` is WHICH cell selects the source --
     # the three selects the 28 Sep rulings ask for are spelled `MainSub
     # Src`, `Main Out3Mode` and `Mon PickOff` on one kernel, so the suffix
@@ -220,7 +225,7 @@ EXTRA_PARAMS = {
 FOLLOW_PARAM = 'follows'
 FOLLOW_TYPES = {
     'FADER_PAN', 'GEQ', 'ANTI_FB', 'COMPRESSOR', 'LIMITER', 'DELAY',
-    'CROSSOVER', 'MONITOR', 'AUX_INPUT',
+    'CROSSOVER', 'MONITOR', 'AUX_INPUT', 'SOURCE_SEL',
 }
 LINK_IN_TYPES = {'COMPRESSOR', 'LIMITER'}
 FOLLOW_LEG_TYPES = {'MONITOR'}

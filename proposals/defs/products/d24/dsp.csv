@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 3737 of 5767 defined cells reach a DSP address.
-# The other 2030 are named in dsp-unmapped.csv with the
+# 3740 of 5767 defined cells reach a DSP address.
+# The other 2027 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -3612,7 +3612,7 @@ Main001Out3Delay001,C2_OUT3_DLY,DELAY,2,1,1368,0x0558,rw,InstantCtl,Instant,0,0,
 Main001Out3Link001,C2_OUT3_SEL,SOURCE_SEL,2,1,2353,0x0931,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Main001Out3Mode001,C2_OUT3_SEL,SOURCE_SEL,2,1,2352,0x0930,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Main001Out3Mtr001,C2_MTR_OUT3,METER,2,1,1841,0x0731,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
-Main001Out3Mute001,C2_OUT3_OUT,OUTPUT_TDM,2,1,2357,0x0935,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Main001Out3Mute001,C2_OUT3_OUT,OUTPUT_TDM,2,1,2369,0x0941,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainCtr001EqFreq001,C2_CTR_EQ,EQ_BIQUAD,2,1,1324,0x052C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 MainCtr001EqFreq002,C2_CTR_EQ,EQ_BIQUAD,2,1,1329,0x0531,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
 MainCtr001EqFreq003,C2_CTR_EQ,EQ_BIQUAD,2,1,1334,0x0536,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
@@ -3741,6 +3741,9 @@ Mon001Delay001,C2_MON_DLY,DELAY,2,1,1794,0x0702,rw,InstantCtl,Instant,0,0,Linear
 Mon001InputSel001,C2_MON,MONITOR,2,1,1788,0x06FC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Level001,C2_MON,MONITOR,2,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,,L
 Mon001Level002,C2_MON,MONITOR,2,1,1790,0x06FE,rw,GainFast,Slew,3,8,Exp,Scalar,,R
+Mon001PhonesDelay001,C2_PHN_DLY,DELAY,2,1,2366,0x093E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Mon001PhonesLevel001,C2_PHN,MONITOR,2,1,2361,0x0939,rw,GainFast,Slew,3,8,Exp,Scalar,,both legs (one cell)
+Mon001PickOff001,C2_MON_PICK,SOURCE_SEL,2,1,2356,0x0934,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Hpf001,C1_NOISE,NOISE_GEN,1,1,4746,0x128A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Level001,C1_NOISE,NOISE_GEN,1,1,4745,0x1289,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Noise001On001,C1_NOISE,NOISE_GEN,1,1,4744,0x1288,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

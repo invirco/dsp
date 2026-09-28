@@ -364,7 +364,7 @@
 
 #define C2_IC_RX_N 41
 #endif
-/* TX node tables (24 outputs over 6 full-window lanes of 8) */
+/* TX node tables (28 outputs over 6 full-window lanes of 8) */
 .extern _tx_out_slot_C2_AUX_OUT_08;
 .extern _tx_out_slot_C2_AUX_OUT_07;
 .extern _tx_out_slot_C2_AUX_OUT_06;
@@ -373,9 +373,13 @@
 .extern _tx_out_slot_C2_AUX_OUT_03;
 .extern _tx_out_slot_C2_AUX_OUT_02;
 .extern _tx_out_slot_C2_AUX_OUT_01;
+.extern _tx_out_slot_C2_PHN_OUT_L;
+.extern _tx_out_slot_C2_PHN_OUT_R;
 .extern _tx_out_slot_C2_MAIN_OUT_02;
 .extern _tx_out_slot_C2_MAIN_OUT_01;
 .extern _tx_out_slot_C2_OUT3_OUT;
+.extern _tx_out_slot_C2_MON_OUT_L;
+.extern _tx_out_slot_C2_MON_OUT_R;
 .extern _tx_out_slot_C2_SPKR_OUT;
 .extern _tx_out_slot_C2_CODEC_AUX_OUT;
 .extern _tx_out_slot_C2_CODEC_AUX_OUT_R;
@@ -393,7 +397,7 @@
 .global _c2_tx_off;
 .global _c2_tx_stride;
 #endif
-.var _c2_tx_off[24] =
+.var _c2_tx_off[28] =
     0,
     1,
     2,
@@ -402,9 +406,13 @@
     5,
     6,
     7,
+    128,
+    129,
     130,
     131,
     133,
+    134,
+    135,
     256,
     258,
     259,
@@ -418,7 +426,11 @@
     518,
     519,
     640;
-.var _c2_tx_stride[24] =
+.var _c2_tx_stride[28] =
+    8,
+    8,
+    8,
+    8,
     8,
     8,
     8,
@@ -443,7 +455,7 @@
     8,
     8,
     8;
-.var _c2_tx_ptrs[24] =
+.var _c2_tx_ptrs[28] =
     _tx_out_slot_C2_AUX_OUT_08,
     _tx_out_slot_C2_AUX_OUT_07,
     _tx_out_slot_C2_AUX_OUT_06,
@@ -452,9 +464,13 @@
     _tx_out_slot_C2_AUX_OUT_03,
     _tx_out_slot_C2_AUX_OUT_02,
     _tx_out_slot_C2_AUX_OUT_01,
+    _tx_out_slot_C2_PHN_OUT_L,
+    _tx_out_slot_C2_PHN_OUT_R,
     _tx_out_slot_C2_MAIN_OUT_02,
     _tx_out_slot_C2_MAIN_OUT_01,
     _tx_out_slot_C2_OUT3_OUT,
+    _tx_out_slot_C2_MON_OUT_L,
+    _tx_out_slot_C2_MON_OUT_R,
     _tx_out_slot_C2_SPKR_OUT,
     _tx_out_slot_C2_CODEC_AUX_OUT,
     _tx_out_slot_C2_CODEC_AUX_OUT_R,
@@ -505,7 +521,7 @@ _scatter_chip2:
     rts;
 _scatter_chip2.end:
 
-/* Gather 24 outputs (lane-major full-window) */
+/* Gather 28 outputs (lane-major full-window) */
 .global _gather_chip2;
 _gather_chip2:
     /* r0 = sample index (0..15) */
@@ -513,7 +529,7 @@ _gather_chip2:
     i1 = _c2_tx_off;
     i2 = _c2_tx_stride;
     i3 = _c2_tx_ptrs;
-    r7 = 24;
+    r7 = 28;
     lcntr = r7; do .gather_chip2_lp until lce;
         r3 = dm(i1, 1);       /* off */
         r4 = dm(i2, 1);       /* stride */
@@ -550,7 +566,7 @@ _meter_scan_chip2:
     i1 = _meter_peaks;
     m0 = 0;
     m1 = 1;
-    r5 = 24;
+    r5 = 28;
     lcntr = r5; do .meter_scan_chip2_lp until lce;
         r2 = dm(i0, 1);
         i2 = r2;

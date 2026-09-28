@@ -60,7 +60,7 @@ const int c2_tx_lanes_wsize = 7;
 const int c2_tx_lanes_mfd[6] = { 2, 2, 2, 1, 2, 2 };
 const int c2_tx_lanes[24] = {
     0, 0x00FF, 8, 0,   /* MFD 2 */
-    1, 0x002C, 8, 128,   /* MFD 2 */
+    1, 0x00EF, 8, 128,   /* MFD 2 */
     2, 0x000D, 8, 256,   /* MFD 2 */
     3, 0x0003, 8, 384,   /* MFD 1 */
     4, 0x00FE, 8, 512,   /* MFD 2 */

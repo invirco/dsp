@@ -1661,9 +1661,6 @@ MainSub001LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit
 MainSub001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
 MainSub001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Mon001CueOn001,control-plane,cue select; the host folds it into the one monitor source word Mon001InputSel001 (PW ruling D8 2026-09-28)
-Mon001PhonesDelay001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D7); no node in the DSP graph builds it yet - queued DSP graph work
-Mon001PhonesLevel001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D7); no node in the DSP graph builds it yet - queued DSP graph work
-Mon001PickOff001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D8); no node in the DSP graph builds it yet - queued DSP graph work
 Mtk001Mute001,host-managed,"host-managed: the RT1180 card recorder owns the value outright - no DSP address, no kernel read (PW ruling D2 2026-09-28)"
 Mtk001Play001,host-managed,"host-managed: the RT1180 card recorder owns the value outright - no DSP address, no kernel read (PW ruling D2 2026-09-28)"
 Mtk001Rec001,host-managed,"host-managed: the RT1180 card recorder owns the value outright - no DSP address, no kernel read (PW ruling D2 2026-09-28)"

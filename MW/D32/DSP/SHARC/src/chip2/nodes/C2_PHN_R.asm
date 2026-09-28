@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Monitor R (MONITOR)
- * Node ID:    C2_MON_R
+ * Phones R (MONITOR)
+ * Node ID:    C2_PHN_R
  * Chip:       2
  * Channels:   1
  * SPI Page:   -1
@@ -14,36 +14,37 @@
 
 /* RampProfile: GainFast | Mode: Slew | Up: 3ms (9f) Down: 8ms (24f) | Curve: Exp | Scope: Scalar */
 
-/* MONITOR FOLLOWER (S143) — the R leg of C2_MON. */
-/* Coefficient: _mon_q_r_C2_MON (Mon Level[2], converted by C2_MON). */
+/* MONITOR FOLLOWER (S143) — the L leg of C2_PHN. */
+/* Coefficient: _mon_q_l_C2_PHN (Mon Level[1], converted by C2_PHN). */
 /* No cell, no SPI address: nothing here is host-writable. */
 
 .section/dm seg_dmda;
 .extern _buf_C2_MON_PICK_R;
-.extern _mon_q_r_C2_MON;
+.extern _mon_source_C2_PHN;
+.extern _mon_q_l_C2_PHN;
 .extern _mon_source_C2_MON;
-.global _buf_C2_MON_R;
-.var _buf_C2_MON_R;
+.global _buf_C2_PHN_R;
+.var _buf_C2_PHN_R;
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_MON_PICK_R;
         #endif
         #if DSP4_BLOCK_KERNELS
-        .global _blk_C2_MON_R;
-        .var _blk_C2_MON_R[DSP4_BLOCK_SIZE];
-        .global _bw_k_C2_MON_R;
-        .var _bw_k_C2_MON_R;        /* the caller's _sample_idx */
-        .global _bw_s0_C2_MON_R;
-        .var _bw_s0_C2_MON_R;       /* walking source pointer */
-        .global _bw_d0_C2_MON_R;
-        .var _bw_d0_C2_MON_R;       /* walking sink pointer */
+        .global _blk_C2_PHN_R;
+        .var _blk_C2_PHN_R[DSP4_BLOCK_SIZE];
+        .global _bw_k_C2_PHN_R;
+        .var _bw_k_C2_PHN_R;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_PHN_R;
+        .var _bw_s0_C2_PHN_R;       /* walking source pointer */
+        .global _bw_d0_C2_PHN_R;
+        .var _bw_d0_C2_PHN_R;       /* walking sink pointer */
         #endif
 
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
-.global _C2_MON_R_process;
-_C2_MON_R_process:
+.global _C2_PHN_R_process;
+_C2_PHN_R_process:
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this
@@ -74,10 +75,10 @@ _C2_MON_R_process:
              * 38 cycles a block per wrapped node.
              */
         #if DSP4_CUE
-        .extern _rx_ic_slot_C2_RECV_CUE_R;
+        .extern _rx_ic_slot_C2_RECV_CUE_L;
             r3 = _blk_C2_MON_PICK_R;
-            r5 = _rx_ic_slot_C2_RECV_CUE_R;
-            r4 = dm(_mon_source_C2_MON);
+            r5 = _rx_ic_slot_C2_RECV_CUE_L;
+            r4 = dm(_mon_source_C2_PHN);
             r6 = 13;
             comp(r4, r6);
             if eq r3 = r5;
@@ -85,55 +86,55 @@ _C2_MON_R_process:
             i4 = _blk_C2_MON_PICK_R;
             r3 = i4;
         #endif
-            dm(_bw_s0_C2_MON_R) = r3;
-            i4 = _blk_C2_MON_R;
+            dm(_bw_s0_C2_PHN_R) = r3;
+            i4 = _blk_C2_PHN_R;
             r3 = i4;
-            dm(_bw_d0_C2_MON_R) = r3;
+            dm(_bw_d0_C2_PHN_R) = r3;
             r5 = dm(_sample_idx);
-            dm(_bw_k_C2_MON_R) = r5;
+            dm(_bw_k_C2_PHN_R) = r5;
             r5 = 0;
             dm(_sample_idx) = r5;
             /* sample 0, peeled: the block-rate guard fires here */
-                r3 = dm(_bw_s0_C2_MON_R);
+                r3 = dm(_bw_s0_C2_PHN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
                 dm(_buf_C2_MON_PICK_R) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_MON_R) = r3;
-                call _C2_MON_R_process_sample;
-                r0 = dm(_buf_C2_MON_R);
-                r3 = dm(_bw_d0_C2_MON_R);
+                dm(_bw_s0_C2_PHN_R) = r3;
+                call _C2_PHN_R_process_sample;
+                r0 = dm(_buf_C2_PHN_R);
+                r3 = dm(_bw_d0_C2_PHN_R);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-                dm(_bw_d0_C2_MON_R) = r3;
+                dm(_bw_d0_C2_PHN_R) = r3;
             r5 = 1;
             dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */
-            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_MON_R until lce;
-                r3 = dm(_bw_s0_C2_MON_R);
+            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_PHN_R until lce;
+                r3 = dm(_bw_s0_C2_PHN_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
                 dm(_buf_C2_MON_PICK_R) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_MON_R) = r3;
-                call _C2_MON_R_process_sample;
-                r0 = dm(_buf_C2_MON_R);
-                r3 = dm(_bw_d0_C2_MON_R);
+                dm(_bw_s0_C2_PHN_R) = r3;
+                call _C2_PHN_R_process_sample;
+                r0 = dm(_buf_C2_PHN_R);
+                r3 = dm(_bw_d0_C2_PHN_R);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-            .bwlp_C2_MON_R: dm(_bw_d0_C2_MON_R) = r3;
-            r5 = dm(_bw_k_C2_MON_R);
+            .bwlp_C2_PHN_R: dm(_bw_d0_C2_PHN_R) = r3;
+            r5 = dm(_bw_k_C2_PHN_R);
             dm(_sample_idx) = r5;
             rts;
 
-        .global _C2_MON_R_process_sample;
-        _C2_MON_R_process_sample:
+        .global _C2_PHN_R_process_sample;
+        _C2_PHN_R_process_sample:
         #endif
     r0 = dm(_buf_C2_MON_PICK_R);
-    r1 = dm(_mon_q_r_C2_MON);
+    r1 = dm(_mon_q_l_C2_PHN);
     mrf = r0 * r1 (ssi);
     call _mrf_rns28;
-    dm(_buf_C2_MON_R) = r0;
+    dm(_buf_C2_PHN_R) = r0;
     rts;
-_C2_MON_R_process.end:
+_C2_PHN_R_process.end:

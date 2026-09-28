@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 2621 of 3949 defined cells reach a DSP address.
-# The other 1328 are named in dsp-unmapped.csv with the
+# 2624 of 3949 defined cells reach a DSP address.
+# The other 1325 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -2627,6 +2627,9 @@ Mon001Delay001,C2_MON_DLY,DELAY,2,1,1794,0x0702,rw,InstantCtl,Instant,0,0,Linear
 Mon001InputSel001,C2_MON,MONITOR,2,1,1788,0x06FC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Level001,C2_MON,MONITOR,2,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,,L
 Mon001Level002,C2_MON,MONITOR,2,1,1790,0x06FE,rw,GainFast,Slew,3,8,Exp,Scalar,,R
+Mon001PhonesDelay001,C2_PHN_DLY,DELAY,2,1,2366,0x093E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Mon001PhonesLevel001,C2_PHN,MONITOR,2,1,2361,0x0939,rw,GainFast,Slew,3,8,Exp,Scalar,,both legs (one cell)
+Mon001PickOff001,C2_MON_PICK,SOURCE_SEL,2,1,2356,0x0934,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Hpf001,C1_NOISE,NOISE_GEN,1,1,4746,0x128A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Level001,C1_NOISE,NOISE_GEN,1,1,4745,0x1289,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Noise001On001,C1_NOISE,NOISE_GEN,1,1,4744,0x1288,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

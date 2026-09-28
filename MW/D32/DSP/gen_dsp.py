@@ -1391,15 +1391,52 @@ def expand_source_sel(node, cat, inst):
 
 # ── MONITOR ──────────────────────────────────────────────────────────────
 def expand_monitor(node, cat, inst):
-    chip, pg, base, nid, ramp = _parse_node(node)
-    # 6 words: source + level_l + level_r + ...
-    add_cell(cn(cat, inst, 'InputSel', 1), chip, pg, base, ramp_profile='InstantCtl')
-    add_dispatch(chip, base, f'_mon_source_{nid}', f'{nid} source')
+    """Six words: source select, two level legs, three spare.
 
-    add_cell(cn(cat, inst, 'Level', 1), chip, pg, base + 1, ramp_profile='GainFast', notes='L')
+    WHICH OF THEM CARRY CELLS IS DECLARED (S144, `mon_cells`), because the
+    kernel now serves two destinations with different cell sets. The
+    monitor has all three -- `Mon InputSel`, `Mon Level[1-2]`. The PHONES
+    pair has ONE, `Mon PhonesLevel`: it runs the monitor's source select
+    (`source_from=`, so there is no source word here to name) and its one
+    level is one cell for both legs. Default is the monitor's set, so every
+    graph written before this reads the same.
+    """
+    chip, pg, base, nid, ramp = _parse_node(node)
+    prm = parse_params(node.get('params', ''))
+    want = {c.strip() for c in
+            (prm.get('mon_cells') or 'InputSel,Level1,Level2').split(',')
+            if c.strip()}
+    known = {'InputSel', 'Level1', 'Level2'}
+    if not want <= known:
+        sys.exit(f'ERROR: MONITOR node {nid} declares mon_cells='
+                 f'{sorted(want - known)}, which is not a word this node '
+                 f'has ({sorted(known)}).')
+    src = prm.get('source_from')
+
+    if 'InputSel' in want:
+        if src:
+            sys.exit(f'ERROR: MONITOR node {nid} declares source_from={src} '
+                     f'and also an InputSel cell. A node that runs another '
+                     f'node\'s source select has no source word of its own '
+                     f'for a cell to reach.')
+        add_cell(cnp(node, cat, inst, 'InputSel', 1), chip, pg, base,
+                 ramp_profile='InstantCtl')
+    # The WORD is dispatched either way when it exists; with `source_from`
+    # there is no `_mon_source_<nid>` at all, so the address answers with
+    # nothing rather than with another node's select.
+    add_dispatch(chip, base, None if src else f'_mon_source_{nid}',
+                 f'{nid} source'
+                 + (f" (runs {src}'s select; no word here)" if src else ''))
+
+    if 'Level1' in want:
+        add_cell(cnp(node, cat, inst, 'Level', 1), chip, pg, base + 1,
+                 ramp_profile='GainFast',
+                 notes='L' if 'Level2' in want else 'both legs (one cell)')
     add_dispatch(chip, base + 1, f'_mon_level_l_{nid}', f'{nid} level L')
 
-    add_cell(cn(cat, inst, 'Level', 2), chip, pg, base + 2, ramp_profile='GainFast', notes='R')
+    if 'Level2' in want:
+        add_cell(cnp(node, cat, inst, 'Level', 2), chip, pg, base + 2,
+                 ramp_profile='GainFast', notes='R')
     add_dispatch(chip, base + 2, f'_mon_level_r_{nid}', f'{nid} level R')
 
     for off in range(3, 6):
@@ -1752,7 +1789,8 @@ _NODE_PATTERNS = [
     # cells. The list is the graph's, and a node added to it there without
     # being added here fails the no-fallback check below.
     (re.compile(r'^C2_(?:MAIN_(?:FDR|GEQ|COMP|LIM|DLY|XOVER)|MON|MON_DLY'
-                r'|CODEC_AUX_IN|PI_IN)_R$'),        lambda m: None),
+                r'|MON_PICK|PHN|PHN_DLY|CODEC_AUX_IN|PI_IN)_R$'),
+     lambda m: None),
     # The right-hand halves of the two stereo TDM outputs (S143). One node
     # is one slot: DAC_MAIN_R and CODEC_OUT_4 used to be chip-select bits
     # that nothing wrote. Neither carries `mo_page`, so neither reaches a
@@ -1827,8 +1865,17 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_MTX_OUT_(\d+)$'),               lambda m: None),
     # FX (Chip 2)
     (re.compile(r'^C2_FX_(?:ENG|FDR)_(\d+)$'),        lambda m: ('Fx', int(m.group(1)))),
-    # Monitor
-    (re.compile(r'^C2_MON(?:_DLY)?$'),                 lambda m: ('Mon', 1)),
+    # Monitor, its pick-off and the phones pair (S144, rulings D7 + D8).
+    # `Mon PickOff` is on the select, `Mon Level[1-2]`/`Mon InputSel` on the
+    # monitor, `Mon PhonesLevel`/`Mon PhonesDelay` on the phones -- one
+    # category, and the `Phones` suffix prefix is what keeps the two
+    # destinations' cells apart (`cell_prefix=Phones` on the rows).
+    (re.compile(r'^C2_MON(?:_DLY|_PICK)?$'),           lambda m: ('Mon', 1)),
+    (re.compile(r'^C2_PHN(?:_DLY)?$'),                 lambda m: ('Mon', 1)),
+    # The four converter slots the two pairs reach. No `mo_page`: the
+    # masters give neither destination a Mute, so neither node carries a
+    # strip cell -- the same as every other OUTPUT_TDM without one.
+    (re.compile(r'^C2_(?:MON|PHN)_OUT_[LR]$'),          lambda m: None),
     # S122: the codec speaker slot's output node and its source. Neither
     # reaches a master cell -- the output never did (it was C2_MON_OUT), and
     # the haptic family is proposed, not landed.
@@ -3170,6 +3217,12 @@ for _s in _MAIN_OUT:
 # D15 = FX sample-play family. Ruling numbers are the audit's own, kept in
 # the reason text so a future session can find the ruling that named them.
 _UNMAPPED_REASONS.update({
+    ('Mon', 'CueOn'): ('control-plane',
+        'the monitor CUE switch, and it costs no DSP word: the host folds '
+        'it and the cue state into the ONE `Mon InputSel` word, which is '
+        'what that cell says in its own note ("the host writes it from Mon '
+        'CueOn and the cue state") - PW ruling D8, 2026-09-28. The cue bus '
+        'itself is built (S65) and the monitor reads it at InputSel = 1'),
     ('MainSub', 'CompAtt'): ('no-graph-node',
         'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
         'Sep master block draws the Centre/LF path as source select -> '

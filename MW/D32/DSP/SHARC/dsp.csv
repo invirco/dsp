@@ -652,11 +652,21 @@ C2_WOOF_EQ,2,EQ_BIQUAD,Woof EQ,1,C2_WOOF_FDR,C2_WOOF_LIM,1,2324,bands=2;coeffs=d
 C2_WOOF_LIM,2,LIMITER,Woof Lim,1,C2_WOOF_EQ,C2_OUT3_SEL,1,2348,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_OUT3_SEL,2,SOURCE_SEL,Out3 Source,1,C2_CTR_LIM;C2_WOOF_LIM,C2_OUT3_DLY,1,2352,sources=2;sel=0;xfade_ms=12.0;cell_suffix=Out3Mode;link_gain=C2_MAIN_FDR;link_cell_suffix=Out3Link,GainFast
 C2_OUT3_DLY,2,DELAY,Out3 Delay,1,C2_OUT3_SEL,C2_OUT3_OUT,1,1368,delay_ms=0.0;max_ms=250.0;cell_prefix=Out3,InstantCtl
-C2_OUT3_OUT,2,OUTPUT_TDM,Out3 (Centre/LF XLR),1,C2_OUT3_DLY,,1,1370,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14;scope=D24;cell_prefix=Out3;mo_page=1;mo_addr=2356,
-C2_MON,2,MONITOR,Monitor,2,C2_MAIN_FDR,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l,GainFast
-C2_MON_R,2,MONITOR,Monitor R,1,C2_MAIN_FDR_R,C2_MON_DLY_R,-1,-1,follows=C2_MON;follow_leg=r,GainFast
-C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,,1,1794,delay_ms=0.0;max_ms=250.0,InstantCtl
-C2_MON_DLY_R,2,DELAY,Monitor Delay R,1,C2_MON_R,,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY,InstantCtl
+C2_OUT3_OUT,2,OUTPUT_TDM,Out3 (Centre/LF XLR),1,C2_OUT3_DLY,,1,1370,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14;scope=D24;cell_prefix=Out3;mo_page=1;mo_addr=2368,
+C2_MON_PICK,2,SOURCE_SEL,Monitor Pick-off,2,C2_MIX_MAIN_L;C2_MAIN_DLY;C2_MAIN_FDR,C2_MON;C2_PHN,1,2356,sources=3;sel=2;xfade_ms=12.0;cell_suffix=PickOff,InstantCtl
+C2_MON_PICK_R,2,SOURCE_SEL,Monitor Pick-off R,1,C2_MIX_MAIN_R;C2_MAIN_DLY_R;C2_MAIN_FDR_R,C2_MON_R;C2_PHN_R,-1,-1,sources=3;follows=C2_MON_PICK,InstantCtl
+C2_MON,2,MONITOR,Monitor,2,C2_MON_PICK,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l,GainFast
+C2_MON_R,2,MONITOR,Monitor R,1,C2_MON_PICK_R,C2_MON_DLY_R,-1,-1,follows=C2_MON;follow_leg=r,GainFast
+C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,C2_MON_OUT_L,1,1794,delay_ms=0.0;max_ms=250.0,InstantCtl
+C2_MON_DLY_R,2,DELAY,Monitor Delay R,1,C2_MON_R,C2_MON_OUT_R,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY,InstantCtl
+C2_MON_OUT_L,2,OUTPUT_TDM,Monitor Out L,1,C2_MON_DLY,,-1,-1,sport_id=1;slot_start=6;slot_count=1;sport_slots=8;signal=DAC_15;scope=D24,
+C2_MON_OUT_R,2,OUTPUT_TDM,Monitor Out R,1,C2_MON_DLY_R,,-1,-1,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16;scope=D24,
+C2_PHN,2,MONITOR,Phones,2,C2_MON_PICK,C2_PHN_DLY,1,2360,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l;source_from=C2_MON;cell_prefix=Phones;mon_cells=Level1,GainFast
+C2_PHN_R,2,MONITOR,Phones R,1,C2_MON_PICK_R,C2_PHN_DLY_R,-1,-1,follows=C2_PHN;follow_leg=l,GainFast
+C2_PHN_DLY,2,DELAY,Phones Delay,2,C2_PHN,C2_PHN_OUT_L,1,2366,delay_ms=0.0;max_ms=250.0;cell_prefix=Phones,InstantCtl
+C2_PHN_DLY_R,2,DELAY,Phones Delay R,1,C2_PHN_R,C2_PHN_OUT_R,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_PHN_DLY,InstantCtl
+C2_PHN_OUT_L,2,OUTPUT_TDM,Phones Out L,1,C2_PHN_DLY,,-1,-1,sport_id=1;slot_start=0;slot_count=1;sport_slots=8;signal=DAC_09;scope=D24,
+C2_PHN_OUT_R,2,OUTPUT_TDM,Phones Out R,1,C2_PHN_DLY_R,,-1,-1,sport_id=1;slot_start=1;slot_count=1;sport_slots=8;signal=DAC_10;scope=D24,
 C2_HPT_01,2,HAPTIC,Panel Haptic,1,,C2_SPKR_OUT,1,2175,trig=0;sample=1;level=1.0;test_on=0;test_level=0.0;click_hz=2500:3000:1500;click_tau_ms=2.5:1.8:3.0;click_peak=0.94;click_end_db=-60.0;tone_hz=1000.0;scope=D24,InstantCtl
 C2_SPKR_OUT,2,OUTPUT_TDM,Panel Speaker Out,1,C2_HPT_01,,1,1796,sport_id=2;slot_start=0;slot_count=1;sport_slots=8;signal=CODEC_OUT_1;scope=D24;sink=SPKR,
 C2_USB_IN,2,AUX_INPUT,USB Input,1,,C2_MIX_MAIN_L;C2_MIX_MAIN_R,1,1797,level_db=-6.0;on=0,GainFast

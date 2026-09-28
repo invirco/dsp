@@ -1074,6 +1074,11 @@ def resolve_followers(nodes):
                 f"{n['id']} follows {m} but is a {n['type']} and {m} is a "
                 f"{master['type']}: a follower is a SECOND INSTANCE of its "
                 f"master's kernel, so the two types must be the same.")
+        # The master's own params, for the handful of places a follower has
+        # to resolve a symbol the MASTER redirected -- today only MONITOR's
+        # `source_from` (S144): a followed phones node names the monitor's
+        # source word, not its master's, because its master has none.
+        n['master_params'] = master['params']
         if master['chip'] != n['chip']:
             raise ValueError(
                 f"{n['id']} follows {m} across chips ({n['chip']} vs "
@@ -16230,6 +16235,10 @@ def gen_monitor_follow(node):
     leg = (node['params'].get('follow_leg') or 'r').lower()
     if leg not in ('l', 'r'):
         raise ValueError(f'{nid}: follow_leg={leg!r}; MONITOR has legs l and r')
+    # The SOURCE word may be a third node's: a master that carries
+    # `source_from=` has none of its own (S144, the phones pair), so the
+    # follower names the same node the master does.
+    msrc = (node.get('master_params') or {}).get('source_from') or mid
     return dedent(f"""\
         {rc}
 
@@ -16239,7 +16248,7 @@ def gen_monitor_follow(node):
 
         .section/dm seg_dmda;
         .extern _mon_q_{leg}_{mid};
-        .extern _mon_source_{mid};
+        .extern _mon_source_{msrc};
         .var _buf_{nid};
 
         .section/pm seg_pmco;
@@ -16294,6 +16303,21 @@ def gen_monitor_fixed(node):
     nid = node['id']
     inp = node['inputs_str']
 
+    # `source_from=<node>` (S144): this instance runs ANOTHER monitor node's
+    # source select and has none of its own. That is the phones pair: PW
+    # ruling D7 puts them "off the same Cue / Main L-R source select as the
+    # monitor output" with their own level and delay, so there is ONE
+    # `Mon InputSel` word for both destinations and a second would be a
+    # second answer to one question. The word is read by the block wrapper's
+    # cue branch (see blk_wrap_body), which resolves it the same way.
+    _src = node['params'].get('source_from')
+    if _src:
+        srcdecl = (f'        /* The source select is {_src}\'s '
+                   f'(`Mon InputSel`, S144): one word, both destinations. */\n'
+                   f'        .extern _mon_source_{_src};')
+    else:
+        srcdecl = f'        .var _mon_source_{nid} = 0;'
+
     def ramp(side):
         return f"""\
             r4 = dm(_mon_level_{side}_frames_{nid});
@@ -16326,7 +16350,7 @@ def gen_monitor_fixed(node):
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
         .section/dm seg_dmda;
-        .var _mon_source_{nid} = 0;
+{srcdecl}
         .var _mon_level_l_{nid} = 1.0;
         .var _mon_level_l_target_{nid} = 1.0;
         .var _mon_level_l_step_{nid} = 0.0;
@@ -16364,6 +16388,60 @@ def gen_monitor_fixed(node):
     """)
 
 
+def gen_source_sel_follow(node):
+    """A SOURCE_SEL follower (S144): the master's gains, its own sources.
+
+    `Mon PickOff` is one cell for a stereo pair, so the two legs must be on
+    the same tap on the same block or the image tears at a pick-off change.
+    There is nothing to keep in step: the MASTER lays the whole Q4.28 gain
+    vector at block rate and this node MACs its own sources against that
+    same vector later in the same block. One coefficient set, two instances,
+    no shared transient word at all -- the same shape the crossfading
+    cascades reach through `follow_kick`, except that a select's transient
+    IS its coefficients, so it needs no kick either.
+
+    The two rows must agree on what each index MEANS -- index 1 is
+    post-processing on both legs -- and that is the row's business; the
+    source count is checked here.
+    """
+    nid = node['id']
+    mid = node['follows']
+    n = _ssel_n(node)
+    rc = ramp_comment(node['ramp_profile'])
+    macs = []
+    for k, inp in enumerate(node['inputs']):
+        macs.append(f'            r0 = dm(_buf_{inp});')
+        macs.append(f'            r1 = dm(_ssel_gq_{mid} + {k});')
+        macs.append('            mrf = mrf + r0 * r1 (ssi);')
+    mac_block = '\n'.join(macs)
+    return dedent(f"""\
+        {rc}
+
+        /* SOURCE_SEL FOLLOWER (S144) — the other leg of {mid}. */
+        /* The select, the crossfade and the {n} gains are {mid}'s; this   */
+        /* node owns its own sources and its own output word. No cell, no  */
+        /* SPI address: nothing here is host-writable.                    */
+
+        .section/dm seg_dmda;
+        .extern _ssel_gq_{mid};
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _mrf_rns28;
+        .global _{nid}_process;
+        _{nid}_process:
+            r1 = 0;
+            mr0f = r1;
+            mr1f = r1;
+            mr2f = r1;
+{mac_block}
+            call _mrf_rns28;
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_source_sel_fixed(node):
     """Fixed SOURCE_SEL (Q4.28): the select is a coefficient (S144).
 
@@ -16378,6 +16456,8 @@ def gen_source_sel_fixed(node):
     bit for bit, because a Q4.28 coefficient of 2^28 through `_mrf_rns28`
     gives (x*2^28 + 2^27) >> 28 = x.
     """
+    if node.get('follows'):
+        return gen_source_sel_follow(node)
     nid = node['id']
     n = _ssel_n(node)
     sel = _ssel_default(node, n)
@@ -17109,7 +17189,9 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
             a(f'        .extern _rx_ic_slot_C2_RECV_CUE_{_cue};')
             a(f'            r3 = _blk_{inp};')
             a(f'            r5 = _rx_ic_slot_C2_RECV_CUE_{_cue};')
-            a(f"            r4 = dm(_mon_source_{node.get('follows') or nid});")
+            _msrc = (node['params'].get('source_from')
+                     or node.get('follows') or nid)
+            a(f'            r4 = dm(_mon_source_{_msrc});')
             a(f'            r6 = {CUE_MON_SOURCE};')
             a('            comp(r4, r6);')
             a('            if eq r3 = r5;')
@@ -18480,7 +18562,7 @@ FIXED_GENERATORS = {
 # instance nobody notices. See STEREO FOLLOWERS at the top of this file.
 _FOLLOW_TYPES_FIXED = {
     'FADER_PAN', 'GEQ', 'ANTI_FB', 'COMPRESSOR', 'LIMITER', 'DELAY',
-    'CROSSOVER', 'MONITOR', 'AUX_INPUT',
+    'CROSSOVER', 'MONITOR', 'AUX_INPUT', 'SOURCE_SEL',
 }
 FOLLOW_TYPES = _FOLLOW_TYPES_FIXED
 

@@ -938,8 +938,10 @@ _PROOF_SINKS = [
     ('C2_MAIN_ST_OUT_R', 'R', 'DAC MAIN R'),
     ('C2_CODEC_AUX_OUT', 'L', 'CODEC_OUT_3'),
     ('C2_CODEC_AUX_OUT_R', 'R', 'CODEC_OUT_4'),
-    ('C2_MON_DLY', 'L', 'Monitor L'),
-    ('C2_MON_DLY_R', 'R', 'Monitor R'),
+    ('C2_MON_OUT_L', 'L', 'Monitor L (DAC_15, J53)'),
+    ('C2_MON_OUT_R', 'R', 'Monitor R (DAC_16, J54)'),
+    ('C2_PHN_OUT_L', 'L', 'Phones L (DAC_09, J10 tip)'),
+    ('C2_PHN_OUT_R', 'R', 'Phones R (DAC_10, J10 ring)'),
 ]
 
 
