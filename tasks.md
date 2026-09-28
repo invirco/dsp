@@ -1,3 +1,36 @@
+## HUB DISPATCH 2026-09-28 00:17Z — S136: overnight, no flash — station tools resolve matrix addresses by cell name from the unit's deployed pack   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S136 — overnight, NO FLASH: the station tools must resolve matrix addresses BY CELL NAME from the unit's own deployed pack
+
+Hub ruling, from PW's standing mandates:
+- **"Cell names are the invariant contract… addresses are per-build artifacts"**;
+- **"Generate, never transcribe"**.
+
+S135 found that `tools/pi/d24_panel.py` hard-codes `SKIN = 0x1524` (5412) and `ENC = 0x1470` (5232), which is only valid for the unit's old 08-18 pack. After S131 the right values are 4698 / 4514, and `Sys001SwLeft001` = 5005 and `Sys001SwTalk001` = 5006 are new.
+
+**Build:**
+1. **Resolve every matrix address the station tools use by NAME at runtime,** from the pack the unit actually has deployed. That is the app's `config/_matrix.mxc`, or its csv if that is the published form alongside it; find what the app itself loads.
+   - The same tool must then work on today's old pack AND after the switch-over, with no edit.
+   - Names used: `Sys001Skin001`, the encoder cell, `Sys001SwLeft001`, `Sys001SwTalk001`, and any others. Grep ALL of `tools/pi/*.py` for hex or decimal matrix addresses and convert every one.
+   - **A name missing from the deployed pack** (e.g. `Sys001SwLeft001` on the old pack) gives a clear NOT TESTED / "cell not in this unit's matrix (generation X)" row. Never a guessed address, never a crash.
+   - Log the pack generation at the start of every pass (it goes in the report header).
+2. **Add a generator-side guard:** a test that fails if any `tools/pi` file contains a literal matrix address.
+3. **Prove it on the part on the OLD pack** (no switch-over):
+   - the panel station resolves `SKIN`/`ENC` to 5412/5232 by name and behaves exactly as today;
+   - the left/talkback rows report "not in this unit's matrix";
+   - the report header shows generation `e80ccab5d6d8`.
+   
+   Deploy the tools with `deploy-bench-tools.sh`.
+4. **Update the runbook** `MW/D24/DSP/s131-runbook.md` §6a: the address step is now automatic, and after step 8 the header must show `f9677e5fae5e`.
+
+**Rules:** no flashing, no app deploy (the app stays `b05e9fd5`). Leave the unit safe and armed. Close 🟢/🔴, commit and push `main`. No AI attribution. No dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-27 23:57Z — S135: overnight, no flash — talkback cell logic for H1S3 as an optional image for S131   [status: 🟢 done — BOTH IMAGES BUILT AT THE DESK, NOTHING FLASHED, UNIT NEVER WRITTEN TO (reads only; `app` still `b05e9fd5`, AN_EN lo, CS_M hi). Environment proven first: an unmodified rebuild here reproduces the flashed H1S3 `.hex` byte-for-byte (`e6cfb316…`, text 20572) and variant A's payload is identical to S134's own dry-run A. **A** (step-5 mechanical, unbound) `.shex` md5 `f21480b56744f4b2a4ca775d0ebd92fb`; **B** (A + talkback) md5 `f0bacb7bfb91f036e50b8f5987daf255`, text 20576→20932. B's logic: `WrTalkbackLeds()` drives PF6/PF7 BITWISE from `RXD` (bit0/bit1, 3 = both lit, HIGH = ON, 0 = both driven dark), `RdTalkbackSwitch()` debounces PA13 for 20 ms off `HAL_GetTick()` and reports BOTH edges into `TXD`/`TXF`, one-deep so a fast press/release can never leave the host thinking the key is held; `Eol()` unchanged (its generic scan already stores `RXD`); the talkback pins stay OUT of `rsw[]`/`wled[]` and out of blink, and a talkback press does NOT touch `ledFollowSw`. Proof that nothing else moved, at the map level: of 150 functions in both images **148 are instruction-identical including every symbol they reference** — `RdRadioSwitch`/`RdRadioSwitches`/`WrRadioLed`/`WrRadioLeds`/`WrEncLed`/`WrEncLeds`/`TestEnc`/`Poll`/`Eol` among them — the only two that differ are `MainInit` (+60) and `MainLoop` (+8), plus the two new functions (184+104); +356 = the whole `text` delta, nothing removed, same single pre-existing warning. Runbook: step 5b written (PW's bench check — hold talkback, host sees 1 then 0 on release; write 1/2/3 for LED0/LED1/both — and the rollback to A, then to `.bak-s131-pregen`), §7 closed as answered. 🔴 **ONE FOR TOMORROW'S WINDOW, FOUND WHILE BUILDING AND ALREADY FIXED IN THE RUNBOOK:** the `.shex` header's four-character id is not decoration — MH1 does `S_Boot[(myHS & 0xf) - 1]()` on it, so it picks the SLAVE SOCKET, and the images running today are crossed (`H1S3.shex` carries id `H1S4`, `H1S4.shex` carries `H1S3`; each payload matches its own filename, proved by rebuilding both from the unit's source — byte-identical except line 1, and the 2026-08-19 2287-record flash log shows the same crossing). S134's step 7 (`hex2shex.py H1S3.hex H1S3 …`) would have CROSS-FLASHED THE TWO PANELS and reported success; step 7 is corrected, S134's archived H1S3/H1S4 images are marked do-not-use, and socket-correct images with identical payloads (incl. H1S4's step-4 bind, `8540b6ad…`) are in `MW/D24/DSP/s135/gen/`. Also corrected: `loadfw` DOES take a list, which is how the running pair was flashed. 🔴 **SECOND ONE FOR THE WINDOW, NOT FIXED (outside this dispatch, needs a hub decision + a deploy + a check on the part):** `tools/pi/d24_panel.py` hard-codes `SKIN = 0x1524` (5412) and `ENC = 0x1470` (5232); after the switch-over those are 4698 (`0x125A`) and 4514 (`0x11A2`), so from the moment step 8 lands the tool addresses cells no panel answers on — and it IS step 10's panel check and the self-test's whole panel station, 5b's talkback check included. Runbook §6a, to be done BEFORE step 10; `Sys001SwTalk001` = 5006 (`0x138E`, `ikpv`) needs adding there too if 5b is taken. Report: `MW/D24/DSP/s135/s135-report.md`; findings S135-1/-2.]   [model: opus]
 
 model: opus
