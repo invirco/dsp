@@ -279,6 +279,13 @@ def find_list_dir(explicit=None):
                      % ', '.join(tried))
 
 
+def split_inputs(s):
+    """`--trial-inputs "MIC 3, MIC 7"` -> ['MIC 3', 'MIC 7'], or None."""
+    if not s:
+        return None
+    return [x.strip() for x in str(s).split(',') if x.strip()]
+
+
 def read_csv(path):
     with open(path, newline='') as fh:
         return list(csv.DictReader(l for l in fh if not l.startswith('#')))
@@ -1081,18 +1088,20 @@ class Scorer:
 #   up    CS_M driven high (a low CS_M gates the U2 buffer onto the shared
 #         MISO and every read comes back as plausible zeros), then AN_EN,
 #         ONCE for the whole pass and never through a DSP boot.
-#   image the chain per block -- tone blocks unmuted at gain 0, the noise
-#         block unmuted at gain 63, each one read back and the marker written.
+#   image the chain per block -- tone blocks with the phantom shunt released
+#         at gain 0, the noise block released at gain 63, each one read back
+#         and the marker written.
 #   down  AN_EN LOW FIRST, then SAFE, then the oscillator and the monitor.
 #         That order is PW's, taken from the handback the hub did by hand on
 #         2026-09-26: the rails go down before the chain is rewritten, so a
 #         chain write can never be the thing that is heard.
 AN_EN_GPIO = 26
 CS_M_GPIO = 27
-# (gain & 63) << 2 | (phantom & 1) << 1 | (mute & 1), twenty-four preamps and
-# one trailing byte.
-CHAIN_TONE = [0x00] * 24 + [0x00]        # unmuted, phantom off, gain 0
-CHAIN_NOISE = [0xFC] * 24 + [0x00]       # unmuted, phantom off, gain 63
+# (gain & 63) << 2 | (phantom & 1) << 1 | (shunt & 1), twenty-four preamps and
+# one trailing byte. BIT 0 IS THE PHANTOM SHUNT, not a mute -- PW 2026-09-16,
+# see `d24_chain.byte`; the channel mute is digital, in the DSP strip.
+CHAIN_TONE = [0x00] * 24 + [0x00]        # shunt released, phantom off, gain 0
+CHAIN_NOISE = [0xFC] * 24 + [0x00]       # shunt released, phantom off, gain 63
 S55_DIR = '/home/app/s55'
 STAGE_DIR = '/home/app/s90'
 
@@ -1238,7 +1247,8 @@ class Analog:
 
     def step_image(self, send_pos, code, quiet=0x01):
         """The image for ONE gain step: the input under test at this code,
-        unmuted and phantom off; every other channel quiet and known.
+        its phantom shunt released and phantom off; every other channel
+        shunted, at gain 0, and known.
 
         `send_pos` IS THE TX BYTE, ZERO-BASED, and it comes out of the list,
         which took it from `send_pos` in defs' own input table. It is NOT the
@@ -1254,8 +1264,65 @@ class Analog:
         if not 0 <= i < 24:
             raise AssertionError('send position %r is not on the chain'
                                  % send_pos)
-        img[i] = CH.byte(mute=0, phantom=0, gain=int(code))
+        img[i] = CH.byte(shunt=0, phantom=0, gain=int(code))
         return img
+
+    # -- phantom, and it is never one image -------------------------------
+    def phantom(self, channels, on, what=''):
+        """Move phantom on `channels` (transmit positions) through PW's
+        shunt-first sequence. Returns (ok, [step records]).
+
+        PW 2026-09-16 (mx26 `docs/ref-d24-analog-attach.md`, read as primary
+        source in S138b): "Phantom is therefore never switched by one image."
+        The five steps and the two waits are `d24_chain.phantom_sequence`,
+        which is arithmetic and is asserted image by image off the bench; this
+        is the three VERIFIED LOADS around it.
+
+        THE FAILURE END STATE IS PW'S, NOT A CHOICE MADE HERE: "a step that
+        does not verify stops the sequence there and leaves the shunt
+        engaged, which is the safe end state." So a step that does not read
+        back stops -- and the shunt is then RE-ASSERTED EXPLICITLY, on every
+        failure, not only on the first step's.
+
+        `shunt_sequence_check.py` is what made that last sentence necessary,
+        and the first version of this method was wrong about it. The reasoning
+        was that step 1 is the load that engages the shunt, so a stop after it
+        has already left the shunt engaged and nothing more is owed. That is
+        true of a failure at step 3 and FALSE of a failure at step 5, because
+        step 5 is the load that RELEASES the shunt again: a write that did not
+        read back is not a known state (`chain()` drops the marker for exactly
+        that reason), so after a failed step 5 the shunt may be released and
+        the sequence would have reported the unsafe case as the safe one. The
+        re-assert is built from the last load that DID verify, with the shunt
+        forced on across the set.
+        """
+        base = list(self.image if self.image is not None else self.safe_image)
+        chans = sorted(int(c) for c in channels)
+        steps = []
+        ok = True
+        good_img = base
+        for i, (img, why, wait) in enumerate(
+                CH.phantom_sequence(base, chans, on)):
+            label = 'phantom %s on %s: step %d, %s' % (
+                'on' if on else 'off', what or ('transmit %s' % chans),
+                (1, 3, 5)[i], why)
+            good = self.chain(img, label)
+            steps.append(dict(step=(1, 3, 5)[i], image=list(img), ok=bool(good),
+                              why=why, waited_s=wait if good else 0.0))
+            if not good:
+                ok = False
+                self.chain(CH.with_shunt(good_img, chans, True),
+                           'the phantom shunt re-asserted after a failed step '
+                           '%d -- the safe end state' % (1, 3, 5)[i])
+                self.log('phantom sequence STOPPED at step %d: the load did '
+                         'not read back. The shunt is re-asserted and left '
+                         'engaged, which is the safe end state '
+                         '(PW 2026-09-16).' % (1, 3, 5)[i])
+                break
+            good_img = list(img)
+            if wait:
+                nap(wait)
+        return ok, steps
 
     def for_block(self, lead):
         """The chain image this block needs.
@@ -1289,7 +1356,8 @@ class Analog:
             self.log('the analog rails were not raised by this run; left as found')
         self.sh('sudo -n pinctrl set %d op dh' % self.cs_m)
         self.image = None
-        self.chain(self.safe_image, 'back to safe (muted, gain 0, phantom off)')
+        self.chain(self.safe_image,
+                   'back to safe (phantom shunt engaged, gain 0, phantom off)')
         if self.fast:
             try:
                 self.fast.close()
@@ -1451,6 +1519,259 @@ ENTER_PATIENCE = 30
 # records what it saw. The operator can still press FAIL at any offer.
 MAX_RETRIES = 2
 
+# ---------------------------------------------------------------------------
+# 1.2(b): the click-and-shunt trials (PW ruling 2026-09-28 08:06)
+# ---------------------------------------------------------------------------
+# Every number here is the INSTRUMENT's, not a limit: PW signs the limits after
+# reading the trial table, and until then the row is INFORMATIONAL. Nothing in
+# this block is ever compared against a reading to produce a verdict.
+CLICK_PRE_S = 0.25          # quiet before the toggle: this is the floor
+CLICK_POST_S = 2.5          # ... and after it. Two things set it: the 33 uF
+                            # input caps through the 2x6K8 phantom feed are a
+                            # 0.22 s time constant, so this is about eleven of
+                            # them and it outlasts PHANTOM_SETTLE_S (0.30 s);
+                            # and the METER's own drain, which is what usually
+                            # ends last -- 6.52 dB/s from a -60 dBFS peak to
+                            # 6 dB over a -96 dBFS floor is 4.6 s, so a loud
+                            # click still truncates and says so (`truncated`).
+CLICK_ABOVE_FLOOR_DB = 6.0  # what counts as "still ringing", over the floor
+METER_DECAY_DB_S = 6.52     # MEASURED, S125: the strip meter's own decay.
+                            # Subtracted out of the duration -- see
+                            # `Station.click_metrics`.
+CLICK_TABLE_NOTE = (
+    'INFORMATIONAL: no click limit is ruled yet (PW 2026-09-28: trials first, '
+    'then a signature). Instrument: the strip peak meter, one SPI peek a '
+    'sample, which LATCHES the block peak and decays at %.2f dB/s (measured, '
+    'S125). So peak_dbfs cannot be missed between polls, only reported up to '
+    'poll_ms_max late; above_floor_ms carries the meter\'s own tail, and '
+    'residual_ms is that tail taken back out. trunc=yes means the capture '
+    'ended with the lane still ringing, so above is a LOWER BOUND and no '
+    'residual is reported. energy_db_s is an UPPER BOUND, because the latch '
+    'holds a peak across polls. The 150 ohm terminator is fitted throughout '
+    'and no microphone is connected.' % METER_DECAY_DB_S)
+CLICK_COLUMNS = ('input', 'lane', 'shunt', 'direction', 'floor_dbfs',
+                 'peak_dbfs', 't_peak_ms', 'above_floor_ms', 'decay_only_ms',
+                 'residual_ms', 'truncated', 'energy_db_s', 'polls',
+                 'poll_ms_mean', 'poll_ms_max', 'skipped')
+
+
+def click_table(results, out=sys.stdout, note=True):
+    """The trial table, in the one format this session fixes.
+
+    One line per trial, the four trials of an input together, and the note
+    above it -- because a table of clicks with no instrument beside it is what
+    a signature should never be given against.
+    """
+    if note:
+        out.write('%s\n\n' % CLICK_TABLE_NOTE)
+    out.write('%-9s %-4s %-8s %-9s %9s %9s %8s %9s %9s %9s %5s %9s %6s %8s '
+              '%8s\n'
+              % ('input', 'lane', 'shunt', 'direction', 'floor', 'peak',
+                 't_peak', 'above', 'decay', 'residual', 'trunc', 'energy',
+                 'polls', 'poll_ms', 'poll_max'))
+
+    def num(v, fmt='%9.2f'):
+        return (fmt % v) if isinstance(v, float) else '%9s' % '-'
+    for res in results:
+        if res.get('skipped'):
+            out.write('%-9s %-4s %s\n' % (res['input'], res['lane'],
+                                          res['skipped']))
+            continue
+        for t in res['trials']:
+            if t.get('skipped'):
+                out.write('%-9s %-4s %-8s %-9s %s\n'
+                          % (res['input'], res['lane'],
+                             'engaged' if t['shunt'] else 'released',
+                             'off->on' if t['to_on'] else 'on->off',
+                             t['skipped']))
+                continue
+            out.write('%-9s %-4s %-8s %-9s %s %s %s %s %s %s %5s %s %6d %s '
+                      '%s\n'
+                      % (res['input'], res['lane'],
+                         'engaged' if t['shunt'] else 'released',
+                         'off->on' if t['to_on'] else 'on->off',
+                         num(t['floor_dbfs']), num(t['peak_dbfs']),
+                         num(t['t_peak_ms'], '%8.1f'),
+                         num(t['above_floor_ms']), num(t['decay_only_ms']),
+                         num(t['residual_ms']),
+                         'yes' if t.get('truncated') else '-',
+                         num(t['energy_db_s']),
+                         t['polls'], num(t['poll_ms_mean'], '%8.2f'),
+                         num(t['poll_ms_max'], '%8.2f')))
+
+
+# ---------------------------------------------------------------------------
+# 2.2: THE MINI-JACK INSERTION SENSE, INSIDE THE MINI-JACK PATCH STEP
+# ---------------------------------------------------------------------------
+# PW 2026-09-28, ADDENDUM 1: "ONE INSERTION, TWO RESULTS." The jack-switch
+# detect is NOT a station of its own. The analog station already asks the
+# operator to push a plug into a mini-jack (rows 95/96, patches P90/P91), so
+# the detect rides that same insertion: the listen is armed BEFORE that step's
+# own instruction, the on-edge is recorded while the operator's hand is on the
+# connector, the L/R signal and polarity sub-tests run on the very same plug,
+# and the off-edge is recorded when it comes out again.
+#
+# AND THE REMOVAL COSTS NOTHING EITHER, because the list already commands it.
+# P90's prompt is "Patch AUX 3 to MINI-JACK 1, with MINI-JACK 2 empty" and
+# P91's is "... to MINI-JACK 2, with MINI-JACK 1 empty", so the operator MUST
+# take the plug out of jack 1 to make the next patch, and that removal happens
+# inside the next step's own wait. So the detect is bound to the FIRST
+# mini-jack patch and the off-edge is harvested across the rest of the block.
+# Only if the detect patch turns out to be the LAST one in the block -- a list
+# with a single mini-jack patch -- does the station spend one screen asking for
+# the plug out, because then nothing else would.
+#
+# WHICH JACK CARRIES THE DETECT, AND WHY IT IS DECLARED AND NOT DEDUCED.
+# PW: "Only the jack wired to MJ_SW (the one sense net defs declares) gets the
+# detect row". defs declares ONE cell and `fw.csv` ONE net, and
+# `d24-hw-inventory.csv` puts that net's NAME on BOTH mini-jack connectors
+# (Analog PCBA rev B, J2 and J3, each `GND;MJ_SW;RING;TIP`), so defs cannot
+# say which socket -- and a net shared by two NC contacts would not behave the
+# same way as one. That is a hardware question, recorded for PW as S138b-1 and
+# NOT answered here by inspecting copper. So the choice is a DECLARATION: the
+# first mini-jack patch in the list, overridable with `--mj-detect-input`, and
+# the check grades EDGES rather than levels so it needs neither the polarity
+# nor the socket count to be settled first.
+MJ_CELL = 'Sys001SwMiniJack001'
+MJ_BLOCK = 'the mini-jack inputs'
+# How long the one removal screen waits, in the degenerate single-patch case.
+MJ_REMOVE_S = 20.0
+
+
+class MiniJackSense:
+    """A read-only listen on `Sys001SwMiniJack001`, for the length of a block.
+
+    IT WRITES NOTHING. There is no `send`, no `cell_line` and no sentinel on
+    this path: open the port, drain it, and read. The cell is PUSHED on every
+    change (`mx_master.csv`: "both edges are reported"), so listening is the
+    only way to see an edge at all -- and it is why the drain has to happen
+    before the operator is told to do anything (`arm`).
+
+    EVERY WAY IT CAN FAIL TO OPEN IS A SENTENCE, NOT AN EXCEPTION. `matrix-app`
+    owns /dev/serial0 during normal operation, the pack may not carry the cell,
+    and a desk run has no port at all -- none of which is a reason for the
+    analog station to stop, so `why` carries the reason and `ok` is False.
+    """
+
+    def __init__(self, log=None, port=None):
+        self.log = log or (lambda s: None)
+        self.ok = False
+        self.why = ''
+        self.addr = None
+        self.C = None
+        self.bus = None
+        self.buf = b''
+        self.events = []         # (value, monotonic seconds since the arm)
+        self.armed_at = None
+        try:
+            for p in ('/home/app/dspboot', '/home/app/selftest', HERE):
+                if p not in sys.path:
+                    sys.path.insert(0, p)
+            import codec4619 as C                       # noqa: E402
+            import matrix_addr                           # noqa: E402
+            # BY NAME, OFF THIS UNIT'S OWN DEPLOYED PACK (S136). Never a
+            # literal: the same name is a different address in every generation.
+            addr, err = matrix_addr.try_resolve(MJ_CELL)
+            if addr is None:
+                self.why = err
+                return
+            self.C, self.addr = C, addr
+            self.bus = C.Bus(port or C.PORT)
+            self.ok = True
+        except Exception as e:
+            self.why = ('the matrix bus could not be opened for the mini-jack '
+                        'sense (%s); matrix-app owns /dev/serial0 unless a '
+                        'factory pass has stopped it' % e)
+
+    def arm(self):
+        """Drain the port and start counting. BEFORE the instruction goes up."""
+        if not self.ok:
+            return False
+        try:
+            import termios
+            termios.tcflush(self.bus.fd, termios.TCIFLUSH)
+        except Exception:
+            pass
+        self.buf = b''
+        self.events = []
+        self.armed_at = now()
+        self.log('the mini-jack insertion sense is listening on %s (read only; '
+                 'nothing is written to it)' % MJ_CELL)
+        return True
+
+    def drain(self):
+        """Take whatever has arrived. Cheap enough for a 50 ms poll loop."""
+        if not self.ok or self.armed_at is None:
+            return []
+        try:
+            self.buf += os.read(self.bus.fd, 1024)
+        except (BlockingIOError, OSError):
+            pass
+        got = self.C.find_cell_events(self.buf, self.addr)
+        if not got:
+            if len(self.buf) > 4096:
+                self.buf = self.buf[-512:]
+            return []
+        self.buf = self.buf[max(p for _v, p in got):]
+        fresh = [(v, now() - self.armed_at) for v, _p in got]
+        self.events += fresh
+        for v, t in fresh:
+            self.log('the mini-jack sense reported %d, %.2f s after the '
+                     'instruction went up' % (v, t))
+        return fresh
+
+    def close(self):
+        if self.bus is not None:
+            try:
+                self.bus.close()
+            except Exception:
+                pass
+            self.bus = None
+        self.ok = False
+
+
+def mj_verdict(sense, name, removal_asked):
+    """Row 93 from what the listen heard. Returns (verdict, why, detail).
+
+    NO TRAFFIC AT ALL IS NOT A FAIL, and on today's unit it is the expected
+    answer. The flashed H1S3 image carries generation `e80ccab5d6d8` while this
+    cell landed at `46109e9fb812` -- S139 measured 0 of 2,105 shared names at
+    the same address between those two -- and the shipped H1S3 variant has no
+    MJ_SW read in it at all. So silence is a panel-firmware precondition and
+    says so; an edge one way but not the other IS a fault, because a cell that
+    answered once is a cell that is alive.
+    """
+    if not sense.ok:
+        return (NODATA, 'the mini-jack sense could not be listened to',
+                sense.why)
+    ev = sense.events
+    if not ev:
+        return (NODATA,
+                'nothing was transmitted on the mini-jack sense cell while '
+                'the plug went in and came out',
+                'not a fault in the jack: this unit\'s panel firmware does '
+                'not carry this cell yet (the flashed H1S3 is an older '
+                'generation and its image has no MJ_SW read). Re-run this row '
+                'after that reflash')
+    vals = [v for v, _t in ev]
+    if len(set(vals)) == 1:
+        if not removal_asked:
+            return (NODATA,
+                    'only one edge was reported (%d), and nothing in this '
+                    'pass asked for the plug to come out again' % vals[0],
+                    'the detect is bound to the first mini-jack patch so that '
+                    'the next patch\'s own prompt is the removal')
+        return (FAIL,
+                'the same value (%d) was reported for the plug going in and '
+                'coming out, so the cell is transmitting but not following '
+                'the jack' % vals[0],
+                'values: %s' % ', '.join(str(v) for v in vals))
+    return (PASS,
+            'the sense cell changed when the plug went into %s and changed '
+            'back when it came out' % name,
+            'values in order: %s' % ', '.join('%d at %.2f s' % (v, t)
+                                              for v, t in ev))
+
 
 class Station:
     """One pass of the patch list.
@@ -1466,7 +1787,21 @@ class Station:
 
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
                  blocks=None, live=None, analog=None, auto_advance=False,
-                 keys=None, prearm=True):
+                 keys=None, prearm=True, trials=False, trial_only=None,
+                 mj_input=None):
+        # 1.2(b). OFF unless asked for, because it is the one thing in this
+        # station that applies phantom: `--click-trials`. `trial_only` is
+        # `--trial-inputs`, PW naming the good channels by hand.
+        self.trials = bool(trials)
+        self.trial_only = set(trial_only) if trial_only else None
+        self.click_results = []
+        # 2.2, PW addendum 1. `mj_input` is the patch whose insertion carries
+        # the detect row; None = the first mini-jack patch in the list.
+        self.mj_input = mj_input
+        self.mj = None           # the listener, opened at that patch
+        self.mj_patch = None     # which patch id it was armed for
+        self.mj_asked_removal = False
+        self.mj_done = False
         self.L = plist
         self.u = unit
         self.p = patcher
@@ -1604,9 +1939,109 @@ class Station:
         else:
             self.u.osc(chan=int(r['donor']), freq=freq, level_dbfs=lvl, on=True)
         self.u.meas_chan(lane)
+        # 2.2, PW ADDENDUM 1: THE LISTEN IS ARMED HERE, AND HERE IS WHY.
+        # `_prepare` is the last thing that happens before `p.connect` and
+        # `announce` -- i.e. before the operator is told anything at all -- in
+        # BOTH paths into this method (the first patch of a block, and the
+        # pipeline's look-ahead). So a drain here cannot miss an edge, and an
+        # edge cannot land in a window nothing is watching.
+        self.mj_arm(rows)
         return dict(lane=lane, freq=freq, level=lvl,
                     floor=self.floors.get(lane), watch=self.watch(lane),
                     sweep0=self.u.meter_sweep(MIC_STRIPS))
+
+    # -- 2.2 the mini-jack insertion sense, on the patch step ---------------
+    def mj_detect_patch(self):
+        """The patch id whose insertion carries row 93, or None.
+
+        DECLARED, NOT DEDUCED -- see the note on `MiniJackSense`. The default
+        is the FIRST mini-jack patch in the list, which is what makes the
+        removal free: the NEXT mini-jack patch's own prompt ("... with
+        MINI-JACK 1 empty") is the instruction that takes the plug out again.
+        """
+        mine = [(pid, rows) for pid, rows in self.L.patches
+                if rows[0]['block'] == MJ_BLOCK]
+        if not mine:
+            return None, None
+        if self.mj_input:
+            for pid, rows in mine:
+                if rows[0]['in'] == self.mj_input:
+                    return pid, rows[0]['in']
+            self.log('--mj-detect-input %r is not a mini-jack patch in this '
+                     'list; the detect stays on %s'
+                     % (self.mj_input, mine[0][1][0]['in']))
+        return mine[0][0], mine[0][1][0]['in']
+
+    def mj_arm(self, rows):
+        """Open and arm the listen, if this is the patch that carries row 93."""
+        if self.mj_done:
+            return
+        pid, _name = self.mj_detect_patch()
+        if pid is None or rows[0]['patch'] != pid:
+            return
+        if self.mj is None:
+            self.mj = MiniJackSense(log=self.log)
+            if not self.mj.ok:
+                self.log('the mini-jack insertion sense is not being listened '
+                         'to: %s' % self.mj.why)
+        self.mj_patch = pid
+        self.mj.arm()
+
+    def mj_drain(self):
+        """Called from the wait loop, so the edge is caught while the hand is
+        on the connector rather than read for afterwards."""
+        if self.mj is not None and self.mj_patch is not None:
+            self.mj.drain()
+
+    def mj_close(self, ask=True):
+        """Score row 93 and put the listener away. Runs once, on every way out.
+
+        IT APPENDS TO `self.rows_out` IN PLACE, and it has to: `run()` hands
+        that same list object back and `patch_station` folds the RETURN VALUE
+        onto the catalog rows, so a row appended to a copy would be scored by a
+        standalone run and lost under RUN ALL.
+
+        THE ONE SCREEN THIS MAY SPEND, and only in the degenerate case: if the
+        detect patch was also the LAST mini-jack patch then no later prompt
+        ever asked for the plug to come out, so the off-edge would be missing
+        for a reason that is nothing to do with the unit. Then, and only then,
+        one removal screen is put up -- never after a PAUSE, a signal or an
+        exception, which is what `ask` is for.
+        """
+        if self.mj is None or self.mj_done:
+            return
+        self.mj_done = True
+        pid, name = self.mj_detect_patch()
+        try:
+            self.mj.drain()
+            vals = {v for v, _t in self.mj.events}
+            if ask and self.mj.ok and len(vals) == 1 and not self.paused:
+                later = [p for p, rs in self.L.patches
+                         if rs[0]['block'] == MJ_BLOCK and p != pid]
+                if not later:
+                    self.mj_asked_removal = True
+                    self.lamp_ask('Take the plug out of %s.' % name, 0, 0,
+                                  'Mini-jack insertion sense', fault=None,
+                                  secs=MJ_REMOVE_S)
+                    t0 = now()
+                    while now() - t0 < MJ_REMOVE_S and len(vals) < 2:
+                        self.mj.drain()
+                        vals = {v for v, _t in self.mj.events}
+                        nap(0.05)
+            else:
+                self.mj_asked_removal = True
+            v, why, detail = mj_verdict(self.mj, name or 'the mini-jack input',
+                                        self.mj_asked_removal)
+            self.log('the mini-jack insertion sense (row 93): %s -- %s'
+                     % (v, why))
+            self.rows_out.append(dict(
+                path='', patch=pid or 'MJ', lead='K3', out='',
+                **{'in': name or 'the mini-jack input'},
+                sub='jack-switch detect', rows='93', verdict=v, why=why,
+                detail=detail, h_db=None, h_deg=None, thd_db=None,
+                noise_db=None, rms_db=None))
+        finally:
+            self.mj.close()
 
     def watch(self, lane):
         """The cheap level the auto-advance polls, in dB.
@@ -1793,6 +2228,12 @@ class Station:
             # polled in the same breath as the meter -- so ENTER and PAUSE
             # land within one poll of the press wherever the loop is waiting.
             self.live.beat()
+            # 2.2, PW ADDENDUM 1: the mini-jack sense is drained HERE, in the
+            # loop that is already waiting for the operator's hands. That is
+            # what makes the edge free -- it arrives while they are pushing the
+            # plug in, which is the only moment a cell that is pushed on change
+            # says anything at all.
+            self.mj_drain()
             cmd = self.live.command()
             if cmd == 'pause':
                 return ('glass', dict(button='pause', reason='the screen'),
@@ -1983,6 +2424,392 @@ class Station:
         self.cost('gain steps', now() - t0)
         return m
 
+    # -- 1.2(b) the click-and-shunt trials ----------------------------------
+    def transient(self, lane, action, pre_s=CLICK_PRE_S, post_s=CLICK_POST_S):
+        """One lane, polled as fast as the link goes, with `action` fired once
+        in the middle. Returns the raw series and where the action landed.
+
+        THE INSTRUMENT IS THE STRIP METER, AND THE TABLE SAYS SO. `watch()` on
+        a MIC lane is one SPI peek of `_mtr_peak_C1_MTR_nn`, which LATCHES the
+        block's peak and then decays at a measured 6.52 dB/s (S125; S121
+        estimated 6). For a transient that is the right way round -- a latch
+        cannot miss the peak between two polls, it can only report it late --
+        and it is why `METER_DECAY_DB_S` has to be taken back out of the
+        DURATION, which is what `click_metrics` does.
+        Everything this cannot say is in `CLICK_TABLE_NOTE`.
+
+        The measurement node is NOT used here: `Test001RmsResult001` is an RMS
+        over a 4,096-sample window (85.3 ms), which is coarser than the whole
+        event, and a 16-word node peek spans about fifteen audio blocks and
+        scrambles them (S-series finding: a peek is not a block).
+        """
+        series = []
+        t0 = now()
+        while now() - t0 < pre_s:
+            series.append((now() - t0, self.watch(lane)))
+        t_act = now() - t0
+        action()
+        while now() - t0 < pre_s + post_s:
+            series.append((now() - t0, self.watch(lane)))
+        return dict(t_act_s=t_act, series=series, pre_s=pre_s, post_s=post_s)
+
+    def click_metrics(self, cap):
+        """The fixed table row for one trial. INFORMATIONAL, always.
+
+        THE COLUMNS ARE FIXED HERE (gaps doc 1.2(b): "peak / energy / duration
+        table ... for PW to review and SIGN the limits"). PW signs against
+        `peak_dbfs` and `residual_ms`; the rest is the instrument declaring
+        itself so that a signature is against a known one:
+
+          floor_dbfs    the lane with the 150 ohm plug in and nothing moving:
+                        the median of the samples taken BEFORE the toggle.
+          peak_dbfs     the highest sample after it. The meter latches, so
+                        this cannot be missed between polls -- only reported
+                        late, by at most poll_ms_max of decay.
+          t_peak_ms     when that sample was taken, from the toggle.
+          above_floor_ms  from the toggle to the last sample still more than
+                        CLICK_ABOVE_FLOOR_DB over the floor.
+          decay_only_ms  how much of `above_floor_ms` the METER's own 6.52 dB/s
+                        decay accounts for on its own, from that peak. This is
+                        not a correction factor: it is the instrument's tail,
+                        and it is subtracted rather than left in the number PW
+                        is being asked to sign.
+          residual_ms   above_floor_ms - decay_only_ms, floored at 0. The
+                        transient's OWN duration, as far as this instrument
+                        can see it -- and None when `truncated`.
+          truncated     the capture ENDED with the lane still above the
+                        threshold, so `above_floor_ms` is a lower bound and
+                        `residual_ms` cannot be worked out at all. It matters
+                        because the meter's drain from a LOUD peak is long: at
+                        6.52 dB/s a peak of -60 dBFS takes 4.6 s to reach 6 dB
+                        over a -96 dBFS floor, which is longer than
+                        CLICK_POST_S. `click_trials_check.py` is what put this
+                        column here -- before it, a loud click reported a
+                        residual of 0.0 ms, which reads as "no ringing at all"
+                        and is the exact opposite of what it means.
+          energy_db_s   10*log10(sum(p*dt)) over the samples above the floor.
+                        An UPPER BOUND: the latch holds a peak across polls,
+                        so the envelope integrated here is at or above the
+                        true one.
+          polls, poll_ms_mean, poll_ms_max   what the cadence actually was.
+        """
+        ser = [(t, v) for t, v in cap['series']
+               if v is not None and math.isfinite(v)]
+        pre = sorted(v for t, v in ser if t < cap['t_act_s'])
+        post = [(t, v) for t, v in ser if t >= cap['t_act_s']]
+        gaps = [b[0] - a[0] for a, b in zip(ser, ser[1:])]
+        out = dict(floor_dbfs=(pre[len(pre) // 2] if pre else None),
+                   peak_dbfs=None, t_peak_ms=None, above_floor_ms=None,
+                   decay_only_ms=None, residual_ms=None, energy_db_s=None,
+                   truncated=False, polls=len(ser),
+                   poll_ms_mean=(1000.0 * sum(gaps) / len(gaps)
+                                 if gaps else None),
+                   poll_ms_max=(1000.0 * max(gaps) if gaps else None))
+        if out['floor_dbfs'] is None or not post:
+            return out
+        t_pk, pk = max(post, key=lambda tv: tv[1])
+        thr = out['floor_dbfs'] + CLICK_ABOVE_FLOOR_DB
+        out['peak_dbfs'] = pk
+        out['t_peak_ms'] = 1000.0 * (t_pk - cap['t_act_s'])
+        above = [t for t, v in post if v > thr]
+        if above:
+            out['above_floor_ms'] = 1000.0 * (above[-1] - cap['t_act_s'])
+            out['decay_only_ms'] = max(0.0, 1000.0 * (pk - thr)
+                                       / METER_DECAY_DB_S)
+            # THE CAPTURE RAN OUT BEFORE THE TAIL DID. Then `above_floor_ms` is
+            # a lower bound and the subtraction is meaningless, so no residual
+            # is reported rather than a 0 that would read as "no ringing".
+            out['truncated'] = post[-1][1] > thr
+            out['residual_ms'] = (None if out['truncated'] else
+                                  max(0.0, out['above_floor_ms']
+                                      - out['decay_only_ms']))
+            e, last = 0.0, None
+            for t, v in post:
+                if last is not None and v > thr:
+                    e += 10 ** (v / 10.0) * (t - last)
+                last = t
+            out['energy_db_s'] = dbv(e) if e > 0 else None
+        else:
+            out['above_floor_ms'] = 0.0
+            out['decay_only_ms'] = 0.0
+            out['residual_ms'] = 0.0
+        return out
+
+    def click_trials(self, r, prep):
+        """1.2(b): the click/shunt trial set on ONE input, inside the EIN step.
+
+        WHERE AND WHY HERE. The ruling puts it "inside the EIN step (150 ohm
+        plug already in)": the terminator is the source impedance the residual
+        has to be measured against, the operator's hand is already on that
+        socket, and the EIN reading that has just been taken IS the floor the
+        peak is quoted over. A separate visit would need the plug fitted twice.
+
+        FOUR TRIALS PER INPUT: phantom off->on and on->off, each with the
+        shunt ENGAGED and with it RELEASED. The two shunt arms are the same
+        shape -- one image moves the phantom bit, with the shunt already where
+        it is going to be -- so the only difference between them is the thing
+        being measured.
+
+        THE RELEASED ARM DELIBERATELY BREAKS THE SHUNT-FIRST RULE, and that is
+        what it is for. PW 2026-09-16 says phantom is never switched without
+        the shunt; PW 2026-09-28 asks for "shunt on/off, both directions" so
+        that the rule's worth can be measured. It is therefore the one place in
+        this tree that moves phantom without the sequence, it is behind
+        `--click-trials` which is off by default, it only ever runs with the
+        150 ohm terminator fitted (never a microphone), and it says so in the
+        log every time.
+
+        IT NEVER GRADES. No verdict, no window, no PASS and no FAIL -- the
+        rows come back as a table and the row stays INFORMATIONAL until PW
+        signs the limits (the ruling's own words).
+        """
+        lane = int(r['lane'])
+        sp = str(r.get('send_pos') or '').strip()
+        if sp == '':
+            return dict(input=r['in'], lane=lane, trials=[],
+                        skipped='no transmit position for this input in the '
+                                'patch list')
+        sp = int(sp)
+        base = list(self.an.image if self.an.image is not None
+                    else self.an.safe_image)
+        self.log('click/shunt trials on %s: phantom is moved WITHOUT the '
+                 'shunt-first sequence in two of the four trials, which is '
+                 'what the trial measures. The 150 ohm terminator is fitted '
+                 'and no microphone is connected.' % r['in'])
+        trials = []
+        t0 = now()
+        try:
+            for shunt_on in (True, False):
+                for on in (True, False):
+                    img0 = CH.with_phantom(
+                        CH.with_shunt(base, [sp], shunt_on), [sp], not on)
+                    if not self.an.chain(img0, 'click trial start state: shunt '
+                                         '%s, phantom %s'
+                                         % ('engaged' if shunt_on else
+                                            'released',
+                                            'off' if on else 'on')):
+                        trials.append(dict(shunt=shunt_on, to_on=on,
+                                           skipped='the start image did not '
+                                                   'read back'))
+                        continue
+                    nap(CH.SHUNT_SETTLE_S)
+                    img1 = CH.with_phantom(img0, [sp], on)
+                    cap = self.transient(
+                        lane, lambda i=img1: self.an.chain(
+                            i, 'click trial: phantom %s' % ('on' if on
+                                                            else 'off')))
+                    m = self.click_metrics(cap)
+                    m.update(shunt=shunt_on, to_on=on, skipped='')
+                    trials.append(m)
+        finally:
+            # BACK THROUGH THE SEQUENCE, always. However the trials ended, the
+            # input is left with phantom off and its shunt where the block
+            # wants it, and the way back is PW's own sequence -- the trials'
+            # exception applies to the measurement, not to the handback.
+            self.an.phantom([sp], False, what='%s after the click trials'
+                            % r['in'])
+            self.an.chain(base, 'back to the block image after the click '
+                          'trials')
+        self.cost('click/shunt trials', now() - t0)
+        return dict(input=r['in'], lane=lane, trials=trials, skipped='')
+
+    # -- 1.2(a) the phantom lamp sweep --------------------------------------
+    def mic_inputs(self):
+        """The mic inputs the sweep walks, in the list's own order.
+
+        Taken from the rows that carry a `send_pos`, because `send_pos` is the
+        only thing that can address a preamp's own 595 byte (S125: the strip
+        number, the chain index and the transmit position are three different
+        orders and defs carries two of them in adjacent columns). An input
+        with no transmit position in the list is not walked and says so, which
+        is the no-fallback rule: writing a guessed byte moves some other
+        input's phantom.
+        """
+        # WHICH ROWS ARE A MIC PREAMP AT ALL. `lane` in MIC_STRIPS and a name
+        # that is not the jack half of the same combo socket: that is the 24
+        # XLR mic inputs and nothing else. TALKBACK and the mini-jacks come in
+        # on codec return lanes and have no preamp byte to write, so they are
+        # not "skipped" -- they are not in this sweep's scope.
+        #
+        # AND THE TRANSMIT POSITION IS LOOKED FOR ACROSS EVERY ROW OF AN INPUT,
+        # not just its first. MIC 1's first row in the generated list is P1 of
+        # the OUTPUT walk, which carries no `send_pos` at all; taking the first
+        # row would have dropped MIC 1 and MIC 2 out of the sweep and called
+        # them unaddressable.
+        pos, lanes, order = {}, {}, []
+        for r in self.L.paths:
+            name = (r.get('in') or '').strip()
+            if (not name or name.endswith(' line')
+                    or not str(r.get('lane') or '').isdigit()
+                    or int(r['lane']) not in MIC_STRIPS):
+                continue
+            if name not in lanes:
+                order.append(name)
+                lanes[name] = int(r['lane'])
+            sp = str(r.get('send_pos') or '').strip()
+            if sp != '' and name not in pos:
+                pos[name] = int(sp)
+        out, skipped = [], []
+        for name in order:
+            if name in pos:
+                out.append(dict(name=name, lane=lanes[name],
+                                send_pos=pos[name]))
+            else:
+                skipped.append(name)
+        if skipped:
+            self.log('the lamp sweep skips %d input(s) with no transmit '
+                     'position in the list: %s'
+                     % (len(skipped), ', '.join(skipped)))
+        return out, skipped
+
+    def lamp_ask(self, instruction, n, total, title, fault='notlit',
+                 secs=None):
+        """One operator screen with ENTER and at most one fault button.
+
+        Returns 'enter', 'notlit', 'pause' or 'skip'. Both channels are polled
+        in the same breath -- the armed factory screen's own NOT LIT (S137) and
+        the dialog's -- so whichever the bench has is live. `fault=None` is a
+        plain ENTER screen, which is what the mini-jack removal step wants:
+        there is no judgement to make there, only an action to finish.
+        """
+        self.live.set(state=LV.WAITING, instruction=instruction, lead_line='',
+                      extra='', banner='', banner_line='', action='',
+                      n=n, total=total, lead_n=0, lead_total=0,
+                      buttons=(LV.LAMP_BUTTONS if fault
+                               else LV.buttons_for(LV.WAITING, True)))
+        btns = self.g.post('instruct', title, [instruction],
+                           [fault] if fault else ['enter'])
+        deadline = now() + (secs if secs is not None
+                            else self.lim['detect_timeout_s'] * ENTER_PATIENCE)
+        while now() < deadline:
+            self.live.beat()
+            cmd = self.live.command()
+            if cmd in ('pause', 'notlit'):
+                return cmd
+            if cmd == 'enter' or self.keys.pressed():
+                return 'enter'
+            ans = self.g.poll(btns)
+            if ans is not None:
+                b = ans.get('button')
+                if b in ('done', 'ack', 'enter', 'retry'):
+                    return 'enter'
+                if b == 'notlit':
+                    return 'notlit'
+                if b in STOP_BUTTONS:
+                    return 'pause'
+                return 'skip'
+            nap(0.05)
+        return 'skip'
+
+    def lamp_sweep(self):
+        """1.2(a): PW's two-LED lamp fixture, moved input to input.
+
+        A SEPARATE SWEEP, and separate for a reason the ruling gives: it is the
+        only step in the station that applies phantom, so it is not folded into
+        a block that is measuring something else. It measures NOTHING -- there
+        is no lane reading here at all, only the operator's eye on two LEDs --
+        so it needs no oscillator, no MeasChan and no settle.
+
+        EVERY PHANTOM TRANSITION GOES THROUGH THE SHUNT-FIRST SEQUENCE
+        (`Analog.phantom`, PW 2026-09-16, S138-3): shunt on, t1, phantom
+        toggled, t2, shunt restored, three verified loads. Nothing here writes
+        a phantom bit in one image.
+
+        AND IT LEAVES PHANTOM OFF ON EVERY INPUT IT TOUCHED, on every way out
+        -- the answer, a PAUSE, a timeout or an exception -- because the
+        fixture is a pair of LEDs across a 48 V feed and the next thing to go
+        into that socket is a microphone. `Analog.down()`'s safe image is the
+        backstop; this is the step's own.
+        """
+        inputs, skipped = self.mic_inputs()
+        total = len(inputs)
+        rows, touched = [], []
+        self.live.set(state=LV.WAITING, instruction=LV.lamp_sweep_words(),
+                      lead_line='', extra='', n=0, total=total,
+                      buttons=LV.LAMP_BUTTONS)
+        self.g.progress('the phantom lamp sweep: %d inputs, two questions each'
+                        % total)
+
+        def land(inp, verdict, why, detail=''):
+            rows.append(dict(path='', patch='LAMP', lead='LAMP', out='',
+                             **{'in': inp['name']}, sub='phantom lamp',
+                             rows='', verdict=verdict, why=why, detail=detail,
+                             h_db=None, h_deg=None, thd_db=None,
+                             noise_db=None, rms_db=None))
+
+        try:
+            for i, inp in enumerate(inputs, 1):
+                # 1. THE FIXTURE MOVES, WITH PHANTOM OFF EVERYWHERE. A lamp
+                # lit here is phantom present with phantom off, and it is the
+                # same NOT LIT button in the same place.
+                ans = self.lamp_ask(LV.lamp_move_words(inp['name'], first=i == 1),
+                                    i, total, 'Phantom lamp check - %s'
+                                    % inp['name'])
+                if ans == 'pause':
+                    self.paused = True
+                    return rows
+                if ans == 'skip':
+                    land(inp, SKIPPED, 'the operator moved past this input')
+                    continue
+                if ans == 'notlit':
+                    land(inp, FAIL, LV.LAMP_STUCK_ON,
+                         'a lamp was lit with phantom off on every input')
+                    continue
+                # 2. PHANTOM ON, through the sequence.
+                touched.append(inp['send_pos'])
+                ok, steps = self.an.phantom([inp['send_pos']], True,
+                                            what=inp['name'])
+                if not ok:
+                    land(inp, NODATA, 'the phantom shunt sequence did not '
+                         'verify, so phantom was not applied',
+                         'stopped at step %d; the shunt is left engaged'
+                         % steps[-1]['step'])
+                    self.an.phantom([inp['send_pos']], False, what=inp['name'])
+                    continue
+                # 3. THE RULING'S QUESTION.
+                ans = self.lamp_ask(LV.lamp_check_words(inp['name']), i, total,
+                                    'Phantom lamp check - %s' % inp['name'])
+                # 4. PHANTOM OFF, through the sequence, whatever the answer
+                # was -- including a PAUSE.
+                off_ok, _ = self.an.phantom([inp['send_pos']], False,
+                                            what=inp['name'])
+                if not off_ok:
+                    land(inp, NODATA, 'phantom would not switch back off; the '
+                         'shunt is left engaged on this input', '')
+                    self.paused = True
+                    return rows
+                if ans == 'pause':
+                    self.paused = True
+                    return rows
+                if ans == 'skip':
+                    land(inp, SKIPPED, 'the operator moved past this input')
+                elif ans == 'notlit':
+                    land(inp, FAIL, LV.LAMP_LEG_FAULT,
+                         'the operator saw one or both lights dark with '
+                         'phantom on')
+                else:
+                    land(inp, PASS, 'both lights on with phantom on, both dark '
+                         'with it off')
+        finally:
+            # PHANTOM OFF ON EVERYTHING THIS SWEEP TOUCHED, on every way out.
+            # One sequence over the whole set, not one per input: the ruling's
+            # step 1 is "shunt ON on every channel whose phantom is about to
+            # change", which is what a set is for.
+            if touched:
+                self.an.phantom(sorted(set(touched)), False,
+                                what='every input the lamp sweep touched')
+            self.g.clear()
+        for name in skipped:
+            rows.append(dict(path='', patch='LAMP', lead='LAMP', out='',
+                             **{'in': name}, sub='phantom lamp', rows='',
+                             verdict=NODATA,
+                             why='no transmit position for this input in the '
+                                 'patch list, so its own preamp byte cannot '
+                                 'be addressed',
+                             detail='', h_db=None, h_deg=None, thd_db=None,
+                             noise_db=None, rms_db=None))
+        return rows
+
     def cost(self, what, secs):
         self.costs[what] = self.costs.get(what, 0.0) + secs
 
@@ -2027,6 +2854,25 @@ class Station:
                      if int(r['lane']) in MIC_STRIPS and r['expect'] == 'tone'
                      else {})
             out.append(dict(row=r, meas=m, sweep=sweep))
+            # 1.2(b), INSIDE THE EIN STEP AND AFTER THE READING (PW
+            # 2026-09-28). After, not before: the trials move phantom, and a
+            # noise figure taken with a phantom transient still in the window
+            # is not a noise figure. "The good channels" is the ruling's own
+            # scope -- a channel whose EIN reading did not come back has
+            # nothing for a click to be quoted over -- and `--trial-inputs`
+            # names them by hand.
+            if (self.trials and r['expect'] == 'noise'
+                    and int(r['lane']) in MIC_STRIPS
+                    and (self.trial_only is None
+                         or r['in'] in self.trial_only)):
+                good = m.get('rms')
+                if good is None or not math.isfinite(good):
+                    self.click_results.append(
+                        dict(input=r['in'], lane=int(r['lane']), trials=[],
+                             skipped='the EIN reading did not come back, so '
+                                     'this is not one of the good channels'))
+                else:
+                    self.click_results.append(self.click_trials(r, prep))
         return out
 
     def score_patch(self, rows, prep, raw):
@@ -2095,6 +2941,21 @@ class Station:
 
     # -- the pass ----------------------------------------------------------
     def run(self):
+        """The pass, with row 93 scored on the way out whatever happened.
+
+        `mj_close` appends to `self.rows_out`, which is the very list `_run`
+        returns, so the detect row is in the return value of a standalone run
+        AND in what `patch_station` folds onto the catalog.
+        """
+        ok = False
+        try:
+            out = self._run()
+            ok = not self.paused
+            return out
+        finally:
+            self.mj_close(ask=ok)
+
+    def _run(self):
         self.standing()
         seq = []
         for (lead, block), patches in self.L.blocks():
@@ -2716,6 +3577,12 @@ class Station:
         if getattr(self, '_torn', False):
             return
         self._torn = True
+        # The listener, if `run` was never entered (a --lamp-sweep run) or left
+        # by a path that bypassed its own finally. Idempotent.
+        try:
+            self.mj_close(ask=False)
+        except Exception as e:
+            self.log('the mini-jack sense could not be closed: %s' % e)
         try:
             self.an.down()
         except Exception as e:                       # never mask the real error
@@ -3015,10 +3882,19 @@ class SimAnalog(Analog):
         self.w = world
         self.w.gain_table = gain
         self.w.send_pos = send_pos
+        self.sent = []           # every (image, what), in order, for the proofs
 
     def chain(self, image, what):
+        # THE IMAGE IS TRACKED HERE TOO, and it has to be: `Analog.phantom`
+        # composes PW's shunt-first sequence off `self.image` (the image
+        # currently on the part), so a simulated analog that never recorded one
+        # would build every step from the SAFE image and the dry run would
+        # prove a sequence the bench will not send.
+        self.image = list(image)
         self.w.chain = list(image)
         self.writes += 1
+        self.wrote = True
+        self.sent.append((list(image), what))
         nap(CHAIN_WRITE_S)
         self.write_s += CHAIN_WRITE_S
         return True
@@ -3401,8 +4277,14 @@ def cmd_simulate(a, plist):
     # made the connection, which is the same message the button sends.
     st = Station(plist, unit, patcher, glass, Limits.load(plist.dir), log=log,
                  blocks=a.block, live=live, analog=an,
-                 auto_advance=a.auto_advance, prearm=a.prearm)
+                 auto_advance=a.auto_advance, prearm=a.prearm,
+                 trials=a.click_trials,
+                 trial_only=split_inputs(a.trial_inputs),
+                 mj_input=a.mj_detect_input)
     rows = st.run()
+    if st.click_results:
+        print('')
+        click_table(st.click_results)
     counts = {}
     for r in rows:
         counts[r['verdict']] = counts.get(r['verdict'], 0) + 1
@@ -3894,7 +4776,10 @@ def cmd_run(a, plist):
                         log=glass.progress)
         st = Station(plist, unit, patcher, glass, Limits.load(plist.dir),
                      log=glass.progress, blocks=a.block, live=live, analog=an,
-                     auto_advance=a.auto_advance, keys=keys)
+                     auto_advance=a.auto_advance, keys=keys,
+                     trials=a.click_trials,
+                     trial_only=split_inputs(a.trial_inputs),
+                     mj_input=a.mj_detect_input)
 
         # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
         # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
@@ -3912,7 +4797,11 @@ def cmd_run(a, plist):
         for s in (signal.SIGINT, signal.SIGTERM):
             signal.signal(s, stopped)
 
-        rows = st.run()
+        if a.lamp_sweep:
+            an.up()
+            rows = st.lamp_sweep()
+        else:
+            rows = st.run()
     except BaseException as e:
         # A CRASHED RUNNER ENDS THE RUN; IT DOES NOT RESTART AND IT DOES NOT
         # LIE (PW 2026-09-27). Until S127 an exception here skipped the report
@@ -3979,7 +4868,20 @@ def end_of_run(a, st, plist, live, lock, stopped=''):
         lock.release()
     except Exception:
         pass
-    if st is not None and not stopped:
+    # 1.2(b)'s TABLE, written on every way out and never graded. It is the
+    # whole deliverable of a trials run, so it must survive a PAUSE, a signal
+    # and an exception as the results CSV does.
+    try:
+        res = list(getattr(st, 'click_results', []) or [])
+        if res:
+            click_table(res)
+            if a.click_out:
+                with open(a.click_out, 'w', encoding='utf-8') as fh:
+                    click_table(res, out=fh)
+                print('wrote %s' % a.click_out, flush=True)
+    except Exception as e:
+        print('the click trial table could not be written: %s' % e, flush=True)
+    if st is not None and not stopped and not getattr(a, 'lamp_sweep', False):
         try:
             print_time_table(time_table(st, plist, a.hand), a.hand, plist,
                              press_s=0.0 if a.auto_advance else a.press)
@@ -4064,6 +4966,32 @@ def main(argv=None):
     ap.add_argument('--capture', default='/home/app/selftest/s105-wizard.png',
                     help='the display\'s own capture file, copied out after '
                          'each screen in --screens')
+    ap.add_argument('--lamp-sweep', action='store_true',
+                    help='1.2(a): PW\'s two-LED phantom lamp fixture, moved '
+                         'input to input as a SEPARATE sweep. Applies phantom '
+                         '-- through the shunt-first sequence on every '
+                         'transition -- and measures nothing: the judgement is '
+                         'the operator\'s eye on two LEDs')
+    ap.add_argument('--click-trials', action='store_true',
+                    help='1.2(b): inside the EIN step, with the 150 ohm plug '
+                         'already in, capture the phantom-switching transient '
+                         'on the lane -- both directions, shunt engaged and '
+                         'released. INFORMATIONAL: it never grades, and it is '
+                         'the one place that moves phantom without the '
+                         'shunt-first sequence, which is what it measures. OFF '
+                         'by default')
+    ap.add_argument('--trial-inputs',
+                    help='--click-trials: only these inputs, comma-separated '
+                         'panel names ("MIC 3,MIC 7"). The default is every '
+                         'input whose EIN reading came back')
+    ap.add_argument('--mj-detect-input',
+                    help='2.2: which mini-jack patch carries the jack-switch '
+                         'detect row ("MINI-JACK 1"). The default is the FIRST '
+                         'mini-jack patch in the list, so the next patch\'s own '
+                         'prompt is what takes the plug out again')
+    ap.add_argument('--click-out',
+                    help='--click-trials: write the trial table here as well '
+                         'as printing it')
     ap.add_argument('--symdir', default=FACTORY_TEST_PAIR_DIR)
     ap.add_argument('--back-end', default='auto', choices=('auto', 'harness'))
     ap.add_argument('--stdin', action='store_true')
@@ -4080,11 +5008,19 @@ def main(argv=None):
         return cmd_simulate(a, plist)
     if a.guard:
         return cmd_guard(a)
+    # 1.2(a) IS ITS OWN ENTRY AND NEVER THE FACTORY START'S (PW: a SEPARATE
+    # sweep). It applies phantom, so it cannot be something a worker reaches by
+    # pressing START before PW has signed it off at the bench.
+    if a.lamp_sweep:
+        if a.run and not a.patch_only:
+            ap.error('--lamp-sweep is a separate sweep and is not what the '
+                     'factory START runs: use --patch-only --lamp-sweep')
+        return cmd_run(a, plist)
     if a.run and not a.patch_only:
         return cmd_factory(a)
     if a.run or a.patch_only:
         return cmd_run(a, plist)
-    ap.error('one of --list, --simulate, --screens or --run')
+    ap.error('one of --list, --simulate, --screens, --run or --lamp-sweep')
 
 
 if __name__ == '__main__':

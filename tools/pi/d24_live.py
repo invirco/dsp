@@ -585,6 +585,59 @@ def panel_judgement_missed(what):
             'question yet.' % what)
 
 
+# ---------------------------------------------------------------------------
+# THE PHANTOM LAMP SWEEP (gaps doc 1.2(a), PW ruling 2026-09-28 08:06)
+# ---------------------------------------------------------------------------
+# PW's fixture: XLR-M, pin 2 -> 3.9 kOhm -> LED "2" -> pin 1 and pin 3 ->
+# 3.9 kOhm -> LED "3" -> pin 1, about 4 mA per LED off the 6.81 kOhm phantom
+# feeds. It is moved input to input like the 150 ohm plug, as a SEPARATE
+# sweep, and the judgement is the operator's eye: "are BOTH lights on?"
+#
+# TWO SCREENS PER INPUT, AND BOTH FAULT ANSWERS FIT THE ONE BUTTON THIS
+# SCREEN HAS. `panel_judgement_missed` above is the standing rule: the factory
+# screen cannot ask a yes/no question -- it draws ENTER plus at most one named
+# fault button (PANEL_BUTTONS, S137). So the sweep asks the ruling's question
+# with NOT LIT as its fault answer, and gets the other half of the check for
+# free on the screen that is already up:
+#
+#   MOVE screen  -- phantom is off everywhere while the operator fits the
+#                   fixture, so both lamps MUST be dark here. A lamp lit on
+#                   this screen is phantom present with phantom off, and it is
+#                   the same button in the same place.
+#   CHECK screen -- phantom on, the ruling's own question and its own button.
+#
+# So the stuck-on half of 1.2(a) costs no extra press and no button the
+# display does not have. The wart is the LABEL: on the move screen NOT LIT is
+# pressed because something IS lit. Recorded for PW (S138b-2) rather than
+# papered over -- the alternative is a third button ("STILL LIT") in the app,
+# which is not in this repo.
+LAMP_BUTTONS = ['notlit', 'pause']
+
+
+def lamp_move_words(name, first=False):
+    """The move screen: the fixture goes to this input, and both lamps must be
+    dark while it does, because phantom is off on every input here."""
+    return ('%s the lamp fixture %s %s. Both lights should be dark - press '
+            'NOT LIT if either is lit.'
+            % ('Fit' if first else 'Move', 'in' if first else 'to', name))
+
+
+def lamp_check_words(name):
+    """The ruling's own question, in the ruling's own words."""
+    return ('Phantom is on at %s. Are BOTH lights on? Press NOT LIT if either '
+            'is dark.' % name)
+
+
+LAMP_LEG_FAULT = 'phantom leg fault'
+LAMP_STUCK_ON = 'phantom present with phantom off'
+
+
+def lamp_sweep_words():
+    """The standing page for the whole sweep."""
+    return ('Move the lamp fixture from input to input and say what the two '
+            'lights do.')
+
+
 def second_start_words():
     """START pressed while a test is already going.
 
@@ -629,6 +682,9 @@ def every_string(rows=()):
             panel_press_words_blind('right switch panel'),
             panel_judgement_missed('The always-lit rings'),
             panel_judgement_missed('The ring around the encoder'),
+            lamp_sweep_words(), lamp_move_words('MIC 1', first=True),
+            lamp_move_words('MIC 2'), lamp_check_words('MIC 1'),
+            'NOT LIT',
             station_card_words('Front panel switches',
                                'a finger and an eye, at the front panel',
                                44, False),

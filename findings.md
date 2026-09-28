@@ -6,6 +6,144 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE DESIGN HALF OF THE GAPS-DOC ROWS, AND WHAT THE PRIMARY SOURCE SAID (2026-09-28, session 138b)
+
+Hub dispatch `tasks.md` 2026-09-28 16:16Z plus HUB ADDENDUM 1. Everything S138
+recorded blocked is built. Three findings of this session's own, and two of
+S138's are corrected against the primary text S138 could not reach.
+
+**S138-1 IS CORRECTED, AND IT WAS A STALE CLONE, NOT A MISSING RULING.**
+`git -C ~/mx26 pull` brought 291 new lines of `pipeline.md`, and both entries
+the S138 dispatch quoted are there and were read as primary source this
+session: **08:06 BST 2026-09-28** (`pipeline.md:255-261`, the two-LED lamp
+fixture with its 3.9 kΩ / 6.81 kΩ / ≈4.0 mA figures, "moved input to input like
+the 150 Ω plug as a SEPARATE sweep", and the click/shunt trials "for PW to
+review and SIGN OFF the click limits — informational until signed") and **07:59
+BST 2026-09-28** (`pipeline.md:263-268`, the gaps doc ruled: 1.2/1.3/1.4 and
+2.2/2.3 BUILD). So the numbers S138 treated as unverified relay are PW's own
+and are now used as such. The lesson is narrow and worth keeping: a spoke
+session that cannot find a ruling the hub cites should pull the hub before
+recording the ruling as absent.
+
+**S138-3 IS WRONG AND THE BIT WAS THERE ALL ALONG, UNDER THE WRONG NAME.** S138
+recorded "no shunt bit exists anywhere in this tree's 595 chain encoding". The
+bit is Q0 — `d24_chain.byte`'s third field, the one every tool in this tree
+calls `mute`. Primary source, mx26 `docs/ref-d24-analog-attach.md` §"Phantom
+switching — the shunt-first sequence (PW 2026-09-16)": *"Q0 is the phantom
+shunt: it grounds that channel's mic-pre input coupling caps. It is not a mute
+and not a pad."* The channel mute is digital, in the DSP strip, and never was
+on this wire; `docs/d24-analog-xlr-map.md` says the same ("Phantom is never
+switched without the shunt"), and the app's own bench CLI renamed it and kept
+`mute=` as a deprecated alias for exactly this reason. **A wrong name is worse
+than an absent bit**: a reader looking for the shunt could not find it, and a
+reader looking at the mute found something that is not one — which is how a
+whole ruled test row came to be recorded as blocked on missing hardware.
+Renamed in `d24_chain.py` (`shunt=`, `mute=` still accepted and asserted to
+write the same bit), `d24_patch.py` and the SAFE-image comments, with all 256
+encodings proved byte-identical to the pre-rename arithmetic.
+
+**S138b-1 TWO MINI-JACK SOCKETS SHARE THE ONE MJ_SW NET, SO THE CELL CANNOT
+SAY WHICH — AND IF THEIR NC CONTACTS ARE PARALLELED IT MAY NOT ASSERT FOR ONE
+PLUG AT ALL. 🔴 FOR PW.** This is the answer to the question S138 raised as
+S138-5 and the reason the detect grades EDGES and not levels.
+`defs/products/d24/d24-hw-inventory.csv` puts the net named `MJ_SW` on BOTH
+mini-jack connectors of the Analog PCBA rev B — J2 line 223 and J3 line 224,
+each `GND;MJ_SW;RING;TIP` — and `fw.csv:70` describes the sense as *"the jack
+NC contacts bridge it to GND with no plug fitted"* on one net, reaching Digital
+J12 pin 5 and Right Switch J1 pin 5. defs declares ONE cell
+(`Sys[1-1]SwMiniJack[1-1]`, READ 1 = inserted / 0 = none). So the catalog's
+row-93 text ("dummy plug fitted in mini-jack 1, then 2") is right about there
+being two SOCKETS and defs is right about there being one SENSE LINE; they do
+not contradict each other. **Two consequences, and the second is a hardware
+question this session did not answer by inspecting copper:** (a) the cell can
+never report which socket the plug is in; (b) if two sets of NC contacts sit in
+parallel from MJ_SW to GND, then either empty socket keeps the net grounded and
+the line only lifts with BOTH sockets plugged — which would make a
+single-socket prompt read as no edge on a perfectly good board. The build takes
+neither reading: it grades that the value CHANGED on insertion and changed BACK
+on removal, which needs neither the polarity nor the socket count settled, and
+it reports "nothing was transmitted at all" separately from "transmitted but
+did not follow the jack", so the first bench run says which model the board
+follows. **PW's call**: whether the fixture and the row text are one plug or
+two, and whether a second sense line is wanted.
+
+**S138b-2 THE FACTORY SCREEN HAS ENTER AND ONE FAULT BUTTON, WHICH IS WHY THE
+LAMP SWEEP ASKS TWO QUESTIONS WITH ONE BUTTON NAME. 🔴 ONE LABEL WART FOR PW.**
+`d24_live.panel_judgement_missed` is the standing rule and it predates this
+session: *"The yes/no questions in the panel loop need two buttons and this
+screen has one."* The 08:06 ruling asks for two observations per input —
+"phantom on → are BOTH lights on? ENTER / NOT LIT" and "phantom off → both
+dark" — and the second cannot be a yes/no dialog on the armed screen. So the
+sweep gets both for two presses per input and no new button: the MOVE screen is
+shown while phantom is off on every input, so a lamp lit THERE is phantom
+present with phantom off, recorded as `LAMP_STUCK_ON`, on the same NOT LIT
+button in the same place. **The wart**: on that screen NOT LIT is pressed
+because something IS lit. The alternative is a third button ("STILL LIT") in
+the app, which is not in this repo. Recorded, not papered over.
+
+**S138b-3 ROW 94's READ HALF IS A TEMPERATURE COUNT, NOT A SWITCH, SO IT
+CANNOT HAVE AN ON-EDGE AND AN OFF-EDGE — AND ITS ONLY SWITCH-LIKE HALF IS THE
+WRITE THIS DISPATCH FORBIDS.** The dispatch groups rows 93 and 94 and gives
+both the insert/remove shape. That is exactly right for 93 and cannot be right
+for 94: `mx_master.csv` gives `Sys[1-1]SwTempFan[1-1]` two meanings on one cell
+— *"READ = the TEMP raw count (H1S3 PA1; the host scales it). WRITE = the drive
+mask bit0 = BLOWER bit1 = FAN"*. The read half is an analog count with no
+edges and no operator action that moves it (the sensor is behind the right
+switch panel), and the write half is a real blower and a real fan. So row 94 is
+built as a read-only listen graded on two things: that the pass-through
+transmits at all, and that the count is off both rails (0 < count < 255 — a
+count on a rail is a shorted or open sensor). **What counts as a plausible
+DEGREE is PW's and is unruled, and is recorded rather than invented**; and the
+catalog's own second criterion for TF1 — *"a plausible temperature that moves
+with the unit's own warm-up … twice, 10 min apart"* — is a session-spanning
+second reading and is **still owed**. Its natural home is beside
+`d24_runall.session_end_power_check`, which S138 built for exactly that shape.
+
+**S138b-4 NEITHER SENSE CELL CAN ANSWER ON TODAY'S UNIT, AND IT IS THE PANEL
+FIRMWARE, NOT THE HARDWARE.** The flashed H1S3 image carries generation
+`e80ccab5d6d8`; both cells landed at `46109e9fb812`, and S139 measured **0 of
+2,105 shared names at the same address** between those two generations. Beyond
+the address, the shipped H1S3 variant is the *declare-only* one (S135's
+`H1S3-A`, the variant the hub chose to ship) and its `matrix.cs` has **no
+MJ_SW read, no PA1 TEMP read and no BLOWER/FAN drive in it at all** —
+`MW/D24/DSP/s129/panel-fw/H1S3/Core/Inc/matrix.cs`, 448 lines, greps clean for
+all three. So a factory pass on today's unit will report both rows as NO DATA,
+and both checks are built to say **why** in those words ("not a fault in the
+jack / the sensor: this unit's panel firmware does not carry this cell yet …
+re-run this row after that reflash") rather than FAIL a good board. An edge one
+way but not the other IS a FAIL, because a cell that answered once is alive.
+This is a precondition on the H1S3 rebuild, queued, not a defect found.
+
+**S138b-5 A FAILED STEP 5 OF THE SHUNT-FIRST SEQUENCE WAS THE ONE CASE THAT
+COULD LEAVE THE SHUNT RELEASED WHILE REPORTING THE SAFE END STATE — FOUND BY
+THE PROOF, FIXED.** PW's rule is *"a step that does not verify stops the
+sequence there and leaves the shunt engaged, which is the safe end state."* The
+first implementation reasoned that step 1 is the load that ENGAGES the shunt,
+so any stop after it has already left it engaged and only a failure of step 1
+needed an explicit re-assert. That is true of step 3 and **false of step 5**,
+which is the load that RELEASES the shunt again: an unverified write is not a
+known state (`Analog.chain` drops the state marker for exactly that reason), so
+after a failed step 5 the shunt may be released and the sequence would have
+reported the unsafe case as safe. Now every failure re-asserts the shunt
+explicitly, built from the last load that DID verify, with the phantom bit left
+where that load put it. Negatively controlled at all three steps in
+`MW/D24/DSP/s138b/shunt_sequence_check.py`.
+
+**S138b-6 A TRUNCATED CLICK CAPTURE REPORTED A 0 ms RESIDUAL, WHICH READS AS
+"NO RINGING" ABOUT THE LOUDEST CLICK IN THE SET — FOUND BY THE PROOF, FIXED.**
+The trial table subtracts the strip meter's own 6.52 dB/s decay out of the
+duration, so that a capture which is nothing but the latch draining reports a
+residual of ~0 rather than 767 ms of invented ringing. The subtraction inverts
+when the meter's drain outlasts the capture window: at 6.52 dB/s a −70 dBFS
+peak takes 3.07 s to reach 6 dB over a −96 dBFS floor, `above_floor_ms` is then
+the whole window, `decay_only_ms` is larger than it, and the floored
+subtraction gave 0.0 ms. A `truncated` column now says the capture ended with
+the lane still ringing, `residual_ms` is reported as absent rather than zero,
+`above_floor_ms` is declared a lower bound, and `CLICK_POST_S` went 1.25 s →
+2.5 s so the common case finishes inside the window. **This is why the trials
+exist before the limits**: the instrument's own limits go in the table PW signs
+against, not in a comment.
+
 ## THE GAPS-DOC FACTORY ROWS: WHAT BUILT CLEAN, WHAT DID NOT (2026-09-28, session 138)
 
 Hub dispatch `tasks.md` 2026-09-28 15:43Z. Six findings: two describe what was

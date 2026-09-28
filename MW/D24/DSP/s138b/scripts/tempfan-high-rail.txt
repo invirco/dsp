@@ -1,0 +1,2 @@
+# A TEMP count on the HIGH rail (the family's declared max).  Same shape.
+5 tempfan 255

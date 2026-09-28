@@ -1,0 +1,5 @@
+# NOTHING transmitted on the cell inside the window.  This is what today's
+# unit does: the flashed H1S3 carries generation e80ccab5d6d8, the cell landed
+# at 46109e9fb812, and the shipped H1S3 image has no PA1 TEMP read in it at
+# all.  It must read as a panel-firmware precondition, never as a dead sensor.
+5 -

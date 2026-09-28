@@ -153,6 +153,13 @@ SW_TALK, SW_TALK_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swtalk'])
 MJSW, MJSW_ABSENT = matrix_addr.try_resolve(CELL_NAMES['mjsw'])
 TEMPFAN, TEMPFAN_ABSENT = matrix_addr.try_resolve(CELL_NAMES['tempfan'])
 
+# The same four by key, so a table row can name the cell it wants rather than
+# carrying an address (S136: by name, never a literal) -- see `SENSE` below.
+CELL_ADDR = {'skin': SKIN, 'enc': ENC, 'swleft': SW_LEFT, 'swtalk': SW_TALK,
+             'mjsw': MJSW, 'tempfan': TEMPFAN}
+CELL_ABSENT = {'swleft': SW_LEFT_ABSENT, 'swtalk': SW_TALK_ABSENT,
+               'mjsw': MJSW_ABSENT, 'tempfan': TEMPFAN_ABSENT}
+
 CELL_NAME = {SKIN: CELL_NAMES['skin'], ENC: CELL_NAMES['enc']}
 if SW_LEFT is not None:
     CELL_NAME[SW_LEFT] = CELL_NAMES['swleft']
@@ -229,21 +236,14 @@ UNREACHED = {
              'gives the C button one indicator pair and the loop grades it on '
              'row 77'),
         92: _talkback_reason(),
-        # 93/94 WERE "no matrix cell bound" -- NO LONGER TRUE (S138, gaps doc
-        # 2.2/2.3): Sys001SwMiniJack001/Sys001SwTempFan001 exist at generation
-        # 46109e9fb812 and `poll()` above already surfaces them. Still
-        # UNREACHED by THIS loop specifically, because neither is a
-        # light-one/press-one row (PANELS' (idx, name, sw, led, what) shape)
-        # -- and a graded MJ1/TF1 check needs a fresh edge inside the read
-        # window, which this loop's own instruction-then-Done ordering cannot
-        # guarantee yet (findings.md S138-4). Read-only infra
-        # (MJSW/TEMPFAN/poll()) is in; the graded check is not.
-        93: ('not a button/LED row -- MJ_SW is bound (%s) but no graded check '
-             'is wired yet, see findings.md S138-4'
-             % (MJSW if MJSW is not None else MJSW_ABSENT)),
-        94: ('not a button/LED row -- the TEMP/BLOWER/FAN cell is bound (%s) '
-             'but no graded check is wired yet, see findings.md S138-4'
-             % (TEMPFAN if TEMPFAN is not None else TEMPFAN_ABSENT)),
+        # 94 IS GRADED NOW (S138b, gaps doc 2.3). It was "no matrix cell bound"
+        # until S138 bound it and "no graded check wired yet" until this
+        # session wired `sense_sweep()` below -- a second, read-only pass over
+        # the SAME open bus, run from `panel_station` right after the sweep,
+        # because it is not a light-one/press-one row.
+        # 93 is graded by the ANALOG station's mini-jack step (PW's addendum of
+        # 2026-09-28) and is kept out of this table AND out of `SENSE` so that
+        # neither station claims it -- see `d24_runall.GRADED_ELSEWHERE`.
     },
     'left': {
         55: ('the red indicator is driven by the processor boot pin, not by the '
@@ -284,13 +284,32 @@ def wording(side, num):
         if num == leds:
             return ('The eight indicators around the encoder are stepped round '
                     'twice.', 'Did all eight light in turn?', '')
+    # The sense rows (S138b). A phase with no instruction asks the operator for
+    # nothing -- row 94's read half is a temperature count, so there is nothing
+    # for them to do -- and the action line says so rather than being blank.
+    for row in SENSE.get(side, ()):
+        if num == row.num:
+            acts = [i for i, _c in row.phases if i]
+            return (' '.join(acts) if acts
+                    else 'Nothing to do: the tester listens for %s.' % row.what,
+                    '', 'the cell reports %s while the tester is listening'
+                    % ' and then '.join(c for _i, c in row.phases))
     return ('', '', '')
 
 
 def rows_for(side):
-    """Every catalog row this loop grades on one panel: the sweep's two rows per
-    button, the indicators that are lit whenever the unit is on, and the
-    encoder's pair."""
+    """Every catalog row this STATION grades on one panel: the sweep's two rows
+    per button, the indicators that are lit whenever the unit is on, the
+    encoder's pair, and -- since S138b -- the read-only sense rows.
+
+    THE SENSE ROWS ARE IN HERE AND NOT IN `PANELS`, and the distinction is the
+    one `panel_station` makes too: they are graded by the same station, on the
+    same open bus, but by `sense_sweep` rather than by the button sweep. What
+    this set decides is whether `d24_runall.manual_step` calls the row a LOOP
+    row at all -- and a row left out of it comes back BLOCKED, which makes it
+    category 'not-run', which lets `record_not_run` FORCE a NOT TESTED over the
+    verdict `sense_sweep` had just landed. That is what this line fixes.
+    """
     out = set()
     for _idx, _name, sw, led, _what in PANELS[side]:
         out.add(sw)
@@ -299,6 +318,7 @@ def rows_for(side):
         out.update(ALWAYS_ON[side][0])
     if side in ENC_ROWS:
         out.update(ENC_ROWS[side])
+    out.update(sense_rows_for(side))
     return out
 
 
@@ -453,8 +473,17 @@ class InjectedBus:
         <delay_ms> glass notlit   the operator says the indicator stayed dark
         <delay_ms> -              nothing at all: a dead switch
 
+    and, for the sense rows (S138b), the same line shape with the cell named:
+
+        <delay_ms> mjsw <value>     MJ_SW pushed this value
+        <delay_ms> tempfan <value>  the TEMP raw count was pushed
+
     Every fault the loop has to grade can be played this way, which is how the
     runner side is proved with no finger at the bench."""
+
+    # The cells a scripted line may name. `poll()` hands these back the way
+    # `PanelBus.poll` does, so `sense_sweep` cannot tell the two apart.
+    POLLED = ('mjsw', 'tempfan')
 
     def __init__(self, path):
         self.script = []
@@ -468,6 +497,8 @@ class InjectedBus:
                 self.script.append((delay, 'enc', int(parts[2])))
             elif parts[1] == 'glass':
                 self.script.append((delay, 'glass', parts[2]))
+            elif parts[1] in self.POLLED:
+                self.script.append((delay, parts[1], int(parts[2])))
             elif parts[1] == '-':
                 self.script.append((delay, 'silence', 0))
             else:
@@ -475,12 +506,15 @@ class InjectedBus:
         self.i = 0
         self.lit = None
         self.lights = []
+        self.flushes = 0
 
     def close(self):
         pass
 
     def flush(self):
-        pass
+        # COUNTED, because the drain-before-the-prompt ordering is the whole
+        # mechanism of the sense rows and a proof has to be able to assert it.
+        self.flushes += 1
 
     def light(self, value, cells=(SKIN,)):
         self.lit = value
@@ -493,7 +527,24 @@ class InjectedBus:
         return 1.8
 
     def poll(self):
-        return []
+        """The next scripted event, if it is one of the polled cells.
+
+        A `silence` line is how a script says "this phase gets nothing", and a
+        button/encoder line is left where it is: `poll` is the sense rows' read
+        and `wait_key` is the button sweep's, and a script that drives both
+        must not have one of them eat the other's events.
+        """
+        if self.i >= len(self.script):
+            return []
+        delay, kind, value = self.script[self.i]
+        if kind == 'silence':
+            self.i += 1
+            return []
+        if kind not in self.POLLED:
+            return []
+        self.i += 1
+        time.sleep(min(delay, 50.0) / 1000.0)
+        return [(kind, value)]
 
     def wait_key(self, timeout, tick=None):
         if tick is not None:
@@ -522,6 +573,195 @@ PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 # about the switch underneath it, so the switch is NOT TESTED, not SKIPPED
 # (SKIPPED is the operator declining a button that WAS asked).
 NOTTESTED = 'NOT TESTED'
+
+
+# ---------------------------------------------------------------------------
+# THE SENSE ROWS: graded BY LISTENING DURING THE OPERATOR'S ACTION (S138b)
+# ---------------------------------------------------------------------------
+# Rows 93 (mini-jack insertion sense, MJ_SW) and 94 (TEMP / BLOWER / FAN
+# pass-through), gaps doc 2.2/2.3, PW 2026-09-28.
+#
+# WHY THIS SHAPE AND NOT A READ. Both cells are PUSHED ON CHANGE, not held --
+# `mx_master.csv` for `Sys[1-1]SwMiniJack[1-1]` says "both edges are reported"
+# in as many words -- so a read taken AFTER the operator has acted cannot be
+# told from "nothing has been transmitted yet". That is finding S138-4, and it
+# is what blocked the graded check. The answer is not a better read: it is to
+# be LISTENING while the operator acts. So each phase is
+#
+#     drain the port  ->  put the instruction up  ->  poll until the edge
+#
+# in that order, and the drain is before the prompt so that nothing the
+# operator does can land in a window this code is not yet watching.
+#
+# NOTHING HERE WRITES. `Sys001SwTempFan001`'s WRITE half is the BLOWER/FAN
+# drive mask (mx_master: "WRITE = the drive mask bit0 = BLOWER bit1 = FAN"),
+# which is a fan and a blower on a real unit, so "write something to provoke a
+# reply" is out of bounds -- this session's dispatch says so and so does
+# sense. There is no `light()` call and no `cell_line()` in this whole block.
+#
+# 🔴 AND ON TODAY'S UNIT NEITHER CELL CAN ANSWER, which is why "no traffic at
+# all" is a verdict of its own and not a FAIL. The flashed H1S3 image carries
+# generation `e80ccab5d6d8`; these cells landed at `46109e9fb812`, and S139
+# measured "0 shared at the same address" between those two generations. The
+# flashed `matrix.cs` also has no MJ_SW read, no PA1 TEMP read and no
+# BLOWER/FAN drive in it at all (the shipped H1S3-A variant is declare-only).
+# So a factory pass on today's unit must say "this unit's panel firmware does
+# not carry this cell", never "the jack is broken" -- see SENSE_NO_TRAFFIC.
+SENSE_NO_TRAFFIC = (
+    'nothing was transmitted on %s during the window, so there is no edge to '
+    'grade. This is a panel-firmware precondition and NOT a fault in the jack '
+    'or the sensor: the cell is only answered once H1S3 is rebuilt against a '
+    'generation that carries it and reads the net. Re-run this row after that '
+    'reflash')
+
+
+class SenseRow(object):
+    """One sense row: what the operator is asked to do, and what must move.
+
+    `phases` is a list of (instruction, what_the_change_is_called). A phase
+    with an empty instruction asks the operator for nothing and is a plain
+    listen -- which is all row 94's READ half can be, because its read is the
+    TEMP raw count and the only switch-like half it has is the WRITE this
+    never touches.
+
+    `band` is (low, high) EXCLUSIVE on the value, or None for no band. It is
+    the sensor-connected check, not a temperature: a raw count sitting on
+    either rail is a short or an open, and what counts as a plausible DEGREE
+    is PW's, unruled, and recorded rather than invented here.
+    """
+
+    def __init__(self, num, cell_key, what, phases, band=None, note=''):
+        self.num, self.cell_key, self.what = num, cell_key, what
+        self.phases, self.band, self.note = phases, band, note
+
+
+# 🔴 ROW 93 IS NOT HERE, AND THAT IS PW'S ADDENDUM OF 2026-09-28: "ONE
+# INSERTION, TWO RESULTS". The mini-jack insertion sense is NOT its own
+# station -- the detect is folded into the mini-jack step of the ANALOG patch
+# loop (`d24_patch.Station.mj_sense`), so one plug going into one socket gives
+# both the L/R signal test and the jack-switch detect. The listen arms before
+# that step's own "insert" instruction, so it costs the operator nothing.
+# `d24_runall.GRADED_ELSEWHERE` is what stops the panel station claiming it.
+SENSE = {
+    'right': [
+        SenseRow(94, 'tempfan', 'the temperature sense',
+                 [('', 'a temperature reading')], band=(0, 255),
+                 note='READ-ONLY, and a plain listen: the read half is the '
+                      'TEMP raw count, so there is no operator action that '
+                      'moves it and the WRITE half is the BLOWER/FAN drive '
+                      'mask, which is never written. The band is 0 < count < '
+                      '255 -- a count on either rail is a short or an open. '
+                      'The catalog\'s own criterion ("moves with the unit\'s '
+                      'own warm-up", twice 10 min apart) is a second, '
+                      'session-spanning reading and is still owed (S138b-3)'),
+    ],
+}
+
+
+def sense_rows_for(side):
+    return [s.num for s in SENSE.get(side, ())]
+
+
+def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None):
+    """Grade the sense rows of one board by listening while the operator acts.
+
+    `ask(instruction, row, phase_n, phase_total)` puts one phase's instruction
+    on the glass and returns a `tick()` callable exactly as the button sweep's
+    `ask` does -- polled between bus reads, so PAUSE stays live. A phase with
+    an empty instruction is not asked at all and is listened through.
+
+    Returns {row number: (verdict, note)}.
+    """
+    out = {}
+    for row in SENSE.get(side, ()):
+        if owed is not None and row.num not in owed:
+            continue
+        addr = CELL_ADDR.get(row.cell_key)
+        if addr is None:
+            out[row.num] = (NODATA, CELL_ABSENT.get(row.cell_key)
+                            or ('%s is not on this unit\'s pack'
+                                % CELL_NAMES[row.cell_key]))
+            log('%s: %s' % (row.what, out[row.num][1]))
+            continue
+        seen, paused = [], False
+        for i, (instruction, called) in enumerate(row.phases, 1):
+            # THE DRAIN IS THE ARM, AND IT IS BEFORE THE PROMPT.
+            bus.flush()
+            tick = (ask(instruction, row.num, i, len(row.phases))
+                    if instruction else None)
+            got = _listen(bus, row.cell_key, timeout, tick)
+            if got == 'pause':
+                paused = True
+                break
+            seen.append((called, got))
+        if paused:
+            out[row.num] = (NODATA, 'the run was paused during this row')
+            break
+        missing = [called for called, got in seen if not got]
+        if len(missing) == len(seen):
+            out[row.num] = (NODATA, SENSE_NO_TRAFFIC
+                            % CELL_NAMES[row.cell_key])
+        elif missing:
+            # SOME traffic but not all the edges: the cell IS answering, so
+            # this is a real fault and it is named by the edge that never came.
+            out[row.num] = (FAIL, 'no change was reported on %s, although %s '
+                            'was: %s answered, so the cell is live and the '
+                            'net is not following'
+                            % (' or '.join(missing),
+                               ' and '.join(c for c, g in seen if g),
+                               CELL_NAMES[row.cell_key]))
+        else:
+            out[row.num] = _sense_verdict(row, seen)
+        log('%s (row %d): %s -- %s'
+            % (row.what, row.num, out[row.num][0], out[row.num][1]))
+    return out
+
+
+def _listen(bus, key, timeout, tick=None):
+    """Every value this cell pushed inside `timeout`, or 'pause'.
+
+    Ends on the FIRST event: an edge is what the phase is waiting for, and
+    waiting out the rest of the window after it has arrived is the operator
+    standing there for nothing.
+    """
+    t0 = time.time()
+    last = t0
+    while time.time() - t0 < timeout:
+        for name, value in bus.poll():
+            if name == key:
+                return [value]
+        if tick is not None and time.time() - last >= 0.05:
+            last = time.time()
+            got = tick()
+            if got is not None:
+                return 'pause' if got in ('skip', 'pause') else []
+        time.sleep(0.002)
+    return []
+
+
+def _sense_verdict(row, seen):
+    """Every phase reported something. What that adds up to."""
+    vals = [got[0] for _called, got in seen]
+    if row.band is not None:
+        low, high = row.band
+        bad = [v for v in vals if not low < v < high]
+        if bad:
+            return (FAIL, 'the count read %s, which is on the %s rail: a '
+                    'sensor that is shorted or open, not a temperature '
+                    '(the plausible DEGREE band is PW\'s and is unruled)'
+                    % (', '.join(str(v) for v in bad),
+                       'low' if bad[0] <= low else 'high'))
+        return (PASS, 'the cell reported %s, inside %d < count < %d'
+                % (', '.join(str(v) for v in vals), low, high))
+    if len(vals) > 1 and len(set(vals)) == 1:
+        # Both actions reported, both the same value: the cell is transmitting
+        # but it is not following the jack.
+        return (FAIL, 'both actions were reported as the same value (%d), so '
+                'the cell is transmitting but not following the jack'
+                % vals[0])
+    return (PASS, 'a change was reported for %s (%s)'
+            % (' and '.join(called for called, _g in seen),
+               ', '.join('%s=%d' % (called, got[0]) for called, got in seen)))
 
 
 class Step(object):
@@ -916,11 +1156,38 @@ def mode_loop(a):
                       'unreached': extra['unreached']}, indent=1))
 
 
+def mode_sense(a):
+    """S138b: the sense rows on their own, read-only, injectable.
+
+    Nothing here writes a cell -- there is no `light()` on this path at all --
+    so it is safe to run against a live unit with matrix-app stopped.
+    """
+    bus = InjectedBus(a.inject) if a.inject else PanelBus(a.port)
+
+    def ask(instruction, row, n, total):
+        print('\n[row %d, %d/%d] %s' % (row, n, total, instruction),
+              file=sys.stderr, flush=True)
+        return lambda: None
+
+    # The running commentary goes to STDERR so that stdout is JSON and nothing
+    # else -- this mode is read by a script, the way `d24_bus_probe.py` is.
+    try:
+        got = sense_sweep(bus, a.panel, ask, timeout=a.timeout,
+                          log=lambda s: print(s, file=sys.stderr, flush=True))
+    finally:
+        bus.close()
+    print(json.dumps({'mode': 'sense', 'panel': a.panel,
+                      'rows': [dict(num=n, verdict=v, note=w)
+                               for n, (v, w) in sorted(got.items())]},
+                     indent=1))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--mode', required=True,
-                    choices=('probe', 'rtt', 'light', 'watch', 'loop', 'resolve'))
+                    choices=('probe', 'rtt', 'light', 'watch', 'loop',
+                             'resolve', 'sense'))
     ap.add_argument('--panel', choices=('right', 'left'), default='right')
     ap.add_argument('--cell', choices=('skin', 'enc'), default='skin')
     ap.add_argument('--value', type=int, default=0)
@@ -932,7 +1199,8 @@ def main():
     ap.add_argument('--port', default=C.PORT)
     a = ap.parse_args()
     {'probe': mode_probe, 'rtt': mode_rtt, 'light': mode_light,
-     'watch': mode_watch, 'loop': mode_loop, 'resolve': mode_resolve}[a.mode](a)
+     'watch': mode_watch, 'loop': mode_loop, 'resolve': mode_resolve,
+     'sense': mode_sense}[a.mode](a)
 
 
 if __name__ == '__main__':

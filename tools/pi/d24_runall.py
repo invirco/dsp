@@ -451,6 +451,29 @@ def PATCH_ROWS():
     return _PATCH_ROWS
 
 
+# ---------------------------------------------------------------------------
+# A ROW WHOSE GROUP NAMES ONE STATION AND WHOSE CHECK IS AT ANOTHER (S138b)
+# ---------------------------------------------------------------------------
+# PW 2026-09-28, addendum 1: "one insertion gives both the L/R signal test and
+# the jack-switch detect". Row 93's MCU is on the RIGHT SWITCH BOARD, which is
+# why the catalog groups it M2 -- but the thing an operator does to test it is
+# push a plug into a mini-jack, and the analog station already asks them to do
+# exactly that for rows 95/96. So the detect is folded into that step
+# (`d24_patch.Station.mj_sense`) and no station is visited twice.
+#
+# THE ROW STILL GETS ITS LINE IF THE ANALOG STATION NEVER RAN (§1: never
+# silently dropped) -- it reports as not-run with the reason below. What it must
+# NOT get is `record_not_run`'s FORCED "NOT TESTED" written over a verdict the
+# analog station DID reach, which is why these rows are named there too: for an
+# ordinary not-run row NOT TESTED is the catalog saying "this is not a check",
+# and for these it is a check that simply happened somewhere else.
+GRADED_ELSEWHERE = {
+    93: ('graded by the mini-jack step of the analog station: one insertion '
+         'gives both the L/R signal test and the jack-switch detect '
+         '(PW 2026-09-28)'),
+}
+
+
 def manual_step(r):
     """The one step a manual row becomes: what the operator is told, what kind
     of acknowledgement it takes, and what the runner measures afterwards.
@@ -464,6 +487,8 @@ def manual_step(r):
     dialog from that text would put the wrong instruction in front of an
     operator, so this table is the source and the catalog prose is not read.
     """
+    if r.num in GRADED_ELSEWHERE:
+        return dict(kind=BLOCKED, reason=GRADED_ELSEWHERE[r.num])
     where = {'M1': 'on the left of the front panel',
              'M2': 'on the right of the front panel',
              'M3': 'on the foot pedal',
@@ -2284,6 +2309,47 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                     land(led_row, FAIL, 'the operator did not see all eight light')
                 else:
                     land(led_row, SKIPPED, ans.get('reason') or 'other')
+        # THE SENSE ROWS, ON THE SAME OPEN BUS (S138b, gaps doc 2.3). Read-only:
+        # no `light()`, no cell write, and in particular never a write to
+        # `Sys001SwTempFan001`, whose write half is the BLOWER/FAN drive mask.
+        # Row 93 is NOT here -- it is folded into the analog station's mini-jack
+        # step (PW 2026-09-28 addendum 1); see GRADED_ELSEWHERE.
+        if PL.sense_rows_for(side):
+            def sense_ask(instruction, row, n, total):
+                if live is not None:
+                    live.set(state=LV.WAITING, instruction=instruction,
+                             lead_line='', extra='',
+                             status=panel_name.capitalize(),
+                             n=min(n, total), total=total,
+                             buttons=LV.buttons_for(LV.WAITING, True))
+                btns = glass.post('instruct', 'Panel loop - %s' % panel_name,
+                                  [instruction], ['enter'], row=row,
+                                  station=st)
+
+                def tick():
+                    if pending['paused']:
+                        return 'skip'
+                    if live is not None:
+                        live.beat()
+                        if live.command() == 'pause':
+                            pending['paused'] = True
+                            return 'skip'
+                    ans = glass.poll(btns)
+                    if ans is None:
+                        return None
+                    glass.taken(ans)
+                    b = ans['button']
+                    if b == 'pause':
+                        pending['paused'] = True
+                        return 'skip'
+                    return b
+                return tick
+            for num, (v, note) in PL.sense_sweep(
+                    bus, side, sense_ask, timeout=a.panel_timeout,
+                    log=glass.progress, owed=owed).items():
+                land(num, v, note, operator=False)
+            if pending['paused']:
+                raise Paused()
     finally:
         try:
             bus.light(0)
@@ -2580,6 +2646,11 @@ def record_not_run(rows, state, passno):
         if r.category != 'not-run':
             continue
         if state.verdict(r.num) in (PASS, IGNORED):
+            continue
+        # GRADED AT ANOTHER STATION (S138b). For these rows NOT TESTED is not a
+        # category change the way S119's is -- the row IS a check -- so a
+        # verdict the other station reached this pass stands, FAIL included.
+        if r.num in GRADED_ELSEWHERE and state.verdict(r.num) is not None:
             continue
         state.put(r.num, NOTTESTED, pass_no=passno, judged='-',
                   measured='', limit='', evidence=r.reason,

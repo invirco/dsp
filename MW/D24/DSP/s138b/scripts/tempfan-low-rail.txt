@@ -1,0 +1,3 @@
+# A TEMP count on the LOW rail: a shorted or disconnected sensor, not a
+# temperature.  Graded FAIL, and the note says which rail.
+5 tempfan 0

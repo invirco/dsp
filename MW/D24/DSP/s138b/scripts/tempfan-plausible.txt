@@ -1,0 +1,4 @@
+# S138b: the TEMP/BLOWER/FAN sense row (94), a plausible raw count.
+# One line per event: <delay_ms> <cell> <value>.  Read-only -- nothing in this
+# script writes anything, and nothing can: `sense_sweep` has no writer.
+5 tempfan 31
