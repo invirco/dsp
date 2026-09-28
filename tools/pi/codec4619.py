@@ -181,6 +181,28 @@ def parse_reply(raw, addr):
     return out
 
 
+def find_cell_events(raw, addr):
+    """Every completed reply for `addr` in `raw`, as (value, end_offset).
+
+    The same bounded match `parse_reply` uses (see its docstring for why the
+    match must be terminated), generalised to return ALL of them rather than
+    just the last: a passive listen on a cell that is PUSHED on every change
+    (S138's MJ_SW/TEMP-FAN sense cells, `mx_master.csv` "both edges are
+    reported") must not drop an earlier edge that arrived in the same drain,
+    the way a single-value read would. `d24_panel.py`'s panel-press loop
+    (`_all_replies`) is the same regex against a fixed small set of cells;
+    this is the general form, for any cell resolved by name."""
+    want = cell_prefix(addr)
+    text = raw.decode('ascii', 'replace')
+    pat = re.compile('(?<![%s%s])%s([%s]{0,2})(?=[^%s])'
+                     % (AX, DX, want, DX, DX))
+    out = []
+    for m in pat.finditer(text):
+        tail = m.group(1)
+        out.append((int(tail, 16) if tail else 0, m.end()))
+    return out
+
+
 def verdict(reg, val, guard, cmd):
     """What one (value, guard) pair is evidence OF.
 

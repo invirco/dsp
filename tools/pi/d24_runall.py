@@ -3078,6 +3078,41 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
     return timing
 
 
+def session_end_power_check(state, glass):
+    """S138 ruling 1.4: PS-PWR, row 134 -- "checked when the session ends,
+    not inside a pass" is `manual_step()`'s own existing BLOCKED reason for
+    that row (S117-era), and this is the mechanism that reason was pointing
+    at. It cannot be a per-pass row: the runner is the thing that goes away
+    when the switch is worked, so nothing on the unit can watch itself power
+    off and come back -- only the operator standing in front of it can see
+    both sides, which makes this the plain operator-JUDGE shape (like the
+    ALWAYS_ON indicator question in `d24_panel.wording()`), never a MEASURE.
+
+    Fires ONCE, after a pass finishes cleanly (never on PAUSE or a signal --
+    those are not "the session end", they are the operator stopping short,
+    and the rails/lock handback for those already has its own path)."""
+    ans = glass.ask(
+        'instruct', 'Session end - Power switch',
+        ['At the rear panel, switch the unit off, then back on. Do this '
+         'twice in total.',
+         'Did it power down cleanly and come back to a booted app, both '
+         'times?'],
+        ['yes', 'no'], row=134)
+    b = ans.get('button')
+    if b not in ('yes', 'no'):
+        return None            # skip/ignore/pause at session end: not recorded
+    verdict = PASS if b == 'yes' else FAIL
+    state.put(134, verdict, pass_no=state.d.get('passes', 0), judged='operator',
+              measured=('the operator answered %s to: did it power down '
+                        'cleanly and come back, twice' % b),
+              limit=('the unit powers down cleanly and comes back up to a '
+                     'booted app, both times'),
+              evidence='', source='operator')
+    state.save()
+    print('PS-PWR: %s' % verdict, flush=True)
+    return verdict
+
+
 def main(argv=None):
     """`argv` so one runner can hand over to another in-process: the factory
     screen's START launches `d24_patch.py --run`, which is the whole ruled
@@ -3139,6 +3174,12 @@ def main(argv=None):
     ap.add_argument('--no-review', action='store_true',
                     help='write the report and stop; do not put the review '
                          'screen up')
+    ap.add_argument('--no-power-check', action='store_true',
+                    help='S138: skip the session-end power-switch question '
+                         '(PS-PWR, row 134). For engineering re-runs, where '
+                         'physically power-cycling the unit twice per run is '
+                         'not what is being tested; the factory floor leaves '
+                         'this on')
     ap.add_argument('--no-app-restart', action='store_true', default=True)
     ap.add_argument('--app-restart', dest='no_app_restart', action='store_false')
     ap.add_argument('--ignore', type=int, metavar='NUM')
@@ -3391,6 +3432,8 @@ def main(argv=None):
             break
         if not review(rows, state, live, glass, a):
             break
+    if not a.no_power_check:
+        session_end_power_check(state, glass)
     glass.clear()
 
 

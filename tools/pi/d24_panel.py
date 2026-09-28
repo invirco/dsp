@@ -72,7 +72,8 @@ import matrix_addr                                        # noqa: E402
 # core to every generation this tool has run against -- a pack that lacks
 # either is broken, not "not yet switched over", and gets no fallback.
 CELL_NAMES = {'skin': 'Sys001Skin001', 'enc': 'Sys001Enc001',
-              'swleft': 'Sys001SwLeft001', 'swtalk': 'Sys001SwTalk001'}
+              'swleft': 'Sys001SwLeft001', 'swtalk': 'Sys001SwTalk001',
+              'mjsw': 'Sys001SwMiniJack001', 'tempfan': 'Sys001SwTempFan001'}
 
 
 def _resolve_required(key):
@@ -142,12 +143,25 @@ SW_LEFT, SW_LEFT_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swleft'])
 # wired into this tool's read/light logic yet (that is S135's bespoke H1S3
 # image, still optional); its presence only changes ROW 92's reason below.
 SW_TALK, SW_TALK_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swtalk'])
+# `Sys001SwMiniJack001`/`Sys001SwTempFan001` -- the mini-jack insertion sense
+# and TEMP/BLOWER/FAN pass-through, both landed in defs at generation
+# `46109e9fb812` (gaps doc 2.2/2.3, S138). Resolved here so `poll()` can
+# surface them, but S138 did NOT wire a graded MJ1/TF1 check off them: both
+# cells are PUSHED ON CHANGE, not held, so a read with no fresh edge in the
+# window is indistinguishable from "no traffic yet" -- see findings.md
+# S138-4. Present here as read-only infrastructure for that to be finished.
+MJSW, MJSW_ABSENT = matrix_addr.try_resolve(CELL_NAMES['mjsw'])
+TEMPFAN, TEMPFAN_ABSENT = matrix_addr.try_resolve(CELL_NAMES['tempfan'])
 
 CELL_NAME = {SKIN: CELL_NAMES['skin'], ENC: CELL_NAMES['enc']}
 if SW_LEFT is not None:
     CELL_NAME[SW_LEFT] = CELL_NAMES['swleft']
 if SW_TALK is not None:
     CELL_NAME[SW_TALK] = CELL_NAMES['swtalk']
+if MJSW is not None:
+    CELL_NAME[MJSW] = CELL_NAMES['mjsw']
+if TEMPFAN is not None:
+    CELL_NAME[TEMPFAN] = CELL_NAMES['tempfan']
 # Which cell each panel's radio group is on, once it is known.
 PANEL_CELL = {'right': SKIN, 'left': None}      # None = not yet identified
 
@@ -215,10 +229,21 @@ UNREACHED = {
              'gives the C button one indicator pair and the loop grades it on '
              'row 77'),
         92: _talkback_reason(),
-        93: ('the mini-jack sense passes through the panel processor with no '
-             'matrix cell bound, so the host cannot read it'),
-        94: ('the temperature, blower and fan lines pass through the panel '
-             'processor with no matrix cell bound, so the host cannot read them'),
+        # 93/94 WERE "no matrix cell bound" -- NO LONGER TRUE (S138, gaps doc
+        # 2.2/2.3): Sys001SwMiniJack001/Sys001SwTempFan001 exist at generation
+        # 46109e9fb812 and `poll()` above already surfaces them. Still
+        # UNREACHED by THIS loop specifically, because neither is a
+        # light-one/press-one row (PANELS' (idx, name, sw, led, what) shape)
+        # -- and a graded MJ1/TF1 check needs a fresh edge inside the read
+        # window, which this loop's own instruction-then-Done ordering cannot
+        # guarantee yet (findings.md S138-4). Read-only infra
+        # (MJSW/TEMPFAN/poll()) is in; the graded check is not.
+        93: ('not a button/LED row -- MJ_SW is bound (%s) but no graded check '
+             'is wired yet, see findings.md S138-4'
+             % (MJSW if MJSW is not None else MJSW_ABSENT)),
+        94: ('not a button/LED row -- the TEMP/BLOWER/FAN cell is bound (%s) '
+             'but no graded check is wired yet, see findings.md S138-4'
+             % (TEMPFAN if TEMPFAN is not None else TEMPFAN_ABSENT)),
     },
     'left': {
         55: ('the red indicator is driven by the processor boot pin, not by the '
@@ -362,7 +387,8 @@ class PanelBus:
         except OSError:
             pass
         events = []
-        for name, addr in (('skin', SKIN), ('swleft', SW_LEFT), ('enc', ENC)):
+        for name, addr in (('skin', SKIN), ('swleft', SW_LEFT), ('enc', ENC),
+                          ('mjsw', MJSW), ('tempfan', TEMPFAN)):
             if addr is None:
                 continue        # not on this unit's pack (S136); nothing to match
             pre = C.cell_prefix(addr)

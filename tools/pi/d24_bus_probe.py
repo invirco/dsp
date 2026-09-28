@@ -21,11 +21,35 @@ heartbeat is not newline-aligned with cell traffic, so a real reply arrives as
                      Answering on the trigger cell is what made the first S81
                      firmware free-run a burst of unasked SPI across the copper
                      the CM4 boots the SHARCs over.
+    --mode listen    S138: a PASSIVE listen on ANY cell, resolved by NAME
+                     (matrix_addr, never a baked literal) rather than the
+                     H1S1-only guard-fetch trick above. It writes nothing and
+                     triggers nothing -- it is `d24_panel.py`'s own
+                     PanelBus.poll() mechanism (the one that already reads
+                     Sys001Skin001/Sys001SwLeft001 presses), generalised to
+                     one cell named on the command line.
+
+                     THIS ONLY SEES WHAT THE OWNING MCU ACTUALLY PUSHES DURING
+                     THE WINDOW. `Sys001SwMiniJack001`/`Sys001SwTempFan001`
+                     (gaps doc 2.2/2.3) are documented "both edges are
+                     reported" -- pushed on CHANGE -- so a cell that has not
+                     changed inside `--secs` answers with zero events, which
+                     is a real "no fresh transmission", not evidence of the
+                     cell's steady value being anything in particular. This
+                     mode does not paper over that: `events`/`values` in its
+                     JSON are exactly what arrived, and a caller that needs
+                     the CURRENT state of an edge-pushed cell needs a way to
+                     force a fresh edge (an operator action for MJ_SW; for
+                     Sys001SwTempFan001 a WRITE shares the cell with the
+                     BLOWER/FAN drive mask, per mx_master.csv, so it is
+                     STATE-CHANGING HARDWARE and this mode never writes one
+                     to find out) -- unresolved, see findings.md S138-4/S138-5.
 
 `matrix-app` owns /dev/serial0. Stop it before running this, and put it back.
 
     python3 d24_bus_probe.py --mode stest
     python3 d24_bus_probe.py --mode cell --reps 3
+    python3 d24_bus_probe.py --mode listen --cell Sys001SwMiniJack001 --secs 5
 """
 import argparse
 import json
@@ -39,6 +63,7 @@ for _p in ('/home/app/dspboot', '/home/app/selftest',
     if _p not in sys.path:
         sys.path.insert(0, _p)
 import codec4619 as C
+import matrix_addr
 
 GUARD_FETCH = 0xFB              # CodecPoll() sentinel: hand back codecReadGuard
 # The identity strings the three MCUs answer S_TEST with. H1S1's lives at
@@ -89,19 +114,48 @@ def cell(port, addr, reps):
             'identical': len(set(vals)) == 1 and vals[0] is not None}
 
 
+def listen(port, name, secs):
+    """S138: a passive `secs`-second listen for one cell resolved BY NAME.
+
+    No S_RUN, no write, no sentinel -- open, read for the window, and report
+    every completed reply for that cell's address seen in it. Docstring above
+    states plainly what this cannot do (see --mode listen there)."""
+    addr, err = matrix_addr.try_resolve(name)
+    if addr is None:
+        return {'mode': 'listen', 'cell_name': name, 'cell': None,
+                'error': err, 'events': 0, 'values': [], 'last': None}
+    b = C.Bus(port)
+    try:
+        raw = b.read(secs)
+    finally:
+        b.close()
+    ev = C.find_cell_events(raw, addr)
+    vals = [v for v, _ in ev]
+    return {'mode': 'listen', 'cell_name': name, 'cell': addr, 'secs': secs,
+            'events': len(ev), 'values': vals, 'last': vals[-1] if vals else None,
+            'raw': raw.decode('ascii', 'replace')}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--mode', choices=('stest', 'cell'), required=True)
+    ap.add_argument('--mode', choices=('stest', 'cell', 'listen'), required=True)
     ap.add_argument('--reps', type=int, default=3)
     ap.add_argument('--cell', default=None,
-                    help='cell address for --mode cell, decimal or 0x hex '
-                    '(default: Sys001Test001, resolved by name off this '
-                    'unit\'s deployed pack -- S136, never a baked literal)')
+                    help='--mode cell: an address, decimal or 0x hex (default: '
+                    'Sys001Test001, resolved by name off this unit\'s deployed '
+                    'pack -- S136, never a baked literal). --mode listen: a '
+                    'cell NAME (required), resolved the same way')
+    ap.add_argument('--secs', type=float, default=5.0,
+                    help='--mode listen: how long to listen')
     ap.add_argument('--port', default=C.PORT)
     a = ap.parse_args()
     if a.mode == 'stest':
         r = stest(a.port)
+    elif a.mode == 'listen':
+        if not a.cell:
+            sys.exit('--mode listen needs --cell NAME')
+        r = listen(a.port, a.cell, a.secs)
     else:
         r = cell(a.port, int(a.cell, 0) if a.cell else C.SYS001TEST001, a.reps)
     print(json.dumps(r))

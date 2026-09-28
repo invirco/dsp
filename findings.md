@@ -6,6 +6,127 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE GAPS-DOC FACTORY ROWS: WHAT BUILT CLEAN, WHAT DID NOT (2026-09-28, session 138)
+
+Hub dispatch `tasks.md` 2026-09-28 15:43Z. Six findings: two describe what was
+built and proved with no bench contact, four are blockers recorded rather than
+guessed past (no dialogs).
+
+**S138-1 PIPELINE.MD DOES NOT YET CARRY THE 07:59/08:06 RULINGS THIS DISPATCH
+QUOTES.** `~/mx26/pipeline.md` (7302 lines, `git log -1` = `da3a7c89…` dated
+2026-09-28 01:35 BST, in sync with `origin/main`) has no 07:59 or 08:06 entry
+anywhere — its newest 2026-09-28 lines are 01:35/01:17/00:58/00:30 (S136/S135/
+S134/S133 landings). So the resistor values (3.9 kΩ, 6.81 kΩ, ≈4 mA), the LED
+wiring and the "595 bit-0 = PHANTOM SHUNT" sentence in `tasks.md`'s own
+paraphrase of rulings 1.2–2.3 have **no primary source in this session's
+reach** — they are PW's words relayed through the dispatch, not verified
+against a ruling this session could read. Nothing below treats them as
+confirmed hardware.
+
+**S138-2 ABSOLUTE dBu LEVELS (ruling 1.3) ARE ALREADY BUILT, FOR THE ONE CLASS
+OF READING THE REPO HAS A SIGNED FORMULA FOR.** `dsp4_accept.py`'s `t4()`/
+`t4b()` (noise and EIN) already convert every dBFS reading to absolute dBu at
+the mic XLR with `off = 3.0103 + self.u['dac_fs_dbu'] - G[c]` (lines 406, 458)
+— exactly the dScope-confirmed reference path the dispatch describes (DAC FS
++23.13 dBu, code-0 loop gain 5.578 dB → +17.55 dBu is the DERIVED figure at
+code 0, not a second hardcoded constant). THD+N is already reported as a
+percentage too, via `dbpct()` (`dsp4_accept.py:61`, `d24_patch.py:232`, used
+throughout `t3()`). So "every THD+N also as %" and the dBu conversion both
+already exist for the noise/distortion test IDs. What was **not** extended
+this session: applying the same `off` formula to T1's gain-law rows (which
+report relative gain, `hw_re_c0_db`, never an absolute level) or to anything
+inside the new phantom/EIN trial (S138-6) — doing that without S138-1's
+primary ruling text risks converting the wrong quantity at the wrong point in
+the chain, which is exactly the class of guess this repo's no-fallback policy
+exists to stop.
+
+**S138-3 NO SHUNT BIT EXISTS IN THIS TREE'S 595 CHAIN ENCODING.** Ruling 1.2(b)
+says "Respect the 595 bit-0 = PHANTOM SHUNT semantics (enable before phantom
+on/off)" as if it is already true of the firmware. It is not: `d24_chain.py`'s
+`byte(mute, phantom, gain)` (lines 34-36) encodes `(gain & 63) << 2 |
+(phantom & 1) << 1 | (mute & 1)` — bit 0 is MUTE, bit 1 is PHANTOM, 25 bytes
+per chain (`CHAIN_BYTES = 25`), and there is no third control anywhere in the
+byte or the chain length. `grep -rn "shunt" tools/pi/*.py MW/D24/HW/
+hardware-map.md` returns nothing outside the physical 150 Ω EIN-load fixture
+(a plug across XLR pins 2/3, unrelated to a 595 bit). **This blocks the
+click/shunt trial (1.2b) completely** — the dispatch itself already treats
+that row as INFORMATIONAL until PW signs limits, and this finding is why: the
+bit position does not exist to write yet, so no trial code was built against
+a guessed one.
+
+**S138-4 MJ_SW AND THE TEMP/BLOWER/FAN CELL ARE PUSHED ON CHANGE, NOT HELD —
+SO A POST-HOC AUTOMATED READ CANNOT SAFELY STAND IN FOR "THE CURRENT STATE".**
+`mx_master.csv:614` states `Sys001SwMiniJack001` READS "both edges are
+reported" — an edge-triggered push through H1S3, the same mechanism
+`d24_panel.py`'s button loop already uses (`PanelBus.poll()`/`_all_replies`).
+A cell that has not changed inside a read window answers with **zero events**,
+which is indistinguishable from "steady state, nothing pushed" UNLESS the
+listen window is open and draining *before* the operator's physical action,
+not opened afterward the way `d24_runall.py`'s existing `MEASURE`-kind rows
+work (`measure()` runs only after the operator presses Done — S138 did not
+verify, on real hardware, whether an edge that landed on the wire while
+nothing had `/dev/serial0` open survives in the kernel's own tty receive
+buffer until a later open reads it; that is exactly the kind of assumption
+that needs a part to check, not a reading). **`Sys001SwTempFan001` makes any
+workaround worse, not easier**: `mx_master.csv:615` records that a WRITE to
+the SAME cell drives the BLOWER/FAN mask — "the write and the read carry
+different meanings on one cell exactly as Sys001SwTalk001 does" — so
+provoking a fresh reply by writing to it would **actuate a real blower and
+fan**, which is squarely the "any analog write" this dispatch forbids this
+session. Built instead: `codec4619.find_cell_events()` and
+`d24_bus_probe.py --mode listen --cell NAME --secs N`, a general, READ-ONLY,
+by-name passive listen (proved offline with synthetic bus bytes and a fake
+serial layer, `MW/D24/DSP/s138/find_cell_events_check.py`, 11/11 checks, no
+port opened) — genuinely useful infrastructure regardless of how MJ1/TF1 are
+finally wired, but **not a graded MJ1/TF1 PASS/FAIL check**, because building
+one against an unverified read-timing assumption on a real switch panel is
+exactly what "no-fallback" exists to prevent. `d24_panel.py` now resolves both
+cells by name (`MJSW`/`TEMPFAN`, tolerant like `SW_LEFT`/`SW_TALK`) and
+`PanelBus.poll()` surfaces them, so the primitive is one honest step closer;
+`UNREACHED['right'][93]`/`[94]`'s reasons are corrected from "no matrix cell
+bound" (no longer true) to point here.
+
+**S138-5 CATALOG ROW 93's OWN TEXT DOES NOT MATCH THE CELL IT NAMES.** Row 93's
+`explain`/`pass_when` (`MW/D24/DSP/s130/data/test-catalog.csv`) reads "dummy
+plug fitted in mini-jack 1, then 2" and "MJ_SW reads the plugged state for
+each jack" — plural jacks, numbered. `defs/common/cells/mx_master.csv:614`
+declares exactly ONE instance, `Sys[1-1]SwMiniJack[1-1]`, and `fw.csv:70`
+names exactly one net (`MiniJackDet`, digital J12 pin 5 = rswitch J1 pin 5,
+MCU pin C10) for exactly one "mini-jack (stereo aux input)" connector. Nothing
+in `defs/` or `fw.csv` names a second mini-jack or a second sense net. This
+reads as the catalog prose describing a TWO-JACK panel that either does not
+exist on this hardware or is not the connector `SwMiniJack` is wired to — a
+question for PW, not something this session resolved by inventing a second
+jack or by silently treating "mini-jack 1, then 2" as "inserted, then
+removed" (which is a plausible reading but is a guess dressed as a fact
+either way).
+
+**S138-6 THE PHANTOM LAMP-CHECK SWEEP AND THE CLICK/SHUNT TRIALS MODE (1.2)
+WERE NOT BUILT.** This is recorded per CLAUDE.md's own tiering rule rather
+than pushed through under a sonnet dispatch: the lamp-check sweep's natural
+home is `d24_patch.py`'s `Station` class (1300+ lines, undocumented outside
+its own source, drives the same phantom/mute/gain 595 chain the mic-pre
+safety handback depends on) and needs a PHYSICAL fixture PW is building
+(the two-LED lamp) that this session cannot see or measure against; the
+trials-mode report table depends on 1.2(b)'s shunt bit, which S138-3 blocks
+outright. Building new control flow into the file that sequences phantom
+power, on a guess, with no part to prove it against, is the "unknown-shape /
+new subsystem" case the model-tiering rule reserves for the main model with
+real bench access, not a bulk edit. What WAS confirmed safe to state: the
+lamp check itself needs only the EXISTING phantom bit (bit 1, already
+implemented and already used by every phantom-touching test in this tree) —
+it is the shunt half (1.2b) and the physical fixture that are the open
+prerequisites, not the phantom control itself.
+
+**Built and proved this session, no bench/unit contact at all**: `codec4619.
+find_cell_events()`; `d24_bus_probe.py --mode listen`; `d24_panel.py`'s
+by-name resolution and `poll()` wiring for `MJSW`/`TEMPFAN` (read-only,
+inert until a graded check is built on top); `d24_runall.py`'s
+`session_end_power_check()` (ruling 1.4, PS-PWR/row 134 — the operator-judged
+session-end screen `manual_step()`'s own row-134 BLOCKED reason was already
+pointing at), proved with a scripted-stdin subprocess drive, no display, no
+port (`MW/D24/DSP/s138/session_end_power_check.py`, 10/10 checks).
+
 ## THE CENTRE/LF OUTPUT, THE PHONES PAIR AND THE ANTI-FEEDBACK (2026-09-28, session 144)
 
 Hub dispatch `tasks.md` 2026-09-28 13:40Z. Items 1, 2 and 4 of S142, built on
