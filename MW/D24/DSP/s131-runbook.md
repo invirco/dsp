@@ -14,6 +14,22 @@ where the `.shex` MCU id S134 prescribed would have cross-flashed the two
 panels; a note on step 8's single-session form. §7's open question is now
 answered and closed. Detail: `MW/D24/DSP/s135/s135-report.md`.
 
+🟢 **S140 (2026-09-28, desk, nothing flashed) closes S139's owed step —
+`gen_dsp.py` now runs clean and the D24 backfill is installed.** Pin is now
+**`defs-v2026.09.28.2`** (defs commit `b106eb5`) — the DSP-side landed map
+only; D24 generation is still **`46109e9fb812`**, unchanged, and every
+per-cell address this document names below at that generation is still
+correct. `defs/products/d24/{dsp.csv,dsp-unmapped.csv}` are now pruned of
+the 357/5 rows S139 found drifted (see `MW/D24/DSP/s140/s140-report.md`),
+so `gen_dsp.py` (no `--propose`) passes its no-fallback check-proposal gate
+clean for d32+d24, and `MW/D24/MX/_matrix.csv` on disk now carries the
+**`46109e9fb812`** backfill for real: 5,767 rows, **3,632/3,632 mapped
+cells carry a DSP address**. `./regenerate-dsp-contract.sh` passes every
+gate end to end (was blocked at the address-check gate since S139). §6's
+dry-run numbers below (matrix.h/`.shex` diffs) are unaffected — they never
+depended on the DSP-side landed map — and stand as verified. Nothing
+flashed, unit untouched.
+
 Background: `mx26 docs/investigation-matrix-generation-2026-09-27.md` (read in
 full before starting). Summary: MW-D24-2 is running matrix generation
 `e80ccab5d6d8` (the unit's own 2026-08-18 pack, 5412 names, `Sys001Skin001` =

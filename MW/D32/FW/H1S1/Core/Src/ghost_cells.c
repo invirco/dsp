@@ -8,7 +8,7 @@
  */
 #include "ghost_cells.h"
 
-const CellDef ghost_cells[5825] = {
+const CellDef ghost_cells[5804] = {
     { "Aux001AntiFbCtrlOn001", 2, 2, 60, "", 0, 0, 0, 0 },
     { "Aux001AntiFbNotchFreq001", 2, 2, 61, "0=40/127=12000/[Log]", 0, 0, 0, 0 },
     { "Aux001AntiFbNotchFreq002", 2, 2, 62, "0=40/127=12000/[Log]", 0, 0, 0, 0 },
@@ -5599,25 +5599,6 @@ const CellDef ghost_cells[5825] = {
     { "Main001Geq031", 2, 2, 1413, "0=-12/127=12/[Lin]", 2, 36, 36, 1 },
     { "Main001Level001", 2, 2, 1379, "dB:Off:-50@31:-30@63:-10@127:10", 1, 9, 24, 0 },
     { "Main001Mute001", 2, 2, 1381, "", 0, 0, 0, 0 },
-    { "MainCtr001CompAtt001", 2, 2, 1557, "0=0/254=250/[Log]", 2, 18, 60, 0 },
-    { "MainCtr001CompDetSrc001", 2, 2, 1564, "", 0, 0, 0, 0 },
-    { "MainCtr001CompEqPos001", 2, 2, 1566, "", 0, 0, 0, 0 },
-    { "MainCtr001CompFilterHpf001", 2, 2, 1568, "0=20/64=1000/[Log]", 0, 0, 0, 0 },
-    { "MainCtr001CompFilterLpf001", 2, 2, 1568, "0=500/127=20000/[Log]", 0, 0, 0, 0 },
-    { "MainCtr001CompFilterOn001", 2, 2, 1567, "", 0, 0, 0, 0 },
-    { "MainCtr001CompFilterQ001", 2, 2, 1568, "0=0.1/14=10/[Log]", 0, 0, 0, 0 },
-    { "MainCtr001CompKey001", 2, 2, 1563, "", 0, 0, 0, 0 },
-    { "MainCtr001CompKnee001", 2, 2, 1560, "", 0, 0, 0, 0 },
-    { "MainCtr001CompLimMode001", 2, 2, 1565, "", 0, 0, 0, 0 },
-    { "MainCtr001CompMake001", 2, 2, 1559, "0=0/127=20/[Lin]", 1, 9, 24, 0 },
-    { "MainCtr001CompOn001", 2, 2, 1554, "", 0, 0, 0, 0 },
-    { "MainCtr001CompPar001", 2, 2, 1561, "0=0/127=100/[Lin]", 1, 9, 24, 0 },
-    { "MainCtr001CompRat001", 2, 2, 1556, "0=1/127=30/[Log]", 2, 18, 60, 0 },
-    { "MainCtr001CompRel001", 2, 2, 1558, "0=5/254=5000/[Log]", 2, 18, 60, 0 },
-    { "MainCtr001CompThr001", 2, 2, 1555, "0=-60/140=10/[Lin]", 2, 18, 60, 0 },
-    { "MainCtr001CompType001", 2, 2, 1562, "", 0, 0, 0, 0 },
-    { "MainCtr001CrossoverFreq001", 2, 2, 1436, "0=50/127=500/[Log]", 2, 36, 36, 1 },
-    { "MainCtr001CrossoverSlope001", 2, 2, 1437, "0=6/3=24/[Lin]", 0, 0, 0, 0 },
     { "MainCtr001EqFreq001", 2, 2, 1530, "0=20/254=200/[Log]", 2, 36, 36, 1 },
     { "MainCtr001EqFreq002", 2, 2, 1535, "0=100/254=1000/[Log]", 2, 36, 36, 1 },
     { "MainCtr001EqFreq003", 2, 2, 1540, "0=800/254=5000/[Log]", 2, 36, 36, 1 },
@@ -5642,8 +5623,6 @@ const CellDef ghost_cells[5825] = {
     { "MainCtr001LimiterOn001", 2, 2, 1570, "", 0, 0, 0, 0 },
     { "MainCtr001LimiterRel001", 2, 2, 1573, "0=5/127=2000/[Log]", 2, 18, 60, 0 },
     { "MainCtr001LimiterThr001", 2, 2, 1571, "0=-30/127=0/[Lin]", 2, 18, 60, 0 },
-    { "MainCtr001Mtr001", 2, 2, 1833, "", 0, 0, 0, 0 },
-    { "MainCtr001Mute001", 2, 2, 2172, "", 0, 0, 0, 0 },
     { "MainL001CompAtt001", 2, 2, 1467, "0=0/254=250/[Log]", 2, 18, 60, 0 },
     { "MainL001CompDetSrc001", 2, 2, 1474, "", 0, 0, 0, 0 },
     { "MainL001CompEqPos001", 2, 2, 1476, "", 0, 0, 0, 0 },

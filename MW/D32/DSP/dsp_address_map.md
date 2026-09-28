@@ -5193,11 +5193,9 @@
 | 1412 | 0x0584 | `Main001Geq030` | 0=-12/127=12/[Lin] | EqSafe |
 | 1413 | 0x0585 | `Main001Geq031` | 0=-12/127=12/[Lin] | EqSafe |
 | 1434 | 0x059A | `Main001Delay001` | 0=0/127=250.0/[Log] | InstantCtl |
-| 1436 | 0x059C | `MainCtr001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1436 | 0x059C | `MainL001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1436 | 0x059C | `MainR001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
 | 1436 | 0x059C | `MainSub001CrossoverFreq001` | 0=50/127=500/[Log] | EqSafe |
-| 1437 | 0x059D | `MainCtr001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1437 | 0x059D | `MainL001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1437 | 0x059D | `MainR001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
 | 1437 | 0x059D | `MainSub001CrossoverSlope001` | 0=6/3=24/[Lin] | InstantCtl |
@@ -5300,23 +5298,6 @@
 | 1545 | 0x0609 | `MainCtr001EqQ004` | 0=0.1/14=10/[Log] | EqSafe |
 | 1545 | 0x0609 | `MainCtr001EqShelf002` |  | InstantCtl |
 | 1551 | 0x060F | `MainCtr001EqOn001` |  | InstantCtl |
-| 1554 | 0x0612 | `MainCtr001CompOn001` |  | InstantCtl |
-| 1555 | 0x0613 | `MainCtr001CompThr001` | 0=-60/140=10/[Lin] | DynSafe |
-| 1556 | 0x0614 | `MainCtr001CompRat001` | 0=1/127=30/[Log] | DynSafe |
-| 1557 | 0x0615 | `MainCtr001CompAtt001` | 0=0/254=250/[Log] | DynSafe |
-| 1558 | 0x0616 | `MainCtr001CompRel001` | 0=5/254=5000/[Log] | DynSafe |
-| 1559 | 0x0617 | `MainCtr001CompMake001` | 0=0/127=20/[Lin] | GainFast |
-| 1560 | 0x0618 | `MainCtr001CompKnee001` |  | InstantCtl |
-| 1561 | 0x0619 | `MainCtr001CompPar001` | 0=0/127=100/[Lin] | GainFast |
-| 1562 | 0x061A | `MainCtr001CompType001` |  | InstantCtl |
-| 1563 | 0x061B | `MainCtr001CompKey001` |  | InstantCtl |
-| 1564 | 0x061C | `MainCtr001CompDetSrc001` |  | InstantCtl |
-| 1565 | 0x061D | `MainCtr001CompLimMode001` |  | InstantCtl |
-| 1566 | 0x061E | `MainCtr001CompEqPos001` |  | InstantCtl |
-| 1567 | 0x061F | `MainCtr001CompFilterOn001` |  | InstantCtl |
-| 1568 | 0x0620 | `MainCtr001CompFilterHpf001` | 0=20/64=1000/[Log] | InstantCtl |
-| 1568 | 0x0620 | `MainCtr001CompFilterLpf001` | 0=500/127=20000/[Log] | InstantCtl |
-| 1568 | 0x0620 | `MainCtr001CompFilterQ001` | 0=0.1/14=10/[Log] | InstantCtl |
 | 1570 | 0x0622 | `MainCtr001LimiterOn001` |  | InstantCtl |
 | 1571 | 0x0623 | `MainCtr001LimiterThr001` | 0=-30/127=0/[Lin] | DynSafe |
 | 1572 | 0x0624 | `MainCtr001LimiterAtt001` | 0=0.1/127=100/[Log] | DynSafe |
@@ -5522,7 +5503,6 @@
 | 1828 | 0x0724 | `Aux012Mtr001` |  |  |
 | 1829 | 0x0725 | `MainL001Mtr001` |  |  |
 | 1831 | 0x0727 | `MainR001Mtr001` |  |  |
-| 1833 | 0x0729 | `MainCtr001Mtr001` |  |  |
 | 1835 | 0x072B | `MainSub001Mtr001` |  |  |
 | 1837 | 0x072D | `Grp001Mtr001` |  |  |
 | 1838 | 0x072E | `Grp002Mtr001` |  |  |
@@ -5835,9 +5815,8 @@
 | 2169 | 0x0879 | `MainR001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 2170 | 0x087A | `MainR001Mute001` |  | InstantCtl |
 | 2171 | 0x087B | `MainCtr001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
-| 2172 | 0x087C | `MainCtr001Mute001` |  | InstantCtl |
 | 2173 | 0x087D | `MainSub001Level001` | dB:Off:-50@31:-30@63:-10@127:1 | GainFast |
 | 2174 | 0x087E | `MainSub001Mute001` |  | InstantCtl |
 
-**Total Chip 2 cells:** 1767
+**Total Chip 2 cells:** 1746
 
