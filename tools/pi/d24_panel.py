@@ -47,6 +47,9 @@ both cells and the first press settles it.
     d24_panel.py --mode loop --panel right    the loop, on a terminal
     d24_panel.py --mode loop --panel right --inject s120/keys-clean.txt
                                               the same loop with no finger
+    d24_panel.py --mode resolve               what this run resolved SKIN/ENC/
+                                              SW_LEFT/SW_TALK to, and from which
+                                              pack (S136) -- no bus, no hands
 """
 import argparse
 import json
@@ -61,9 +64,26 @@ for _p in ('/home/app/dspboot', '/home/app/selftest',
     if _p not in sys.path:
         sys.path.insert(0, _p)
 import codec4619 as C                                    # noqa: E402
+import matrix_addr                                        # noqa: E402
 
-SKIN = 0x1524          # Sys001Skin001 = 5412 -- the RIGHT panel's radio group
-ENC = 0x1470           # Sys001Enc001  = 5232 -- the encoder ring
+# ADDRESSES ARE RESOLVED BY NAME FROM THIS UNIT'S OWN DEPLOYED PACK (S136),
+# never baked in: SKIN was 5412 (0x1524) on MW-D24-2's 2026-08-18 pack and is
+# 4698 after the S131 switch-over, same name both times. SKIN and ENC are
+# core to every generation this tool has run against -- a pack that lacks
+# either is broken, not "not yet switched over", and gets no fallback.
+CELL_NAMES = {'skin': 'Sys001Skin001', 'enc': 'Sys001Enc001',
+              'swleft': 'Sys001SwLeft001', 'swtalk': 'Sys001SwTalk001'}
+
+
+def _resolve_required(key):
+    addr, err = matrix_addr.try_resolve(CELL_NAMES[key])
+    if addr is None:
+        sys.exit('FATAL: %s' % err)
+    return addr
+
+
+SKIN = _resolve_required('skin')      # Sys001Skin001 -- the RIGHT panel's radio group
+ENC = _resolve_required('enc')        # Sys001Enc001  -- the encoder ring
 
 # ---------------------------------------------------------------------------
 # THE LEFT PANEL'S OWN CELL (S120-1, PW ruling (a) 2026-09-27)
@@ -111,9 +131,23 @@ ENC = 0x1470           # Sys001Enc001  = 5232 -- the encoder ring
 # which also moves Sys001Skin001 from 5412 to 4698, so the pack, the app and
 # both panel MCUs move together or not at all. Until then this address is the
 # factory test's alone and no panel firmware should carry it.
-SW_LEFT = 0x138D       # Sys001SwLeft001 = 5005 -- the LEFT panel's radio group
-CELL_NAME = {0x1524: 'Sys001Skin001', 0x138D: 'Sys001SwLeft001',
-             0x1470: 'Sys001Enc001'}
+#
+# UNLIKE SKIN/ENC, THIS ONE IS EXPECTED TO BE ABSENT SOMETIMES: it lands in
+# defs at defs-v2026.09.27 and is not on any pack built before it (MW-D24-2's
+# 08-18 pack included). `SW_LEFT` is the address once the deployed pack
+# carries the name, `SW_LEFT_ABSENT` is the reason string when it does not --
+# never a guess, never a crash, see `loop()`.
+SW_LEFT, SW_LEFT_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swleft'])
+# `Sys001SwTalk001` -- the talkback switch/LEDs cell, defs-v2026.09.27.3. Not
+# wired into this tool's read/light logic yet (that is S135's bespoke H1S3
+# image, still optional); its presence only changes ROW 92's reason below.
+SW_TALK, SW_TALK_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swtalk'])
+
+CELL_NAME = {SKIN: CELL_NAMES['skin'], ENC: CELL_NAMES['enc']}
+if SW_LEFT is not None:
+    CELL_NAME[SW_LEFT] = CELL_NAMES['swleft']
+if SW_TALK is not None:
+    CELL_NAME[SW_TALK] = CELL_NAMES['swtalk']
 # Which cell each panel's radio group is on, once it is known.
 PANEL_CELL = {'right': SKIN, 'left': None}      # None = not yet identified
 
@@ -167,14 +201,20 @@ ENC_ROWS = {'right': (90, 91)}
 # Rows this station reaches the panel for and still cannot grade, each with the
 # reason in the words the report prints.  Nothing here is invented: it is what
 # the firmware table and the netlist say.
+def _talkback_reason():
+    if SW_TALK is None:
+        return SW_TALK_ABSENT
+    return ('%s exists on this unit\'s pack (address %d) but this tool has no '
+            'read/light logic wired to it yet -- that is S135\'s bespoke H1S3 '
+            'image, still optional' % (CELL_NAMES['swtalk'], SW_TALK))
+
+
 UNREACHED = {
     'right': {
         78: ('no indicator is declared for this designator: the firmware table '
              'gives the C button one indicator pair and the loop grades it on '
              'row 77'),
-        92: ('the talkback switch and its two indicators pass through the panel '
-             'processor with no matrix cell bound, so the host can neither read '
-             'the switch nor light the indicators'),
+        92: _talkback_reason(),
         93: ('the mini-jack sense passes through the panel processor with no '
              'matrix cell bound, so the host cannot read it'),
         94: ('the temperature, blower and fan lines pass through the panel '
@@ -323,6 +363,8 @@ class PanelBus:
             pass
         events = []
         for name, addr in (('skin', SKIN), ('swleft', SW_LEFT), ('enc', ENC)):
+            if addr is None:
+                continue        # not on this unit's pack (S136); nothing to match
             pre = C.cell_prefix(addr)
             events += [(name, v, pos) for v, pos in _all_replies(self.buf, pre)]
         events.sort(key=lambda e: e[2])
@@ -514,6 +556,11 @@ def cells_for(panel, known=None):
     """
     if panel != 'left':
         return [SKIN]
+    if SW_LEFT is None:
+        # loop() must never reach here: it short-circuits a left panel to a
+        # NOT TESTED result before calling this when the name is absent from
+        # this unit's pack (S136). Fail loud rather than write a bare `None`.
+        raise matrix_addr.CellNotInPack(CELL_NAMES['swleft'], matrix_addr.generation())
     if known == SW_LEFT:
         return [SW_LEFT]
     if known == SKIN:
@@ -557,6 +604,14 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     LED_NOT_SEEN: the indicator half of each step is then recorded as not
     measured rather than inferred from a press."""
     steps = [Step(*s) for s in PANELS[panel]]
+    if panel == 'left' and SW_LEFT is None:
+        # S136: Sys001SwLeft001 is not on this unit's deployed pack (it lands
+        # at defs-v2026.09.27). No fallback, no aliasing guess -- every row
+        # this panel owns is NOT TESTED and the bus is never touched.
+        for st in steps:
+            st.sw = st.led = NODATA
+            st.sw_note = st.led_note = SW_LEFT_ABSENT
+        return steps, {'unreached': UNREACHED.get(panel, {})}
     if random_order:
         random.shuffle(steps)
     # WHICH CELL THIS BOARD IS ON. 'auto' finds out from the first press;
@@ -669,6 +724,23 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
         extra['encoder'] = ENC_ROWS[panel]
     extra['unreached'] = UNREACHED.get(panel, {})
     return steps, extra
+
+
+def mode_resolve(a):
+    """Print what this run resolved, and from where -- no bus, no hands, no
+    matrix-app stop/start. This is the S136 proof: SKIN/ENC/SW_LEFT/SW_TALK
+    against the pack this process actually found, by name, never a literal."""
+    d = matrix_addr.describe()
+    rows = {}
+    for key, addr in (('skin', SKIN), ('enc', ENC), ('swleft', SW_LEFT),
+                      ('swtalk', SW_TALK)):
+        name = CELL_NAMES[key]
+        rows[name] = addr if addr is not None else 'NOT TESTED (%s)' % {
+            'skin': None, 'enc': None, 'swleft': SW_LEFT_ABSENT,
+            'swtalk': SW_TALK_ABSENT}[key]
+    print(json.dumps({'mode': 'resolve', 'pack': d['path'],
+                      'generation': d['generation'], 'cells': d['cells'],
+                      'resolved': rows}, indent=1))
 
 
 def encoder_leds(bus, laps=2, dwell=0.12):
@@ -806,7 +878,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--mode', required=True,
-                    choices=('probe', 'rtt', 'light', 'watch', 'loop'))
+                    choices=('probe', 'rtt', 'light', 'watch', 'loop', 'resolve'))
     ap.add_argument('--panel', choices=('right', 'left'), default='right')
     ap.add_argument('--cell', choices=('skin', 'enc'), default='skin')
     ap.add_argument('--value', type=int, default=0)
@@ -818,7 +890,7 @@ def main():
     ap.add_argument('--port', default=C.PORT)
     a = ap.parse_args()
     {'probe': mode_probe, 'rtt': mode_rtt, 'light': mode_light,
-     'watch': mode_watch, 'loop': mode_loop}[a.mode](a)
+     'watch': mode_watch, 'loop': mode_loop, 'resolve': mode_resolve}[a.mode](a)
 
 
 if __name__ == '__main__':

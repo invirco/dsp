@@ -19,6 +19,12 @@
 #   ./deploy-bench-tools.sh             # back up, copy what differs, re-verify
 #
 # It touches PYTHON TOOLS ONLY. No pair, no app, no MCU/CPLD image, no rails.
+#
+# GENERATOR-SIDE GUARD (S136): before anything is compared or copied, every
+# tools/pi file that talks the CM4 matrix bus is scanned for a hard-coded
+# cell address -- the class of bug that put `SKIN = 0x1524` in `d24_panel.py`,
+# true of one unit's one pack. A hit aborts the deploy; see
+# `check-no-hardcoded-matrix-addr.py` for exactly what it looks for and why.
 set -u
 BENCH=${BENCH:-app@192.168.1.219}
 DEST=${DEST:-/home/app/selftest}
@@ -27,6 +33,11 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 CHECK=0
 STAMP=$(date +%Y%m%d-%H%M%S)
 [ "${1:-}" = "--check" ] && CHECK=1
+
+if ! python3 "$HERE/check-no-hardcoded-matrix-addr.py"; then
+  echo "!! aborting: fix the hard-coded address(es) above before deploying"
+  exit 4
+fi
 
 # The station's own tools, then the eight STAGE_TOOLS the runner re-copies into
 # its stage dir. Keep this list in step with d24_selftest.py::STAGE_TOOLS --
@@ -46,6 +57,7 @@ d24_chain.py
 d24_touch_inject.py
 d24_bus_probe.py
 d24_inputs.py
+matrix_addr.py
 s89_set.py
 s89_signbit.py
 s89_slotcap.py

@@ -87,11 +87,28 @@ import sys
 import termios
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import matrix_addr                                        # noqa: E402
+
 PORT = '/dev/serial0'
 AX = 'hijklmnopqrstuvw'          # address nibble alphabet (0..F)
 DX = '0123456789ABCDEF'          # data nibble alphabet
-SYS001TEST001 = 0x1526           # 5414 -- the register address cell
-SYS001TEST002 = 0x1527           # 5415 -- the data cell; writing it triggers the write
+
+
+def _resolve_required(name):
+    """These two cells are H1S1's whole local table alongside Sys001Skin001/
+    Sys001Enc001 -- foundational, not optional -- so a pack missing either is
+    broken, not "not yet switched over" (S136: resolve by name, never a
+    baked literal; MW-D24-2's 08-18 pack has them at 5414/5415, the
+    post-switch-over pack at 4699/4700, same names both times)."""
+    addr, err = matrix_addr.try_resolve(name)
+    if addr is None:
+        sys.exit('FATAL: %s' % err)
+    return addr
+
+
+SYS001TEST001 = _resolve_required('Sys001Test001')   # the register address cell
+SYS001TEST002 = _resolve_required('Sys001Test002')   # the data cell; writing it triggers the write
 
 # MIC Gain AMP setting, datasheet Table 9. Twelve codes; 0xC..0xF are not defined.
 MGN_DB = {0: -6.0, 1: -3.0, 2: 0.0, 3: 3.0, 4: 6.0, 5: 9.0, 6: 12.0,

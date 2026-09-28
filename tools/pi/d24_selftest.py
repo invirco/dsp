@@ -1079,8 +1079,8 @@ def t_ml1(r):
         return NODATA, 'probe gave no JSON', '3 identical well-formed answers', raw
     vals = [x['value'] for x in j['reads']]
     ms = [x['ms'] for x in j['reads']]
-    m = 'Sys001Test001 (5414) x3 = %s, %s ms' % (
-        ['0x%02X' % v if v is not None else None for v in vals], ms)
+    m = 'Sys001Test001 (%d) x3 = %s, %s ms' % (
+        j['cell'], ['0x%02X' % v if v is not None else None for v in vals], ms)
     if j['answered'] == 0:
         return NODATA, 'cell did not answer in 3 of 3', '3 identical answers', raw
     ok = j['identical'] and j['answered'] == 3

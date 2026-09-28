@@ -29,11 +29,15 @@ heartbeat is not newline-aligned with cell traffic, so a real reply arrives as
 """
 import argparse
 import json
+import os
 import re
 import sys
 import time
 
-sys.path.insert(0, '/home/app/dspboot')
+for _p in ('/home/app/dspboot', '/home/app/selftest',
+           os.path.dirname(os.path.abspath(__file__))):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 import codec4619 as C
 
 GUARD_FETCH = 0xFB              # CodecPoll() sentinel: hand back codecReadGuard
@@ -90,14 +94,16 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--mode', choices=('stest', 'cell'), required=True)
     ap.add_argument('--reps', type=int, default=3)
-    ap.add_argument('--cell', default='0x1526',
-                    help='cell address for --mode cell (default Sys001Test001 = 5414)')
+    ap.add_argument('--cell', default=None,
+                    help='cell address for --mode cell, decimal or 0x hex '
+                    '(default: Sys001Test001, resolved by name off this '
+                    'unit\'s deployed pack -- S136, never a baked literal)')
     ap.add_argument('--port', default=C.PORT)
     a = ap.parse_args()
     if a.mode == 'stest':
         r = stest(a.port)
     else:
-        r = cell(a.port, int(a.cell, 0), a.reps)
+        r = cell(a.port, int(a.cell, 0) if a.cell else C.SYS001TEST001, a.reps)
     print(json.dumps(r))
 
 

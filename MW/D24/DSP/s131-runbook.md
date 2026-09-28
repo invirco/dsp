@@ -310,8 +310,12 @@ the hub's normal post-flash habit).
 routine boots.
 
 ### Step 10 — Verify
-**First read §6a** — `d24_panel.py`'s hard-coded addresses are stale the moment
-step 8 lands, and most of the checks below go through it.
+**§6a is closed (S136): the bench tools resolve every address by name, so no
+edit is owed here.** Run `d24_panel.py --mode resolve` first and confirm its
+header alone before anything else below.
+- `d24_panel.py --mode resolve` header shows generation `f9677e5fae5e`, and
+  `Sys001Skin001` = 4698 / `Sys001Enc001` = 4514 / `Sys001SwLeft001` = 5005 /
+  `Sys001SwTalk001` = 5006, none of them NOT TESTED any more.
 - Boot log: `Matrix generation base-id f9677e5fae5e (5006 names / 5006
   addresses, max 5006)` (grep the app's own log, same line format the mx26
   doc quotes for the current `e80ccab5d6d8` boot).
@@ -416,31 +420,40 @@ unmodified source.
 
 ---
 
-## 6a. 🔴 S135, NOT FIXED HERE — the bench tools hard-code the OLD addresses and will be wrong the moment step 8 lands
+## 6a. ✅ FIXED (hub ruling, built by S136) — the address step is now automatic; there is nothing left to do here before step 10
 
-`tools/pi/d24_panel.py` carries the radio-group addresses as literals:
+S135 found `tools/pi/d24_panel.py` (and `codec4619.py`) hard-coding the
+radio-group addresses as literals (`SKIN = 0x1524`, `ENC = 0x1470`,
+`SYS001TEST001 = 0x1526`, …), true of MW-D24-2's 2026-08-18 pack alone. The
+hub's ruling was the second option this section used to pose: **the tools
+now read every address by NAME from the unit's own deployed pack, every
+time, so this cannot recur.**
 
-```python
-SKIN = 0x1524          # Sys001Skin001 = 5412 -- the RIGHT panel's radio group
-ENC  = 0x1470          # Sys001Enc001  = 5232 -- the encoder ring
-SW_LEFT = 0x138D       # Sys001SwLeft001 = 5005
-```
+`tools/pi/matrix_addr.py` resolves a cell name off `{HomePath}/config/
+_matrix.mxc` (else `_matrix.csv`), the same artefact and the same order
+`Core/AppContext.ResolveMatrixPath` uses — so a station tool and the app
+it is testing alongside always agree on what a name means. `d24_panel.py`,
+`d24_bus_probe.py` and `codec4619.py` no longer carry a single literal
+address; `tools/pi/check-no-hardcoded-matrix-addr.py` is a generator-side
+guard against a new one creeping back in, and `deploy-bench-tools.sh` runs
+it before every deploy and refuses to deploy on a hit.
 
-After the switch-over `Sys001Skin001` is **4698** (`0x125A`) and `Sys001Enc001`
-is **4514** (`0x11A2`); only `Sys001SwLeft001` at 5005 is unchanged. The file's
-own comments anticipate the move ("which also moves Sys001Skin001 from 5412 to
-4698") but the constants were never made to follow it. So from the moment step
-8 completes, `d24_panel.py light/watch/loop` writes and reads addresses no panel
-answers on — which is **step 10's "every panel press lands on the right cell"
-check, and the self-test's whole panel station**, including step 5b's talkback
-check if it is taken.
+**A name absent from the deployed pack is never a guess or a crash**: on
+tonight's 08-18 pack, `d24_panel.py --mode resolve` reports
+`Sys001SwLeft001`/`Sys001SwTalk001` as NOT TESTED ("cell not in this unit's
+matrix (generation e80ccab5d6d8)"), and `--panel left` reports every one of
+its rows the same way rather than falling back to the old shared-cell
+aliasing guess. Proved on MW-D24-2 itself, S136 report
+`MW/D24/DSP/s136/s136-report.md`.
 
-Not changed by S135: it is outside this dispatch, it needs a decision the hub
-should make (hard-code the new literals, or have the tool read the addresses
-from the pack so this cannot recur), and whichever is chosen has to go out
-through `deploy-bench-tools.sh` and be proved on the part. **Do it before step
-10, not during it.** `Sys001SwTalk001` = 5006 (`0x138E`, `ikpv`) will need
-adding at the same time if step 5b is taken.
+**So after step 8, no address edit is owed here** — the same unedited
+tools resolve `Sys001Skin001`/`Sys001Enc001`/`Sys001SwLeft001`/
+`Sys001SwTalk001` off whatever pack is deployed. What step 10 should check
+instead: `d24_panel.py --mode resolve`'s header reports **generation
+`f9677e5fae5e`** (not `e80ccab5d6d8`), and its `resolved` block then reads
+`Sys001Skin001: 4698`, `Sys001Enc001: 4514`, `Sys001SwLeft001: 5005`,
+`Sys001SwTalk001: 5006` — no longer NOT TESTED, because the switch-over
+landed the names this session could only report absent.
 
 ## 7. ✅ ANSWERED (hub, 2026-09-27; built by S135) — `Sys001SwTalk001`'s write semantics don't fit the existing radio-scan mechanism
 
