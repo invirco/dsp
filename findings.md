@@ -6,6 +6,81 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE AUX -> AUX MATRIX AND THE AUX SIMD PAIRING CANNOT BOTH EXIST (2026-09-28, session 143)
+
+Hub dispatch `tasks.md` 2026-09-28 12:29Z, item 3. Found while building the
+aux matrix exactly as S142 §3.4 designs it.
+
+**S143-2 A CROSSPOINT FROM EVERY AUX INTO EVERY HIGHER AUX MAKES THE TWELVE
+AUX BUSES A TOTAL ORDER, AND NO TWO AUX CHAINS CAN THEN BE SIMD-PAIRED.**
+Two nodes can be paired only if neither is reachable from the other --
+otherwise one has to run before the other and there is no instant at which
+both inputs are ready (the argument `_C2_CROSS_PAIRS` is built on). With the
+i<j crosspoints in place, every aux is reachable from every lower aux, so
+every pair the AUX family would form is impossible: 6 of 6 in each of `LIM`,
+`EQ`, `GEQ` and `AFB`, computed in both directions over the experiment
+graph.
+
+The generator refuses it before that, on the symptom rather than the cause:
+
+    ValueError: chip 2 pair family AUX: its 84 nodes are not a contiguous
+    run of the chain (82..176), so the pair order cannot be built by
+    reordering that run
+
+-- `C2_MIX_AUX_j` sits ahead of every aux chain (the S23 splice, so the FX
+returns publish first) and making it read `C2_AUX_DLY_i` drags each chain
+forward into the middle of the family. Relaxing that check does not help;
+the reachability does not care where the nodes sit.
+
+**S142 §3.4 says the opposite** -- *"the aux chains already run 1..12 in row
+order, so `repair_process_order` has nothing to move and S23-3's pairing
+hazard does not arise"* -- and that sentence is wrong. The rest of §3.4 is
+right: it is more sources on a node that already has the mechanism, and the
+GROUP half has none of this problem and is built.
+
+**The price, which is why it is a ruling and not an implementation detail.**
+In the shipping build (`DSP4_C2_BQ_GRAPH=0`) it is the six aux LIMITER
+pairs. With `DSP4_C2_BQ_GRAPH=1` -- the ~17.4-point lever S142's whole
+capacity case rests on -- it is also the eighteen biquad pairs, and the aux
+family is **492 of the 648 paired cascade stages on chip 2** (aux 12 x (EQ 4
++ GEQ 31 + AFB 6), grp 4 x (EQ 4 + GEQ 31), mout 4 x OEQ 4). About three
+quarters of the lever, or ~13 points of chip 2, against the 2.16 % the aux
+matrix was priced at.
+
+**Three ways out, all of them PW's:** a new `C2_AUX_MTX_j` class after `LIM`
+(the matrix contribution then bypasses aux j's limiter), the same class
+before `EQ` (safe, but the SOURCE becomes aux i's pre-EQ mix, which is not
+what `Aux{i}AuxSend{j}` means), or keeping the sources on `C2_MIX_AUX_j` and
+reading aux i's output ONE BLOCK OLD (free, every pair kept, 333 us of comb
+against any direct path). Worked through in
+`MW/D24/DSP/s143/s143-report.md` §4 with the contiguity check each one
+passes or fails.
+
+## THE CHANNEL METER'S SECOND INPUT REACHES NO INSTRUCTION (2026-09-28, session 143)
+
+Found by `tools/dsp/stereo_split_check.py` gate A the day it was written,
+on all 32 chip-1 channel meters.
+
+**S143-1 `C1_MTR_nn` DECLARES `inputs = C1_GAIN_nn;C1_FDR_nn` AND READS THE
+FIRST.** `gen_meter_fixed` interpolates `inputs_str`, so the meter measures
+`C1_GAIN_nn` -- post-TRIM -- and `C1_FDR_nn` is computed every block and read
+by nothing. That is S142-1's shape on 32 more nodes.
+
+**The `post_fader` tap is not a second source.** `taps =
+post_trim;post_fader;gate_gr;comp_gr` reads as four tap POINTS, but
+`gen_dsp.py`'s own tap table maps `post_fader` to meter word +1 --
+`Chan[1-32]Mtr002`, *"linear true RMS"* -- which is the RMS of the SAME
+post-trim wide word. So both meter cells a channel has are post-trim, and
+**the fader's own meter does not follow the fader**.
+
+Not fixed here: whether `Mtr002` is meant to be post-fader is a contract
+question (the master's Notes say "linear true RMS" and nothing about the
+tap point), and a meter that changes what it measures is a bench reading,
+not a desk edit. It is chip 1, which S143 does not touch. Carried in
+`stereo_split_check.py`'s `_KNOWN_UNREAD` by (consumer, producer) with this
+finding's name, so the gate stays green and the defect stays visible;
+deleting that entry is how it gets closed.
+
 ## THE MAIN BUS IS MONO FROM THE MASTER FADER ONWARD, AND BOTH MAIN XLRs CARRY LEFT (2026-09-28, session 142)
 
 Hub dispatch `tasks.md` 2026-09-28 11:52Z. Found while pricing the Centre/LF

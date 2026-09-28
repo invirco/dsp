@@ -19296,6 +19296,16 @@ def _c2_pair_excluded(node):
         the link exists to prevent.
     """
     if node.get('follows'):
+        # NOT TAUGHT YET RATHER THAN IMPOSSIBLE, and worth saying which: a
+        # master and its follower are the IDEAL SIMD pair -- one
+        # coefficient set, two states, which is exactly the shape
+        # `gen_bq_pairs_c2`'s native interleave wants. What stops it today
+        # is that the drivers gather `_<pfx>_coeffs_A_<node>` per member
+        # and a follower has no such symbol (it `.extern`s its master's).
+        # Resolving a follower's coefficient symbol to its master's -- the
+        # `cid` the node generator already uses -- is what it would take,
+        # plus a MAIN entry in _C2_PAIR_FAMILIES. Out of S143's scope, and
+        # it only pays with DSP4_C2_BQ_GRAPH on.
         return f"it follows {node['follows']} and runs that node's parameters"
     if node['params'].get('link_in'):
         return (f"it is stereo-linked to {node['params']['link_in']} and the "
