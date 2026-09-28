@@ -192,6 +192,18 @@ copies (`/home/app/s139fw/{H1S1,H1S3,H1S4}/`, `rsync -a` from
   34080, `data` 657, `bss` 1940 — **identical** to the currently-flashed
   build (as expected). `.shex`: 2174 records / 34737 bytes (md5
   `8067f1d402cde5aec10fc74c00f5e9d9`), header id `H1S1` (matches).
+
+  🔴 **WRONG SOURCE (found in S131, fixed in S141).** This rebuild's source
+  tree was `/home/app/fwbuild/H1S1`, and that copy was stale: `matrix.cs`
+  dated 2025-12-30, predating S69's `CodecPoll()`. Flashing
+  `s139/gen/H1S1/H1S1.shex` (this `8067f1d4…`) during S131 regressed ML1/CC/MC
+  and the DSP boot. S131 rebuilt from the real source, `~/build-h1s1`
+  (scratch `~/s131/H1S1`), which reproduced the pre-S131 image byte-for-byte
+  (`272868c8…`) and, with `s139/gen/matrix.h` swapped in, gave the correct
+  `19a5492d…` — archived at `MW/D24/DSP/s131/H1S1/`. S141 synced
+  `/home/app/fwbuild/H1S1`'s `matrix.h`/`matrix.cs`/`main.c` from
+  `~/build-h1s1` so the next on-unit build from that path can't repeat this;
+  old copies kept as `*.bak-s141-stale-20260928-124440`.
 - Record counts (2174/1364/924) and byte sizes are **unchanged from S134's
   original dry run** — only the `#define` values moved, not the payload
   shape, so nothing about the flash mechanics changes with the new

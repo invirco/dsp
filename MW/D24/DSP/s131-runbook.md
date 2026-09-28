@@ -329,6 +329,24 @@ tonight with `text`/`data`/`bss` byte-for-byte unchanged (as expected — only
 **Time:** build ~15 s (dry-run measured, STM32U575/Cortex-M33 — slightly
 more source than H1S3/H1S4). Flash time not measured.
 
+> ⚠️ **`/home/app/fwbuild/H1S1` WAS STALE (found in S131, fixed in S141).**
+> The dry-run rebuild above (and S139's re-run of it) built from
+> `/home/app/fwbuild/H1S1`, whose `matrix.cs`/`main.c` dated 2025-12-30 —
+> before S69's `CodecPoll()` existed. That is why "byte-for-byte unchanged"
+> above is describing the WRONG baseline: S139's resulting `.shex`
+> (`8067f1d4…`, archived at `s139/gen/H1S1/`) was flashed during S131 and
+> regressed ML1/CC/MC and the DSP boot. The real source is `~/build-h1s1`
+> (the hub machine); rebuilding from there reproduced the pre-S131 image
+> byte-for-byte (`272868c8…`) and, with the current `matrix.h` swapped in,
+> gave the correct `19a5492d…` — this is what S131 actually flashed and
+> verified. Evidence and both images: `MW/D24/DSP/s131/H1S1/`; the S139
+> report's H1S1 bullet carries the same correction. S141 synced
+> `/home/app/fwbuild/H1S1`'s `matrix.h`/`matrix.cs`/`main.c` from
+> `~/build-h1s1` so an on-unit rebuild from this step no longer reproduces
+> the stale image (old copies: `*.bak-s141-stale-20260928-124440`
+> alongside each file). **Any future H1S1 rebuild should still diff its
+> output against `MW/D24/DSP/s131/H1S1/H1S1.shex` before flashing.**
+
 ### Step 7 — Build each `.shex`
 From each `Debug/H1SxN.hex` (built by `make -f makefile all` from the
 project's own `Debug/`, after the one-line Windows-path fix in the makefile

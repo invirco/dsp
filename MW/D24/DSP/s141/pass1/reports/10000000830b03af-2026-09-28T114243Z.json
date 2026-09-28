@@ -1,0 +1,3814 @@
+{
+ "catalog_md5": "f380c70d7ba576d2ebcdd87ce4595a80",
+ "factory_image": {
+  "build_cfg": [
+   "0xCF45FF10",
+   "0xE3018E6F",
+   "0xC47C0FA6"
+  ],
+  "name": "factory-test-v2"
+ },
+ "ignored": {},
+ "passes": 1,
+ "rows": [
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    1
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 1",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 1,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    2
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 2",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 2,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    3
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 3",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 3,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    4
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 4",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 4,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    5
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 13",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 5,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    6
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 14",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 6,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    7
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 15",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 7,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    8
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 16",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 8,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    9
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 5",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 9,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog input",
+   "covers": [
+    10
+   ],
+   "evidence": "no signal path in the patch list reaches this row",
+   "group": "M4",
+   "history": [],
+   "item": "MIC 6",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 10,
+   "pass_no": 1,
+   "reason": "no signal path in the patch list reaches this row",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    11
+   ],
+   "group": "M4",
+   "item": "MIC 9",
+   "num": 11,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    12
+   ],
+   "group": "M4",
+   "item": "MIC 10",
+   "num": 12,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    13
+   ],
+   "group": "M4",
+   "item": "MIC 11",
+   "num": 13,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    14
+   ],
+   "group": "M4",
+   "item": "MIC 12",
+   "num": 14,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    15
+   ],
+   "group": "M4",
+   "item": "MIC 17",
+   "num": 15,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    16
+   ],
+   "group": "M4",
+   "item": "MIC 18",
+   "num": 16,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    17
+   ],
+   "group": "M4",
+   "item": "MIC 19",
+   "num": 17,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    18
+   ],
+   "group": "M4",
+   "item": "MIC 21",
+   "num": 18,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    19
+   ],
+   "group": "M4",
+   "item": "MIC 22",
+   "num": 19,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    20
+   ],
+   "group": "M4",
+   "item": "MIC 23",
+   "num": 20,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    21
+   ],
+   "group": "M4",
+   "item": "MIC 24",
+   "num": 21,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    22
+   ],
+   "group": "M4",
+   "item": "MIC 7",
+   "num": 22,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    23
+   ],
+   "group": "M4",
+   "item": "MIC 8",
+   "num": 23,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input",
+   "covers": [
+    24
+   ],
+   "group": "M4",
+   "item": "MIC 20",
+   "num": 24,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    25
+   ],
+   "group": "M4",
+   "item": "Aux Out A1 (doubles as Monitor 1)",
+   "num": 25,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    26
+   ],
+   "group": "M4",
+   "item": "Aux Out A2",
+   "num": 26,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    27
+   ],
+   "group": "M4",
+   "item": "Aux Out A3",
+   "num": 27,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    28
+   ],
+   "group": "M4",
+   "item": "Aux Out A4",
+   "num": 28,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    29
+   ],
+   "group": "M4",
+   "item": "Aux Out A5",
+   "num": 29,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    30
+   ],
+   "group": "M4",
+   "item": "Aux Out A6",
+   "num": 30,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    31
+   ],
+   "group": "M4",
+   "item": "Aux Out A7",
+   "num": 31,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    32
+   ],
+   "group": "M4",
+   "item": "Aux Out A8",
+   "num": 32,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    33
+   ],
+   "group": "M4",
+   "item": "Main Out L",
+   "num": 33,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    34
+   ],
+   "group": "M4",
+   "item": "Main Out R",
+   "num": 34,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog output",
+   "covers": [
+    35
+   ],
+   "evidence": "the Centre/LF socket is on a converter lane this product has no cell for: nothing the host can write puts a signal on it",
+   "group": "M4",
+   "history": [],
+   "item": "Center/LF Out",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 35,
+   "pass_no": 1,
+   "reason": "the Centre/LF socket is on a converter lane this product has no cell for: nothing the host can write puts a signal on it",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    36
+   ],
+   "group": "M4",
+   "item": "Monitor Out L (TRS, unbalanced)",
+   "num": 36,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    37
+   ],
+   "group": "M4",
+   "item": "Monitor Out R (TRS, unbalanced)",
+   "num": 37,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input (codec path)",
+   "covers": [
+    38
+   ],
+   "group": "M4",
+   "item": "Talkback TB (XLR)",
+   "num": 38,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    39
+   ],
+   "group": "M4",
+   "item": "Aux Out A 1-2 (TRS, Phone Jack sub-assembly)",
+   "num": 39,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    40
+   ],
+   "group": "M4",
+   "item": "Aux Out A 3-4 (TRS, Phone Jack sub-assembly)",
+   "num": 40,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    41
+   ],
+   "group": "M4",
+   "item": "Aux Out A 5-6 (TRS, Phone Jack sub-assembly)",
+   "num": 41,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog output",
+   "covers": [
+    42
+   ],
+   "group": "M4",
+   "item": "Aux Out A 7-8 (TRS, Phone Jack sub-assembly)",
+   "num": 42,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    43
+   ],
+   "group": "M1",
+   "item": "MONO AUX (fw.csv MonoAux) button",
+   "num": 43,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    44
+   ],
+   "group": "M1",
+   "item": "MONO AUX (fw.csv MonoAux) button LEDs (white pair)",
+   "num": 44,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    45
+   ],
+   "group": "M1",
+   "item": "STEREO AUX (fw.csv StereoAux) button",
+   "num": 45,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    46
+   ],
+   "group": "M1",
+   "item": "STEREO AUX (fw.csv StereoAux) button LEDs (white pair)",
+   "num": 46,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    47
+   ],
+   "group": "M1",
+   "item": "FX (fw.csv Fx) button",
+   "num": 47,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    48
+   ],
+   "group": "M1",
+   "item": "FX (fw.csv Fx) button LEDs (white pair)",
+   "num": 48,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    49
+   ],
+   "group": "M1",
+   "item": "EQ (fw.csv Eq) button",
+   "num": 49,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    50
+   ],
+   "group": "M1",
+   "item": "EQ (fw.csv Eq) button LEDs (white pair)",
+   "num": 50,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    51
+   ],
+   "group": "M1",
+   "item": "AUX ON FADERS (fw.csv AuxOnFaders) button",
+   "num": 51,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    52
+   ],
+   "group": "M1",
+   "item": "AUX ON FADERS (fw.csv AuxOnFaders) button LEDs (white pair)",
+   "num": 52,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    53
+   ],
+   "group": "M1",
+   "item": "OVERVIEW (fw.csv Overview) button",
+   "num": 53,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    54
+   ],
+   "group": "M1",
+   "item": "OVERVIEW (fw.csv Overview) button LEDs (white pair)",
+   "num": 54,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "not-run",
+   "cls": "panel LED",
+   "covers": [
+    55
+   ],
+   "evidence": "the red indicator is driven by the processor boot pin, not by the processor, so nothing the host writes can light it",
+   "group": "M1",
+   "history": [],
+   "item": "BOOT0 indicator LED (red, fw.csv BootLed)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 55,
+   "pass_no": 1,
+   "reason": "the red indicator is driven by the processor boot pin, not by the processor, so nothing the host writes can light it",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "auto",
+   "cls": "panel mic + speaker",
+   "covers": [
+    56,
+    57
+   ],
+   "evidence": "THE PATH, named (S102) and then SEPARATED (S122). The speaker is codec TDM slot 0 = signal CODEC_OUT_1 = AK4619 AOUT1L (analog U3 pin 22) -- the ONLY codec DAC output fitted on a D24 (mx26 tools/netlist/parts.csv:67: C20/C21/C22 on AOUT1R/AOUT2L/AOUT2R are DNP). U3.22 -> C23 -> SPKR -> analog J59.12 = digital J42.12 -> C82 -> TS482 (digital U32, unity, BRIDGED, 5 V) -> SPKR0/SPKR1 -> lswitch J1...",
+   "group": "A5",
+   "history": [],
+   "item": "Panel MEMS mic (talkback) + Speaker",
+   "judged": "runner",
+   "limit": "a tone in the window (THD+N <= -6 dB, or SNR >= 13.7 dB over the tone-off floor), level within 4 dB of the calibrated line (pred = 0.948 x drive -24.13 dBFS), BANDPASS THD (h2..h10) under -22.5 dB = 7.499 % (PROVISIONAL -- until the speaker supplier datasheet -- NOT a spec limit)",
+   "measured": "PASS base -54.9 tone -28.2 SNR 26.8 dB THD -24.7 dB 5.81%",
+   "num": 56,
+   "pass_no": 1,
+   "source": "AL1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AL1"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Left Switch PCBA",
+   "category": "not-run",
+   "cls": "panel control",
+   "covers": [
+    58
+   ],
+   "evidence": "the pedal path through this panel needs the pedal and its lead, which is the foot pedal station",
+   "group": "M1",
+   "history": [],
+   "item": "Pedal UART through-path",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 58,
+   "pass_no": 1,
+   "reason": "the pedal path through this panel needs the pedal and its lead, which is the foot pedal station",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    59
+   ],
+   "group": "M2",
+   "item": "FX MUTE (fw.csv FxMute) button",
+   "num": 59,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    60
+   ],
+   "group": "M2",
+   "item": "FX MUTE (fw.csv FxMute) button LEDs (white pair)",
+   "num": 60,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    61
+   ],
+   "group": "M2",
+   "item": "FX MUTE (fw.csv FxMute) red LEDs",
+   "num": 61,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    62
+   ],
+   "group": "M2",
+   "item": "HOME (fw.csv Home) button",
+   "num": 62,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    63
+   ],
+   "group": "M2",
+   "item": "HOME (fw.csv Home) button LEDs (white pair)",
+   "num": 63,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    64
+   ],
+   "group": "M2",
+   "item": "MENU (fw.csv Menu) button",
+   "num": 64,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    65
+   ],
+   "group": "M2",
+   "item": "MENU (fw.csv Menu) button LEDs (white pair)",
+   "num": 65,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    66
+   ],
+   "group": "M2",
+   "item": "+48 (fw.csv Phantom48) button",
+   "num": 66,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    67
+   ],
+   "group": "M2",
+   "item": "+48 (fw.csv Phantom48) button LEDs (white pair)",
+   "num": 67,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    68
+   ],
+   "group": "M2",
+   "item": "FEEDBACK (fw.csv Feedback) button",
+   "num": 68,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    69
+   ],
+   "group": "M2",
+   "item": "FEEDBACK (fw.csv Feedback) button LEDs (white pair)",
+   "num": 69,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    70
+   ],
+   "group": "M2",
+   "item": "MUTE (fw.csv 'Nute' \u2014 typo) button",
+   "num": 70,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    71
+   ],
+   "group": "M2",
+   "item": "MUTE (fw.csv 'Nute' \u2014 typo) button LEDs (white pair)",
+   "num": 71,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    72
+   ],
+   "group": "M2",
+   "item": "SCENE (fw.csv Scene) button",
+   "num": 72,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    73
+   ],
+   "group": "M2",
+   "item": "SCENE (fw.csv Scene) button LEDs (white pair)",
+   "num": 73,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    74
+   ],
+   "group": "M2",
+   "item": "L (fw.csv L) button",
+   "num": 74,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    75
+   ],
+   "group": "M2",
+   "item": "L (fw.csv L) button LEDs (white pair)",
+   "num": 75,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    76
+   ],
+   "group": "M2",
+   "item": "C (fw.csv C) button",
+   "num": 76,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    77
+   ],
+   "group": "M2",
+   "item": "C (fw.csv C) button LEDs (white pair)",
+   "num": 77,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "not-run",
+   "cls": "panel LED",
+   "covers": [
+    78
+   ],
+   "evidence": "no indicator is declared for this designator: the firmware table gives the C button one indicator pair and the loop grades it on row 77",
+   "group": "M2",
+   "history": [],
+   "item": "C (fw.csv C) red LED",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 78,
+   "pass_no": 1,
+   "reason": "no indicator is declared for this designator: the firmware table gives the C button one indicator pair and the loop grades it on row 77",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    79
+   ],
+   "group": "M2",
+   "item": "CH ASSIGN (fw.csv ChanAssign) button",
+   "num": 79,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    80
+   ],
+   "group": "M2",
+   "item": "CH ASSIGN (fw.csv ChanAssign) button LEDs (white pair)",
+   "num": 80,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    81
+   ],
+   "group": "M2",
+   "item": "R (fw.csv R) button",
+   "num": 81,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    82
+   ],
+   "group": "M2",
+   "item": "R (fw.csv R) button LEDs (white pair)",
+   "num": 82,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    83
+   ],
+   "group": "M2",
+   "item": "MONITOR (fw.csv Monitor) button",
+   "num": 83,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    84
+   ],
+   "group": "M2",
+   "item": "MONITOR (fw.csv Monitor) button LEDs (white pair)",
+   "num": 84,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    85
+   ],
+   "group": "M2",
+   "item": "REC/PLY (fw.csv RecPlay) button",
+   "num": 85,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    86
+   ],
+   "group": "M2",
+   "item": "REC/PLY (fw.csv RecPlay) button LEDs (white pair)",
+   "num": 86,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    87
+   ],
+   "group": "M2",
+   "item": "REC/PLY (fw.csv RecPlay) red LEDs",
+   "num": 87,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel switch",
+   "covers": [
+    88
+   ],
+   "group": "M2",
+   "item": "STUDIO CTL (fw.csv Studio) button",
+   "num": 88,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    89
+   ],
+   "group": "M2",
+   "item": "STUDIO CTL (fw.csv Studio) button LEDs (white pair)",
+   "num": 89,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel encoder",
+   "covers": [
+    90
+   ],
+   "group": "M2",
+   "item": "Encoder ring",
+   "num": 90,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "manual",
+   "cls": "panel LED",
+   "covers": [
+    91
+   ],
+   "group": "M2",
+   "item": "Encoder ring LEDs (8 white singles, fw.csv Enc1\u2013Enc8)",
+   "num": 91,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "not-run",
+   "cls": "panel control",
+   "covers": [
+    92
+   ],
+   "evidence": "Sys001SwTalk001 exists on this unit's pack (address 4644) but this tool has no read/light logic wired to it yet -- that is S135's bespoke H1S3 image, still optional",
+   "group": "M2",
+   "history": [],
+   "item": "Talkback switch + LEDs (pass-through)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 92,
+   "pass_no": 1,
+   "reason": "Sys001SwTalk001 exists on this unit's pack (address 4644) but this tool has no read/light logic wired to it yet -- that is S135's bespoke H1S3 image, still optional",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "not-run",
+   "cls": "panel control",
+   "covers": [
+    93
+   ],
+   "evidence": "the mini-jack sense passes through the panel processor with no matrix cell bound, so the host cannot read it",
+   "group": "M2",
+   "history": [],
+   "item": "Mini-jack insertion sense (pass-through)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 93,
+   "pass_no": 1,
+   "reason": "the mini-jack sense passes through the panel processor with no matrix cell bound, so the host cannot read it",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Right Switch PCBA",
+   "category": "not-run",
+   "cls": "panel control",
+   "covers": [
+    94
+   ],
+   "evidence": "the temperature, blower and fan lines pass through the panel processor with no matrix cell bound, so the host cannot read them",
+   "group": "M2",
+   "history": [],
+   "item": "TEMP / BLOWER / FAN sense (pass-through)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 94,
+   "pass_no": 1,
+   "reason": "the temperature, blower and fan lines pass through the panel processor with no matrix cell bound, so the host cannot read them",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input (mini-jack)",
+   "covers": [
+    95
+   ],
+   "group": "M4",
+   "item": "Mini-jack 1 (3.5 mm, Mini Jack sub-assembly)",
+   "num": 95,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "manual",
+   "cls": "analog input (mini-jack)",
+   "covers": [
+    96
+   ],
+   "group": "M4",
+   "item": "Mini-jack 2 (3.5 mm, Mini Jack sub-assembly)",
+   "num": 96,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "analog output (phones)",
+   "covers": [
+    97
+   ],
+   "evidence": "the headphone socket is on two converter lanes this product has no cells for: nothing the host can write puts a signal on it",
+   "group": "M4",
+   "history": [],
+   "item": "Phones 1 (headphone jack)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 97,
+   "pass_no": 1,
+   "reason": "the headphone socket is on two converter lanes this product has no cells for: nothing the host can write puts a signal on it",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "P1 pedal (rev B)",
+   "category": "not-run",
+   "cls": "pedal switch",
+   "covers": [
+    98
+   ],
+   "evidence": "the host cannot see this control or sense line change: this unit has no per-control read through the panel processors",
+   "group": "M3",
+   "history": [],
+   "item": "Footswitch 1",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 98,
+   "pass_no": 1,
+   "reason": "the host cannot see this control or sense line change: this unit has no per-control read through the panel processors",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "P1 pedal (rev B)",
+   "category": "not-run",
+   "cls": "pedal switch",
+   "covers": [
+    99
+   ],
+   "evidence": "the host cannot see this control or sense line change: this unit has no per-control read through the panel processors",
+   "group": "M3",
+   "history": [],
+   "item": "Footswitch 2",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 99,
+   "pass_no": 1,
+   "reason": "the host cannot see this control or sense line change: this unit has no per-control read through the panel processors",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "P1 pedal (rev B)",
+   "category": "not-run",
+   "cls": "pedal LED",
+   "covers": [
+    100
+   ],
+   "evidence": "the host cannot light one indicator at a time: this unit has no indicator drive for the panel processors",
+   "group": "M3",
+   "history": [],
+   "item": "7-segment display + LEDs",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 100,
+   "pass_no": 1,
+   "reason": "the host cannot light one indicator at a time: this unit has no indicator drive for the panel processors",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "P1 pedal (rev B)",
+   "category": "not-run",
+   "cls": "control",
+   "covers": [
+    101
+   ],
+   "evidence": "the foot pedal and its lead are not at the bench",
+   "group": "M3",
+   "history": [],
+   "item": "Pedal link + 9 V",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 101,
+   "pass_no": 1,
+   "reason": "the foot pedal and its lead are not at the bench",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "mcu link",
+   "covers": [
+    102
+   ],
+   "evidence": "PREREQUISITE: H1S1 firmware-version cell (spec prereq 1). H1S1's whole local cell table is Sys001Enc001/Sys001Skin001/Sys001Test001/Sys001Test002 (~/build-h1s1/Core/Inc/matrix.cs:11-18); no *Ver*/*Build* cell exists. The only identity it publishes is the S_TEST string \"// H1S1 DSP\" (matrix.cs:46). Host side reads: 19a5492d76e0f2faeda6059a045b3f2a /home/app/firmware/H1S1.shex %s",
+   "group": "A2",
+   "history": [],
+   "item": "H1S1 MCU (STM32U575) link",
+   "judged": "runner",
+   "limit": "non-zero version equal to the H1S1.shex manifest",
+   "measured": "no H1S1 version cell; host side H1S1.shex 19a5492d76e0f2faeda6059a045b3f2a",
+   "num": 102,
+   "pass_no": 1,
+   "source": "ML2",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML1",
+    "ML2"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    103
+   ],
+   "evidence": "=== DSP4 chip 1 diagnostics === MAGIC 0xD5B40001 CHIP_ID 1 (DSPA/U6) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 14899 TICKS 4501 SEC_COUNT 14901 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2799 SPI_RX_COUNT 5690 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x00...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS1 (fw.csv Dsp1)",
+   "judged": "runner",
+   "limit": "the addressed part answers CHIP_ID 1",
+   "measured": "CS1 asserted (GPIO6): CHIP_ID 1 BUILD_ID 0x20260812",
+   "num": 103,
+   "pass_no": 1,
+   "source": "DC1-CS1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DC1-CS1",
+    "DC2-CS1"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    104
+   ],
+   "evidence": "=== DSP4 chip 2 diagnostics === MAGIC 0xD5B40001 CHIP_ID 2 (DSPB/U5) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 14255 TICKS 4417 SEC_COUNT 14258 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2013 SPI_RX_COUNT 615 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x000...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS2 (fw.csv Dsp2)",
+   "judged": "runner",
+   "limit": "the addressed part answers CHIP_ID 2",
+   "measured": "CS2 asserted (GPIO24): CHIP_ID 2 BUILD_ID 0x20260812",
+   "num": 104,
+   "pass_no": 1,
+   "source": "DC1-CS2",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DC1-CS2",
+    "DC2-CS2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    105
+   ],
+   "evidence": "--- 1. after the prep boot, part running (CM4 pull-down forced) --- 8: ip pd | hi // GPIO8 = input 12: ip pd | hi // GPIO12 = input --- 2. !RST_D (GPIO16) held low 200 ms -- DR1's OWN pulse, read inside it --- 8: ip pd | lo // GPIO8 = input 12: ip pd | lo // GPIO12 = input --- 3. after DR2's boot --- 8: ip pd | hi // GPIO8 = input 12: ip pd | hi // GPIO12 = input BOOT_STAGE 7/7 (folded into DR1...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS3 (fw.csv Dsp3)",
+   "judged": "runner",
+   "limit": "SPI_RDY (CS3, GPIO8) reads LOW with !RST_D held low and HIGH with the part at BOOT_STAGE 7, the CM4 pin pulled DOWN for both reads",
+   "measured": "CS3/GPIO8 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)",
+   "num": 105,
+   "pass_no": 1,
+   "source": "DY1-RDY1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DY1-RDY1"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    106
+   ],
+   "evidence": "--- 1. after the prep boot, part running (CM4 pull-down forced) --- 8: ip pd | hi // GPIO8 = input 12: ip pd | hi // GPIO12 = input --- 2. !RST_D (GPIO16) held low 200 ms -- DR1's OWN pulse, read inside it --- 8: ip pd | lo // GPIO8 = input 12: ip pd | lo // GPIO12 = input --- 3. after DR2's boot --- 8: ip pd | hi // GPIO8 = input 12: ip pd | hi // GPIO12 = input BOOT_STAGE 7/7 (folded into DR1...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS4 (fw.csv Dsp4)",
+   "judged": "runner",
+   "limit": "SPI_RDY (CS4, GPIO12) reads LOW with !RST_D held low and HIGH with the part at BOOT_STAGE 7, the CM4 pin pulled DOWN for both reads",
+   "measured": "CS4/GPIO12 SPI_RDY: running hi, in reset lo, after boot hi (BOOT_STAGE 7)",
+   "num": 106,
+   "pass_no": 1,
+   "source": "DY1-RDY2",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DY1-RDY2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    107
+   ],
+   "evidence": "SPEC CORRECTION (S100). hardware-map.md:410-411, the 8-DSP scaling provision. fw.csv Dsp6 is H1S1 pin B15 on net CS6; H1S1 holds it an INPUT and publishes no cell that could report its level, so there is no read path. CS6 is the one genuinely idle select of the eight: the D8 amendment lists CS5 OR CS6 as the spare for CS_M and this unit took CS5.",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS6 (fw.csv Dsp6)",
+   "judged": "runner",
+   "limit": "no part behind the select, and no read path to the net",
+   "measured": "CS6 reaches no fitted part",
+   "num": 107,
+   "pass_no": 1,
+   "source": "DC1-CS6",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DC1-CS6",
+    "DC2-CS6"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    108
+   ],
+   "evidence": "SPEC CORRECTION (S100), the same shape as CS3/CS4. CS7 (H1S1 PC15, fw.csv Dsp7) carries SWD_EN1: dsp4-architecture-decisions.md D8 amendment, \"CS7/8 are permanently the CM4-owned SWD_EN selects\", realised on rev C as the CS7/CS8 -> SWD_EN1/EN3 proto wires. H1S1 driving it \"forces ch3 permanently selected and breaks the CM4 SWD channel-select\" (archive/tasks-archive-2026-08-20.md:365-367), which...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS7 (fw.csv Dsp7)",
+   "judged": "runner",
+   "limit": "n/a -- assert-one-read-one does not apply to this net",
+   "measured": "CS7 is not a DSP chip select: it is SWD_EN1, CM4-owned",
+   "num": 108,
+   "pass_no": 1,
+   "source": "DC1-CS7",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DC1-CS7",
+    "DC2-CS7"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    109
+   ],
+   "evidence": "SPEC CORRECTION (S100), the same shape as CS3/CS4. CS8 (H1S1 PH0, fw.csv Dsp8) carries SWD_EN3 -- see CS7: same D8 amendment, same proto wire pair, same reason H1S1 holds it an input, and the same absence of a read path in this runner.",
+   "group": "A3",
+   "history": [],
+   "item": "DSP chip-select CS8 (fw.csv Dsp8)",
+   "judged": "runner",
+   "limit": "n/a -- assert-one-read-one does not apply to this net",
+   "measured": "CS8 is not a DSP chip select: it is SWD_EN3, CM4-owned",
+   "num": 109,
+   "pass_no": 1,
+   "source": "DC1-CS8",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DC1-CS8",
+    "DC2-CS8"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "dsp control",
+   "covers": [
+    110
+   ],
+   "evidence": "before: FRAME_COUNT 6471 -> 9113 --- the pulse, and SPI_RDY read inside it (DY1's \"in reset\" half, S125) --- 8: ip pd | lo // GPIO8 = input 12: ip pd | lo // GPIO12 = input after the pulse: ERROR: SPI_RDY never asserted \u2014 DSP held in reset, not booted, or the RDY polarity is inverted (try --rdy-active-low) === DSP4 chip 1 diagnostics === --- ERROR: SPI_RDY never asserted \u2014 DSP held in reset, no...",
+   "group": "A3",
+   "history": [],
+   "item": "DSP reset RST_D (fw.csv Reset)",
+   "judged": "runner",
+   "limit": "heartbeat stops within one block period",
+   "measured": "FRAME_COUNT 6471 -> 9113 advancing; after !RST_D (GPIO16) low 200 ms: None -> None",
+   "num": 110,
+   "pass_no": 1,
+   "source": "DR1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "DR1",
+    "DR2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "analog control",
+   "covers": [
+    111
+   ],
+   "evidence": "image=05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00 VERIFIED 200/200 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00 | pass1 18 18 00 05 0A 43 00 05 00 C3 00 05 B5 43 00 05 00 C3 00 05 BB 43 00 05 00",
+   "group": "A2",
+   "history": [],
+   "item": "Mic-gain chain latch CS_M (fw.csv MicGain)",
+   "judged": "runner",
+   "limit": "read-back equals the image",
+   "measured": "wrote 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00, read back: VERIFIED 200/200 05 09 0D 11 15 19 1D 21 25 29 2D 31 35 39 3D 41 45 49 4D 51 55 59 5D 61 00",
+   "num": 111,
+   "pass_no": 1,
+   "source": "MC1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "MC1",
+    "MC2",
+    "MC3"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "analog control",
+   "covers": [
+    112
+   ],
+   "evidence": "05H -> 0xBB guard 0x43 ANSWERED",
+   "group": "A2",
+   "history": [],
+   "item": "Codec select CS_C (fw.csv Codec)",
+   "judged": "runner",
+   "limit": "0xBB (MGN2L/MGN2R = +27 dB, the StartAK4619 image)",
+   "measured": "05H = 0xBB",
+   "num": 112,
+   "pass_no": 1,
+   "source": "CC1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "CC1",
+    "CC2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    113
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD0 (fw.csv Psu1)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 113,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    114
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD1 (fw.csv Psu2)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 114,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    115
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD2 (fw.csv Psu3)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 115,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    116
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD3 (fw.csv Psu4)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 116,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    117
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD4 (fw.csv Psu5)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 117,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    118
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD5 (fw.csv Psu6)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 118,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    119
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD6 (fw.csv Psu7)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 119,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    120
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD7 (fw.csv Psu8)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 120,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    121
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD8 (fw.csv Psu9)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 121,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    122
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD9 (fw.csv Psu10)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 122,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    123
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD10 (fw.csv Psu11)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 123,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "psu monitor",
+   "covers": [
+    124
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "PSU monitor ADC PAD11 (fw.csv Psu12)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 124,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "mcu link",
+   "covers": [
+    125
+   ],
+   "evidence": "PREREQUISITE: BOOT0/NRST drive from H1S1 (spec prereq 6). No BOOT0, NRST, S9 or S13 anywhere in ~/build-h1s1; H1S1's entire GPIO set is CS1-8, RST_C, CS_M, CS_C, BLINK, BUSY, S2, S3 (Core/Inc/main.h:59-91).",
+   "group": "A2",
+   "history": [],
+   "item": "Right panel MCU link (fw.csv SW_RIGHT)",
+   "judged": "runner",
+   "limit": "ROM ACK 0x79 and re-enumeration",
+   "measured": "no BOOT0/NRST drive on H1S1",
+   "num": 125,
+   "pass_no": 1,
+   "source": "ML-B0",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML-B0",
+    "ML-P1"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "auto",
+   "cls": "mcu link",
+   "covers": [
+    126
+   ],
+   "evidence": "PREREQUISITE: BOOT0/NRST drive from H1S1 (spec prereq 6). No BOOT0, NRST, S9 or S13 anywhere in ~/build-h1s1; H1S1's entire GPIO set is CS1-8, RST_C, CS_M, CS_C, BLINK, BUSY, S2, S3 (Core/Inc/main.h:59-91).",
+   "group": "A2",
+   "history": [],
+   "item": "Left panel MCU link (fw.csv SW_LEFT)",
+   "judged": "runner",
+   "limit": "ROM ACK 0x79 and re-enumeration",
+   "measured": "no BOOT0/NRST drive on H1S1",
+   "num": 126,
+   "pass_no": 1,
+   "source": "ML-B0",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML-B0",
+    "ML-P2"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "HDMI FPC (rev B)",
+   "category": "auto",
+   "cls": "display",
+   "covers": [
+    127
+   ],
+   "evidence": "status=connected --- edid-decode --- edid-decode (hex): 00 ff ff ff ff ff ff 00 4a 8b 3b 2a 01 01 01 01 17 15 01 03 80 3c 22 78 ea 1e c5 ae 4f 34 b1 26 0e 50 54 a5 4b 00 81 80 a9 40 d1 c0 71 4f 01 01 01 01 01 01 01 01 02 3a 80 18 71 38 2d 40 58 2c 45 00 55 50 21 00 00 1e 00 00 00 ff 00 4a 32 35 37 4d 39 36 42 30 30 46 4c 0a 00 00 00 fc 00 52 54 4b 20 46 48 44 0a 20 20 20 20 20 00 00 00 fd 00 38...",
+   "group": "A1",
+   "history": [],
+   "item": "Display link HDMI0 \u2192 TFT",
+   "judged": "runner",
+   "limit": "connector reports connected",
+   "measured": "HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)",
+   "num": 127,
+   "pass_no": 1,
+   "source": "HD0-1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "HD0-1"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Digital",
+   "category": "auto",
+   "cls": "network",
+   "covers": [
+    128
+   ],
+   "evidence": "--- bench host 192.168.1.211, pass 1/3 --- PING 192.168.1.211 (192.168.1.211) 56(84) bytes of data. [1790595576.423721] 64 bytes from 192.168.1.211: icmp_seq=1 ttl=64 time=0.494 ms [1790595576.525868] 64 bytes from 192.168.1.211: icmp_seq=2 ttl=64 time=0.504 ms [1790595576.629852] 64 bytes from 192.168.1.211: icmp_seq=3 ttl=64 time=0.496 ms [1790595576.733864] 64 bytes from 192.168.1.211: icmp_...",
+   "group": "A1",
+   "history": [],
+   "item": "Ethernet (RJ45)",
+   "judged": "runner",
+   "limit": "0% loss, max RTT < 5 ms",
+   "measured": "bench host 192.168.1.211: worst 5.0% loss over 3 passes [2.0, 5.0, 4.0], max RTT 1.634 ms; gateway 192.168.1.254: worst 5.0% loss over 3 passes [2.0, 5.0, 4.0], max RTT 8.484 ms",
+   "num": 128,
+   "pass_no": 1,
+   "source": "NW3",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "NW1",
+    "NW2",
+    "NW3",
+    "NW4"
+   ],
+   "verdict": "FAIL"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "control",
+   "covers": [
+    129
+   ],
+   "evidence": "the foot pedal and its lead are not at the bench",
+   "group": "M3",
+   "history": [],
+   "item": "P1 Foot Pedal (RJ45)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 129,
+   "pass_no": 1,
+   "reason": "the foot pedal and its lead are not at the bench",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "background",
+   "cls": "USB-A",
+   "covers": [
+    130
+   ],
+   "evidence": "/:  Bus 001.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 480M\n    |__ Port 001: Dev 002, If 0, Class=Hub, Driver=hub/4p, 480M\n        |__ Port 002: Dev 003, If 0, Class=Human Interface Device, Driver=usbhid, 12M\n        |__ Port 003: Dev 005, If 0, Class=Mass Storage, Driver=usb-storage, 480M\n        |__ Port 004: Dev 004, If 0, Class=Mass Storage, Driver=usb-storage, 480M\nBus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub\nBus 001 Device 002: ID 0424:2514 Microchip Technology, Inc. (formerly SMSC) USB 2.0 Hub\nBus 001 Device 003: ID 222a:0001 ILI Technology Corp. Multi-Touch Screen\nBus 001 Device 004: ID 048d:1234 Integrated Technology Express, Inc. Chipsbank CBM2199 Flash Drive\nBus 001 Device 005: ID 048d:1234 Integrated Technology Express, Inc. Chipsbank CBM2199 Flash Drive\n",
+   "group": "M5",
+   "history": [],
+   "item": "USB A (dual jack, hub port 3)",
+   "judged": "runner",
+   "limit": "a device enumerates on that socket",
+   "measured": "nothing on port 3",
+   "num": 130,
+   "pass_no": 1,
+   "source": "read while the test ran",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Analog",
+   "category": "background",
+   "cls": "USB-A",
+   "covers": [
+    131
+   ],
+   "evidence": "/:  Bus 001.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 480M\n    |__ Port 001: Dev 002, If 0, Class=Hub, Driver=hub/4p, 480M\n        |__ Port 002: Dev 003, If 0, Class=Human Interface Device, Driver=usbhid, 12M\n        |__ Port 003: Dev 005, If 0, Class=Mass Storage, Driver=usb-storage, 480M\n        |__ Port 004: Dev 004, If 0, Class=Mass Storage, Driver=usb-storage, 480M\nBus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub\nBus 001 Device 002: ID 0424:2514 Microchip Technology, Inc. (formerly SMSC) USB 2.0 Hub\nBus 001 Device 003: ID 222a:0001 ILI Technology Corp. Multi-Touch Screen\nBus 001 Device 004: ID 048d:1234 Integrated Technology Express, Inc. Chipsbank CBM2199 Flash Drive\nBus 001 Device 005: ID 048d:1234 Integrated Technology Express, Inc. Chipsbank CBM2199 Flash Drive\n",
+   "group": "M5",
+   "history": [],
+   "item": "USB A (dual jack, hub port 4)",
+   "judged": "runner",
+   "limit": "a device enumerates on that socket",
+   "measured": "nothing on port 4",
+   "num": 131,
+   "pass_no": 1,
+   "source": "read while the test ran",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "HDMI",
+   "covers": [
+    132
+   ],
+   "evidence": "the second screen socket is a placeholder on this revision and is not fitted",
+   "group": "M5",
+   "history": [],
+   "item": "HDMI 1 (placeholder)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 132,
+   "pass_no": 1,
+   "reason": "the second screen socket is a placeholder on this revision and is not fitted",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "background",
+   "cls": "power",
+   "covers": [
+    133
+   ],
+   "evidence": "uptime 94871 s; a D24 has no other supply, so the test running at all is the inlet working",
+   "group": "M5",
+   "history": [],
+   "item": "IEC Power Inlet",
+   "judged": "runner",
+   "limit": "the unit is powered through the IEC inlet and running",
+   "measured": "the unit has been running from its mains inlet for 26.4 hours",
+   "num": 133,
+   "pass_no": 1,
+   "source": "read while the test ran",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power",
+   "covers": [
+    134
+   ],
+   "evidence": "working the power switch shuts the unit down; it is checked when the session ends, not inside a pass",
+   "group": "M5",
+   "history": [],
+   "item": "Power Switch",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 134,
+   "pass_no": 1,
+   "reason": "working the power switch shuts the unit down; it is checked when the session ends, not inside a pass",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital (slot 1 card)",
+   "category": "not-run",
+   "cls": "digital audio",
+   "covers": [
+    135
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "USB-C Multitrack/DAW",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 135,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    136
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'opt1'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 136,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    137
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'opt2'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 137,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    138
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'opt3'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 138,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    139
+   ],
+   "evidence": "=== DSP4 chip 1 diagnostics === MAGIC 0xD5B40001 CHIP_ID 1 (DSPA/U6) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 19870 TICKS 6158 SEC_COUNT 19872 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2799 SPI_RX_COUNT 5862 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x00...",
+   "group": "A4",
+   "history": [],
+   "item": "Link 'dig-dsp-a'",
+   "judged": "runner",
+   "limit": "heartbeat advancing + build id answers + BOOT_STAGE 7",
+   "measured": "CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 14899->20666 (3000 blocks/s), 28/30 lanes CARRYING",
+   "num": 139,
+   "pass_no": 1,
+   "source": "AS-DSPA",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DSPA"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    140
+   ],
+   "evidence": "=== DSP4 chip 2 diagnostics === MAGIC 0xD5B40001 CHIP_ID 2 (DSPB/U5) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 25547 TICKS 8181 SEC_COUNT 25550 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2013 SPI_RX_COUNT 787 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x000...",
+   "group": "A4",
+   "history": [],
+   "item": "Link 'dig-dsp-b'",
+   "judged": "runner",
+   "limit": "heartbeat advancing + build id answers + BOOT_STAGE 7",
+   "measured": "CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 17526->26353 (3000 blocks/s)",
+   "num": 140,
+   "pass_no": 1,
+   "source": "AS-DSPB",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DSPB"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    141
+   ],
+   "evidence": "AN_EN (GPIO26) = 26: op -- pd | hi // GPIO26 = output IN_04 0 0 0 0 16 14 -115.98 -109.85 fffff000 fffffe00 fffff900 CARRYING IN_16 1 1 0 1 16 14 -115.93 -108.93 00001e00 00000c00 ffffee00 CARRYING IN_03 2 2 0 2 16 14 -115.64 -109.53 ffffec00 00000500 00000700 CARRYING IN_15 3 3 0 3 16 13 -116.76 -109.23 00000900 00001400 fffff600 CARRYING IN_14 4 4 0 4 16 13 -117.42 -111.24 fffff500 00000e00 0...",
+   "group": "A5",
+   "history": [],
+   "item": "Link 'dig-analog-adc'",
+   "judged": "runner",
+   "limit": "U39 and U60 lanes alive and not stuck-at (U15's eight known dead)",
+   "measured": "lane 0 (U15): 8/8 CARRYING, rms -118.2..-115.6 dBFS; lane 1 (U39): 8/8 CARRYING, rms -114.0..-93.7 dBFS; lane 2 (U60): 8/8 CARRYING, rms -117.0..-96.3 dBFS",
+   "num": 141,
+   "pass_no": 1,
+   "source": "AS-ADC",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-ADC"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    142
+   ],
+   "evidence": "RETIRED (S124-4, by measurement in S125). This test captured the words the DSP hands its output port and called a varying slot a working DAC. Nothing on this unit reads an AK4458 output back, so that reading could never separate a working converter from a dead one, with or without a stimulus -- and since S122 the slot it read (_tx_out_slot_C2_SPKR_OUT) is exact zero by design, because the panel...",
+   "group": "A5",
+   "history": [],
+   "item": "Link 'dig-analog-dac'",
+   "judged": "runner",
+   "limit": "the DAC outputs carry the signal written to them",
+   "measured": "retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and AL1",
+   "num": 142,
+   "pass_no": 1,
+   "source": "AS-DAC",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DAC"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    143
+   ],
+   "evidence": "{\"mode\": \"stest\", \"window_ms\": 3016.3, \"mcus\": {\"H1S1\": \"// H1S1 DSP\", \"H1S4\": \"// H1S4 SW Left\", \"H1S3\": \"// H1S3 SW Right\"}, \"raw\": \"+\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n+\\n// H1S1 DSP\\n// H1S4 SW Left\\n// H1S3 SW Right\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n\"} --- matrix-app /home/app/logs/log --- 28/09/2026 12:34:08.934298: MCU verified: // H1S1 DSP 28/09/2026 12:34:08.935762: MCU verified: // H1S4 SW Lef...",
+   "group": "A2",
+   "history": [],
+   "item": "Link 'dig-panel-a'",
+   "judged": "runner",
+   "limit": "id answers (fw.csv SW_RIGHT = STM32F030R8, not carried on the wire)",
+   "measured": "H1S3 S_TEST = '// H1S3 SW Right'; app log: 28/09/2026 12:34:08.934298: MCU verified: // H1S1 DSP | 28/09/2026 12:34:08.935762: MCU verified: // H1S4 SW Left | 28/09/2026 12:34:08.935814: MCU verified: // H1S3 SW Right",
+   "num": 143,
+   "pass_no": 1,
+   "source": "ML-P1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML-P1"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    144
+   ],
+   "evidence": "{\"mode\": \"stest\", \"window_ms\": 3016.3, \"mcus\": {\"H1S1\": \"// H1S1 DSP\", \"H1S4\": \"// H1S4 SW Left\", \"H1S3\": \"// H1S3 SW Right\"}, \"raw\": \"+\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n+\\n// H1S1 DSP\\n// H1S4 SW Left\\n// H1S3 SW Right\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n\"} --- matrix-app /home/app/logs/log --- 28/09/2026 12:34:08.934298: MCU verified: // H1S1 DSP 28/09/2026 12:34:08.935762: MCU verified: // H1S4 SW Lef...",
+   "group": "A2",
+   "history": [],
+   "item": "Link 'dig-panel-b'",
+   "judged": "runner",
+   "limit": "id answers (fw.csv SW_LEFT = STM32F030R8, not carried on the wire)",
+   "measured": "H1S4 S_TEST = '// H1S4 SW Left'; app log: 28/09/2026 12:34:08.934298: MCU verified: // H1S1 DSP | 28/09/2026 12:34:08.935762: MCU verified: // H1S4 SW Left | 28/09/2026 12:34:08.935814: MCU verified: // H1S3 SW Right",
+   "num": 144,
+   "pass_no": 1,
+   "source": "ML-P2",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML-P2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    145
+   ],
+   "evidence": "the foot pedal and its lead are not at the bench",
+   "group": "M3",
+   "history": [],
+   "item": "Link 'pedal'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 145,
+   "pass_no": 1,
+   "reason": "the foot pedal and its lead are not at the bench",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "manual",
+   "cls": "board-to-board link",
+   "covers": [
+    146
+   ],
+   "group": "M4",
+   "item": "Link 'phones'",
+   "num": 146,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Inter-board links",
+   "category": "manual",
+   "cls": "board-to-board link",
+   "covers": [
+    147
+   ],
+   "group": "M4",
+   "item": "Link 'minijack'",
+   "num": 147,
+   "tests": [],
+   "verdict": ""
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    148
+   ],
+   "evidence": "this row is a screen link, not an audio path: it does not belong to this station",
+   "group": "M4",
+   "history": [],
+   "item": "Link 'hdmi-fpc'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 148,
+   "pass_no": 1,
+   "reason": "this row is a screen link, not an audio path: it does not belong to this station",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    149
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'd32compat'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 149,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    150
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'analog-12v'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 150,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "auto",
+   "cls": "board-to-board link",
+   "covers": [
+    151
+   ],
+   "evidence": "inferred from HD0-1 = PASS",
+   "group": "A1",
+   "history": [],
+   "item": "Link 'hdmi-pwr'",
+   "judged": "runner",
+   "limit": "HD0-1 PASS",
+   "measured": "inferred from HD0-1 PASS",
+   "num": 151,
+   "pass_no": 1,
+   "source": "HD-PWR",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "HD-PWR"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Inter-board links",
+   "category": "not-run",
+   "cls": "board-to-board link",
+   "covers": [
+    152
+   ],
+   "evidence": "the expansion card this row belongs to does not exist yet",
+   "group": "M6",
+   "history": [],
+   "item": "Link 'fan'",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 152,
+   "pass_no": 1,
+   "reason": "the expansion card this row belongs to does not exist yet",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    153
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J11 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 153,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    154
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J12 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 154,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    155
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J13 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 155,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    156
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J14 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 156,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    157
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J23 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 157,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    158
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J24 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 158,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    159
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J33 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 159,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    160
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J34 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 160,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    161
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J43 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 161,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    162
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J44 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 162,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Analog",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    163
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J56 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 163,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    164
+   ],
+   "evidence": "covered by the clock master test: it already needs this header\u2019s clock and logic-bus lines",
+   "group": "QC",
+   "history": [],
+   "item": "J1 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 164,
+   "pass_no": 1,
+   "reason": "covered by the clock master test: it already needs this header\u2019s clock and logic-bus lines",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    165
+   ],
+   "evidence": "covered by the clock master test: it already needs this header\u2019s clock and logic-bus lines",
+   "group": "QC",
+   "history": [],
+   "item": "J2 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 165,
+   "pass_no": 1,
+   "reason": "covered by the clock master test: it already needs this header\u2019s clock and logic-bus lines",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    166
+   ],
+   "evidence": "covered by the converter-select, microphone-gain-latch and audio-processor select/ready tests: every net on this header already has its own automatic test",
+   "group": "QC",
+   "history": [],
+   "item": "J3 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 166,
+   "pass_no": 1,
+   "reason": "covered by the converter-select, microphone-gain-latch and audio-processor select/ready tests: every net on this header already has its own automatic test",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    167
+   ],
+   "evidence": "covered by the converter-select, microphone-gain-latch and audio-processor select/ready tests: every net on this header already has its own automatic test",
+   "group": "QC",
+   "history": [],
+   "item": "J4 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 167,
+   "pass_no": 1,
+   "reason": "covered by the converter-select, microphone-gain-latch and audio-processor select/ready tests: every net on this header already has its own automatic test",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "DSP PCBA (H1S1 MCU wiring)",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    168
+   ],
+   "evidence": "covered by the audio-processor select and ready tests: both processors\u2019 select and ready lines on this header already have their own automatic test",
+   "group": "QC",
+   "history": [],
+   "item": "J6 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 168,
+   "pass_no": 1,
+   "reason": "covered by the audio-processor select and ready tests: both processors\u2019 select and ready lines on this header already have their own automatic test",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    169
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J4 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 169,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    170
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J5 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 170,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    171
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J6 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 171,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    172
+   ],
+   "evidence": "covered by the network link, error-counter, packet-loss and throughput tests: they already exercise this magjack",
+   "group": "QC",
+   "history": [],
+   "item": "J7 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 172,
+   "pass_no": 1,
+   "reason": "covered by the network link, error-counter, packet-loss and throughput tests: they already exercise this magjack",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    173
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J10 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 173,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "debug / test header",
+   "covers": [
+    174
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J14 (debug / test header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 174,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "debug / test header",
+   "covers": [
+    175
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J15 (debug / test header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 175,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    176
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J19 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 176,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    177
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J20 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 177,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    178
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J21 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 178,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    179
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J22 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 179,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "debug / test header",
+   "covers": [
+    180
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J23 (debug / test header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 180,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    181
+   ],
+   "evidence": "covered by the compute-module test: the unit being up and reachable already proves this connector",
+   "group": "QC",
+   "history": [],
+   "item": "J24 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 181,
+   "pass_no": 1,
+   "reason": "covered by the compute-module test: the unit being up and reachable already proves this connector",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    182
+   ],
+   "evidence": "covered by the compute-module test: the unit being up and reachable already proves this connector",
+   "group": "QC",
+   "history": [],
+   "item": "J25 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 182,
+   "pass_no": 1,
+   "reason": "covered by the compute-module test: the unit being up and reachable already proves this connector",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "board header",
+   "covers": [
+    183
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J26 (board header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 183,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    184
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J27 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 184,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    185
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J30 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 185,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    186
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J31 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 186,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "debug / test header",
+   "covers": [
+    187
+   ],
+   "evidence": "board-level test at the assembler",
+   "group": "QC",
+   "history": [],
+   "item": "J32 (debug / test header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 187,
+   "pass_no": 1,
+   "reason": "board-level test at the assembler",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    188
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J35 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 188,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    189
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J36 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 189,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    190
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J37 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 190,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    191
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J38 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 191,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Digital",
+   "category": "not-run",
+   "cls": "power link / header",
+   "covers": [
+    192
+   ],
+   "evidence": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "group": "M8",
+   "history": [],
+   "item": "J39 (power link / header)",
+   "judged": "-",
+   "limit": "",
+   "measured": "",
+   "num": 192,
+   "pass_no": 1,
+   "reason": "no test is declared for this row: it is out of scope for the factory test or its method has not been written",
+   "source": "",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [],
+   "verdict": "NOT TESTED"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    193
+   ],
+   "evidence": "12:39:36 up 1 day, 2:18, 3 users, load average: 0.15, 0.27, 0.25 throttled=0x0 temp=47.7'C volt=0.9100V Raspberry Pi Compute Module 4 Rev 1.1 roles: matrix-app=active d24-testui=inactive",
+   "group": "A1",
+   "history": [],
+   "item": "CM4 compute module",
+   "judged": "runner",
+   "limit": "throttled 0x0, temp < 70 C, core volts in window, the product app running in either role (matrix-app or d24-testui)",
+   "measured": "throttled=0x0 temp=47.7 C core=0.9100V app=matrix-app",
+   "num": 193,
+   "pass_no": 1,
+   "source": "AS-CM4",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-CM4"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    194
+   ],
+   "evidence": "=== DSP4 chip 1 diagnostics === MAGIC 0xD5B40001 CHIP_ID 1 (DSPA/U6) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 19870 TICKS 6158 SEC_COUNT 19872 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2799 SPI_RX_COUNT 5862 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x00...",
+   "group": "A4",
+   "history": [],
+   "item": "SHARC DSP A (ADSP-21564)",
+   "judged": "runner",
+   "limit": "heartbeat advancing + build id answers + BOOT_STAGE 7",
+   "measured": "CHIP_ID 1 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 14899->20666 (3000 blocks/s), 28/30 lanes CARRYING",
+   "num": 194,
+   "pass_no": 1,
+   "source": "AS-DSPA",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DSPA"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    195
+   ],
+   "evidence": "=== DSP4 chip 2 diagnostics === MAGIC 0xD5B40001 CHIP_ID 2 (DSPB/U5) BOOT_STAGE 7 running BOOT_CFG 1 FRAME_COUNT 25547 TICKS 8181 SEC_COUNT 25550 LAST_CSID 37 SPORT0_A_DMA (block clock) UNK_CSID 0 UNK_COUNT 0 BLK_OVERRUN 2013 SPI_RX_COUNT 787 SPI_ERR_COUNT 0 SPI_STAT 0x00540001 SPI_STAT_STK 0x00144023 RESP_DROP 0 PRODUCT_ID 1 LED_MODE 0 SPORT0_ERR_A 0x00000000 DMA0_STAT 0x00006200 SPI_CTL 0x000...",
+   "group": "A4",
+   "history": [],
+   "item": "SHARC DSP B (ADSP-21564)",
+   "judged": "runner",
+   "limit": "heartbeat advancing + build id answers + BOOT_STAGE 7",
+   "measured": "CHIP_ID 2 BUILD_ID 0x20260812 BOOT_STAGE 7, FRAME_COUNT 17526->26353 (3000 blocks/s)",
+   "num": 195,
+   "pass_no": 1,
+   "source": "AS-DSPB",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DSPB"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    196
+   ],
+   "evidence": "config.txt: 74:dtoverlay=dsp4-pcm-slave --- logic_id --- no reply: nothing in the capture carried the 0xD594 marker. Either the bitstream predates the ID register, or the capture path is not reaching the CM4 at all. --- blk window, both chips over ONE shared window, opened at the last boot and closed here (S114, S125) --- --- chip1 --- chip1: BOOT_STAGE 7->7 SEC_COUNT 39765 chip1: 34122 blocks ...",
+   "group": "A4",
+   "history": [],
+   "item": "CPLD clock master (MAX V)",
+   "judged": "runner",
+   "limit": "id = d02d83b3cc22 and zero overrun delta",
+   "measured": "design id unreadable under dsp4-pcm-slave; BLK_OVERRUN delta over 11 s: chip1 0 chip2 0",
+   "num": 196,
+   "pass_no": 1,
+   "source": "AS-CPLD",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-CPLD"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    197
+   ],
+   "evidence": "RETIRED (S124-4, by measurement in S125). This test captured the words the DSP hands its output port and called a varying slot a working DAC. Nothing on this unit reads an AK4458 output back, so that reading could never separate a working converter from a dead one, with or without a stimulus -- and since S122 the slot it read (_tx_out_slot_C2_SPKR_OUT) is exact zero by design, because the panel...",
+   "group": "A5",
+   "history": [],
+   "item": "DAC AK4458 \u00d72",
+   "judged": "runner",
+   "limit": "the DAC outputs carry the signal written to them",
+   "measured": "retired: a TX slot read cannot prove a converter -- the outputs are proved by the patch pass and AL1",
+   "num": 197,
+   "pass_no": 1,
+   "source": "AS-DAC",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-DAC"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    198
+   ],
+   "evidence": "AN_EN (GPIO26) = 26: op -- pd | hi // GPIO26 = output IN_04 0 0 0 0 16 14 -115.98 -109.85 fffff000 fffffe00 fffff900 CARRYING IN_16 1 1 0 1 16 14 -115.93 -108.93 00001e00 00000c00 ffffee00 CARRYING IN_03 2 2 0 2 16 14 -115.64 -109.53 ffffec00 00000500 00000700 CARRYING IN_15 3 3 0 3 16 13 -116.76 -109.23 00000900 00001400 fffff600 CARRYING IN_14 4 4 0 4 16 13 -117.42 -111.24 fffff500 00000e00 0...",
+   "group": "A5",
+   "history": [],
+   "item": "ADC AK5558 \u00d73 (U15 dead, U39, U60)",
+   "judged": "runner",
+   "limit": "U39 and U60 lanes alive and not stuck-at (U15's eight known dead)",
+   "measured": "lane 0 (U15): 8/8 CARRYING, rms -118.2..-115.6 dBFS; lane 1 (U39): 8/8 CARRYING, rms -114.0..-93.7 dBFS; lane 2 (U60): 8/8 CARRYING, rms -117.0..-96.3 dBFS",
+   "num": 198,
+   "pass_no": 1,
+   "source": "AS-ADC",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-ADC"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    199
+   ],
+   "evidence": "05H -> 0xBB guard 0x43 ANSWERED",
+   "group": "A2",
+   "history": [],
+   "item": "Codec AK4619",
+   "judged": "runner",
+   "limit": "0xBB (MGN2L/MGN2R = +27 dB, the StartAK4619 image)",
+   "measured": "05H = 0xBB",
+   "num": 199,
+   "pass_no": 1,
+   "source": "CC1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "CC1",
+    "CC2"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    200
+   ],
+   "evidence": "PREREQUISITE: a reader for the power MCU over MHRX. Nothing in this repo reads the power MCU's state word, PWR_FAIL or its AN_EN view; src/fw/d24-pwr-mcu-def.csv is not in this tree (it is mx26's). AN_EN is not an MCU word at all -- it is CM4 GPIO26, read here as: 26: op -- pd | hi // GPIO26 = output",
+   "group": "A4",
+   "history": [],
+   "item": "Power MCU (STM32F030F4, always-on)",
+   "judged": "runner",
+   "limit": "state running, PWR_FAIL clear, AN_EN as expected",
+   "measured": "no reader for the power MCU's published words; AN_EN (GPIO26) = 26: op -- pd | hi",
+   "num": 200,
+   "pass_no": 1,
+   "source": "AS-PWR",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "AS-PWR"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    201
+   ],
+   "evidence": "{\"mode\": \"stest\", \"window_ms\": 3016.3, \"mcus\": {\"H1S1\": \"// H1S1 DSP\", \"H1S4\": \"// H1S4 SW Left\", \"H1S3\": \"// H1S3 SW Right\"}, \"raw\": \"+\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n+\\n// H1S1 DSP\\n// H1S4 SW Left\\n// H1S3 SW Right\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n.\\n:\\n\"} MH1 firmware is not in ~/build-h1s1, so whether it publishes a version cell is UNKNOWN; no version was read.",
+   "group": "A2",
+   "history": [],
+   "item": "M MCU (STM32G031)",
+   "judged": "runner",
+   "limit": "ML1 PASS (version, if published, reads)",
+   "measured": "ML1=PASS; S_TEST identities: {'H1S1': '// H1S1 DSP', 'H1S4': '// H1S4 SW Left', 'H1S3': '// H1S3 SW Right'}",
+   "num": 201,
+   "pass_no": 1,
+   "source": "ML-M",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML-M"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    202
+   ],
+   "evidence": "PREREQUISITE: H1S1 firmware-version cell (spec prereq 1). H1S1's whole local cell table is Sys001Enc001/Sys001Skin001/Sys001Test001/Sys001Test002 (~/build-h1s1/Core/Inc/matrix.cs:11-18); no *Ver*/*Build* cell exists. The only identity it publishes is the S_TEST string \"// H1S1 DSP\" (matrix.cs:46). Host side reads: 19a5492d76e0f2faeda6059a045b3f2a /home/app/firmware/H1S1.shex %s",
+   "group": "A2",
+   "history": [],
+   "item": "S MCU H1S1 (STM32U575)",
+   "judged": "runner",
+   "limit": "non-zero version equal to the H1S1.shex manifest",
+   "measured": "no H1S1 version cell; host side H1S1.shex 19a5492d76e0f2faeda6059a045b3f2a",
+   "num": 202,
+   "pass_no": 1,
+   "source": "ML2",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "ML1",
+    "ML2"
+   ],
+   "verdict": "NO DATA"
+  },
+  {
+   "board": "Assemblies",
+   "category": "auto",
+   "cls": "assembly",
+   "covers": [
+    203
+   ],
+   "evidence": "status=connected --- edid-decode --- edid-decode (hex): 00 ff ff ff ff ff ff 00 4a 8b 3b 2a 01 01 01 01 17 15 01 03 80 3c 22 78 ea 1e c5 ae 4f 34 b1 26 0e 50 54 a5 4b 00 81 80 a9 40 d1 c0 71 4f 01 01 01 01 01 01 01 01 02 3a 80 18 71 38 2d 40 58 2c 45 00 55 50 21 00 00 1e 00 00 00 ff 00 4a 32 35 37 4d 39 36 42 30 30 46 4c 0a 00 00 00 fc 00 52 54 4b 20 46 48 44 0a 20 20 20 20 20 00 00 00 fd 00 38...",
+   "group": "A1",
+   "history": [],
+   "item": "TFT display",
+   "judged": "runner",
+   "limit": "connector reports connected",
+   "measured": "HDMI-A-1 connected; EDID RTK 10811, native 1920x1080, active=True (informational, not gating)",
+   "num": 203,
+   "pass_no": 1,
+   "source": "HD0-1",
+   "stamp": "2026-09-28T11:42:43Z",
+   "tests": [
+    "HD0-1"
+   ],
+   "verdict": "PASS"
+  }
+ ],
+ "serial": "10000000830b03af",
+ "stale_ignores": [],
+ "stamp": "2026-09-28T11:42:43Z",
+ "tally": {
+  "FAIL": 1,
+  "IGNORED": 0,
+  "NO DATA": 13,
+  "NOT TESTED": 86,
+  "PASS": 23,
+  "SKIPPED": 0,
+  "no verdict": 79
+ },
+ "timing": {
+  "auto": 187.38201808929443,
+  "manual": null,
+  "wall": 187.45184421539307
+ }
+}
