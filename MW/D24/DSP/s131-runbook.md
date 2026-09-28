@@ -8,6 +8,12 @@ except the dry run in §6, which built into scratch directories under
 no rail or GPIO state was touched, and `app cli loadfw` was never invoked.
 PW runs the real thing tomorrow (2026-09-28) with the hub.
 
+**S135 (2026-09-28, desk, nothing flashed) added:** step 5b, the optional
+talkback image, with both `.shex` variants prebuilt; a correction to step 7,
+where the `.shex` MCU id S134 prescribed would have cross-flashed the two
+panels; a note on step 8's single-session form. §7's open question is now
+answered and closed. Detail: `MW/D24/DSP/s135/s135-report.md`.
+
 Background: `mx26 docs/investigation-matrix-generation-2026-09-27.md` (read in
 full before starting). Summary: MW-D24-2 is running matrix generation
 `e80ccab5d6d8` (the unit's own 2026-08-18 pack, 5412 names, `Sys001Skin001` =
@@ -132,7 +138,7 @@ compile, `text` +4 bytes (§6).
 session — time it live on the FIRST board flashed and use that figure for
 the rest of the estimate.
 
-### Step 5 — H1S3 (right panel): bind `Sys001SwTalk001` — 🔴 SEE THE OPEN QUESTION BELOW
+### Step 5 — H1S3 (right panel): declare `Sys001SwTalk001`, unbound (see §7, answered)
 `defs/products/d24/fw.csv` gives the physical binding: `TB_SW` = PA13
 (radio index 1), `TB_LED0` = PF6 (index 1), `TB_LED1` = PF7 (index 2). All
 three pins already exist as `#define`s in H1S3's `main.h` and are already
@@ -145,15 +151,68 @@ trick every existing LED entry relies on). So the *mechanical* part — adding
 dry-run built clean tonight (§6, `text` +4 bytes).
 
 **But the cell's own defs note is explicit that ordinary `rsw[]`/`wled[]`
-one-hot semantics don't fit it, and this session did not attempt to write
-that logic — see §7.** The mechanical-only build (identifier declared,
-nothing bound to it yet) is a safe interim: it changes nothing observable
-(catalog row 92 stays NOT TESTED, exactly as today), so if §7 isn't resolved
-in time this step can ship as "declared but not yet wired" without blocking
-the rest of the window.
+one-hot semantics don't fit it, and S134 did not attempt to write that logic
+— see §7, since answered: S135 wrote it and built it as the optional step 5b
+image.** The mechanical-only build (identifier declared, nothing bound to it
+yet) is what this step flashes, and it is a safe interim: it changes nothing observable
+(catalog row 92 stays NOT TESTED, exactly as today), so this step ships as "declared but not
+yet wired" without blocking the rest of the window, and step 5b is a separate,
+reversible decision at the panel.
 **Rollback:** re-flash `H1S3.shex.bak-s131-pregen` via `app cli loadfw H1S3`.
 **Time:** build ~10 s once the logic (if any) is decided. Flash time as
 step 4.
+
+**RESOLVED by the hub (S135):** ship the unbound build here — option 2 — and
+treat the bound one as the optional step 5b below. Both images are already
+built; §7's open question is answered and closed.
+
+### Step 5b — OPTIONAL: the talkback image (S135, decide at the bench)
+
+Only if PW wants talkback live in this window. Skipping it changes nothing:
+step 5's unbound image is the default and catalog row 92 stays NOT TESTED
+exactly as today.
+
+Two prebuilt images, both in this repo at `MW/D24/DSP/s135/gen/`, both already
+stamped with the right MCU id (see step 7):
+
+| variant | file | md5 | what it is |
+|---|---|---|---|
+| **A** | `gen/H1S3-A/H1S3.shex` | `f21480b56744f4b2a4ca775d0ebd92fb` | step 5's unbound build — the default |
+| **B** | `gen/H1S3-B/H1S3.shex` | `f0bacb7bfb91f036e50b8f5987daf255` | A + the talkback logic |
+
+B differs from A in one source file and, at the map level, in exactly two
+functions plus two new ones: of 150 functions in both images 148 are
+instruction-identical, and `RdRadioSwitch()`/`WrRadioLed()` are among them, so
+no other button's behaviour moves. Detail and evidence: `MW/D24/DSP/s135/s135-report.md`.
+
+**To take it:** copy `gen/H1S3-B/H1S3.shex` to `/home/app/firmware/H1S3.shex`
+in place of the step-7 output, then flash exactly as step 8 does. Nothing else
+in the window changes.
+
+**PW's bench check, after step 9:**
+
+1. **The switch, both edges.** Press and hold talkback: the host reads
+   `Sys001SwTalk001` (5006) = **1**. Release it: the host reads **0**. Both
+   have to arrive — the whole point of this logic over the radio scan is that
+   the release is reported at all. On a bus log the press is `ikpv1` and the
+   release is `ikpv` with no data character; that is how every cell sends a
+   zero on this protocol and the host reads it as 0.
+   Hold it down for a second or two: no repeat, no chatter (20 ms debounce).
+2. **The indicators, as a mask.** Write `Sys001SwTalk001` = **1** → TB_LED0
+   only. = **2** → TB_LED1 only. = **3** → **both lit together** (this is the
+   one an `rsw[]`/`wled[]` binding could never do). = **0** → both dark.
+3. **Nothing else moved.** Walk the rest of the right panel once — every
+   button still lights its own indicator, and the encoder ring still steps.
+
+**If any of it is wrong — roll back, do not debug in the window.** Copy
+`gen/H1S3-A/H1S3.shex` over `/home/app/firmware/H1S3.shex` and re-flash H1S3;
+that is the unbound image the window was always going to ship, so the rest of
+the switch-over stands and only talkback goes back to NOT TESTED. If the panel
+is worse than that, fall back to `H1S3.shex.bak-s131-pregen` and §1's
+whole-set restore.
+
+**Time:** no build (both images are prebuilt); one extra H1S3 flash, plus a
+couple of minutes for the three checks.
 
 ### Step 6 — H1S1: check and rebuild
 H1S1 (`Core/Inc/matrix.cs`) carries the **same** `matrix.h` and the same
@@ -176,9 +235,38 @@ project's own `Debug/`, after the one-line Windows-path fix in the makefile
 tonight):
 ```
 python3 /home/app/fwbuild/hex2shex.py H1S1.hex H1S1 H1S1.new.shex
-python3 /home/app/fwbuild/hex2shex.py H1S3.hex H1S3 H1S3.new.shex
-python3 /home/app/fwbuild/hex2shex.py H1S4.hex H1S4 H1S4.new.shex
+python3 /home/app/fwbuild/hex2shex.py H1S3.hex H1S4 H1S3.new.shex
+python3 /home/app/fwbuild/hex2shex.py H1S4.hex H1S3 H1S4.new.shex
 ```
+
+> ⚠️ **THE ID ARGUMENT IS CROSSED FOR H1S3/H1S4, AND IT IS NOT A TYPO.**
+> S134 wrote this step with `H1S3 -> H1S3` and `H1S4 -> H1S4`; S135 found that
+> would cross-flash the two panels. `hex2shex.py`'s second argument becomes the
+> header record, and MH1 uses it to pick the **slave socket**:
+> `myHS = GetCharHexByte(myRXstring[4], myRXstring[6])` then
+> `S_Boot[(myHS & 0xf) - 1]()`, so `H1S4` → `SB4` and `H1S3` → `SB3`. The images
+> running on the unit today are `H1S3.shex` carrying id `H1S4` and `H1S4.shex`
+> carrying id `H1S3`: the source-tree names do not match the hardware sockets,
+> and the working images compensate here. Rebuilding both from the unit's own
+> source reproduces each deployed file **byte-for-byte except line 1**, which
+> is how this was established; the 2026-08-19 flash log shows the same crossing
+> live. Evidence: `MW/D24/DSP/s135/data/shex-mcu-id-evidence.txt`.
+>
+> **Check it before step 8:** `head -1` each new `.shex` against `head -1` of
+> the matching `.bak-s131-pregen` file. The two header lines must be identical.
+> S134's archived dry-run `H1S3.shex` and `H1S4.shex` under
+> `MW/D24/DSP/s134/gen/` carry the wrong ids (its `H1S1.shex` is fine) — they
+> were never flashed; do not lift them straight into `/home/app/firmware/`.
+> Socket-correct images with the identical payloads are in
+> `MW/D24/DSP/s135/gen/`:
+>
+> | image | id | md5 |
+> |---|---|---|
+> | `gen/H1S3-A/H1S3.shex` (step 5, unbound) | `H1S4` | `f21480b56744f4b2a4ca775d0ebd92fb` |
+> | `gen/H1S3-B/H1S3.shex` (step 5b, talkback) | `H1S4` | `f0bacb7bfb91f036e50b8f5987daf255` |
+> | `gen/H1S4/H1S4.shex` (step 4 bind) | `H1S3` | `8540b6ad39530d6696763ef14c656a40` |
+>
+> For H1S1, S134's `gen/H1S1/H1S1.shex` is already correct.
 Dry-run tonight: H1S1 2174 records / 34737 bytes, H1S3 1364 records / 21788
 bytes, H1S4 924 records / 14748 bytes (§6) — all comfortably close to the
 currently-flashed sizes (34K/21.7K/14.4K).
@@ -198,10 +286,16 @@ app cli loadfw H1S4
 ```
 one at a time, checking each MCU's own verify/ack before moving to the next
 (this is the same path the 2026-08-21 H1S1 SPI-fix reflash used —
-`MW/D24/HW/hardware-map.md` §"the second master is GONE"). "Together" means
-in the same maintenance window with matrix-app stopped throughout, not
-literally one command — nothing here suggests `loadfw` takes more than one
-name.
+`MW/D24/HW/hardware-map.md` §"the second master is GONE").
+
+**S135 correction: `loadfw` DOES take more than one name**, and that is how
+the currently-flashed panel pair was written. `app cli loadfw H1S1,H1S3,H1S4`
+(or `all`) runs `FirmwareLoader.FlashAll()`, which concatenates the images into
+one S_FLASH session, strips the EOF record from all but the last, and lets MH1
+switch sockets on each extended-address record — exactly the 2287-record
+sequence in the 2026-08-19 flash log. Either form works; the combined one is
+one reset cycle instead of three and is the proven path. Whichever is used,
+`matrix-app` stays stopped for the whole window.
 **Rollback:** re-flash the matching `.bak-s131-pregen` `.shex` for whichever
 board(s) were touched.
 **Time:** unknown — not timed this session (no flash was performed). Time
@@ -216,6 +310,8 @@ the hub's normal post-flash habit).
 routine boots.
 
 ### Step 10 — Verify
+**First read §6a** — `d24_panel.py`'s hard-coded addresses are stale the moment
+step 8 lands, and most of the checks below go through it.
 - Boot log: `Matrix generation base-id f9677e5fae5e (5006 names / 5006
   addresses, max 5006)` (grep the app's own log, same line format the mx26
   doc quotes for the current `e80ccab5d6d8` boot).
@@ -248,7 +344,8 @@ fix-forward.
 | 2 Pack | <1 min |
 | 3 Panel headers | ~3 min (all three boards) |
 | 4 H1S4 bind | ~10s build + unmeasured flash |
-| 5 H1S3 bind | ~10s build (mechanical part) + unmeasured flash — blocked on §7 for the real binding |
+| 5 H1S3 bind | ~10s build (mechanical part) + unmeasured flash |
+| 5b talkback (optional) | no build — one extra H1S3 flash + ~2 min of checks |
 | 6 H1S1 rebuild | ~15s build + unmeasured flash |
 | 7 Build .shex | <1 min, all three |
 | 8 Flash | unmeasured — time the first board live |
@@ -258,9 +355,11 @@ fix-forward.
 
 ## 4. Steps needing PW at the bench
 Probably none strictly, but a look at the panels after step 9 (to visually
-confirm the left board no longer lights on EQ gain changes, and that a
-talkback press does something sensible once §7 is resolved) is cheap
-insurance and matches "a look at the panels" from the dispatch.
+confirm the left board no longer lights on EQ gain changes) is cheap insurance
+and matches "a look at the panels" from the dispatch. **Step 5b is the one part
+that genuinely needs PW at the panel** — pressing the talkback key and watching
+its two indicators is the only way to confirm the binding, which is why it is
+optional and separable from the rest of the window.
 
 ## 5. Pre-checks for tomorrow, before starting
 - `deploy-bench-tools.sh --check` on the Pi tools (this session found and
@@ -301,7 +400,11 @@ unmodified source.
 - H1S3: `Sys001SwTalk001` added to `MATRIX[]`/enum only (no `rsw[]`/`wled[]`
   binding — see §7). Built clean: `text` 20572→20576 (+4), `data`/`bss`
   unchanged. `.shex`: 1364 records / 21788 bytes (md5
-  `ef89709fc81c21544d8c88d2d78e2838`).
+  `ef89709fc81c21544d8c88d2d78e2838`). **S135: that payload is exactly right —
+  it reproduced byte-for-byte on a second machine — but the file's MCU id is
+  `H1S3`, which is the wrong socket (step 7). Use
+  `MW/D24/DSP/s135/gen/H1S3-A/H1S3.shex` (md5
+  `f21480b56744f4b2a4ca775d0ebd92fb`), same payload, id `H1S4`.**
 - H1S1: `matrix.h` swapped only, no source change. Built clean: `text`
   34080, `data` 657, `bss` 1940 — **identical** to the pre-change build (as
   expected: no new symbol, only `#define` values changed). `.shex`: 2174
@@ -313,7 +416,43 @@ unmodified source.
 
 ---
 
-## 7. 🔴 OPEN QUESTION FOR PW / THE HUB — `Sys001SwTalk001`'s write semantics don't fit the existing radio-scan mechanism
+## 6a. 🔴 S135, NOT FIXED HERE — the bench tools hard-code the OLD addresses and will be wrong the moment step 8 lands
+
+`tools/pi/d24_panel.py` carries the radio-group addresses as literals:
+
+```python
+SKIN = 0x1524          # Sys001Skin001 = 5412 -- the RIGHT panel's radio group
+ENC  = 0x1470          # Sys001Enc001  = 5232 -- the encoder ring
+SW_LEFT = 0x138D       # Sys001SwLeft001 = 5005
+```
+
+After the switch-over `Sys001Skin001` is **4698** (`0x125A`) and `Sys001Enc001`
+is **4514** (`0x11A2`); only `Sys001SwLeft001` at 5005 is unchanged. The file's
+own comments anticipate the move ("which also moves Sys001Skin001 from 5412 to
+4698") but the constants were never made to follow it. So from the moment step
+8 completes, `d24_panel.py light/watch/loop` writes and reads addresses no panel
+answers on — which is **step 10's "every panel press lands on the right cell"
+check, and the self-test's whole panel station**, including step 5b's talkback
+check if it is taken.
+
+Not changed by S135: it is outside this dispatch, it needs a decision the hub
+should make (hard-code the new literals, or have the tool read the addresses
+from the pack so this cannot recur), and whichever is chosen has to go out
+through `deploy-bench-tools.sh` and be proved on the part. **Do it before step
+10, not during it.** `Sys001SwTalk001` = 5006 (`0x138E`, `ikpv`) will need
+adding at the same time if step 5b is taken.
+
+## 7. ✅ ANSWERED (hub, 2026-09-27; built by S135) — `Sys001SwTalk001`'s write semantics don't fit the existing radio-scan mechanism
+
+**Ruling: option 2 ships, option 1 is prepared as step 5b.** The window flashes
+the unbound image, so nothing regresses if the talkback binding is not taken.
+S135 then wrote the bespoke mask/edge logic and built it as a separate H1S3
+image (variant B), for PW to verify at the bench and adopt or drop on the spot
+— see step 5b and `MW/D24/DSP/s135/s135-report.md`. Option 3 was not taken: the
+cell note is binding, and the mask half (`3` = both lit) is not expressible as
+a one-hot radio pair at all.
+
+The analysis below stands as written and is why the logic is bespoke.
 
 `MW/D24/MX/_matrix.csv`'s own note on `Sys001SwTalk001` (landed S129
 addendum 7): "WRITE is the two-indicator mask: bit0 = TB_LED0, bit1 =
@@ -340,14 +479,16 @@ switch-edge-detection code for physical hardware, untested, the night before
 a flash window, is exactly the kind of call that should be PW's, not
 assumed.
 
-**Options for the hub to choose between:**
+**Options the hub chose between (2 taken for the window, 1 prepared as step 5b):**
 1. Write the bespoke mask/edge logic for `Sys001SwTalk001` before tomorrow's
    window (needs someone who can verify against the real TS482/talkback
-   hardware — not something to dry-run blind).
+   hardware — not something to dry-run blind). **— built by S135 as variant B,
+   offered as the optional step 5b.**
 2. Ship tomorrow with `Sys001SwTalk001` declared but unbound (§ Step 5's
    mechanical-only build, already proven to compile clean) — catalog row 92
    stays NOT TESTED exactly as today, nothing regresses, and the talkback
-   binding becomes a follow-up session.
+   binding becomes a follow-up session. **— CHOSEN; this is what step 5
+   flashes.**
 3. Re-read the cell note as non-binding and treat `Sys001SwTalk001` as an
    ordinary one-hot radio pair after all (write 1 = LED0 only, write 2 =
    LED1 only, no simultaneous-both state, sticky read not edge-reported) —
@@ -358,3 +499,4 @@ assumed.
 
 Recorded here per the no-question-dialogs rule (PW 2026-09-19): this is the
 question and its options, for the hub to answer by re-dispatch or steer.
+Answered by the hub in the S135 dispatch; kept for the record.

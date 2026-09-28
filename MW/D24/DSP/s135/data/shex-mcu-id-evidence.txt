@@ -1,0 +1,44 @@
+# .shex MCU-id evidence (read-only; nothing on the unit was written)
+
+## header record of every image currently in /home/app/firmware/ (2026-09-28)
+/home/app/firmware/H1S1.shex     :02H1S1040800CS
+/home/app/firmware/H1S3.shex     :02H1S4040800CS
+/home/app/firmware/H1S4.shex     :02H1S3040800CS
+
+## payload comparison against a local rebuild from /home/app/fwbuild/<id>/ source
+H1S3.shex  vs hex2shex(H1S3/Debug/H1S3.hex): differs on line 1 ONLY (:02H1S4... vs :02H1S3...)
+H1S4.shex  vs hex2shex(H1S4/Debug/H1S4.hex): differs on line 1 ONLY (:02H1S3... vs :02H1S4...)
+so each file holds the payload its FILENAME says, and the id its filename does NOT say.
+
+## MH1 firmware, /home/app/fwbuild/MH1/Core/Src/main.c
+				//TxH(P_INIT);
+				ResetAllSlaves();
+				Delay_ms(10); // reset all mcu
+
+				//TxH(myHS);
+				S_Boot[(myHS & 0xf) - 1](); // select S MCU into boot mode
+				Delay_ms(100); // send mcu id and wait for response - 100mS for larger MCU bootloader startup times
+
+				//UART1_Write_Text("// erasing flash\n");
+				EraseFlash();
+			}
+			myHSerased = myHS;
+			break;
+
+S_Boot[] (line 177):
+void (*S_Boot[])(void) = {
+	SB1, SB2, SB3, SB4, SB5, SB6, SB7, SB8 };
+
+myRXstring = the record text, so for ':02H1S4040800CS' myRXstring[4]='1' and [6]='4',
+myHS = 0x14 and S_Boot[(0x14 & 0xf) - 1] = S_Boot[3] = SB4.
+
+## the 2026-08-19 flash session that produced the images now running
+19/08/2026 15:57:48.298585: TX [1] :02H1S4040800CS
+19/08/2026 15:58:04.935275: TX [1363] :105510000400000001000000FFFFFFFFFFFFFFFFCS
+19/08/2026 15:58:04.947111: TX [1364] :02H1S3040800CS
+19/08/2026 15:58:05.092012: TX [1365] :10000000002000200D15000899140008A1140008CS
+19/08/2026 15:58:16.211923: TX [2286] :103990000400000001000000FFFFFFFFFFFFFFFFCS
+19/08/2026 15:58:16.224067: TX [2287] :00000001CS
+
+1363 records (H1S3.shex less its EOF) + 923 (H1S4.shex less its EOF) + 1 EOF = 2287.
+One combined stream: right panel first under id H1S4, left panel second under id H1S3.

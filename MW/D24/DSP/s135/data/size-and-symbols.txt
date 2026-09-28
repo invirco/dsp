@@ -1,0 +1,17 @@
+# sizes
+A:   20576	   1212	   2068	  23856	   5d30	/tmp/claude-1000/-home-peter-dsp/4516e452-0a1f-48d4-976d-4adf3b2a8bca/scratchpad/s135/H1S3-A/Debug/H1S3.elf
+B:   20932	   1216	   2080	  24228	   5ea4	/tmp/claude-1000/-home-peter-dsp/4516e452-0a1f-48d4-976d-4adf3b2a8bca/scratchpad/s135/H1S3-B/Debug/H1S3.elf
+
+# new/changed symbols in B
+RdTalkbackSwitch 00000184 T
+tbEdge 00000001 B
+tbEdgeLevel 00000001 B
+tbLedMask 00000001 D
+tbLevel 00000001 B
+tbRaw 00000001 B
+tbRawSince 00000004 B
+WrTalkbackLeds 00000104 T
+
+# symbols whose size changed A->B
+MainInit: 00000148 -> 00000208
+MainLoop: 00000208 -> 00000216

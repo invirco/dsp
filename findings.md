@@ -6,6 +6,52 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE PANEL `.shex` MCU ID IS THE SLAVE SOCKET, AND FOR H1S3/H1S4 IT IS CROSSED (2026-09-28, session 135)
+
+Hub dispatch `tasks.md` 2026-09-27 23:57Z. Report: `MW/D24/DSP/s135/s135-report.md`,
+evidence in `MW/D24/DSP/s135/data/shex-mcu-id-evidence.txt`.
+
+**S135-1 THE FOUR-CHARACTER ID IN A `.shex` HEADER RECORD PICKS WHICH SLAVE MCU
+GETS ERASED AND WRITTEN, AND THE WORKING D24 IMAGES CARRY EACH OTHER'S.**
+`hex2shex.py`'s second argument (and `HexHelper.Hex2Shex`'s filename, on the app
+side) becomes the record `:02<id>040800CS`. MH1 parses it —
+`myHS = GetCharHexByte(myRXstring[4], myRXstring[6])`, then
+`S_Boot[(myHS & 0xf) - 1]()` (`/home/app/fwbuild/MH1/Core/Src/main.c`) — so `H1S4`
+selects `SB4` and `H1S3` selects `SB3`. On MW-D24-2, `/home/app/firmware/H1S3.shex`
+carries id **`H1S4`** and `H1S4.shex` carries id **`H1S3`**; `H1S1.shex` carries
+`H1S1`. Each file holds the payload its FILENAME says — rebuilding both from the
+unit's own `/home/app/fwbuild/<id>/` source here reproduces each deployed file
+byte-for-byte **except line 1**. So the source-tree names do not match the
+hardware sockets: the right switch panel (H1S3 source, `"// H1S3 SW Right"`) is
+physically socket 4, the left panel is socket 3, and the images compensate in the
+header. The 2026-08-19 flash that produced them shows it live: one 2287-record
+S_FLASH session, records 1–1363 under `H1S4`, 1364–2286 under `H1S3`.
+**A rebuild that stamps the "obvious" id sends each panel's firmware to the other
+panel, and the flash reports success.** S131's runbook step 7 had exactly that
+command and is corrected; S134's archived dry-run `H1S3.shex`/`H1S4.shex` carry
+the wrong ids and must not be lifted into `/home/app/firmware/`. Always
+`head -1` a new image against the one it replaces.
+
+**S135-2 `app cli loadfw` TAKES A LIST, AND THAT IS THE PROVEN PATH.**
+`FirmwareLoader.FlashAll()` concatenates the named images into one S_FLASH
+session, drops the EOF record from all but the last, and lets MH1 switch sockets
+on each extended-address record — which is how the panel pair now running was
+written. `app cli loadfw H1S1,H1S3,H1S4` is one reset cycle instead of three.
+
+**S135-3 `d24_panel.py` HARD-CODES THE PANEL ADDRESSES AND THE MATRIX SWITCH-OVER
+MOVES THEM.** `SKIN = 0x1524` (`Sys001Skin001` 5412) and `ENC = 0x1470`
+(`Sys001Enc001` 5232) are literals; at generation `f9677e5fae5e` they are 4698
+(`0x125A`) and 4514 (`0x11A2`). Only `SW_LEFT` = 5005 survives. The file's own
+comments anticipate the move — "which also moves Sys001Skin001 from 5412 to
+4698" — and the constants were never made to follow it, so the moment S131's
+flash lands the tool writes and reads cells no panel answers on, taking the
+runbook's step-10 panel check and the self-test's whole panel station with it.
+Not fixed by S135 (outside its dispatch): the hub chooses between new literals
+and reading the addresses from the pack, and either way it goes out through
+`deploy-bench-tools.sh` and is proved on the part. Recorded as `s131-runbook.md`
+§6a, to be done BEFORE step 10. `Sys001SwTalk001` = 5006 (`0x138E`, `ikpv`)
+belongs in the same edit if the talkback image is taken.
+
 ## A TEST CAN ONLY BE AS HONEST AS ITS DEPLOY: AL1's "NO DATA" WAS TWO STALE TOOLS ON THE UNIT (2026-09-27, session 132)
 
 Hub dispatch `tasks.md` 2026-09-27 22:02Z. Report: `MW/D24/DSP/s132/s132-report.md`,

@@ -1,0 +1,4 @@
+UART1_Read: MISSING
+functions in both: 150; differing: 2 -> ['MainInit', 'MainLoop']
+only in B: ['RdTalkbackSwitch', 'WrTalkbackLeds']
+only in A: []

@@ -1,0 +1,136 @@
+--- A/Core/Inc/matrix.cs
++++ B/Core/Inc/matrix.cs
+@@ -79,6 +79,28 @@
+ };
+ // matrix end
+ 
++// talkback (Sys001SwTalk001) - bespoke, NOT an rsw[]/wled[] entry
++// The cell carries a different meaning each way, as Sys001Skin001 does:
++//   WRITE (host -> panel) is a two-indicator mask, bit0 = TB_LED0 and
++//   bit1 = TB_LED1, so 0 = both dark and 3 = both lit;
++//   READ (panel -> host) is the switch itself, 1 while it is held and 0 when
++//   it is released, with BOTH edges reported.
++// rsw[]/wled[] cannot express either: WrRadioLed() lights on equality, which
++// is one-hot and can never light both, and RdRadioSwitch() only acts on press
++// and never returns TXD to 0 on release. So the three talkback pins are kept
++// out of those tables and handled by RdTalkbackSwitch()/WrTalkbackLeds()
++// below, leaving every other button's behaviour untouched.
++// Pins from defs/products/d24/fw.csv (SW_RIGHT): TB_SW = PA13, TB_LED0 = PF6,
++// TB_LED1 = PF7, all three through this panel processor. The switch pulls the
++// pin LOW when held (GPIO_PULLUP, the same sense every rsw[] entry uses) and
++// the indicators are HIGH = ON, the same polarity as every other LED here.
++#define TB_SW_PORT      GPIOA
++#define TB_SW_PIN       PA13_Pin
++#define TB_LED_PORT     GPIOF
++#define TB_LED0_PIN     PF6_Pin
++#define TB_LED1_PIN     PF7_Pin
++#define TB_DEBOUNCE_MS  20                          // level must hold this long to count
++
+ // define 
+ const char AX[] = { 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', };
+ const char DX[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', };
+@@ -99,6 +121,12 @@
+ char radioLed = 0;                                  // variable selects sw led: 0 = off, 1-14 sets radio led
+ char ledFollowSw = 1;                               // 0 = blink mode, 1 = led follows switch
+ unsigned int TXptr = 1;
++unsigned char tbLevel = 0;                          // debounced talkback switch level, 1 = held
++unsigned char tbRaw = 0;                            // last raw talkback sample
++unsigned int tbRawSince = 0;                        // tick at which tbRaw last changed
++unsigned char tbEdge = 0;                           // a debounced edge is waiting for the cell
++unsigned char tbEdgeLevel = 0;                      // the level that waiting edge carries
++unsigned char tbLedMask = 0xff;                     // last mask driven, 0xff = not driven yet
+ 
+ // typedef
+ GPIO_InitTypeDef GPIO_InitStruct = { 0 };           // hal gpio
+@@ -114,6 +142,8 @@
+ void WrRadioLed(struct wLed s);
+ void WrEncLeds(void);
+ void WrEncLed(struct wEled s);
++void RdTalkbackSwitch(void);
++void WrTalkbackLeds(void);
+ 
+ // function
+ void Poll(void) // TX, check if any cell data, or test message is flagged to send
+@@ -225,7 +255,17 @@
+ 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+ 	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+ 	HAL_GPIO_WritePin(GPIOF, PF1_Pin, GPIO_PIN_SET); // always on white led next to red led
+-    
++
++	// talkback indicators: push-pull, HIGH = ON, both dark until the host
++	// writes the mask. Unlike the radio LEDs these are never reconfigured at
++	// scan time, so one init here is enough.
++	GPIO_InitStruct.Pin = TB_LED0_PIN | TB_LED1_PIN;
++	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
++	HAL_GPIO_Init(TB_LED_PORT, &GPIO_InitStruct);
++	HAL_GPIO_WritePin(TB_LED_PORT, TB_LED0_PIN | TB_LED1_PIN, GPIO_PIN_RESET);
++	tbLedMask = 0;
++	tbRawSince = HAL_GetTick();
++
+ }
+ 
+ void IncEnc()
+@@ -236,6 +276,7 @@
+ void MainLoop()
+ {
+     RdRadioSwitches();
++    RdTalkbackSwitch();
+     TestEnc();
+     if (ledFollowSw)
+     {
+@@ -265,6 +306,10 @@
+             s_blink1 = s_blink;
+         }
+     }
++    // the talkback indicators are host-driven in both modes: they are not in
++    // any of the blink lists above and do not follow the switch, so they sit
++    // outside the ledFollowSw branch deliberately
++    WrTalkbackLeds();
+     Poll();
+ }
+ 
+@@ -345,6 +390,44 @@
+     }
+ }
+ 
++void RdTalkbackSwitch(void)
++{
++    // debounce: a raw level has to hold for TB_DEBOUNCE_MS before it counts,
++    // so switch bounce cannot spray edges at the host
++    unsigned char raw = HAL_GPIO_ReadPin(TB_SW_PORT, TB_SW_PIN) ? 0 : 1;
++    unsigned int now = HAL_GetTick();
++    if (raw != tbRaw)
++    {
++        tbRaw = raw; tbRawSince = now;              // bouncing, restart the window
++    }
++    else if (raw != tbLevel && (now - tbRawSince) >= TB_DEBOUNCE_MS)
++    {
++        tbLevel = raw;                              // a settled edge, press or release
++        tbEdgeLevel = raw; tbEdge = 1;
++    }
++    // hand the edge to the cell only once the previous one has been sent, so a
++    // press and its release cannot overwrite each other in TXD. A later edge
++    // replaces a waiting one, which means the host may miss an intermediate
++    // state but is never left believing the key is still held.
++    if (tbEdge && matrix[pSys001SwTalk001][TXF] == 0)
++    {
++        matrix[pSys001SwTalk001][TXD] = tbEdgeLevel;
++        matrix[pSys001SwTalk001][TXF] = 1;
++        tbEdge = 0;
++    }
++}
++
++void WrTalkbackLeds(void)
++{
++    // bitwise, not the one-hot equality WrRadioLed() uses: bit0 = TB_LED0,
++    // bit1 = TB_LED1, so a write of 3 lights both
++    unsigned char mask = matrix[pSys001SwTalk001][RXD] & 0x03;
++    if (mask == tbLedMask) return;                  // only touch the pins on a change
++    HAL_GPIO_WritePin(TB_LED_PORT, TB_LED0_PIN, (mask & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
++    HAL_GPIO_WritePin(TB_LED_PORT, TB_LED1_PIN, (mask & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
++    tbLedMask = mask;
++}
++
+ // matrix function
+ void Spare(void) { }
+ void Meter(void) { }                        // legacy allocation to control meter ballistics, instead of dsp control
