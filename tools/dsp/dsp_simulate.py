@@ -84,6 +84,43 @@ def load_nodes(csv_path):
 # Topological sort (Kahn's algorithm)
 # ---------------------------------------------------------------------------
 
+def fabric_links(nodes):
+    """INTERCHIP_RECV id -> the INTERCHIP_SEND that feeds it (S143).
+
+    THE TWO CHIPS WERE NOT CONNECTED IN THIS MODEL AT ALL. A recv node
+    carries no `inputs` -- its samples arrive over the TDM mix fabric, not
+    over a graph edge -- so every chip-2 node in this simulator read
+    silence, and nothing downstream of the interchip boundary could be
+    asked a question. That is why S142-1's mono main bus had to be found
+    by reading the generator.
+
+    The link is the mix fabric's own single source of truth: the
+    `global_slot` both ends carry (shared/dsp4-logic/generated/
+    sport_map.json, decision D2). Matched here rather than by name,
+    because the names are a convention and the slot is the wire.
+
+    ONE BLOCK OF LATENCY IS NOT MODELLED, and it is stated rather than
+    hidden: on the part the DMA hands chip 2 the block chip 1 finished,
+    so the fabric is one block old. Here the two run in the same pass.
+    That is a LATENCY difference, not a ROUTING one -- which side of the
+    desk a sample comes out on does not depend on it -- and the stereo
+    proof this connection exists for is a routing question.
+    """
+    sends = {}
+    for nid, n in nodes.items():
+        if n['type'] == 'INTERCHIP_SEND':
+            gs = n['params'].get('global_slot')
+            if gs is not None:
+                sends[str(gs)] = nid
+    out = {}
+    for nid, n in nodes.items():
+        if n['type'] == 'INTERCHIP_RECV':
+            gs = n['params'].get('global_slot')
+            if gs is not None and str(gs) in sends:
+                out[nid] = sends[str(gs)]
+    return out
+
+
 def topo_sort(nodes):
     """Return nodes in topological execution order.
 
@@ -92,12 +129,26 @@ def topo_sort(nodes):
     """
     in_degree = {nid: 0 for nid in nodes}
     successors = defaultdict(list)
+    links = fabric_links(nodes)
 
     for nid, node in nodes.items():
         for out_id in node['outputs']:
             if out_id in nodes:
                 successors[nid].append(out_id)
                 in_degree[out_id] += 1
+    # The mix fabric is an edge here even though it is not an `inputs`
+    # edge: chip 2 cannot run before chip 1 has produced the block it
+    # reads. Without this the order is undefined across the boundary.
+    for recv, send in links.items():
+        successors[send].append(recv)
+        in_degree[recv] += 1
+    # A follower runs its master's coefficients, so it runs after it --
+    # the same edge dsp_codegen.process_order_violations adds (S143).
+    for nid, node in nodes.items():
+        m = node['params'].get('follows')
+        if m in nodes:
+            successors[m].append(nid)
+            in_degree[nid] += 1
 
     queue = deque(nid for nid, deg in in_degree.items() if deg == 0)
     order = []
@@ -323,23 +374,40 @@ def _ms_to_tc(ms):
 # Per-node process functions
 # ---------------------------------------------------------------------------
 
-def process_node(node, state, node_states, nodes):
+def process_node(node, state, node_states, nodes, links=None,
+                 bus_weights=None):
     """Process one BLOCK_SIZE-sample block for a node.
 
     Reads from input node buffers, writes to state['buf'].
     """
     ntype  = node['type']
     inputs = [nid for nid in node['inputs'] if nid in node_states]
+    # A DETECTOR input is not a signal input (S143): `link_in` names the
+    # other leg of a stereo-linked dynamics pair and modulates the gain.
+    link = node['params'].get('link_in')
 
     def get_input(idx=0):
         if idx < len(inputs):
             return node_states[inputs[idx]]['buf'].copy()
         return np.zeros(BLOCK_SIZE)
 
+    def detect_input():
+        """|dry|, or max(|L|,|R|) on a stereo-linked node."""
+        x = np.abs(get_input())
+        if link and link in node_states:
+            x = np.maximum(x, np.abs(node_states[link]['buf']))
+        return x
+
     if ntype == 'INPUT_TDM':
         pass  # buf is pre-filled with test signal by the simulator
 
-    elif ntype in ('INTERCHIP_RECV', 'INTERCHIP_SEND', 'TALKBACK', 'NOISE_GEN',
+    elif ntype == 'INTERCHIP_RECV':
+        # Across the mix fabric, by global slot (S143 — see fabric_links).
+        src = (links or {}).get(node['id'])
+        state['buf'] = (node_states[src]['buf'].copy() if src
+                        else get_input())
+
+    elif ntype in ('INTERCHIP_SEND', 'TALKBACK', 'NOISE_GEN',
                    'AUX_INPUT', 'DCA', 'TEST_OSC', 'TEST_MEAS'):
         state['buf'] = get_input()
 
@@ -357,10 +425,26 @@ def process_node(node, state, node_states, nodes):
         state['buf'] = get_input()
 
     elif ntype == 'MIX_BUS':
-        # Accumulate all inputs
+        # Accumulate all inputs, each through its CROSSPOINT COEFFICIENT.
+        #
+        # THE PAN IS THE CROSSPOINT AND IT LIVES HERE (08-25 mandate). A
+        # chip-1 strip's fader publishes `_fdr_lq`/`_fdr_rq`/`_fdr_cq` and
+        # ROUTING folds them into the main-L / main-R / centre crosspoint
+        # coefficients; the fader's own output is post-fader MONO. So a
+        # hard-panned strip reaches the other main bus through a
+        # coefficient of exactly zero, not through a scaled sample -- and
+        # a model that summed every source at unity, as this one did until
+        # S143, could not tell a panned desk from a mono one. `bus_weights`
+        # is {(bus, source): gain}; anything not in it is unity, which is
+        # what every other bus in the graph is.
         acc = np.zeros(BLOCK_SIZE)
+        w = bus_weights or {}
+        nid = node['id']
         for inp_id in inputs:
-            acc += node_states[inp_id]['buf']
+            g = w.get((nid, inp_id), 1.0)
+            if g == 0.0:
+                continue
+            acc += node_states[inp_id]['buf'] * g
         state['buf'] = acc
 
     elif ntype == 'GAIN':
@@ -420,6 +504,7 @@ def process_node(node, state, node_states, nodes):
 
     elif ntype == 'COMPRESSOR':
         x = get_input()
+        det = detect_input()   # |dry|, or max(|L|,|R|) when link_in (S143)
         out = np.empty(BLOCK_SIZE)
         env_dB   = state['env_dB']
         gain_dB  = state['gain_dB']
@@ -430,7 +515,7 @@ def process_node(node, state, node_states, nodes):
         tc_r     = state['release']
         makeup   = state['makeup_lin']
         for i in range(BLOCK_SIZE):
-            in_dB = lin_to_db(abs(x[i]))
+            in_dB = lin_to_db(det[i])
             # Envelope follower (dB domain)
             if in_dB > env_dB:
                 env_dB = in_dB + tc_a * (env_dB - in_dB)
@@ -473,17 +558,22 @@ def process_node(node, state, node_states, nodes):
         state['buf'] = out
 
     elif ntype == 'FADER_PAN':
-        # Mono input → constant-power pan split
+        # THE FADER'S OUTPUT IS POST-FADER MONO. The pan is NOT applied
+        # here and has not been in the firmware since the 2026-08-25
+        # crosspoint-coefficient mandate: `_fdr_lq`/`_fdr_rq`/`_fdr_cq`
+        # are published for ROUTING to fold into the BUS crosspoints, and
+        # the node's own sample path is one MAC by `_fdr_gq` (level x
+        # mute). This model applied the pan twice -- once here and, from
+        # S143, once at the crosspoint -- which made a hard-panned strip
+        # read 6e-17 on its LIVE side instead of full scale, and hid a
+        # zero behind a rounding error. The legs live in `bus_weights`
+        # now; see DSPSimulator.set_pan and the MIX_BUS note.
         x   = get_input()
         lvl = state['level_lin']
         if state['mute']:
             lvl = 0.0
-        pan  = state['pan']                    # −1..+1
-        ang  = (pan + 1.0) * 0.25 * math.pi   # 0..π/2
-        g_l  = math.cos(ang) * lvl
-        g_r  = math.sin(ang) * lvl
-        state['buf']   = x * g_l              # left channel
-        state['buf_r'] = x * g_r              # right channel
+        state['buf']   = x * lvl
+        state['buf_r'] = state['buf']         # kept: same post-fader word
 
     elif ntype == 'ROUTING':
         state['buf'] = get_input()
@@ -502,8 +592,16 @@ def process_node(node, state, node_states, nodes):
     elif ntype == 'LIMITER':
         x   = get_input()
         thr = db_to_lin(float(node['params'].get('threshold_db', '-0.5')))
-        out = np.clip(x, -thr, thr)    # simple hard limiter stub
-        state['buf'] = out
+        # A STEREO-LINKED brick wall applies ONE gain to both legs (S143):
+        # the reduction is computed from max(|L|,|R|) and multiplied in, so
+        # a leg that is silent stays exactly silent. Clipping each leg on
+        # its own is the thing `link_in` exists to stop.
+        if link and link in node_states:
+            det = detect_input()
+            g = np.where(det > thr, thr / np.maximum(det, 1e-30), 1.0)
+            state['buf'] = x * g
+        else:
+            state['buf'] = np.clip(x, -thr, thr)    # simple hard limiter stub
 
     elif ntype == 'CROSSOVER':
         state['buf'] = get_input()
@@ -526,11 +624,96 @@ class DSPSimulator:
             csv_path = os.path.join(script_dir, '..', 'dsp.csv')
         self.nodes   = load_nodes(csv_path)
         self.order   = topo_sort(self.nodes)
+        self.links   = fabric_links(self.nodes)
+        # (bus, source) -> crosspoint gain. Unity unless a pan puts it
+        # elsewhere; see set_pan() and the MIX_BUS note.
+        self.bus_weights = {}
         self.reset()
 
     def reset(self):
         """Rebuild fresh per-node runtime state (same parsed graph)."""
         self.states  = {nid: make_state(n) for nid, n in self.nodes.items()}
+        self.bus_weights = self._default_bus_weights()
+        # A FOLLOWER RUNS ITS MASTER'S PARAMETERS (S143). In the emitted
+        # code that is an `.extern`; here it is the master's state dict
+        # keys copied in at reset, which is the same statement and keeps
+        # the two from drifting when a test moves a master.
+        for nid, n in self.nodes.items():
+            m = n['params'].get('follows')
+            if m in self.states:
+                for k, v in self.states[m].items():
+                    if k in ('buf', 'buf_r', 'buf_ring', 'write_ptr',
+                             'accumulator', 'states', 'hpf_state',
+                             'lpf_state', 'env_dB', 'gain_dB', 'env',
+                             'gain', 'hold_left'):
+                        continue
+                    self.states[nid][k] = v
+
+    # ── The pan crosspoint (S143) ────────────────────────────────────────────
+
+    def _default_bus_weights(self):
+        """The crosspoint coefficients dsp.csv's ROUTING rows declare.
+
+        THE SIMULATOR USED TO SUM EVERY BUS AT UNITY, which is not the
+        desk: a strip's `Chan*AuxSend`/`FxSend`/`GrpOn` decide whether it
+        reaches a bus at all, and the graph's own defaults are main ON and
+        everything else OFF (`main_on=1;sub_on=0;grp_on=0000;
+        aux_on=000000000000;fx_on=000000;mtx_on=00`). Summing them all at
+        unity meant every strip reached all twenty-nine buses, so the six
+        FX returns fed the main mix a second, unpanned copy of the whole
+        desk -- and a hard-panned strip came back on the far side at 0.74
+        (measured here, S143). The bits are read from the row.
+        """
+        w = {}
+        for nid, n in self.nodes.items():
+            if n['type'] != 'ROUTING':
+                continue
+            p = n['params']
+            for bus in n['outputs']:
+                if bus not in self.nodes:
+                    continue
+                g = 0.0
+                if bus in ('C1_BUS_MAIN_L', 'C1_BUS_MAIN_R'):
+                    g = float(int(p.get('main_on', '1')))
+                elif bus == 'C1_BUS_SUB':
+                    g = float(int(p.get('sub_on', '0')))
+                else:
+                    for pref, key in (('C1_BUS_GRP_', 'grp_on'),
+                                      ('C1_BUS_AUX_', 'aux_on'),
+                                      ('C1_BUS_FX_', 'fx_on'),
+                                      ('C1_BUS_MTX_', 'mtx_on')):
+                        if bus.startswith(pref):
+                            bits = p.get(key, '')
+                            i = int(bus[len(pref):]) - 1
+                            g = float(bits[i] == '1') if i < len(bits) else 0.0
+                            break
+                w[(bus, nid)] = g
+        return w
+
+    def set_pan(self, channel, pan):
+        """Pan a chip-1 strip, as the CROSSPOINT COEFFICIENT it really is.
+
+        `pan` is -1 hard left .. +1 hard right, matching FADER_PAN's own
+        parameter. The strip's post-fader signal is MONO; what a pan moves
+        is the coefficient the main-L and main-R buses MAC it with (the
+        08-25 crosspoint fold), so that is what this writes. Hard left is
+        a right-hand coefficient of EXACTLY ZERO -- not -120 dB, zero --
+        which is what makes `--stereo-proof`'s claim exact.
+        """
+        rtg = f'C1_RTG_{channel:02d}'
+        fdr = f'C1_FDR_{channel:02d}'
+        if rtg not in self.nodes:
+            raise KeyError(rtg)
+        if fdr in self.states:
+            self.states[fdr]['pan'] = pan
+        ang = (pan + 1.0) * 0.25 * math.pi
+        g_l, g_r = math.cos(ang), math.sin(ang)
+        if abs(pan + 1.0) < 1e-12:
+            g_l, g_r = 1.0, 0.0
+        elif abs(pan - 1.0) < 1e-12:
+            g_l, g_r = 0.0, 1.0
+        self.bus_weights[('C1_BUS_MAIN_L', rtg)] = g_l
+        self.bus_weights[('C1_BUS_MAIN_R', rtg)] = g_r
 
     # ── Parameter control ────────────────────────────────────────────────────
 
@@ -584,7 +767,8 @@ class DSPSimulator:
                 continue
             node  = self.nodes[nid]
             state = self.states[nid]
-            process_node(node, state, self.states, self.nodes)
+            process_node(node, state, self.states, self.nodes,
+                         links=self.links, bus_weights=self.bus_weights)
 
     # ── Utility: read RMS from a node's output buffer ────────────────────────
 
@@ -704,6 +888,113 @@ def _strip_label(node_id):
     return '_'.join(parts[1:]) if len(parts) > 1 else node_id
 
 
+
+# ---------------------------------------------------------------------------
+# THE STEREO PROOF (S143) — the numeric half
+# ---------------------------------------------------------------------------
+
+_PROOF_SINKS = [
+    ('C2_MAIN_OUT_01', 'L', 'MainL XLR (DAC_12, J56)'),
+    ('C2_MAIN_OUT_02', 'R', 'MainR XLR (DAC_11, J57)'),
+    ('C2_MAIN_OUT_03', 'L', 'MainCtr (DAC_15) — still the LEFT leg; the '
+                            'Centre strip is S142 item 1'),
+    ('C2_MAIN_OUT_04', 'L', 'MainSub (DAC_16) — same'),
+    ('C2_MAIN_ST_OUT', 'L', 'DAC MAIN L'),
+    ('C2_MAIN_ST_OUT_R', 'R', 'DAC MAIN R'),
+    ('C2_CODEC_AUX_OUT', 'L', 'CODEC_OUT_3'),
+    ('C2_CODEC_AUX_OUT_R', 'R', 'CODEC_OUT_4'),
+    ('C2_MON_DLY', 'L', 'Monitor L'),
+    ('C2_MON_DLY_R', 'R', 'Monitor R'),
+]
+
+
+def stereo_proof(sim, channel=1, freq=1000.0, frames=8):
+    """Hard-pan one strip; every sink on the other side must read ZERO.
+
+    THE READING S142 ASKED FOR, taken on the desk instead of the bench.
+    A strip panned hard left puts EXACTLY ZERO into the right main bus --
+    the crosspoint coefficient is zero, not small (see set_pan) -- so
+    every output fed only by the right leg must be zero to the last bit,
+    and every output fed by the left leg must not be. Then the same run
+    with the pan hard right, which is the control: a test that only ever
+    pans one way cannot tell a stereo desk from one wired backwards.
+
+    It is run twice more with the strip at CENTRE, where both sides must
+    be live and equal -- otherwise "zero on the far side" would also be
+    satisfied by a graph that had simply stopped passing audio.
+    """
+    print()
+    print('STEREO PROOF (S143) — hard-pan strip %d, read every chip-2 sink'
+          % channel)
+    missing = [n for n, _, _ in _PROOF_SINKS if n not in sim.states]
+    if missing:
+        print('  ERROR: this graph has no %s — it is not an S143 graph'
+              % ', '.join(missing))
+        return 1
+
+    def run(pan):
+        sim.reset()
+        sim.set_gain(channel, 0.0)
+        sim.set_fader(channel, 0.0)
+        sim.set_pan(channel, pan)
+        # Every OTHER strip muted, so what arrives at a sink arrives from
+        # this one and there is nothing to argue about.
+        for ch in range(1, 33):
+            nid = 'C1_FDR_%02d' % ch
+            if nid in sim.states and ch != channel:
+                sim.states[nid]['mute'] = 1
+        for f in range(frames):
+            t = (np.arange(BLOCK_SIZE) + f * BLOCK_SIZE) / SAMPLE_RATE
+            sim.inject(channel, 0.5 * np.sin(2 * math.pi * freq * t))
+            sim.process_frame()
+        return {n: sim.states[n]['buf'].copy() for n, _, _ in _PROOF_SINKS}
+
+    fails = []
+    for pan, label, live_side in ((-1.0, 'hard LEFT', 'L'),
+                                  (+1.0, 'hard RIGHT', 'R')):
+        got = run(pan)
+        print('  %s:' % label)
+        for nid, side, why in _PROOF_SINKS:
+            b = got[nid]
+            peak = float(np.max(np.abs(b)))
+            nz = int(np.count_nonzero(b))
+            want_live = (side == live_side)
+            ok = (peak > 0.0) if want_live else (nz == 0)
+            print('    %-3s %-20s %-5s peak=%-12.9g %s'
+                  % ('OK ' if ok else 'BAD', nid, side,
+                     peak, 'live' if want_live else 'must be EXACTLY 0'))
+            if not ok:
+                fails.append('%s at pan %s: side %s, peak %.9g, %d non-zero '
+                             'sample(s) — %s' % (nid, label, side, peak, nz,
+                                                 why))
+
+    # THE CONTROL: centre. Both sides live, and equal, or "zero on the far
+    # side" is satisfied by a graph that passes nothing at all.
+    got = run(0.0)
+    print('  CENTRE (control — both sides live and equal):')
+    lpk = float(np.max(np.abs(got['C2_MAIN_OUT_01'])))
+    rpk = float(np.max(np.abs(got['C2_MAIN_OUT_02'])))
+    ok = lpk > 0.0 and rpk > 0.0 and abs(lpk - rpk) <= 1e-12 * max(lpk, 1.0)
+    print('    %-3s MainL peak=%.9g  MainR peak=%.9g  delta=%.3g'
+          % ('OK ' if ok else 'BAD', lpk, rpk, abs(lpk - rpk)))
+    if not ok:
+        fails.append('centre control: MainL %.9g, MainR %.9g — a centred '
+                     'strip must reach both XLRs at the same level'
+                     % (lpk, rpk))
+
+    if fails:
+        print()
+        print('%d failure(s):' % len(fails))
+        for f in fails:
+            print('  ' + f)
+        return 1
+    print()
+    print('stereo proof passed: every one-sided sink reads EXACTLY zero on '
+          'the far side, both ways, and the centre control is live and '
+          'balanced')
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description='D32 DSP Python signal-graph simulator')
     ap.add_argument('--csv', default=None, help='Path to dsp.csv')
@@ -728,12 +1019,18 @@ def main():
                     help='Save output WAV file (requires scipy)')
     ap.add_argument('--duration', type=float, default=1.0,
                     help='WAV duration in seconds (default: 1.0)')
+    ap.add_argument('--stereo-proof', action='store_true',
+                    help='hard-pan a strip and read every chip-2 sink: the '
+                         'numeric half of the S143 proof (see stereo_proof)')
     args = ap.parse_args()
 
     channels = [int(c.strip()) for c in args.channels.split(',')]
 
     sim = DSPSimulator(args.csv)
     print(f"Loaded {len(sim.nodes)} nodes, topo order: {len(sim.order)} resolved")
+
+    if args.stereo_proof:
+        return stereo_proof(sim, channel=channels[0], freq=args.freq)
 
     # ── Frequency response test ──────────────────────────────────────────────
     if args.freq_response:
