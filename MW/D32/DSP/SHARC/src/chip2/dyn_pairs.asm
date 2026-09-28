@@ -79,18 +79,10 @@
 .extern _C2_MAIN_OCOMP_01_process_sample;
 .extern _C2_MAIN_OCOMP_02_process;
 .extern _C2_MAIN_OCOMP_02_process_sample;
-.extern _C2_MAIN_OCOMP_03_process;
-.extern _C2_MAIN_OCOMP_03_process_sample;
-.extern _C2_MAIN_OCOMP_04_process;
-.extern _C2_MAIN_OCOMP_04_process_sample;
 .extern _C2_MAIN_OLIM_01_process;
 .extern _C2_MAIN_OLIM_01_process_sample;
 .extern _C2_MAIN_OLIM_02_process;
 .extern _C2_MAIN_OLIM_02_process_sample;
-.extern _C2_MAIN_OLIM_03_process;
-.extern _C2_MAIN_OLIM_03_process_sample;
-.extern _C2_MAIN_OLIM_04_process;
-.extern _C2_MAIN_OLIM_04_process_sample;
 .extern _blk_C2_AUX_AFB_01;
 .extern _blk_C2_AUX_AFB_02;
 .extern _blk_C2_AUX_AFB_03;
@@ -129,16 +121,10 @@
 .extern _blk_C2_GRP_GEQ_04;
 .extern _blk_C2_MAIN_OCOMP_01;
 .extern _blk_C2_MAIN_OCOMP_02;
-.extern _blk_C2_MAIN_OCOMP_03;
-.extern _blk_C2_MAIN_OCOMP_04;
 .extern _blk_C2_MAIN_OEQ_01;
 .extern _blk_C2_MAIN_OEQ_02;
-.extern _blk_C2_MAIN_OEQ_03;
-.extern _blk_C2_MAIN_OEQ_04;
 .extern _blk_C2_MAIN_OLIM_01;
 .extern _blk_C2_MAIN_OLIM_02;
-.extern _blk_C2_MAIN_OLIM_03;
-.extern _blk_C2_MAIN_OLIM_04;
 .extern _buf_C2_AUX_AFB_01;
 .extern _buf_C2_AUX_AFB_02;
 .extern _buf_C2_AUX_AFB_03;
@@ -177,48 +163,34 @@
 .extern _buf_C2_GRP_GEQ_04;
 .extern _buf_C2_MAIN_OCOMP_01;
 .extern _buf_C2_MAIN_OCOMP_02;
-.extern _buf_C2_MAIN_OCOMP_03;
-.extern _buf_C2_MAIN_OCOMP_04;
 .extern _buf_C2_MAIN_OEQ_01;
 .extern _buf_C2_MAIN_OEQ_02;
-.extern _buf_C2_MAIN_OEQ_03;
-.extern _buf_C2_MAIN_OEQ_04;
 .extern _buf_C2_MAIN_OLIM_01;
 .extern _buf_C2_MAIN_OLIM_02;
-.extern _buf_C2_MAIN_OLIM_03;
-.extern _buf_C2_MAIN_OLIM_04;
 .extern _comp_attq_C2_GRP_COMP_01;
 .extern _comp_attq_C2_GRP_COMP_02;
 .extern _comp_attq_C2_GRP_COMP_03;
 .extern _comp_attq_C2_GRP_COMP_04;
 .extern _comp_attq_C2_MAIN_OCOMP_01;
 .extern _comp_attq_C2_MAIN_OCOMP_02;
-.extern _comp_attq_C2_MAIN_OCOMP_03;
-.extern _comp_attq_C2_MAIN_OCOMP_04;
 .extern _comp_envelope_C2_GRP_COMP_01;
 .extern _comp_envelope_C2_GRP_COMP_02;
 .extern _comp_envelope_C2_GRP_COMP_03;
 .extern _comp_envelope_C2_GRP_COMP_04;
 .extern _comp_envelope_C2_MAIN_OCOMP_01;
 .extern _comp_envelope_C2_MAIN_OCOMP_02;
-.extern _comp_envelope_C2_MAIN_OCOMP_03;
-.extern _comp_envelope_C2_MAIN_OCOMP_04;
 .extern _comp_gain_C2_GRP_COMP_01;
 .extern _comp_gain_C2_GRP_COMP_02;
 .extern _comp_gain_C2_GRP_COMP_03;
 .extern _comp_gain_C2_GRP_COMP_04;
 .extern _comp_gain_C2_MAIN_OCOMP_01;
 .extern _comp_gain_C2_MAIN_OCOMP_02;
-.extern _comp_gain_C2_MAIN_OCOMP_03;
-.extern _comp_gain_C2_MAIN_OCOMP_04;
 .extern _comp_on_C2_GRP_COMP_01;
 .extern _comp_on_C2_GRP_COMP_02;
 .extern _comp_on_C2_GRP_COMP_03;
 .extern _comp_on_C2_GRP_COMP_04;
 .extern _comp_on_C2_MAIN_OCOMP_01;
 .extern _comp_on_C2_MAIN_OCOMP_02;
-.extern _comp_on_C2_MAIN_OCOMP_03;
-.extern _comp_on_C2_MAIN_OCOMP_04;
 .extern _gate_attq_C2_GRP_GATE_01;
 .extern _gate_attq_C2_GRP_GATE_02;
 .extern _gate_attq_C2_GRP_GATE_03;
@@ -249,8 +221,6 @@
 .extern _lim_attq_C2_AUX_LIM_12;
 .extern _lim_attq_C2_MAIN_OLIM_01;
 .extern _lim_attq_C2_MAIN_OLIM_02;
-.extern _lim_attq_C2_MAIN_OLIM_03;
-.extern _lim_attq_C2_MAIN_OLIM_04;
 .extern _lim_envelope_C2_AUX_LIM_01;
 .extern _lim_envelope_C2_AUX_LIM_02;
 .extern _lim_envelope_C2_AUX_LIM_03;
@@ -265,8 +235,6 @@
 .extern _lim_envelope_C2_AUX_LIM_12;
 .extern _lim_envelope_C2_MAIN_OLIM_01;
 .extern _lim_envelope_C2_MAIN_OLIM_02;
-.extern _lim_envelope_C2_MAIN_OLIM_03;
-.extern _lim_envelope_C2_MAIN_OLIM_04;
 .extern _lim_on_C2_AUX_LIM_01;
 .extern _lim_on_C2_AUX_LIM_02;
 .extern _lim_on_C2_AUX_LIM_03;
@@ -281,8 +249,6 @@
 .extern _lim_on_C2_AUX_LIM_12;
 .extern _lim_on_C2_MAIN_OLIM_01;
 .extern _lim_on_C2_MAIN_OLIM_02;
-.extern _lim_on_C2_MAIN_OLIM_03;
-.extern _lim_on_C2_MAIN_OLIM_04;
 .extern _mtr_wblk_C2_GRP_COMP_01;
 .extern _mtr_wblk_C2_GRP_COMP_02;
 .extern _mtr_wblk_C2_GRP_COMP_03;
@@ -298,16 +264,12 @@
 .extern _comp_lut_C2_GRP_COMP_04;
 .extern _comp_lut_C2_MAIN_OCOMP_01;
 .extern _comp_lut_C2_MAIN_OCOMP_02;
-.extern _comp_lut_C2_MAIN_OCOMP_03;
-.extern _comp_lut_C2_MAIN_OCOMP_04;
 .extern _comp_lutc_C2_GRP_COMP_01;
 .extern _comp_lutc_C2_GRP_COMP_02;
 .extern _comp_lutc_C2_GRP_COMP_03;
 .extern _comp_lutc_C2_GRP_COMP_04;
 .extern _comp_lutc_C2_MAIN_OCOMP_01;
 .extern _comp_lutc_C2_MAIN_OCOMP_02;
-.extern _comp_lutc_C2_MAIN_OCOMP_03;
-.extern _comp_lutc_C2_MAIN_OCOMP_04;
 .extern _lim_lut_C2_AUX_LIM_01;
 .extern _lim_lut_C2_AUX_LIM_02;
 .extern _lim_lut_C2_AUX_LIM_03;
@@ -322,8 +284,6 @@
 .extern _lim_lut_C2_AUX_LIM_12;
 .extern _lim_lut_C2_MAIN_OLIM_01;
 .extern _lim_lut_C2_MAIN_OLIM_02;
-.extern _lim_lut_C2_MAIN_OLIM_03;
-.extern _lim_lut_C2_MAIN_OLIM_04;
 .extern _lim_lutc_C2_AUX_LIM_01;
 .extern _lim_lutc_C2_AUX_LIM_02;
 .extern _lim_lutc_C2_AUX_LIM_03;
@@ -338,8 +298,6 @@
 .extern _lim_lutc_C2_AUX_LIM_12;
 .extern _lim_lutc_C2_MAIN_OLIM_01;
 .extern _lim_lutc_C2_MAIN_OLIM_02;
-.extern _lim_lutc_C2_MAIN_OLIM_03;
-.extern _lim_lutc_C2_MAIN_OLIM_04;
 #endif
 
 /* ---- C2_AUX_LIM_01 + C2_AUX_LIM_02 ---- */
@@ -1539,117 +1497,6 @@ _C2PAIR_MOUT_OCOMP_01_02_process:
     rts;
 _C2PAIR_MOUT_OCOMP_01_02_process.end:
 
-/* ---- C2_MAIN_OCOMP_03 + C2_MAIN_OCOMP_04 ---- */
-.global _C2PAIR_MOUT_OCOMP_03_04_process;
-_C2PAIR_MOUT_OCOMP_03_04_process:
-    /* Both channels must be on the same path or there is no pair. */
-    r0 = dm(_comp_on_C2_MAIN_OCOMP_03);
-    r0 = pass r0;
-    if eq jump (pc, .c2s_MOUT_OCOMP_03_04);
-    r0 = dm(_comp_on_C2_MAIN_OCOMP_04);
-    r0 = pass r0;
-    if eq jump (pc, .c2s_MOUT_OCOMP_03_04);
-
-    /* input block -> this node's own block, so the paired
-     * kernel can run in place the way chip 1's pool
-     * ping-pong does. */
-    l3 = 0; l4 = 0;
-    i3 = _blk_C2_MAIN_OEQ_03;
-    i4 = _blk_C2_MAIN_OCOMP_03;
-    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OCOMP_03_04 until lce;
-        r0 = dm(i3, 1);
-    .c2cp0_MOUT_OCOMP_03_04: dm(i4, 1) = r0;
-    i3 = _blk_C2_MAIN_OEQ_04;
-    i4 = _blk_C2_MAIN_OCOMP_04;
-    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OCOMP_03_04 until lce;
-        r0 = dm(i3, 1);
-    .c2cp1_MOUT_OCOMP_03_04: dm(i4, 1) = r0;
-
-    /* sample 0 through each channel's own per-sample body */
-    r5 = dm(_sample_idx);
-    dm(_dynpair_saved_idx) = r5;
-    r5 = 0;
-    dm(_sample_idx) = r5;
-    r0 = dm(_blk_C2_MAIN_OCOMP_03);
-    dm(_buf_C2_MAIN_OEQ_03) = r0;
-    call _C2_MAIN_OCOMP_03_process_sample;
-    r0 = dm(_buf_C2_MAIN_OCOMP_03);
-    dm(_blk_C2_MAIN_OCOMP_03) = r0;
-    r0 = dm(_blk_C2_MAIN_OCOMP_04);
-    dm(_buf_C2_MAIN_OEQ_04) = r0;
-    call _C2_MAIN_OCOMP_04_process_sample;
-    r0 = dm(_buf_C2_MAIN_OCOMP_04);
-    dm(_blk_C2_MAIN_OCOMP_04) = r0;
-    r5 = dm(_dynpair_saved_idx);
-    dm(_sample_idx) = r5;
-
-    /* samples 1..BLOCK-1, two channels, one stream */
-    r0 = DSP4_BLOCK_SIZE-1;
-    dm(_dsim_n) = r0;
-    dm(_dsim_n + 1) = r0;
-#if DSP4_DYN_LUT
-    r0 = _comp_lut_C2_MAIN_OCOMP_03;
-    dm(_dyn_lutp) = r0;
-    r0 = _comp_lut_C2_MAIN_OCOMP_04;
-    dm(_dyn_lutp + 1) = r0;
-    r1 = DYN_LUT_N;
-    r2 = 0;
-    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_03);
-    comp(r0, r1);
-    if lt jump (pc, .c2lut_MOUT_OCOMP_03_04);
-    r0 = dm(_comp_lutc_C2_MAIN_OCOMP_04);
-    comp(r0, r1);
-    if lt jump (pc, .c2lut_MOUT_OCOMP_03_04);
-    r2 = 1;
-.c2lut_MOUT_OCOMP_03_04:
-    dm(_dlut_live) = r2;
-    dm(_dlut_live + 1) = r2;
-#endif
-    r4 = _comp_attq_C2_MAIN_OCOMP_03;
-    r5 = _comp_attq_C2_MAIN_OCOMP_04;
-    r6 = _comp_envelope_C2_MAIN_OCOMP_03;
-    r7 = _comp_envelope_C2_MAIN_OCOMP_04;
-    r0 = _blk_C2_MAIN_OCOMP_03;
-    r1 = 1;
-    r8 = r0 + r1;
-    r0 = _blk_C2_MAIN_OCOMP_04;
-    r9 = r0 + r1;
-    call _comp_pair_blk;
-    /* the pair writes its gain display to the shared
-     * park; give it back to each node so a host peek
-     * still reads a live per-node compressor gain. */
-    i0 = _cmp_gn;
-    r0 = dm(i0, 1);
-    dm(_comp_gain_C2_MAIN_OCOMP_03) = r0;
-    r0 = dm(i0, 1);
-    dm(_comp_gain_C2_MAIN_OCOMP_04) = r0;
-    /* republish the scalar _buf_ word off the LAST sample
-     * of the block. On chip 2 `_buf_<id>` IS what a host
-     * peek reads, and the paired path only writes it for
-     * sample 0 -- so without this it would report the
-     * first sample of the block while every unpaired node
-     * reports the last. Nine instructions at block rate,
-     * and the same repair the GEQ block kernel already
-     * makes for the same reason. */
-    l4 = 0;
-    m4 = DSP4_BLOCK_SIZE-1;
-    i4 = _blk_C2_MAIN_OCOMP_03;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OCOMP_03) = r0;
-    i4 = _blk_C2_MAIN_OCOMP_04;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OCOMP_04) = r0;
-    rts;
-
-.c2s_MOUT_OCOMP_03_04:
-    /* scalar fallback: the two nodes, unchanged */
-    call _C2_MAIN_OCOMP_03_process;
-    call _C2_MAIN_OCOMP_04_process;
-    rts;
-_C2PAIR_MOUT_OCOMP_03_04_process.end:
-
 /* ---- C2_MAIN_OLIM_01 + C2_MAIN_OLIM_02 ---- */
 .global _C2PAIR_MOUT_OLIM_01_02_process;
 _C2PAIR_MOUT_OLIM_01_02_process:
@@ -1752,109 +1599,6 @@ _C2PAIR_MOUT_OLIM_01_02_process:
     call _C2_MAIN_OLIM_02_process;
     rts;
 _C2PAIR_MOUT_OLIM_01_02_process.end:
-
-/* ---- C2_MAIN_OLIM_03 + C2_MAIN_OLIM_04 ---- */
-.global _C2PAIR_MOUT_OLIM_03_04_process;
-_C2PAIR_MOUT_OLIM_03_04_process:
-    /* Both channels must be on the same path or there is no pair. */
-    r0 = dm(_lim_on_C2_MAIN_OLIM_03);
-    r0 = pass r0;
-    if eq jump (pc, .c2s_MOUT_OLIM_03_04);
-    r0 = dm(_lim_on_C2_MAIN_OLIM_04);
-    r0 = pass r0;
-    if eq jump (pc, .c2s_MOUT_OLIM_03_04);
-
-    /* input block -> this node's own block, so the paired
-     * kernel can run in place the way chip 1's pool
-     * ping-pong does. */
-    l3 = 0; l4 = 0;
-    i3 = _blk_C2_MAIN_OCOMP_03;
-    i4 = _blk_C2_MAIN_OLIM_03;
-    lcntr = DSP4_BLOCK_SIZE, do .c2cp0_MOUT_OLIM_03_04 until lce;
-        r0 = dm(i3, 1);
-    .c2cp0_MOUT_OLIM_03_04: dm(i4, 1) = r0;
-    i3 = _blk_C2_MAIN_OCOMP_04;
-    i4 = _blk_C2_MAIN_OLIM_04;
-    lcntr = DSP4_BLOCK_SIZE, do .c2cp1_MOUT_OLIM_03_04 until lce;
-        r0 = dm(i3, 1);
-    .c2cp1_MOUT_OLIM_03_04: dm(i4, 1) = r0;
-
-    /* sample 0 through each channel's own per-sample body */
-    r5 = dm(_sample_idx);
-    dm(_dynpair_saved_idx) = r5;
-    r5 = 0;
-    dm(_sample_idx) = r5;
-    r0 = dm(_blk_C2_MAIN_OLIM_03);
-    dm(_buf_C2_MAIN_OCOMP_03) = r0;
-    call _C2_MAIN_OLIM_03_process_sample;
-    r0 = dm(_buf_C2_MAIN_OLIM_03);
-    dm(_blk_C2_MAIN_OLIM_03) = r0;
-    r0 = dm(_blk_C2_MAIN_OLIM_04);
-    dm(_buf_C2_MAIN_OCOMP_04) = r0;
-    call _C2_MAIN_OLIM_04_process_sample;
-    r0 = dm(_buf_C2_MAIN_OLIM_04);
-    dm(_blk_C2_MAIN_OLIM_04) = r0;
-    r5 = dm(_dynpair_saved_idx);
-    dm(_sample_idx) = r5;
-
-    /* samples 1..BLOCK-1, two channels, one stream */
-    r0 = DSP4_BLOCK_SIZE-1;
-    dm(_dsim_n) = r0;
-    dm(_dsim_n + 1) = r0;
-#if DSP4_DYN_LUT
-    r0 = _lim_lut_C2_MAIN_OLIM_03;
-    dm(_dyn_lutp) = r0;
-    r0 = _lim_lut_C2_MAIN_OLIM_04;
-    dm(_dyn_lutp + 1) = r0;
-    r1 = DYN_LUT_N;
-    r2 = 0;
-    r0 = dm(_lim_lutc_C2_MAIN_OLIM_03);
-    comp(r0, r1);
-    if lt jump (pc, .c2lut_MOUT_OLIM_03_04);
-    r0 = dm(_lim_lutc_C2_MAIN_OLIM_04);
-    comp(r0, r1);
-    if lt jump (pc, .c2lut_MOUT_OLIM_03_04);
-    r2 = 1;
-.c2lut_MOUT_OLIM_03_04:
-    dm(_dlut_live) = r2;
-    dm(_dlut_live + 1) = r2;
-#endif
-    r4 = _lim_attq_C2_MAIN_OLIM_03;
-    r5 = _lim_attq_C2_MAIN_OLIM_04;
-    r6 = _lim_envelope_C2_MAIN_OLIM_03;
-    r7 = _lim_envelope_C2_MAIN_OLIM_04;
-    r0 = _blk_C2_MAIN_OLIM_03;
-    r1 = 1;
-    r8 = r0 + r1;
-    r0 = _blk_C2_MAIN_OLIM_04;
-    r9 = r0 + r1;
-    call _lim_pair_blk;
-    /* republish the scalar _buf_ word off the LAST sample
-     * of the block. On chip 2 `_buf_<id>` IS what a host
-     * peek reads, and the paired path only writes it for
-     * sample 0 -- so without this it would report the
-     * first sample of the block while every unpaired node
-     * reports the last. Nine instructions at block rate,
-     * and the same repair the GEQ block kernel already
-     * makes for the same reason. */
-    l4 = 0;
-    m4 = DSP4_BLOCK_SIZE-1;
-    i4 = _blk_C2_MAIN_OLIM_03;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OLIM_03) = r0;
-    i4 = _blk_C2_MAIN_OLIM_04;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OLIM_04) = r0;
-    rts;
-
-.c2s_MOUT_OLIM_03_04:
-    /* scalar fallback: the two nodes, unchanged */
-    call _C2_MAIN_OLIM_03_process;
-    call _C2_MAIN_OLIM_04_process;
-    rts;
-_C2PAIR_MOUT_OLIM_03_04_process.end:
 
 /* DSP4_GATE_LINTHR AND THE PAIRED GATE, both, since S15.
  *

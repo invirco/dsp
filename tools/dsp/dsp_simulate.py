@@ -338,6 +338,12 @@ def make_state(node):
         state['sub_on']     = int(p.get('sub_on', '0'))
         state['fx_on']      = int(p.get('fx_on', '0'))
 
+    elif ntype == 'SOURCE_SEL':
+        # The select index lives in STATE, not in the row, so a desk proof
+        # can move it the way a host would (S144). It starts where the row
+        # says the node powers up.
+        state['sel'] = int(p.get('sel', 0))
+
     elif ntype == 'MIX_BUS':
         state['accumulator'] = True    # zero at start of each frame, accumulate inputs
 
@@ -608,6 +614,21 @@ def process_node(node, state, node_states, nodes, links=None,
 
     elif ntype == 'MONITOR':
         state['buf'] = get_input()
+
+    elif ntype == 'SOURCE_SEL':
+        # S144. The select is a COEFFICIENT on the part: exactly one source
+        # at 1.0 in the steady state, two during a ramped crossfade. The
+        # model carries the steady state, which is the state every desk
+        # proof runs in -- and it reads the index off the row rather than
+        # defaulting to input 0, because a select that silently models
+        # position 0 would pass `--stereo-proof` for a graph patched the
+        # wrong way round.
+        sel = int(state.get('sel', node['params'].get('sel', 0)))
+        n = len(node['inputs'])
+        if not 0 <= sel < n:
+            raise ValueError(
+                f"{node['id']}: sel={sel} outside 0..{n - 1}")
+        state['buf'] = get_input(sel)
 
     else:
         state['buf'] = get_input()  # generic passthrough
@@ -904,9 +925,15 @@ def _strip_label(node_id):
 _PROOF_SINKS = [
     ('C2_MAIN_OUT_01', 'L', 'MainL XLR (DAC_12, J56)'),
     ('C2_MAIN_OUT_02', 'R', 'MainR XLR (DAC_11, J57)'),
-    ('C2_MAIN_OUT_03', 'L', 'MainCtr (DAC_15) — still the LEFT leg; the '
-                            'Centre strip is S142 item 1'),
-    ('C2_MAIN_OUT_04', 'L', 'MainSub (DAC_16) — same'),
+    # S144: main outputs 3 and 4 are gone; the ONE Centre/LF XLR is here.
+    # AT THE SHIPPING DEFAULT `Main Out3Mode` IS 0 = CENTRE, and the Centre
+    # strip is fed from the Ctr Channel Bus (`Chan*CtrOn`, summed on chip 1)
+    # and not from the main mix at all — so a hard-panned strip reads
+    # EXACTLY ZERO here at either pan. The Woof half is proved by its own
+    # pass below, with the select moved the way a host would move it.
+    ('C2_OUT3_OUT', 'none', 'The Centre/LF XLR (DAC_14, J55) at Out3Mode=0: '
+                            'the Centre strip is off the Ctr Channel Bus, '
+                            'which a main-bus pan cannot reach'),
     ('C2_MAIN_ST_OUT', 'L', 'DAC MAIN L'),
     ('C2_MAIN_ST_OUT_R', 'R', 'DAC MAIN R'),
     ('C2_CODEC_AUX_OUT', 'L', 'CODEC_OUT_3'),
@@ -966,6 +993,8 @@ def stereo_proof(sim, channel=1, freq=1000.0, frames=8):
             b = got[nid]
             peak = float(np.max(np.abs(b)))
             nz = int(np.count_nonzero(b))
+            # 'none' is a side nothing reaches from the main mix at all --
+            # exactly zero at both pans, not "zero on the far side" (S144).
             want_live = (side == live_side)
             ok = (peak > 0.0) if want_live else (nz == 0)
             print('    %-3s %-20s %-5s peak=%-12.9g %s'
@@ -989,6 +1018,50 @@ def stereo_proof(sim, channel=1, freq=1000.0, frames=8):
         fails.append('centre control: MainL %.9g, MainR %.9g — a centred '
                      'strip must reach both XLRs at the same level'
                      % (lpk, rpk))
+    for nid, side, why in _PROOF_SINKS:
+        if side != 'none':
+            continue
+        nz = int(np.count_nonzero(got[nid]))
+        print('    %-3s %-20s none  %d non-zero sample(s) at CENTRE'
+              % ('OK ' if nz == 0 else 'BAD', nid, nz))
+        if nz:
+            fails.append('%s reads %d non-zero sample(s) from a CENTRED '
+                         'strip and the main mix must not reach it at all '
+                         '— %s' % (nid, nz, why))
+
+    # ── THE Out3 SELECT, MOVED (S144) ───────────────────────────────────
+    #
+    # The pass above proves the C/LF XLR carries the CENTRE at the shipping
+    # default. This one proves the other half of the same socket: with
+    # `Main Out3Mode` = 1 the Woof strip drives it, the Woof is the MONO SUM
+    # of the two main legs, and a mono sum of L+R is reached from EITHER
+    # side. Both readings are true of one output and they are what the
+    # coefficient between them selects; the static gate
+    # (`stereo_split_check` gate B) reports the union, 'both'.
+    print('  Out3Mode = 1 (Woof: the mono LF sum of both main legs):')
+    for pan, label in ((-1.0, 'hard LEFT'), (+1.0, 'hard RIGHT'),
+                       (0.0, 'CENTRE')):
+        sim.reset()
+        sim.states['C2_OUT3_SEL']['sel'] = 1
+        sim.set_gain(channel, 0.0)
+        sim.set_fader(channel, 0.0)
+        sim.set_pan(channel, pan)
+        for ch in range(1, 33):
+            nid = 'C1_FDR_%02d' % ch
+            if nid in sim.states and ch != channel:
+                sim.states[nid]['mute'] = 1
+        for f in range(frames):
+            t = (np.arange(BLOCK_SIZE) + f * BLOCK_SIZE) / SAMPLE_RATE
+            sim.inject(channel, 0.5 * np.sin(2 * math.pi * freq * t))
+            sim.process_frame()
+        pk = float(np.max(np.abs(sim.states['C2_OUT3_OUT']['buf'])))
+        ok3 = pk > 0.0
+        print('    %-3s C2_OUT3_OUT  %-10s peak=%-12.9g must be LIVE'
+              % ('OK ' if ok3 else 'BAD', label, pk))
+        if not ok3:
+            fails.append('C2_OUT3_OUT at Out3Mode=1, pan %s: peak %.9g — the '
+                         'Woof is the mono sum of both main legs, so it is '
+                         'reached from either side' % (label, pk))
 
     if fails:
         print()

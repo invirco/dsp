@@ -222,6 +222,26 @@ RAMP_PROFILES = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def cell_prefix(node):
+    """The suffix PREFIX this node's cells carry, or '' (S144).
+
+    `Main Out3Delay`, `Main Out3Mute` and `Main Out3Mtr` are the shared
+    C/LF tail's cells: category `Main`, suffixes that begin `Out3`. The
+    expanders build a cell name as cn(cat, inst, suffix, fun) with the
+    suffix fixed by the node TYPE -- a DELAY emits `Delay`, an OUTPUT_TDM
+    emits `Mute` -- so a node whose contract spelling is prefixed needs one
+    declaration rather than three bespoke expanders. `cell_prefix=Out3` in
+    the row's params is that declaration, and it is honoured by DELAY,
+    OUTPUT_TDM, METER and SOURCE_SEL.
+    """
+    return parse_params(node.get('params', '')).get('cell_prefix', '')
+
+
+def cnp(node, cat, inst, suffix, fun):
+    """cn(), with this node's `cell_prefix` applied to the suffix."""
+    return cn(cat, inst, cell_prefix(node) + suffix, fun)
+
+
 def cn(cat, inst, suffix, fun):
     """Build _Cell name, e.g. Chan001EqFreq002."""
     return f'{cat}{inst:03d}{suffix}{fun:03d}'
@@ -682,7 +702,8 @@ def expand_delay(node, cat, inst):
     params = parse_params(node.get('params', ''))
     max_ms = params.get('max_ms', '250')
     # 2 SPI words: delay_ms + pool_slot
-    add_cell(cn(cat, inst, 'Delay', 1), chip, pg, base, ramp_profile='InstantCtl')
+    add_cell(cnp(node, cat, inst, 'Delay', 1), chip, pg, base,
+             ramp_profile='InstantCtl')
     add_dispatch(chip, base, f'_dly_read_offset_{nid}', f'{nid} delay offset')
     add_dispatch(chip, base + 1, f'_dly_pool_slot_{nid}', f'{nid} pool_slot')
 
@@ -1059,12 +1080,13 @@ def expand_meter(node, cat, inst):
                      f'names, or fix the declaration.')
         suffix, fun, off, sym, note = _METER_TAPS[tap]
         if off is None:
-            name = cn(cat, inst, suffix, fun)
+            name = cnp(node, cat, inst, suffix, fun)
             if _CELL_SPLIT.match(name):
                 unbacked_meter_cells[name] = f'{nid} declares tap {tap!r}: {note}'
             continue
         if suffix is not None:
-            add_cell(cn(cat, inst, suffix, fun), chip, pg, base + off, ramp_profile='', notes=note)
+            add_cell(cnp(node, cat, inst, suffix, fun), chip, pg, base + off,
+                     ramp_profile='', notes=note)
         add_dispatch(chip, base + off, f'{sym}{nid}' if sym else None,
                      f'{nid} {tap}')
 
@@ -1256,7 +1278,7 @@ def expand_crossover(node, cat, inst):
     # true, so all three pairs resolve to this node's address rather than
     # one strip getting the cell and the other two reading as gaps. Many
     # cells to one address is the normal shape here (see wire_contract.py).
-    for scat, sinst in _XOVER_STRIPS:
+    for scat, sinst in _xover_strips(nid):
         add_cell(cn(scat, sinst, 'CrossoverFreq', 1), chip, pg, base, ramp_profile='EqSafe',
                  notes='shared crossover frequency word')
         add_cell(cn(scat, sinst, 'CrossoverSlope', 1), chip, pg, base + 1, ramp_profile='InstantCtl',
@@ -1307,6 +1329,65 @@ def expand_crossover(node, cat, inst):
         if key not in dispatch:
             add_dispatch(chip, base + off, None, f'{nid} spare')
 
+    # `Main CrossoverOn` AND `Main CrossoverLink` (S144, PW ruling D5), at
+    # base+2 and base+3 -- the LAST TWO WORDS THIS NODE ACTUALLY OWNS. The
+    # node is allocated four words; the staging-coefficient dispatch above
+    # runs to base+19 and is overwritten by the nodes that own those
+    # addresses when they expand, which is why the two cells are emitted
+    # AFTER it rather than by narrowing the loop. Nothing wrote either word
+    # before this: they were staging coefficients the contract does not
+    # name and no host sets.
+    #
+    # On = 0 designs the compiled identity into both cascades (the
+    # crossover is OUT); Link = 1 makes every node that declares
+    # `link_from=` this one design at THIS node's corner and slope. Both
+    # raise the same dirty flag the frequency does, so the design runs on
+    # the block the word arrives and the change rides the node's own
+    # dual-instance crossfade.
+    prm = parse_params(node.get('params', ''))
+    if prm.get('on_cell'):
+        add_cell(cn(cat, inst, 'CrossoverOn', 1), chip, pg, base + 2,
+                 ramp_profile='InstantCtl')
+        add_dispatch(chip, base + 2, f'_xover_on_{nid}', f'{nid} crossover IN on/off')
+        add_dirty_block(chip, base + 2, 1, f'_xover_dirty_{nid}')
+    if prm.get('link_cell'):
+        add_cell(cn(cat, inst, 'CrossoverLink', 1), chip, pg, base + 3,
+                 ramp_profile='InstantCtl')
+        add_dispatch(chip, base + 3, f'_xover_link_{nid}', f'{nid} crossover link')
+        add_dirty_block(chip, base + 3, 1, f'_xover_dirty_{nid}')
+
+
+# ── SOURCE_SEL (S144) ────────────────────────────────────────────────────
+def expand_source_sel(node, cat, inst):
+    """A select word, and optionally a link word (S144).
+
+    Four words: +0 the source index, +1 the link, +2/+3 spare. The SUFFIX
+    is the row's, not the type's, because the three selects the block
+    rulings ask for are spelled three different ways -- `MainSub Src`,
+    `Main Out3Mode`, `Mon PickOff` -- on one kernel. The CATEGORY is still
+    `_NODE_PATTERNS`', so a new select cannot reach cells without being
+    classified there first.
+    """
+    chip, pg, base, nid, ramp = _parse_node(node)
+    prm = parse_params(node.get('params', ''))
+    sfx = prm.get('cell_suffix')
+    if not sfx:
+        sys.exit(f'ERROR: SOURCE_SEL node {nid} carries no cell_suffix= — '
+                 f'say which cell selects its source (MainSub Src, Main '
+                 f'Out3Mode, Mon PickOff, ...); refusing to guess.')
+    add_cell(cnp(node, cat, inst, sfx, 1), chip, pg, base,
+             ramp_profile='InstantCtl')
+    add_dispatch(chip, base, f'_ssel_sel_{nid}', f'{nid} source select')
+
+    lsfx = prm.get('link_cell_suffix')
+    if lsfx:
+        add_cell(cnp(node, cat, inst, lsfx, 1), chip, pg, base + 1,
+                 ramp_profile='InstantCtl')
+    add_dispatch(chip, base + 1, f'_ssel_link_{nid}', f'{nid} link')
+
+    for off in (2, 3):
+        add_dispatch(chip, base + off, None, f'{nid} spare')
+
 
 # ── MONITOR ──────────────────────────────────────────────────────────────
 def expand_monitor(node, cat, inst):
@@ -1350,10 +1431,23 @@ def expand_output_tdm(node, cat, inst):
     # The dB table is the master's own for these four strips
     # (`dB:Off:-50@31:-30@63:-10@127:10`), the same one every other output
     # level in this generator carries.
-    add_cell(cn(cat, inst, 'Level', 1), chip, mo_pg, mo_base, ramp_profile='GainFast')
+    #
+    # A PREFIXED OUTPUT HAS NO LEVEL CELL, and that is the contract, not a
+    # fallback (S144). The shared C/LF tail carries `Main Out3Mute` and no
+    # `Main Out3Level`: its level is `MainCtr Level` or `MainSub Level`, on
+    # whichever strip `Main Out3Mode` selects, because the two strips have
+    # different EQ, different limiters and different sources and a level
+    # after the switch would be a third gain nobody asked for. So the
+    # level WORD still exists and is still dispatched -- the host can
+    # reach it by address, and the day a `Main Out3Level` is ruled it is
+    # one line here and no address moves -- and no cell names it. Same
+    # shape as the main outputs' pan word and `_mon_source_C2_MON`.
+    if not cell_prefix(node):
+        add_cell(cn(cat, inst, 'Level', 1), chip, mo_pg, mo_base, ramp_profile='GainFast')
     add_dispatch(chip, mo_base, f'_out_level_{nid}', f'{nid} output level')
 
-    add_cell(cn(cat, inst, 'Mute', 1), chip, mo_pg, mo_base + 1, ramp_profile='InstantCtl')
+    add_cell(cnp(node, cat, inst, 'Mute', 1), chip, mo_pg, mo_base + 1,
+             ramp_profile='InstantCtl')
     add_dispatch(chip, mo_base + 1, f'_out_mute_{nid}', f'{nid} output mute')
 
 
@@ -1533,6 +1627,7 @@ NODE_EXPANDERS = {
     'FX_ENGINE':      expand_fx_engine,
     'CROSSOVER':      expand_crossover,
     'MONITOR':        expand_monitor,
+    'SOURCE_SEL':     expand_source_sel,
     'HAPTIC':         expand_haptic,
     'AUX_INPUT':      expand_aux_input,
     'DCA':            expand_dca,
@@ -1579,13 +1674,54 @@ _GRP_TYPES  = r'FDR|EQ|GEQ|GATE|COMP'
 # and that runs long before the unmapped-reason table this used to sit in.
 _MAIN_OUT = ('MainL', 'MainR', 'MainCtr', 'MainSub')
 
-_MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1),
-                   3: ('MainCtr', 1), 4: ('MainSub', 1)}
+# S144: MainCtr and MainSub ARE NO LONGER POST-CROSSOVER MAIN OUTPUTS. PW
+# ruling D6 makes the centre a strip off the Ctr Channel Bus (`C2_CTR_*`)
+# and the sub a Woof strip off the Main L/R sum (`C2_WOOF_*`), sharing one
+# C/LF XLR through one mute, meter, delay and DAC. Main outputs 3 and 4 are
+# gone from the graph, so the two rows here are the two that remain.
+_MAIN_OUT_STRIP = {1: ('MainL', 1), 2: ('MainR', 1)}
 
-# Every strip the crossover feeds, in master spelling. One crossover node
-# exists in the graph and the masters document Freq/Slope on each output
-# strip, so the four cell pairs share the one address.
-_XOVER_STRIPS = (('MainL', 1), ('MainR', 1), ('MainCtr', 1), ('MainSub', 1))
+# WHICH STRIP'S CrossoverFreq/Slope CELLS EACH CROSSOVER NODE CARRIES.
+#
+# There are two crossover nodes and two cell pairs, one each, and until
+# S144 there was one node wearing four pairs that do not exist: the 28 Sep
+# generation gives `Main CrossoverFreq/Slope/On/Link` (the HPF pair driving
+# the two main instances) and `MainSub CrossoverFreq/Slope` (the Woof LPF),
+# and no MainL, MainR or MainCtr crossover cell at all. The four aliases
+# this table used to emit were four generated cells with no matrix row.
+#
+# `C2_MAIN_XOVER_R` is a FOLLOWER: it runs the master's coefficients, takes
+# no address and carries no cell, so it is not in this table and cannot be.
+_XOVER_STRIPS = {
+    # `Main CrossoverFreq/Slope` is the ruled pair (D5: "ONE parameter set
+    # driving the two DSP crossover instances"). `MainL`/`MainR` carry the
+    # same two cells on D12, D16 and D32 -- three products whose masters
+    # still put a crossover on each main leg -- and they alias this one
+    # word, which is exactly what the ruling says the two instances share.
+    # D24's generation dropped both, so on a D24 only the `Main` pair
+    # resolves; the address is the same one either way (decision D3, ONE
+    # address map).
+    #
+    # `MainCtr CrossoverFreq/Slope` IS GONE from all four products and is
+    # not emitted any more. It was two of the four aliases this table used
+    # to carry, and the centre is a strip now, not a crossover leg.
+    'C2_MAIN_XOVER': (('Main', 1), ('MainL', 1), ('MainR', 1)),
+    'C2_WOOF_XOVER': (('MainSub', 1),),
+}
+
+
+def _xover_strips(nid):
+    """The master strip(s) whose crossover cells this node carries.
+
+    No-fallback: a crossover node this table has never been asked about is
+    an error, not a silent 'no cells'. Same rule, and the same reason, as
+    _main_out_strip() below it.
+    """
+    if nid not in _XOVER_STRIPS:
+        sys.exit(f'ERROR: crossover node {nid} has no entry in '
+                 f'_XOVER_STRIPS — say which master strip\'s '
+                 f'CrossoverFreq/Slope cells it carries, in gen_dsp.py')
+    return _XOVER_STRIPS[nid]
 
 
 def _main_out_strip(n):
@@ -1635,14 +1771,30 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_AUX_OUT_(\d+)$'),               lambda m: None),
     # Group (Chip 2)
     (re.compile(rf'^C2_GRP_(?:{_GRP_TYPES})_(\d+)$'), lambda m: ('Grp', int(m.group(1)))),
-    # Subwoofer strip (Chip 2) -- THE OLD MODEL. Under the 08-25 main
-    # section model the sub is a post-crossover OUTPUT (chain 4 below) and
-    # there is no separate sub mix bus, so this whole chain -- fed from
-    # BUS_SUB and landing on NET_OUT_01 -- reaches no master cell. It is
-    # FLAGGED FOR RETIREMENT AND NOT DELETED: the nodes stay in the graph,
-    # keep their addresses, and are listed by validate() with that reason.
-    (re.compile(r'^C2_SUB_(?:FDR|EQ|COMP|LIM|DLY)$'), lambda m: None),
-    (re.compile(r'^C2_SUB_OUT$'),                      lambda m: None),
+    # ── THE CENTRE / LF OUTPUT (S144, PW rulings D6 + D5) ─────────────
+    #
+    # THE SUB-BUS CHAIN WAS THE CENTRE STRIP ALL ALONG and this is where it
+    # stops being retired. `C1_BUS_SUB` carries every channel's
+    # `Chan*CtrOn` send -- on this product the sub bus IS the centre bus,
+    # PW ruling R5 -- so the chain it feeds gets the whole `MainCtr`
+    # family: fader/mute, 4-band EQ, 31-band GEQ and limiter. The nodes
+    # are the same nodes at the same addresses (`C2_SUB_FDR` -> `C2_CTR_FDR`
+    # and so on); what changed is that they now reach cells.
+    (re.compile(r'^C2_CTR_(?:FDR|EQ|GEQ|AFB|LIM)$'),
+     lambda m: ('MainCtr', 1)),
+    # The Woof strip: the Main L/R sum, a source select, the LPF half of
+    # the crossover pair, and `MainSub`'s own fader / EQ / limiter.
+    (re.compile(r'^C2_WOOF_(?:SRC|XOVER|FDR|EQ|LIM)$'),
+     lambda m: ('MainSub', 1)),
+    # The LF sum itself is a fixed unity mono sum of the two main legs with
+    # no word a host can write, so it takes no address and reaches no cell.
+    (re.compile(r'^C2_WOOF_MIX$'),                     lambda m: None),
+    # The SHARED tail. One C/LF XLR through one mute, meter, delay and DAC
+    # (the 24 Sep master block), and the cells are category `Main` with an
+    # `Out3` suffix prefix: Out3Mode, Out3Link, Out3Delay, Out3Mute,
+    # Out3Mtr. `cell_prefix=Out3` on the rows is what carries that.
+    (re.compile(r'^C2_OUT3_(?:SEL|DLY|OUT)$'),          lambda m: ('Main', 1)),
+    (re.compile(r'^C2_MTR_OUT3$'),                      lambda m: ('Main', 1)),
     # Main bus (Chip 2) -- the stereo mix-bus strip: fader, mute, 28-band
     # GEQ, delay. The masters give `Main[1-1]` exactly CueSel, Dca, DcaOn,
     # Delay, Geq[1-28], Level, Mute, Name (plus Out3Mode on D24) and no
@@ -1705,9 +1857,10 @@ _NODE_PATTERNS = [
     (re.compile(r'^C2_MTR_MAIN_(\d+)$'),
      lambda m: _main_out_strip(int(m.group(1)))),
     (re.compile(r'^C2_MTR_GRP_(\d+)$'),                lambda m: ('Grp', int(m.group(1)))),
-    # The sub BUS meter goes with the sub bus strip -- retired, not deleted.
-    # MainSub's meter is C2_MTR_MAIN_04 on output chain 4.
-    (re.compile(r'^C2_MTR_SUB$'),                      lambda m: None),
+    # `C2_MTR_SUB` is `C2_MTR_OUT3` since S144 -- the ONE shared C/LF
+    # meter, matched above with the rest of the Out3 tail. It kept the
+    # word and the stride and gained a cell.
+
     (re.compile(r'^C2_MTR_FX_(\d+)$'),                 lambda m: ('Fx', int(m.group(1)))),
     # Recv/Send (no cells)
     (re.compile(r'^C2_RECV_'),                         lambda m: None),
@@ -2420,6 +2573,50 @@ def write_dsp_params_asm(dry_run=False):
 # ---------------------------------------------------------------------------
 # Output: ghost_cells.h
 # ---------------------------------------------------------------------------
+def write_graph_params_asm(out_dir, dry_run=False):
+    """The dispatch tables the GRAPH implies, into a scratch tree (S144).
+
+    WHY THIS EXISTS. `dsp_params.asm` in the tree is generated from the
+    LANDED contract, and the landed contract lags the graph for as long as
+    a proposal is in flight at the hub gate -- which is the normal state of
+    this repo between a graph change and a defs tag. S143 could still build
+    the tree during that window because it only ADDED nodes: the stale
+    dispatch table named nothing that had gone away, so it linked. S144
+    REMOVES nodes (the sub chain, main outputs 3 and 4 and their meters),
+    and a stale table then references thirty-odd `.var`s that no longer
+    exist and the link fails on every one of them.
+
+    So "does the graph assemble and link" stopped being answerable, and it
+    is the question a desk session most needs answered before it hands work
+    to the hub. This writes the graph's own tables into a directory OUTSIDE
+    the tree, for a build out of a scratch copy of src/. It deliberately
+    does NOT touch `SHARC/src/chip*/dsp_params.asm`: that file tracks the
+    landed contract, `regenerate-dsp-contract.sh` is what writes it, and a
+    graph-derived copy committed here would be exactly the second source of
+    truth defs S1 retired.
+    """
+    convert, applied, unresolved = build_wire_convert_map()
+    report_wire_conversions(applied, unresolved)
+    for chip_num, table_name, tree_path, nodes_dir in [
+        (1, '_spi_dispatch_c1', OUT_PARAMS_C1, NODES_DIR_C1),
+        (2, '_spi_dispatch_c2', OUT_PARAMS_C2, NODES_DIR_C2),
+    ]:
+        sub = os.path.join(out_dir, f'chip{chip_num}')
+        out_path = os.path.join(sub, 'dsp_params.asm')
+        strides = build_ramp_stride_map(nodes_dir)
+        content, line_count = _build_chip_params(chip_num, table_name,
+                                                 out_path, strides, convert)
+        if content is None:
+            continue
+        if dry_run:
+            print(f'[DRY-RUN] Would write {out_path} ({line_count} lines)')
+            continue
+        os.makedirs(sub, exist_ok=True)
+        _atomic_write(out_path, content)
+        print(f'  Wrote {out_path} ({line_count} lines) — '
+              f'FROM THE GRAPH, for a scratch build only')
+
+
 def write_ghost_cells_h(dry_run=False):
     """Generate ghost_cells.h (declaration only) + ghost_cells.c (definition).
 
@@ -2973,6 +3170,165 @@ for _s in _MAIN_OUT:
 # D15 = FX sample-play family. Ruling numbers are the audit's own, kept in
 # the reason text so a future session can find the ruling that named them.
 _UNMAPPED_REASONS.update({
+    ('MainSub', 'CompAtt'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompDetSrc'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompEqPos'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompFilterHpf'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompFilterLpf'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompFilterOn'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompFilterQ'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompKey'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompKnee'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompLimMode'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompMake'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompOn'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompPar'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompRat'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompRel'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompThr'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'CompType'): ('no-graph-node',
+        'the Woof strip has no compressor (S144, PW ruling D6): the 24 '
+        'Sep master block draws the Centre/LF path as source select -> '
+        'LPF -> fader -> EQ -> limiter, and D24 own generation '
+        '46109e9fb812 DROPPED every MainSub Comp* cell to match. '
+        'D12/D16/D32 still declare the family from the superseded '
+        'post-crossover model, so these rows are stale UPSTREAM, not a '
+        'DSP function that went missing - recorded for the hub rather '
+        'than built back'),
+    ('MainSub', 'Mtr'): ('no-graph-node',
+        'there is ONE meter on the Centre/LF path and it is `Main Out3Mtr` '
+        '(S144, PW ruling D6: "one C/LF XLR through one mute, meter, delay '
+        'and DAC"). D24 declares that cell and no MainSub Mtr; D12/D16/D32 '
+        'declare MainSub Mtr and no Out3 family, from the superseded '
+        'post-crossover model. Stale upstream, recorded for the hub'),
     ('Aux', 'AntiFbGain'): ('no-graph-node',
         'declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work'),
     ('Aux', 'AntiFbLimOn'): ('no-graph-node',
@@ -3678,6 +4034,13 @@ def main():
                              'this tool finishes, one per line, and exit. '
                              'sync-defs.sh reads this instead of keeping its '
                              'own copy of the list.')
+    parser.add_argument('--params-dir', metavar='DIR',
+                        help='With --propose and a graph that is AHEAD of '
+                             'the landed contract: also write the GRAPH\'s '
+                             'dsp_params.asm into DIR/chip{1,2}/, for a '
+                             'scratch build that proves the graph links '
+                             'while its proposal is in flight. Never writes '
+                             'into SHARC/src.')
     parser.add_argument('--backfill-report', action='store_true',
                         help='Report, per product, how many matrix cells the '
                              'LANDED map would give an address to. Reads '
@@ -3760,6 +4123,9 @@ def main():
                   'defs/products/<p>/dsp.csv, not the graph. Land the '
                   'proposal at the hub gate, advance the defs pin, then '
                   'run without --propose.')
+            if args.params_dir:
+                write_graph_params_asm(args.params_dir,
+                                       dry_run=args.dry_run)
             return
         print()
         print('The proposal matches what is already landed; nothing to gate.')

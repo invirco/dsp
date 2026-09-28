@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Sub Delay (DELAY)
- * Node ID:    C2_SUB_DLY
+ * Out3 Delay (DELAY)
+ * Node ID:    C2_OUT3_DLY
  * Chip:       2
  * Channels:   1
  * SPI Page:   1
@@ -19,41 +19,41 @@
 /* Max: 250.0ms = 12000 samples */
 
 .section/dm seg_delay;
-.extern _buf_C2_SUB_LIM;
+.extern _buf_C2_OUT3_SEL;
 .extern _sample_idx;
-.global _dly_buf_C2_SUB_DLY;
-.var _dly_buf_C2_SUB_DLY[12000];  /* L2 SRAM delay buffer */
+.global _dly_buf_C2_OUT3_DLY;
+.var _dly_buf_C2_OUT3_DLY[12000];  /* L2 SRAM delay buffer */
 .section/dm seg_dmda;
-.global _dly_write_ptr_C2_SUB_DLY;
-.var _dly_write_ptr_C2_SUB_DLY = 0;
-.global _dly_read_offset_C2_SUB_DLY;
-.var _dly_read_offset_C2_SUB_DLY = 0;      /* in samples; 0 = no delay */
-.global _dly_pool_slot_C2_SUB_DLY;
-.var _dly_pool_slot_C2_SUB_DLY = -1; /* reserved for future reassignment */
-.global _dly_max_C2_SUB_DLY;
-.var _dly_max_C2_SUB_DLY = 12000;
-.global _tap_pre_fader_C2_SUB_DLY;
-.var _tap_pre_fader_C2_SUB_DLY;   /* pre-fader tap */
-.global _buf_C2_SUB_DLY;
-.var _buf_C2_SUB_DLY;
+.global _dly_write_ptr_C2_OUT3_DLY;
+.var _dly_write_ptr_C2_OUT3_DLY = 0;
+.global _dly_read_offset_C2_OUT3_DLY;
+.var _dly_read_offset_C2_OUT3_DLY = 0;      /* in samples; 0 = no delay */
+.global _dly_pool_slot_C2_OUT3_DLY;
+.var _dly_pool_slot_C2_OUT3_DLY = -1; /* reserved for future reassignment */
+.global _dly_max_C2_OUT3_DLY;
+.var _dly_max_C2_OUT3_DLY = 12000;
+.global _tap_pre_fader_C2_OUT3_DLY;
+.var _tap_pre_fader_C2_OUT3_DLY;   /* pre-fader tap */
+.global _buf_C2_OUT3_DLY;
+.var _buf_C2_OUT3_DLY;
 
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_SUB_LIM;
+        .extern _blk_C2_OUT3_SEL;
         #endif
         #if DSP4_BLOCK_KERNELS
-        .global _blk_C2_SUB_DLY;
-        .var _blk_C2_SUB_DLY[DSP4_BLOCK_SIZE];
-        .global _bw_k_C2_SUB_DLY;
-        .var _bw_k_C2_SUB_DLY;        /* the caller's _sample_idx */
-        .global _bw_s0_C2_SUB_DLY;
-        .var _bw_s0_C2_SUB_DLY;       /* walking source pointer */
-        .global _bw_d0_C2_SUB_DLY;
-        .var _bw_d0_C2_SUB_DLY;       /* walking sink pointer */
+        .global _blk_C2_OUT3_DLY;
+        .var _blk_C2_OUT3_DLY[DSP4_BLOCK_SIZE];
+        .global _bw_k_C2_OUT3_DLY;
+        .var _bw_k_C2_OUT3_DLY;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_OUT3_DLY;
+        .var _bw_s0_C2_OUT3_DLY;       /* walking source pointer */
+        .global _bw_d0_C2_OUT3_DLY;
+        .var _bw_d0_C2_OUT3_DLY;       /* walking sink pointer */
         #endif
 
 .section/pm seg_pmco;
-.global _C2_SUB_DLY_process;
-_C2_SUB_DLY_process:
+.global _C2_OUT3_DLY_process;
+_C2_OUT3_DLY_process:
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this
@@ -83,82 +83,82 @@ _C2_SUB_DLY_process:
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_SUB_LIM;
+            i4 = _blk_C2_OUT3_SEL;
             r3 = i4;
-            dm(_bw_s0_C2_SUB_DLY) = r3;
-            i4 = _blk_C2_SUB_DLY;
+            dm(_bw_s0_C2_OUT3_DLY) = r3;
+            i4 = _blk_C2_OUT3_DLY;
             r3 = i4;
-            dm(_bw_d0_C2_SUB_DLY) = r3;
+            dm(_bw_d0_C2_OUT3_DLY) = r3;
             r5 = dm(_sample_idx);
-            dm(_bw_k_C2_SUB_DLY) = r5;
+            dm(_bw_k_C2_OUT3_DLY) = r5;
             r5 = 0;
             dm(_sample_idx) = r5;
             /* sample 0, peeled: the block-rate guard fires here */
-                r3 = dm(_bw_s0_C2_SUB_DLY);
+                r3 = dm(_bw_s0_C2_OUT3_DLY);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_SUB_LIM) = r0;
+                dm(_buf_C2_OUT3_SEL) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_SUB_DLY) = r3;
-                call _C2_SUB_DLY_process_sample;
-                r0 = dm(_buf_C2_SUB_DLY);
-                r3 = dm(_bw_d0_C2_SUB_DLY);
+                dm(_bw_s0_C2_OUT3_DLY) = r3;
+                call _C2_OUT3_DLY_process_sample;
+                r0 = dm(_buf_C2_OUT3_DLY);
+                r3 = dm(_bw_d0_C2_OUT3_DLY);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-                dm(_bw_d0_C2_SUB_DLY) = r3;
+                dm(_bw_d0_C2_OUT3_DLY) = r3;
             r5 = 1;
             dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */
-            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_SUB_DLY until lce;
-                r3 = dm(_bw_s0_C2_SUB_DLY);
+            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_OUT3_DLY until lce;
+                r3 = dm(_bw_s0_C2_OUT3_DLY);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_SUB_LIM) = r0;
+                dm(_buf_C2_OUT3_SEL) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_SUB_DLY) = r3;
-                call _C2_SUB_DLY_process_sample;
-                r0 = dm(_buf_C2_SUB_DLY);
-                r3 = dm(_bw_d0_C2_SUB_DLY);
+                dm(_bw_s0_C2_OUT3_DLY) = r3;
+                call _C2_OUT3_DLY_process_sample;
+                r0 = dm(_buf_C2_OUT3_DLY);
+                r3 = dm(_bw_d0_C2_OUT3_DLY);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-            .bwlp_C2_SUB_DLY: dm(_bw_d0_C2_SUB_DLY) = r3;
-            r5 = dm(_bw_k_C2_SUB_DLY);
+            .bwlp_C2_OUT3_DLY: dm(_bw_d0_C2_OUT3_DLY) = r3;
+            r5 = dm(_bw_k_C2_OUT3_DLY);
             dm(_sample_idx) = r5;
             rts;
 
-        .global _C2_SUB_DLY_process_sample;
-        _C2_SUB_DLY_process_sample:
+        .global _C2_OUT3_DLY_process_sample;
+        _C2_OUT3_DLY_process_sample:
         #endif
-    r0 = dm(_buf_C2_SUB_LIM);
+    r0 = dm(_buf_C2_OUT3_SEL);
 
     /* Write to circular buffer at write pointer */
-    i0 = _dly_buf_C2_SUB_DLY;
-    r1 = dm(_dly_write_ptr_C2_SUB_DLY);
+    i0 = _dly_buf_C2_OUT3_DLY;
+    r1 = dm(_dly_write_ptr_C2_OUT3_DLY);
     m0 = r1;
     modify(i0, m0);
     dm(i0, 0) = r0;
 
     /* Read from (write_ptr - read_offset) with wrap */
-    r2 = dm(_dly_read_offset_C2_SUB_DLY);
+    r2 = dm(_dly_read_offset_C2_OUT3_DLY);
     r1 = r1 - r2;
-    r3 = dm(_dly_max_C2_SUB_DLY);
+    r3 = dm(_dly_max_C2_OUT3_DLY);
     if lt r1 = r1 + r3;
-    i0 = _dly_buf_C2_SUB_DLY;
+    i0 = _dly_buf_C2_OUT3_DLY;
     m0 = r1;
     modify(i0, m0);
     r0 = dm(i0, 0);
 
     /* Advance write pointer with wrap */
-    r1 = dm(_dly_write_ptr_C2_SUB_DLY);
+    r1 = dm(_dly_write_ptr_C2_OUT3_DLY);
     r15 = 1;
     r1 = r1 + r15;
-    r3 = dm(_dly_max_C2_SUB_DLY);
+    r3 = dm(_dly_max_C2_OUT3_DLY);
     comp(r1, r3);
     if ge r1 = r1 - r3;
-    dm(_dly_write_ptr_C2_SUB_DLY) = r1;
+    dm(_dly_write_ptr_C2_OUT3_DLY) = r1;
 
-    dm(_tap_pre_fader_C2_SUB_DLY) = r0;
-    dm(_buf_C2_SUB_DLY) = r0;
+    dm(_tap_pre_fader_C2_OUT3_DLY) = r0;
+    dm(_buf_C2_OUT3_DLY) = r0;
     rts;
-_C2_SUB_DLY_process.end:
+_C2_OUT3_DLY_process.end:

@@ -1512,19 +1512,10 @@ Main001AntiFbNotchQ004,no-graph-node,declared by the 2026-09-28 block audit (PW 
 Main001AntiFbNotchQ005,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Main001AntiFbNotchQ006,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Main001AntiFbOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Main001CrossoverFreq001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D5); no node in the DSP graph builds it yet - queued DSP graph work
-Main001CrossoverLink001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D5); no node in the DSP graph builds it yet - queued DSP graph work
-Main001CrossoverOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D5); no node in the DSP graph builds it yet - queued DSP graph work
-Main001CrossoverSlope001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D5); no node in the DSP graph builds it yet - queued DSP graph work
 Main001CueSel001,control-plane,cue select; see Q5
 Main001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Main001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 Main001Name001,label,"text label; the host stores it, the DSP has no word for it"
-Main001Out3Delay001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-Main001Out3Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-Main001Out3Mode001,no-graph-node,D24 centre-output mode (def key main.ctr); C2_MAIN_XOVER feeds all four outputs unconditionally and no word selects output 3's source — open question Q2
-Main001Out3Mtr001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-Main001Out3Mute001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001AntiFbCtrlOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
@@ -1565,37 +1556,6 @@ MainCtr001AuxSend007,no-graph-node,declared by the 2026-09-28 block audit (PW ru
 MainCtr001AuxSend008,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001Dca001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
 MainCtr001DcaOn001,host-managed,"the host owns the value outright — no DSP address, no kernel read (PW ruling 2026-08-30)"
-MainCtr001Geq001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq004,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq005,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq006,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq007,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq008,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq009,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq010,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq011,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq012,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq013,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq014,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq015,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq016,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq017,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq018,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq019,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq020,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq021,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq022,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq023,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq024,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq025,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq026,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq027,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq028,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq029,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq030,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
-MainCtr001Geq031,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001LimiterDetSrc001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D4); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001LimiterFilterHpf001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D4); no node in the DSP graph builds it yet - queued DSP graph work
 MainCtr001LimiterFilterLpf001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D4); no node in the DSP graph builds it yet - queued DSP graph work
@@ -1700,7 +1660,6 @@ MainSub001LimiterFilterOn001,no-graph-node,declared by the 2026-09-28 block audi
 MainSub001LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D4); no node in the DSP graph builds it yet - queued DSP graph work
 MainSub001LimiterRng001,no-graph-node,"limiter range; the LIMITER node carries On, Thr, Att and Rel and no range word"
 MainSub001Name001,label,"text label; the host stores it, the DSP has no word for it"
-MainSub001Src001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D6); no node in the DSP graph builds it yet - queued DSP graph work
 Mon001CueOn001,control-plane,cue select; the host folds it into the one monitor source word Mon001InputSel001 (PW ruling D8 2026-09-28)
 Mon001PhonesDelay001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D7); no node in the DSP graph builds it yet - queued DSP graph work
 Mon001PhonesLevel001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D7); no node in the DSP graph builds it yet - queued DSP graph work

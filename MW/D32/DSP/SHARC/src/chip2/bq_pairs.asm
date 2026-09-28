@@ -216,13 +216,6 @@ _bqp_tap_eq.end:
 #endif
 .var _bqi_s_MOUT_OEQ_01_02[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_MOUT_OEQ_01_02 = 0;
-#if DSP4_BQ_GUARD
-.var _bqi_c_MOUT_OEQ_03_04[42];    /* 2 x (1 hdr + 4 x 5) */
-#else
-.var _bqi_c_MOUT_OEQ_03_04[40];    /* 2 x 4 stages x 5 coeffs */
-#endif
-.var _bqi_s_MOUT_OEQ_03_04[48];    /* 2 x 4 stages x 6 state  */
-.var _bqi_lat_MOUT_OEQ_03_04 = 0;
 
 .section/pm seg_pmco;
 .extern _C2_AUX_AFB_01_process;
@@ -271,8 +264,6 @@ _bqp_tap_eq.end:
 .extern _C2_GRP_GEQ_04_process;
 .extern _C2_MAIN_OEQ_01_process;
 .extern _C2_MAIN_OEQ_02_process;
-.extern _C2_MAIN_OEQ_03_process;
-.extern _C2_MAIN_OEQ_04_process;
 .extern _afb_active_C2_AUX_AFB_01;
 .extern _afb_active_C2_AUX_AFB_02;
 .extern _afb_active_C2_AUX_AFB_03;
@@ -419,8 +410,6 @@ _bqp_tap_eq.end:
 .extern _blk_C2_GRP_GEQ_04;
 .extern _blk_C2_MAIN_OEQ_01;
 .extern _blk_C2_MAIN_OEQ_02;
-.extern _blk_C2_MAIN_OEQ_03;
-.extern _blk_C2_MAIN_OEQ_04;
 .extern _blk_C2_MAIN_XOVER;
 .extern _blk_C2_MAIN_XOVER_R;
 .extern _bq_fx_cascade_simd;
@@ -470,8 +459,6 @@ _bqp_tap_eq.end:
 .extern _buf_C2_GRP_GEQ_04;
 .extern _buf_C2_MAIN_OEQ_01;
 .extern _buf_C2_MAIN_OEQ_02;
-.extern _buf_C2_MAIN_OEQ_03;
-.extern _buf_C2_MAIN_OEQ_04;
 .extern _eq_active_C2_AUX_EQ_01;
 .extern _eq_active_C2_AUX_EQ_02;
 .extern _eq_active_C2_AUX_EQ_03;
@@ -490,8 +477,6 @@ _bqp_tap_eq.end:
 .extern _eq_active_C2_GRP_EQ_04;
 .extern _eq_active_C2_MAIN_OEQ_01;
 .extern _eq_active_C2_MAIN_OEQ_02;
-.extern _eq_active_C2_MAIN_OEQ_03;
-.extern _eq_active_C2_MAIN_OEQ_04;
 .extern _eq_coeffs_A_C2_AUX_EQ_01;
 .extern _eq_coeffs_A_C2_AUX_EQ_02;
 .extern _eq_coeffs_A_C2_AUX_EQ_03;
@@ -510,8 +495,6 @@ _bqp_tap_eq.end:
 .extern _eq_coeffs_A_C2_GRP_EQ_04;
 .extern _eq_coeffs_A_C2_MAIN_OEQ_01;
 .extern _eq_coeffs_A_C2_MAIN_OEQ_02;
-.extern _eq_coeffs_A_C2_MAIN_OEQ_03;
-.extern _eq_coeffs_A_C2_MAIN_OEQ_04;
 .extern _eq_coeffs_B_C2_AUX_EQ_01;
 .extern _eq_coeffs_B_C2_AUX_EQ_02;
 .extern _eq_coeffs_B_C2_AUX_EQ_03;
@@ -530,8 +513,6 @@ _bqp_tap_eq.end:
 .extern _eq_coeffs_B_C2_GRP_EQ_04;
 .extern _eq_coeffs_B_C2_MAIN_OEQ_01;
 .extern _eq_coeffs_B_C2_MAIN_OEQ_02;
-.extern _eq_coeffs_B_C2_MAIN_OEQ_03;
-.extern _eq_coeffs_B_C2_MAIN_OEQ_04;
 .extern _eq_state_A_C2_AUX_EQ_01;
 .extern _eq_state_A_C2_AUX_EQ_02;
 .extern _eq_state_A_C2_AUX_EQ_03;
@@ -550,8 +531,6 @@ _bqp_tap_eq.end:
 .extern _eq_state_A_C2_GRP_EQ_04;
 .extern _eq_state_A_C2_MAIN_OEQ_01;
 .extern _eq_state_A_C2_MAIN_OEQ_02;
-.extern _eq_state_A_C2_MAIN_OEQ_03;
-.extern _eq_state_A_C2_MAIN_OEQ_04;
 .extern _eq_state_B_C2_AUX_EQ_01;
 .extern _eq_state_B_C2_AUX_EQ_02;
 .extern _eq_state_B_C2_AUX_EQ_03;
@@ -570,8 +549,6 @@ _bqp_tap_eq.end:
 .extern _eq_state_B_C2_GRP_EQ_04;
 .extern _eq_state_B_C2_MAIN_OEQ_01;
 .extern _eq_state_B_C2_MAIN_OEQ_02;
-.extern _eq_state_B_C2_MAIN_OEQ_03;
-.extern _eq_state_B_C2_MAIN_OEQ_04;
 .extern _eq_swap_pending_C2_AUX_EQ_01;
 .extern _eq_swap_pending_C2_AUX_EQ_02;
 .extern _eq_swap_pending_C2_AUX_EQ_03;
@@ -590,8 +567,6 @@ _bqp_tap_eq.end:
 .extern _eq_swap_pending_C2_GRP_EQ_04;
 .extern _eq_swap_pending_C2_MAIN_OEQ_01;
 .extern _eq_swap_pending_C2_MAIN_OEQ_02;
-.extern _eq_swap_pending_C2_MAIN_OEQ_03;
-.extern _eq_swap_pending_C2_MAIN_OEQ_04;
 .extern _eq_xfade_step_C2_AUX_EQ_01;
 .extern _eq_xfade_step_C2_AUX_EQ_02;
 .extern _eq_xfade_step_C2_AUX_EQ_03;
@@ -610,8 +585,6 @@ _bqp_tap_eq.end:
 .extern _eq_xfade_step_C2_GRP_EQ_04;
 .extern _eq_xfade_step_C2_MAIN_OEQ_01;
 .extern _eq_xfade_step_C2_MAIN_OEQ_02;
-.extern _eq_xfade_step_C2_MAIN_OEQ_03;
-.extern _eq_xfade_step_C2_MAIN_OEQ_04;
 .extern _geq_active_C2_AUX_GEQ_01;
 .extern _geq_active_C2_AUX_GEQ_02;
 .extern _geq_active_C2_AUX_GEQ_03;
@@ -742,8 +715,6 @@ _bqp_tap_eq.end:
 .extern _tap_post_eq_C2_GRP_EQ_04;
 .extern _tap_post_eq_C2_MAIN_OEQ_01;
 .extern _tap_post_eq_C2_MAIN_OEQ_02;
-.extern _tap_post_eq_C2_MAIN_OEQ_03;
-.extern _tap_post_eq_C2_MAIN_OEQ_04;
 #if DSP4_BQ_GUARD
 .extern _afb_hrw_C2_AUX_AFB_01;
 .extern _afb_hrw_C2_AUX_AFB_02;
@@ -775,8 +746,6 @@ _bqp_tap_eq.end:
 .extern _eq_hrw_C2_GRP_EQ_04;
 .extern _eq_hrw_C2_MAIN_OEQ_01;
 .extern _eq_hrw_C2_MAIN_OEQ_02;
-.extern _eq_hrw_C2_MAIN_OEQ_03;
-.extern _eq_hrw_C2_MAIN_OEQ_04;
 .extern _geq_hrw_C2_AUX_GEQ_01;
 .extern _geq_hrw_C2_AUX_GEQ_02;
 .extern _geq_hrw_C2_AUX_GEQ_03;
@@ -5755,213 +5724,6 @@ _C2BQP_MOUT_OEQ_01_02_process:
     call _C2_MAIN_OEQ_02_process;
     rts;
 _C2BQP_MOUT_OEQ_01_02_process.end:
-
-/* ---- C2_MAIN_OEQ_03 + C2_MAIN_OEQ_04: 4 stages ---- */
-.global _C2BQP_MOUT_OEQ_03_04_process;
-_C2BQP_MOUT_OEQ_03_04_process:
-    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
-    /* Both channels steady, or there is no pair: a staged
-     * coefficient set or a running crossfade goes through the
-     * node's own reference path. */
-    r1 = dm(_eq_swap_pending_C2_MAIN_OEQ_03);
-    r0 = dm(_eq_xfade_step_C2_MAIN_OEQ_03);
-    r1 = r1 or r0;
-    r0 = dm(_eq_swap_pending_C2_MAIN_OEQ_04);
-    r1 = r1 or r0;
-    r0 = dm(_eq_xfade_step_C2_MAIN_OEQ_04);
-    r1 = r1 or r0;
-#if DSP4_BQ_GUARD
-    /* A sizing in flight is a transient like any other: the
-     * node's H is about to change, and the interleaved block
-     * the pair latched carries a copy of it. */
-    r0 = dm(_eq_hrw_C2_MAIN_OEQ_03);
-    r1 = r1 or r0;
-    r0 = dm(_eq_hrw_C2_MAIN_OEQ_04);
-    r1 = r1 or r0;
-#endif
-    r1 = pass r1;
-    if ne jump (pc, .bqiS_MOUT_OEQ_03_04);
-
-    r0 = dm(_bqi_lat_MOUT_OEQ_03_04);
-    r0 = pass r0;
-    if ne jump (pc, .bqiR_MOUT_OEQ_03_04);
-
-    /* ---- ENGAGE: gather each channel's ACTIVE instance into
-     * the pair's interleaved arrays, once. ---- */
-    r2 = _eq_coeffs_A_C2_MAIN_OEQ_03;
-    r3 = _eq_state_A_C2_MAIN_OEQ_03;
-    r8 = _eq_coeffs_B_C2_MAIN_OEQ_03;
-    r9 = _eq_state_B_C2_MAIN_OEQ_03;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_03);
-    r0 = pass r0;
-    if eq r8 = r2;
-    if eq r9 = r3;
-    r2 = _eq_coeffs_A_C2_MAIN_OEQ_04;
-    r3 = _eq_state_A_C2_MAIN_OEQ_04;
-    r11 = _eq_coeffs_B_C2_MAIN_OEQ_04;
-    r12 = _eq_state_B_C2_MAIN_OEQ_04;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_04);
-    r0 = pass r0;
-    if eq r11 = r2;
-    if eq r12 = r3;
-    i0 = r8;
-    i1 = r11;
-    i2 = _bqi_c_MOUT_OEQ_03_04;
-#if DSP4_C2_BQ_NEGCTL
-    /* NEGATIVE CONTROL. Channel B's coefficients are gathered as
-     * ZERO, so B runs a dead filter while A's is untouched. If
-     * the kernel really keeps the two channels apart then EVERY
-     * channel-B cascade output moves and NO channel-A one does.
-     *
-     * A CROSS-FEED CONTROL -- B takes A's coefficients, which is
-     * what chip 1's DSP4_BQ_NEGCTL does -- CANNOT WORK HERE. Every
-     * chip-2 cascade on the bench runs on the same .var bypass
-     * initialisers, so A and B are numerically the same filter and
-     * computing A twice gives the right answer. That is the gap
-     * the 2026-09-01 record named on the dynamics pairs; zeroing
-     * one channel closes it without needing distinct per-channel
-     * settings over the SPI plane. */
-    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i0, 1);
-        dm(i2, 1) = r0;
-        r0 = 0;
-    .bqiCE_MOUT_OEQ_03_04: dm(i2, 1) = r0;
-#else
-    lcntr = 20 + DSP4_BQ_HDR, do .bqiCE_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i0, 1);
-        dm(i2, 1) = r0;
-        r0 = dm(i1, 1);
-    .bqiCE_MOUT_OEQ_03_04: dm(i2, 1) = r0;
-#endif
-    i0 = r9;
-    i1 = r12;
-    i2 = _bqi_s_MOUT_OEQ_03_04;
-    lcntr = 24, do .bqiSE_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i0, 1);
-        dm(i2, 1) = r0;
-        r0 = dm(i1, 1);
-    .bqiSE_MOUT_OEQ_03_04: dm(i2, 1) = r0;
-    r0 = 1;
-    dm(_bqi_lat_MOUT_OEQ_03_04) = r0;
-
-.bqiR_MOUT_OEQ_03_04:
-    /* the two input blocks, interleaved -- the only per-block
-     * gather left */
-    i3 = _blk_C2_MAIN_XOVER;
-    i4 = _blk_C2_MAIN_XOVER;
-    i2 = _bqi_sig;
-    lcntr = DSP4_BLOCK_SIZE, do .bqiXI_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i3, 1);
-        dm(i2, 1) = r0;
-        r0 = dm(i4, 1);
-    .bqiXI_MOUT_OEQ_03_04: dm(i2, 1) = r0;
-
-    i0 = _bqi_c_MOUT_OEQ_03_04;
-    i1 = _bqi_s_MOUT_OEQ_03_04;
-    i2 = _bqi_sig;
-    r4 = 4;
-    call _bq_fx_cascade_simd;
-
-    /* NOTHING is carried in a register across that call -- it
-     * writes r0-r15 and i0-i2. Every address below is a link-time
-     * constant, which is the shape the 2026-08-29 paired-cascade
-     * hang taught: _bq_pair_blk had to park five words in DM.
-     */
-    l2 = 0; l3 = 0; l4 = 0;
-    i2 = _bqi_sig;
-    i3 = _blk_C2_MAIN_OEQ_03;
-    i4 = _blk_C2_MAIN_OEQ_04;
-    lcntr = DSP4_BLOCK_SIZE, do .bqiXO_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i2, 1);
-        dm(i3, 1) = r0;
-        r0 = dm(i2, 1);
-    .bqiXO_MOUT_OEQ_03_04: dm(i4, 1) = r0;
-
-    /* the scalar words a host peek reads, off the LAST sample of
-     * the block -- the same republish the GEQ block kernel makes
-     * for the same reason (D83). */
-    m4 = DSP4_BLOCK_SIZE-1;
-    i4 = _blk_C2_MAIN_OEQ_03;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OEQ_03) = r0;
-    dm(_tap_post_eq_C2_MAIN_OEQ_03) = r0;
-    i4 = _blk_C2_MAIN_OEQ_04;
-    modify(i4, m4);
-    r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_OEQ_04) = r0;
-    dm(_tap_post_eq_C2_MAIN_OEQ_04) = r0;
-#if DSP4_C2_BQ_NOLATCH
-    /* THE ROUND-TRIP ARM. Scatter the state back and drop the
-     * latch on EVERY block, so the engage/disengage bookkeeping
-     * -- which in a real build runs once per coefficient swap,
-     * i.e. once per user gesture -- runs six thousand times a
-     * second instead. It must be bit-exact against BOTH the
-     * scalar arm and the latched arm: a gather that maps the
-     * interleave wrongly in either direction cannot survive
-     * being run and undone every block. It is also the only way
-     * to price the gather on chip 2's own numbers -- the cost
-     * difference against the latched arm IS the per-block gather
-     * the latch removes. Debug only; default 0. */
-    r3 = _eq_state_A_C2_MAIN_OEQ_03;
-    r9 = _eq_state_B_C2_MAIN_OEQ_03;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_03);
-    r0 = pass r0;
-    if eq r9 = r3;
-    r3 = _eq_state_A_C2_MAIN_OEQ_04;
-    r12 = _eq_state_B_C2_MAIN_OEQ_04;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_04);
-    r0 = pass r0;
-    if eq r12 = r3;
-    i2 = _bqi_s_MOUT_OEQ_03_04;
-    i0 = r9;
-    i1 = r12;
-    lcntr = 24, do .bqiSN_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i2, 1);
-        dm(i0, 1) = r0;
-        r0 = dm(i2, 1);
-    .bqiSN_MOUT_OEQ_03_04: dm(i1, 1) = r0;
-    r0 = 0;
-    dm(_bqi_lat_MOUT_OEQ_03_04) = r0;
-#endif
-    rts;
-
-.bqiS_MOUT_OEQ_03_04:
-    /* DISENGAGE. The interleaved state is authoritative while the
-     * latch is up, so give it back to each node's ACTIVE instance
-     * before the node bodies run on their own arrays. The
-     * COEFFICIENTS are not scattered: they cannot have changed
-     * while latched, because a change is what brings us here. */
-    r0 = dm(_bqi_lat_MOUT_OEQ_03_04);
-    r0 = pass r0;
-    if eq jump (pc, .bqiN_MOUT_OEQ_03_04);
-    r3 = _eq_state_A_C2_MAIN_OEQ_03;
-    r9 = _eq_state_B_C2_MAIN_OEQ_03;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_03);
-    r0 = pass r0;
-    if eq r9 = r3;
-    r3 = _eq_state_A_C2_MAIN_OEQ_04;
-    r12 = _eq_state_B_C2_MAIN_OEQ_04;
-    r0 = dm(_eq_active_C2_MAIN_OEQ_04);
-    r0 = pass r0;
-    if eq r12 = r3;
-    i2 = _bqi_s_MOUT_OEQ_03_04;
-    i0 = r9;
-    i1 = r12;
-    lcntr = 24, do .bqiSB_MOUT_OEQ_03_04 until lce;
-        r0 = dm(i2, 1);
-        dm(i0, 1) = r0;
-        r0 = dm(i2, 1);
-    .bqiSB_MOUT_OEQ_03_04: dm(i1, 1) = r0;
-    r0 = 0;
-    dm(_bqi_lat_MOUT_OEQ_03_04) = r0;
-
-.bqiN_MOUT_OEQ_03_04:
-    /* scalar fallback: the two nodes, unchanged */
-    call _C2_MAIN_OEQ_03_process;
-    call _C2_MAIN_OEQ_04_process;
-    rts;
-_C2BQP_MOUT_OEQ_03_04_process.end:
 
 #if !DSP4_BLOCK_KERNELS
 #error "DSP4_C2_BQ_GRAPH is a per-BLOCK pairing: build with DSP4_BLOCK_KERNELS=1."

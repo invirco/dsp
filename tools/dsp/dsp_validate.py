@@ -43,7 +43,7 @@ VALID_TYPES = {
     'EQ_BIQUAD', 'FADER_PAN', 'FX_ENGINE', 'GAIN', 'GATE', 'GEQ',
     'HAPTIC', 'HPF_LPF', 'INPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND', 'LIMITER',
     'METER', 'MIX_BUS', 'MONITOR', 'NOISE_GEN', 'OUTPUT_TDM', 'ROUTING',
-    'TALKBACK', 'TEST_MEAS', 'TEST_OSC', 'TUBE_SAT',
+    'SOURCE_SEL', 'TALKBACK', 'TEST_MEAS', 'TEST_OSC', 'TUBE_SAT',
 }
 
 VALID_RAMP_PROFILES = {'', 'DynSafe', 'EqSafe', 'GainFast', 'GainSafe', 'InstantCtl'}
@@ -74,6 +74,11 @@ REQUIRED_PARAMS = {
     'DCA':            {'level_db', 'mute'},
     'NOISE_GEN':      {'level_db', 'on'},
     'MONITOR':        {'source'},
+    # SOURCE_SEL (S144): the source count and the default select are the
+    # node's shape -- a select whose source count the row does not state is
+    # a select whose emitted MAC count was guessed -- and `xfade_ms` is the
+    # click-free requirement in the ruling made a number.
+    'SOURCE_SEL':     {'sources', 'sel', 'xfade_ms'},
     # The S49 self-test pair. TEST_OSC must name the frequency and
     # level it comes up at (they are .var initialisers in the kernel);
     # TEST_MEAS must name the oscillator whose state blocks are its
@@ -103,7 +108,19 @@ EXTRA_PARAMS = {
     'COMPRESSOR':     {'det_src', 'eq_pos', 'filter_hpf', 'filter_lpf',
                         'filter_on', 'filter_q', 'key', 'lim_mode',
                         'parallel', 'type'},
-    'DELAY':          {'local_ms', 'pool_slot'},
+    # `cell_prefix` (S144): the suffix prefix this node's cells carry --
+    # `Main Out3Delay` is a DELAY whose cell spelling is prefixed `Out3`,
+    # on the shared Centre/LF tail. Honoured by DELAY, OUTPUT_TDM, METER
+    # and SOURCE_SEL in gen_dsp.py::cnp().
+    'DELAY':          {'local_ms', 'pool_slot', 'cell_prefix'},
+    # `on_cell` / `link_cell` (S144): this crossover carries `Main
+    # CrossoverOn` and `Main CrossoverLink` at base+2 and base+3 -- two
+    # words it already owned and dispatched only as staging coefficients.
+    # `link_from=<master>`: this node designs at the MASTER's corner and
+    # slope while the master's link word is set, which is what "linked it
+    # follows Main CrossoverFreq" means. It is NOT `follows=`: the node has
+    # its own cells, its own address, its own state and its own banks.
+    'CROSSOVER':      {'on_cell', 'link_cell', 'link_from'},
     'EQ_BIQUAD':      {'coeffs'},
     # host_cells names the cell families the HOST owns outright — no DSP
     # address, no kernel read (PW ruling 2026-08-30: Dca, DcaOn).
@@ -127,7 +144,7 @@ EXTRA_PARAMS = {
     # publishes as `Chan*CompMtr` at SPI base+3. A meter declaring a
     # `comp_gr` tap without it is refused by dsp_codegen.py rather than
     # having the compressor id guessed from the meter's own.
-    'METER':          {'taps', 'comp_gr_src'},
+    'METER':          {'taps', 'comp_gr_src', 'cell_prefix'},
     # `fx_sends` / `aux` (S23 gate 3): a chip-2 summing bus whose LAST
     # fx_sends sources are crosspoints -- an on/off flag and a ramped send
     # level folded into one Q4.28 coefficient at block rate -- rather than
@@ -140,9 +157,20 @@ EXTRA_PARAMS = {
     # every chip-2 address above it. `xp_map` names the SOURCE INDICES, not
     # a count, because the aux -> aux half takes only the sources below its
     # own number and a count could not say which.
+    # `no_spi` (S144): this bus is a FIXED unity sum with no word a host
+    # can write, so it deliberately takes no address -- declared, so that a
+    # bus that lost its address by accident is still caught.
     'MIX_BUS':        {'source_count', 'fx_sends', 'aux',
-                       'xp_page', 'xp_addr', 'xp_map'},
+                       'xp_page', 'xp_addr', 'xp_map', 'no_spi'},
     'MONITOR':        {'level_l_db', 'level_r_db'},
+    # SOURCE_SEL (S144). `cell_suffix` is WHICH cell selects the source --
+    # the three selects the 28 Sep rulings ask for are spelled `MainSub
+    # Src`, `Main Out3Mode` and `Mon PickOff` on one kernel, so the suffix
+    # is the row's and not the type's. `link_cell_suffix`/`link_gain` are
+    # `Main Out3Link`: the second word, and the fader whose already-ramped
+    # gain the output follows while it is set.
+    'SOURCE_SEL':     {'cell_suffix', 'link_cell_suffix', 'link_gain',
+                       'cell_prefix'},
     'NOISE_GEN':      {'hpf_on'},
     'TEST_OSC':       {'sweep_on', 'sweep_step', 'meas_src'},
     'TEST_MEAS':      {'xtalk_src', 'xtalk_dst'},
@@ -164,7 +192,7 @@ EXTRA_PARAMS = {
     # No generator reads it; it is a declaration, so that a search of the
     # topology for the speaker finds the slot that is the speaker.
     'OUTPUT_TDM':     {'scope', 'signal', 'sink', 'sport_slots',
-                       'mo_page', 'mo_addr'},
+                       'mo_page', 'mo_addr', 'cell_prefix'},
     # `mtx_*` (S22 gate 1): the matrix sends and the SPI block they live in.
     # `mtx_page`/`mtx_addr` are a SECOND address block for one node -- the
     # only one in the graph -- because growing the 60-word routing block
@@ -200,7 +228,7 @@ FOLLOW_LEG_TYPES = {'MONITOR'}
 # How many of a node's `inputs` its generator READS (mirrors
 # dsp_codegen._INPUT_ARITY). Default 1. A row that declares more is
 # S142-1: an input computed every block and read by nothing.
-INPUT_ARITY = {'MIX_BUS': 'all', 'METER': 'all'}
+INPUT_ARITY = {'MIX_BUS': 'all', 'METER': 'all', 'SOURCE_SEL': 'all'}
 
 ALLOWED_PARAMS = {t: REQUIRED_PARAMS.get(t, set()) | EXTRA_PARAMS.get(t, set())
                    for t in VALID_TYPES}
@@ -409,7 +437,11 @@ def validate(csv_path):
                     f'follows={follows} and carries SPI address '
                     f'page={spi_page} addr={spi_addr}. A follower runs its '
                     f'master\'s parameter set and must take no address.')
-        elif not has_valid_spi and ntype not in NO_SPI_TYPES:
+        elif (not has_valid_spi and ntype not in NO_SPI_TYPES
+                and not params.get('no_spi')):
+            # `no_spi=1` is a DECLARATION, not an exemption list: a node
+            # that has no host-writable word says so on its own row, so an
+            # address lost by accident is still a warning (S144).
             warn(row_num, nid, f'No SPI address (page={spi_page_str}, addr={spi_addr_str}) for type {ntype}')
 
         # ── Check 8: SPI address uniqueness ─────────────────────────────────

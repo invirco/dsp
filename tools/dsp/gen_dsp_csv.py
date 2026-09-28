@@ -76,14 +76,16 @@ parser.add_argument('--geq-bands', type=int, default=31,
                          '1/3-octave market bar; 28 is the pre-.3 map)')
 parser.add_argument('--geq-outputs', default='aux,grp,main',
                     help='comma-separated output classes that carry a GEQ: '
-                         'aux,grp,main,sub,mainout,mon. Default '
-                         '"aux,grp,main" is the shipping graph.')
+                         'aux,grp,main,mainout,mon. Default '
+                         '"aux,grp,main" is the shipping graph. The Centre '
+                         'strip\'s GEQ is not an option (MainCtr Geq is a '
+                         'landed cell, PW ruling D6).')
 args = parser.parse_args()
 
 GEQ_BANDS = args.geq_bands
 if not 1 <= GEQ_BANDS <= 64:
     raise ValueError(f'--geq-bands {GEQ_BANDS} out of range 1..64')
-GEQ_CLASSES = ('aux', 'grp', 'main', 'sub', 'mainout', 'mon')
+GEQ_CLASSES = ('aux', 'grp', 'main', 'mainout', 'mon')
 GEQ_ON = tuple(c.strip() for c in args.geq_outputs.split(',') if c.strip())
 # No-fallback policy: an unrecognised class is a typo that would silently
 # generate a graph with a feature missing.
@@ -214,20 +216,28 @@ def fabric_params(signal):
 # Reversing the eight and putting Main Out 1/2 on DAC_12/DAC_11 fixes
 # both. It moves one output_params() argument per node and no address.
 #
-# WHAT IT DOES NOT SETTLE, and is a defs candidate, not a decision made
-# here (see MW/D24/DSP/dsp4-dac-lane-xlr-20260913.md):
-#   * Main Out 3/4 stay on DAC_15/16, which are the rear MONITOR jacks —
-#     so those jacks carry the crossover's centre and sub legs, not the
-#     monitor bus (S121-6, measured). Which of the crossover's four
-#     outputs a D24 rear panel is meant to carry — and whether the Sub XLR
-#     is fed by C2_SUB_OUT (today on NET_OUT_01) — is a product decision.
-#     The codec's talkback-speaker pair is NO LONGER a mixer destination
-#     at all: S122 gave it its own source (C2_HPT_01 -> C2_SPKR_OUT).
-#   * Aux 11/12 take the two slots Main Out 1/2 vacate (DAC_13 = the
-#     unconnected channel, DAC_14 = the Sub XLR). A D24 has eight aux
-#     connectors, so aux 9-12 have no rear panel either way; this keeps
-#     them addressable without displacing anything that does.
-#   * PHONES_L/R (DAC_09/10) have no DSP source node at all.
+# THE THREE OPEN SOCKETS ARE SETTLED BY PW's 2026-09-28 BLOCK RULINGS, and
+# S144 is where the patch follows them (they were an open question in this
+# comment until this session):
+#   * DAC_14 -- the rear "Center/LF" XLR J55 -- is the block's ONE C/LF
+#     output (ruling D6). It is driven by `C2_OUT3_OUT` off the shared
+#     Out3 tail, and NOT by aux bus 12 (S121-5: D24 declares aux 1-8, so
+#     no cell reached that feed at all).
+#   * DAC_15/16 -- the rear Monitor jacks J53/J54 -- carry the MONITOR bus
+#     (S122-5), which they are labelled for. They used to carry main
+#     output 3/4, i.e. the crossover's centre and sub legs (S121-6,
+#     measured); outputs 3 and 4 are gone with the Centre/Woof rebuild.
+#   * DAC_09/10 -- PHONES_L/R (J10 tip/ring) -- carry the PHONES PAIR
+#     (ruling D7), not aux 9/10.
+#
+# SO AUX 9-12 HAVE NO COPPER, and that is the product: a D24 has eight aux
+# connectors. They land on NET_OUT_06..09, on the same PROVISIONAL footing
+# the four matrix outputs sit on NET_OUT_02..05 -- addressable, on a lane
+# the mix fabric declares, and which physical connector (if any) a NET
+# line reaches is a product decision recorded for PW, not settled here.
+# DAC_13 (U92 ch5, pins 32/33 are one-pin nets) is now driven by nothing,
+# which is what "not connected" should look like in the patch.
+#
 #   * This table is D24 copper. One firmware serves D24 and D32
 #     (dsp4-architecture-decisions.md), so when the D32 analog board
 #     lands, the patch becomes product config and this table is where
@@ -235,15 +245,22 @@ def fabric_params(signal):
 AUX_DAC = {
     1: 'DAC_08', 2: 'DAC_07', 3: 'DAC_06', 4: 'DAC_05',    # -> Aux Out A1..A4
     5: 'DAC_04', 6: 'DAC_03', 7: 'DAC_02', 8: 'DAC_01',    # -> Aux Out A5..A8
-    9: 'DAC_09', 10: 'DAC_10',                             # PHONES L/R (no connector for aux)
-    11: 'DAC_13', 12: 'DAC_14',                            # ch5 n/c, Sub XLR
+    9: 'NET_OUT_06', 10: 'NET_OUT_07',                     # no aux connector (S144)
+    11: 'NET_OUT_08', 12: 'NET_OUT_09',                    # no aux connector (S144)
 }
 MAIN_OUT_DAC = {
     1: 'DAC_12',    # MAIN_L, analog J56
     2: 'DAC_11',    # MAIN_R, analog J57
-    3: 'DAC_15',    # MON L  — unchanged, and a defs question
-    4: 'DAC_16',    # MON R  — unchanged, and a defs question
 }
+# Main outputs 3 and 4 ARE GONE (S144, PW ruling D6). They were MainCtr and
+# MainSub as post-crossover legs of the main chain, on DAC_15/16 -- the
+# wrong shape by the 24 Sep master block, which draws a Centre strip off
+# the Ctr Channel Bus, a Woof strip off the Main L/R sum, and ONE C/LF XLR
+# through one mute, meter, delay and DAC. Their SPI words are RESERVED
+# rather than reclaimed (see MAIN_OUT_RESERVE below) so that no surviving
+# node's address moves.
+NUM_MAIN_OUT = 2
+MAIN_OUT_RESERVE = (3, 4)
 
 rows = []
 
@@ -281,6 +298,46 @@ class AddrAlloc:
 
 c1_alloc = AddrAlloc()
 c2_alloc = AddrAlloc()
+
+# ---------------------------------------------------------------------------
+# LATE CHIP-2 ALLOCATION (S144)
+#
+# A node's ROW POSITION is its process order and its CALL POSITION is its
+# address, and S144 adds nodes that need to be late in the second and early
+# in the first: the Centre GEQ runs between the Centre EQ and its limiter,
+# the Woof strip runs after the main delay, and every one of them must take
+# an address after every allocation that was already landed -- otherwise the
+# whole chip-2 map below them moves and the contract bumps for nothing.
+#
+# Same discipline as ROUTING's `mtx_page`, OUTPUT_TDM's `mo_page` and S143's
+# `xp_page`: register the width here, add the row where it runs, and let
+# `resolve_late_c2()` hand out the addresses after the last existing
+# allocation. A registered node that never got a row -- or a row that never
+# got its address -- is a build error, not a node quietly left unreachable.
+# ---------------------------------------------------------------------------
+_LATE_C2 = []
+
+
+def _late_c2(nid, words):
+    """Register `nid` for an address allocated after every existing one."""
+    _LATE_C2.append((nid, words))
+
+
+def resolve_late_c2():
+    by_id = {r['id']: r for r in rows}
+    for nid, words in _LATE_C2:
+        r = by_id.get(nid)
+        if r is None:
+            raise SystemExit(
+                f'ERROR: {nid} was registered for a late chip-2 address and '
+                f'no row was added for it.')
+        if r['spi_page'] != '-1' or r['spi_addr'] != '-1':
+            raise SystemExit(
+                f'ERROR: {nid} already carries an SPI address '
+                f'({r["spi_page"]}/{r["spi_addr"]}) and is also registered '
+                f'for a late one. One allocation per node.')
+        p, a = c2_alloc.next(words)
+        r['spi_page'], r['spi_addr'] = str(p), str(a)
 
 # ===========================================================================
 # CHIP 1 — Input DSP: 32-channel strip
@@ -871,49 +928,89 @@ for g in range(1, NUM_GRP + 1):
         params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA',
         ramp_profile='DynSafe')
 
-# --- SUB BUS (Chip 2) ---
-# Chain: RECV → FDR → EQ → COMP → LIM → DLY → OUT
-# Output patch: Sub → NET_OUT_01 (no dedicated analog sub DAC on DSP4;
-# provisional pending product-config output patch layer)
+# ===========================================================================
+# THE CENTRE STRIP AND THE SHARED C/LF TAIL  (S144, PW rulings D6 + D5)
+# ===========================================================================
+#
+# THIS IS THE OLD SUB-BUS CHAIN, RE-PATCHED, NOT A NEW ONE — which is why
+# it costs no address move. `C1_BUS_SUB` carries every channel's
+# `Chan*CtrOn` send: on this product THE SUB BUS IS THE CENTRE BUS (PW
+# ruling R5), so the chain it feeds is the CENTRE strip and always was. It
+# has been marked retired-not-deleted since S1 for want of a cell to
+# reach; the 24 Sep master block gives it the whole `MainCtr` family.
+#
+# WHAT THE BLOCK DRAWS, and each line is one node below:
+#
+#   Ctr Channel Bus -> MainCtr fader/mute -> 4-band EQ -> 31-band GEQ
+#                   -> anti-feedback (S144 item 4) -> limiter
+#   Main L/R sum    -> MainSub Src select -> Woof LPF -> fader -> 2-band EQ
+#                   -> limiter
+#   both            -> Out3Mode select -> ONE mute, meter, delay and DAC
+#
+# EVERY NODE HERE IS A RENAME OF A SUB-CHAIN NODE OR IS ALLOCATED AFTER
+# EVERY OTHER CHIP-2 NODE. The renames keep their SPI words to the word:
+#
+#   C2_SUB_FDR (4w)  -> C2_CTR_FDR    MainCtr Level/Mute/Dca/DcaOn
+#   C2_SUB_EQ (24w)  -> C2_CTR_EQ     MainCtr Eq*, MainCtr PeqGain*
+#   C2_SUB_COMP(16w) -> RESERVED      the block draws NO compressor on the
+#                                     centre strip, and the 28 Sep audit
+#                                     dropped every `Main*Comp*` cell from
+#                                     D24's generation. The sixteen words
+#                                     are held, not reclaimed.
+#   C2_SUB_LIM (4w)  -> C2_CTR_LIM    MainCtr Limiter*
+#   C2_SUB_DLY (2w)  -> C2_OUT3_DLY   Main Out3Delay   (the SHARED delay)
+#   C2_SUB_OUT (1w)  -> C2_OUT3_OUT   Main Out3Mute, and its lane moves
+#                                     from NET_OUT_01 to DAC_14, the rear
+#                                     Center/LF XLR J55
+#   C2_MTR_SUB (1w)  -> C2_MTR_OUT3   Main Out3Mtr     (the SHARED meter)
+#
+# The same shape S122 used when `C2_MON_OUT` became `C2_SPKR_OUT`: a rename
+# and a new source, so no address moves.
 recv_sub = recv_ids['sub']
 for r in rows:
     if r['id'] == recv_sub:
-        r['outputs'] = 'C2_SUB_FDR'
+        r['outputs'] = 'C2_CTR_FDR'
 
 p, a2 = c2_alloc.next(4)
-add('C2_SUB_FDR', 2, 'FADER_PAN', 'Sub Fader', 1, recv_sub, 'C2_SUB_EQ',
+add('C2_CTR_FDR', 2, 'FADER_PAN', 'Centre Fader', 1, recv_sub, 'C2_CTR_EQ',
     spi_page=p, spi_addr=a2,
     params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
     ramp_profile='GainFast')
 
 p, a2 = c2_alloc.next(24)
-add('C2_SUB_EQ', 2, 'EQ_BIQUAD', 'Sub EQ', 1, 'C2_SUB_FDR', 'C2_SUB_COMP',
+add('C2_CTR_EQ', 2, 'EQ_BIQUAD', 'Centre EQ', 1, 'C2_CTR_FDR', 'C2_CTR_GEQ',
     spi_page=p, spi_addr=a2,
     params='bands=4;coeffs=default',
     ramp_profile='EqSafe')
 
-p, a2 = c2_alloc.next(16)
-add('C2_SUB_COMP', 2, 'COMPRESSOR', 'Sub Comp', 1, 'C2_SUB_EQ', 'C2_SUB_LIM',
-    spi_page=p, spi_addr=a2,
-    params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA',
-    ramp_profile='DynSafe')
+# `MainCtr Geq[1-31]` (PW ruling D6, block D19). NOT behind `--geq-outputs`:
+# a landed contract cell that an option can switch off is a cell with no
+# reader half the time, which is the shape this repo calls a defect. The
+# `sub` GEQ class is gone from that option with the sub bus it named.
+_late_c2('C2_CTR_GEQ', GEQ_BANDS)
+add('C2_CTR_GEQ', 2, 'GEQ', 'Centre GEQ', 1, 'C2_CTR_EQ', 'C2_CTR_LIM',
+    params=f'bands={GEQ_BANDS}',
+    ramp_profile='EqSafe')
+
+# C2_SUB_COMP's sixteen words, held so nothing below them moves. Stated as
+# an allocation rather than left as a silent gap: the next reader of this
+# file needs to know the hole is deliberate and what used to be in it.
+c2_alloc.next(16)          # RESERVED — was C2_SUB_COMP (S144, ruling D6)
 
 p, a2 = c2_alloc.next(4)
-add('C2_SUB_LIM', 2, 'LIMITER', 'Sub Lim', 1, 'C2_SUB_COMP', 'C2_SUB_DLY',
+add('C2_CTR_LIM', 2, 'LIMITER', 'Centre Lim', 1, 'C2_CTR_GEQ', 'C2_OUT3_SEL',
     spi_page=p, spi_addr=a2,
     params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0',
     ramp_profile='DynSafe')
 
-p, a2 = c2_alloc.next(2)
-add('C2_SUB_DLY', 2, 'DELAY', 'Sub Delay', 1, 'C2_SUB_LIM', 'C2_SUB_OUT',
-    spi_page=p, spi_addr=a2,
-    params='delay_ms=0.0;max_ms=250.0',
-    ramp_profile='InstantCtl')
-
-p, a2 = c2_alloc.next(1)
-add('C2_SUB_OUT', 2, 'OUTPUT_TDM', 'Sub Out', 1, 'C2_SUB_DLY', '',
-    spi_page=p, spi_addr=a2,
-    params=output_params('NET_OUT_01'))
+# THE SHARED TAIL keeps C2_SUB_DLY's and C2_SUB_OUT's words, so the two
+# addresses are taken HERE, in the old chain's position — but the ROWS are
+# added after the Woof strip, because the Woof reads `C2_MAIN_DLY` and so
+# the source select in front of the tail cannot run until the main chain
+# has. Addresses come from call order; process order comes from row order;
+# this is the one place in the file where the two have to be told apart.
+_OUT3_DLY_PA = c2_alloc.next(2)
+_OUT3_OUT_PA = c2_alloc.next(1)
 
 # --- MAIN L/R BUS (Chip 2) ---
 # Chain: RECV → MIX (with group/aux-input feeds) → MASTER_FDR → GEQ_28 →
@@ -1062,41 +1159,74 @@ add('C2_MAIN_LIM_R', 2, 'LIMITER', 'Main Lim R', 1,
 
 p, a2 = c2_alloc.next(2)
 add('C2_MAIN_DLY', 2, 'DELAY', 'Main Delay', 2, 'C2_MAIN_LIM',
-    'C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT',
+    'C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT;C2_WOOF_MIX',
     spi_page=p, spi_addr=a2,
     params='delay_ms=0.0;max_ms=250.0',
     ramp_profile='InstantCtl')
 add('C2_MAIN_DLY_R', 2, 'DELAY', 'Main Delay R', 1, 'C2_MAIN_LIM_R',
-    'C2_MAIN_XOVER_R;C2_MAIN_ST_OUT_R;C2_CODEC_AUX_OUT_R',
+    'C2_MAIN_XOVER_R;C2_MAIN_ST_OUT_R;C2_CODEC_AUX_OUT_R;C2_WOOF_MIX',
     params='delay_ms=0.0;max_ms=250.0;follows=C2_MAIN_DLY',
     ramp_profile='InstantCtl')
 
+# THE MAIN CROSSOVER IS THE HPF HALF OF THE PAIR, and the LPF half lives on
+# the Woof strip. That is what the two cell families say in as many words:
+# `Main CrossoverFreq` is "Main L/R HPF crossover frequency: ONE parameter
+# set driving the two DSP crossover instances (Main L and Main R); LF
+# summed ..." and `MainSub CrossoverFreq` is "Woof LPF crossover frequency:
+# applies when Main CrossoverLink = 0 (UNLINK); linked it follows Main
+# CrossoverFreq". Two filters, one corner when linked — a Linkwitz-Riley
+# pair with the low-pass placed in the strip whose cells describe it.
+#
+# SO THE WOOF READS `C2_MAIN_DLY`, NOT THE CROSSOVER'S LP LEG. S142 §3.2
+# designed it the other way (`C2_MAIN_XOVER(LP) + C2_MAIN_XOVER_R(LP) ->
+# C2_WOOF_MIX`) and that design low-passes the LF path TWICE at the same
+# corner whenever `MainSub Src` is 0 and `Main CrossoverLink` is 1 — LR4
+# then LR4, 12 dB down at the corner instead of 6, and LP + HP no longer
+# summing flat. `MainSub Src = 0` is spelled "Main L/R **sum**" in the
+# cell's own note, which is this node's input, so the sum is taken here and
+# the only low-pass in the LF path is the Woof's own. Recorded as a
+# departure from the S142 design in the S144 report rather than left as a
+# silent difference.
+#
+# `Main CrossoverOn` and `Main CrossoverLink` COST NO NEW ALLOCATION. This
+# node holds four words; Freq is +0 and Slope is +1, and +2/+3 were
+# dispatched only as staging-array coefficients that nothing wrote.
 p, a2 = c2_alloc.next(4)
 add('C2_MAIN_XOVER', 2, 'CROSSOVER', 'Main Xover', 2,
-    'C2_MAIN_DLY', 'C2_MAIN_OUT_01;C2_MAIN_OUT_03;C2_MAIN_OUT_04',
+    'C2_MAIN_DLY', 'C2_MAIN_OUT_01',
     spi_page=p, spi_addr=a2,
-    params='freq=120.0;slope=24',
+    params='freq=120.0;slope=24;on_cell=1;link_cell=1',
     ramp_profile='EqSafe')
 add('C2_MAIN_XOVER_R', 2, 'CROSSOVER', 'Main Xover R', 1,
     'C2_MAIN_DLY_R', 'C2_MAIN_OUT_02',
     params='freq=120.0;slope=24;follows=C2_MAIN_XOVER',
     ramp_profile='EqSafe')
 
-# --- Per-output processing (Main ×4) ---
+# --- Per-output processing (Main ×2) ---
 # Output patch: MAIN_OUT_DAC above — outs 1/2 on the MAIN XLRs
 #
-# OUTPUT 2 IS MainR AND NOW READS THE RIGHT CROSSOVER (S143). Outputs 3
-# and 4 are MainCtr and MainSub and still read the LEFT leg: the centre is
-# a sum and the sub is an LF sum, and both are rebuilt by S142 §3.2's item
-# 1 (the Centre strip off `C2_SUB_*` and the Woof strip off the two LF
-# legs), which is a ruled graph change of its own. Feeding them the left
-# leg alone is what they have always had; it is recorded here rather than
-# guessed at, because a half-migrated centre would be worse than a stated
-# one.
-_xover_of_out = {1: 'C2_MAIN_XOVER', 2: 'C2_MAIN_XOVER_R',
-                 3: 'C2_MAIN_XOVER', 4: 'C2_MAIN_XOVER'}
+# OUTPUT 2 IS MainR AND READS THE RIGHT CROSSOVER (S143). OUTPUTS 3 AND 4
+# ARE GONE (S144, ruling D6): they were MainCtr and MainSub as post-
+# crossover legs of the main chain, both reading the LEFT crossover, and
+# the master block draws neither that way. MainCtr is the Centre strip off
+# the Ctr Channel Bus and MainSub is the Woof strip off the Main L/R sum;
+# both are above/below, with their own cells. Their SPI words are RESERVED,
+# not reclaimed, so no address below them moves.
+#
+# ALSO CORRECTED BY THEIR REMOVAL, and worth recording because it was
+# measured by nothing: `_buf_C2_MAIN_XOVER` is the crossover's HIGH-PASS
+# leg (gen_crossover_fixed writes hp into both `_buf_hp_` and `_buf_`), so
+# output 4 — MainSub, the rear "sub" jack — carried the HIGH-passed main
+# bus. The sub output was high-passed. It is finding S144-1.
+_xover_of_out = {1: 'C2_MAIN_XOVER', 2: 'C2_MAIN_XOVER_R'}
 for out_n in range(1, 5):
     oo = f'{out_n:02d}'
+    if out_n in MAIN_OUT_RESERVE:
+        # Held, in the shape the loop would have allocated them: EQ 24,
+        # COMP 16, LIM 4, OUT 1.
+        for _w in (24, 16, 4, 1):
+            c2_alloc.next(_w)
+        continue
     n_eq   = f'C2_MAIN_OEQ_{oo}'
     n_comp = f'C2_MAIN_OCOMP_{oo}'
     n_lim  = f'C2_MAIN_OLIM_{oo}'
@@ -1125,6 +1255,100 @@ for out_n in range(1, 5):
     add(n_out, 2, 'OUTPUT_TDM', f'Main Out {out_n}', 1, n_lim, '',
         spi_page=p, spi_addr=a2,
         params=output_params(MAIN_OUT_DAC[out_n]))
+
+# ===========================================================================
+# THE WOOF STRIP AND THE Out3 SOURCE SELECT  (S144, PW rulings D6 + D5)
+# ===========================================================================
+#
+# Row order, not address order: every node here reads `C2_MAIN_DLY` (or
+# something that does), so the rows sit AFTER the main chain and their SPI
+# words are allocated after every other chip-2 node (below, with the rest
+# of the late allocations). The Out3 tail's two rows — whose addresses came
+# from the old sub chain — are added here too, for the same reason.
+#
+# `MainSub Src`: "0 = Main L/R sum / 1-16 = Aux N (D24: aux 1-8)". The
+# superset declares twelve aux buses, so the select carries 1 + NUM_AUX
+# sources and a D24 host uses the first nine of them. A select index past
+# the source count clamps; that the cell's table says 16 and the fabric
+# has 12 is a defs question, recorded, not resolved by inventing four
+# buses.
+#
+# THE AUX TAP IS POST-DELAY (`C2_AUX_DLY_nn`), which is the aux output
+# itself — a woof fed from an aux must be the same signal the aux XLR
+# carries or the two disagree in the room.
+# NO SPI ADDRESS, and that is the node: a fixed mono sum of the two main
+# legs at unity. There is no `MainSub` cell for an LF-sum level -- the level
+# is `MainSub Level` on the fader below -- so a word here would be a word
+# with no cell and no reader.
+add('C2_WOOF_MIX', 2, 'MIX_BUS', 'Woof LF Sum', 1,
+    'C2_MAIN_DLY;C2_MAIN_DLY_R', 'C2_WOOF_SRC',
+    params='bus_id=woof;source_count=2;no_spi=1')
+
+_woof_srcs = ['C2_WOOF_MIX'] + [f'C2_AUX_DLY_{a:02d}'
+                                for a in range(1, NUM_AUX + 1)]
+_late_c2('C2_WOOF_SRC', 4)
+add('C2_WOOF_SRC', 2, 'SOURCE_SEL', 'Woof Source', 1,
+    ';'.join(_woof_srcs), 'C2_WOOF_XOVER',
+    params=f'sources={len(_woof_srcs)};sel=0;xfade_ms=12.0'
+           ';cell_suffix=Src',
+    ramp_profile='GainFast')
+
+# The Woof LPF. `link_from=` is `Main CrossoverLink`: with the link word
+# set this node designs at the MASTER's corner and slope instead of its
+# own, which is what "linked it follows Main CrossoverFreq" means. It is
+# NOT a `follows=` follower — it has its own two cells and its own address.
+_late_c2('C2_WOOF_XOVER', 4)
+add('C2_WOOF_XOVER', 2, 'CROSSOVER', 'Woof Xover', 1,
+    'C2_WOOF_SRC', 'C2_WOOF_FDR',
+    params='freq=120.0;slope=24;link_from=C2_MAIN_XOVER',
+    ramp_profile='EqSafe')
+
+_late_c2('C2_WOOF_FDR', 4)
+add('C2_WOOF_FDR', 2, 'FADER_PAN', 'Woof Fader', 1,
+    'C2_WOOF_XOVER', 'C2_WOOF_EQ',
+    params='level_db=0.0;mute=0;host_cells=Dca,DcaOn',
+    ramp_profile='GainFast')
+
+_late_c2('C2_WOOF_EQ', 24)
+add('C2_WOOF_EQ', 2, 'EQ_BIQUAD', 'Woof EQ', 1, 'C2_WOOF_FDR', 'C2_WOOF_LIM',
+    params='bands=2;coeffs=default',
+    ramp_profile='EqSafe')
+
+_late_c2('C2_WOOF_LIM', 4)
+add('C2_WOOF_LIM', 2, 'LIMITER', 'Woof Lim', 1, 'C2_WOOF_EQ', 'C2_OUT3_SEL',
+    params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0',
+    ramp_profile='DynSafe')
+
+# `Main Out3Mode` (0 = centre, 1 = subwoofer) and `Main Out3Link` ("L.R.
+# Fader Link: the output-3 master fader ... follows the Main L/R fader").
+# The link is a REAL DSP word, not a host mirror: with it set the Out3
+# output is scaled by the main master fader's own ramped Q4.28 gain, so the
+# C/LF XLR tracks the master. The Centre strip is fed from the Ctr Channel
+# Bus and never passes the main fader, which is the path the link exists
+# for; the Woof fed from `MainSub Src = 0` is ALREADY post-master, so
+# linking applies the master fader twice there. Recorded for PW in the
+# S144 report (finding S144-3) with the alternative reading — the host
+# mirroring `Main Level` into `MainCtr/MainSub Level`, which would need no
+# DSP word at all — and why the DSP reading was built: the cell is declared
+# in D24's DSP generation, and a cell with no reader is S21-4's shape.
+_late_c2('C2_OUT3_SEL', 4)
+add('C2_OUT3_SEL', 2, 'SOURCE_SEL', 'Out3 Source', 1,
+    'C2_CTR_LIM;C2_WOOF_LIM', 'C2_OUT3_DLY',
+    params='sources=2;sel=0;xfade_ms=12.0;cell_suffix=Out3Mode'
+           ';link_gain=C2_MAIN_FDR;link_cell_suffix=Out3Link',
+    ramp_profile='GainFast')
+
+p, a2 = _OUT3_DLY_PA
+add('C2_OUT3_DLY', 2, 'DELAY', 'Out3 Delay', 1, 'C2_OUT3_SEL', 'C2_OUT3_OUT',
+    spi_page=p, spi_addr=a2,
+    params='delay_ms=0.0;max_ms=250.0;cell_prefix=Out3',
+    ramp_profile='InstantCtl')
+
+p, a2 = _OUT3_OUT_PA
+add('C2_OUT3_OUT', 2, 'OUTPUT_TDM', 'Out3 (Centre/LF XLR)', 1,
+    'C2_OUT3_DLY', '',
+    spi_page=p, spi_addr=a2,
+    params=output_params('DAC_14', scope='D24') + ';cell_prefix=Out3')
 
 # --- FX ENGINES ×6 (Chip 2) ---
 # Chain: RECV → FX_ENGINE → FDR → (feeds main/aux)
@@ -1266,7 +1490,12 @@ for a in range(1, NUM_AUX + 1):
         spi_page=p_mtr, spi_addr=a_mtr + (a-1),
         params='taps=peak')
 
+# Main outputs 3 and 4 are gone (S144), so their two meter word-pairs at
+# a_mtr + 16 and + 18 are RESERVED with the rest of their words. The stride
+# is unchanged, so MainL's and MainR's meters do not move.
 for m in range(1, 5):
+    if m in MAIN_OUT_RESERVE:
+        continue
     add(f'C2_MTR_MAIN_{m:02d}', 2, 'METER', f'Main {m} Meter', 1,
         f'C2_MAIN_OUT_{m:02d}', '',
         spi_page=p_mtr, spi_addr=a_mtr + 12 + (m-1)*2,
@@ -1278,9 +1507,14 @@ for g in range(1, NUM_GRP + 1):
         spi_page=p_mtr, spi_addr=a_mtr + 20 + (g-1),
         params='taps=peak')
 
-add('C2_MTR_SUB', 2, 'METER', 'Sub Meter', 1, 'C2_SUB_OUT', '',
+# THE ONE SHARED C/LF METER (S144, `Main Out3Mtr`). This is C2_MTR_SUB's
+# word -- a rename and a new source, so the address does not move -- and it
+# is the master block's "one C/LF XLR through one mute, meter, delay and
+# DAC". It meters the OUTPUT node, after the delay, so what it reads is what
+# leaves the socket.
+add('C2_MTR_OUT3', 2, 'METER', 'Out3 Meter', 1, 'C2_OUT3_OUT', '',
     spi_page=p_mtr, spi_addr=a_mtr + 24,
-    params='taps=peak')
+    params='taps=peak;cell_prefix=Out3')
 
 for f in range(1, NUM_FX + 1):
     add(f'C2_MTR_FX_{f:02d}', 2, 'METER', f'FX {f} Meter', 1,
@@ -1415,11 +1649,18 @@ for g in range(1, NUM_GRP + 1) if 'grp' in GEQ_ON else ():
 # ===========================================================================
 # The market bar is a 31-band graphic EQ on EVERY output, and the shipping
 # graph carries one on the aux buses, the groups and the main bus only. The
-# outputs still without one are the sub, the four post-crossover main
-# outputs and the monitor feed; each is opted in by name, and each is
-# spliced into its chain the same way the group GEQ is — SPI words
-# allocated after every earlier chip-2 node, so turning a class on never
-# moves an address that was already allocated.
+# outputs still without one are the two post-crossover main outputs and the
+# monitor feed; each is opted in by name, and each is spliced into its chain
+# the same way the group GEQ is — SPI words allocated after every earlier
+# chip-2 node, so turning a class on never moves an address that was
+# already allocated.
+#
+# THE `sub` CLASS IS GONE (S144) and so is the chain it named. `MainCtr
+# Geq[1-31]` is a LANDED cell (PW ruling D6), so the Centre strip's GEQ is
+# built unconditionally up with the strip — an option that can switch a
+# contract cell off would leave it with no reader half the time, which is
+# the shape S21-4 named. Main outputs 3 and 4 are gone with it, so
+# `mainout` covers two.
 #
 # The monitor is listed separately from the program outputs on purpose: it
 # is a listening feed off the main fader, not a program output, so "all
@@ -1437,12 +1678,8 @@ def splice_geq(nid, label, ch_count, after, before, bands):
     _relink_and_insert(rows, after, before, row, f'GEQ splice {nid}')
 
 
-if 'sub' in GEQ_ON:
-    splice_geq('C2_SUB_GEQ', 'Sub GEQ', 1,
-               'C2_SUB_EQ', 'C2_SUB_COMP', GEQ_BANDS)
-
 if 'mainout' in GEQ_ON:
-    for out_n in range(1, 5):
+    for out_n in range(1, NUM_MAIN_OUT + 1):
         oo = f'{out_n:02d}'
         splice_geq(f'C2_MAIN_OGEQ_{oo}', f'Main Out {out_n} GEQ', 1,
                    f'C2_MAIN_OEQ_{oo}', f'C2_MAIN_OCOMP_{oo}', GEQ_BANDS)
@@ -1603,9 +1840,14 @@ for a in range(1, NUM_AUX + 1):
 # including the aux FX sums, and written back onto the four output rows.
 # Two words per output, Level then Mute, in the order gen_dsp.py::
 # expand_output_tdm emits them. The bump ADDS rows and moves NONE.
+#
+# Outputs 3 and 4 are gone (S144) and their two word-pairs are RESERVED
+# here with the rest of their words.
 _mo_rows = {r['id']: r for r in rows}
 for out_n in range(1, 5):
     p, a2 = c2_alloc.next(2)
+    if out_n in MAIN_OUT_RESERVE:
+        continue
     _mo_rows[f'C2_MAIN_OUT_{out_n:02d}']['params'] += f';mo_page={p};mo_addr={a2}'
 
 # ===========================================================================
@@ -1733,6 +1975,26 @@ for a in range(1, NUM_AUX + 1):
         f';source_count={1 + NUM_FX + NUM_GRP}')
     _r['params'] += (f';xp_page={p};xp_addr={a2}'
                      f';xp_map=Grp:{",".join(str(g) for g in range(1, NUM_GRP + 1))}')
+
+# ===========================================================================
+# S144's ADDRESSES, LAST OF ALL
+# ===========================================================================
+# Everything above this line was allocated before S144 and keeps the address
+# it had. The Centre GEQ, the Woof strip and the two source selects are new
+# nodes that run in the middle of chains, and this is where they take their
+# words -- after the group crosspoints, which were the last allocation the
+# tree had landed.
+resolve_late_c2()
+
+# `Main Out3Mute` is the C/LF output node's own mute, in the same second
+# block every OUTPUT_TDM strip mute uses (`mo_page`/`mo_addr`, S24). Two
+# words, Level then Mute, because that is the pair expand_output_tdm emits;
+# there is no `Main Out3Level` cell -- the level is `MainCtr Level` or
+# `MainSub Level` on whichever strip Out3Mode selects -- so the first word
+# is dispatched and uncelled, as the main outputs' pan word is.
+_out3_out_row = next(r for r in rows if r['id'] == 'C2_OUT3_OUT')
+p, a2 = c2_alloc.next(2)
+_out3_out_row['params'] += f';mo_page={p};mo_addr={a2}'
 
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #

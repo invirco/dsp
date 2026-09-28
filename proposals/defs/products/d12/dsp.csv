@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 1808 of 2704 defined cells reach a DSP address.
-# The other 896 are named in dsp-unmapped.csv with the
+# 1795 of 2704 defined cells reach a DSP address.
+# The other 909 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -1648,6 +1648,10 @@ Grp002Geq031,C2_GRP_GEQ_02,GEQ,2,1,1940,0x0794,rw,EqSafe,LinearFrames,12,12,Line
 Grp002Level001,C2_GRP_FDR_02,FADER_PAN,2,1,1140,0x0474,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Grp002Mtr001,C2_MTR_GRP_02,METER,2,1,1838,0x072E,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 Grp002Mute001,C2_GRP_FDR_02,FADER_PAN,2,1,1142,0x0476,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Main001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
+Main001CrossoverLink001,C2_MAIN_XOVER,CROSSOVER,2,1,1439,0x059F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Main001CrossoverOn001,C2_MAIN_XOVER,CROSSOVER,2,1,1438,0x059E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Main001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
 Main001Delay001,C2_MAIN_DLY,DELAY,2,1,1434,0x059A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Main001Geq001,C2_MAIN_GEQ,GEQ,2,1,1383,0x0567,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Main001Geq002,C2_MAIN_GEQ,GEQ,2,1,1384,0x0568,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
@@ -1772,48 +1776,31 @@ MainR001LimiterRel001,C2_MAIN_OLIM_02,LIMITER,2,1,1528,0x05F8,rw,DynSafe,LinearF
 MainR001LimiterThr001,C2_MAIN_OLIM_02,LIMITER,2,1,1526,0x05F6,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainR001Mtr001,C2_MTR_MAIN_02,METER,2,1,1831,0x0727,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 MainR001Mute001,C2_MAIN_OUT_02,OUTPUT_TDM,2,1,2170,0x087A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompAtt001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1602,0x0642,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompDetSrc001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1609,0x0649,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompEqPos001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1611,0x064B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterHpf001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterLpf001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,"MCU-computed, shares filter base"
-MainSub001CompFilterOn001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1612,0x064C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompFilterQ001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1613,0x064D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,MCU-computed
-MainSub001CompKey001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1608,0x0648,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompKnee001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1605,0x0645,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompLimMode001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1610,0x064A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompMake001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1604,0x0644,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001CompOn001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1599,0x063F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CompPar001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1606,0x0646,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001CompRat001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1601,0x0641,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompRel001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1603,0x0643,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompThr001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1600,0x0640,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001CompType001,C2_MAIN_OCOMP_04,COMPRESSOR,2,1,1607,0x0647,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CrossoverFreq001,C2_MAIN_XOVER,CROSSOVER,2,1,1436,0x059C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
-MainSub001CrossoverSlope001,C2_MAIN_XOVER,CROSSOVER,2,1,1437,0x059D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
-MainSub001EqFreq001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
-MainSub001EqFreq002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
-MainSub001EqFreq003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
-MainSub001EqFreq004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 coeff base
-MainSub001EqGain001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
-MainSub001EqGain002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqGain003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqGain004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
-MainSub001EqHpf001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,HPF via EQ band 1
-MainSub001EqOn001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1596,0x063C,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001EqQ001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
-MainSub001EqQ002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1580,0x062C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqQ003,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1585,0x0631,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqQ004,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
-MainSub001EqShelf001,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1575,0x0627,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
-MainSub001EqShelf002,C2_MAIN_OEQ_04,EQ_BIQUAD,2,1,1590,0x0636,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-MainSub001Level001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2173,0x087D,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001LimiterAtt001,C2_MAIN_OLIM_04,LIMITER,2,1,1617,0x0651,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001LimiterOn001,C2_MAIN_OLIM_04,LIMITER,2,1,1615,0x064F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001LimiterRel001,C2_MAIN_OLIM_04,LIMITER,2,1,1618,0x0652,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001LimiterThr001,C2_MAIN_OLIM_04,LIMITER,2,1,1616,0x0650,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001Mtr001,C2_MTR_MAIN_04,METER,2,1,1835,0x072B,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
-MainSub001Mute001,C2_MAIN_OUT_04,OUTPUT_TDM,2,1,2174,0x087E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001CrossoverFreq001,C2_WOOF_XOVER,CROSSOVER,2,1,2316,0x090C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
+MainSub001CrossoverSlope001,C2_WOOF_XOVER,CROSSOVER,2,1,2317,0x090D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
+MainSub001EqFreq001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
+MainSub001EqFreq002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
+MainSub001EqFreq003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
+MainSub001EqFreq004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 coeff base
+MainSub001EqGain001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
+MainSub001EqGain002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
+MainSub001EqGain003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
+MainSub001EqGain004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
+MainSub001EqHpf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,HPF via EQ band 1
+MainSub001EqOn001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2345,0x0929,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001EqQ001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
+MainSub001EqQ002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
+MainSub001EqQ003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
+MainSub001EqQ004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
+MainSub001EqShelf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
+MainSub001EqShelf002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainSub001Level001,C2_WOOF_FDR,FADER_PAN,2,1,2320,0x0910,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainSub001LimiterAtt001,C2_WOOF_LIM,LIMITER,2,1,2350,0x092E,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001LimiterOn001,C2_WOOF_LIM,LIMITER,2,1,2348,0x092C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001LimiterRel001,C2_WOOF_LIM,LIMITER,2,1,2351,0x092F,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001LimiterThr001,C2_WOOF_LIM,LIMITER,2,1,2349,0x092D,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001Mute001,C2_WOOF_FDR,FADER_PAN,2,1,2322,0x0912,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001Src001,C2_WOOF_SRC,SOURCE_SEL,2,1,2312,0x0908,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Delay001,C2_MON_DLY,DELAY,2,1,1794,0x0702,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001InputSel001,C2_MON,MONITOR,2,1,1788,0x06FC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Level001,C2_MON,MONITOR,2,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,,L

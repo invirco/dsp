@@ -197,13 +197,20 @@ _SIDE_EXPECT = {
     'C2_MAIN_OUT_01': ('L', 'MainL XLR — DAC_12, J56 (hardware-map).'),
     'C2_MAIN_OUT_02': ('R', 'MainR XLR — DAC_11, J57. This is the reading '
                             'S142-1 was about: before S143 it carried LEFT.'),
-    'C2_MAIN_OUT_03': ('L', 'MainCtr, DAC_15. The centre leg is still the '
-                            'LEFT crossover: the Centre strip (a sum, off '
-                            'the Ctr Channel Bus) is S142 §3.2 item 1 and '
-                            'is a ruled graph change of its own. Stated, '
-                            'not half-built.'),
-    'C2_MAIN_OUT_04': ('L', 'MainSub, DAC_16. Same: the Woof strip takes '
-                            'the LF sum of both legs and is item 1.'),
+    # S144 built item 1, so main outputs 3 and 4 are gone and the Centre/LF
+    # XLR is here instead.
+    'C2_OUT3_OUT': ('both', 'The ONE Centre/LF XLR — DAC_14, J55 (PW ruling '
+                            'D6). BOTH is the correct answer and it is the '
+                            'Woof half that gives it: `C2_WOOF_MIX` is the '
+                            'mono sum of `C2_MAIN_DLY` and `C2_MAIN_DLY_R`, '
+                            'so a hard-panned strip reaches this socket '
+                            'from either side — which is what a mono sub '
+                            'of L+R means. The Centre half reaches it from '
+                            'neither: `C2_CTR_*` is fed from the Ctr '
+                            'Channel Bus (`Chan*CtrOn` summed on chip 1), '
+                            'not from the main mix. Which half is audible '
+                            'is `Main Out3Mode`, a coefficient, so the cone '
+                            'is the union of the two by construction.'),
     'C2_MAIN_ST_OUT': ('L', 'DAC MAIN L (SPORT3 slot 0).'),
     'C2_MAIN_ST_OUT_R': ('R', 'DAC MAIN R (SPORT3 slot 1) — a slot that '
                               'was chip-select enabled and never written '
@@ -220,8 +227,7 @@ _SIDE_EXPECT = {
                             'nothing else may reach it (PW ruling '
                             '2026-09-26; both speaker-slot guards enforce '
                             'it independently).'),
-    'C2_SUB_OUT': ('none', 'The retired sub-bus chain (S1-1): fed from '
-                           'BUS_SUB, not from the main mix.'),
+
 }
 # Whole families, matched after the exact table.
 _SIDE_EXPECT_RE = [

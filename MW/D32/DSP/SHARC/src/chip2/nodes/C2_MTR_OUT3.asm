@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Sub Meter (METER)
- * Node ID:    C2_MTR_SUB
+ * Out3 Meter (METER)
+ * Node ID:    C2_MTR_OUT3
  * Chip:       2
  * Channels:   1
  * SPI Page:   1
@@ -19,38 +19,38 @@
 
         .section/dm seg_dmda;
         /* ORDER IS LOAD-BEARING: _mtr_fold takes the address of
-         * _mtr_peak_C2_MTR_SUB and reaches the rest by offset. The three float
+         * _mtr_peak_C2_MTR_OUT3 and reaches the rest by offset. The three float
          * words keep their names and their SPI dispatch entries. */
-        .global _mtr_peak_C2_MTR_SUB;
-        .var _mtr_peak_C2_MTR_SUB = 0.0;      /* +0 linear peak, host contract */
-        .global _mtr_rms_C2_MTR_SUB;
-        .var _mtr_rms_C2_MTR_SUB = 0.0;       /* +1 linear TRUE rms            */
-        .global _mtr_gr_C2_MTR_SUB;
-        .var _mtr_gr_C2_MTR_SUB = 0.0;        /* +2 gain reduction -- see below */
-        .global _mtr_st_C2_MTR_SUB;
-        .var _mtr_st_C2_MTR_SUB[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
+        .global _mtr_peak_C2_MTR_OUT3;
+        .var _mtr_peak_C2_MTR_OUT3 = 0.0;      /* +0 linear peak, host contract */
+        .global _mtr_rms_C2_MTR_OUT3;
+        .var _mtr_rms_C2_MTR_OUT3 = 0.0;       /* +1 linear TRUE rms            */
+        .global _mtr_gr_C2_MTR_OUT3;
+        .var _mtr_gr_C2_MTR_OUT3 = 0.0;        /* +2 gain reduction -- see below */
+        .global _mtr_st_C2_MTR_OUT3;
+        .var _mtr_st_C2_MTR_OUT3[4];           /* +3 pk_lo pk_hi ms_lo ms_hi     */
         /* The block accumulators. FIVE words, not four: the sum of Q8.24
          * squares is Q16.48 and a block of them overruns 64 bits, so mr2f
-         * is state and not a sign extension. Filled by C2_SUB_OUT under block
+         * is state and not a sign extension. Filled by C2_OUT3_OUT under block
          * kernels and by this node's own per-sample body otherwise. */
-        .global _mtr_acc_C2_MTR_SUB;
-        .var _mtr_acc_C2_MTR_SUB[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
+        .global _mtr_acc_C2_MTR_OUT3;
+        .var _mtr_acc_C2_MTR_OUT3[5];          /* mx mn ssq_lo ssq_hi ssq_ex     */
 
         .section/pm seg_pmco;
         .extern _mtr_fold;
         .extern _mtr_load_fold;
         .extern _sample_idx;
-        .extern _mtr_wide_C2_SUB_OUT;
+        .extern _mtr_wide_C2_OUT3_OUT;
         #if DSP4_BLOCK_KERNELS
-        .extern _mtr_wblk_C2_SUB_OUT;
+        .extern _mtr_wblk_C2_OUT3_OUT;
         #endif
-        .global _C2_MTR_SUB_process;
-        _C2_MTR_SUB_process:
+        .global _C2_MTR_OUT3_process;
+        _C2_MTR_OUT3_process:
         #if DSP4_MTR_OFF
             /* measurement only: what the meter costs, by removing it */
             rts;
         #elif DSP4_BLOCK_KERNELS
-/* WIDE WORD, 'scalar' shape. C2_SUB_OUT has no accumulator at this tap
+/* WIDE WORD, 'scalar' shape. C2_OUT3_OUT has no accumulator at this tap
  * point, so it publishes the same value in the meter's Q8.24
  * format and this node walks it. Stride 1: on chip 2 that is
  * the source's whole block, one word per sample; on chip 1 the
@@ -58,17 +58,17 @@
  * BLOCK times, which is the recorded limitation. */
 l2 = 0;
 m2 = 1;
-i2 = _mtr_wblk_C2_SUB_OUT;
+i2 = _mtr_wblk_C2_OUT3_OUT;
 r8 = 0x80000000;              /* running max: most negative */
 r9 = 0x7FFFFFFF;              /* running min: most positive */
 mrf = 0;
-lcntr = DSP4_BLOCK_SIZE, do .mtrk_C2_MTR_SUB until lce;
+lcntr = DSP4_BLOCK_SIZE, do .mtrk_C2_MTR_OUT3 until lce;
     r0 = dm(i2, m2);
     r8 = max(r8, r0);
     mrf = mrf + r0 * r0 (ssi);
-.mtrk_C2_MTR_SUB:
+.mtrk_C2_MTR_OUT3:
     r9 = min(r9, r0);
-r0 = _mtr_peak_C2_MTR_SUB;
+r0 = _mtr_peak_C2_MTR_OUT3;
         #if !DSP4_MTR_NOFOLD
             call _mtr_fold;
         #endif
@@ -79,56 +79,56 @@ r0 = _mtr_peak_C2_MTR_SUB;
              * the last sample of the block -- so both paths run the SAME
              * arithmetic and the same reference covers both.
              *
-             * Source: _mtr_wide_C2_SUB_OUT, the Q8.24 word C2_SUB_OUT publishes. */
-            r0 = dm(_mtr_wide_C2_SUB_OUT);
+             * Source: _mtr_wide_C2_OUT3_OUT, the Q8.24 word C2_OUT3_OUT publishes. */
+            r0 = dm(_mtr_wide_C2_OUT3_OUT);
             r4 = dm(_sample_idx);
             r1 = 0;
             comp(r4, r1);
-            if ne jump (pc, .mtacc_C2_MTR_SUB);
+            if ne jump (pc, .mtacc_C2_MTR_OUT3);
             /* first sample of the block: seed rather than accumulate */
-            dm(_mtr_acc_C2_MTR_SUB + 0) = r0;
-            dm(_mtr_acc_C2_MTR_SUB + 1) = r0;
+            dm(_mtr_acc_C2_MTR_OUT3 + 0) = r0;
+            dm(_mtr_acc_C2_MTR_OUT3 + 1) = r0;
             mrf = 0;
             mrf = mrf + r0 * r0 (ssi);
             r2 = mr0f;
-            dm(_mtr_acc_C2_MTR_SUB + 2) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 2) = r2;
             r2 = mr1f;
-            dm(_mtr_acc_C2_MTR_SUB + 3) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 3) = r2;
             r2 = mr2f;
-            dm(_mtr_acc_C2_MTR_SUB + 4) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 4) = r2;
             rts;
-        .mtacc_C2_MTR_SUB:
-            r2 = dm(_mtr_acc_C2_MTR_SUB + 0);
+        .mtacc_C2_MTR_OUT3:
+            r2 = dm(_mtr_acc_C2_MTR_OUT3 + 0);
             r2 = max(r2, r0);
-            dm(_mtr_acc_C2_MTR_SUB + 0) = r2;
-            r2 = dm(_mtr_acc_C2_MTR_SUB + 1);
+            dm(_mtr_acc_C2_MTR_OUT3 + 0) = r2;
+            r2 = dm(_mtr_acc_C2_MTR_OUT3 + 1);
             r2 = min(r2, r0);
-            dm(_mtr_acc_C2_MTR_SUB + 1) = r2;
-            r2 = dm(_mtr_acc_C2_MTR_SUB + 2);
+            dm(_mtr_acc_C2_MTR_OUT3 + 1) = r2;
+            r2 = dm(_mtr_acc_C2_MTR_OUT3 + 2);
             mr0f = r2;
-            r3 = dm(_mtr_acc_C2_MTR_SUB + 3);
+            r3 = dm(_mtr_acc_C2_MTR_OUT3 + 3);
             mr1f = r3;
-            r2 = dm(_mtr_acc_C2_MTR_SUB + 4);
+            r2 = dm(_mtr_acc_C2_MTR_OUT3 + 4);
             mr2f = r2;
             mrf = mrf + r0 * r0 (ssi);
             r2 = mr0f;
-            dm(_mtr_acc_C2_MTR_SUB + 2) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 2) = r2;
             r2 = mr1f;
-            dm(_mtr_acc_C2_MTR_SUB + 3) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 3) = r2;
             r2 = mr2f;
-            dm(_mtr_acc_C2_MTR_SUB + 4) = r2;
+            dm(_mtr_acc_C2_MTR_OUT3 + 4) = r2;
             r1 = DSP4_BLOCK_SIZE - 1;
             comp(r4, r1);
             if ne rts;
-            r8 = dm(_mtr_acc_C2_MTR_SUB + 0);
-            r9 = dm(_mtr_acc_C2_MTR_SUB + 1);
-            r0 = _mtr_peak_C2_MTR_SUB;
+            r8 = dm(_mtr_acc_C2_MTR_OUT3 + 0);
+            r9 = dm(_mtr_acc_C2_MTR_OUT3 + 1);
+            r0 = _mtr_peak_C2_MTR_OUT3;
             call _mtr_fold;
             rts;
         #endif
-        _C2_MTR_SUB_process.end:
+        _C2_MTR_OUT3_process.end:
 
-        /* _mtr_gr_C2_MTR_SUB IS STILL NOT WRITTEN, and that is recorded defect
+        /* _mtr_gr_C2_MTR_OUT3 IS STILL NOT WRITTEN, and that is recorded defect
          * 4. It is not a numerics bug: the meter's `taps` parameter names
          * gate_gr and comp_gr but dsp.csv carries no ids for them, so
          * there is nothing to read without inventing a naming convention

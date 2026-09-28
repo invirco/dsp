@@ -983,6 +983,13 @@ _INPUT_ARITY = {
     'MIX_BUS': 'all',
     # `taps=` names the tap points; the METER kernel reads each one.
     'METER': 'all',
+    # A SOURCE_SEL reads EVERY source every sample -- the unselected ones at
+    # a coefficient of exactly zero, which is what makes the switch a
+    # coefficient change and not a branch (S144). So all of them are read,
+    # and the arity gate is right to insist on it: a declared source the
+    # kernel could never select would be a select position that silences
+    # the output.
+    'SOURCE_SEL': 'all',
 }
 
 # Types that may take a SECOND input as a detector link (`link_in=`), and
@@ -1109,7 +1116,52 @@ def resolve_followers(nodes):
                 f"came to be mono behind a `ch_count=2` (S142-1). Add the "
                 f"follower(s), or state the channel count the node really "
                 f"has.")
+    resolve_link_from(nodes, by_id)
     return by_id
+
+
+def resolve_link_from(nodes, by_id):
+    """Wire up `link_from=` — a PARAMETER link, not a second instance (S144).
+
+    `Main CrossoverLink` is the case it exists for: "Woof LPF crossover
+    follows the Main HPF frequency and slope: 1 = linked / 0 = UNLINK
+    (MainSub CrossoverFreq and CrossoverSlope apply when 0)". So
+    `C2_WOOF_XOVER` has its own cells, its own address, its own state and
+    its own coefficients, and reads the MASTER's design parameters instead
+    of its own while the master's link word is set. That is the whole
+    difference from `follows=`, which shares the coefficients themselves
+    and takes no address at all.
+
+    WHAT HAS TO BE WIRED IS THE OTHER DIRECTION. A write to `Main
+    CrossoverFreq` raises the MASTER's dirty flag and nothing else, so a
+    linked dependent would keep its old corner until someone happened to
+    write one of its own cells. The master therefore KICKS every dependent's
+    dirty flag when it redesigns — `link_deps` is that list.
+    """
+    for n in nodes:
+        n.setdefault('link_deps', [])
+    for n in nodes:
+        m = n['params'].get('link_from')
+        if not m:
+            continue
+        if m not in by_id:
+            raise ValueError(f"{n['id']}: link_from={m}, which is not a node")
+        master = by_id[m]
+        if master['type'] != n['type']:
+            raise ValueError(
+                f"{n['id']} takes link_from={m} but is a {n['type']} and {m} "
+                f"is a {master['type']}: a parameter link reads the master's "
+                f"design words by name, so the two types must be the same.")
+        if master['chip'] != n['chip']:
+            raise ValueError(
+                f"{n['id']} takes link_from={m} across chips; a parameter "
+                f"link is a DM read and does not cross the fabric.")
+        if n['params'].get('follows'):
+            raise ValueError(
+                f"{n['id']} carries both follows= and link_from=. A follower "
+                f"already runs its master's parameters; a link is for a node "
+                f"that has its own and sometimes ignores them.")
+        master['link_deps'].append(n['id'])
 
 
 def comp_par_default(params):
@@ -4717,6 +4769,114 @@ def gen_monitor(node):
     """)
 
 
+# ===========================================================================
+# SOURCE_SEL — a host-selected source with a ramped, click-free change
+# ===========================================================================
+#
+# WHAT IT IS FOR (S144). Three of PW's 28 Sep block rulings need a switch in
+# the audio path that a host writes and an operator hears nothing of:
+#
+#   `MainSub Src`    -- the Woof's source: the Main L/R sum or any aux
+#   `Main Out3Mode`  -- which strip the one C/LF XLR carries
+#   `Mon PickOff`    -- which tap of the main chain the monitor listens to
+#
+# THE SWITCH IS A COEFFICIENT, NOT A BRANCH, and that is the whole design.
+# A select that jumps between two source words clicks: the two signals are
+# uncorrelated and the step between them is a discontinuity at an arbitrary
+# sample. So this node is a small MIX_BUS whose gains the BLOCK-RATE half
+# owns: exactly one source is at 1.0 in the steady state, and a change
+# crossfades the outgoing source to 0 and the incoming to 1 over
+# `xfade_ms`, at block rate, with the sample path unchanged. There is no
+# branch in the sample loop at all, nothing is allocated or freed at switch
+# time, and both directions cost the same.
+#
+# It is the 08-25 crosspoint-coefficient mandate applied to a selector:
+# everything that is a decision happens once per block on a coefficient,
+# and the audio path is a MAC.
+#
+# A NEW TARGET DURING A FADE IS NOT DROPPED AND NOT MIXED IN. The node
+# finishes the fade it is running and then reads `_ssel_sel_` again -- which
+# it does every block -- so a host that writes A, B, C inside one fade lands
+# on C, once, with one more fade. Accepting a second target mid-fade would
+# need a third gain and would put two discontinuities in one transition;
+# dropping it would need the host to know when the DSP is busy.
+#
+# `link_gain=<fader node>` (`Main Out3Link`) multiplies the selected source
+# by that fader's own ramped Q4.28 gain while the link word is non-zero, so
+# the output follows the main master. The fader's gain is already ramped, so
+# the link itself is click-free; switching the LINK is a hard change of a
+# coefficient and is an operator action at rehearsal, not a mix move.
+
+
+def _ssel_n(node):
+    """How many sources this select carries, checked against the row."""
+    n = int(node['params'].get('sources', len(node['inputs'])))
+    if n != len(node['inputs']):
+        raise ValueError(
+            f"{node['id']}: sources={n} but the row declares "
+            f"{len(node['inputs'])} inputs. A SOURCE_SEL reads every one of "
+            f"them (the unselected ones at a coefficient of zero), so the "
+            f"two counts are the same number said twice.")
+    if n < 2:
+        raise ValueError(
+            f"{node['id']}: a SOURCE_SEL with {n} source(s) is not a select. "
+            f"Feed the consumer directly instead.")
+    return n
+
+
+def _ssel_default(node, n):
+    sel = int(node['params'].get('sel', 0))
+    if not 0 <= sel < n:
+        raise ValueError(
+            f"{node['id']}: sel={sel} is outside 0..{n - 1}")
+    return sel
+
+
+def gen_source_sel(node):
+    """Float SOURCE_SEL (the archived D5 reference arm).
+
+    Same structure as the fixed kernel below and the same gains; the float
+    arm keeps its own multiply and has no Q4.28 shadow.
+    """
+    nid = node['id']
+    n = _ssel_n(node)
+    sel = _ssel_default(node, n)
+    rc = ramp_comment(node['ramp_profile'])
+    g0 = ', '.join('1.0' if k == sel else '0.0' for k in range(n))
+    macs = []
+    for k, inp in enumerate(node['inputs']):
+        macs.append(f'            f1 = dm(_buf_{inp});')
+        macs.append(f'            f2 = dm(_ssel_g_{nid} + {k});')
+        macs.append('            f1 = f1 * f2;')
+        macs.append('            f0 = f0 + f1;')
+    mac_block = '\n'.join(macs)
+    return dedent(f"""\
+        {rc}
+
+        /* SOURCE_SEL ({n} sources, float): ramped, click-free source select */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+
+        .section/dm seg_dmda;
+        .var _ssel_sel_{nid} = {sel};            /* SPI +0: host source index */
+        .var _ssel_link_{nid} = 0;               /* SPI +1 */
+        .var _ssel_cur_{nid} = {sel};
+        .var _ssel_from_{nid} = {sel};
+        .var _ssel_alpha_{nid} = 0.0;
+        .var _ssel_step_{nid} = 0.0;
+        .var _ssel_g_{nid}[{n}] = {g0};
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .global _{nid}_process;
+        _{nid}_process:
+            f0 = 0.0;
+{mac_block}
+            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def gen_interchip_send(node):
     p = node['params']
     return dedent(f"""\
@@ -7587,6 +7747,7 @@ GENERATORS = {
     'CROSSOVER':      gen_crossover,
     'LIMITER':        gen_limiter,
     'MONITOR':        gen_monitor,
+    'SOURCE_SEL':     gen_source_sel,
     'INTERCHIP_SEND': gen_interchip_send,
     'INTERCHIP_RECV': gen_interchip_recv,
     'MIX_BUS':        gen_mix_bus,
@@ -10241,6 +10402,21 @@ def gen_crossover_fixed(node):
         hdrHB = _bq_hdr_var(f'_xover_hp_B_{nid}', 10, byp10)
         hrvars = _bq_hr_vars('xover', nid, 2)
         hrpend = _bq_hr_pending('xover', nid)
+        # `Main CrossoverOn` and `Main CrossoverLink`, at base+2 and base+3 --
+        # two words this node already owned and dispatched only as staging
+        # coefficients nothing wrote. `on = 0` designs the compiled identity
+        # into both cascades, which is what "crossover IN, off" means: the HP
+        # leg passes the full-range bus. `link` is read by the DEPENDENT
+        # (link_from=), not here; it lives on the master because that is the
+        # cell the contract puts it on.
+        _on = []
+        if p.get('on_cell'):
+            _on.append(f'        .var _xover_on_{nid} = 0;'
+                       f'                    /* Main CrossoverOn */')
+        if p.get('link_cell'):
+            _on.append(f'        .var _xover_link_{nid} = 0;'
+                       f'                  /* Main CrossoverLink */')
+        oncell = '\n'.join(_on)
         # LP and HP are two SEPARATE cascades on the same input, so they are
         # two entries in one sizing job and each gets its own headroom.
         hrseq = _bq_hr_ask2('xover', nid,
@@ -10256,11 +10432,12 @@ def gen_crossover_fixed(node):
             f'        .var _xover_lp_state_B_{nid}[12];',
             f'        .var _xover_hp_state_B_{nid}[12];',
             f'        #if DSP4_XOVER_DESIGN',
-            f'        /* THE TWO LANDED CELLS, and the one flag the SPI handler raises',
-            f'         * on either. The four sections\' CrossoverFreq cells all resolve',
-            f'         * to the first word and their four CrossoverSlope cells all',
-            f'         * resolve to the second -- ONE crossover node, one split, one',
-            f'         * order. Only a word inside the frequency table\'s 50-500 Hz is',
+            f'        /* THE LANDED CELLS, and the one flag the SPI handler raises',
+            f'         * on any of them. `Main CrossoverFreq` is the first word and',
+            f'         * `Main CrossoverSlope` the second -- ONE crossover parameter',
+            f'         * set driving the two DSP instances (Main L and Main R), which',
+            f'         * is PW ruling D5 in as many words.',
+            f'         * Only a word inside the frequency table\'s 50-500 Hz is',
             f'         * taken as a frequency and only 12 or 24 is taken as a slope;',
             f'         * anything else leaves the split where it was. freq 0 means',
             f'         * "never set", which is why the banks stay at their compiled',
@@ -10269,6 +10446,7 @@ def gen_crossover_fixed(node):
             f'        .var _xover_freq_{nid} = 0.0;',
             f'        .var _xover_slope_{nid} = 24;',
             f'        .var _xover_dirty_{nid} = 0;',
+            oncell,
             f'        #endif',
             f'',
             f'        /* SPI staging: [LP 2 stages, HP 2 stages]. The WIRE -- direct',
@@ -10289,7 +10467,7 @@ def gen_crossover_fixed(node):
             '        #endif',
             '',
         ])
-        design_sub = _XOVER_REDESIGN.format(nid=nid)
+        design_sub = _xover_redesign(node)
         startx = '\n'.join([
             f'        #if DSP4_BQ_GUARD',
             f'            r4 = dm(_xover_hrw_{nid});',
@@ -10492,26 +10670,106 @@ def gen_crossover_fixed(node):
     """)
 
 
-_XOVER_REDESIGN = """\
-        #if DSP4_XOVER_DESIGN
-        _xover_redesign_{nid}:
-            /* Cleared FIRST, for the reason the GEQ's is: a write that
-             * lands while the design runs must leave the flag set for
-             * the next block rather than be cleared by the run that did
-             * not see it. */
-            r4 = 0;
-            dm(_xover_dirty_{nid}) = r4;
-            f0 = dm(_xover_freq_{nid});
-            r8 = dm(_xover_slope_{nid});
-            i2 = _xover_coeffs_next_{nid};
-            call _xover_design_LR;
-            r4 = pass r0;
-            if eq rts;          /* out-of-domain freq or slope: untouched */
-            r4 = 1;
-            dm(_xover_swap_pending_{nid}) = r4;
-            rts;
-        #endif
-"""
+# The compiled identity in the offset encoding the wire carries:
+#   b0 = 1, n1 = b1 + 2b0 = 2, n2 = b2 - b0 = -1, c1 = 2 + a1 = 2,
+#   c2 = 1 - a2 = 1
+# -- the same five words `_xover_coeffs_next` boots with, and the same five
+# `xover_design_fx.asm::.xod_lp_identity` writes for an LR2 second stage.
+_XO_IDENT = (('0x3F800000', 'b0 =  1'), ('0x40000000', 'n1 =  2'),
+             ('0xBF800000', 'n2 = -1'), ('0x40000000', 'c1 =  2'),
+             ('0x3F800000', 'c2 =  1'))
+
+
+def _xover_redesign(node):
+    """The control-rate design hook, with `Main CrossoverOn` and the
+    `link_from=` parameter link (S144).
+
+    THREE THINGS HAPPEN HERE AND ONLY ONE OF THEM IS NEW ARITHMETIC.
+
+      * `_xover_on_` = 0 stages the COMPILED IDENTITY into all four stages
+        instead of a design. That is what "crossover IN, switched off"
+        means: the HP leg passes the full-range bus and the LF path's only
+        low-pass is the Woof strip's own. It goes through the node's own
+        dual-instance crossfade, exactly as a frequency change does, so
+        switching the crossover in or out is click-free for free.
+      * `link_from=<master>` reads the MASTER's corner and slope while the
+        master's link word is set, and its own otherwise -- `MainSub
+        CrossoverFreq` "applies when Main CrossoverLink = 0 (UNLINK);
+        linked it follows Main CrossoverFreq".
+      * a master with `link_deps` KICKS each dependent's dirty flag on
+        every redesign, because a write to `Main CrossoverFreq` raises this
+        node's flag and nothing else. Without the kick a linked Woof would
+        keep its old corner until someone wrote one of its own cells.
+    """
+    nid = node['id']
+    p = node['params']
+    link = p.get('link_from')
+    has_on = bool(p.get('on_cell'))
+    L = ['        #if DSP4_XOVER_DESIGN',
+         f'        _xover_redesign_{nid}:',
+         '            /* Cleared FIRST, for the reason the GEQ\'s is: a write that',
+         '             * lands while the design runs must leave the flag set for',
+         '             * the next block rather than be cleared by the run that did',
+         '             * not see it. */',
+         '            r4 = 0;',
+         f'            dm(_xover_dirty_{nid}) = r4;']
+    kick = []
+    for d in node.get('link_deps') or ():
+        kick += [f'            /* {d} takes link_from={nid}: tell it to redesign,',
+                 '             * because the host wrote a cell of THIS node. */',
+                 '            r4 = 1;',
+                 f'            dm(_xover_dirty_{d}) = r4;']
+    if has_on:
+        L += ['            /* `Main CrossoverOn` = 0: the crossover is OUT. */',
+              f'            r4 = dm(_xover_on_{nid});',
+              '            r4 = pass r4;',
+              f'            if eq jump (pc, .xover_ident_{nid});']
+    if link:
+        L += [f'            /* `Main CrossoverLink` on {link}: linked, this node',
+              f'             * designs at {link}\'s corner and slope; unlinked, at',
+              '             * its own. */',
+              f'            r4 = dm(_xover_link_{link});',
+              '            r4 = pass r4;',
+              f'            if eq jump (pc, .xover_own_{nid});',
+              f'            f0 = dm(_xover_freq_{link});',
+              f'            r8 = dm(_xover_slope_{link});',
+              f'            jump (pc, .xover_dsg_{nid});',
+              f'        .xover_own_{nid}:',
+              f'            f0 = dm(_xover_freq_{nid});',
+              f'            r8 = dm(_xover_slope_{nid});',
+              f'        .xover_dsg_{nid}:']
+    else:
+        L += [f'            f0 = dm(_xover_freq_{nid});',
+              f'            r8 = dm(_xover_slope_{nid});']
+    L += [f'            i2 = _xover_coeffs_next_{nid};',
+          '            call _xover_design_LR;',
+          '            r4 = pass r0;',
+          '            if eq rts;          /* out-of-domain freq or slope: untouched */',
+          '            r4 = 1;',
+          f'            dm(_xover_swap_pending_{nid}) = r4;']
+    L += kick
+    L += ['            rts;']
+    if has_on:
+        L += [f'        .xover_ident_{nid}:',
+              '            /* The compiled identity in all four stages, written out',
+              '             * rather than designed: there is no corner at which an LP',
+              '             * and an HP cascade both pass. */',
+              '            l2 = 0;',
+              f'            i2 = _xover_coeffs_next_{nid};',
+              '            lcntr = 4, do .xover_identlp_%s until lce;' % nid]
+        for k, (word, what) in enumerate(_XO_IDENT):
+            last = (k == len(_XO_IDENT) - 1)
+            L.append(f'                r6 = {word};             /* {what} */')
+            if last:
+                L.append(f'            .xover_identlp_{nid}: dm(i2, 1) = r6;')
+            else:
+                L.append('                dm(i2, 1) = r6;')
+        L += ['            r4 = 1;',
+              f'            dm(_xover_swap_pending_{nid}) = r4;']
+        L += kick
+        L += ['            rts;']
+    L += ['        #endif', '']
+    return '\n'.join(L)
 
 
 
@@ -16106,6 +16364,193 @@ def gen_monitor_fixed(node):
     """)
 
 
+def gen_source_sel_fixed(node):
+    """Fixed SOURCE_SEL (Q4.28): the select is a coefficient (S144).
+
+    BLOCK RATE owns all of it — read the host's index, clamp it, start a
+    fade if it moved, advance the fade, lay the per-source gains, convert
+    them to Q4.28. SAMPLE RATE is one MAC per source and one round, with no
+    branch in it, so the switch costs the same whether it is happening or
+    not and the two directions are symmetric.
+
+    The gains are exactly two non-zero words during a fade and exactly one
+    outside it, so the sum IS the selected source in the steady state --
+    bit for bit, because a Q4.28 coefficient of 2^28 through `_mrf_rns28`
+    gives (x*2^28 + 2^27) >> 28 = x.
+    """
+    nid = node['id']
+    n = _ssel_n(node)
+    sel = _ssel_default(node, n)
+    rc = ramp_comment(node['ramp_profile'])
+    xfade_ms = float(node['params'].get('xfade_ms', '12.0'))
+    if xfade_ms <= 0.0:
+        raise ValueError(f'{nid}: xfade_ms={xfade_ms} must be positive — a '
+                         f'zero-length crossfade is the click this node '
+                         f'exists to remove.')
+    # The step is per BLOCK, because the gains are laid once per block.
+    blocks = max(1.0, round(xfade_ms * 48.0 / float(BLOCK)))
+    step = 1.0 / blocks
+    q0 = ', '.join('0x10000000' if k == sel else '0x00000000'
+                   for k in range(n))
+    macs = []
+    for k, inp in enumerate(node['inputs']):
+        macs.append(f'            r0 = dm(_buf_{inp});')
+        macs.append(f'            r1 = dm(_ssel_gq_{nid} + {k});')
+        macs.append('            mrf = mrf + r0 * r1 (ssi);')
+    mac_block = '\n'.join(macs)
+
+    # `link_gain=` (Main Out3Link): the selected source scaled by another
+    # node's already-ramped Q4.28 fader gain while the link word is set.
+    # `_fdr_gq_` is the MONO fader's one Q4.28 gain word. A chip-2 bus
+    # fader is mono by construction (S143: the fader's output is post-fader
+    # MONO and the pan is the bus crosspoint), so there is one gain to
+    # follow and not two. A `link_gain` naming a PANNED fader would name a
+    # symbol that does not exist and fail at LINK, loudly, which is the
+    # right failure for it.
+    link = node['params'].get('link_gain')
+    if link:
+        link_ext = f'        .extern _fdr_gq_{link};\n'
+        link_body = '\n'.join([
+            f"            /* `Main Out3Link`: follow {link}'s master fader",
+            f"             * while the link word is set. That gain is already",
+            f"             * ramped (GainFast), so the link itself adds no",
+            f"             * transient; what a change of the LINK does is",
+            f"             * step a coefficient, which is a rehearsal action",
+            f"             * and not a mix move. */",
+            f'            r4 = dm(_ssel_link_{nid});',
+            f'            r4 = pass r4;',
+            f'            if eq jump (pc, .ssel_nolink_{nid});',
+            f'            r1 = dm(_fdr_gq_{link});',
+            f'            mrf = r0 * r1 (ssi);',
+            f'            call _mrf_rns28;',
+            f'        .ssel_nolink_{nid}:',
+        ]) + '\n'
+    else:
+        link_ext = ''
+        link_body = ''
+
+    return dedent(f"""\
+        {rc}
+
+        /* SOURCE_SEL (FIXED Q4.28, {n} sources): ramped click-free select */
+        /* SPI page={node['spi_page']} addr={node['spi_addr']} */
+        /* +0 select index (0..{n - 1}), +1 link, +2/+3 spare.            */
+        /* Crossfade {xfade_ms:g} ms = {blocks:.0f} block(s), step {step:.9f}. */
+
+        .section/dm seg_dmda;
+        .var _ssel_sel_{nid} = {sel};             /* SPI +0 */
+        .var _ssel_link_{nid} = 0;                /* SPI +1 */
+        .var _ssel_cur_{nid} = {sel};             /* the source at gain 1   */
+        .var _ssel_from_{nid} = {sel};            /* the one fading out     */
+        .var _ssel_alpha_{nid} = 1.0;             /* 1.0 = settled on `cur` */
+        .var _ssel_step_{nid} = 0.0;              /* non-zero = fading      */
+        .var _ssel_gq_{nid}[{n}] = {q0};          /* Q4.28, one per source  */
+        .var _buf_{nid};
+
+        .section/pm seg_pmco;
+        .extern _sample_idx;
+        .extern _mrf_rns28;
+{link_ext}        .global _{nid}_process;
+        _{nid}_process:
+        #if !DSP4_BLOCK_KERNELS
+            r4 = dm(_sample_idx);
+            r1 = 0;
+            comp(r4, r1);
+            if ne jump (pc, .ssel_go_{nid});
+        #endif
+            /* ── block rate ──────────────────────────────────────────── */
+            /* A fade runs to its end before a new target is taken; the
+             * select word is re-read every block, so the host's LATEST
+             * value is the one that lands.
+             *
+             * Tested as an INTEGER: the only two things ever stored in the
+             * step are integer 0 and a positive float constant, so the
+             * zero test is the same test in either domain and this one
+             * cannot be confused by a float flag. */
+            r4 = dm(_ssel_step_{nid});
+            r4 = pass r4;
+            if ne jump (pc, .ssel_fade_{nid});
+
+            r4 = dm(_ssel_sel_{nid});
+            r5 = 0;
+            r4 = max(r4, r5);
+            r5 = {n - 1};
+            r4 = min(r4, r5);
+            r5 = dm(_ssel_cur_{nid});
+            comp(r4, r5);
+            if eq jump (pc, .ssel_lay_{nid});
+            /* the select moved: start a fade from where we are */
+            dm(_ssel_from_{nid}) = r5;
+            dm(_ssel_cur_{nid}) = r4;
+            r6 = 0;
+            dm(_ssel_alpha_{nid}) = r6;
+            r6 = {_f32hex(step)};
+            dm(_ssel_step_{nid}) = r6;
+            jump (pc, .ssel_lay_{nid});
+
+        .ssel_fade_{nid}:
+            f4 = dm(_ssel_alpha_{nid});
+            f5 = dm(_ssel_step_{nid});
+            f4 = f4 + f5;
+            r5 = 0x3F800000;          /* 1.0f */
+            f5 = r5;
+            comp(f4, f5);
+            if lt jump (pc, .ssel_astore_{nid});
+            f4 = f5;
+            r6 = 0;
+            dm(_ssel_step_{nid}) = r6;   /* settled */
+        .ssel_astore_{nid}:
+            dm(_ssel_alpha_{nid}) = f4;
+
+        .ssel_lay_{nid}:
+            /* THE WHOLE COEFFICIENT SET, IN ONE WALK, BRANCH-FREE. Source
+             * `from` gets 1 - alpha, source `cur` gets alpha and every
+             * other gets exactly zero; the Q4.28 conversion rides the same
+             * loop, so there is no float gain array to keep in step with
+             * the shadow. `cur` is tested SECOND, so from == cur (the
+             * settled case, alpha = 1) leaves that source at 1.0 and
+             * everything else at 0 — which makes the sample sum bit-exact
+             * the selected source, since (x*2^28 + 2^27) >> 28 = x.
+             *
+             * Each comp and its conditional move are ADJACENT: the move
+             * reads ASTAT from the last flag-setting instruction, so the
+             * index increment cannot sit between them. */
+            l0 = 0;
+            i0 = _ssel_gq_{nid};
+            f4 = dm(_ssel_alpha_{nid});
+            r5 = 0x3F800000;          /* 1.0f */
+            f5 = r5;
+            f6 = f5 - f4;             /* 1 - alpha */
+            r8 = dm(_ssel_from_{nid});
+            r9 = dm(_ssel_cur_{nid});
+            r10 = 0;                  /* source index */
+            r11 = 0;                  /* 0.0f */
+            r2 = 0x4D800000;          /* 2^28 */
+            f2 = r2;
+            lcntr = {n}, do .ssel_lay_lp_{nid} until lce;
+                r12 = r11;
+                comp(r10, r8);
+                if eq r12 = r6;
+                comp(r10, r9);
+                if eq r12 = r4;
+                r10 = r10 + 1;
+                f12 = f12 * f2;
+                r12 = fix f12;
+            .ssel_lay_lp_{nid}: dm(i0, 1) = r12;
+
+        .ssel_go_{nid}:
+            r1 = 0;
+            mr0f = r1;
+            mr1f = r1;
+            mr2f = r1;
+{mac_block}
+            call _mrf_rns28;
+{link_body}            dm(_buf_{nid}) = r0;
+            rts;
+        _{nid}_process.end:
+    """)
+
+
 def _talk_scale_block(node):
     """The Q4.28 scale constant the TALKBACK gain is converted through,
     and the ONE place a build-time polarity flip can live for free.
@@ -16771,7 +17216,7 @@ def blk_wrap_extern(node):
 # only per-block business is the ramp, which is fixed in place).
 _C2_WRAP_TYPES = {
     'AUX_INPUT', 'ANTI_FB', 'COMPRESSOR', 'CROSSOVER', 'DELAY', 'EQ_BIQUAD',
-    'FX_ENGINE', 'GATE', 'GEQ', 'LIMITER', 'MIX_BUS', 'MONITOR',
+    'FX_ENGINE', 'GATE', 'GEQ', 'LIMITER', 'MIX_BUS', 'MONITOR', 'SOURCE_SEL',
 }
 # FADER_PAN is deliberately NOT here. It already had a block kernel -- a
 # hoisted coefficient and an inlined round/saturate, fused two-at-a-time --
@@ -18012,6 +18457,7 @@ FIXED_GENERATORS = {
     'TUBE_SAT': gen_tube_sat_fixed,
     'AUX_INPUT': gen_aux_input_fixed,
     'MONITOR': gen_monitor_fixed,
+    'SOURCE_SEL': gen_source_sel_fixed,
     'TALKBACK': gen_talkback_fixed,
     'NOISE_GEN': gen_noise_gen_fixed,
     'TEST_OSC': gen_test_osc,
@@ -19436,15 +19882,36 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
 # order is re-checked against dsp.csv by process_order_violations, which
 # fails the build on a stale read.
 #
+# BOTH PAIRS ARE GONE, AND THE ARGUMENT ABOVE IS WHY THEY WERE EVER HERE
+# rather than why they are now empty. Two rulings took them, in this order:
+#
+#   S143 stopped them FORMING: `C2_MAIN_COMP` and `C2_MAIN_LIM` are
+#   stereo-LINKED (`link_in=`, detect on max(|L|,|R|)), and the pair kernel
+#   reads one input block per channel and has no second detector input. So
+#   `_c2_pair_excluded` already refused both pairs by name on stderr, and
+#   the shipping image has taken the scalar path since.
+#
+#   S144 removed the PARTNERS: PW ruling D6 makes the sub chain the CENTRE
+#   strip (`C2_SUB_*` -> `C2_CTR_*`) and the 24 Sep master block draws no
+#   compressor on it, so `C2_SUB_COMP` is deleted and `C2_SUB_LIM` is
+#   `C2_CTR_LIM` at the end of a chain that also feeds the Out3 select.
+#   `C2_MAIN_COMP`/`C2_MAIN_LIM` have nothing left to pair with at all.
+#
+# The MECHANISM is kept and the TABLE is empty, deliberately. A cross-chain
+# pair is still the right shape for any future pair of single-instance
+# chip-2 dynamics nodes that are mutually unreachable, and the reachability
+# argument above is the one a reader would otherwise have to rebuild. What
+# refilling it would take: two same-kernel nodes, neither a follower and
+# neither stereo-linked, with a stated node to move the later chain's tail
+# after.
+#
 #   (tag, kernel, node A, node B)
-_C2_CROSS_PAIRS = (
-    ('MSUB_COMP', 'comp', 'C2_MAIN_COMP', 'C2_SUB_COMP'),
-    ('MSUB_LIM',  'lim',  'C2_MAIN_LIM',  'C2_SUB_LIM'),
-)
+_C2_CROSS_PAIRS = ()
 
-# The sub-chain run that moves, in order, and the node it must land after.
-_C2_XPAIR_MOVE = ('C2_SUB_COMP', 'C2_SUB_LIM', 'C2_SUB_DLY', 'C2_SUB_OUT')
-_C2_XPAIR_AFTER = 'C2_MAIN_GEQ'
+# The run that moves, in order, and the node it must land after. Empty with
+# the table above.
+_C2_XPAIR_MOVE = ()
+_C2_XPAIR_AFTER = None
 
 
 def c2_cross_pairs(chip_label, chip_nodes):
@@ -20451,6 +20918,29 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
     for chip_label, chip_nodes in [('chip1', chip1_nodes), ('chip2', chip2_nodes)]:
         nodes_dir = os.path.join(output_dir, chip_label, 'nodes')
         os.makedirs(nodes_dir, exist_ok=True)
+
+        # A NODE THAT LEAVES THE GRAPH TAKES ITS FILE WITH IT (S144).
+        #
+        # This generator only ever WROTE files, so a dsp.csv that drops a
+        # node left the old `<id>.asm` in the tree -- still assembled by the
+        # build's wildcard, still declaring that node's `.var`s and its
+        # `_<id>_process` entry, called by nothing. S144 drops seventeen
+        # (the sub chain, main outputs 3 and 4 and their meters), which is
+        # the first time it has mattered at this size.
+        #
+        # NARROW ON PURPOSE: only `chip*/nodes/*.asm`, only basenames that
+        # are not a node id of this chip. Every hand-written source lives
+        # elsewhere (src/lib, src/*.asm), so nothing else can be reached
+        # from here. check-sharc-codegen-drift.sh would catch a stale file
+        # too -- it falls out of the generated set into the hand-written
+        # list, and that list is checked -- but catching it is a failed
+        # build and this is the fix.
+        _keep = {n['id'] + '.asm' for n in chip_nodes}
+        for _f in sorted(os.listdir(nodes_dir)):
+            if _f.endswith('.asm') and _f not in _keep:
+                os.remove(os.path.join(nodes_dir, _f))
+                print(f'  {chip_label}: removed stale node file {_f} '
+                      f'(its node is no longer in the graph)')
 
         call_sequence = []
 

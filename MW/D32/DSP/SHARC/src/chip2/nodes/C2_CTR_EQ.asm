@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Sub EQ (EQ_BIQUAD)
- * Node ID:    C2_SUB_EQ
+ * Centre EQ (EQ_BIQUAD)
+ * Node ID:    C2_CTR_EQ
  * Chip:       2
  * Channels:   1
  * SPI Page:   1
@@ -20,77 +20,77 @@
 /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
-.extern _buf_C2_SUB_FDR;
+.extern _buf_C2_CTR_FDR;
 .extern _sample_idx;
 
 #if DSP4_BQ_FLOAT
-.global _eq_coeffs_A_C2_SUB_EQ;
-.var _eq_coeffs_A_C2_SUB_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+.global _eq_coeffs_A_C2_CTR_EQ;
+.var _eq_coeffs_A_C2_CTR_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
-.global _eq_coeffs_A_C2_SUB_EQ;
-.var _eq_coeffs_A_C2_SUB_EQ[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+.global _eq_coeffs_A_C2_CTR_EQ;
+.var _eq_coeffs_A_C2_CTR_EQ[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #else
-.global _eq_coeffs_A_C2_SUB_EQ;
-.var _eq_coeffs_A_C2_SUB_EQ[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+.global _eq_coeffs_A_C2_CTR_EQ;
+.var _eq_coeffs_A_C2_CTR_EQ[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #endif
-.global _eq_state_A_C2_SUB_EQ;
-.var _eq_state_A_C2_SUB_EQ[24];
+.global _eq_state_A_C2_CTR_EQ;
+.var _eq_state_A_C2_CTR_EQ[24];
 #if DSP4_BQ_FLOAT
-.global _eq_coeffs_B_C2_SUB_EQ;
-.var _eq_coeffs_B_C2_SUB_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+.global _eq_coeffs_B_C2_CTR_EQ;
+.var _eq_coeffs_B_C2_CTR_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #elif DSP4_BQ_GUARD
-.global _eq_coeffs_B_C2_SUB_EQ;
-.var _eq_coeffs_B_C2_SUB_EQ[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+.global _eq_coeffs_B_C2_CTR_EQ;
+.var _eq_coeffs_B_C2_CTR_EQ[20 + 1] = 0, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #else
-.global _eq_coeffs_B_C2_SUB_EQ;
-.var _eq_coeffs_B_C2_SUB_EQ[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
+.global _eq_coeffs_B_C2_CTR_EQ;
+.var _eq_coeffs_B_C2_CTR_EQ[20] = 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000, 0x10000000, 0x10000000, 0xF0000000, 0x20000000, 0x10000000;
 #endif
-.global _eq_state_B_C2_SUB_EQ;
-.var _eq_state_B_C2_SUB_EQ[24];
+.global _eq_state_B_C2_CTR_EQ;
+.var _eq_state_B_C2_CTR_EQ[24];
 
 /* SPI staging -- the WIRE. Direct-form RBJ float32 under the
  * fixed arm, D5's OFFSET encoding as float32 under the float
  * arm, which stores the wire word unchanged. */
 #if DSP4_BQ_FLOAT
-.global _eq_coeffs_next_C2_SUB_EQ;
-.var _eq_coeffs_next_C2_SUB_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
+.global _eq_coeffs_next_C2_CTR_EQ;
+.var _eq_coeffs_next_C2_CTR_EQ[20] = 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000, 0x3F800000, 0x40000000, 0xBF800000, 0x40000000, 0x3F800000;
 #else
-.global _eq_coeffs_next_C2_SUB_EQ;
-.var _eq_coeffs_next_C2_SUB_EQ[20];
+.global _eq_coeffs_next_C2_CTR_EQ;
+.var _eq_coeffs_next_C2_CTR_EQ[20];
 #endif
-.global _eq_swap_pending_C2_SUB_EQ;
-.var _eq_swap_pending_C2_SUB_EQ = 0;
+.global _eq_swap_pending_C2_CTR_EQ;
+.var _eq_swap_pending_C2_CTR_EQ = 0;
 #if DSP4_BQ_GUARD
-.global _eq_hrw_C2_SUB_EQ;
-.var _eq_hrw_C2_SUB_EQ = 0;        /* 0 idle, 1 asked, 2 re-ask */
-.global _eq_hrl_C2_SUB_EQ;
-.var _eq_hrl_C2_SUB_EQ[2];       /* (block, stages) pairs */
+.global _eq_hrw_C2_CTR_EQ;
+.var _eq_hrw_C2_CTR_EQ = 0;        /* 0 idle, 1 asked, 2 re-ask */
+.global _eq_hrl_C2_CTR_EQ;
+.var _eq_hrl_C2_CTR_EQ[2];       /* (block, stages) pairs */
 #endif
 
-.global _eq_active_C2_SUB_EQ;
-.var _eq_active_C2_SUB_EQ = 0;            /* 0 = A active, 1 = B */
-.global _eq_xfade_alpha_C2_SUB_EQ;
-.var _eq_xfade_alpha_C2_SUB_EQ = 0.0;     /* float control */
-.global _eq_xfade_step_C2_SUB_EQ;
-.var _eq_xfade_step_C2_SUB_EQ = 0.0;
+.global _eq_active_C2_CTR_EQ;
+.var _eq_active_C2_CTR_EQ = 0;            /* 0 = A active, 1 = B */
+.global _eq_xfade_alpha_C2_CTR_EQ;
+.var _eq_xfade_alpha_C2_CTR_EQ = 0.0;     /* float control */
+.global _eq_xfade_step_C2_CTR_EQ;
+.var _eq_xfade_step_C2_CTR_EQ = 0.0;
 
-.global _tap_post_eq_C2_SUB_EQ;
-.var _tap_post_eq_C2_SUB_EQ;              /* Q4.28 post-EQ tap */
-.global _buf_C2_SUB_EQ;
-.var _buf_C2_SUB_EQ;
+.global _tap_post_eq_C2_CTR_EQ;
+.var _tap_post_eq_C2_CTR_EQ;              /* Q4.28 post-EQ tap */
+.global _buf_C2_CTR_EQ;
+.var _buf_C2_CTR_EQ;
 
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_SUB_FDR;
+        .extern _blk_C2_CTR_FDR;
         #endif
         #if DSP4_BLOCK_KERNELS
-        .global _blk_C2_SUB_EQ;
-        .var _blk_C2_SUB_EQ[DSP4_BLOCK_SIZE];
-        .global _bw_k_C2_SUB_EQ;
-        .var _bw_k_C2_SUB_EQ;        /* the caller's _sample_idx */
-        .global _bw_s0_C2_SUB_EQ;
-        .var _bw_s0_C2_SUB_EQ;       /* walking source pointer */
-        .global _bw_d0_C2_SUB_EQ;
-        .var _bw_d0_C2_SUB_EQ;       /* walking sink pointer */
+        .global _blk_C2_CTR_EQ;
+        .var _blk_C2_CTR_EQ[DSP4_BLOCK_SIZE];
+        .global _bw_k_C2_CTR_EQ;
+        .var _bw_k_C2_CTR_EQ;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_CTR_EQ;
+        .var _bw_s0_C2_CTR_EQ;       /* walking source pointer */
+        .global _bw_d0_C2_CTR_EQ;
+        .var _bw_d0_C2_CTR_EQ;       /* walking sink pointer */
         #endif
 
 .section/pm seg_pmco;
@@ -102,8 +102,8 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
-.global _C2_SUB_EQ_process;
-_C2_SUB_EQ_process:
+.global _C2_CTR_EQ_process;
+_C2_CTR_EQ_process:
         #if DSP4_BLOCK_KERNELS
     /* ---- chip-2 per-block steady state (review finding D16) ----
      *
@@ -123,15 +123,15 @@ _C2_SUB_EQ_process:
      * bookkeeping and a crossfade COMPLETING mid-block are right by
      * construction rather than by re-derivation. A crossfade lasts
      * 576 samples and is a transient; its cost does not matter. */
-    r4 = dm(_eq_swap_pending_C2_SUB_EQ);
-    r5 = dm(_eq_xfade_step_C2_SUB_EQ);
+    r4 = dm(_eq_swap_pending_C2_CTR_EQ);
+    r5 = dm(_eq_xfade_step_C2_CTR_EQ);
     r4 = r4 or r5;
 #if DSP4_BQ_GUARD
-    r5 = dm(_eq_hrw_C2_SUB_EQ);
+    r5 = dm(_eq_hrw_C2_CTR_EQ);
     r4 = r4 or r5;      /* a sizing in flight is a transient too */
 #endif
     r4 = pass r4;
-    if ne jump (pc, .eqkb_tr_C2_SUB_EQ);
+    if ne jump (pc, .eqkb_tr_C2_CTR_EQ);
 
     l0 = 0;
     l1 = 0;
@@ -145,23 +145,23 @@ _C2_SUB_EQ_process:
      * the main mix bus reading seventeen -- so filtering it where it
      * stands would corrupt every other reader. Two memory operations
      * per sample against a 4-stage cascade. */
-    i3 = _blk_C2_SUB_FDR;
-    i4 = _blk_C2_SUB_EQ;
-    lcntr = DSP4_BLOCK_SIZE, do .eqkb_cp_C2_SUB_EQ until lce;
+    i3 = _blk_C2_CTR_FDR;
+    i4 = _blk_C2_CTR_EQ;
+    lcntr = DSP4_BLOCK_SIZE, do .eqkb_cp_C2_CTR_EQ until lce;
         r0 = dm(i3, 1);
-    .eqkb_cp_C2_SUB_EQ: dm(i4, 1) = r0;
+    .eqkb_cp_C2_CTR_EQ: dm(i4, 1) = r0;
 
-    r4 = dm(_eq_active_C2_SUB_EQ);
+    r4 = dm(_eq_active_C2_CTR_EQ);
     r4 = pass r4;
-    if ne jump (pc, .eqkb_b_C2_SUB_EQ);
-    i0 = _eq_coeffs_A_C2_SUB_EQ;
-    i1 = _eq_state_A_C2_SUB_EQ;
-    jump (pc, .eqkb_go_C2_SUB_EQ);
-.eqkb_b_C2_SUB_EQ:
-    i0 = _eq_coeffs_B_C2_SUB_EQ;
-    i1 = _eq_state_B_C2_SUB_EQ;
-.eqkb_go_C2_SUB_EQ:
-    i2 = _blk_C2_SUB_EQ;
+    if ne jump (pc, .eqkb_b_C2_CTR_EQ);
+    i0 = _eq_coeffs_A_C2_CTR_EQ;
+    i1 = _eq_state_A_C2_CTR_EQ;
+    jump (pc, .eqkb_go_C2_CTR_EQ);
+.eqkb_b_C2_CTR_EQ:
+    i0 = _eq_coeffs_B_C2_CTR_EQ;
+    i1 = _eq_state_B_C2_CTR_EQ;
+.eqkb_go_C2_CTR_EQ:
+    i2 = _blk_C2_CTR_EQ;
     r4 = 4;
     call _bq_fx_cascade_blk;
     /* The scalar the per-sample build publishes, kept live off the
@@ -170,14 +170,14 @@ _C2_SUB_EQ_process:
      * whenever the build last ran per-sample. */
     l4 = 0;
     m4 = DSP4_BLOCK_SIZE-1;
-    i4 = _blk_C2_SUB_EQ;
+    i4 = _blk_C2_CTR_EQ;
     modify(i4, m4);
     r0 = dm(i4, 0);
-    dm(_tap_post_eq_C2_SUB_EQ) = r0;
-    dm(_buf_C2_SUB_EQ) = r0;
+    dm(_tap_post_eq_C2_CTR_EQ) = r0;
+    dm(_buf_C2_CTR_EQ) = r0;
     rts;
 
-.eqkb_tr_C2_SUB_EQ:
+.eqkb_tr_C2_CTR_EQ:
 #endif
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
@@ -208,111 +208,111 @@ _C2_SUB_EQ_process:
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_SUB_FDR;
+            i4 = _blk_C2_CTR_FDR;
             r3 = i4;
-            dm(_bw_s0_C2_SUB_EQ) = r3;
-            i4 = _blk_C2_SUB_EQ;
+            dm(_bw_s0_C2_CTR_EQ) = r3;
+            i4 = _blk_C2_CTR_EQ;
             r3 = i4;
-            dm(_bw_d0_C2_SUB_EQ) = r3;
+            dm(_bw_d0_C2_CTR_EQ) = r3;
             r5 = dm(_sample_idx);
-            dm(_bw_k_C2_SUB_EQ) = r5;
+            dm(_bw_k_C2_CTR_EQ) = r5;
             r5 = 0;
             dm(_sample_idx) = r5;
             /* sample 0, peeled: the block-rate guard fires here */
-                r3 = dm(_bw_s0_C2_SUB_EQ);
+                r3 = dm(_bw_s0_C2_CTR_EQ);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_SUB_FDR) = r0;
+                dm(_buf_C2_CTR_FDR) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_SUB_EQ) = r3;
-                call _C2_SUB_EQ_process_sample;
-                r0 = dm(_buf_C2_SUB_EQ);
-                r3 = dm(_bw_d0_C2_SUB_EQ);
+                dm(_bw_s0_C2_CTR_EQ) = r3;
+                call _C2_CTR_EQ_process_sample;
+                r0 = dm(_buf_C2_CTR_EQ);
+                r3 = dm(_bw_d0_C2_CTR_EQ);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-                dm(_bw_d0_C2_SUB_EQ) = r3;
+                dm(_bw_d0_C2_CTR_EQ) = r3;
             r5 = 1;
             dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */
-            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_SUB_EQ until lce;
-                r3 = dm(_bw_s0_C2_SUB_EQ);
+            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_CTR_EQ until lce;
+                r3 = dm(_bw_s0_C2_CTR_EQ);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_SUB_FDR) = r0;
+                dm(_buf_C2_CTR_FDR) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_SUB_EQ) = r3;
-                call _C2_SUB_EQ_process_sample;
-                r0 = dm(_buf_C2_SUB_EQ);
-                r3 = dm(_bw_d0_C2_SUB_EQ);
+                dm(_bw_s0_C2_CTR_EQ) = r3;
+                call _C2_CTR_EQ_process_sample;
+                r0 = dm(_buf_C2_CTR_EQ);
+                r3 = dm(_bw_d0_C2_CTR_EQ);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-            .bwlp_C2_SUB_EQ: dm(_bw_d0_C2_SUB_EQ) = r3;
-            r5 = dm(_bw_k_C2_SUB_EQ);
+            .bwlp_C2_CTR_EQ: dm(_bw_d0_C2_CTR_EQ) = r3;
+            r5 = dm(_bw_k_C2_CTR_EQ);
             dm(_sample_idx) = r5;
             rts;
 
-        .global _C2_SUB_EQ_process_sample;
-        _C2_SUB_EQ_process_sample:
+        .global _C2_CTR_EQ_process_sample;
+        _C2_CTR_EQ_process_sample:
         #endif
 
 
     /* new coefficients staged? */
-    r4 = dm(_eq_swap_pending_C2_SUB_EQ);
+    r4 = dm(_eq_swap_pending_C2_CTR_EQ);
     #if DSP4_BQ_GUARD
-    r5 = dm(_eq_hrw_C2_SUB_EQ);
+    r5 = dm(_eq_hrw_C2_CTR_EQ);
     r4 = r4 or r5;
     #endif
     r4 = pass r4;
-    if ne call _eq_start_xfade_C2_SUB_EQ;
+    if ne call _eq_start_xfade_C2_CTR_EQ;
 
     /* crossfading? (float 0.0 is all-zero bits) */
-    r4 = dm(_eq_xfade_step_C2_SUB_EQ);
+    r4 = dm(_eq_xfade_step_C2_CTR_EQ);
     r4 = pass r4;
-    if ne jump (pc, .eq_xfade_C2_SUB_EQ);
+    if ne jump (pc, .eq_xfade_C2_CTR_EQ);
 
     /* ===== steady state: active instance only ===== */
-    r0 = dm(_buf_C2_SUB_FDR);
-    r4 = dm(_eq_active_C2_SUB_EQ);
+    r0 = dm(_buf_C2_CTR_FDR);
+    r4 = dm(_eq_active_C2_CTR_EQ);
     r4 = pass r4;
-    if ne jump (pc, .eq_ss_b_C2_SUB_EQ);
-    i0 = _eq_coeffs_A_C2_SUB_EQ;
-    i1 = _eq_state_A_C2_SUB_EQ;
-    jump (pc, .eq_ss_go_C2_SUB_EQ);
-.eq_ss_b_C2_SUB_EQ:
-    i0 = _eq_coeffs_B_C2_SUB_EQ;
-    i1 = _eq_state_B_C2_SUB_EQ;
-.eq_ss_go_C2_SUB_EQ:
+    if ne jump (pc, .eq_ss_b_C2_CTR_EQ);
+    i0 = _eq_coeffs_A_C2_CTR_EQ;
+    i1 = _eq_state_A_C2_CTR_EQ;
+    jump (pc, .eq_ss_go_C2_CTR_EQ);
+.eq_ss_b_C2_CTR_EQ:
+    i0 = _eq_coeffs_B_C2_CTR_EQ;
+    i1 = _eq_state_B_C2_CTR_EQ;
+.eq_ss_go_C2_CTR_EQ:
     r4 = 4;
     call _bq_fx_cascade_N;
-    dm(_tap_post_eq_C2_SUB_EQ) = r0;
-    dm(_buf_C2_SUB_EQ) = r0;
+    dm(_tap_post_eq_C2_CTR_EQ) = r0;
+    dm(_buf_C2_CTR_EQ) = r0;
     rts;
 
     /* ===== crossfade: run both, blend fixed ===== */
-.eq_xfade_C2_SUB_EQ:
-    r0 = dm(_buf_C2_SUB_FDR);
+.eq_xfade_C2_CTR_EQ:
+    r0 = dm(_buf_C2_CTR_FDR);
     r13 = r0;                     /* input (r13-r15 preserved by lib) */
-    i0 = _eq_coeffs_A_C2_SUB_EQ;
-    i1 = _eq_state_A_C2_SUB_EQ;
+    i0 = _eq_coeffs_A_C2_CTR_EQ;
+    i1 = _eq_state_A_C2_CTR_EQ;
     r4 = 4;
     call _bq_fx_cascade_N;
     r14 = r0;                     /* ya */
     r0 = r13;
-    i0 = _eq_coeffs_B_C2_SUB_EQ;
-    i1 = _eq_state_B_C2_SUB_EQ;
+    i0 = _eq_coeffs_B_C2_CTR_EQ;
+    i1 = _eq_state_B_C2_CTR_EQ;
     r4 = 4;
     call _bq_fx_cascade_N;        /* r0 = yb */
 
     /* orient: out = old + alpha*(new - old); dormant is new */
-    r4 = dm(_eq_active_C2_SUB_EQ);
+    r4 = dm(_eq_active_C2_CTR_EQ);
     r4 = pass r4;
-    if eq jump (pc, .eq_bl_C2_SUB_EQ);     /* active A -> new is B (r0) */
+    if eq jump (pc, .eq_bl_C2_CTR_EQ);     /* active A -> new is B (r0) */
     r5 = r14;                      /* new = ya */
     r14 = r0;                      /* old = yb */
     r0 = r5;
-.eq_bl_C2_SUB_EQ:
-    f4 = dm(_eq_xfade_alpha_C2_SUB_EQ);
+.eq_bl_C2_CTR_EQ:
+    f4 = dm(_eq_xfade_alpha_C2_CTR_EQ);
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
@@ -374,74 +374,74 @@ _C2_SUB_EQ_process:
     r12 = lshift r12 by 1;
     r5 = r5 or r12;
     r0 = r14 + r5;                 /* blended output */
-    dm(_tap_post_eq_C2_SUB_EQ) = r0;
-    dm(_buf_C2_SUB_EQ) = r0;
+    dm(_tap_post_eq_C2_CTR_EQ) = r0;
+    dm(_buf_C2_CTR_EQ) = r0;
 
     /* advance alpha (float control) */
-    f4 = dm(_eq_xfade_alpha_C2_SUB_EQ);
-    f5 = dm(_eq_xfade_step_C2_SUB_EQ);
+    f4 = dm(_eq_xfade_alpha_C2_CTR_EQ);
+    f5 = dm(_eq_xfade_step_C2_CTR_EQ);
     f4 = f4 + f5;
-    dm(_eq_xfade_alpha_C2_SUB_EQ) = f4;
+    dm(_eq_xfade_alpha_C2_CTR_EQ) = f4;
     r5 = 0x3F800000;               /* 1.0f */
     f5 = r5;
     comp(f4, f5);
     if lt rts;
     /* crossfade done: dormant becomes active */
-    r4 = dm(_eq_active_C2_SUB_EQ);
+    r4 = dm(_eq_active_C2_CTR_EQ);
     r5 = 1;
     r4 = r4 xor r5;
-    dm(_eq_active_C2_SUB_EQ) = r4;
+    dm(_eq_active_C2_CTR_EQ) = r4;
     r4 = 0;
-    dm(_eq_xfade_step_C2_SUB_EQ) = r4;
-    dm(_eq_xfade_alpha_C2_SUB_EQ) = r4;
+    dm(_eq_xfade_step_C2_CTR_EQ) = r4;
+    dm(_eq_xfade_alpha_C2_CTR_EQ) = r4;
     rts;
 
     /* ===== stage new coeffs into the dormant instance ===== */
-_eq_start_xfade_C2_SUB_EQ:
+_eq_start_xfade_C2_CTR_EQ:
     #if DSP4_BQ_GUARD
     /* Convert, size, and hold the fade until H is written. */
-    r0 = _eq_hrw_C2_SUB_EQ;
-    r1 = _eq_hrl_C2_SUB_EQ;
-    r2 = _eq_active_C2_SUB_EQ;
-    r3 = _eq_coeffs_A_C2_SUB_EQ;
-    r4 = _eq_coeffs_B_C2_SUB_EQ;
-    r5 = _eq_state_A_C2_SUB_EQ;
-    r6 = _eq_state_B_C2_SUB_EQ;
-    r7 = _eq_coeffs_next_C2_SUB_EQ;
+    r0 = _eq_hrw_C2_CTR_EQ;
+    r1 = _eq_hrl_C2_CTR_EQ;
+    r2 = _eq_active_C2_CTR_EQ;
+    r3 = _eq_coeffs_A_C2_CTR_EQ;
+    r4 = _eq_coeffs_B_C2_CTR_EQ;
+    r5 = _eq_state_A_C2_CTR_EQ;
+    r6 = _eq_state_B_C2_CTR_EQ;
+    r7 = _eq_coeffs_next_C2_CTR_EQ;
     r8 = 4;
     call _bq_hr_node1;      /* i2 = dormant state on success */
     r0 = pass r0;
     if eq rts;              /* not sized yet; back next block */
     r4 = 0;
-    dm(_eq_swap_pending_C2_SUB_EQ) = r4;
+    dm(_eq_swap_pending_C2_CTR_EQ) = r4;
     #endif
 #if !DSP4_BQ_GUARD
     r4 = 0;
-    dm(_eq_swap_pending_C2_SUB_EQ) = r4;
-    i0 = _eq_coeffs_next_C2_SUB_EQ;    /* float staged */
-    r4 = dm(_eq_active_C2_SUB_EQ);
+    dm(_eq_swap_pending_C2_CTR_EQ) = r4;
+    i0 = _eq_coeffs_next_C2_CTR_EQ;    /* float staged */
+    r4 = dm(_eq_active_C2_CTR_EQ);
     r4 = pass r4;
-    if ne jump (pc, .eq_st_a_C2_SUB_EQ);
-    i1 = _eq_coeffs_B_C2_SUB_EQ;       /* dormant = B */
-    i2 = _eq_state_B_C2_SUB_EQ;
-    jump (pc, .eq_st_go_C2_SUB_EQ);
-.eq_st_a_C2_SUB_EQ:
-    i1 = _eq_coeffs_A_C2_SUB_EQ;
-    i2 = _eq_state_A_C2_SUB_EQ;
-.eq_st_go_C2_SUB_EQ:
+    if ne jump (pc, .eq_st_a_C2_CTR_EQ);
+    i1 = _eq_coeffs_B_C2_CTR_EQ;       /* dormant = B */
+    i2 = _eq_state_B_C2_CTR_EQ;
+    jump (pc, .eq_st_go_C2_CTR_EQ);
+.eq_st_a_C2_CTR_EQ:
+    i1 = _eq_coeffs_A_C2_CTR_EQ;
+    i2 = _eq_state_A_C2_CTR_EQ;
+.eq_st_go_C2_CTR_EQ:
     r4 = 4;
     call _bq_fx_convert_N;
 #endif
     /* zero dormant state (24 words) */
     r4 = 0;
     r5 = 24;
-    lcntr = r5, do .eq_zst_C2_SUB_EQ until lce;
-.eq_zst_C2_SUB_EQ:
+    lcntr = r5, do .eq_zst_C2_CTR_EQ until lce;
+.eq_zst_C2_CTR_EQ:
         dm(i2, 1) = r4;
     /* start ramp: step = 1/XFADE_SAMPLES (float control) */
     f0 = 0.001736111111111111;
-    dm(_eq_xfade_step_C2_SUB_EQ) = f0;
+    dm(_eq_xfade_step_C2_CTR_EQ) = f0;
     r4 = 0;
-    dm(_eq_xfade_alpha_C2_SUB_EQ) = r4;
+    dm(_eq_xfade_alpha_C2_CTR_EQ) = r4;
     rts;
-_C2_SUB_EQ_process.end:
+_C2_CTR_EQ_process.end:
