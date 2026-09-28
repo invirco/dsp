@@ -1,3 +1,30 @@
+## HUB DISPATCH 2026-09-28 06:38Z — S137: PW panel-loop ruling — fixed order, every switch in turn, NOT LIT records and skips   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+# S137 — NO FLASH: PW's panel-loop ruling (28 Sep): fixed order, every switch in turn, a NOT LIT button that records and skips
+
+**PW, verbatim:** "keeping the leds in the same order will speed up operator time, but make sure every switch is tested in turn, with a button to press if led change is not observed so machine can note, and skip to next."
+
+**Build**, in the panel loop, for BOTH boards:
+- **The order is FIXED** and the same every pass: the defs/fw.csv panel order. The screen keeps naming the board and the button, as S128 made it.
+- **Every switch in turn,** with coverage reconciled against defs (`panel_coverage.py --check`, 20 of 20 switches).
+- **A second button on the panel-loop screen only: NOT LIT.** This is PW's explicit exception to the one-button rule, for this step.
+  - Pressing it records that step's LED row as **FAIL — "operator saw no light"**, records the switch row as **NOT TESTED — "skipped: LED dark"**, and advances to the next switch at once.
+  - A correct key press records both the LED (PASS, operator-observed) and the switch (PASS).
+  - A wrong key still FAILs the switch and names the board.
+- **Keep the S130 random-order flag, default OFF;** PW chose fixed order.
+- **The app:** if FactoryView needs a second on-screen button for NOT LIT, specify it exactly in the block. Use the existing PAUSE slot/geometry if possible. The hub builds and deploys it with S131. Do NOT deploy an app yourself (the app stays b05e9fd5).
+- **Dry-run proof:**
+  - the glass-button rule check (every ENTER-asking screen has ENTER; the panel steps have their key prompt plus NOT LIT);
+  - a scripted pass exercising PASS, NOT LIT and wrong-key on each board.
+
+**Rules:** NO flashing, no app deploy. Deploy tools only via `deploy-bench-tools.sh`. Leave the unit safe and armed. Update `MW/D24/DSP/s131-runbook.md` step 10 so the post-switch panel check uses this loop. Close 🟢/🔴, commit and push `main`. No AI attribution. No dialogs.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-28 00:17Z — S136: overnight, no flash — station tools resolve matrix addresses by cell name from the unit's deployed pack   [status: 🟢 done — all four build items landed and proved live on MW-D24-2's OLD pack, nothing flashed, nothing deployed to the app. New `tools/pi/matrix_addr.py` resolves a cell name off `{HomePath}/config/_matrix.mxc` (same order as `AppContext.ResolveMatrixPath`), same fingerprint algorithm as `defs/tools/matrix_gen_id.py`. Converted every hard-coded matrix-bus literal in `tools/pi`: `d24_panel.py` (`SKIN`/`ENC`/`SW_LEFT`, `SW_TALK` added), `codec4619.py` (`SYS001TEST001/002`), `d24_bus_probe.py` (`--cell` default), `d24_selftest.py` (a message string). `d24_panel.py --mode resolve` (new) proves it with no bus/hands/matrix-app touch. **Live on the unit:** generation `e80ccab5d6d8`, `Sys001Skin001`=5412, `Sys001Enc001`=5232 (unchanged behavior, resolved by name), `Sys001SwLeft001`/`Sys001SwTalk001` report "cell not in this unit's matrix" (never a guess) — `--panel left` now short-circuits to NOT TESTED rows instead of the old shared-cell aliasing guess. Guard `tools/pi/check-no-hardcoded-matrix-addr.py` (tokenizer-based, scoped to files importing `codec4619`) wired into `deploy-bench-tools.sh`, which now refuses to deploy on a hit; negative-control tested. Scope note: `tools/pi/dsp4_*.py`'s D32 SHARC memory-offset constants are a different, build-time-resolved addressing mechanism with no runtime pack to read — deliberately out of this dispatch, flagged for the hub rather than silently dropped (see report §2). `codec4619.py`'s fix is source-only tonight: it lives in the pair drop, not `deploy-bench-tools.sh`'s `TOOLS` list, so the on-unit copy is unchanged until the next pair drop; `d24_panel.py`/`d24_bus_probe.py` are unaffected since they only use its transport, not its two test-cell constants. Runbook `MW/D24/DSP/s131-runbook.md` §6a closed, step 10 gained the `--mode resolve` generation check (`f9677e5fae5e` expected after step 8). Unit re-verified unchanged after: GPIO26 lo, GPIO27 hi, `matrix-app` inactive (as found at session start). Report `MW/D24/DSP/s136/s136-report.md`.]   [model: sonnet]
 
 model: sonnet
