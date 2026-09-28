@@ -12,8 +12,8 @@
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 5866 of 8737 defined cells reach a DSP address.
-# The other 2871 are named in dsp-unmapped.csv with the
+# 5890 of 8737 defined cells reach a DSP address.
+# The other 2847 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -35,6 +35,8 @@
 #   Notes        what the word is
 _Cell,Node,NodeType,DspSpi,DspPage,DspAdd,DspAddHex,Access,RampProfile,RampMode,RampUpMs,RampDownMs,RampCurve,RampScope,Table,Notes
 Aux001AntiFbCtrlOn001,C2_AUX_AFB_01,ANTI_FB,2,1,60,0x003C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AntiFbGain001,C2_AUX_AFB_01,ANTI_FB,2,1,79,0x004F,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AntiFbLimOn001,C2_AUX_AFB_01,ANTI_FB,2,1,80,0x0050,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001AntiFbNotchFreq001,C2_AUX_AFB_01,ANTI_FB,2,1,61,0x003D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001AntiFbNotchFreq002,C2_AUX_AFB_01,ANTI_FB,2,1,62,0x003E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001AntiFbNotchFreq003,C2_AUX_AFB_01,ANTI_FB,2,1,63,0x003F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -111,6 +113,8 @@ Aux001Mtr001,C2_MTR_AUX_01,METER,2,1,1817,0x0719,ro,,Instant,0,0,Linear,Scalar,,
 Aux001Mute001,C2_AUX_FDR_01,FADER_PAN,2,1,2,0x0002,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001Pan001,C2_AUX_FDR_01,FADER_PAN,2,1,1,0x0001,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux002AntiFbCtrlOn001,C2_AUX_AFB_02,ANTI_FB,2,1,150,0x0096,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AntiFbGain001,C2_AUX_AFB_02,ANTI_FB,2,1,169,0x00A9,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AntiFbLimOn001,C2_AUX_AFB_02,ANTI_FB,2,1,170,0x00AA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002AntiFbNotchFreq001,C2_AUX_AFB_02,ANTI_FB,2,1,151,0x0097,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002AntiFbNotchFreq002,C2_AUX_AFB_02,ANTI_FB,2,1,152,0x0098,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002AntiFbNotchFreq003,C2_AUX_AFB_02,ANTI_FB,2,1,153,0x0099,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -187,6 +191,8 @@ Aux002Mtr001,C2_MTR_AUX_02,METER,2,1,1818,0x071A,ro,,Instant,0,0,Linear,Scalar,,
 Aux002Mute001,C2_AUX_FDR_02,FADER_PAN,2,1,92,0x005C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002Pan001,C2_AUX_FDR_02,FADER_PAN,2,1,91,0x005B,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux003AntiFbCtrlOn001,C2_AUX_AFB_03,ANTI_FB,2,1,240,0x00F0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AntiFbGain001,C2_AUX_AFB_03,ANTI_FB,2,1,259,0x0103,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AntiFbLimOn001,C2_AUX_AFB_03,ANTI_FB,2,1,260,0x0104,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003AntiFbNotchFreq001,C2_AUX_AFB_03,ANTI_FB,2,1,241,0x00F1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003AntiFbNotchFreq002,C2_AUX_AFB_03,ANTI_FB,2,1,242,0x00F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003AntiFbNotchFreq003,C2_AUX_AFB_03,ANTI_FB,2,1,243,0x00F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -263,6 +269,8 @@ Aux003Mtr001,C2_MTR_AUX_03,METER,2,1,1819,0x071B,ro,,Instant,0,0,Linear,Scalar,,
 Aux003Mute001,C2_AUX_FDR_03,FADER_PAN,2,1,182,0x00B6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003Pan001,C2_AUX_FDR_03,FADER_PAN,2,1,181,0x00B5,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux004AntiFbCtrlOn001,C2_AUX_AFB_04,ANTI_FB,2,1,330,0x014A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AntiFbGain001,C2_AUX_AFB_04,ANTI_FB,2,1,349,0x015D,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AntiFbLimOn001,C2_AUX_AFB_04,ANTI_FB,2,1,350,0x015E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004AntiFbNotchFreq001,C2_AUX_AFB_04,ANTI_FB,2,1,331,0x014B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004AntiFbNotchFreq002,C2_AUX_AFB_04,ANTI_FB,2,1,332,0x014C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004AntiFbNotchFreq003,C2_AUX_AFB_04,ANTI_FB,2,1,333,0x014D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -339,6 +347,8 @@ Aux004Mtr001,C2_MTR_AUX_04,METER,2,1,1820,0x071C,ro,,Instant,0,0,Linear,Scalar,,
 Aux004Mute001,C2_AUX_FDR_04,FADER_PAN,2,1,272,0x0110,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004Pan001,C2_AUX_FDR_04,FADER_PAN,2,1,271,0x010F,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux005AntiFbCtrlOn001,C2_AUX_AFB_05,ANTI_FB,2,1,420,0x01A4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AntiFbGain001,C2_AUX_AFB_05,ANTI_FB,2,1,439,0x01B7,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AntiFbLimOn001,C2_AUX_AFB_05,ANTI_FB,2,1,440,0x01B8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005AntiFbNotchFreq001,C2_AUX_AFB_05,ANTI_FB,2,1,421,0x01A5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005AntiFbNotchFreq002,C2_AUX_AFB_05,ANTI_FB,2,1,422,0x01A6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005AntiFbNotchFreq003,C2_AUX_AFB_05,ANTI_FB,2,1,423,0x01A7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -415,6 +425,8 @@ Aux005Mtr001,C2_MTR_AUX_05,METER,2,1,1821,0x071D,ro,,Instant,0,0,Linear,Scalar,,
 Aux005Mute001,C2_AUX_FDR_05,FADER_PAN,2,1,362,0x016A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005Pan001,C2_AUX_FDR_05,FADER_PAN,2,1,361,0x0169,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux006AntiFbCtrlOn001,C2_AUX_AFB_06,ANTI_FB,2,1,510,0x01FE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AntiFbGain001,C2_AUX_AFB_06,ANTI_FB,2,1,529,0x0211,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AntiFbLimOn001,C2_AUX_AFB_06,ANTI_FB,2,1,530,0x0212,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006AntiFbNotchFreq001,C2_AUX_AFB_06,ANTI_FB,2,1,511,0x01FF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006AntiFbNotchFreq002,C2_AUX_AFB_06,ANTI_FB,2,1,512,0x0200,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006AntiFbNotchFreq003,C2_AUX_AFB_06,ANTI_FB,2,1,513,0x0201,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -491,6 +503,8 @@ Aux006Mtr001,C2_MTR_AUX_06,METER,2,1,1822,0x071E,ro,,Instant,0,0,Linear,Scalar,,
 Aux006Mute001,C2_AUX_FDR_06,FADER_PAN,2,1,452,0x01C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006Pan001,C2_AUX_FDR_06,FADER_PAN,2,1,451,0x01C3,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux007AntiFbCtrlOn001,C2_AUX_AFB_07,ANTI_FB,2,1,600,0x0258,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux007AntiFbGain001,C2_AUX_AFB_07,ANTI_FB,2,1,619,0x026B,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux007AntiFbLimOn001,C2_AUX_AFB_07,ANTI_FB,2,1,620,0x026C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux007AntiFbNotchFreq001,C2_AUX_AFB_07,ANTI_FB,2,1,601,0x0259,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux007AntiFbNotchFreq002,C2_AUX_AFB_07,ANTI_FB,2,1,602,0x025A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux007AntiFbNotchFreq003,C2_AUX_AFB_07,ANTI_FB,2,1,603,0x025B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -567,6 +581,8 @@ Aux007Mtr001,C2_MTR_AUX_07,METER,2,1,1823,0x071F,ro,,Instant,0,0,Linear,Scalar,,
 Aux007Mute001,C2_AUX_FDR_07,FADER_PAN,2,1,542,0x021E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux007Pan001,C2_AUX_FDR_07,FADER_PAN,2,1,541,0x021D,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux008AntiFbCtrlOn001,C2_AUX_AFB_08,ANTI_FB,2,1,690,0x02B2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux008AntiFbGain001,C2_AUX_AFB_08,ANTI_FB,2,1,709,0x02C5,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux008AntiFbLimOn001,C2_AUX_AFB_08,ANTI_FB,2,1,710,0x02C6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux008AntiFbNotchFreq001,C2_AUX_AFB_08,ANTI_FB,2,1,691,0x02B3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux008AntiFbNotchFreq002,C2_AUX_AFB_08,ANTI_FB,2,1,692,0x02B4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux008AntiFbNotchFreq003,C2_AUX_AFB_08,ANTI_FB,2,1,693,0x02B5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -643,6 +659,8 @@ Aux008Mtr001,C2_MTR_AUX_08,METER,2,1,1824,0x0720,ro,,Instant,0,0,Linear,Scalar,,
 Aux008Mute001,C2_AUX_FDR_08,FADER_PAN,2,1,632,0x0278,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux008Pan001,C2_AUX_FDR_08,FADER_PAN,2,1,631,0x0277,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux009AntiFbCtrlOn001,C2_AUX_AFB_09,ANTI_FB,2,1,780,0x030C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux009AntiFbGain001,C2_AUX_AFB_09,ANTI_FB,2,1,799,0x031F,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux009AntiFbLimOn001,C2_AUX_AFB_09,ANTI_FB,2,1,800,0x0320,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux009AntiFbNotchFreq001,C2_AUX_AFB_09,ANTI_FB,2,1,781,0x030D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux009AntiFbNotchFreq002,C2_AUX_AFB_09,ANTI_FB,2,1,782,0x030E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux009AntiFbNotchFreq003,C2_AUX_AFB_09,ANTI_FB,2,1,783,0x030F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -719,6 +737,8 @@ Aux009Mtr001,C2_MTR_AUX_09,METER,2,1,1825,0x0721,ro,,Instant,0,0,Linear,Scalar,,
 Aux009Mute001,C2_AUX_FDR_09,FADER_PAN,2,1,722,0x02D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux009Pan001,C2_AUX_FDR_09,FADER_PAN,2,1,721,0x02D1,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux010AntiFbCtrlOn001,C2_AUX_AFB_10,ANTI_FB,2,1,870,0x0366,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux010AntiFbGain001,C2_AUX_AFB_10,ANTI_FB,2,1,889,0x0379,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux010AntiFbLimOn001,C2_AUX_AFB_10,ANTI_FB,2,1,890,0x037A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux010AntiFbNotchFreq001,C2_AUX_AFB_10,ANTI_FB,2,1,871,0x0367,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux010AntiFbNotchFreq002,C2_AUX_AFB_10,ANTI_FB,2,1,872,0x0368,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux010AntiFbNotchFreq003,C2_AUX_AFB_10,ANTI_FB,2,1,873,0x0369,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -795,6 +815,8 @@ Aux010Mtr001,C2_MTR_AUX_10,METER,2,1,1826,0x0722,ro,,Instant,0,0,Linear,Scalar,,
 Aux010Mute001,C2_AUX_FDR_10,FADER_PAN,2,1,812,0x032C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux010Pan001,C2_AUX_FDR_10,FADER_PAN,2,1,811,0x032B,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux011AntiFbCtrlOn001,C2_AUX_AFB_11,ANTI_FB,2,1,960,0x03C0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux011AntiFbGain001,C2_AUX_AFB_11,ANTI_FB,2,1,979,0x03D3,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux011AntiFbLimOn001,C2_AUX_AFB_11,ANTI_FB,2,1,980,0x03D4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux011AntiFbNotchFreq001,C2_AUX_AFB_11,ANTI_FB,2,1,961,0x03C1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux011AntiFbNotchFreq002,C2_AUX_AFB_11,ANTI_FB,2,1,962,0x03C2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux011AntiFbNotchFreq003,C2_AUX_AFB_11,ANTI_FB,2,1,963,0x03C3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -871,6 +893,8 @@ Aux011Mtr001,C2_MTR_AUX_11,METER,2,1,1827,0x0723,ro,,Instant,0,0,Linear,Scalar,,
 Aux011Mute001,C2_AUX_FDR_11,FADER_PAN,2,1,902,0x0386,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux011Pan001,C2_AUX_FDR_11,FADER_PAN,2,1,901,0x0385,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux012AntiFbCtrlOn001,C2_AUX_AFB_12,ANTI_FB,2,1,1050,0x041A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux012AntiFbGain001,C2_AUX_AFB_12,ANTI_FB,2,1,1069,0x042D,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux012AntiFbLimOn001,C2_AUX_AFB_12,ANTI_FB,2,1,1070,0x042E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux012AntiFbNotchFreq001,C2_AUX_AFB_12,ANTI_FB,2,1,1051,0x041B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux012AntiFbNotchFreq002,C2_AUX_AFB_12,ANTI_FB,2,1,1052,0x041C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux012AntiFbNotchFreq003,C2_AUX_AFB_12,ANTI_FB,2,1,1053,0x041D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -5814,31 +5838,31 @@ MainR001LimiterRel001,C2_MAIN_OLIM_02,LIMITER,2,1,1528,0x05F8,rw,DynSafe,LinearF
 MainR001LimiterThr001,C2_MAIN_OLIM_02,LIMITER,2,1,1526,0x05F6,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainR001Mtr001,C2_MTR_MAIN_02,METER,2,1,1831,0x0727,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 MainR001Mute001,C2_MAIN_OUT_02,OUTPUT_TDM,2,1,2170,0x087A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001CrossoverFreq001,C2_WOOF_XOVER,CROSSOVER,2,1,2316,0x090C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
-MainSub001CrossoverSlope001,C2_WOOF_XOVER,CROSSOVER,2,1,2317,0x090D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
-MainSub001EqFreq001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
-MainSub001EqFreq002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
-MainSub001EqFreq003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
-MainSub001EqFreq004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 coeff base
-MainSub001EqGain001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
-MainSub001EqGain002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqGain003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqGain004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
-MainSub001EqHpf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,HPF via EQ band 1
-MainSub001EqOn001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2345,0x0929,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001EqQ001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
-MainSub001EqQ002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2329,0x0919,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
-MainSub001EqQ003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2334,0x091E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
-MainSub001EqQ004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
-MainSub001EqShelf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2324,0x0914,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
-MainSub001EqShelf002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2339,0x0923,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
-MainSub001Level001,C2_WOOF_FDR,FADER_PAN,2,1,2320,0x0910,rw,GainFast,Slew,3,8,Exp,Scalar,,
-MainSub001LimiterAtt001,C2_WOOF_LIM,LIMITER,2,1,2350,0x092E,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001LimiterOn001,C2_WOOF_LIM,LIMITER,2,1,2348,0x092C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001LimiterRel001,C2_WOOF_LIM,LIMITER,2,1,2351,0x092F,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001LimiterThr001,C2_WOOF_LIM,LIMITER,2,1,2349,0x092D,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
-MainSub001Mute001,C2_WOOF_FDR,FADER_PAN,2,1,2322,0x0912,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-MainSub001Src001,C2_WOOF_SRC,SOURCE_SEL,2,1,2312,0x0908,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001CrossoverFreq001,C2_WOOF_XOVER,CROSSOVER,2,1,2364,0x093C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,shared crossover frequency word
+MainSub001CrossoverSlope001,C2_WOOF_XOVER,CROSSOVER,2,1,2365,0x093D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,shared crossover slope word
+MainSub001EqFreq001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2372,0x0944,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
+MainSub001EqFreq002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2377,0x0949,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
+MainSub001EqFreq003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2382,0x094E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 coeff base
+MainSub001EqFreq004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2387,0x0953,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 coeff base
+MainSub001EqGain001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2372,0x0944,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
+MainSub001EqGain002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2377,0x0949,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
+MainSub001EqGain003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2382,0x094E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
+MainSub001EqGain004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2387,0x0953,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
+MainSub001EqHpf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2372,0x0944,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,HPF via EQ band 1
+MainSub001EqOn001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2393,0x0959,mcu,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001EqQ001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2372,0x0944,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 (same base)
+MainSub001EqQ002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2377,0x0949,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 (same base)
+MainSub001EqQ003,C2_WOOF_EQ,EQ_BIQUAD,2,1,2382,0x094E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 3 (same base)
+MainSub001EqQ004,C2_WOOF_EQ,EQ_BIQUAD,2,1,2387,0x0953,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 4 (same base)
+MainSub001EqShelf001,C2_WOOF_EQ,EQ_BIQUAD,2,1,2372,0x0944,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 1
+MainSub001EqShelf002,C2_WOOF_EQ,EQ_BIQUAD,2,1,2387,0x0953,rw,InstantCtl,Instant,0,0,Linear,Scalar,,Shelf mode band 4
+MainSub001Level001,C2_WOOF_FDR,FADER_PAN,2,1,2368,0x0940,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainSub001LimiterAtt001,C2_WOOF_LIM,LIMITER,2,1,2398,0x095E,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001LimiterOn001,C2_WOOF_LIM,LIMITER,2,1,2396,0x095C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001LimiterRel001,C2_WOOF_LIM,LIMITER,2,1,2399,0x095F,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001LimiterThr001,C2_WOOF_LIM,LIMITER,2,1,2397,0x095D,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
+MainSub001Mute001,C2_WOOF_FDR,FADER_PAN,2,1,2370,0x0942,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainSub001Src001,C2_WOOF_SRC,SOURCE_SEL,2,1,2360,0x0938,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Matrix001Level001,C2_MTX_FDR_01,FADER_PAN,2,1,2003,0x07D3,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Matrix001Mute001,C2_MTX_FDR_01,FADER_PAN,2,1,2005,0x07D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Matrix002Level001,C2_MTX_FDR_02,FADER_PAN,2,1,2008,0x07D8,rw,GainFast,Slew,3,8,Exp,Scalar,,
@@ -5851,9 +5875,9 @@ Mon001Delay001,C2_MON_DLY,DELAY,2,1,1794,0x0702,rw,InstantCtl,Instant,0,0,Linear
 Mon001InputSel001,C2_MON,MONITOR,2,1,1788,0x06FC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Mon001Level001,C2_MON,MONITOR,2,1,1789,0x06FD,rw,GainFast,Slew,3,8,Exp,Scalar,,L
 Mon001Level002,C2_MON,MONITOR,2,1,1790,0x06FE,rw,GainFast,Slew,3,8,Exp,Scalar,,R
-Mon001PhonesDelay001,C2_PHN_DLY,DELAY,2,1,2366,0x093E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
-Mon001PhonesLevel001,C2_PHN,MONITOR,2,1,2361,0x0939,rw,GainFast,Slew,3,8,Exp,Scalar,,both legs (one cell)
-Mon001PickOff001,C2_MON_PICK,SOURCE_SEL,2,1,2356,0x0934,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Mon001PhonesDelay001,C2_PHN_DLY,DELAY,2,1,2414,0x096E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Mon001PhonesLevel001,C2_PHN,MONITOR,2,1,2409,0x0969,rw,GainFast,Slew,3,8,Exp,Scalar,,both legs (one cell)
+Mon001PickOff001,C2_MON_PICK,SOURCE_SEL,2,1,2404,0x0964,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Hpf001,C1_NOISE,NOISE_GEN,1,1,4746,0x128A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Noise001Level001,C1_NOISE,NOISE_GEN,1,1,4745,0x1289,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Noise001On001,C1_NOISE,NOISE_GEN,1,1,4744,0x1288,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

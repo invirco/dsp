@@ -21,8 +21,8 @@
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
-.extern _buf_C2_MAIN_GEQ;
-.extern _buf_C2_MAIN_GEQ_R;
+.extern _buf_C2_MAIN_AFB;
+.extern _buf_C2_MAIN_AFB_R;
         .extern _comp_on_C2_MAIN_COMP;
         .extern _comp_attq_C2_MAIN_COMP;
         .extern _comp_relq_C2_MAIN_COMP;
@@ -44,8 +44,8 @@
 .var _comp_saved_idx_C2_MAIN_COMP_R;
 #endif
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_MAIN_GEQ_R;
-        .extern _blk_C2_MAIN_GEQ;
+        .extern _blk_C2_MAIN_AFB_R;
+        .extern _blk_C2_MAIN_AFB;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_MAIN_COMP_R;
@@ -99,10 +99,10 @@
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_MAIN_GEQ_R;
+            i4 = _blk_C2_MAIN_AFB_R;
             r3 = i4;
             dm(_bw_s0_C2_MAIN_COMP_R) = r3;
-            i4 = _blk_C2_MAIN_GEQ;
+            i4 = _blk_C2_MAIN_AFB;
             r3 = i4;
             dm(_bw_s1_C2_MAIN_COMP_R) = r3;
             i4 = _blk_C2_MAIN_COMP_R;
@@ -116,13 +116,13 @@
                 r3 = dm(_bw_s0_C2_MAIN_COMP_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_GEQ_R) = r0;
+                dm(_buf_C2_MAIN_AFB_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_COMP_R) = r3;
                 r3 = dm(_bw_s1_C2_MAIN_COMP_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_GEQ) = r0;
+                dm(_buf_C2_MAIN_AFB) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s1_C2_MAIN_COMP_R) = r3;
                 call _C2_MAIN_COMP_R_process_sample;
@@ -138,13 +138,13 @@
                 r3 = dm(_bw_s0_C2_MAIN_COMP_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_GEQ_R) = r0;
+                dm(_buf_C2_MAIN_AFB_R) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_MAIN_COMP_R) = r3;
                 r3 = dm(_bw_s1_C2_MAIN_COMP_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_GEQ) = r0;
+                dm(_buf_C2_MAIN_AFB) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s1_C2_MAIN_COMP_R) = r3;
                 call _C2_MAIN_COMP_R_process_sample;
@@ -161,7 +161,7 @@
         .global _C2_MAIN_COMP_R_process_sample;
         _C2_MAIN_COMP_R_process_sample:
         #endif
-            r0 = dm(_buf_C2_MAIN_GEQ_R);
+            r0 = dm(_buf_C2_MAIN_AFB_R);
             r2 = dm(_comp_on_C2_MAIN_COMP);
             r3 = 0;
             comp(r2, r3);
@@ -176,7 +176,7 @@
             /* STEREO-LINKED DETECTOR (S143): max(|L|,|R|), symmetric, so
              * this node and its stereo partner compute the same gain. */
             r0 = abs r13;
-            r1 = dm(_buf_C2_MAIN_GEQ);
+            r1 = dm(_buf_C2_MAIN_AFB);
             r1 = abs r1;
             r0 = max(r0, r1);
             r1 = dm(_comp_envelope_C2_MAIN_COMP_R);

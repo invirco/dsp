@@ -9025,7 +9025,8 @@ def gen_eq_biquad_fixed(node):
             pfx='eq', nid=node['id'], cid=node['id'],
             inp=node['inputs_str'],
             stages=int(node['params'].get('bands', '4')),
-            extra_store=f"            dm(_tap_post_eq_{node['id']}) = r0;\n")
+            extra_store=f"            dm(_tap_post_eq_{node['id']}) = r0;\n",
+            post_blk='')
     else:
         blk_eq_body = ''
 
@@ -9517,8 +9518,226 @@ def _fx_blend_asm(pfx, nid):
 {_xfade_blend_core(pfx, nid)}"""
 
 
+# ===========================================================================
+# THE ANTI-FEEDBACK RING-OUT GAIN AND THE FEEDBACK LIMITER  (S144, PW D9)
+# ===========================================================================
+#
+# `AntiFbGain` -- "the gain the auto ring-out adds to provoke feedback
+# (auto/manual)", 0..20 dB -- and `AntiFbLimOn` -- "feedback LIMITER on/off
+# (manual/auto feedback limiter)" -- are two cells the ANTI_FB node has had
+# spare words for since S23 and no arithmetic for. They are what makes
+# ringing a room out SAFE: the operator (or the host) walks the gain up
+# until the room rings, the limiter stops the ring taking the system with
+# it, the notch goes in, repeat.
+#
+# THEY GO ON THE NOTCH NODE'S OUTPUT, and not on a node of their own. A
+# per-protected-point gain node would be fourteen more chain entries,
+# fourteen more block buffers and fourteen more call/rts for a feature that
+# is off in every image that ships. This is one guarded post-pass over the
+# block the cascade has just filled.
+#
+# THE SHIPPING DEFAULT COSTS ONE COMPARE. Gain 0 dB is exactly 2^28 in
+# Q4.28 and the limiter is off, and the two together are the bypass test:
+# unity AND off means the block the cascade produced is already the answer,
+# so the post-pass is skipped whole. Same discipline as the aux sum's
+# switched-send bypass (S23 gate 3) and the output strip's unity-level
+# bypass (S24) -- a feature that is switched off emits and executes what the
+# node did before the feature existed, bar the test.
+#
+# THE LIMITER IS THE LIMITER, not a hard clip. `_envq_fx` for the envelope
+# and `_compgain_fx` off a brick-wall parameter block, which is exactly
+# what `gen_limiter_fixed` runs -- the same two library routines, the same
+# `_fx_dyn_block_cvt` conversion, one prefix along. A clip would generate
+# the harmonics the notches are trying to find.
+#
+# ITS THRESHOLD IS A NODE PARAMETER AND NOT A CELL, because the contract
+# defines none: `AntiFbLimOn` is the whole of the family's limiter on the
+# wire. -6 dBFS is stated in dsp.csv where a reader can see it, rather than
+# buried here, and moving it is a one-word graph change.
+#
+# 🔴 RECORDED, NOT ASKED (S144-5): `AntiFbCtrlOn` still reaches no DSP
+# arithmetic, and that is S142's proposal standing: the DSP owns the
+# filterbank, the ring metric and the notches, and the HOST owns the
+# DECISION. If PW wants the ring-out to run with the screen off, the
+# peak-picking moves to the DSP and this item costs more; the cell set does
+# not change either way.
+
+
+def _afb_post_stage(node):
+    """(dm, rate, blk, smp, sub) for the ring-out gain + feedback limiter."""
+    nid = node['id']
+    p = node['params']
+    if node['chip'] != '2':
+        raise ValueError(
+            f'{nid}: the anti-feedback post stage is written for chip 2 '
+            f'(the fused block path is chip 2\'s). A chip-1 ANTI_FB node '
+            f'would need the per-sample path only -- say so here first.')
+    if node.get('follows'):
+        # A follower runs the MASTER's gain and the master's limiter
+        # PARAMETERS, and its own envelope: the same split the stereo-linked
+        # dynamics take. One `AntiFbGain`, one `AntiFbLimOn`, two instances.
+        mid = node['follows']
+        dm = '\n'.join([
+            f'        /* The ring-out gain and the feedback limiter\'s curve are',
+            f'         * {mid}\'s (S144): one `AntiFbGain`, one `AntiFbLimOn`, two',
+            f'         * instances. The ENVELOPE is this node\'s, because an',
+            f'         * envelope is per channel or it is not an envelope. */',
+            f'        .extern _afb_gq_{mid};',
+            f'        .extern _afl_on_{mid};',
+            f'        .extern _afl_attq_{mid};',
+            f'        .extern _afl_relq_{mid};',
+            f'        .extern _afl_cgp_{mid};',
+            f'        .var _afl_envelope_{nid} = 0;',
+            f'        .var _afl_p_{nid};',
+            f'        .var _afl_n_{nid};',
+        ])
+        rate = ''
+        cid = mid
+    else:
+        thr = float(p.get('fb_lim_db', '-6.0'))
+        dm = '\n'.join([
+            f'        /* `AntiFbGain`, LINEAR on the wire and ramped, as the ramp',
+            f'         * engine\'s quad: value, target, step, frames in consecutive',
+            f'         * words of equal width, which is the adjacency',
+            f'         * build_ramp_stride_map() reads out of this file to tell the',
+            f'         * SPI handler where the companions are. Linear because that is',
+            f'         * what every other level on this wire is -- the dB is the',
+            f'         * cell TABLE\'s, host side, and wire-units.csv converts only',
+            f'         * ms -> samples. 1.0 is 0 dB: the ring-out adds nothing until',
+            f'         * someone walks it up. */',
+            f'        .var _afb_gain_{nid} = 1.0;',
+            f'        .var _afb_gain_target_{nid} = 1.0;',
+            f'        .var _afb_gain_step_{nid} = 0.0;',
+            f'        .var _afb_gain_frames_{nid} = 0;',
+            f'        .var _afb_gq_{nid} = 0x10000000;   /* Q4.28 shadow, 0 dB */',
+            f'        /* The feedback limiter. `AntiFbLimOn` is the ONLY cell the',
+            f'         * contract gives it, so the curve is the graph\'s: the',
+            f'         * threshold is stated in dsp.csv (fb_lim_db) where a reader',
+            f'         * can see it, and the attack and release are the LIMITER',
+            f'         * kernel\'s own alpha defaults, because no cell writes them',
+            f'         * and a second set of numbers here would be two answers. */',
+            f'        .var _afl_on_{nid} = 0;',
+            f'        .var _afl_threshold_{nid} = {thr};',
+            f'        .var _afl_attack_{nid} = 0.5;',
+            f'        .var _afl_release_{nid} = 0.001;',
+            f'        .var _afl_envelope_{nid} = 0;',
+            f'        .var _afl_attq_{nid} = 0;',
+            f'        .var _afl_relq_{nid} = 0;',
+            f'        .var _afl_cgp_{nid}[4];',
+            f'        .var _afl_p_{nid};',
+            f'        .var _afl_n_{nid};',
+        ])
+        rate = '\n'.join([
+            '            /* ---- block rate: the ring-out gain and the limiter curve ----',
+            '             * (S144). Run every block on a node the chain reaches once per',
+            '             * block, beside the notch design above it. */',
+            f'            r4 = dm(_afb_gain_frames_{nid});',
+            '            r15 = DSP4_BLOCK_SIZE;',
+            '            r4 = r4 - r15;',
+            f'            if le jump (pc, .afbg_settle_{nid});',
+            f'            dm(_afb_gain_frames_{nid}) = r4;',
+            f'            f1 = dm(_afb_gain_{nid});',
+            f'            f2 = dm(_afb_gain_step_{nid});',
+            '            r15 = DSP4_BLOCK_F32;',
+            '            f15 = r15;',
+            '            f2 = f2 * f15;',
+            '            f1 = f1 + f2;',
+            f'            dm(_afb_gain_{nid}) = f1;',
+            f'            jump (pc, .afbg_cvt_{nid});',
+            f'        .afbg_settle_{nid}:',
+            f'            f1 = dm(_afb_gain_target_{nid});',
+            f'            dm(_afb_gain_{nid}) = f1;',
+            f'        .afbg_cvt_{nid}:',
+            '            /* linear -> Q4.28. 1.0 lands on exactly 2^28, which is',
+            '             * what the bypass below tests for. */',
+            '            r2 = 0x4D800000;              /* 2^28 */',
+            '            f2 = r2;',
+            '            f1 = f1 * f2;',
+            '            r1 = fix f1;',
+            f'            dm(_afb_gq_{nid}) = r1;',
+            _fx_dyn_block_cvt(nid, 'afl', with_knee=False, with_slope=False),
+            '',
+        ])
+        cid = nid
+
+    blk = '\n'.join([
+        '            /* ---- the ring-out gain and the feedback limiter, over the',
+        '             * block the cascade just filled (S144). Skipped whole at',
+        '             * the shipping default: gain exactly 0 dB and the limiter',
+        '             * off means this block is already the answer. */',
+        f'            r4 = dm(_afb_gq_{cid});',
+        '            r5 = 0x10000000;              /* 2^28 = 0 dB */',
+        '            comp(r4, r5);',
+        f'            if ne jump (pc, .aflrun_{nid});',
+        f'            r4 = dm(_afl_on_{cid});',
+        '            r4 = pass r4;',
+        f'            if eq jump (pc, .afldone_{nid});',
+        f'        .aflrun_{nid}:',
+        f'            r3 = _blk_{nid};',
+        f'            dm(_afl_p_{nid}) = r3;',
+        '            r3 = DSP4_BLOCK_SIZE;',
+        f'            dm(_afl_n_{nid}) = r3;',
+        f'        .afllp_{nid}:',
+        '            l4 = 0;',
+        f'            r3 = dm(_afl_p_{nid});',
+        '            i4 = r3;',
+        '            r0 = dm(i4, 0);',
+        f'            call _afl_one_{nid};',
+        '            l4 = 0;',
+        f'            r3 = dm(_afl_p_{nid});',
+        '            i4 = r3;',
+        '            dm(i4, 0) = r0;',
+        '            r3 = r3 + 1;',
+        f'            dm(_afl_p_{nid}) = r3;',
+        f'            r3 = dm(_afl_n_{nid});',
+        '            r3 = r3 - 1;',
+        f'            dm(_afl_n_{nid}) = r3;',
+        '            r3 = pass r3;',
+        f'            if ne jump (pc, .afllp_{nid});',
+        f'        .afldone_{nid}:',
+        '',
+    ])
+
+    smp = f'            call _afl_one_{nid};\n'
+
+    sub = '\n'.join([
+        '        /* r0 in, r0 out: the ring-out gain, then the feedback limiter',
+        '         * if it is on. Called from the fused block loop above and from',
+        '         * each per-sample path, so the two cannot drift. r13 survives',
+        '         * _envq_fx, _compgain_fx and _mrf_rns28 (all preserve r6-r15),',
+        '         * which is the same register discipline gen_limiter_fixed uses',
+        '         * across the same two calls. */',
+        f'        _afl_one_{nid}:',
+        f'            r1 = dm(_afb_gq_{cid});',
+        '            mrf = r0 * r1 (ssi);',
+        '            call _mrf_rns28;',
+        '            r13 = r0;',
+        f'            r4 = dm(_afl_on_{cid});',
+        '            r4 = pass r4;',
+        f'            if eq jump (pc, .aflret_{nid});',
+        '            r0 = abs r13;',
+        f'            r1 = dm(_afl_envelope_{nid});',
+        f'            r2 = dm(_afl_attq_{cid});',
+        f'            r3 = dm(_afl_relq_{cid});',
+        '            call _envq_fx;',
+        f'            dm(_afl_envelope_{nid}) = r0;',
+        f'            i0 = _afl_cgp_{cid};',
+        '            call _compgain_fx;            /* r0 = gain Q4.28 */',
+        '            r1 = r0;',
+        '            r0 = r13;',
+        '            mrf = r0 * r1 (ssi);',
+        '            call _mrf_rns28;',
+        '            rts;',
+        f'        .aflret_{nid}:',
+        '            r0 = r13;',
+        '            rts;',
+        '',
+    ])
+    return dm, rate, blk, smp, sub
+
+
 def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
-                     design=''):
+                     design='', post=None):
     """Fixed-point single-cascade crossfade node body (EQ/GEQ/AFB idiom).
 
     Mirrors the float dual-instance contract exactly: float RBJ staging
@@ -9540,10 +9759,19 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
     follow = node.get('follows')
     cid = follow or nid          # whose COEFFICIENTS this cascade runs
     kick = follow_kick(node, f'_{pfx}_swap_pending_')
+    # The ANTI_FB post stage (S144): four insertion points, all empty for
+    # every other cascade family, so EQ's and GEQ's emitted text is
+    # byte-identical to what it was before this hook existed.
+    post_dm, post_rate, post_blk, post_smp, post_sub = post or ('',) * 5
+    post_ext = ('' if not post_sub else
+                '        .extern _envq_fx;\n'
+                '        .extern _compgain_fx;\n'
+                '        .extern _mrf_rns28;\n')
     blk_body = ('' if node['chip'] != '2' else
                 _C2_CASCADE_BLK.format(pfx=pfx, nid=nid, cid=cid, inp=inp,
                                        stages=stages,
-                                       extra_store=extra_store))
+                                       extra_store=extra_store,
+                                       post_blk=post_blk))
     if follow:
         # THE BANKS, THE WIRE STAGING AND THE SIZING WORDS ARE THE
         # MASTER'S, BY NAME. They are declared `.extern` here rather than
@@ -9662,6 +9890,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
         .var _{pfx}_active_{nid} = 0;
         .var _{pfx}_xfade_alpha_{nid} = 0.0;
         .var _{pfx}_xfade_step_{nid} = 0.0;
+{post_dm}
 
 {extra_store and '        .var _tap_post_eq_' + nid + ';'}
         .var _buf_{nid};
@@ -9675,9 +9904,10 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
         #if DSP4_BQ_GUARD
         .extern _bq_hr_node1;
         #endif
+{post_ext}
 {dext}        .global _{nid}_process;
         _{nid}_process:
-{dpro}{blk_body}
+{dpro}{post_rate}{blk_body}
             r4 = dm(_{pfx}_swap_pending_{nid});
             {hrpend}
             r4 = pass r4;
@@ -9702,7 +9932,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
             r4 = {stages};
             call _bq_fx_cascade_N;
 {extra_store}
-            dm(_buf_{nid}) = r0;
+{post_smp}            dm(_buf_{nid}) = r0;
             rts;
 
             /* ===== crossfade: run both, blend fixed ===== */
@@ -9729,7 +9959,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
         .{pfx}_bl_{nid}:
 {_fx_blend_asm(pfx, nid)}
 {extra_store}
-            dm(_buf_{nid}) = r0;
+{post_smp}            dm(_buf_{nid}) = r0;
 
             /* advance alpha (float control) */
             f4 = dm(_{pfx}_xfade_alpha_{nid});
@@ -9762,7 +9992,7 @@ def _fx_cascade_node(node, pfx, stages, extra_dm='', extra_store='',
             r4 = 0;
             dm(_{pfx}_xfade_alpha_{nid}) = r4;
 {kick}            rts;
-{dsub}        _{nid}_process.end:
+{dsub}{post_sub}        _{nid}_process.end:
     """)
 
 
@@ -9828,7 +10058,7 @@ _C2_CASCADE_BLK = """\
             i2 = _blk_{nid};
             r4 = {stages};
             call _bq_fx_cascade_blk;
-            /* The scalar the per-sample build publishes, kept live off the
+{post_blk}            /* The scalar the per-sample build publishes, kept live off the
              * LAST sample of the block. Nothing under block kernels reads it,
              * but a host peek at this node must not report a word from
              * whenever the build last ran per-sample. */
@@ -9992,6 +10222,7 @@ def gen_geq_fixed(node):
 def gen_anti_fb_fixed(node):
     notches = int(node['params'].get('notch_count', '6'))
     nid = node['id']
+    post = _afb_post_stage(node)
     if node.get('follows'):
         # No graph declares a followed ANTI_FB yet (S144's item 4 will:
         # `C2_MAIN_AFB` is 2-channel). The split is the GEQ's -- notch
@@ -10001,7 +10232,8 @@ def gen_anti_fb_fixed(node):
         extra = (f"        /* The notch set and the design belong to {mid}\n"
                  f"         * (S143): one `AntiFb*` parameter set, two instances. */\n"
                  f"        .extern _afb_on_{mid};\n")
-        return _fx_cascade_node(node, 'afb', notches, extra_dm=extra)
+        return _fx_cascade_node(node, 'afb', notches, extra_dm=extra,
+                                post=post)
     extra = dedent(f"""\
         .var _afb_on_{nid} = 0;
         .var _afb_ctrl_on_{nid} = 0;   /* the AUTOMATIC detector's switch — no
@@ -10015,7 +10247,8 @@ def gen_anti_fb_fixed(node):
     extra = '\n'.join('        ' + l if l and not l.startswith('        ') else l
                        for l in extra.split('\n'))
     return _fx_cascade_node(node, 'afb', notches, extra_dm=extra,
-                            design=_afb_design_hook(nid, notches))
+                            design=_afb_design_hook(nid, notches),
+                            post=post)
 
 
 
@@ -12393,6 +12626,53 @@ def gen_rta(src=RTA_SRC_DEFAULT):
         words = ', '.join('0x%08X' % RD.f32bits(v) for v in row)
         A('    %s%s   /* band %2d  %8.1f Hz (%s) */' % (words, ';' if bi == nb - 1 else ',', bi + 1, fm,
                                                      RD.nominal(fm)))
+    # ---- THE RING METRIC (S144, PW ruling D9) ------------------------
+    #
+    # The half of S142's anti-feedback detector that did not exist. The
+    # filterbank above has been built since S64 and publishes a per-band
+    # MEAN SQUARE; what the algorithm needs on top of it is the answer to
+    # "is this band ringing, or is it a note?", and the distinction S142
+    # proposed is PERSISTENCE: a band that stays within a few dB of its own
+    # slowly-decaying peak for longer than programme material does is a
+    # ring. Feedback holds indefinitely; a held note decays.
+    #
+    # It is a SECOND PASS over `_rta_out`, not an addition to the band loop.
+    # That loop has every one of f0..f15 live across its sample kernel and
+    # r15 as the accumulator, so there is no register left in it; a separate
+    # walk over the published words costs about 620 cycles a block and reads
+    # in one place.
+    #
+    # WHAT IS PUBLISHED, and what is NOT DECIDED HERE: `_rta_ring[b]` is a
+    # count of consecutive blocks the band has held, saturating. The host's
+    # Antifeedback skin reads the magnitude and this count, picks the band,
+    # and writes `AntiFbNotchFreq/Gain/Q`. The DECISION stays on the host,
+    # which is S142's proposal standing and is recorded for PW as S144-5 --
+    # if the ring-out must run with no host in the loop, the peak-picking
+    # moves here and the item costs more. `AntiFbCtrlOn` therefore still
+    # reaches no DSP arithmetic, deliberately, and afb_design_fx.asm's note
+    # to that effect stays true.
+    _blk_ms = 1000.0 * BLOCK / 48000.0
+    _pk_tau_s = 2.0
+    _pk_decay = math.exp(-(_blk_ms / 1000.0) / _pk_tau_s)
+    _ring_db = 3.0
+    _ring_frac = 10.0 ** (-_ring_db / 10.0)
+    _ring_max = 2047
+    A('/* THE RING METRIC (S144): per band, a slowly-decaying peak of the')
+    A(' * band\'s own power and a count of consecutive blocks within')
+    A(' * %.1f dB of it. Peak decay tau %.1f s (%.6f per %.4f ms block);'
+      % (_ring_db, _pk_tau_s, _pk_decay, _blk_ms))
+    A(' * threshold %.1f dB below the peak is a power ratio of %.6f;'
+      % (_ring_db, _ring_frac))
+    A(' * the count saturates at %d blocks = %.0f ms. The count is the'
+      % (_ring_max, _ring_max * _blk_ms))
+    A(' * HOST\'s evidence, not a decision the DSP takes (S144-5). */')
+    A('.global _rta_pk;       .var _rta_pk[%d];' % (2 * nb))
+    A('.global _rta_ring;     .var _rta_ring[%d];' % (2 * nb))
+    A('.var _rta_pk_decay = 0x%08X;   /* %.6f */'
+      % (RD.f32bits(_pk_decay), _pk_decay))
+    A('.var _rta_ring_frac = 0x%08X;  /* %.6f */'
+      % (RD.f32bits(_ring_frac), _ring_frac))
+    A('.var _rta_ring_max = %d;' % _ring_max)
     A('.global _rta_st_l;     .var _rta_st_l[%d];   /* y1,y2 x 3 sections a band */' % (nb * 2 * ns))
     A('.global _rta_st_r;     .var _rta_st_r[%d];' % (nb * 2 * ns))
     A('.var _rta_x_l[2];      /* x[n-1], x[n-2] */')
@@ -12451,6 +12731,29 @@ def gen_rta(src=RTA_SRC_DEFAULT):
     A('    i1 = _rta_x_r;')
     A('    i2 = _rta_st_r;')
     A('    call _rta_chan;             /* i3, i5 run on into the R half */')
+    A('    /* ---- the ring metric, over both halves of _rta_out (S144) ---- */')
+    A('    l0 = 0; l1 = 0; l5 = 0;')
+    A('    i5 = _rta_out;')
+    A('    i0 = _rta_pk;')
+    A('    i1 = _rta_ring;')
+    A('    f7 = dm(_rta_pk_decay);')
+    A('    f8 = dm(_rta_ring_frac);')
+    A('    r6 = dm(_rta_ring_max);')
+    A('    r10 = 0;')
+    A('    lcntr = 2*RTA_BANDS, do .rta_ring until lce;')
+    A('        f2 = dm(i5, 1);               /* the band, this block */')
+    A('        f3 = dm(0, i0);')
+    A('        f3 = f3 * f7;                 /* its own peak, decaying */')
+    A('        f3 = max(f3, f2);')
+    A('        dm(i0, 1) = f3;')
+    A('        f4 = f3 * f8;                 /* the -3 dB line off that peak */')
+    A('        r5 = dm(0, i1);')
+    A('        r9 = r5 + 1;')
+    A('        r9 = min(r9, r6);')
+    A('        comp(f2, f4);')
+    A('        if lt r9 = r10;               /* below it: the run is broken */')
+    A('.rta_ring:')
+    A('        dm(i1, 1) = r9;')
     A('.rta_done:')
     A('    rts;')
     A('_rta_process.end:')
@@ -12622,6 +12925,15 @@ def cue_spi_layout():
     for side, base in (('L', 0), ('R', 31)):
         for b in range(31):
             L.append(('Rta001Mtr%s%03d' % (side, b + 1), '_rta_out + %d' % (base + b), False, 'DSP4_RTA'))
+    # THE RING METRIC (S144), on the same PROPOSED footing as the magnitudes
+    # above it: these names are not in the contract and the DSP does not
+    # decide on them -- they are the evidence the host's Antifeedback skin
+    # reads to pick a band (PW ruling D9; S144-5 records that the decision
+    # was left on the host).
+    for side, base in (('L', 0), ('R', 31)):
+        for b in range(31):
+            L.append(('Rta001Ring%s%03d' % (side, b + 1),
+                      '_rta_ring + %d' % (base + b), False, 'DSP4_RTA'))
     return [(k,) + t for k, t in enumerate(L)]
 
 
@@ -17189,7 +17501,14 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
             a(f'        .extern _rx_ic_slot_C2_RECV_CUE_{_cue};')
             a(f'            r3 = _blk_{inp};')
             a(f'            r5 = _rx_ic_slot_C2_RECV_CUE_{_cue};')
+            # The source word may be a THIRD node's, and a follower has to
+            # resolve the same one its master does: `C2_PHN` carries
+            # `source_from=C2_MON`, so `C2_PHN_R` names C2_MON too, not
+            # C2_PHN, which has no source word at all. Found by the
+            # DSP4_CUE=1 link, which is the only build that references it
+            # (S144).
             _msrc = (node['params'].get('source_from')
+                     or (node.get('master_params') or {}).get('source_from')
                      or node.get('follows') or nid)
             a(f'            r4 = dm(_mon_source_{_msrc});')
             a(f'            r6 = {CUE_MON_SOURCE};')

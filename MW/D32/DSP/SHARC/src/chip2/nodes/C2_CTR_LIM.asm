@@ -18,7 +18,7 @@
         /* SPI page=1 addr=1364 */
 
         .section/dm seg_dmda;
-.extern _buf_C2_CTR_GEQ;
+.extern _buf_C2_CTR_AFB;
         .global _lim_on_C2_CTR_LIM;
         .var _lim_on_C2_CTR_LIM = 1;
         .global _lim_threshold_C2_CTR_LIM;
@@ -66,7 +66,7 @@
         .var _buf_C2_CTR_LIM;
 
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_CTR_GEQ;
+        .extern _blk_C2_CTR_AFB;
         #endif
         #if DSP4_BLOCK_KERNELS
         .global _blk_C2_CTR_LIM;
@@ -119,7 +119,7 @@
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_CTR_GEQ;
+            i4 = _blk_C2_CTR_AFB;
             r3 = i4;
             dm(_bw_s0_C2_CTR_LIM) = r3;
             i4 = _blk_C2_CTR_LIM;
@@ -133,7 +133,7 @@
                 r3 = dm(_bw_s0_C2_CTR_LIM);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_CTR_GEQ) = r0;
+                dm(_buf_C2_CTR_AFB) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_CTR_LIM) = r3;
                 call _C2_CTR_LIM_process_sample;
@@ -149,7 +149,7 @@
                 r3 = dm(_bw_s0_C2_CTR_LIM);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_CTR_GEQ) = r0;
+                dm(_buf_C2_CTR_AFB) = r0;
                 r3 = r3 + 1;
                 dm(_bw_s0_C2_CTR_LIM) = r3;
                 call _C2_CTR_LIM_process_sample;
@@ -166,7 +166,7 @@
         .global _C2_CTR_LIM_process_sample;
         _C2_CTR_LIM_process_sample:
         #endif
-            r0 = dm(_buf_C2_CTR_GEQ);
+            r0 = dm(_buf_C2_CTR_AFB);
             r2 = dm(_lim_on_C2_CTR_LIM);
             r3 = 0;
             comp(r2, r3);

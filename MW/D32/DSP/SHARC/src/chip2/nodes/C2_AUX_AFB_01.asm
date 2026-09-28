@@ -84,6 +84,51 @@
 .var _afb_xfade_alpha_C2_AUX_AFB_01 = 0.0;
 .global _afb_xfade_step_C2_AUX_AFB_01;
 .var _afb_xfade_step_C2_AUX_AFB_01 = 0.0;
+/* `AntiFbGain`, LINEAR on the wire and ramped, as the ramp
+ * engine's quad: value, target, step, frames in consecutive
+ * words of equal width, which is the adjacency
+ * build_ramp_stride_map() reads out of this file to tell the
+ * SPI handler where the companions are. Linear because that is
+ * what every other level on this wire is -- the dB is the
+ * cell TABLE's, host side, and wire-units.csv converts only
+ * ms -> samples. 1.0 is 0 dB: the ring-out adds nothing until
+ * someone walks it up. */
+.global _afb_gain_C2_AUX_AFB_01;
+.var _afb_gain_C2_AUX_AFB_01 = 1.0;
+.global _afb_gain_target_C2_AUX_AFB_01;
+.var _afb_gain_target_C2_AUX_AFB_01 = 1.0;
+.global _afb_gain_step_C2_AUX_AFB_01;
+.var _afb_gain_step_C2_AUX_AFB_01 = 0.0;
+.global _afb_gain_frames_C2_AUX_AFB_01;
+.var _afb_gain_frames_C2_AUX_AFB_01 = 0;
+.global _afb_gq_C2_AUX_AFB_01;
+.var _afb_gq_C2_AUX_AFB_01 = 0x10000000;   /* Q4.28 shadow, 0 dB */
+/* The feedback limiter. `AntiFbLimOn` is the ONLY cell the
+ * contract gives it, so the curve is the graph's: the
+ * threshold is stated in dsp.csv (fb_lim_db) where a reader
+ * can see it, and the attack and release are the LIMITER
+ * kernel's own alpha defaults, because no cell writes them
+ * and a second set of numbers here would be two answers. */
+.global _afl_on_C2_AUX_AFB_01;
+.var _afl_on_C2_AUX_AFB_01 = 0;
+.global _afl_threshold_C2_AUX_AFB_01;
+.var _afl_threshold_C2_AUX_AFB_01 = -6.0;
+.global _afl_attack_C2_AUX_AFB_01;
+.var _afl_attack_C2_AUX_AFB_01 = 0.5;
+.global _afl_release_C2_AUX_AFB_01;
+.var _afl_release_C2_AUX_AFB_01 = 0.001;
+.global _afl_envelope_C2_AUX_AFB_01;
+.var _afl_envelope_C2_AUX_AFB_01 = 0;
+.global _afl_attq_C2_AUX_AFB_01;
+.var _afl_attq_C2_AUX_AFB_01 = 0;
+.global _afl_relq_C2_AUX_AFB_01;
+.var _afl_relq_C2_AUX_AFB_01 = 0;
+.global _afl_cgp_C2_AUX_AFB_01;
+.var _afl_cgp_C2_AUX_AFB_01[4];
+.global _afl_p_C2_AUX_AFB_01;
+.var _afl_p_C2_AUX_AFB_01;
+.global _afl_n_C2_AUX_AFB_01;
+.var _afl_n_C2_AUX_AFB_01;
 
 
 .global _buf_C2_AUX_AFB_01;
@@ -112,6 +157,10 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+.extern _envq_fx;
+.extern _compgain_fx;
+.extern _mrf_rns28;
+
 #if DSP4_AFB_DESIGN
 .extern _afb_design_N;
 #endif
@@ -123,6 +172,54 @@ _C2_AUX_AFB_01_process:
     r4 = pass r4;
     if ne call _afb_redesign_C2_AUX_AFB_01;
 #endif
+    /* ---- block rate: the ring-out gain and the limiter curve ----
+     * (S144). Run every block on a node the chain reaches once per
+     * block, beside the notch design above it. */
+    r4 = dm(_afb_gain_frames_C2_AUX_AFB_01);
+    r15 = DSP4_BLOCK_SIZE;
+    r4 = r4 - r15;
+    if le jump (pc, .afbg_settle_C2_AUX_AFB_01);
+    dm(_afb_gain_frames_C2_AUX_AFB_01) = r4;
+    f1 = dm(_afb_gain_C2_AUX_AFB_01);
+    f2 = dm(_afb_gain_step_C2_AUX_AFB_01);
+    r15 = DSP4_BLOCK_F32;
+    f15 = r15;
+    f2 = f2 * f15;
+    f1 = f1 + f2;
+    dm(_afb_gain_C2_AUX_AFB_01) = f1;
+    jump (pc, .afbg_cvt_C2_AUX_AFB_01);
+.afbg_settle_C2_AUX_AFB_01:
+    f1 = dm(_afb_gain_target_C2_AUX_AFB_01);
+    dm(_afb_gain_C2_AUX_AFB_01) = f1;
+.afbg_cvt_C2_AUX_AFB_01:
+    /* linear -> Q4.28. 1.0 lands on exactly 2^28, which is
+     * what the bypass below tests for. */
+    r2 = 0x4D800000;              /* 2^28 */
+    f2 = r2;
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_afb_gq_C2_AUX_AFB_01) = r1;
+    r2 = 0x4F000000;              /* 2^31 float */
+    f2 = r2;
+    f1 = dm(_afl_attack_C2_AUX_AFB_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_afl_attq_C2_AUX_AFB_01) = r1;
+    f1 = dm(_afl_release_C2_AUX_AFB_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_afl_relq_C2_AUX_AFB_01) = r1;
+    r2 = 0x4AAA152D;            /* dB -> Q6.25 log2 */
+    f2 = r2;
+    f1 = dm(_afl_threshold_C2_AUX_AFB_01);
+    f1 = f1 * f2;
+    r1 = fix f1;
+    dm(_afl_cgp_C2_AUX_AFB_01) = r1;    /* thr */
+    r1 = 0x7FFFFFFF;              /* slope = ~1.0 (brick wall) */
+    dm(_afl_cgp_C2_AUX_AFB_01 + 1) = r1;
+    r1 = 0;
+    dm(_afl_cgp_C2_AUX_AFB_01 + 2) = r1;
+    dm(_afl_cgp_C2_AUX_AFB_01 + 3) = r1;
 #if DSP4_BLOCK_KERNELS
     /* ---- chip-2 per-block steady state (review finding D16) ----
      *
@@ -183,6 +280,40 @@ _C2_AUX_AFB_01_process:
     i2 = _blk_C2_AUX_AFB_01;
     r4 = 6;
     call _bq_fx_cascade_blk;
+    /* ---- the ring-out gain and the feedback limiter, over the
+     * block the cascade just filled (S144). Skipped whole at
+     * the shipping default: gain exactly 0 dB and the limiter
+     * off means this block is already the answer. */
+    r4 = dm(_afb_gq_C2_AUX_AFB_01);
+    r5 = 0x10000000;              /* 2^28 = 0 dB */
+    comp(r4, r5);
+    if ne jump (pc, .aflrun_C2_AUX_AFB_01);
+    r4 = dm(_afl_on_C2_AUX_AFB_01);
+    r4 = pass r4;
+    if eq jump (pc, .afldone_C2_AUX_AFB_01);
+.aflrun_C2_AUX_AFB_01:
+    r3 = _blk_C2_AUX_AFB_01;
+    dm(_afl_p_C2_AUX_AFB_01) = r3;
+    r3 = DSP4_BLOCK_SIZE;
+    dm(_afl_n_C2_AUX_AFB_01) = r3;
+.afllp_C2_AUX_AFB_01:
+    l4 = 0;
+    r3 = dm(_afl_p_C2_AUX_AFB_01);
+    i4 = r3;
+    r0 = dm(i4, 0);
+    call _afl_one_C2_AUX_AFB_01;
+    l4 = 0;
+    r3 = dm(_afl_p_C2_AUX_AFB_01);
+    i4 = r3;
+    dm(i4, 0) = r0;
+    r3 = r3 + 1;
+    dm(_afl_p_C2_AUX_AFB_01) = r3;
+    r3 = dm(_afl_n_C2_AUX_AFB_01);
+    r3 = r3 - 1;
+    dm(_afl_n_C2_AUX_AFB_01) = r3;
+    r3 = pass r3;
+    if ne jump (pc, .afllp_C2_AUX_AFB_01);
+.afldone_C2_AUX_AFB_01:
     /* The scalar the per-sample build publishes, kept live off the
      * LAST sample of the block. Nothing under block kernels reads it,
      * but a host peek at this node must not report a word from
@@ -301,6 +432,7 @@ _C2_AUX_AFB_01_process:
     r4 = 6;
     call _bq_fx_cascade_N;
 
+    call _afl_one_C2_AUX_AFB_01;
     dm(_buf_C2_AUX_AFB_01) = r0;
     rts;
 
@@ -389,6 +521,7 @@ _C2_AUX_AFB_01_process:
     r5 = r5 or r12;
     r0 = r14 + r5;                 /* blended output */
 
+    call _afl_one_C2_AUX_AFB_01;
     dm(_buf_C2_AUX_AFB_01) = r0;
 
     /* advance alpha (float control) */
@@ -473,4 +606,34 @@ _afb_redesign_C2_AUX_AFB_01:
     dm(_afb_swap_pending_C2_AUX_AFB_01) = r4;
     rts;
 #endif
+/* r0 in, r0 out: the ring-out gain, then the feedback limiter
+ * if it is on. Called from the fused block loop above and from
+ * each per-sample path, so the two cannot drift. r13 survives
+ * _envq_fx, _compgain_fx and _mrf_rns28 (all preserve r6-r15),
+ * which is the same register discipline gen_limiter_fixed uses
+ * across the same two calls. */
+_afl_one_C2_AUX_AFB_01:
+    r1 = dm(_afb_gq_C2_AUX_AFB_01);
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    r13 = r0;
+    r4 = dm(_afl_on_C2_AUX_AFB_01);
+    r4 = pass r4;
+    if eq jump (pc, .aflret_C2_AUX_AFB_01);
+    r0 = abs r13;
+    r1 = dm(_afl_envelope_C2_AUX_AFB_01);
+    r2 = dm(_afl_attq_C2_AUX_AFB_01);
+    r3 = dm(_afl_relq_C2_AUX_AFB_01);
+    call _envq_fx;
+    dm(_afl_envelope_C2_AUX_AFB_01) = r0;
+    i0 = _afl_cgp_C2_AUX_AFB_01;
+    call _compgain_fx;            /* r0 = gain Q4.28 */
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    rts;
+.aflret_C2_AUX_AFB_01:
+    r0 = r13;
+    rts;
 _C2_AUX_AFB_01_process.end:

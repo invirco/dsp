@@ -954,6 +954,34 @@ def expand_anti_fb(node, cat, inst):
     # the kernel and the write-up say so.
     add_dirty_block(chip, base + 2, 18, f'_afb_dirty_{nid}')
 
+    # THE RING-OUT GAIN AND THE FEEDBACK LIMITER (S144, PW ruling D9), in
+    # the FIRST TWO of the four spare words this node has always had. No
+    # address moves and none is added.
+    #
+    # `AntiFbGain` is "the gain the auto ring-out adds to provoke feedback
+    # (auto/manual)" -- a ramped linear gain on this node's output, folded
+    # to Q4.28 at block rate. `AntiFbLimOn` switches the FEEDBACK LIMITER,
+    # which is what makes provoking feedback safe: `_envq_fx` and
+    # `_compgain_fx` off a brick-wall parameter block, the same two library
+    # routines the LIMITER node runs, at a threshold the graph states
+    # (`fb_lim_db`) because the contract gives the family no cell for it.
+    #
+    # BOTH ARE NEUTRAL AT POWER-ON and the node tests for exactly that: 0 dB
+    # is exactly 2^28 and the limiter is off, so the whole post-pass is
+    # skipped and the shipping image executes what it did before this
+    # existed, bar one compare.
+    add_cell(cn(cat, inst, 'AntiFbGain', 1), chip, pg, base + off,
+             ramp_profile='GainFast')
+    add_dispatch(chip, base + off, f'_afb_gain_{nid}',
+                 f'{nid} ring-out gain (linear, ramped)')
+    off += 1
+
+    add_cell(cn(cat, inst, 'AntiFbLimOn', 1), chip, pg, base + off,
+             ramp_profile='InstantCtl')
+    add_dispatch(chip, base + off, f'_afl_on_{nid}',
+                 f'{nid} feedback limiter on/off')
+    off += 1
+
     # Remaining words → coefficient staging
     while off < 24:
         add_dispatch(chip, base + off, None, f'{nid} spare coeff [{off}]')
@@ -1788,8 +1816,8 @@ _NODE_PATTERNS = [
     # rule would quietly swallow a future node that ends in _R and has real
     # cells. The list is the graph's, and a node added to it there without
     # being added here fails the no-fallback check below.
-    (re.compile(r'^C2_(?:MAIN_(?:FDR|GEQ|COMP|LIM|DLY|XOVER)|MON|MON_DLY'
-                r'|MON_PICK|PHN|PHN_DLY|CODEC_AUX_IN|PI_IN)_R$'),
+    (re.compile(r'^C2_(?:MAIN_(?:FDR|GEQ|AFB|COMP|LIM|DLY|XOVER)|MON'
+                r'|MON_DLY|MON_PICK|PHN|PHN_DLY|CODEC_AUX_IN|PI_IN)_R$'),
      lambda m: None),
     # The right-hand halves of the two stereo TDM outputs (S143). One node
     # is one slot: DAC_MAIN_R and CODEC_OUT_4 used to be chip-select bits
@@ -1840,7 +1868,7 @@ _NODE_PATTERNS = [
     # too: `main.comp` and `main.lim` gate Comp/Limiter on the four OUTPUT
     # strips, which C2_MAIN_O{COMP,LIM}_0[1-4] serve. Same treatment as
     # C2_SUB_*: reported, not deleted.
-    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|DLY)$'),          lambda m: ('Main', 1)),
+    (re.compile(r'^C2_MAIN_(?:FDR|GEQ|AFB|DLY)$'),      lambda m: ('Main', 1)),
     (re.compile(r'^C2_MAIN_(?:COMP|LIM)$'),             lambda m: None),
     (re.compile(r'^C2_MAIN_XOVER$'),                    lambda m: ('Main', 1)),
     # Main output strips (Chip 2): the four post-crossover chains ARE

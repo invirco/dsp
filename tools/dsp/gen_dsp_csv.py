@@ -988,8 +988,17 @@ add('C2_CTR_EQ', 2, 'EQ_BIQUAD', 'Centre EQ', 1, 'C2_CTR_FDR', 'C2_CTR_GEQ',
 # reader half the time, which is the shape this repo calls a defect. The
 # `sub` GEQ class is gone from that option with the sub bus it named.
 _late_c2('C2_CTR_GEQ', GEQ_BANDS)
-add('C2_CTR_GEQ', 2, 'GEQ', 'Centre GEQ', 1, 'C2_CTR_EQ', 'C2_CTR_LIM',
+add('C2_CTR_GEQ', 2, 'GEQ', 'Centre GEQ', 1, 'C2_CTR_EQ', 'C2_CTR_AFB',
     params=f'bands={GEQ_BANDS}',
+    ramp_profile='EqSafe')
+
+# `MainCtr AntiFb*` (PW ruling D9, block B25/C25). AFTER the GEQ and BEFORE
+# the limiter, which is the aux chain's order (FDR -> EQ -> GEQ -> AFB ->
+# LIM) and the right one: a notch placed after the limiter is a notch the
+# limiter has already pumped against.
+_late_c2('C2_CTR_AFB', 24)
+add('C2_CTR_AFB', 2, 'ANTI_FB', 'Centre AntiFB', 1, 'C2_CTR_GEQ', 'C2_CTR_LIM',
+    params='notch_count=6;fb_lim_db=-6.0',
     ramp_profile='EqSafe')
 
 # C2_SUB_COMP's sixteen words, held so nothing below them moves. Stated as
@@ -998,7 +1007,7 @@ add('C2_CTR_GEQ', 2, 'GEQ', 'Centre GEQ', 1, 'C2_CTR_EQ', 'C2_CTR_LIM',
 c2_alloc.next(16)          # RESERVED — was C2_SUB_COMP (S144, ruling D6)
 
 p, a2 = c2_alloc.next(4)
-add('C2_CTR_LIM', 2, 'LIMITER', 'Centre Lim', 1, 'C2_CTR_GEQ', 'C2_OUT3_SEL',
+add('C2_CTR_LIM', 2, 'LIMITER', 'Centre Lim', 1, 'C2_CTR_AFB', 'C2_OUT3_SEL',
     spi_page=p, spi_addr=a2,
     params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0',
     ramp_profile='DynSafe')
@@ -1130,8 +1139,33 @@ if 'main' in GEQ_ON:
         params=f'bands={GEQ_BANDS};follows=C2_MAIN_GEQ',
         ramp_profile='EqSafe')
 
-_main_dyn_l = 'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_FDR'
-_main_dyn_r = _main_dyn_l + '_R'
+# `Main AntiFb*` (PW ruling D9, block B25/C25): TWO INSTANCES, ONE
+# PARAMETER SET -- the stereo main bus needs the same six notches on both
+# legs or the image shifts as each one goes in, which is D5's ruling applied
+# to the anti-feedback the way S143 applied it to the GEQ. The follower
+# `.extern`s the master's notch set, its design and its ring-out gain, and
+# owns its own filter state, its own crossfade and its own limiter
+# ENVELOPE (an envelope is per channel or it is not an envelope).
+_afb_in_l = 'C2_MAIN_GEQ' if 'main' in GEQ_ON else 'C2_MAIN_FDR'
+# `outputs` is documentation and `inputs` is the graph (S22-2), and this
+# file keeps the documentation true: the node ahead of the AFB pair named
+# the compressor until the AFB went between them.
+for r in rows:
+    if r['id'] in (_afb_in_l, _afb_in_l + '_R'):
+        r['outputs'] = ('C2_MAIN_AFB_R' if r['id'].endswith('_R')
+                        else 'C2_MAIN_AFB')
+_late_c2('C2_MAIN_AFB', 24)
+add('C2_MAIN_AFB', 2, 'ANTI_FB', 'Main AntiFB', 2, _afb_in_l,
+    'C2_MAIN_COMP',
+    params='notch_count=6;fb_lim_db=-6.0',
+    ramp_profile='EqSafe')
+add('C2_MAIN_AFB_R', 2, 'ANTI_FB', 'Main AntiFB R', 1, _afb_in_l + '_R',
+    'C2_MAIN_COMP_R',
+    params='notch_count=6;fb_lim_db=-6.0;follows=C2_MAIN_AFB',
+    ramp_profile='EqSafe')
+
+_main_dyn_l = 'C2_MAIN_AFB'
+_main_dyn_r = 'C2_MAIN_AFB_R'
 
 p, a2 = c2_alloc.next(16)
 add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2,

@@ -620,16 +620,19 @@ C2_AUX_DLY_12,2,DELAY,Aux 12 Delay,1,C2_AUX_LIM_12,C2_AUX_OUT_12,1,1077,delay_ms
 C2_AUX_OUT_12,2,OUTPUT_TDM,Aux 12 Out,1,C2_AUX_DLY_12,,1,1079,sport_id=5;slot_start=0;slot_count=1;sport_slots=8;signal=NET_OUT_09,
 C2_CTR_FDR,2,FADER_PAN,Centre Fader,1,C2_RECV_SUB,C2_CTR_EQ,1,1320,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_CTR_EQ,2,EQ_BIQUAD,Centre EQ,1,C2_CTR_FDR,C2_CTR_GEQ,1,1324,bands=4;coeffs=default,EqSafe
-C2_CTR_GEQ,2,GEQ,Centre GEQ,1,C2_CTR_EQ,C2_CTR_LIM,1,2281,bands=31,EqSafe
-C2_CTR_LIM,2,LIMITER,Centre Lim,1,C2_CTR_GEQ,C2_OUT3_SEL,1,1364,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
+C2_CTR_GEQ,2,GEQ,Centre GEQ,1,C2_CTR_EQ,C2_CTR_AFB,1,2281,bands=31,EqSafe
+C2_CTR_AFB,2,ANTI_FB,Centre AntiFB,1,C2_CTR_GEQ,C2_CTR_LIM,1,2312,notch_count=6;fb_lim_db=-6.0,EqSafe
+C2_CTR_LIM,2,LIMITER,Centre Lim,1,C2_CTR_AFB,C2_OUT3_SEL,1,1364,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MIX_MAIN_L,2,MIX_BUS,Main Mix L,1,C2_RECV_MAIN_L;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN;C2_PI_IN;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR,1,1371,bus_id=0,
 C2_MIX_MAIN_R,2,MIX_BUS,Main Mix R,1,C2_RECV_MAIN_R;C2_GRP_COMP_01;C2_GRP_COMP_02;C2_GRP_COMP_03;C2_GRP_COMP_04;C2_USB_IN;C2_BT_IN;C2_CODEC_AUX_IN_R;C2_PI_IN_R;C2_SNK_IN_01;C2_SNK_IN_02;C2_SNK_IN_03;C2_SNK_IN_04;C2_SNK_IN_05;C2_SNK_IN_06;C2_SNK_IN_07;C2_SNK_IN_08;C2_FX_FDR_01;C2_FX_FDR_02;C2_FX_FDR_03;C2_FX_FDR_04;C2_FX_FDR_05;C2_FX_FDR_06,C2_MAIN_FDR_R,1,1375,bus_id=1,
 C2_MAIN_FDR,2,FADER_PAN,Main Fader,2,C2_MIX_MAIN_L,C2_MAIN_GEQ,1,1379,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
 C2_MAIN_FDR_R,2,FADER_PAN,Main Fader R,1,C2_MIX_MAIN_R,C2_MAIN_GEQ_R,-1,-1,follows=C2_MAIN_FDR,GainFast
-C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_COMP,1,1383,bands=31,EqSafe
-C2_MAIN_GEQ_R,2,GEQ,Main GEQ R,1,C2_MAIN_FDR_R,C2_MAIN_COMP_R,-1,-1,bands=31;follows=C2_MAIN_GEQ,EqSafe
-C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_GEQ;C2_MAIN_GEQ_R,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;link_in=C2_MAIN_GEQ_R,DynSafe
-C2_MAIN_COMP_R,2,COMPRESSOR,Main Comp R,1,C2_MAIN_GEQ_R;C2_MAIN_GEQ,C2_MAIN_LIM_R,-1,-1,follows=C2_MAIN_COMP;link_in=C2_MAIN_GEQ,DynSafe
+C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_AFB,1,1383,bands=31,EqSafe
+C2_MAIN_GEQ_R,2,GEQ,Main GEQ R,1,C2_MAIN_FDR_R,C2_MAIN_AFB_R,-1,-1,bands=31;follows=C2_MAIN_GEQ,EqSafe
+C2_MAIN_AFB,2,ANTI_FB,Main AntiFB,2,C2_MAIN_GEQ,C2_MAIN_COMP,1,2336,notch_count=6;fb_lim_db=-6.0,EqSafe
+C2_MAIN_AFB_R,2,ANTI_FB,Main AntiFB R,1,C2_MAIN_GEQ_R,C2_MAIN_COMP_R,-1,-1,notch_count=6;fb_lim_db=-6.0;follows=C2_MAIN_AFB,EqSafe
+C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_AFB;C2_MAIN_AFB_R,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;link_in=C2_MAIN_AFB_R,DynSafe
+C2_MAIN_COMP_R,2,COMPRESSOR,Main Comp R,1,C2_MAIN_AFB_R;C2_MAIN_AFB,C2_MAIN_LIM_R,-1,-1,follows=C2_MAIN_COMP;link_in=C2_MAIN_AFB,DynSafe
 C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP;C2_MAIN_COMP_R,C2_MAIN_DLY,1,1430,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0;link_in=C2_MAIN_COMP_R,DynSafe
 C2_MAIN_LIM_R,2,LIMITER,Main Lim R,1,C2_MAIN_COMP_R;C2_MAIN_COMP,C2_MAIN_DLY_R,-1,-1,follows=C2_MAIN_LIM;link_in=C2_MAIN_COMP,DynSafe
 C2_MAIN_DLY,2,DELAY,Main Delay,2,C2_MAIN_LIM,C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT;C2_WOOF_MIX,1,1434,delay_ms=0.0;max_ms=250.0,InstantCtl
@@ -645,15 +648,15 @@ C2_MAIN_OCOMP_02,2,COMPRESSOR,Main Out 2 Comp,1,C2_MAIN_OEQ_02,C2_MAIN_OLIM_02,1
 C2_MAIN_OLIM_02,2,LIMITER,Main Out 2 Lim,1,C2_MAIN_OCOMP_02,C2_MAIN_OUT_02,1,1525,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_02,2,OUTPUT_TDM,Main Out 2,1,C2_MAIN_OLIM_02,,1,1529,sport_id=1;slot_start=2;slot_count=1;sport_slots=8;signal=DAC_11;mo_page=1;mo_addr=2169,
 C2_WOOF_MIX,2,MIX_BUS,Woof LF Sum,1,C2_MAIN_DLY;C2_MAIN_DLY_R,C2_WOOF_SRC,-1,-1,bus_id=woof;source_count=2;no_spi=1,
-C2_WOOF_SRC,2,SOURCE_SEL,Woof Source,1,C2_WOOF_MIX;C2_AUX_DLY_01;C2_AUX_DLY_02;C2_AUX_DLY_03;C2_AUX_DLY_04;C2_AUX_DLY_05;C2_AUX_DLY_06;C2_AUX_DLY_07;C2_AUX_DLY_08;C2_AUX_DLY_09;C2_AUX_DLY_10;C2_AUX_DLY_11;C2_AUX_DLY_12,C2_WOOF_XOVER,1,2312,sources=13;sel=0;xfade_ms=12.0;cell_suffix=Src,GainFast
-C2_WOOF_XOVER,2,CROSSOVER,Woof Xover,1,C2_WOOF_SRC,C2_WOOF_FDR,1,2316,freq=120.0;slope=24;link_from=C2_MAIN_XOVER,EqSafe
-C2_WOOF_FDR,2,FADER_PAN,Woof Fader,1,C2_WOOF_XOVER,C2_WOOF_EQ,1,2320,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
-C2_WOOF_EQ,2,EQ_BIQUAD,Woof EQ,1,C2_WOOF_FDR,C2_WOOF_LIM,1,2324,bands=2;coeffs=default,EqSafe
-C2_WOOF_LIM,2,LIMITER,Woof Lim,1,C2_WOOF_EQ,C2_OUT3_SEL,1,2348,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
-C2_OUT3_SEL,2,SOURCE_SEL,Out3 Source,1,C2_CTR_LIM;C2_WOOF_LIM,C2_OUT3_DLY,1,2352,sources=2;sel=0;xfade_ms=12.0;cell_suffix=Out3Mode;link_gain=C2_MAIN_FDR;link_cell_suffix=Out3Link,GainFast
+C2_WOOF_SRC,2,SOURCE_SEL,Woof Source,1,C2_WOOF_MIX;C2_AUX_DLY_01;C2_AUX_DLY_02;C2_AUX_DLY_03;C2_AUX_DLY_04;C2_AUX_DLY_05;C2_AUX_DLY_06;C2_AUX_DLY_07;C2_AUX_DLY_08;C2_AUX_DLY_09;C2_AUX_DLY_10;C2_AUX_DLY_11;C2_AUX_DLY_12,C2_WOOF_XOVER,1,2360,sources=13;sel=0;xfade_ms=12.0;cell_suffix=Src,GainFast
+C2_WOOF_XOVER,2,CROSSOVER,Woof Xover,1,C2_WOOF_SRC,C2_WOOF_FDR,1,2364,freq=120.0;slope=24;link_from=C2_MAIN_XOVER,EqSafe
+C2_WOOF_FDR,2,FADER_PAN,Woof Fader,1,C2_WOOF_XOVER,C2_WOOF_EQ,1,2368,"level_db=0.0;mute=0;host_cells=Dca,DcaOn",GainFast
+C2_WOOF_EQ,2,EQ_BIQUAD,Woof EQ,1,C2_WOOF_FDR,C2_WOOF_LIM,1,2372,bands=2;coeffs=default,EqSafe
+C2_WOOF_LIM,2,LIMITER,Woof Lim,1,C2_WOOF_EQ,C2_OUT3_SEL,1,2396,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
+C2_OUT3_SEL,2,SOURCE_SEL,Out3 Source,1,C2_CTR_LIM;C2_WOOF_LIM,C2_OUT3_DLY,1,2400,sources=2;sel=0;xfade_ms=12.0;cell_suffix=Out3Mode;link_gain=C2_MAIN_FDR;link_cell_suffix=Out3Link,GainFast
 C2_OUT3_DLY,2,DELAY,Out3 Delay,1,C2_OUT3_SEL,C2_OUT3_OUT,1,1368,delay_ms=0.0;max_ms=250.0;cell_prefix=Out3,InstantCtl
-C2_OUT3_OUT,2,OUTPUT_TDM,Out3 (Centre/LF XLR),1,C2_OUT3_DLY,,1,1370,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14;scope=D24;cell_prefix=Out3;mo_page=1;mo_addr=2368,
-C2_MON_PICK,2,SOURCE_SEL,Monitor Pick-off,2,C2_MIX_MAIN_L;C2_MAIN_DLY;C2_MAIN_FDR,C2_MON;C2_PHN,1,2356,sources=3;sel=2;xfade_ms=12.0;cell_suffix=PickOff,InstantCtl
+C2_OUT3_OUT,2,OUTPUT_TDM,Out3 (Centre/LF XLR),1,C2_OUT3_DLY,,1,1370,sport_id=1;slot_start=5;slot_count=1;sport_slots=8;signal=DAC_14;scope=D24;cell_prefix=Out3;mo_page=1;mo_addr=2416,
+C2_MON_PICK,2,SOURCE_SEL,Monitor Pick-off,2,C2_MIX_MAIN_L;C2_MAIN_DLY;C2_MAIN_FDR,C2_MON;C2_PHN,1,2404,sources=3;sel=2;xfade_ms=12.0;cell_suffix=PickOff,InstantCtl
 C2_MON_PICK_R,2,SOURCE_SEL,Monitor Pick-off R,1,C2_MIX_MAIN_R;C2_MAIN_DLY_R;C2_MAIN_FDR_R,C2_MON_R;C2_PHN_R,-1,-1,sources=3;follows=C2_MON_PICK,InstantCtl
 C2_MON,2,MONITOR,Monitor,2,C2_MON_PICK,C2_MON_DLY,1,1788,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l,GainFast
 C2_MON_R,2,MONITOR,Monitor R,1,C2_MON_PICK_R,C2_MON_DLY_R,-1,-1,follows=C2_MON;follow_leg=r,GainFast
@@ -661,9 +664,9 @@ C2_MON_DLY,2,DELAY,Monitor Delay,2,C2_MON,C2_MON_OUT_L,1,1794,delay_ms=0.0;max_m
 C2_MON_DLY_R,2,DELAY,Monitor Delay R,1,C2_MON_R,C2_MON_OUT_R,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MON_DLY,InstantCtl
 C2_MON_OUT_L,2,OUTPUT_TDM,Monitor Out L,1,C2_MON_DLY,,-1,-1,sport_id=1;slot_start=6;slot_count=1;sport_slots=8;signal=DAC_15;scope=D24,
 C2_MON_OUT_R,2,OUTPUT_TDM,Monitor Out R,1,C2_MON_DLY_R,,-1,-1,sport_id=1;slot_start=7;slot_count=1;sport_slots=8;signal=DAC_16;scope=D24,
-C2_PHN,2,MONITOR,Phones,2,C2_MON_PICK,C2_PHN_DLY,1,2360,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l;source_from=C2_MON;cell_prefix=Phones;mon_cells=Level1,GainFast
+C2_PHN,2,MONITOR,Phones,2,C2_MON_PICK,C2_PHN_DLY,1,2408,level_l_db=0.0;level_r_db=0.0;source=main;follow_leg=l;source_from=C2_MON;cell_prefix=Phones;mon_cells=Level1,GainFast
 C2_PHN_R,2,MONITOR,Phones R,1,C2_MON_PICK_R,C2_PHN_DLY_R,-1,-1,follows=C2_PHN;follow_leg=l,GainFast
-C2_PHN_DLY,2,DELAY,Phones Delay,2,C2_PHN,C2_PHN_OUT_L,1,2366,delay_ms=0.0;max_ms=250.0;cell_prefix=Phones,InstantCtl
+C2_PHN_DLY,2,DELAY,Phones Delay,2,C2_PHN,C2_PHN_OUT_L,1,2414,delay_ms=0.0;max_ms=250.0;cell_prefix=Phones,InstantCtl
 C2_PHN_DLY_R,2,DELAY,Phones Delay R,1,C2_PHN_R,C2_PHN_OUT_R,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_PHN_DLY,InstantCtl
 C2_PHN_OUT_L,2,OUTPUT_TDM,Phones Out L,1,C2_PHN_DLY,,-1,-1,sport_id=1;slot_start=0;slot_count=1;sport_slots=8;signal=DAC_09;scope=D24,
 C2_PHN_OUT_R,2,OUTPUT_TDM,Phones Out R,1,C2_PHN_DLY_R,,-1,-1,sport_id=1;slot_start=1;slot_count=1;sport_slots=8;signal=DAC_10;scope=D24,

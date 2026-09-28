@@ -67,6 +67,17 @@
     0x3EEBE890, 0x3F54C520, 0x3E19D39F, 0x3F2D5C71, 0xBE10B7D7, 0x3F539470, 0x35C6617C,   /* band 29   12589.3 Hz (12500) */
     0x3F9B248F, 0x3F507023, 0x3F519BFC, 0x3F1B8E84, 0x3F0A9902, 0x3F44B04B, 0x36A87F77,   /* band 30   15848.9 Hz (16000) */
     0x3FE98BB2, 0x3F5EEE0D, 0x3FB23D97, 0x3F0697F8, 0x3F961057, 0x3F242139, 0x378AE7D8;   /* band 31   19952.6 Hz (20000) */
+/* THE RING METRIC (S144): per band, a slowly-decaying peak of the
+ * band's own power and a count of consecutive blocks within
+ * 3.0 dB of it. Peak decay tau 2.0 s (0.999833 per 0.3333 ms block);
+ * threshold 3.0 dB below the peak is a power ratio of 0.501187;
+ * the count saturates at 2047 blocks = 682 ms. The count is the
+ * HOST's evidence, not a decision the DSP takes (S144-5). */
+.global _rta_pk;       .var _rta_pk[62];
+.global _rta_ring;     .var _rta_ring[62];
+.var _rta_pk_decay = 0x3F7FF514;   /* 0.999833 */
+.var _rta_ring_frac = 0x3F004DCE;  /* 0.501187 */
+.var _rta_ring_max = 2047;
 .global _rta_st_l;     .var _rta_st_l[186];   /* y1,y2 x 3 sections a band */
 .global _rta_st_r;     .var _rta_st_r[186];
 .var _rta_x_l[2];      /* x[n-1], x[n-2] */
@@ -125,6 +136,29 @@ _rta_process:
     i1 = _rta_x_r;
     i2 = _rta_st_r;
     call _rta_chan;             /* i3, i5 run on into the R half */
+    /* ---- the ring metric, over both halves of _rta_out (S144) ---- */
+    l0 = 0; l1 = 0; l5 = 0;
+    i5 = _rta_out;
+    i0 = _rta_pk;
+    i1 = _rta_ring;
+    f7 = dm(_rta_pk_decay);
+    f8 = dm(_rta_ring_frac);
+    r6 = dm(_rta_ring_max);
+    r10 = 0;
+    lcntr = 2*RTA_BANDS, do .rta_ring until lce;
+        f2 = dm(i5, 1);               /* the band, this block */
+        f3 = dm(0, i0);
+        f3 = f3 * f7;                 /* its own peak, decaying */
+        f3 = max(f3, f2);
+        dm(i0, 1) = f3;
+        f4 = f3 * f8;                 /* the -3 dB line off that peak */
+        r5 = dm(0, i1);
+        r9 = r5 + 1;
+        r9 = min(r9, r6);
+        comp(f2, f4);
+        if lt r9 = r10;               /* below it: the run is broken */
+.rta_ring:
+        dm(i1, 1) = r9;
 .rta_done:
     rts;
 _rta_process.end:

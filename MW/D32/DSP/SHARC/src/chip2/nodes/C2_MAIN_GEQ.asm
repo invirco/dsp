@@ -77,6 +77,7 @@
 .var _geq_xfade_step_C2_MAIN_GEQ = 0.0;
 
 
+
 .global _buf_C2_MAIN_GEQ;
 .var _buf_C2_MAIN_GEQ;
 
@@ -103,6 +104,7 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+
 #if DSP4_GEQ_DESIGN
 .extern _geq_design_N;
 .extern _geq_band_31;

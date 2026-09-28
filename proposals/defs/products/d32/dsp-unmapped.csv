@@ -12,8 +12,6 @@
 # product defines and the graph does not build.
 #
 _Cell,Class,Reason
-Aux001AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux001AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux001AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux001AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux001AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -48,8 +46,6 @@ Aux001LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux001Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux001Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux001PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux002AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux002AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux002AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux002AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux002AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -84,8 +80,6 @@ Aux002LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux002Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux002Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux002PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux003AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux003AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux003AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux003AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux003AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -120,8 +114,6 @@ Aux003LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux003Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux003Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux003PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux004AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux004AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux004AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux004AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux004AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -156,8 +148,6 @@ Aux004LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux004Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux004Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux004PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux005AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux005AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux005AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux005AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux005AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -192,8 +182,6 @@ Aux005LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux005Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux005Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux005PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux006AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux006AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux006AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux006AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux006AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -228,8 +216,6 @@ Aux006LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux006Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux006Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux006PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux007AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux007AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux007AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux007AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux007AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -264,8 +250,6 @@ Aux007LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux007Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux007Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux007PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux008AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux008AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux008AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux008AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux008AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -300,8 +284,6 @@ Aux008LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux008Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux008Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux008PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux009AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux009AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux009AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux009AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux009AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -336,8 +318,6 @@ Aux009LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux009Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux009Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux009PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux010AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux010AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux010AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux010AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux010AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -372,8 +352,6 @@ Aux010LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux010Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux010Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux010PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux011AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux011AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux011AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux011AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux011AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
@@ -408,8 +386,6 @@ Aux011LimiterFilterQ001,no-graph-node,declared by the 2026-09-28 block audit (PW
 Aux011Link001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D12); no node in the DSP graph builds it yet - queued DSP graph work
 Aux011Name001,label,"text label; the host stores it, the DSP has no word for it"
 Aux011PickOff001,host-managed,"app batch control, not a DSP word: it writes every channel's Chan*AuxPick* for that aux, which is the only DSP truth (PW ruling R4, 2026-09-10 — was open question Q4)"
-Aux012AntiFbGain001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
-Aux012AntiFbLimOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D9); no node in the DSP graph builds it yet - queued DSP graph work
 Aux012AuxOn001,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux012AuxOn002,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work
 Aux012AuxOn003,no-graph-node,declared by the 2026-09-28 block audit (PW ruling D3); no node in the DSP graph builds it yet - queued DSP graph work

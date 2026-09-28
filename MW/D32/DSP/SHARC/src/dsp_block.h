@@ -558,7 +558,7 @@
 #define DSP4_CUE 0
 #endif
 #define CUE_SPI_BASE 4984
-#define CUE_SPI_N    118
+#define CUE_SPI_N    180
 #if DSP4_RTA && !DSP4_CUE
 #error "DSP4_RTA reads the cue bus since S65: build with DSP4_CUE=1"
 #endif

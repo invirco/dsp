@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------
- * Main GEQ R (GEQ)
- * Node ID:    C2_MAIN_GEQ_R
+ * Main AntiFB R (ANTI_FB)
+ * Node ID:    C2_MAIN_AFB_R
  * Chip:       2
  * Channels:   1
  * SPI Page:   -1
@@ -14,19 +14,19 @@
 
 /* RampProfile: EqSafe | Mode: LinearFrames | Up: 12ms (36f) Down: 12ms (36f) | Curve: Linear | Scope: CoeffSetAtomic */
 
-/* GEQ (FIXED Q4.28, D5): 31-stage cascade, dual-instance crossfade */
+/* ANTI_FB (FIXED Q4.28, D5): 6-stage cascade, dual-instance crossfade */
 /* SPI page=-1 addr=-1 */
 /* Normative model: tools/dsp/fixed_ref.py::biquad (offset form). */
 
 .section/dm seg_dmda;
-.extern _buf_C2_MAIN_FDR_R;
+.extern _buf_C2_MAIN_GEQ_R;
 .extern _sample_idx;
-/* The per-band gains and the design belong to C2_MAIN_GEQ
- * (S143): one `Geq[1-31]` set, two instances. */
-.extern _geq_gains_C2_MAIN_GEQ;
+/* The notch set and the design belong to C2_MAIN_AFB
+ * (S143): one `AntiFb*` parameter set, two instances. */
+.extern _afb_on_C2_MAIN_AFB;
 
 /* FOLLOWER (S143): the coefficient banks, the wire staging and
- * the sizing words belong to C2_MAIN_GEQ. ONE parameter set, two
+ * the sizing words belong to C2_MAIN_AFB. ONE parameter set, two
  * instances -- D5's own words. This node owns nothing the host
  * writes, which is why it takes no cell and no SPI address.
  *
@@ -41,44 +41,58 @@
  * starts its own fade, both then advance the same alpha by the
  * same step over the same number of samples, and both flip
  * `_active_` on the same sample. */
-.extern _geq_coeffs_A_C2_MAIN_GEQ;
-.extern _geq_coeffs_B_C2_MAIN_GEQ;
-.extern _geq_coeffs_next_C2_MAIN_GEQ;
-.global _geq_state_A_C2_MAIN_GEQ_R;
-.var _geq_state_A_C2_MAIN_GEQ_R[186];
-.global _geq_state_B_C2_MAIN_GEQ_R;
-.var _geq_state_B_C2_MAIN_GEQ_R[186];
-.global _geq_swap_pending_C2_MAIN_GEQ_R;
-.var _geq_swap_pending_C2_MAIN_GEQ_R = 0;
+.extern _afb_coeffs_A_C2_MAIN_AFB;
+.extern _afb_coeffs_B_C2_MAIN_AFB;
+.extern _afb_coeffs_next_C2_MAIN_AFB;
+.global _afb_state_A_C2_MAIN_AFB_R;
+.var _afb_state_A_C2_MAIN_AFB_R[36];
+.global _afb_state_B_C2_MAIN_AFB_R;
+.var _afb_state_B_C2_MAIN_AFB_R[36];
+.global _afb_swap_pending_C2_MAIN_AFB_R;
+.var _afb_swap_pending_C2_MAIN_AFB_R = 0;
 #if DSP4_BQ_GUARD
-.extern _geq_hrw_C2_MAIN_GEQ;
-.extern _geq_hrl_C2_MAIN_GEQ;
+.extern _afb_hrw_C2_MAIN_AFB;
+.extern _afb_hrl_C2_MAIN_AFB;
 #endif
 
-.global _geq_active_C2_MAIN_GEQ_R;
-.var _geq_active_C2_MAIN_GEQ_R = 0;
-.global _geq_xfade_alpha_C2_MAIN_GEQ_R;
-.var _geq_xfade_alpha_C2_MAIN_GEQ_R = 0.0;
-.global _geq_xfade_step_C2_MAIN_GEQ_R;
-.var _geq_xfade_step_C2_MAIN_GEQ_R = 0.0;
+.global _afb_active_C2_MAIN_AFB_R;
+.var _afb_active_C2_MAIN_AFB_R = 0;
+.global _afb_xfade_alpha_C2_MAIN_AFB_R;
+.var _afb_xfade_alpha_C2_MAIN_AFB_R = 0.0;
+.global _afb_xfade_step_C2_MAIN_AFB_R;
+.var _afb_xfade_step_C2_MAIN_AFB_R = 0.0;
+/* The ring-out gain and the feedback limiter's curve are
+ * C2_MAIN_AFB's (S144): one `AntiFbGain`, one `AntiFbLimOn`, two
+ * instances. The ENVELOPE is this node's, because an
+ * envelope is per channel or it is not an envelope. */
+.extern _afb_gq_C2_MAIN_AFB;
+.extern _afl_on_C2_MAIN_AFB;
+.extern _afl_attq_C2_MAIN_AFB;
+.extern _afl_relq_C2_MAIN_AFB;
+.extern _afl_cgp_C2_MAIN_AFB;
+.global _afl_envelope_C2_MAIN_AFB_R;
+.var _afl_envelope_C2_MAIN_AFB_R = 0;
+.global _afl_p_C2_MAIN_AFB_R;
+.var _afl_p_C2_MAIN_AFB_R;
+.global _afl_n_C2_MAIN_AFB_R;
+.var _afl_n_C2_MAIN_AFB_R;
 
 
-
-.global _buf_C2_MAIN_GEQ_R;
-.var _buf_C2_MAIN_GEQ_R;
+.global _buf_C2_MAIN_AFB_R;
+.var _buf_C2_MAIN_AFB_R;
 
         #if DSP4_BLOCK_KERNELS
-        .extern _blk_C2_MAIN_FDR_R;
+        .extern _blk_C2_MAIN_GEQ_R;
         #endif
         #if DSP4_BLOCK_KERNELS
-        .global _blk_C2_MAIN_GEQ_R;
-        .var _blk_C2_MAIN_GEQ_R[DSP4_BLOCK_SIZE];
-        .global _bw_k_C2_MAIN_GEQ_R;
-        .var _bw_k_C2_MAIN_GEQ_R;        /* the caller's _sample_idx */
-        .global _bw_s0_C2_MAIN_GEQ_R;
-        .var _bw_s0_C2_MAIN_GEQ_R;       /* walking source pointer */
-        .global _bw_d0_C2_MAIN_GEQ_R;
-        .var _bw_d0_C2_MAIN_GEQ_R;       /* walking sink pointer */
+        .global _blk_C2_MAIN_AFB_R;
+        .var _blk_C2_MAIN_AFB_R[DSP4_BLOCK_SIZE];
+        .global _bw_k_C2_MAIN_AFB_R;
+        .var _bw_k_C2_MAIN_AFB_R;        /* the caller's _sample_idx */
+        .global _bw_s0_C2_MAIN_AFB_R;
+        .var _bw_s0_C2_MAIN_AFB_R;       /* walking source pointer */
+        .global _bw_d0_C2_MAIN_AFB_R;
+        .var _bw_d0_C2_MAIN_AFB_R;       /* walking sink pointer */
         #endif
 
 .section/pm seg_pmco;
@@ -90,15 +104,18 @@
 #if DSP4_BQ_GUARD
 .extern _bq_hr_node1;
 #endif
+.extern _envq_fx;
+.extern _compgain_fx;
+.extern _mrf_rns28;
 
-.global _C2_MAIN_GEQ_R_process;
-_C2_MAIN_GEQ_R_process:
+.global _C2_MAIN_AFB_R_process;
+_C2_MAIN_AFB_R_process:
 #if DSP4_BLOCK_KERNELS
     /* ---- chip-2 per-block steady state (review finding D16) ----
      *
      * The same fusion chip 1's EQ has had since the pool rewrite,
      * on chip 2's own buffers: one call to _bq_fx_cascade_blk walks
-     * all 31 stages over the whole block with the state and the
+     * all 6 stages over the whole block with the state and the
      * error feedback held in registers, instead of BLOCK calls to
      * _bq_fx_cascade_N that tear the 80-bit accumulator apart and
      * put it back every sample.
@@ -112,15 +129,15 @@ _C2_MAIN_GEQ_R_process:
      * bookkeeping and a crossfade COMPLETING mid-block are right by
      * construction rather than by re-derivation. A crossfade lasts
      * 576 samples and is a transient; its cost does not matter. */
-    r4 = dm(_geq_swap_pending_C2_MAIN_GEQ_R);
-    r5 = dm(_geq_xfade_step_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_swap_pending_C2_MAIN_AFB_R);
+    r5 = dm(_afb_xfade_step_C2_MAIN_AFB_R);
     r4 = r4 or r5;
 #if DSP4_BQ_GUARD
-    r5 = dm(_geq_hrw_C2_MAIN_GEQ);
+    r5 = dm(_afb_hrw_C2_MAIN_AFB);
     r4 = r4 or r5;      /* a sizing in flight is a transient too */
 #endif
     r4 = pass r4;
-    if ne jump (pc, .geqkb_tr_C2_MAIN_GEQ_R);
+    if ne jump (pc, .afbkb_tr_C2_MAIN_AFB_R);
 
     l0 = 0;
     l1 = 0;
@@ -133,39 +150,73 @@ _C2_MAIN_GEQ_R_process:
      * producer and can have more than one reader -- a meter, a tap,
      * the main mix bus reading seventeen -- so filtering it where it
      * stands would corrupt every other reader. Two memory operations
-     * per sample against a 31-stage cascade. */
-    i3 = _blk_C2_MAIN_FDR_R;
-    i4 = _blk_C2_MAIN_GEQ_R;
-    lcntr = DSP4_BLOCK_SIZE, do .geqkb_cp_C2_MAIN_GEQ_R until lce;
+     * per sample against a 6-stage cascade. */
+    i3 = _blk_C2_MAIN_GEQ_R;
+    i4 = _blk_C2_MAIN_AFB_R;
+    lcntr = DSP4_BLOCK_SIZE, do .afbkb_cp_C2_MAIN_AFB_R until lce;
         r0 = dm(i3, 1);
-    .geqkb_cp_C2_MAIN_GEQ_R: dm(i4, 1) = r0;
+    .afbkb_cp_C2_MAIN_AFB_R: dm(i4, 1) = r0;
 
-    r4 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_active_C2_MAIN_AFB_R);
     r4 = pass r4;
-    if ne jump (pc, .geqkb_b_C2_MAIN_GEQ_R);
-    i0 = _geq_coeffs_A_C2_MAIN_GEQ;
-    i1 = _geq_state_A_C2_MAIN_GEQ_R;
-    jump (pc, .geqkb_go_C2_MAIN_GEQ_R);
-.geqkb_b_C2_MAIN_GEQ_R:
-    i0 = _geq_coeffs_B_C2_MAIN_GEQ;
-    i1 = _geq_state_B_C2_MAIN_GEQ_R;
-.geqkb_go_C2_MAIN_GEQ_R:
-    i2 = _blk_C2_MAIN_GEQ_R;
-    r4 = 31;
+    if ne jump (pc, .afbkb_b_C2_MAIN_AFB_R);
+    i0 = _afb_coeffs_A_C2_MAIN_AFB;
+    i1 = _afb_state_A_C2_MAIN_AFB_R;
+    jump (pc, .afbkb_go_C2_MAIN_AFB_R);
+.afbkb_b_C2_MAIN_AFB_R:
+    i0 = _afb_coeffs_B_C2_MAIN_AFB;
+    i1 = _afb_state_B_C2_MAIN_AFB_R;
+.afbkb_go_C2_MAIN_AFB_R:
+    i2 = _blk_C2_MAIN_AFB_R;
+    r4 = 6;
     call _bq_fx_cascade_blk;
+    /* ---- the ring-out gain and the feedback limiter, over the
+     * block the cascade just filled (S144). Skipped whole at
+     * the shipping default: gain exactly 0 dB and the limiter
+     * off means this block is already the answer. */
+    r4 = dm(_afb_gq_C2_MAIN_AFB);
+    r5 = 0x10000000;              /* 2^28 = 0 dB */
+    comp(r4, r5);
+    if ne jump (pc, .aflrun_C2_MAIN_AFB_R);
+    r4 = dm(_afl_on_C2_MAIN_AFB);
+    r4 = pass r4;
+    if eq jump (pc, .afldone_C2_MAIN_AFB_R);
+.aflrun_C2_MAIN_AFB_R:
+    r3 = _blk_C2_MAIN_AFB_R;
+    dm(_afl_p_C2_MAIN_AFB_R) = r3;
+    r3 = DSP4_BLOCK_SIZE;
+    dm(_afl_n_C2_MAIN_AFB_R) = r3;
+.afllp_C2_MAIN_AFB_R:
+    l4 = 0;
+    r3 = dm(_afl_p_C2_MAIN_AFB_R);
+    i4 = r3;
+    r0 = dm(i4, 0);
+    call _afl_one_C2_MAIN_AFB_R;
+    l4 = 0;
+    r3 = dm(_afl_p_C2_MAIN_AFB_R);
+    i4 = r3;
+    dm(i4, 0) = r0;
+    r3 = r3 + 1;
+    dm(_afl_p_C2_MAIN_AFB_R) = r3;
+    r3 = dm(_afl_n_C2_MAIN_AFB_R);
+    r3 = r3 - 1;
+    dm(_afl_n_C2_MAIN_AFB_R) = r3;
+    r3 = pass r3;
+    if ne jump (pc, .afllp_C2_MAIN_AFB_R);
+.afldone_C2_MAIN_AFB_R:
     /* The scalar the per-sample build publishes, kept live off the
      * LAST sample of the block. Nothing under block kernels reads it,
      * but a host peek at this node must not report a word from
      * whenever the build last ran per-sample. */
     l4 = 0;
     m4 = DSP4_BLOCK_SIZE-1;
-    i4 = _blk_C2_MAIN_GEQ_R;
+    i4 = _blk_C2_MAIN_AFB_R;
     modify(i4, m4);
     r0 = dm(i4, 0);
-    dm(_buf_C2_MAIN_GEQ_R) = r0;
+    dm(_buf_C2_MAIN_AFB_R) = r0;
     rts;
 
-.geqkb_tr_C2_MAIN_GEQ_R:
+.afbkb_tr_C2_MAIN_AFB_R:
 #endif
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
@@ -196,107 +247,108 @@ _C2_MAIN_GEQ_R_process:
              * that is why the audit is per-node and recorded here.
              * 38 cycles a block per wrapped node.
              */
-            i4 = _blk_C2_MAIN_FDR_R;
-            r3 = i4;
-            dm(_bw_s0_C2_MAIN_GEQ_R) = r3;
             i4 = _blk_C2_MAIN_GEQ_R;
             r3 = i4;
-            dm(_bw_d0_C2_MAIN_GEQ_R) = r3;
+            dm(_bw_s0_C2_MAIN_AFB_R) = r3;
+            i4 = _blk_C2_MAIN_AFB_R;
+            r3 = i4;
+            dm(_bw_d0_C2_MAIN_AFB_R) = r3;
             r5 = dm(_sample_idx);
-            dm(_bw_k_C2_MAIN_GEQ_R) = r5;
+            dm(_bw_k_C2_MAIN_AFB_R) = r5;
             r5 = 0;
             dm(_sample_idx) = r5;
             /* sample 0, peeled: the block-rate guard fires here */
-                r3 = dm(_bw_s0_C2_MAIN_GEQ_R);
+                r3 = dm(_bw_s0_C2_MAIN_AFB_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_FDR_R) = r0;
+                dm(_buf_C2_MAIN_GEQ_R) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_MAIN_GEQ_R) = r3;
-                call _C2_MAIN_GEQ_R_process_sample;
-                r0 = dm(_buf_C2_MAIN_GEQ_R);
-                r3 = dm(_bw_d0_C2_MAIN_GEQ_R);
+                dm(_bw_s0_C2_MAIN_AFB_R) = r3;
+                call _C2_MAIN_AFB_R_process_sample;
+                r0 = dm(_buf_C2_MAIN_AFB_R);
+                r3 = dm(_bw_d0_C2_MAIN_AFB_R);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-                dm(_bw_d0_C2_MAIN_GEQ_R) = r3;
+                dm(_bw_d0_C2_MAIN_AFB_R) = r3;
             r5 = 1;
             dm(_sample_idx) = r5;   /* guard shut for 1..BLOCK-1 */
-            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_MAIN_GEQ_R until lce;
-                r3 = dm(_bw_s0_C2_MAIN_GEQ_R);
+            lcntr = DSP4_BLOCK_SIZE-1, do .bwlp_C2_MAIN_AFB_R until lce;
+                r3 = dm(_bw_s0_C2_MAIN_AFB_R);
                 i4 = r3;
                 r0 = dm(i4, 0);
-                dm(_buf_C2_MAIN_FDR_R) = r0;
+                dm(_buf_C2_MAIN_GEQ_R) = r0;
                 r3 = r3 + 1;
-                dm(_bw_s0_C2_MAIN_GEQ_R) = r3;
-                call _C2_MAIN_GEQ_R_process_sample;
-                r0 = dm(_buf_C2_MAIN_GEQ_R);
-                r3 = dm(_bw_d0_C2_MAIN_GEQ_R);
+                dm(_bw_s0_C2_MAIN_AFB_R) = r3;
+                call _C2_MAIN_AFB_R_process_sample;
+                r0 = dm(_buf_C2_MAIN_AFB_R);
+                r3 = dm(_bw_d0_C2_MAIN_AFB_R);
                 i4 = r3;
                 dm(i4, 0) = r0;
                 r3 = r3 + 1;
-            .bwlp_C2_MAIN_GEQ_R: dm(_bw_d0_C2_MAIN_GEQ_R) = r3;
-            r5 = dm(_bw_k_C2_MAIN_GEQ_R);
+            .bwlp_C2_MAIN_AFB_R: dm(_bw_d0_C2_MAIN_AFB_R) = r3;
+            r5 = dm(_bw_k_C2_MAIN_AFB_R);
             dm(_sample_idx) = r5;
             rts;
 
-        .global _C2_MAIN_GEQ_R_process_sample;
-        _C2_MAIN_GEQ_R_process_sample:
+        .global _C2_MAIN_AFB_R_process_sample;
+        _C2_MAIN_AFB_R_process_sample:
         #endif
 
-    r4 = dm(_geq_swap_pending_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_swap_pending_C2_MAIN_AFB_R);
     #if DSP4_BQ_GUARD
-    r5 = dm(_geq_hrw_C2_MAIN_GEQ);
+    r5 = dm(_afb_hrw_C2_MAIN_AFB);
     r4 = r4 or r5;
     #endif
     r4 = pass r4;
-    if ne call _geq_start_xfade_C2_MAIN_GEQ_R;
+    if ne call _afb_start_xfade_C2_MAIN_AFB_R;
 
-    r4 = dm(_geq_xfade_step_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_xfade_step_C2_MAIN_AFB_R);
     r4 = pass r4;
-    if ne jump (pc, .geq_xfade_C2_MAIN_GEQ_R);
+    if ne jump (pc, .afb_xfade_C2_MAIN_AFB_R);
 
     /* ===== steady state ===== */
-    r0 = dm(_buf_C2_MAIN_FDR_R);
-    r4 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r0 = dm(_buf_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_active_C2_MAIN_AFB_R);
     r4 = pass r4;
-    if ne jump (pc, .geq_ss_b_C2_MAIN_GEQ_R);
-    i0 = _geq_coeffs_A_C2_MAIN_GEQ;
-    i1 = _geq_state_A_C2_MAIN_GEQ_R;
-    jump (pc, .geq_ss_go_C2_MAIN_GEQ_R);
-.geq_ss_b_C2_MAIN_GEQ_R:
-    i0 = _geq_coeffs_B_C2_MAIN_GEQ;
-    i1 = _geq_state_B_C2_MAIN_GEQ_R;
-.geq_ss_go_C2_MAIN_GEQ_R:
-    r4 = 31;
+    if ne jump (pc, .afb_ss_b_C2_MAIN_AFB_R);
+    i0 = _afb_coeffs_A_C2_MAIN_AFB;
+    i1 = _afb_state_A_C2_MAIN_AFB_R;
+    jump (pc, .afb_ss_go_C2_MAIN_AFB_R);
+.afb_ss_b_C2_MAIN_AFB_R:
+    i0 = _afb_coeffs_B_C2_MAIN_AFB;
+    i1 = _afb_state_B_C2_MAIN_AFB_R;
+.afb_ss_go_C2_MAIN_AFB_R:
+    r4 = 6;
     call _bq_fx_cascade_N;
 
-    dm(_buf_C2_MAIN_GEQ_R) = r0;
+    call _afl_one_C2_MAIN_AFB_R;
+    dm(_buf_C2_MAIN_AFB_R) = r0;
     rts;
 
     /* ===== crossfade: run both, blend fixed ===== */
-.geq_xfade_C2_MAIN_GEQ_R:
-    r0 = dm(_buf_C2_MAIN_FDR_R);
+.afb_xfade_C2_MAIN_AFB_R:
+    r0 = dm(_buf_C2_MAIN_GEQ_R);
     r13 = r0;                     /* input (r13-r15 preserved by lib) */
-    i0 = _geq_coeffs_A_C2_MAIN_GEQ;
-    i1 = _geq_state_A_C2_MAIN_GEQ_R;
-    r4 = 31;
+    i0 = _afb_coeffs_A_C2_MAIN_AFB;
+    i1 = _afb_state_A_C2_MAIN_AFB_R;
+    r4 = 6;
     call _bq_fx_cascade_N;
     r14 = r0;                     /* ya */
     r0 = r13;
-    i0 = _geq_coeffs_B_C2_MAIN_GEQ;
-    i1 = _geq_state_B_C2_MAIN_GEQ_R;
-    r4 = 31;
+    i0 = _afb_coeffs_B_C2_MAIN_AFB;
+    i1 = _afb_state_B_C2_MAIN_AFB_R;
+    r4 = 6;
     call _bq_fx_cascade_N;        /* r0 = yb */
 
-    r4 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_active_C2_MAIN_AFB_R);
     r4 = pass r4;
-    if eq jump (pc, .geq_bl_C2_MAIN_GEQ_R);
+    if eq jump (pc, .afb_bl_C2_MAIN_AFB_R);
     r5 = r14;                     /* active B: new is A */
     r14 = r0;
     r0 = r5;
-.geq_bl_C2_MAIN_GEQ_R:
-    f4 = dm(_geq_xfade_alpha_C2_MAIN_GEQ_R);
+.afb_bl_C2_MAIN_AFB_R:
+    f4 = dm(_afb_xfade_alpha_C2_MAIN_AFB_R);
     r5 = 0x4F000000;               /* 2^31 as float */
     f5 = r5;
     f4 = f4 * f5;
@@ -359,50 +411,81 @@ _C2_MAIN_GEQ_R_process:
     r5 = r5 or r12;
     r0 = r14 + r5;                 /* blended output */
 
-    dm(_buf_C2_MAIN_GEQ_R) = r0;
+    call _afl_one_C2_MAIN_AFB_R;
+    dm(_buf_C2_MAIN_AFB_R) = r0;
 
     /* advance alpha (float control) */
-    f4 = dm(_geq_xfade_alpha_C2_MAIN_GEQ_R);
-    f5 = dm(_geq_xfade_step_C2_MAIN_GEQ_R);
+    f4 = dm(_afb_xfade_alpha_C2_MAIN_AFB_R);
+    f5 = dm(_afb_xfade_step_C2_MAIN_AFB_R);
     f4 = f4 + f5;
-    dm(_geq_xfade_alpha_C2_MAIN_GEQ_R) = f4;
+    dm(_afb_xfade_alpha_C2_MAIN_AFB_R) = f4;
     r5 = 0x3F800000;
     f5 = r5;
     comp(f4, f5);
     if lt rts;
-    r4 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r4 = dm(_afb_active_C2_MAIN_AFB_R);
     r5 = 1;
     r4 = r4 xor r5;
-    dm(_geq_active_C2_MAIN_GEQ_R) = r4;
+    dm(_afb_active_C2_MAIN_AFB_R) = r4;
     r4 = 0;
-    dm(_geq_xfade_step_C2_MAIN_GEQ_R) = r4;
-    dm(_geq_xfade_alpha_C2_MAIN_GEQ_R) = r4;
+    dm(_afb_xfade_step_C2_MAIN_AFB_R) = r4;
+    dm(_afb_xfade_alpha_C2_MAIN_AFB_R) = r4;
     rts;
 
     /* ===== stage new coeffs into dormant ===== */
-_geq_start_xfade_C2_MAIN_GEQ_R:
-    /* Nothing to stage: C2_MAIN_GEQ converted the wire words into
+_afb_start_xfade_C2_MAIN_AFB_R:
+    /* Nothing to stage: C2_MAIN_AFB converted the wire words into
      * the shared dormant bank (and sized it, under the guard)
      * before it kicked this node. Zero THIS node's dormant
      * state and start THIS node's alpha. */
     r4 = 0;
-    dm(_geq_swap_pending_C2_MAIN_GEQ_R) = r4;
-    r4 = dm(_geq_active_C2_MAIN_GEQ_R);
+    dm(_afb_swap_pending_C2_MAIN_AFB_R) = r4;
+    r4 = dm(_afb_active_C2_MAIN_AFB_R);
     r4 = pass r4;
-    if ne jump (pc, .geq_st_a_C2_MAIN_GEQ_R);
-    i2 = _geq_state_B_C2_MAIN_GEQ_R;
-    jump (pc, .geq_st_go_C2_MAIN_GEQ_R);
-.geq_st_a_C2_MAIN_GEQ_R:
-    i2 = _geq_state_A_C2_MAIN_GEQ_R;
-.geq_st_go_C2_MAIN_GEQ_R:
+    if ne jump (pc, .afb_st_a_C2_MAIN_AFB_R);
+    i2 = _afb_state_B_C2_MAIN_AFB_R;
+    jump (pc, .afb_st_go_C2_MAIN_AFB_R);
+.afb_st_a_C2_MAIN_AFB_R:
+    i2 = _afb_state_A_C2_MAIN_AFB_R;
+.afb_st_go_C2_MAIN_AFB_R:
     r4 = 0;
-    r5 = 186;
-    lcntr = r5, do .geq_zst_C2_MAIN_GEQ_R until lce;
-.geq_zst_C2_MAIN_GEQ_R:
+    r5 = 36;
+    lcntr = r5, do .afb_zst_C2_MAIN_AFB_R until lce;
+.afb_zst_C2_MAIN_AFB_R:
         dm(i2, 1) = r4;
     f0 = 0.001736111111111111;
-    dm(_geq_xfade_step_C2_MAIN_GEQ_R) = f0;
+    dm(_afb_xfade_step_C2_MAIN_AFB_R) = f0;
     r4 = 0;
-    dm(_geq_xfade_alpha_C2_MAIN_GEQ_R) = r4;
+    dm(_afb_xfade_alpha_C2_MAIN_AFB_R) = r4;
     rts;
-_C2_MAIN_GEQ_R_process.end:
+/* r0 in, r0 out: the ring-out gain, then the feedback limiter
+ * if it is on. Called from the fused block loop above and from
+ * each per-sample path, so the two cannot drift. r13 survives
+ * _envq_fx, _compgain_fx and _mrf_rns28 (all preserve r6-r15),
+ * which is the same register discipline gen_limiter_fixed uses
+ * across the same two calls. */
+_afl_one_C2_MAIN_AFB_R:
+    r1 = dm(_afb_gq_C2_MAIN_AFB);
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    r13 = r0;
+    r4 = dm(_afl_on_C2_MAIN_AFB);
+    r4 = pass r4;
+    if eq jump (pc, .aflret_C2_MAIN_AFB_R);
+    r0 = abs r13;
+    r1 = dm(_afl_envelope_C2_MAIN_AFB_R);
+    r2 = dm(_afl_attq_C2_MAIN_AFB);
+    r3 = dm(_afl_relq_C2_MAIN_AFB);
+    call _envq_fx;
+    dm(_afl_envelope_C2_MAIN_AFB_R) = r0;
+    i0 = _afl_cgp_C2_MAIN_AFB;
+    call _compgain_fx;            /* r0 = gain Q4.28 */
+    r1 = r0;
+    r0 = r13;
+    mrf = r0 * r1 (ssi);
+    call _mrf_rns28;
+    rts;
+.aflret_C2_MAIN_AFB_R:
+    r0 = r13;
+    rts;
+_C2_MAIN_AFB_R_process.end:

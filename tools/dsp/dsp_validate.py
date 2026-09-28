@@ -176,6 +176,11 @@ EXTRA_PARAMS = {
     # gain the output follows while it is set.
     'SOURCE_SEL':     {'cell_suffix', 'link_cell_suffix', 'link_gain',
                        'cell_prefix'},
+    # `fb_lim_db` (S144): the FEEDBACK limiter's threshold. `AntiFbLimOn` is
+    # the only cell the contract gives that limiter, so the threshold is the
+    # graph's and is stated on the row where a reader of dsp.csv sees it
+    # rather than buried in the generator.
+    'ANTI_FB':        {'fb_lim_db'},
     'NOISE_GEN':      {'hpf_on'},
     'TEST_OSC':       {'sweep_on', 'sweep_step', 'meas_src'},
     'TEST_MEAS':      {'xtalk_src', 'xtalk_dst'},

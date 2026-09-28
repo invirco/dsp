@@ -20,7 +20,6 @@
 
 .section/dm seg_dmda;
 .extern _buf_C2_MON_PICK_R;
-.extern _mon_source_C2_PHN;
 .extern _mon_q_l_C2_PHN;
 .extern _mon_source_C2_MON;
 .global _buf_C2_PHN_R;
@@ -78,7 +77,7 @@ _C2_PHN_R_process:
         .extern _rx_ic_slot_C2_RECV_CUE_L;
             r3 = _blk_C2_MON_PICK_R;
             r5 = _rx_ic_slot_C2_RECV_CUE_L;
-            r4 = dm(_mon_source_C2_PHN);
+            r4 = dm(_mon_source_C2_MON);
             r6 = 13;
             comp(r4, r6);
             if eq r3 = r5;
