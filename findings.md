@@ -6,6 +6,68 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## PREPARING THE WHOLE-SWITCH WINDOW FOR THE S142–S145 GRAPH (2026-09-28, session 146)
+
+Hub dispatch `tasks.md` 2026-09-28 19:31Z. Runbook
+`MW/D24/DSP/s146/switch-runbook.md`, report `MW/D24/DSP/s146/s146-report.md`.
+Desk only: nothing flashed, no DSP image loaded, no app deployed, no write of
+any kind to MW-D24-2. AN_EN low and CS_M untouched throughout.
+
+**S146-1 — `product_fit.py`'s capacity table is not this graph's, and its
+code-pool line is measurably stale.** Its anchors are S27/S80 measured rows,
+all from before S142, and `CODE_USED_C1`/`CODE_USED_C2` are hardcoded at
+180,954 / 164,168 from S26/S27 — 536 and 9,000 bytes behind the images this
+tree now builds (181,490 / 173,168, read from the images' own linker maps).
+The census and `--check-masks` halves are correct and were used; the
+percentage table must not be read as a prediction for the new graph. Same
+shape as S8-2 one instrument along: a tool agreeing with itself while
+describing last month's build.
+
+**S146-2 — the unit's DSP address map is FIVE contract tags stale, and a stale
+one cannot announce itself.** `/home/app/dspboot/landed-d24.json` is pinned
+`defs-v2026.09.19.3` (3,989 cells) against the repo's `.28.4` (3,800): 357
+cells it still resolves no longer exist, 40 have moved. A `landed-d24.json`
+lookup that succeeds is indistinguishable from one that is right, so any bench
+reading taken on MW-D24-2 since 2026-09-19 through a cell in those two sets is
+suspect — in particular `MainCtr*`/`MainSub*` (the 40 that moved) and
+`Chan*Matrix*` / group surface (the 357 that went, in the `.28.1` block audit).
+The window fixes the file; it does not fix readings already taken.
+
+**S146-3 — the accept manifest's signed shipping triple predates
+`DSP4_TX_DEFER=2`.** `MW/D24/DSP/accept/manifest.json` `dsp.build_cfg` and
+`tools/pi/d24_selftest.py`'s `SIGNED_TRIPLE` both record `0xCF45FF10 /
+0xE2018E6F / 0xC47C0F26`; today's `shipping.config` computes
+`… / 0xC47C0FA6` (`cfg_words.py`, confirmed by `check_shipping_config.sh`) —
+word 3 bit 7, which is `DSP4_TX_DEFER` 0 → 2, the DAC-fold fix. Nothing gates
+on `SIGNED_TRIPLE` today (`_check_factory_image` compares the factory-test
+triple instead), so nothing is broken — but the signed record names a shipping
+build this tree no longer produces. Owed: a re-signature, or the record brought
+forward with the reason.
+
+**S146-4 — republishing the pack is a THREE-part change and must be its own
+window.** S45 recorded that the app reads `DspSpi`/`DspPage`/`DspAdd`/
+`DspAddHex` for display only and has no DSP writer; it has one now
+(`mx26 src/sw/app/Services/Dsp/{DspAddressMap,DspApply,SpiDevDspLink}.cs`),
+and `DspAddressMap` is explicit that the published matrix is the app's ONLY
+source of DSP addresses. But the unit's deployed pack carries **zero** of them
+— 0 of 5,767 rows, counted after unpacking it — and `dspWriteEnable` is false
+(witnessed in the unit's own boot log). So the graph needs no pack move;
+republishing would arm a writer, hand it 3,800 addresses for the first time and
+add six `Ramp*` columns the deployed pack does not have (38 columns against
+32), all at once. Recommend pack + `dspWriteEnable` as their own window after
+the graph is proven.
+
+**S146-5 — the automated factory self-test set will report NO DATA on every
+DSP-touching row after the switch, by design.**
+`d24_selftest.py::_check_factory_image()` asserts the factory-test-v2 triple
+AND both `.ldr` md5s on every DSP-dependent press, and the shipping arm is
+neither. Handled in the runbook §8.2: run the automated set before the switch,
+verify after it with §6 plus PW's twelve rows, and adopt the prepared
+`DSP4_TEST_NODES=1` arm as factory-test-v3 in its own change. That arm's
+`chip1.ldr` is **byte-identical to factory-test-v2's** (`7f226919…`) with only
+chip 2 moving — exactly the shape of the v1→v2 move — which also proves the
+build reproduces and that chip 1 is untouched by the whole of S142–S145.
+
 ## THE PIN TO `.28.4`, AND SIGNAL ARRIVAL AS THE GO-AHEAD (2026-09-28, session 145)
 
 Hub dispatch `tasks.md` 2026-09-28 17:17Z. Report
