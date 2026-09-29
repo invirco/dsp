@@ -325,6 +325,13 @@ def rows_for(side):
 # ---------------------------------------------------------------------------
 # The bus
 # ---------------------------------------------------------------------------
+# THE FACTORY TEST'S LED BRIGHTNESS (PW 2026-09-29: "set d24 test sw board
+# leds to lower brightness, maybe 20%"). MH1 DIM[10] = 527/2561 = 20.6 %. The
+# test used to inherit whatever MH1 last had -- the app's saved level, often
+# full -- so the switch-board sweep ran at 100 %. The app restores its own
+# saved level when matrix-app next starts.
+FACTORY_DIM_STEP = 10
+
 class PanelBus:
     """The matrix bus, seen as the two things the loop needs: light one, and
     tell me what was pressed.
@@ -345,6 +352,16 @@ class PanelBus:
 
     def close(self):
         self.bus.close()
+
+    def brightness(self, step):
+        """Set the panel LED brightness: MH1's `DimSet`, '>' + the step as two
+        hex digits (the app's own command since 2026-09-28, mx26 654edc7).
+        Step 0 = 100 %, 31 = 0.74 %; the table is MH1's DIM[] (period 2561).
+        No ack is waited for: MH1 answers a host line, not this one."""
+        step = max(0, min(31, int(step)))
+        self.flush()
+        self.bus.send(b'>%02X\n' % step)
+        time.sleep(0.05)
 
     def flush(self):
         termios.tcflush(self.bus.fd, termios.TCIFLUSH)
@@ -525,6 +542,9 @@ class InjectedBus:
     def light_enc(self, value):
         self.lights.append(('enc', value))
         return 1.8
+
+    def brightness(self, step):
+        self.lights.append(('dim', step))
 
     def poll(self):
         """The next scripted event, if it is one of the polled cells.

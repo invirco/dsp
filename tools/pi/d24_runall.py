@@ -2119,6 +2119,9 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                   measured=note, limit='', evidence='', source='panel loop')
 
     bus = PL.InjectedBus(a.inject_keys) if a.inject_keys else PL.PanelBus()
+    bus.brightness(PL.FACTORY_DIM_STEP)
+    glass.progress('panel LEDs at step %d of 31 (about 20 %% brightness) for '
+                   'the switch-board test' % PL.FACTORY_DIM_STEP)
     pending = {'paused': False}
     panel_name = PL.PANEL_NAME[side]
     # HOW MUCH OF THIS BOARD THIS PASS WILL WALK, AND WHY (S128, second pass).
