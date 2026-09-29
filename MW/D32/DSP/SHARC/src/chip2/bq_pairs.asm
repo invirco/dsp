@@ -216,6 +216,20 @@ _bqp_tap_eq.end:
 #endif
 .var _bqi_s_MOUT_OEQ_01_02[48];    /* 2 x 4 stages x 6 state  */
 .var _bqi_lat_MOUT_OEQ_01_02 = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_MAIN_GEQ_L_R[312];    /* 2 x (1 hdr + 31 x 5) */
+#else
+.var _bqi_c_MAIN_GEQ_L_R[310];    /* 2 x 31 stages x 5 coeffs */
+#endif
+.var _bqi_s_MAIN_GEQ_L_R[372];    /* 2 x 31 stages x 6 state  */
+.var _bqi_lat_MAIN_GEQ_L_R = 0;
+#if DSP4_BQ_GUARD
+.var _bqi_c_MAIN_AFB_L_R[62];    /* 2 x (1 hdr + 6 x 5) */
+#else
+.var _bqi_c_MAIN_AFB_L_R[60];    /* 2 x 6 stages x 5 coeffs */
+#endif
+.var _bqi_s_MAIN_AFB_L_R[72];    /* 2 x 6 stages x 6 state  */
+.var _bqi_lat_MAIN_AFB_L_R = 0;
 
 .section/pm seg_pmco;
 .extern _C2_AUX_AFB_01_process;
@@ -262,6 +276,10 @@ _bqp_tap_eq.end:
 .extern _C2_GRP_GEQ_02_process;
 .extern _C2_GRP_GEQ_03_process;
 .extern _C2_GRP_GEQ_04_process;
+.extern _C2_MAIN_AFB_R_process;
+.extern _C2_MAIN_AFB_process;
+.extern _C2_MAIN_GEQ_R_process;
+.extern _C2_MAIN_GEQ_process;
 .extern _C2_MAIN_OEQ_01_process;
 .extern _C2_MAIN_OEQ_02_process;
 .extern _afb_active_C2_AUX_AFB_01;
@@ -276,6 +294,8 @@ _bqp_tap_eq.end:
 .extern _afb_active_C2_AUX_AFB_10;
 .extern _afb_active_C2_AUX_AFB_11;
 .extern _afb_active_C2_AUX_AFB_12;
+.extern _afb_active_C2_MAIN_AFB;
+.extern _afb_active_C2_MAIN_AFB_R;
 .extern _afb_coeffs_A_C2_AUX_AFB_01;
 .extern _afb_coeffs_A_C2_AUX_AFB_02;
 .extern _afb_coeffs_A_C2_AUX_AFB_03;
@@ -288,6 +308,7 @@ _bqp_tap_eq.end:
 .extern _afb_coeffs_A_C2_AUX_AFB_10;
 .extern _afb_coeffs_A_C2_AUX_AFB_11;
 .extern _afb_coeffs_A_C2_AUX_AFB_12;
+.extern _afb_coeffs_A_C2_MAIN_AFB;
 .extern _afb_coeffs_B_C2_AUX_AFB_01;
 .extern _afb_coeffs_B_C2_AUX_AFB_02;
 .extern _afb_coeffs_B_C2_AUX_AFB_03;
@@ -300,6 +321,7 @@ _bqp_tap_eq.end:
 .extern _afb_coeffs_B_C2_AUX_AFB_10;
 .extern _afb_coeffs_B_C2_AUX_AFB_11;
 .extern _afb_coeffs_B_C2_AUX_AFB_12;
+.extern _afb_coeffs_B_C2_MAIN_AFB;
 .extern _afb_state_A_C2_AUX_AFB_01;
 .extern _afb_state_A_C2_AUX_AFB_02;
 .extern _afb_state_A_C2_AUX_AFB_03;
@@ -312,6 +334,8 @@ _bqp_tap_eq.end:
 .extern _afb_state_A_C2_AUX_AFB_10;
 .extern _afb_state_A_C2_AUX_AFB_11;
 .extern _afb_state_A_C2_AUX_AFB_12;
+.extern _afb_state_A_C2_MAIN_AFB;
+.extern _afb_state_A_C2_MAIN_AFB_R;
 .extern _afb_state_B_C2_AUX_AFB_01;
 .extern _afb_state_B_C2_AUX_AFB_02;
 .extern _afb_state_B_C2_AUX_AFB_03;
@@ -324,6 +348,8 @@ _bqp_tap_eq.end:
 .extern _afb_state_B_C2_AUX_AFB_10;
 .extern _afb_state_B_C2_AUX_AFB_11;
 .extern _afb_state_B_C2_AUX_AFB_12;
+.extern _afb_state_B_C2_MAIN_AFB;
+.extern _afb_state_B_C2_MAIN_AFB_R;
 .extern _afb_swap_pending_C2_AUX_AFB_01;
 .extern _afb_swap_pending_C2_AUX_AFB_02;
 .extern _afb_swap_pending_C2_AUX_AFB_03;
@@ -336,6 +362,8 @@ _bqp_tap_eq.end:
 .extern _afb_swap_pending_C2_AUX_AFB_10;
 .extern _afb_swap_pending_C2_AUX_AFB_11;
 .extern _afb_swap_pending_C2_AUX_AFB_12;
+.extern _afb_swap_pending_C2_MAIN_AFB;
+.extern _afb_swap_pending_C2_MAIN_AFB_R;
 .extern _afb_xfade_step_C2_AUX_AFB_01;
 .extern _afb_xfade_step_C2_AUX_AFB_02;
 .extern _afb_xfade_step_C2_AUX_AFB_03;
@@ -348,6 +376,8 @@ _bqp_tap_eq.end:
 .extern _afb_xfade_step_C2_AUX_AFB_10;
 .extern _afb_xfade_step_C2_AUX_AFB_11;
 .extern _afb_xfade_step_C2_AUX_AFB_12;
+.extern _afb_xfade_step_C2_MAIN_AFB;
+.extern _afb_xfade_step_C2_MAIN_AFB_R;
 .extern _blk_C2_AUX_AFB_01;
 .extern _blk_C2_AUX_AFB_02;
 .extern _blk_C2_AUX_AFB_03;
@@ -408,6 +438,12 @@ _bqp_tap_eq.end:
 .extern _blk_C2_GRP_GEQ_02;
 .extern _blk_C2_GRP_GEQ_03;
 .extern _blk_C2_GRP_GEQ_04;
+.extern _blk_C2_MAIN_AFB;
+.extern _blk_C2_MAIN_AFB_R;
+.extern _blk_C2_MAIN_FDR;
+.extern _blk_C2_MAIN_FDR_R;
+.extern _blk_C2_MAIN_GEQ;
+.extern _blk_C2_MAIN_GEQ_R;
 .extern _blk_C2_MAIN_OEQ_01;
 .extern _blk_C2_MAIN_OEQ_02;
 .extern _blk_C2_MAIN_XOVER;
@@ -457,6 +493,10 @@ _bqp_tap_eq.end:
 .extern _buf_C2_GRP_GEQ_02;
 .extern _buf_C2_GRP_GEQ_03;
 .extern _buf_C2_GRP_GEQ_04;
+.extern _buf_C2_MAIN_AFB;
+.extern _buf_C2_MAIN_AFB_R;
+.extern _buf_C2_MAIN_GEQ;
+.extern _buf_C2_MAIN_GEQ_R;
 .extern _buf_C2_MAIN_OEQ_01;
 .extern _buf_C2_MAIN_OEQ_02;
 .extern _eq_active_C2_AUX_EQ_01;
@@ -601,6 +641,8 @@ _bqp_tap_eq.end:
 .extern _geq_active_C2_GRP_GEQ_02;
 .extern _geq_active_C2_GRP_GEQ_03;
 .extern _geq_active_C2_GRP_GEQ_04;
+.extern _geq_active_C2_MAIN_GEQ;
+.extern _geq_active_C2_MAIN_GEQ_R;
 .extern _geq_coeffs_A_C2_AUX_GEQ_01;
 .extern _geq_coeffs_A_C2_AUX_GEQ_02;
 .extern _geq_coeffs_A_C2_AUX_GEQ_03;
@@ -617,6 +659,7 @@ _bqp_tap_eq.end:
 .extern _geq_coeffs_A_C2_GRP_GEQ_02;
 .extern _geq_coeffs_A_C2_GRP_GEQ_03;
 .extern _geq_coeffs_A_C2_GRP_GEQ_04;
+.extern _geq_coeffs_A_C2_MAIN_GEQ;
 .extern _geq_coeffs_B_C2_AUX_GEQ_01;
 .extern _geq_coeffs_B_C2_AUX_GEQ_02;
 .extern _geq_coeffs_B_C2_AUX_GEQ_03;
@@ -633,6 +676,7 @@ _bqp_tap_eq.end:
 .extern _geq_coeffs_B_C2_GRP_GEQ_02;
 .extern _geq_coeffs_B_C2_GRP_GEQ_03;
 .extern _geq_coeffs_B_C2_GRP_GEQ_04;
+.extern _geq_coeffs_B_C2_MAIN_GEQ;
 .extern _geq_state_A_C2_AUX_GEQ_01;
 .extern _geq_state_A_C2_AUX_GEQ_02;
 .extern _geq_state_A_C2_AUX_GEQ_03;
@@ -649,6 +693,8 @@ _bqp_tap_eq.end:
 .extern _geq_state_A_C2_GRP_GEQ_02;
 .extern _geq_state_A_C2_GRP_GEQ_03;
 .extern _geq_state_A_C2_GRP_GEQ_04;
+.extern _geq_state_A_C2_MAIN_GEQ;
+.extern _geq_state_A_C2_MAIN_GEQ_R;
 .extern _geq_state_B_C2_AUX_GEQ_01;
 .extern _geq_state_B_C2_AUX_GEQ_02;
 .extern _geq_state_B_C2_AUX_GEQ_03;
@@ -665,6 +711,8 @@ _bqp_tap_eq.end:
 .extern _geq_state_B_C2_GRP_GEQ_02;
 .extern _geq_state_B_C2_GRP_GEQ_03;
 .extern _geq_state_B_C2_GRP_GEQ_04;
+.extern _geq_state_B_C2_MAIN_GEQ;
+.extern _geq_state_B_C2_MAIN_GEQ_R;
 .extern _geq_swap_pending_C2_AUX_GEQ_01;
 .extern _geq_swap_pending_C2_AUX_GEQ_02;
 .extern _geq_swap_pending_C2_AUX_GEQ_03;
@@ -681,6 +729,8 @@ _bqp_tap_eq.end:
 .extern _geq_swap_pending_C2_GRP_GEQ_02;
 .extern _geq_swap_pending_C2_GRP_GEQ_03;
 .extern _geq_swap_pending_C2_GRP_GEQ_04;
+.extern _geq_swap_pending_C2_MAIN_GEQ;
+.extern _geq_swap_pending_C2_MAIN_GEQ_R;
 .extern _geq_xfade_step_C2_AUX_GEQ_01;
 .extern _geq_xfade_step_C2_AUX_GEQ_02;
 .extern _geq_xfade_step_C2_AUX_GEQ_03;
@@ -697,6 +747,8 @@ _bqp_tap_eq.end:
 .extern _geq_xfade_step_C2_GRP_GEQ_02;
 .extern _geq_xfade_step_C2_GRP_GEQ_03;
 .extern _geq_xfade_step_C2_GRP_GEQ_04;
+.extern _geq_xfade_step_C2_MAIN_GEQ;
+.extern _geq_xfade_step_C2_MAIN_GEQ_R;
 .extern _tap_post_eq_C2_AUX_EQ_01;
 .extern _tap_post_eq_C2_AUX_EQ_02;
 .extern _tap_post_eq_C2_AUX_EQ_03;
@@ -728,6 +780,7 @@ _bqp_tap_eq.end:
 .extern _afb_hrw_C2_AUX_AFB_10;
 .extern _afb_hrw_C2_AUX_AFB_11;
 .extern _afb_hrw_C2_AUX_AFB_12;
+.extern _afb_hrw_C2_MAIN_AFB;
 .extern _eq_hrw_C2_AUX_EQ_01;
 .extern _eq_hrw_C2_AUX_EQ_02;
 .extern _eq_hrw_C2_AUX_EQ_03;
@@ -762,6 +815,7 @@ _bqp_tap_eq.end:
 .extern _geq_hrw_C2_GRP_GEQ_02;
 .extern _geq_hrw_C2_GRP_GEQ_03;
 .extern _geq_hrw_C2_GRP_GEQ_04;
+.extern _geq_hrw_C2_MAIN_GEQ;
 #endif
 #if DSP4_AFB_DESIGN
 .extern _afb_dirty_C2_AUX_AFB_01;
@@ -776,6 +830,7 @@ _bqp_tap_eq.end:
 .extern _afb_dirty_C2_AUX_AFB_10;
 .extern _afb_dirty_C2_AUX_AFB_11;
 .extern _afb_dirty_C2_AUX_AFB_12;
+.extern _afb_dirty_C2_MAIN_AFB;
 #endif
 #if DSP4_GEQ_DESIGN
 .extern _geq_dirty_C2_AUX_GEQ_01;
@@ -794,6 +849,7 @@ _bqp_tap_eq.end:
 .extern _geq_dirty_C2_GRP_GEQ_02;
 .extern _geq_dirty_C2_GRP_GEQ_03;
 .extern _geq_dirty_C2_GRP_GEQ_04;
+.extern _geq_dirty_C2_MAIN_GEQ;
 #endif
 
 /* ---- C2_AUX_EQ_01 + C2_AUX_EQ_02: 4 stages ---- */
@@ -5724,6 +5780,436 @@ _C2BQP_MOUT_OEQ_01_02_process:
     call _C2_MAIN_OEQ_02_process;
     rts;
 _C2BQP_MOUT_OEQ_01_02_process.end:
+
+/* ---- C2_MAIN_GEQ + C2_MAIN_GEQ_R: 31 stages ---- */
+.global _C2BQP_MAIN_GEQ_L_R_process;
+_C2BQP_MAIN_GEQ_L_R_process:
+    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
+    /* Both channels steady, or there is no pair: a staged
+     * coefficient set or a running crossfade goes through the
+     * node's own reference path. */
+    r1 = dm(_geq_swap_pending_C2_MAIN_GEQ);
+    r0 = dm(_geq_xfade_step_C2_MAIN_GEQ);
+    r1 = r1 or r0;
+    r0 = dm(_geq_swap_pending_C2_MAIN_GEQ_R);
+    r1 = r1 or r0;
+    r0 = dm(_geq_xfade_step_C2_MAIN_GEQ_R);
+    r1 = r1 or r0;
+#if DSP4_GEQ_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_geq_dirty_C2_MAIN_GEQ);
+    r1 = r1 or r0;
+#endif
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_geq_hrw_C2_MAIN_GEQ);
+    r1 = r1 or r0;
+#endif
+    r1 = pass r1;
+    if ne jump (pc, .bqiS_MAIN_GEQ_L_R);
+
+    r0 = dm(_bqi_lat_MAIN_GEQ_L_R);
+    r0 = pass r0;
+    if ne jump (pc, .bqiR_MAIN_GEQ_L_R);
+
+    /* ---- ENGAGE: gather each channel's ACTIVE instance into
+     * the pair's interleaved arrays, once. ---- */
+    r2 = _geq_coeffs_A_C2_MAIN_GEQ;
+    r3 = _geq_state_A_C2_MAIN_GEQ;
+    r8 = _geq_coeffs_B_C2_MAIN_GEQ;
+    r9 = _geq_state_B_C2_MAIN_GEQ;
+    r0 = dm(_geq_active_C2_MAIN_GEQ);
+    r0 = pass r0;
+    if eq r8 = r2;
+    if eq r9 = r3;
+    r2 = _geq_coeffs_A_C2_MAIN_GEQ;
+    r3 = _geq_state_A_C2_MAIN_GEQ_R;
+    r11 = _geq_coeffs_B_C2_MAIN_GEQ;
+    r12 = _geq_state_B_C2_MAIN_GEQ_R;
+    r0 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
+    i0 = r8;
+    i1 = r11;
+    i2 = _bqi_c_MAIN_GEQ_L_R;
+#if DSP4_C2_BQ_NEGCTL
+    /* NEGATIVE CONTROL. Channel B's coefficients are gathered as
+     * ZERO, so B runs a dead filter while A's is untouched. If
+     * the kernel really keeps the two channels apart then EVERY
+     * channel-B cascade output moves and NO channel-A one does.
+     *
+     * A CROSS-FEED CONTROL -- B takes A's coefficients, which is
+     * what chip 1's DSP4_BQ_NEGCTL does -- CANNOT WORK HERE. Every
+     * chip-2 cascade on the bench runs on the same .var bypass
+     * initialisers, so A and B are numerically the same filter and
+     * computing A twice gives the right answer. That is the gap
+     * the 2026-09-01 record named on the dynamics pairs; zeroing
+     * one channel closes it without needing distinct per-channel
+     * settings over the SPI plane. */
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_MAIN_GEQ_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = 0;
+    .bqiCE_MAIN_GEQ_L_R: dm(i2, 1) = r0;
+#else
+    lcntr = 155 + DSP4_BQ_HDR, do .bqiCE_MAIN_GEQ_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i1, 1);
+    .bqiCE_MAIN_GEQ_L_R: dm(i2, 1) = r0;
+#endif
+    i0 = r9;
+    i1 = r12;
+    i2 = _bqi_s_MAIN_GEQ_L_R;
+    lcntr = 186, do .bqiSE_MAIN_GEQ_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i1, 1);
+    .bqiSE_MAIN_GEQ_L_R: dm(i2, 1) = r0;
+    r0 = 1;
+    dm(_bqi_lat_MAIN_GEQ_L_R) = r0;
+
+.bqiR_MAIN_GEQ_L_R:
+    /* the two input blocks, interleaved -- the only per-block
+     * gather left */
+    i3 = _blk_C2_MAIN_FDR;
+    i4 = _blk_C2_MAIN_FDR_R;
+    i2 = _bqi_sig;
+    lcntr = DSP4_BLOCK_SIZE, do .bqiXI_MAIN_GEQ_L_R until lce;
+        r0 = dm(i3, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i4, 1);
+    .bqiXI_MAIN_GEQ_L_R: dm(i2, 1) = r0;
+
+    i0 = _bqi_c_MAIN_GEQ_L_R;
+    i1 = _bqi_s_MAIN_GEQ_L_R;
+    i2 = _bqi_sig;
+    r4 = 31;
+    call _bq_fx_cascade_simd;
+
+    /* NOTHING is carried in a register across that call -- it
+     * writes r0-r15 and i0-i2. Every address below is a link-time
+     * constant, which is the shape the 2026-08-29 paired-cascade
+     * hang taught: _bq_pair_blk had to park five words in DM.
+     */
+    l2 = 0; l3 = 0; l4 = 0;
+    i2 = _bqi_sig;
+    i3 = _blk_C2_MAIN_GEQ;
+    i4 = _blk_C2_MAIN_GEQ_R;
+    lcntr = DSP4_BLOCK_SIZE, do .bqiXO_MAIN_GEQ_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i3, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiXO_MAIN_GEQ_L_R: dm(i4, 1) = r0;
+
+    /* the scalar words a host peek reads, off the LAST sample of
+     * the block -- the same republish the GEQ block kernel makes
+     * for the same reason (D83). */
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_GEQ;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_GEQ) = r0;
+    i4 = _blk_C2_MAIN_GEQ_R;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_GEQ_R) = r0;
+#if DSP4_C2_BQ_NOLATCH
+    /* THE ROUND-TRIP ARM. Scatter the state back and drop the
+     * latch on EVERY block, so the engage/disengage bookkeeping
+     * -- which in a real build runs once per coefficient swap,
+     * i.e. once per user gesture -- runs six thousand times a
+     * second instead. It must be bit-exact against BOTH the
+     * scalar arm and the latched arm: a gather that maps the
+     * interleave wrongly in either direction cannot survive
+     * being run and undone every block. It is also the only way
+     * to price the gather on chip 2's own numbers -- the cost
+     * difference against the latched arm IS the per-block gather
+     * the latch removes. Debug only; default 0. */
+    r3 = _geq_state_A_C2_MAIN_GEQ;
+    r9 = _geq_state_B_C2_MAIN_GEQ;
+    r0 = dm(_geq_active_C2_MAIN_GEQ);
+    r0 = pass r0;
+    if eq r9 = r3;
+    r3 = _geq_state_A_C2_MAIN_GEQ_R;
+    r12 = _geq_state_B_C2_MAIN_GEQ_R;
+    r0 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r0 = pass r0;
+    if eq r12 = r3;
+    i2 = _bqi_s_MAIN_GEQ_L_R;
+    i0 = r9;
+    i1 = r12;
+    lcntr = 186, do .bqiSN_MAIN_GEQ_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i0, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiSN_MAIN_GEQ_L_R: dm(i1, 1) = r0;
+    r0 = 0;
+    dm(_bqi_lat_MAIN_GEQ_L_R) = r0;
+#endif
+    rts;
+
+.bqiS_MAIN_GEQ_L_R:
+    /* DISENGAGE. The interleaved state is authoritative while the
+     * latch is up, so give it back to each node's ACTIVE instance
+     * before the node bodies run on their own arrays. The
+     * COEFFICIENTS are not scattered: they cannot have changed
+     * while latched, because a change is what brings us here. */
+    r0 = dm(_bqi_lat_MAIN_GEQ_L_R);
+    r0 = pass r0;
+    if eq jump (pc, .bqiN_MAIN_GEQ_L_R);
+    r3 = _geq_state_A_C2_MAIN_GEQ;
+    r9 = _geq_state_B_C2_MAIN_GEQ;
+    r0 = dm(_geq_active_C2_MAIN_GEQ);
+    r0 = pass r0;
+    if eq r9 = r3;
+    r3 = _geq_state_A_C2_MAIN_GEQ_R;
+    r12 = _geq_state_B_C2_MAIN_GEQ_R;
+    r0 = dm(_geq_active_C2_MAIN_GEQ_R);
+    r0 = pass r0;
+    if eq r12 = r3;
+    i2 = _bqi_s_MAIN_GEQ_L_R;
+    i0 = r9;
+    i1 = r12;
+    lcntr = 186, do .bqiSB_MAIN_GEQ_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i0, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiSB_MAIN_GEQ_L_R: dm(i1, 1) = r0;
+    r0 = 0;
+    dm(_bqi_lat_MAIN_GEQ_L_R) = r0;
+
+.bqiN_MAIN_GEQ_L_R:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_GEQ_process;
+    call _C2_MAIN_GEQ_R_process;
+    rts;
+_C2BQP_MAIN_GEQ_L_R_process.end:
+
+/* ---- C2_MAIN_AFB + C2_MAIN_AFB_R: 6 stages ---- */
+.global _C2BQP_MAIN_AFB_L_R_process;
+_C2BQP_MAIN_AFB_L_R_process:
+    l0 = 0; l1 = 0; l2 = 0; l3 = 0; l4 = 0;
+    /* Both channels steady, or there is no pair: a staged
+     * coefficient set or a running crossfade goes through the
+     * node's own reference path. */
+    r1 = dm(_afb_swap_pending_C2_MAIN_AFB);
+    r0 = dm(_afb_xfade_step_C2_MAIN_AFB);
+    r1 = r1 or r0;
+    r0 = dm(_afb_swap_pending_C2_MAIN_AFB_R);
+    r1 = r1 or r0;
+    r0 = dm(_afb_xfade_step_C2_MAIN_AFB_R);
+    r1 = r1 or r0;
+#if DSP4_AFB_DESIGN
+    /* A pending DESIGN is a transient too, and it is the one
+     * the latch cannot see any other way: this class is
+     * written PARAMETERS, not coefficients, and the design
+     * that turns them into coefficients -- and only then
+     * raises swap_pending -- runs at the top of the node
+     * body the latch skips. Without this read a latched pair
+     * never designs, never swaps, and never comes down: it
+     * runs the .var bypass filter for ever (S13-1).*/
+    r0 = dm(_afb_dirty_C2_MAIN_AFB);
+    r1 = r1 or r0;
+#endif
+#if DSP4_BQ_GUARD
+    /* A sizing in flight is a transient like any other: the
+     * node's H is about to change, and the interleaved block
+     * the pair latched carries a copy of it. */
+    r0 = dm(_afb_hrw_C2_MAIN_AFB);
+    r1 = r1 or r0;
+#endif
+    r1 = pass r1;
+    if ne jump (pc, .bqiS_MAIN_AFB_L_R);
+
+    r0 = dm(_bqi_lat_MAIN_AFB_L_R);
+    r0 = pass r0;
+    if ne jump (pc, .bqiR_MAIN_AFB_L_R);
+
+    /* ---- ENGAGE: gather each channel's ACTIVE instance into
+     * the pair's interleaved arrays, once. ---- */
+    r2 = _afb_coeffs_A_C2_MAIN_AFB;
+    r3 = _afb_state_A_C2_MAIN_AFB;
+    r8 = _afb_coeffs_B_C2_MAIN_AFB;
+    r9 = _afb_state_B_C2_MAIN_AFB;
+    r0 = dm(_afb_active_C2_MAIN_AFB);
+    r0 = pass r0;
+    if eq r8 = r2;
+    if eq r9 = r3;
+    r2 = _afb_coeffs_A_C2_MAIN_AFB;
+    r3 = _afb_state_A_C2_MAIN_AFB_R;
+    r11 = _afb_coeffs_B_C2_MAIN_AFB;
+    r12 = _afb_state_B_C2_MAIN_AFB_R;
+    r0 = dm(_afb_active_C2_MAIN_AFB_R);
+    r0 = pass r0;
+    if eq r11 = r2;
+    if eq r12 = r3;
+    i0 = r8;
+    i1 = r11;
+    i2 = _bqi_c_MAIN_AFB_L_R;
+#if DSP4_C2_BQ_NEGCTL
+    /* NEGATIVE CONTROL. Channel B's coefficients are gathered as
+     * ZERO, so B runs a dead filter while A's is untouched. If
+     * the kernel really keeps the two channels apart then EVERY
+     * channel-B cascade output moves and NO channel-A one does.
+     *
+     * A CROSS-FEED CONTROL -- B takes A's coefficients, which is
+     * what chip 1's DSP4_BQ_NEGCTL does -- CANNOT WORK HERE. Every
+     * chip-2 cascade on the bench runs on the same .var bypass
+     * initialisers, so A and B are numerically the same filter and
+     * computing A twice gives the right answer. That is the gap
+     * the 2026-09-01 record named on the dynamics pairs; zeroing
+     * one channel closes it without needing distinct per-channel
+     * settings over the SPI plane. */
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_MAIN_AFB_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = 0;
+    .bqiCE_MAIN_AFB_L_R: dm(i2, 1) = r0;
+#else
+    lcntr = 30 + DSP4_BQ_HDR, do .bqiCE_MAIN_AFB_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i1, 1);
+    .bqiCE_MAIN_AFB_L_R: dm(i2, 1) = r0;
+#endif
+    i0 = r9;
+    i1 = r12;
+    i2 = _bqi_s_MAIN_AFB_L_R;
+    lcntr = 36, do .bqiSE_MAIN_AFB_L_R until lce;
+        r0 = dm(i0, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i1, 1);
+    .bqiSE_MAIN_AFB_L_R: dm(i2, 1) = r0;
+    r0 = 1;
+    dm(_bqi_lat_MAIN_AFB_L_R) = r0;
+
+.bqiR_MAIN_AFB_L_R:
+    /* the two input blocks, interleaved -- the only per-block
+     * gather left */
+    i3 = _blk_C2_MAIN_GEQ;
+    i4 = _blk_C2_MAIN_GEQ_R;
+    i2 = _bqi_sig;
+    lcntr = DSP4_BLOCK_SIZE, do .bqiXI_MAIN_AFB_L_R until lce;
+        r0 = dm(i3, 1);
+        dm(i2, 1) = r0;
+        r0 = dm(i4, 1);
+    .bqiXI_MAIN_AFB_L_R: dm(i2, 1) = r0;
+
+    i0 = _bqi_c_MAIN_AFB_L_R;
+    i1 = _bqi_s_MAIN_AFB_L_R;
+    i2 = _bqi_sig;
+    r4 = 6;
+    call _bq_fx_cascade_simd;
+
+    /* NOTHING is carried in a register across that call -- it
+     * writes r0-r15 and i0-i2. Every address below is a link-time
+     * constant, which is the shape the 2026-08-29 paired-cascade
+     * hang taught: _bq_pair_blk had to park five words in DM.
+     */
+    l2 = 0; l3 = 0; l4 = 0;
+    i2 = _bqi_sig;
+    i3 = _blk_C2_MAIN_AFB;
+    i4 = _blk_C2_MAIN_AFB_R;
+    lcntr = DSP4_BLOCK_SIZE, do .bqiXO_MAIN_AFB_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i3, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiXO_MAIN_AFB_L_R: dm(i4, 1) = r0;
+
+    /* the scalar words a host peek reads, off the LAST sample of
+     * the block -- the same republish the GEQ block kernel makes
+     * for the same reason (D83). */
+    m4 = DSP4_BLOCK_SIZE-1;
+    i4 = _blk_C2_MAIN_AFB;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_AFB) = r0;
+    i4 = _blk_C2_MAIN_AFB_R;
+    modify(i4, m4);
+    r0 = dm(i4, 0);
+    dm(_buf_C2_MAIN_AFB_R) = r0;
+#if DSP4_C2_BQ_NOLATCH
+    /* THE ROUND-TRIP ARM. Scatter the state back and drop the
+     * latch on EVERY block, so the engage/disengage bookkeeping
+     * -- which in a real build runs once per coefficient swap,
+     * i.e. once per user gesture -- runs six thousand times a
+     * second instead. It must be bit-exact against BOTH the
+     * scalar arm and the latched arm: a gather that maps the
+     * interleave wrongly in either direction cannot survive
+     * being run and undone every block. It is also the only way
+     * to price the gather on chip 2's own numbers -- the cost
+     * difference against the latched arm IS the per-block gather
+     * the latch removes. Debug only; default 0. */
+    r3 = _afb_state_A_C2_MAIN_AFB;
+    r9 = _afb_state_B_C2_MAIN_AFB;
+    r0 = dm(_afb_active_C2_MAIN_AFB);
+    r0 = pass r0;
+    if eq r9 = r3;
+    r3 = _afb_state_A_C2_MAIN_AFB_R;
+    r12 = _afb_state_B_C2_MAIN_AFB_R;
+    r0 = dm(_afb_active_C2_MAIN_AFB_R);
+    r0 = pass r0;
+    if eq r12 = r3;
+    i2 = _bqi_s_MAIN_AFB_L_R;
+    i0 = r9;
+    i1 = r12;
+    lcntr = 36, do .bqiSN_MAIN_AFB_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i0, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiSN_MAIN_AFB_L_R: dm(i1, 1) = r0;
+    r0 = 0;
+    dm(_bqi_lat_MAIN_AFB_L_R) = r0;
+#endif
+    rts;
+
+.bqiS_MAIN_AFB_L_R:
+    /* DISENGAGE. The interleaved state is authoritative while the
+     * latch is up, so give it back to each node's ACTIVE instance
+     * before the node bodies run on their own arrays. The
+     * COEFFICIENTS are not scattered: they cannot have changed
+     * while latched, because a change is what brings us here. */
+    r0 = dm(_bqi_lat_MAIN_AFB_L_R);
+    r0 = pass r0;
+    if eq jump (pc, .bqiN_MAIN_AFB_L_R);
+    r3 = _afb_state_A_C2_MAIN_AFB;
+    r9 = _afb_state_B_C2_MAIN_AFB;
+    r0 = dm(_afb_active_C2_MAIN_AFB);
+    r0 = pass r0;
+    if eq r9 = r3;
+    r3 = _afb_state_A_C2_MAIN_AFB_R;
+    r12 = _afb_state_B_C2_MAIN_AFB_R;
+    r0 = dm(_afb_active_C2_MAIN_AFB_R);
+    r0 = pass r0;
+    if eq r12 = r3;
+    i2 = _bqi_s_MAIN_AFB_L_R;
+    i0 = r9;
+    i1 = r12;
+    lcntr = 36, do .bqiSB_MAIN_AFB_L_R until lce;
+        r0 = dm(i2, 1);
+        dm(i0, 1) = r0;
+        r0 = dm(i2, 1);
+    .bqiSB_MAIN_AFB_L_R: dm(i1, 1) = r0;
+    r0 = 0;
+    dm(_bqi_lat_MAIN_AFB_L_R) = r0;
+
+.bqiN_MAIN_AFB_L_R:
+    /* scalar fallback: the two nodes, unchanged */
+    call _C2_MAIN_AFB_process;
+    call _C2_MAIN_AFB_R_process;
+    rts;
+_C2BQP_MAIN_AFB_L_R_process.end:
 
 #if !DSP4_BLOCK_KERNELS
 #error "DSP4_C2_BQ_GRAPH is a per-BLOCK pairing: build with DSP4_BLOCK_KERNELS=1."

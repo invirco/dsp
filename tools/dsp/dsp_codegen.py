@@ -20373,19 +20373,45 @@ def _bq_pair_steady(cls, nid):
 # DSP4_SIMD_GRAPH: the dynamics-paired chain is what the 240,681-cycle
 # figure was measured on, so it has to stay buildable, byte for byte, as
 # the control for the biquad pairing (DSP4_C2_BQ_GRAPH=0).
+#
+# THE SIXTH FIELD IS THE INSTANCE MAP (S149 lever L2). `None` keeps the
+# original rule -- the instances are whatever NUMBERS appear for the first
+# class, `01`, `02`, ... A family whose two members are a MASTER and its
+# FOLLOWER has no numbers: they are `C2_MAIN_GEQ` and `C2_MAIN_GEQ_R`. So
+# such a family states its instances outright, as {token: id suffix}; the
+# token is what the pair's symbols are named after and the suffix is what
+# goes into the id.
 _C2_PAIR_FAMILIES = (
     ('AUX', 'C2_AUX_{cls}_{n}',
      ('FDR', 'EQ', 'GEQ', 'AFB', 'LIM', 'DLY', 'OUT'),
      {'LIM': 'lim'},
-     {'EQ': 'eq', 'GEQ': 'geq', 'AFB': 'afb'}),
+     {'EQ': 'eq', 'GEQ': 'geq', 'AFB': 'afb'}, None),
     ('GRP', 'C2_GRP_{cls}_{n}',
      ('FDR', 'EQ', 'GEQ', 'GATE', 'COMP'),
      {'GATE': 'gate', 'COMP': 'comp'},
-     {'EQ': 'eq', 'GEQ': 'geq'}),
+     {'EQ': 'eq', 'GEQ': 'geq'}, None),
     ('MOUT', 'C2_MAIN_{cls}_{n}',
      ('OEQ', 'OGEQ', 'OCOMP', 'OLIM', 'OUT'),
      {'OCOMP': 'comp', 'OLIM': 'lim'},
-     {'OEQ': 'eq', 'OGEQ': 'geq'}),
+     {'OEQ': 'eq', 'OGEQ': 'geq'}, None),
+    # THE MAIN BUS AND ITS FOLLOWER (S149 lever L2, PW-approved on S148).
+    # A master and its follower are the CHEAPEST POSSIBLE SIMD pair -- one
+    # coefficient set, two states -- and until this entry existed they were
+    # the only chip-2 cascades running scalar. FDR is the HEAD: it is not
+    # paired (FADER_PAN has no pair kernel), it is here because the family's
+    # nodes have to be one contiguous run of the chain and the two faders
+    # sit inside it.
+    #
+    # COMP, LIM and DLY ARE DELIBERATELY NOT IN THIS FAMILY, and the reason
+    # is not that they could not pair. `C2_MAIN_COMP`/`_LIM` are stereo
+    # LINKED (S143: `_comp_pair_blk` has no second detector input), so they
+    # are excluded; and an excluded node takes its whole INSTANCE out of the
+    # family, which would have taken the GEQ and AFB pairs with it. Splitting
+    # them off leaves the run either side of them contiguous.
+    ('MAIN', 'C2_MAIN_{cls}{n}',
+     ('FDR', 'GEQ', 'AFB'),
+     {},
+     {'GEQ': 'geq', 'AFB': 'afb'}, {'L': '', 'R': '_R'}),
 )
 
 # A CLASS THE GRAPH DOES NOT HAVE IS DROPPED FROM THE TEMPLATE, NOT FROM
@@ -20422,8 +20448,14 @@ _C2_PAIR_KERNEL = {
 }
 
 
-def _c2_pair_excluded(node):
+def _c2_pair_excluded(node, family_ids=()):
     """Why this node cannot be SIMD-paired, or None.
+
+    `family_ids` is every node id the family it would be paired inside
+    covers. A FOLLOWER whose master is in that set is the pair's other
+    member and is fine (S149 lever L2); a follower of a stranger is not,
+    because the driver would gather one node's parameters for a pair the
+    other node is not in.
 
     THE PAIR KERNELS ARE ONE INSTRUCTION STREAM OVER TWO CHANNELS, and
     they read exactly what the scalar bodies read: one input block each,
@@ -20441,18 +20473,17 @@ def _c2_pair_excluded(node):
         two legs independent detectors, which is exactly the image walk
         the link exists to prevent.
     """
-    if node.get('follows'):
-        # NOT TAUGHT YET RATHER THAN IMPOSSIBLE, and worth saying which: a
-        # master and its follower are the IDEAL SIMD pair -- one
-        # coefficient set, two states, which is exactly the shape
-        # `gen_bq_pairs_c2`'s native interleave wants. What stops it today
-        # is that the drivers gather `_<pfx>_coeffs_A_<node>` per member
-        # and a follower has no such symbol (it `.extern`s its master's).
-        # Resolving a follower's coefficient symbol to its master's -- the
-        # `cid` the node generator already uses -- is what it would take,
-        # plus a MAIN entry in _C2_PAIR_FAMILIES. Out of S143's scope, and
-        # it only pays with DSP4_C2_BQ_GRAPH on.
-        return f"it follows {node['follows']} and runs that node's parameters"
+    if node.get('follows') and node['follows'] not in family_ids:
+        # S143 refused every follower and said why: the drivers gather
+        # `_<pfx>_coeffs_A_<node>` per member and a follower has no such
+        # symbol, it `.extern`s its master's. S149 lever L2 resolves the
+        # coefficient symbol to the master's id -- so a follower paired
+        # WITH ITS OWN MASTER is now the cheapest pair there is, one
+        # coefficient set and two states. A follower of a node OUTSIDE the
+        # family still cannot pair: the driver would gather a third node's
+        # parameters for a pair that node is not in.
+        return (f"it follows {node['follows']}, which is not in this "
+                f"family, and runs that node's parameters")
     if node['params'].get('link_in'):
         return (f"it is stereo-linked to {node['params']['link_in']} and the "
                 f"pair kernel has no second detector input")
@@ -20474,29 +20505,40 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
     have = {n['id'] for n in chip_nodes}
     pos = {nid: i for i, nid in enumerate(call_sequence)}
     groups = []
-    for tag, tmpl, classes, paired, bqpaired in _C2_PAIR_FAMILIES:
-        # instances are whatever numbers appear for the FIRST class
-        first_cls = classes[0]
-        pre = tmpl.format(cls=first_cls, n='')
-        insts = sorted(nid[len(pre):] for nid in have
-                       if nid.startswith(pre) and nid[len(pre):].isdigit())
+    for tag, tmpl, classes, paired, bqpaired, imap in _C2_PAIR_FAMILIES:
+        if imap is None:
+            # instances are whatever numbers appear for the FIRST class
+            first_cls = classes[0]
+            pre = tmpl.format(cls=first_cls, n='')
+            insts = sorted(nid[len(pre):] for nid in have
+                           if nid.startswith(pre) and nid[len(pre):].isdigit())
+            imap = {i: i for i in insts}
+        else:
+            insts = [t for t, sfx in imap.items()
+                     if tmpl.format(cls=classes[0], n=sfx) in have]
+            imap = {t: imap[t] for t in insts}
         if not insts:
             continue
-        classes = _c2_family_classes(classes, tmpl, insts, have)
+        classes = _c2_family_classes(classes, tmpl,
+                                     [imap[i] for i in insts], have)
         paired = {c: v for c, v in paired.items() if c in classes}
         bqpaired = {c: v for c, v in bqpaired.items() if c in classes}
         nid = {}
         complete = []
         by_id = {n['id']: n for n in chip_nodes}
         for n in insts:
-            ids = {c: tmpl.format(cls=c, n=n) for c in classes}
+            ids = {c: tmpl.format(cls=c, n=imap[n]) for c in classes}
             if not all(i in have for i in ids.values()):
                 continue
-            # An instance carrying an unpairable node (a follower, or a
-            # stereo-linked detector) drops out of the family whole: the
-            # family's classes are one run of the chain and a per-class
-            # hole would break the contiguity the reorder rests on.
-            _ex = [(i, _c2_pair_excluded(by_id[i])) for i in ids.values()]
+            # An instance carrying an unpairable node (a follower of a node
+            # outside the family, or a stereo-linked detector) drops out of
+            # the family whole: the family's classes are one run of the
+            # chain and a per-class hole would break the contiguity the
+            # reorder rests on.
+            _fam = {tmpl.format(cls=c, n=imap[m])
+                    for c in classes for m in insts}
+            _ex = [(i, _c2_pair_excluded(by_id[i], _fam))
+                   for i in ids.values()]
             _ex = [(i, why) for i, why in _ex if why]
             if _ex:
                 for i, why in _ex:
@@ -20537,8 +20579,16 @@ def c2_pair_groups(chip_label, chip_nodes, call_sequence):
                     f'entry in _C2_BQ_STAGES, so its stage count is not '
                     f'stated anywhere -- adopt it there rather than '
                     f'pairing it at a guessed length')
+        # WHOSE COEFFICIENTS EACH MEMBER RUNS (S149 lever L2). A follower
+        # `.extern`s its master's coefficient arrays and owns only its
+        # STATE, so the pair driver has to gather the two apart: state,
+        # active instance, swap-pending and crossfade per NODE, and the
+        # coefficients (and the pending-design flag, and the headroom word)
+        # from `cid`. For every non-follower cid is the node itself, which
+        # is why this costs the three existing families nothing.
+        cid = {k: (by_id[v].get('follows') or v) for k, v in nid.items()}
         groups.append({'tag': tag, 'classes': list(classes), 'paired': paired,
-                       'bq': dict(bqpaired),
+                       'bq': dict(bqpaired), 'cid': cid,
                        'insts': complete, 'nid': nid, 'span': (lo, hi)})
     return groups
 
@@ -21008,20 +21058,28 @@ _C2_BQ_DESIGN = {
 }
 
 
-def _c2_bq_sel(pfx, nid, rc=None, rs=None):
+def _c2_bq_sel(pfx, nid, rc=None, rs=None, cid=None):
     """Pick this node's ACTIVE instance coefficient/state bases into rc/rs.
 
     Conditional MOVES off one `pass`, the same idiom _bq_pair_ptrs uses on
     chip 1. active == 0 selects instance A, which is what the node body's
     own steady-state select does.
+
+    `cid` is WHOSE COEFFICIENTS this node runs (S149 lever L2) and defaults
+    to the node itself. A follower owns its state and `.extern`s its
+    master's coefficients, so the two halves are selected from different
+    symbols -- by the follower's OWN active word, exactly as the follower's
+    node body does it, because that word is what says which of the master's
+    two banks is live for this leg.
     """
+    cid = cid or nid
     out = []
     if rc:
-        out.append(f'    r2 = _{pfx}_coeffs_A_{nid};')
+        out.append(f'    r2 = _{pfx}_coeffs_A_{cid};')
     if rs:
         out.append(f'    r3 = _{pfx}_state_A_{nid};')
     if rc:
-        out.append(f'    {rc} = _{pfx}_coeffs_B_{nid};')
+        out.append(f'    {rc} = _{pfx}_coeffs_B_{cid};')
     if rs:
         out.append(f'    {rs} = _{pfx}_state_B_{nid};')
     out.append(f'    r0 = dm(_{pfx}_active_{nid});')
@@ -21051,17 +21109,19 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
                         f'{da} is a {sa_}-stage cascade and {db} is {sb_}: a '
                         f'SIMD pair is ONE instruction stream, so the two '
                         f'channels must ask for the same cascade length')
-                work.append((f'{g["tag"]}_{cls}_{na}_{nb}', pfx, da, db, sa_))
+                cid = g.get('cid') or {}
+                work.append((f'{g["tag"]}_{cls}_{na}_{nb}', pfx, da, db, sa_,
+                             cid.get((cls, na), da), cid.get((cls, nb), db)))
     if not work:
         return out
 
     ext = set(['_bq_fx_cascade_simd'])
-    for tag, pfx, da, db, st in work:
-        for d in (da, db):
+    for tag, pfx, da, db, st, ca, cb in work:
+        for d, c in ((da, ca), (db, cb)):
             ext.update((f'_{d}_process', f'_blk_{d}', f'_buf_{d}',
                         f'_blk_{input_of[d]}',
-                        f'_{pfx}_coeffs_A_{d}', f'_{pfx}_state_A_{d}',
-                        f'_{pfx}_coeffs_B_{d}', f'_{pfx}_state_B_{d}',
+                        f'_{pfx}_coeffs_A_{c}', f'_{pfx}_state_A_{d}',
+                        f'_{pfx}_coeffs_B_{c}', f'_{pfx}_state_B_{d}',
                         f'_{pfx}_active_{d}', f'_{pfx}_swap_pending_{d}',
                         f'_{pfx}_xfade_step_{d}'))
             if tap_of.get(d):
@@ -21090,7 +21150,7 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
     a(' * between the interleave and the scatter inside a single driver')
     a(' * call, and the drivers do not nest. */')
     a(f'.var {_C2_BQ_SIG}[2*DSP4_BLOCK_SIZE];')
-    for tag, pfx, da, db, st in work:
+    for tag, pfx, da, db, st, ca, cb in work:
         # + 2 with the guard: the interleaved block carries a header word
         # PER STRIP, so the two strips of a pair can run different
         # headroom -- the shift amount is a register and each PE shifts
@@ -21109,23 +21169,26 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
     # The sizing flag exists only in a guard build, so its extern does too
     # -- an .extern of a symbol nothing defines is a warning per node.
     a('#if DSP4_BQ_GUARD')
-    for sym in sorted({f'_{pfx}_hrw_{d}'
-                       for tag, pfx, da, db, st in work for d in (da, db)}):
+    # THE HEADROOM WORD IS THE MASTER'S on a follower, like the
+    # coefficients it sizes -- see _c2_bq_sel's note.
+    for sym in sorted({f'_{pfx}_hrw_{c}'
+                       for tag, pfx, da, db, st, ca, cb in work
+                       for c in (ca, cb)}):
         a(f'.extern {sym};')
     a('#endif')
     # The pending-DESIGN flag, per class that has one (S13-1).
     for mac in sorted({_C2_BQ_DESIGN[pfx]
-                       for tag, pfx, da, db, st in work
+                       for tag, pfx, da, db, st, ca, cb in work
                        if pfx in _C2_BQ_DESIGN}):
         a(f'#if {mac}')
-        for sym in sorted({f'_{pfx}_dirty_{d}'
-                           for tag, pfx, da, db, st in work
-                           for d in (da, db)
+        for sym in sorted({f'_{pfx}_dirty_{c}'
+                           for tag, pfx, da, db, st, ca, cb in work
+                           for c in (ca, cb)
                            if _C2_BQ_DESIGN.get(pfx) == mac}):
             a(f'.extern {sym};')
         a('#endif')
 
-    for tag, pfx, da, db, st in work:
+    for tag, pfx, da, db, st, ca, cb in work:
         lbl = f'_C2BQP_{tag}_process'
         a('')
         a(f'/* ---- {da} + {db}: {st} stages ---- */')
@@ -21152,19 +21215,20 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
             a('     * body the latch skips. Without this read a latched pair')
             a('     * never designs, never swaps, and never comes down: it')
             a("     * runs the .var bypass filter for ever (S13-1).*/")
-            a(f'    r0 = dm(_{pfx}_dirty_{da});')
-            a('    r1 = r1 or r0;')
-            a(f'    r0 = dm(_{pfx}_dirty_{db});')
-            a('    r1 = r1 or r0;')
+            # cid, not the node: the follower has no dirty flag of its
+            # own -- the design runs on the MASTER's parameters -- and a
+            # pair whose two members share a master reads one word once.
+            for _c in dict.fromkeys((ca, cb)):
+                a(f'    r0 = dm(_{pfx}_dirty_{_c});')
+                a('    r1 = r1 or r0;')
             a('#endif')
         a('#if DSP4_BQ_GUARD')
         a('    /* A sizing in flight is a transient like any other: the')
         a("     * node's H is about to change, and the interleaved block")
         a('     * the pair latched carries a copy of it. */')
-        a(f'    r0 = dm(_{pfx}_hrw_{da});')
-        a('    r1 = r1 or r0;')
-        a(f'    r0 = dm(_{pfx}_hrw_{db});')
-        a('    r1 = r1 or r0;')
+        for _c in dict.fromkeys((ca, cb)):
+            a(f'    r0 = dm(_{pfx}_hrw_{_c});')
+            a('    r1 = r1 or r0;')
         a('#endif')
         a('    r1 = pass r1;')
         a(f'    if ne jump (pc, .bqiS_{tag});')
@@ -21175,9 +21239,9 @@ def gen_bq_pairs_c2(groups, input_of, stages_of, mtr_of=None, tap_of=None):
         a('')
         a('    /* ---- ENGAGE: gather each channel\'s ACTIVE instance into')
         a('     * the pair\'s interleaved arrays, once. ---- */')
-        for line in _c2_bq_sel(pfx, da, 'r8', 'r9'):
+        for line in _c2_bq_sel(pfx, da, 'r8', 'r9', cid=ca):
             a(line)
-        for line in _c2_bq_sel(pfx, db, 'r11', 'r12'):
+        for line in _c2_bq_sel(pfx, db, 'r11', 'r12', cid=cb):
             a(line)
         a('    i0 = r8;')
         a('    i1 = r11;')
@@ -22521,6 +22585,14 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                     _p = dict(_g['paired'], **_g['bq']) if with_bq \
                         else dict(_g['paired'])
                     _bq = _g['bq'] if with_bq else {}
+                    # A FAMILY WITH NOTHING PAIRED IN *THIS* ARM IS LEFT
+                    # ALONE (S149). The MAIN family pairs only biquads, so
+                    # in the dynamics-only control arm it has no paired
+                    # class at all -- and a family the arm does not reorder
+                    # must keep dsp.csv's order, not be rebuilt from an
+                    # empty pair list.
+                    if not _p:
+                        continue
                     _sub = []
                     _fp = min(_cs.index(x) for x in _p)
                     _lp = max(_cs.index(x) for x in _p)
