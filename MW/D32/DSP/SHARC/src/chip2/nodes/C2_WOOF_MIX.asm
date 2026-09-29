@@ -24,6 +24,12 @@
 .var _mix_gq_C2_WOOF_MIX[2];               /* Q4.28 shadow */
 .global _buf_C2_WOOF_MIX;
 .var _buf_C2_WOOF_MIX;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _blk_C2_MAIN_DLY;
+.extern _blk_C2_MAIN_DLY_R;
+.global _mixsp_C2_WOOF_MIX;
+.var _mixsp_C2_WOOF_MIX[2] = _blk_C2_MAIN_DLY, _blk_C2_MAIN_DLY_R;
+#endif
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_MAIN_DLY;
@@ -45,8 +51,36 @@
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _c2_mix_fabric;
+#endif
 .global _C2_WOOF_MIX_process;
 _C2_WOOF_MIX_process:
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+    /* ---- the live-crosspoint fabric (S149 lever L1) ----
+     * The plain gains, once per block, and then the whole sum in
+     * one shared pass over this bus's LIVE crosspoints. See
+     * chip2/mix_fabric.asm for what the pass does and
+     * dsp_block.h's DSP4_C2_MIX_FABRIC note for why it is exact.
+     * A tail JUMP, not a call: the pass ends in the `rts` this
+     * node's caller is waiting on. */
+    r2 = 0x4D800000;              /* 2^28 float */
+    f2 = r2;
+        f1 = dm(_mix_gains_C2_WOOF_MIX + 0);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_WOOF_MIX + 0) = r1;
+        f1 = dm(_mix_gains_C2_WOOF_MIX + 1);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_WOOF_MIX + 1) = r1;
+    r0 = _mix_gq_C2_WOOF_MIX;           /* this bus's coefficient row  */
+    r1 = 2;                 /* declared crosspoints        */
+    r2 = _mixsp_C2_WOOF_MIX;            /* where each source's block is */
+    r3 = _blk_C2_WOOF_MIX;              /* the block to publish        */
+    r4 = _buf_C2_WOOF_MIX;              /* ...and its staging word     */
+    jump _c2_mix_fabric;
+#endif
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this

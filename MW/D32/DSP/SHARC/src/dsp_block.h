@@ -360,6 +360,45 @@
 #define DSP4_RTG_FABRIC 0
 #endif
 
+/* CHIP 2's HALF OF THE SAME FABRIC (2026-09-29, S149 lever L1; PW approved
+ * on S148 -- "put chip 2's aux mixes on the bus-major LIVE-CROSSPOINT
+ * fabric").
+ *
+ * CHIP 1 HAS RUN THE PATTERN SINCE S27 AND CHIP 2 NEVER HAS. A chip-2
+ * MIX_BUS takes the GENERIC block wrapper (c2_block_wrap), which runs the
+ * per-sample reference body BLOCK times and stages EVERY DECLARED source
+ * through its scalar `_buf_` word on EVERY sample -- whether that source's
+ * coefficient is zero or not. S23-5 measured the consequence on the part:
+ * "63 instructions a sample a node before a single MAC" at seven sources.
+ * S148-1 is the same term read forward: opening ONE crosspoint on ONE aux
+ * takes that aux off the S23 bypass and costs the whole declared list.
+ *
+ * WHAT THIS DOES INSTEAD. One shared pass (chip2/mix_fabric.asm) compacts
+ * the bus's coefficient row to its LIVE crosspoints, gathers just those
+ * source blocks, and accumulates bus-major: the MRF is cleared once per
+ * sample, every live source MACs into it, and one round/saturate writes the
+ * sample. A dead crosspoint is not staged, not gathered and not MAC'd.
+ *
+ * EXACT, NOT APPROXIMATE, and the argument is two lines. The accumulate is
+ * the same 80-bit MRF integer accumulate in the same `inputs` order, and
+ * the term a skipped crosspoint would have contributed is `x * 0`, which is
+ * exactly zero and changes no accumulator bit. The readout is
+ * `_mrf_rns28`'s own arithmetic inlined with the early `rts` turned into a
+ * conditional move -- the same transform gen_mix_bus_fixed already applies
+ * to `_acc64_rns28` on chip 1. tools/dsp/c2_mix_fabric_ref.py fuzzes both
+ * paths against fixed_ref.mix_sum and is the proof, not this comment.
+ *
+ * FORCED OFF without block kernels: there is no per-sample form of a
+ * per-block gather. DSP4_C2_MIX_FABRIC=0 is the CONTROL and rebuilds the
+ * generic-wrapper image byte for byte. */
+#ifndef DSP4_C2_MIX_FABRIC
+#define DSP4_C2_MIX_FABRIC 1
+#endif
+#if !DSP4_BLOCK_KERNELS
+#undef DSP4_C2_MIX_FABRIC
+#define DSP4_C2_MIX_FABRIC 0
+#endif
+
 /* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
  * The block kernel wrote one sample to the delay line and then read another
  * from it, per sample, and the delay lines are in L2 -- session 3 measured

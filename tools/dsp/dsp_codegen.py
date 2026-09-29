@@ -12427,7 +12427,6 @@ def gen_mix_bus_fixed(node):
             rts;
         .mixrun_{nid}:
         #endif
-        /* @C2BLKWRAP */
 """
         # THE PER-SAMPLE BUILD STILL NEEDS THE PREP, and it needs it HERE,
         # because the copy above is the only place it exists in the block
@@ -12441,6 +12440,62 @@ def gen_mix_bus_fixed(node):
     else:
         fast = ''
         send_cvt_body = send_cvt
+    # ---- LEVER L1 (S149): THE LIVE-CROSSPOINT FABRIC ------------------
+    #
+    # Emitted AHEAD of the generic wrapper and ending in a tail jump, so
+    # with DSP4_C2_MIX_FABRIC = 0 not one byte of it exists and the node
+    # rebuilds the wrapper image exactly -- the DSP4_SCOPE_BLK_TAP /
+    # DSP4_AUXIN_BYPASS discipline, and the reason a control arm can be
+    # md5-gated against the signed image rather than argued about.
+    #
+    # THREE WORDS AND A TABLE ARE ALL IT TAKES, because the coefficient row
+    # the fabric walks ALREADY EXISTS: `_mix_gq_<nid>` is this bus's whole
+    # row, in `inputs` order, one Q4.28 word per source, folded at block
+    # rate by the prep above (the switched half) and by `cvt_block` (the
+    # plain half). What the node did not have is the other side of the
+    # pair -- WHERE each source's block lives -- so `_mixsp_<nid>` states
+    # it once, as link-time addresses. Nothing here is written at run time.
+    #
+    # THE PLAIN GAINS CONVERT ONCE PER BLOCK ON THIS PATH. Under the
+    # wrapper `cvt_block` sits inside the per-sample body with its
+    # block-rate guard compiled out, so it ran BLOCK times to produce the
+    # same word BLOCK times; here it runs once, ahead of the call. Same
+    # arithmetic, same result, 1/BLOCK of the work.
+    fab = ''
+    fab_vars = ''
+    fab_ext = ''
+    if n_src >= 1:
+        fab_ptrs = ', '.join(f'_blk_{i}' for i in node['inputs'])
+        fab_decl = '\n'.join(f'        .extern _blk_{i};'
+                             for i in dict.fromkeys(node['inputs']))
+        fab_vars = (
+            '        #if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC\n'
+            f'{fab_decl}\n'
+            f'        .var _mixsp_{nid}[{n_src}] = {fab_ptrs};\n'
+            '        #endif\n')
+        fab_ext = ('        #if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC\n'
+                   '        .extern _c2_mix_fabric;\n'
+                   '        #endif\n')
+        fab = f"""\
+        #if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+            /* ---- the live-crosspoint fabric (S149 lever L1) ----
+             * The plain gains, once per block, and then the whole sum in
+             * one shared pass over this bus's LIVE crosspoints. See
+             * chip2/mix_fabric.asm for what the pass does and
+             * dsp_block.h's DSP4_C2_MIX_FABRIC note for why it is exact.
+             * A tail JUMP, not a call: the pass ends in the `rts` this
+             * node's caller is waiting on. */
+            r2 = 0x4D800000;              /* 2^28 float */
+            f2 = r2;
+                {cvt_block}
+            r0 = _mix_gq_{nid};           /* this bus's coefficient row  */
+            r1 = {n_src};                 /* declared crosspoints        */
+            r2 = _mixsp_{nid};            /* where each source's block is */
+            r3 = _blk_{nid};              /* the block to publish        */
+            r4 = _buf_{nid};              /* ...and its staging word     */
+            jump _c2_mix_fabric;
+        #endif
+"""
     return dedent(f"""\
         /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — {n_src} sources, exact MRF sum */
         /* {n_plain} fixed feed(s) + {n_send} switched send(s) */
@@ -12449,13 +12504,14 @@ def gen_mix_bus_fixed(node):
         .var _mix_gains_{nid}[{max(n_plain, 1)}] = {ones};   /* FLOAT (host) */
         .var _mix_gq_{nid}[{max(n_src, 1)}];               /* Q4.28 shadow */
 {send_vars}        .var _buf_{nid};
-
+{fab_vars}
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
-        .global _{nid}_process;
+{fab_ext}        .global _{nid}_process;
         _{nid}_process:
-{fast}            /* block-rate gain shadow refresh */
+{fast}{fab}        /* @C2BLKWRAP */
+            /* block-rate gain shadow refresh */
         /* The block-rate guard exists ONLY for the per-sample build. Under
          * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
          * _sample_idx left at 31 by the scatter loop, so a surviving
@@ -13906,6 +13962,45 @@ def gen_block_header(mtx_ctl=None, pool_counts=None):
 #define DSP4_RTG_FABRIC 0
 #endif
 
+/* CHIP 2's HALF OF THE SAME FABRIC (2026-09-29, S149 lever L1; PW approved
+ * on S148 -- "put chip 2's aux mixes on the bus-major LIVE-CROSSPOINT
+ * fabric").
+ *
+ * CHIP 1 HAS RUN THE PATTERN SINCE S27 AND CHIP 2 NEVER HAS. A chip-2
+ * MIX_BUS takes the GENERIC block wrapper (c2_block_wrap), which runs the
+ * per-sample reference body BLOCK times and stages EVERY DECLARED source
+ * through its scalar `_buf_` word on EVERY sample -- whether that source's
+ * coefficient is zero or not. S23-5 measured the consequence on the part:
+ * "63 instructions a sample a node before a single MAC" at seven sources.
+ * S148-1 is the same term read forward: opening ONE crosspoint on ONE aux
+ * takes that aux off the S23 bypass and costs the whole declared list.
+ *
+ * WHAT THIS DOES INSTEAD. One shared pass (chip2/mix_fabric.asm) compacts
+ * the bus's coefficient row to its LIVE crosspoints, gathers just those
+ * source blocks, and accumulates bus-major: the MRF is cleared once per
+ * sample, every live source MACs into it, and one round/saturate writes the
+ * sample. A dead crosspoint is not staged, not gathered and not MAC'd.
+ *
+ * EXACT, NOT APPROXIMATE, and the argument is two lines. The accumulate is
+ * the same 80-bit MRF integer accumulate in the same `inputs` order, and
+ * the term a skipped crosspoint would have contributed is `x * 0`, which is
+ * exactly zero and changes no accumulator bit. The readout is
+ * `_mrf_rns28`'s own arithmetic inlined with the early `rts` turned into a
+ * conditional move -- the same transform gen_mix_bus_fixed already applies
+ * to `_acc64_rns28` on chip 1. tools/dsp/c2_mix_fabric_ref.py fuzzes both
+ * paths against fixed_ref.mix_sum and is the proof, not this comment.
+ *
+ * FORCED OFF without block kernels: there is no per-sample form of a
+ * per-block gather. DSP4_C2_MIX_FABRIC=0 is the CONTROL and rebuilds the
+ * generic-wrapper image byte for byte. */
+#ifndef DSP4_C2_MIX_FABRIC
+#define DSP4_C2_MIX_FABRIC 1
+#endif
+#if !DSP4_BLOCK_KERNELS
+#undef DSP4_C2_MIX_FABRIC
+#define DSP4_C2_MIX_FABRIC 0
+#endif
+
 /* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
  * The block kernel wrote one sample to the delay line and then read another
  * from it, per sample, and the delay lines are in L2 -- session 3 measured
@@ -15214,6 +15309,210 @@ def gen_rtg_fabric():
     a('#endif')
     a('')
     return '\n'.join(out)
+
+
+def gen_c2_mix_fabric(max_src):
+    """chip2/mix_fabric.asm -- the LIVE-CROSSPOINT mix accumulate (chip 2).
+
+    S149 LEVER L1, PW-approved on S148. Chip 1 has run a bus-major
+    crosspoint accumulate since S27 (rtg_fabric.asm); chip 2's mixes took
+    the GENERIC block wrapper, which runs the per-sample body BLOCK times
+    and stages every DECLARED source through its scalar `_buf_` word on
+    every sample whether its coefficient is zero or not. S23-5 measured
+    that as "63 instructions a sample a node before a single MAC" at seven
+    sources; S148-1 read it forward and found that opening ONE crosspoint
+    on ONE aux takes that aux off the S23 bypass and costs the whole
+    declared list -- 192 cycles/block per declared source per node.
+
+    THIS PASS IS SHARED BY EVERY CHIP-2 MIX_BUS AND IT IS THREE STEPS.
+
+      1. COMPACT. Walk the bus's coefficient row (`_mix_gq_<nid>`, which
+         the node already folds at block rate) beside its source-pointer
+         table (`_mixsp_<nid>`, link-time addresses). A ZERO coefficient
+         is dropped here and costs nothing downstream -- that is the whole
+         lever: `Grp AuxPick` declares four taps and carries one live
+         coefficient, and three quarters of it stops existing.
+
+      2. GATHER. Copy each LIVE source's block into `_c2mix_src` so the
+         accumulate reads one contiguous array at a fixed stride. This is
+         chip 1's `_rtg_src` argument one chip along, and it is what turns
+         the inner loop into two loads and a MAC: a pointer table walked
+         per sample costs six instructions a MAC, a strided array three.
+
+      3. ACCUMULATE, BUS-MAJOR. The MRF is cleared ONCE per sample, every
+         live source MACs into it, and `_mrf_rns28`'s arithmetic (inlined,
+         with its early `rts` turned into a conditional move -- the
+         transform gen_mix_bus_fixed already applies to `_acc64_rns28` on
+         chip 1) writes the sample.
+
+    THE SCRATCH IS SHARED AND THAT IS CORRECT, NOT A RISK. `_c2mix_src` /
+    `_c2mix_gq` are filled and consumed inside one call with no node
+    boundary between: the pass gathers, sums, publishes and returns. One
+    copy sized for the widest bus in the graph therefore serves all of
+    them, which is why this lever costs about 1.5 KB of DM and not the
+    12 KB a per-node buffer would have.
+
+    EXACT, NOT APPROXIMATE. Same `inputs` order, same 80-bit MRF integer
+    accumulate, and the term a skipped crosspoint would have added is
+    `x * 0` -- exactly zero, changing no accumulator bit. The zero-live
+    case is the same: `_mrf_rns28` on an MRF of 0 returns 0, which is what
+    `.cmf_silent` writes. tools/dsp/c2_mix_fabric_ref.py fuzzes this
+    kernel against the wrapper path and against fixed_ref.mix_sum, and it
+    is the proof rather than this paragraph.
+
+    ARGUMENTS, in registers, set by the caller:
+        r0  &_mix_gq_<nid>    the bus's coefficient row, Q4.28
+        r1  declared source count (>= 1)
+        r2  &_mixsp_<nid>     one block address per declared source
+        r3  &_blk_<nid>       the block to publish
+        r4  &_buf_<nid>       the staging word the wrapper left behind
+    Clobbers r0-r13, i0-i4, m1 (restored to 1), l0-l4.
+    """
+    out = []
+    a = out.append
+    a('/* chip2/mix_fabric.asm - the live-crosspoint mix accumulate */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py - do not edit. */')
+    a('/*')
+    for line in dedent(gen_c2_mix_fabric.__doc__).strip().splitlines():
+        a((' * ' + line).rstrip() if line.strip() else ' *')
+    a(' */')
+    a('#include "dsp_block.h"')
+    a('')
+    a('#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC')
+    a('')
+    a(f'#define C2MIX_MAX_SRC {max_src}')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    a('/* The gathered live source blocks and their compacted coefficients.')
+    a(' * SCRATCH, shared by every chip-2 MIX_BUS node -- see the note above.')
+    a(f' * Sized for the widest bus in this graph ({max_src} sources). */')
+    a('.global _c2mix_src;')
+    a('.var _c2mix_src[C2MIX_MAX_SRC*DSP4_BLOCK_SIZE];')
+    a('.global _c2mix_gq;')
+    a('.var _c2mix_gq[C2MIX_MAX_SRC];')
+    a('/* r3 and r4 outlive the gather, which clobbers every R register it')
+    a(' * can reach; they are parked here rather than juggled. */')
+    a('.var _c2mix_out;')
+    a('.var _c2mix_buf;')
+    a('')
+    a('.section/pm seg_pmco;')
+    a('')
+    a('.global _c2_mix_fabric;')
+    a('_c2_mix_fabric:')
+    a('    l0 = 0;')
+    a('    l1 = 0;')
+    a('    l2 = 0;')
+    a('    l3 = 0;')
+    a('    l4 = 0;')
+    a('    dm(_c2mix_out) = r3;')
+    a('    dm(_c2mix_buf) = r4;')
+    a('    i0 = r0;                      /* the bus\'s coefficient row  */')
+    a('    i1 = r2;                      /* its source block addresses */')
+    a('    i2 = _c2mix_gq;')
+    a('    i3 = _c2mix_src;')
+    a('    r5 = 0;                       /* live crosspoints so far    */')
+    a('    r9 = r1;                      /* declared crosspoints left  */')
+    a('')
+    a('    /* ---- 1 + 2: compact the row, gather what survives ----')
+    a('     * A SOFTWARE loop, not a hardware one: the body contains a')
+    a('     * conditional branch AND a hardware loop of its own, and the')
+    a('     * two-instruction tail a `do ... until lce` needs is not worth')
+    a('     * the pair of instructions it would save on a per-BLOCK path. */')
+    a('.cmf_scan:')
+    a('    r6 = dm(i0, 1);               /* coefficient                */')
+    a('    r7 = dm(i1, 1);               /* &_blk_<source>             */')
+    a('    r6 = pass r6;')
+    a('    if eq jump (pc, .cmf_dead);   /* a dead crosspoint is free  */')
+    a('    dm(i2, 1) = r6;')
+    a('    i4 = r7;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .cmf_cp until lce;')
+    a('        r8 = dm(i4, 1);')
+    a('    .cmf_cp:')
+    a('        dm(i3, 1) = r8;')
+    a('    r5 = r5 + 1;')
+    a('.cmf_dead:')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .cmf_scan);')
+    a('')
+    a('    r13 = dm(_c2mix_out);')
+    a('    i3 = r13;                     /* the block to publish       */')
+    a('    r5 = pass r5;')
+    a('    if eq jump (pc, .cmf_silent);')
+    a('')
+    a('    /* ---- 3: bus-major accumulate ----')
+    a('     * The MRF is cleared once a sample and stored once a sample; a')
+    a('     * live crosspoint costs two loads and a MAC, which is chip 1\'s')
+    a('     * `.fb_xp` exactly. Everything that can leave the sample loop')
+    a('     * has: the rounding half, the one, the saturation constant and')
+    a('     * the coefficient base are all hoisted, and `mrf = 0` clears')
+    a('     * all three MRF words in one instruction. Sixteen instructions')
+    a('     * a sample plus three per live crosspoint.')
+    a('     *')
+    a('     * `m1` walks one source in _c2mix_src and is put BACK TO 1 on')
+    a('     * the way out -- chip 1\'s fabric leaves it moved and nothing')
+    a('     * there reads it, but this pass runs in the middle of a chain')
+    a('     * of node bodies written when m1 was 1. */')
+    a('    m1 = DSP4_BLOCK_SIZE;')
+    a('    r10 = _c2mix_src;             /* &src[0][sample]            */')
+    a('    r11 = _c2mix_gq;')
+    a('    r8 = 0x08000000;              /* 2^27, the rounding half    */')
+    a('    r9 = 1;')
+    a('    r12 = 0x7FFFFFFF;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .cmf_smp until lce;')
+    a('        i0 = r10;')
+    a('        i1 = r11;')
+    a('        mrf = 0;')
+    a('        lcntr = r5, do .cmf_xp until lce;')
+    a('            r0 = dm(i0, m1);      /* this source\'s sample       */')
+    a('            r4 = dm(i1, 1);       /* its coefficient            */')
+    a('        .cmf_xp:')
+    a('            mrf = mrf + r0 * r4 (ssi);')
+    a('        /* _mrf_rns28, inlined. Bit-for-bit its arithmetic: the')
+    a('         * saturation value is formed unconditionally and moved in')
+    a('         * on the compare, because the shared routine\'s early `rts`')
+    a('         * cannot live inside a hardware loop. */')
+    a('        mrf = mrf + r8 * r9 (ssi);')
+    a('        r1 = mr0f;')
+    a('        r2 = mr1f;')
+    a('        r1 = lshift r1 by -28;')
+    a('        r3 = lshift r2 by 4;')
+    a('        r0 = r1 or r3;')
+    a('        r7 = ashift r2 by -31;    /* 0 or -1: the sign hi implies */')
+    a('        r6 = r12 xor r7;          /* ...the saturated value     */')
+    a('        r1 = ashift r2 by -28;')
+    a('        r3 = ashift r0 by -31;')
+    a('        comp(r1, r3);')
+    a('        if ne r0 = r6;')
+    a('        dm(i3, 1) = r0;')
+    a('    .cmf_smp:')
+    a('        r10 = r10 + 1;            /* next sample, every source  */')
+    a('    m1 = 1;')
+    a('    r13 = dm(_c2mix_buf);')
+    a('    i4 = r13;')
+    a('    dm(i4, 0) = r0;               /* the staging word           */')
+    a('    rts;')
+    a('')
+    a('/* NOT A SPECIAL CASE, THE SAME ANSWER CHEAPLY. With every')
+    a(' * coefficient zero the MRF holds 0, the rounding add makes it 2^27,')
+    a(' * and rns28 of that is 0 -- so the sum IS silence and this writes')
+    a(' * it. It is also the only path a bus whose plain gain is zero can')
+    a(' * take, which the bypass above cannot handle (it requires 1.0f). */')
+    a('.cmf_silent:')
+    a('    r0 = 0;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .cmf_z until lce;')
+    a('    .cmf_z:')
+    a('        dm(i3, 1) = r0;')
+    a('    r13 = dm(_c2mix_buf);')
+    a('    i4 = r13;')
+    a('    dm(i4, 0) = r0;')
+    a('    rts;')
+    a('_c2_mix_fabric.end:')
+    a('')
+    a('#endif')
+    a('')
+    return '\n'.join(out)
+
 
 def gen_pan_law():
     """chip1/pan_law.asm — the one pan table's READ, once for all 32 strips.
@@ -22853,6 +23152,23 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                   encoding='utf-8') as f:
             f.write(gen_rtg_fabric())
         files_written += 1
+        # chip2/mix_fabric.asm — S149 lever L1's shared pass. Written
+        # whenever the graph HAS a chip-2 mix bus, on the same terms as
+        # geq_tables.asm: everything in it is inside
+        # #if DSP4_C2_MIX_FABRIC, so a control build assembles an empty
+        # file, and a tree cannot carry a copy sized for a widest bus the
+        # graph no longer has.
+        _c2mix = [n for n in nodes
+                  if n['chip'] == '2' and n['type'] == 'MIX_BUS'
+                  and n['inputs']]
+        if _c2mix:
+            os.makedirs(os.path.join(output_dir, 'chip2'), exist_ok=True)
+            with atomic_open(os.path.join(output_dir, 'chip2',
+                                          'mix_fabric.asm'), 'w',
+                             encoding='utf-8') as f:
+                f.write(gen_c2_mix_fabric(
+                    max(len(n['inputs']) for n in _c2mix)))
+            files_written += 1
 
     # geq_tables.asm — the GEQ band-design constants, for every band count
     # the graph instantiates. Written unconditionally: the file is small,

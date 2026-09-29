@@ -45,6 +45,33 @@
 .var _mix_gq_C2_MIX_MAIN_R[23];               /* Q4.28 shadow */
 .global _buf_C2_MIX_MAIN_R;
 .var _buf_C2_MIX_MAIN_R;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _blk_C2_RECV_MAIN_R;
+.extern _blk_C2_GRP_COMP_01;
+.extern _blk_C2_GRP_COMP_02;
+.extern _blk_C2_GRP_COMP_03;
+.extern _blk_C2_GRP_COMP_04;
+.extern _blk_C2_USB_IN;
+.extern _blk_C2_BT_IN;
+.extern _blk_C2_CODEC_AUX_IN_R;
+.extern _blk_C2_PI_IN_R;
+.extern _blk_C2_SNK_IN_01;
+.extern _blk_C2_SNK_IN_02;
+.extern _blk_C2_SNK_IN_03;
+.extern _blk_C2_SNK_IN_04;
+.extern _blk_C2_SNK_IN_05;
+.extern _blk_C2_SNK_IN_06;
+.extern _blk_C2_SNK_IN_07;
+.extern _blk_C2_SNK_IN_08;
+.extern _blk_C2_FX_FDR_01;
+.extern _blk_C2_FX_FDR_02;
+.extern _blk_C2_FX_FDR_03;
+.extern _blk_C2_FX_FDR_04;
+.extern _blk_C2_FX_FDR_05;
+.extern _blk_C2_FX_FDR_06;
+.global _mixsp_C2_MIX_MAIN_R;
+.var _mixsp_C2_MIX_MAIN_R[23] = _blk_C2_RECV_MAIN_R, _blk_C2_GRP_COMP_01, _blk_C2_GRP_COMP_02, _blk_C2_GRP_COMP_03, _blk_C2_GRP_COMP_04, _blk_C2_USB_IN, _blk_C2_BT_IN, _blk_C2_CODEC_AUX_IN_R, _blk_C2_PI_IN_R, _blk_C2_SNK_IN_01, _blk_C2_SNK_IN_02, _blk_C2_SNK_IN_03, _blk_C2_SNK_IN_04, _blk_C2_SNK_IN_05, _blk_C2_SNK_IN_06, _blk_C2_SNK_IN_07, _blk_C2_SNK_IN_08, _blk_C2_FX_FDR_01, _blk_C2_FX_FDR_02, _blk_C2_FX_FDR_03, _blk_C2_FX_FDR_04, _blk_C2_FX_FDR_05, _blk_C2_FX_FDR_06;
+#endif
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_RECV_MAIN_R;
@@ -129,8 +156,120 @@
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _c2_mix_fabric;
+#endif
 .global _C2_MIX_MAIN_R_process;
 _C2_MIX_MAIN_R_process:
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+    /* ---- the live-crosspoint fabric (S149 lever L1) ----
+     * The plain gains, once per block, and then the whole sum in
+     * one shared pass over this bus's LIVE crosspoints. See
+     * chip2/mix_fabric.asm for what the pass does and
+     * dsp_block.h's DSP4_C2_MIX_FABRIC note for why it is exact.
+     * A tail JUMP, not a call: the pass ends in the `rts` this
+     * node's caller is waiting on. */
+    r2 = 0x4D800000;              /* 2^28 float */
+    f2 = r2;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 0);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 0) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 1);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 1) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 2);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 2) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 3);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 3) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 4);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 4) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 5);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 5) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 6);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 6) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 7);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 7) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 8);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 8) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 9);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 9) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 10);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 10) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 11);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 11) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 12);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 12) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 13);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 13) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 14);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 14) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 15);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 15) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 16);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 16) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 17);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 17) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 18);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 18) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 19);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 19) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 20);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 20) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 21);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 21) = r1;
+        f1 = dm(_mix_gains_C2_MIX_MAIN_R + 22);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_MAIN_R + 22) = r1;
+    r0 = _mix_gq_C2_MIX_MAIN_R;           /* this bus's coefficient row  */
+    r1 = 23;                 /* declared crosspoints        */
+    r2 = _mixsp_C2_MIX_MAIN_R;            /* where each source's block is */
+    r3 = _blk_C2_MIX_MAIN_R;              /* the block to publish        */
+    r4 = _buf_C2_MIX_MAIN_R;              /* ...and its staging word     */
+    jump _c2_mix_fabric;
+#endif
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
              * Runs the per-sample reference body BLOCK times over this

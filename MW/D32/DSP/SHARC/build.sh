@@ -679,6 +679,21 @@ ASMFLAGS="$ASMFLAGS -DDSP4_RTG_NOACC=$DSP4_RTG_NOACC"
 DSP4_RTG_FABRIC="${DSP4_RTG_FABRIC:-1}"
 CFLAGS="$CFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
 ASMFLAGS="$ASMFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
+# CHIP 2's HALF OF THE SAME FABRIC (2026-09-29, S149 lever L1; PW approved on
+# S148). A chip-2 MIX_BUS took the generic block wrapper, which runs the
+# per-sample body BLOCK times and stages EVERY DECLARED source on EVERY
+# sample whatever its coefficient is -- so opening one crosspoint on one aux
+# took that aux off the S23 bypass and cost the whole declared list
+# (S148-1). With this on, one shared pass (src/chip2/mix_fabric.asm) compacts
+# the bus's coefficient row to its LIVE crosspoints, gathers only those
+# source blocks and accumulates bus-major. Exact, not approximate: same
+# order, same 80-bit MRF accumulate, and a skipped term is `x * 0`.
+# tools/dsp/c2_mix_fabric_ref.py is the bar that says so. Defaults ON;
+# DSP4_C2_MIX_FABRIC=0 is the CONTROL and rebuilds the generic-wrapper image
+# byte for byte. Forced OFF without block kernels (dsp_block.h).
+DSP4_C2_MIX_FABRIC="${DSP4_C2_MIX_FABRIC:-1}"
+CFLAGS="$CFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
 # THE DELAY LINE IN TWO PASSES (2026-09-03, review finding D25's remainder).
 # The block kernel alternated a write into the delay line with a read from it,
 # per sample, and the delay lines are in L2. Writing the whole block and then

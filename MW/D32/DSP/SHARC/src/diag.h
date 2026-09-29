@@ -714,6 +714,7 @@
     + (DSP4_BQ_TRACE         != 0) \
     + (DSP4_C2_BQ_NEGCTL     != 0) \
     + (DSP4_C2_BQ_NOLATCH    != 0) \
+    + (DSP4_C2_MIX_FABRIC    != 1) \
     + (DSP4_CALL_SELFTEST    != 0) \
     + (DSP4_CFG_WATCH        != 0) \
     + (DSP4_COMMIT_STAGE     != 2) \

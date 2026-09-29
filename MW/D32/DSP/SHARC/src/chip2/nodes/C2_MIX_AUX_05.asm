@@ -43,6 +43,21 @@
 .var _mix_send_frames_C2_MIX_AUX_05[10] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
 .global _buf_C2_MIX_AUX_05;
 .var _buf_C2_MIX_AUX_05;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _blk_C2_RECV_AUX_05;
+.extern _blk_C2_FX_FDR_01;
+.extern _blk_C2_FX_FDR_02;
+.extern _blk_C2_FX_FDR_03;
+.extern _blk_C2_FX_FDR_04;
+.extern _blk_C2_FX_FDR_05;
+.extern _blk_C2_FX_FDR_06;
+.extern _blk_C2_GRP_COMP_01;
+.extern _blk_C2_GRP_COMP_02;
+.extern _blk_C2_GRP_COMP_03;
+.extern _blk_C2_GRP_COMP_04;
+.global _mixsp_C2_MIX_AUX_05;
+.var _mixsp_C2_MIX_AUX_05[11] = _blk_C2_RECV_AUX_05, _blk_C2_FX_FDR_01, _blk_C2_FX_FDR_02, _blk_C2_FX_FDR_03, _blk_C2_FX_FDR_04, _blk_C2_FX_FDR_05, _blk_C2_FX_FDR_06, _blk_C2_GRP_COMP_01, _blk_C2_GRP_COMP_02, _blk_C2_GRP_COMP_03, _blk_C2_GRP_COMP_04;
+#endif
 
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_RECV_AUX_05;
@@ -91,6 +106,9 @@
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _c2_mix_fabric;
+#endif
 .global _C2_MIX_AUX_05_process;
 _C2_MIX_AUX_05_process:
 #if DSP4_BLOCK_KERNELS
@@ -167,6 +185,27 @@ _C2_MIX_AUX_05_process:
                                    * path leaves behind too      */
     rts;
 .mixrun_C2_MIX_AUX_05:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+    /* ---- the live-crosspoint fabric (S149 lever L1) ----
+     * The plain gains, once per block, and then the whole sum in
+     * one shared pass over this bus's LIVE crosspoints. See
+     * chip2/mix_fabric.asm for what the pass does and
+     * dsp_block.h's DSP4_C2_MIX_FABRIC note for why it is exact.
+     * A tail JUMP, not a call: the pass ends in the `rts` this
+     * node's caller is waiting on. */
+    r2 = 0x4D800000;              /* 2^28 float */
+    f2 = r2;
+        f1 = dm(_mix_gains_C2_MIX_AUX_05 + 0);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_AUX_05 + 0) = r1;
+    r0 = _mix_gq_C2_MIX_AUX_05;           /* this bus's coefficient row  */
+    r1 = 11;                 /* declared crosspoints        */
+    r2 = _mixsp_C2_MIX_AUX_05;            /* where each source's block is */
+    r3 = _blk_C2_MIX_AUX_05;              /* the block to publish        */
+    r4 = _buf_C2_MIX_AUX_05;              /* ...and its staging word     */
+    jump _c2_mix_fabric;
 #endif
         #if DSP4_BLOCK_KERNELS
             /* ---- generic per-block wrapper (review finding D16) ----
