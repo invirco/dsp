@@ -30,12 +30,21 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 SHARC="$ROOT/MW/D32/DSP/SHARC"
 
+# C and D never named DSP4_C2_BQ_GRAPH on their own build lines, so they
+# inherit shipping.config's default -- which S147 flipped 0 -> 1. That
+# changed their linked output, so their md5s below were re-recorded under
+# the S147 signed default (DSP4_C2_BQ_GRAPH=1) on 2026-09-29 (S148). A and B
+# are untouched by this row (see the header note above). Superseded
+# (pre-S147 default, DSP4_C2_BQ_GRAPH=0) values:
+#   C  chip1 7f226919a5d181410c3804d92678da19  chip2 d97645bfb800290b8f998924d939361c
+#   D  chip1 a026897ff6fd33654733f85c077599d6  chip2 ebf2fea4cca2f740cd560b1155134cc3
+#
 # arm | build dir suffix | extra build flags | chip1.ldr md5 | chip2.ldr md5
 ARMS=(
 "A|bq0|DSP4_C2_BQ_GRAPH=0                |1be74e042cff134c7085dfb08dade517|2bddaa05367887eb2a349cde7b3d5055"
 "B|bq1|                                  |6d7b86ec69778900ce63b9eb79c144ea|e76d2dc8463292a2ba2f6b9172cb6be5"
-"C|tn |DSP4_TEST_NODES=1                 |7f226919a5d181410c3804d92678da19|d97645bfb800290b8f998924d939361c"
-"D|rta|DSP4_RTA=1 DSP4_CUE=1             |a026897ff6fd33654733f85c077599d6|ebf2fea4cca2f740cd560b1155134cc3"
+"C|tn |DSP4_TEST_NODES=1                 |c031613ac9a0a02e4c1d493bea19765d|8674f98fdf2975b974c8fc83430c4240"
+"D|rta|DSP4_RTA=1 DSP4_CUE=1             |c9bf6659fd888626465932c3814adb5f|edbdb100e7fb60b14e0e5285b156471c"
 )
 
 want="${1:-ALL}"

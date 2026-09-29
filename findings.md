@@ -6,6 +6,134 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE FULL-CELL FIT: WILL TWO ADSP-21564s CARRY EVERY D24 CELL? (2026-09-29, session 148)
+
+Hub dispatch `tasks.md` 2026-09-29 09:38Z. Desk only — nothing flashed, no
+DSP load, no deploy, the unit not contacted. Report
+`MW/D24/DSP/s148/s148-full-cell-fit.md`; the arm C/D rebuild that closes
+S147-1 is §12 of it.
+
+**Verdict: FITS WITH CONDITIONS on rev C with no HyperRAM.** The 890
+no-graph-node cells cost chip 1 **+1.36 %** and chip 2 **+2.99 %** at the
+shipping default, and **not one of them asks for a delay line** — so rev D's
+HyperRAM (DSP MOD 1) is not required for any of them and chip 2's delay pool
+stays at 91.0 %. Chip 1 lands at 58.91 % (69.90 % if `Rta On` is ruled in);
+chip 2 at 77.69 % on the Echo default, 92.60 % with six Type-3 reverbs and
+95.36 % with the desk fully in use — but **110.27 % with both**. Lever L1 —
+putting chip 2's aux mixes on the bus-major **live-crosspoint** fabric chip 1
+has run since S27, worth a measured **12.47 points** — takes those to
+**82.89 %** and **97.80 %**, and L1 + L2 take R4 to **95.71 %**, 1.29 points
+inside the abort line. Every figure is against the signed
+`DSP4_C2_BQ_GRAPH=1` arm; on arm A every regime is over.
+
+### S148-1 — the signed 84.47 % is a desk with every chip-2 aux bus on the S23 bypass, and the aux matrix is what takes them off it
+
+**Severity: HIGH — it is the term the whole in-use column is built on, and
+it is pre-existing, not created by this work.**
+
+S23-5's block-level bypass means a chip-2 aux summing node with no live
+*switched* send is a block copy (~38 instructions), and one with a single
+live switched send pays the full sum over **all** its sources. S86's driven
+row — the baseline every capacity figure in this tree is stacked on — was
+taken with `Fx*AuxOn` at its shipping default of 0, so all twelve aux sums
+were on the bypass. Opening one FX return into one aux costs that node
+**2,112 c/blk (0.64 %)**; all eight D24 aux buses off the bypass is
+**16,896 c/blk (5.16 %)** — before any of the 890 is built.
+
+It matters now because **enabling one aux-matrix crosspoint takes that whole
+node off the bypass**: using the feature is exactly the thing that leaves
+the measured regime. With the matrix and `Grp AuxPick`'s four taps a D24 aux
+node goes from 11 sources to 33, and 6,336 c/blk each. Rate used throughout:
+**192 c/blk per source per node off bypass** — S23-5's own *"63 instructions
+a sample a node before a single MAC"* at 7 sources (9 per source per sample,
+six of them the generic wrapper's `_buf_` staging) plus ~3 for the MAC,
+over 16 samples; it reproduces S23's *"1,008 instructions a block"* exactly.
+
+**Queued as a bench row** (S148 §10 item 2): one `Fx*AuxOn` opened on one
+aux, then on all eight, on the signed arm. It has never been measured.
+
+### S148-2 — S144-4 reads as though there were no free chip-1 → chip-2 mix-fabric slots on a D24. There are eleven, and `Talk Dest` is not blocked
+
+S144 recorded talkback injection blocked because *"reaching the chip-2 phones
+needs a mix-fabric slot, and that map is single-sourced in
+`shared/dsp4-logic/`"*. True of the **phones** destination and of nothing
+else:
+
+- `Talk[1-2]Dest[2-10]` is talkback into an **aux or main**, which are
+  chip-1 buses that already exist and already have their own interchip slots
+  (`C1_BUS_AUX_01..12`, `C1_BUS_MAIN_L/R`, `C1_BUS_SUB`). It is a chip-1
+  fabric crosspoint: 18 live crosspoints × 16 × 5.29 = **1,524 c/blk
+  (0.47 % of chip 1)**. Same for `Noise Dest`, 11 crosspoints, 931 c/blk.
+- and the slot question has an answer anyway: `shared/dsp4-logic/
+  slot-map.csv` line `MIX_2` allocates slots 0–8 of 16, so **seven slots are
+  unallocated**, and on a D24 four more (`BUS_MTX_01..04`, slots 5–8) are
+  dead since `CFG_MTX_MASK` went to 0 in S143. **Eleven free lanes.**
+
+### S148-3 — `Chan InsertPos` (24) and `Grp InsertOn` (4) cannot be built, and the contradiction is in the definitions
+
+`Chan001InsertOn001` is classed `hardware-control`, reason **"analogue
+insert relay"** — the DSP never sees it. `Chan001InsertPos001` then names
+four taps that are all **inside the DSP strip** (`0=pre-EQ 1=post-EQ
+2=post-dynamics 3=pre-fader`). An analogue relay has one possible position.
+For `InsertPos` to mean anything the insert must be a **digital** loop, and
+a D24 has no lanes for one: 16 DAC lanes, every one assigned, against the
+24 sends + 24 returns a 24-channel digital insert needs.
+
+Priced anyway so the number exists: **24 × ~1,370 = 32,880 c/blk = 10.0 %
+of chip 1**, plus 48 converter lanes that do not exist.
+
+**For PW:** either `InsertPos` describes a future product and should be
+classed with `InsertOn` rather than as `no-graph-node`, or the D24's insert
+is meant to move and that is a hardware change. Recorded, not asked.
+
+### S148-4 — `Fx PingPongStart` has two readings and they are 33 times apart
+
+The six FX engines are **mono end to end** (the reverb's `_R` buffers were
+deleted 2026-09-08 because nothing read them). A ping-pong echo does not
+need a stereo engine — it needs the existing delay line read at **two taps**
+and a second return leg: 6 × 210 + 6 × 64 = **1,644 c/blk (0.50 %)**, which
+is what S148 prices. If what is meant is **stereo FX engines**, the price is
+the measured one — six more Type-3 engines is **+16.44 points** and it fits
+in no regime. PW's ruling.
+
+### S148-5 — `Rec Mtr` may belong with the rest of its family
+
+Every other `Rec` cell is `mcu-only` (`Level`, `Play`, `Rec`, `Src`) or
+`control-plane` (`CueSel`) — the Pi owns USB recording. Two DSP meter taps
+(128 c/blk) are the only DSP claim the recorder makes. If the record feed is
+metered host-side they cost zero and should be reclassified.
+
+### S148-6 — S146's chip-1 figure for arm C was arm A's figure wearing arm C's label
+
+Found by the re-price, not by a code read. `DSP4_TEST_NODES=1` puts the
+`TEST_OSC`/`TEST_MEAS` nodes on **chip 1** and not one instruction on chip 2
+(`shipping.config` says so at the point of definition), so arm C's chip 1
+cannot be arm A's — yet `switch-runbook.md` §2.3 grouped *"chip 1, arms
+A/B/C"* at one figure, 181,490 bytes of code.
+
+Measured off arm C's own `chip1.map.xml` at S148: **187,142 code (71.4 %),
+311,004 DM (82.9 %), 572,416 delay (27.6 %)** — **+5,652 bytes of code,
++1,392 of DM and +65,536 of delay line** over the A/B column. Nothing gated
+on it and every arm still fits; the record was wrong and is corrected in
+place. It is S8-2's shape once more: a figure that agreed with a default
+nobody re-read.
+
+### Two corrections this session makes to earlier records
+
+- **The dispatch (and any reader of S142 §9) should not read 84.47 % as
+  chip 1's.** 84.47 % is **chip 2's** signed driven row (S86 row C); chip 1's
+  is **57.55 %** on the same measurement. The missing per-class breakdown
+  applies to both chips. S148 §7 builds the best chip-1 breakdown the tree
+  allows — measured total, apportioned shares, ±25 % on the shares — and
+  queues the `sigprofile.sh` row that would close it.
+- **`Fx DuckThr` is not owed work.** The master's own note says *"legacy
+  alias of DuckSens"* and `Fx001DuckSens001` **is mapped** (page 1 / 1642).
+  It is a compat-alias table entry, not a graph item. Likewise `MainL/MainR
+  Delay`: `Main001Delay001` is mapped at page 1 / 1434 and both 250 ms
+  delay lines are already allocated (`C2_MAIN_DLY` + `C2_MAIN_DLY_R`), so
+  per-leg delay costs two SPI words and zero cycles. Forty of the 890 cost
+  nothing at all.
+
 ## SIGNING `DSP4_C2_BQ_GRAPH` INTO `SHIPPING.CONFIG` (2026-09-29, session 147)
 
 Hub dispatch `tasks.md` 2026-09-29 08:37Z, PW's signature ("sign BQ_GRAPH").

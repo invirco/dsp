@@ -1,4 +1,4 @@
-provenance: AI-drafted 2026-09-28, updated 2026-09-29 (S147) — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
+provenance: AI-drafted 2026-09-28, updated 2026-09-29 (S147, S148) — prose may carry a statistical watermark; rewrite by hand before publication, then remove this header.
 
 # S146 runbook — putting the S142–S145 DSP graph on MW-D24-2
 
@@ -159,16 +159,25 @@ the note below the table.)
 reads the cue bus since S65: build with DSP4_CUE=1"*. Both are needed, and
 that is the pair S144 used.
 
-**C and D are NOT re-priced post-S147, and that is a gap, not an oversight.**
-Neither arm's build line ever named `DSP4_C2_BQ_GRAPH`, so both took it from
-`shipping.config`'s default — 0 at S146, 1 now. Rebuilding either today (as
-S147 did, gating `build-images.sh`) produces a DIFFERENT image from the one
-S146 priced (chip1 `c031613ac9a0a02e4c1d493bea19765d` / chip2
-`8674f98fdf2975b974c8fc83430c4240` for C; chip1 `c9bf6659fd888626465932c3814adb5f`
-/ chip2 `edbdb100e7fb60b14e0e5285b156471c` for D — neither matches §2.2's
-table), and their §2.3 capacity/memory figures describe the OLD images, not
-these. Recorded as **S147-1**: before arm C (factory-test-v3) or arm D (bench
-row 11) is used, rebuild and re-price it against the signed configuration.
+**CLOSED S148 (PW, 2026-09-29): C and D rebuilt and re-priced against the
+signed `DSP4_C2_BQ_GRAPH=1` default.** S147-1 flagged the gap; S148 closes
+the rebuild/re-price half of it. Each arm was built twice under the new
+default and reproduced byte for byte both times; `build-images.sh`'s C and D
+rows now carry these md5s, and §2.2/§2.3 below are updated to match.
+Adopting arm C as factory-test-v3 (editing the signed `accept/manifest.json`
+and `d24_selftest.py`) is still PW's call per §9 item 2 and is **not** done
+here — only the rebuild and re-price.
+
+- arm C: chip1 `c031613ac9a0a02e4c1d493bea19765d` (433,508 B), chip2
+  `8674f98fdf2975b974c8fc83430c4240` (451,568 B)
+- arm D: chip1 `c9bf6659fd888626465932c3814adb5f` (435,432 B), chip2
+  `edbdb100e7fb60b14e0e5285b156471c` (450,496 B)
+
+Superseded (pre-S147 default, `DSP4_C2_BQ_GRAPH=0`, priced at S146): arm C
+chip1 `7f226919a5d181410c3804d92678da19` / chip2
+`d97645bfb800290b8f998924d939361c`; arm D chip1
+`a026897ff6fd33654733f85c077599d6` / chip2
+`ebf2fea4cca2f740cd560b1155134cc3`.
 
 ### 2.2 The artefacts, and their provenance
 
@@ -192,12 +201,18 @@ were each built twice with the same result. `build-images.sh` re-ran all
 four end to end and reported *"every arm built reproduces its recorded
 image byte for byte"*.
 
-**And it reproduces an image that is already on the unit.** Arm C's
-`chip1.ldr` is **`7f226919a5d181410c3804d92678da19`** — byte-for-byte the
-chip-1 image of factory-test-v2 staged at `/home/app/loopthd/s122`, built
-weeks ago on a different tree state. That is the S131 stale-source trap
-answered before it can be sprung: the toolchain reproduces, and chip 1 is
-untouched by the whole of S142–S145 (every one of those sessions is chip 2).
+**It no longer reproduces factory-test-v2 (S148 — this identity is now
+BROKEN, confirmed by measurement, not assumed).** At S146, arm C's
+`chip1.ldr` was `7f226919a5d181410c3804d92678da19` — byte-for-byte the
+chip-1 image of factory-test-v2 staged at `/home/app/loopthd/s122`. S147
+signed `DSP4_C2_BQ_GRAPH=1` into `shipping.config`, arm C's build line never
+named that flag so it now inherits the new default, and S148's rebuild reads
+back chip1 `c031613ac9a0a02e4c1d493bea19765d` — **different** from
+`7f226919…`. The build-config word stamped into every image moved, same as
+it does between arms A and B (§2.2 below); the S131 stale-source trap is
+still answered (the toolchain reproduces byte for byte across two S148 runs
+each), but arm C's chip 1 is no longer the same bytes as the staged
+factory-test-v2 image. See §8.2.
 
 | arm | file | bytes | md5 |
 |---|---|--:|---|
@@ -210,11 +225,23 @@ untouched by the whole of S142–S145 (every one of those sessions is chip 2).
 | B | `chip1.ldr` | 426,464 | `6d7b86ec69778900ce63b9eb79c144ea` |
 | B | `chip2.ldr` | 450,008 | `e76d2dc8463292a2ba2f6b9172cb6be5` |
 | B | `chip2.sym.json` | 163,185 | `353a294505418f605a16bac3fd16e796` |
-| C | `chip1.ldr` | 433,508 | `7f226919a5d181410c3804d92678da19` |
-| C | `chip2.ldr` | 409,972 | `d97645bfb800290b8f998924d939361c` |
-| C | `chip2.sym.json` | 160,511 | `d101bec222b46c93aaf23245cbdb0379` |
-| D | `chip1.ldr` | 435,432 | `a026897ff6fd33654733f85c077599d6` |
-| D | `chip2.ldr` | 408,900 | `ebf2fea4cca2f740cd560b1155134cc3` |
+| **C (S148)** | `chip1.ldr` | 433,508 | `c031613ac9a0a02e4c1d493bea19765d` |
+| **C (S148)** | `chip2.ldr` | 451,568 | `8674f98fdf2975b974c8fc83430c4240` |
+| **C (S148)** | `chip2.sym.json` | 163,700 | (re-generated; not md5-gated) |
+| **D (S148)** | `chip1.ldr` | 435,432 | `c9bf6659fd888626465932c3814adb5f` |
+| **D (S148)** | `chip2.ldr` | 450,496 | `edbdb100e7fb60b14e0e5285b156471c` |
+| D (S148) | `chip2.sym.json` | 163,259 | (re-generated; not md5-gated) |
+
+Superseded (pre-S147 default, `DSP4_C2_BQ_GRAPH=0`, priced at S146 — kept for
+history, do not build against these):
+
+| arm | file | bytes | md5 |
+|---|---|--:|---|
+| C (S146, superseded) | `chip1.ldr` | 433,508 | `7f226919a5d181410c3804d92678da19` |
+| C (S146, superseded) | `chip2.ldr` | 409,972 | `d97645bfb800290b8f998924d939361c` |
+| C (S146, superseded) | `chip2.sym.json` | 160,511 | `d101bec222b46c93aaf23245cbdb0379` |
+| D (S146, superseded) | `chip1.ldr` | 435,432 | `a026897ff6fd33654733f85c077599d6` |
+| D (S146, superseded) | `chip2.ldr` | 408,900 | `ebf2fea4cca2f740cd560b1155134cc3` |
 
 Arm B's chip 1 differs from arm A's although `DSP4_C2_BQ_GRAPH` is a chip-2
 switch: the build-configuration word is compiled into BOTH images so the
@@ -248,28 +275,52 @@ today's `shipping.config` — arm B's triple, confirmed on this tree
 
 **As of S147, chip 2's "arm A" column below is the FALLBACK figure and the
 "arm B" column is what ships.** Both are unchanged from S146 — the images did
-not move, only which one this window loads. C and D's chip-2 columns are the
-OLD, un-repriced figures per S147-1 above and must not be read as this tree's
-current C/D images.
+not move, only which one this window loads. **C and D's columns were
+re-measured at S148**, directly off the S148 rebuild's own `chip1.map.xml` /
+`chip2.map.xml` via `tools/dsp/dsp_memreport.py` — not carried from S146 or
+predicted.
 
-| pool | chip 1, **arms A/B/C** | chip 2, arm A (fallback) | chip 2, **arm B (ships)** | chip 2, arm C (stale, S147-1) | chip 2, arm D (stale, S147-1) | limit |
-|---|--:|--:|--:|--:|--:|--:|
-| code (VISA SW) | 181,490 — **69.2 %** | 173,168 — 66.1 % | **186,382 — 71.1 %** | 174,650 — 66.6 % | 173,240 — 66.1 % | 262,144 B |
-| DM data + stack | 309,612 — **82.5 %** | 299,884 — 79.9 % | **328,268 — 87.5 %** | 299,964 — 79.9 % | 300,300 — 80.0 % | 375,264 B |
-| delay lines | 506,880 — **24.5 %** | 1,886,112 — 91.0 % | **1,886,112 — 91.0 %** | 1,886,112 — 91.0 % | 1,886,112 — 91.0 % | 2,072,576 B |
-| IVT (NW code) | 128 — 49.2 % | 128 — 49.2 % | — | — | — | 260 B (fixed) |
+| pool | chip 1, arms A/B | chip 1, **C (S148)** | chip 1, **D (S148)** | chip 2, arm A (fallback) | chip 2, **arm B (ships)** | chip 2, **C (S148)** | chip 2, **D (S148)** | limit |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| code (VISA SW) | 181,490 — 69.2 % | 187,142 — **71.4 %** | 184,378 — **70.3 %** | 173,168 — 66.1 % | **186,382 — 71.1 %** | 187,862 — **71.7 %** | 186,454 — **71.1 %** | 262,144 B |
+| DM data + stack | 309,612 — 82.5 % | 311,004 — **82.9 %** | 315,692 — **84.1 %** | 299,884 — 79.9 % | **328,268 — 87.5 %** | 328,348 — **87.5 %** | 328,684 — **87.6 %** | 375,264 B |
+| delay lines | 506,880 — 24.5 % | 572,416 — **27.6 %** | 506,880 — **24.5 %** | 1,886,112 — 91.0 % | **1,886,112 — 91.0 %** | 1,886,112 — **91.0 %** | 1,886,112 — **91.0 %** | 2,072,576 B |
+| IVT (NW code) | 128 — 49.2 % | 128 — 49.2 % | 128 — 49.2 % | 128 — 49.2 % | — | — | — | 260 B (fixed) |
 
-Arm D is the only arm that moves **chip 1**: code 181,490 → 184,378
-(69.2 → 70.3 %) and DM 309,612 → 315,692 (82.5 → **84.1 %**), because the
-1/3-octave filterbank and the ring metric live there. It still fits, and it
-reproduces S144's own RTA figures exactly.
+(Arm B's own chip-1 figures are identical to arm A's — the flag is chip-2
+only — so "arms A/B" is one column for chip 1, per §2.2's build-cfg-word
+note.)
 
-Chip 2's delay pool is at **91.0 %, 186,464 bytes free**, over
+Arm D is the only arm that moves **chip 1** off the A/B figure: code
+181,490 → 184,378 (69.2 → 70.3 %) and DM 309,612 → 315,692 (82.5 →
+**84.1 %**), because the 1/3-octave filterbank and the ring metric live
+there. This is unchanged by S148 — D's chip 1 does not carry
+`DSP4_C2_BQ_GRAPH` either way. It still fits, and it reproduces S144's own
+RTA figures exactly. **Arm C's chip 1 moves too, and S146 did not say so** —
+`DSP4_TEST_NODES=1` puts the TEST_OSC/TEST_MEAS nodes on chip 1 and nothing
+on chip 2 (`shipping.config` says so at the point of definition), so arm C's
+chip 1 cannot be arm A's, and S146's table nevertheless grouped "chip 1,
+arms A/B/C" at one figure of 181,490. Measured at S148 it is **187,142 code
+(71.4 %) / 311,004 DM (82.9 %) / 572,416 delay (27.6 %)** — +5,652 bytes of
+code, +1,392 of DM and +65,536 of delay line over the A/B column. Recorded
+as **S148-6**: S146's chip-1 arm-C figure was the A/B figure wearing arm C's
+label, and this is the measurement that replaces it.
+
+Chip 2's delay pool is at **91.0 %, 186,464 bytes free, on every arm** —
+A, B, C and D all read exactly 1,886,112 of 2,072,576 bytes, over
 `dsp_memreport`'s own 90 % warn line, and the tool says so on every run.
-This reproduces S144's table to the byte. It is the same on all three arms
-— `DSP4_C2_BQ_GRAPH` and `DSP4_TEST_NODES` buy code and DM, never delay.
-It is the first image that asks for 1,886,112 of 2,072,576 bytes and that
-is bench row 12.
+This reproduces S144's table to the byte. `DSP4_C2_BQ_GRAPH` and
+`DSP4_TEST_NODES` buy code and DM, never delay — confirmed again at S148 on
+C and D's re-priced figures. It is the first image that asks for 1,886,112
+of 2,072,576 bytes and that is bench row 12.
+
+**C and D's chip-2 code and DM cost, S148 vs the superseded S146 figures**
+(both took the `DSP4_C2_BQ_GRAPH` flip from `shipping.config`'s default, the
+same way B did over A): arm C code 174,650 → 187,862 B (66.6 → 71.7 %), DM
+299,964 → 328,348 B (79.9 → 87.5 %); arm D code 173,240 → 186,454 B (66.1 →
+71.1 %), DM 300,300 → 328,684 B (80.0 → 87.6 %). Both track arm B's own A→B
+delta (+13,214 code / +28,384 DM) closely, as expected — same flag, same
+chip.
 
 **Taking arm B costs chip 2 +13,214 bytes of code (66.1 → 71.1 %) and
 +28,384 bytes of DM (79.9 → 87.5 %), and this window takes it** — S147
@@ -802,13 +853,15 @@ and with the limiter on, the XLR ceiling holds at **−6 dBFS**
 the host is unruled (S144-5); this row measures the DSP half either way.*
 
 **11. The ring metric, on a real ring. — NEEDS ARM D, NOT ARM B.**
-**NOT RUNNABLE AS WRITTEN — arm D is stale (S147-1).** `build_s146_rta`
-(`DSP4_RTA=1 DSP4_CUE=1`) never named `DSP4_C2_BQ_GRAPH` either, so it now
-inherits the signed default and no longer reproduces the `a026897f…` /
-`ebf2fea4…` pair this row was written against; rebuild and re-price it
-against today's `shipping.config` before this row runs. Once it is: assign
-the cue to Main, provoke a deliberate acoustic ring through the monitor
-speaker, read `_rta_ring` back.
+**RUNNABLE — arm D rebuilt and re-priced at S148.** S147-1 flagged that
+`build_s146_rta` (`DSP4_RTA=1 DSP4_CUE=1`) never named `DSP4_C2_BQ_GRAPH`
+and had gone stale against the signed default; S148 rebuilt it (twice,
+byte-identical both times) and re-priced it off its own map files. Use the
+CURRENT pair, chip1 `c9bf6659fd888626465932c3814adb5f` / chip2
+`edbdb100e7fb60b14e0e5285b156471c` (§2.2) — NOT the superseded
+`a026897f…` / `ebf2fea4…` pair this row was originally written against.
+Assign the cue to Main, provoke a deliberate acoustic ring through the
+monitor speaker, read `_rta_ring` back.
 *PASS:* the saturating count pegs on the ringing band (cap 2,047 blocks =
 682 ms) and stays near zero on the others while programme material plays.
 **This is a bench-instrument image, and taking it costs two boots.** Lower
@@ -857,15 +910,18 @@ This is a consequence, not a defect, and it has a clean handling:
   shipping pair.
 - Arm C (`build_s146_tn`) was the factory-test-v3 candidate at S146, priced
   with chip1 `7f226919…` — **then byte-identical to factory-test-v2's chip
-  1** — and chip2 `d97645bf…`. **That identity no longer holds** (S147-1):
-  arm C's chip 1 carries the build-config word stamp like every image does,
-  `DSP4_C2_BQ_GRAPH` moved it, and a rebuild today reads back a different
-  chip1 md5 (`c031613a…`) that is NOT factory-test-v2's. Re-establishing v3
-  needs a fresh build and a fresh identity check, not just re-pricing chip 2.
-  Adopting it still needs `FACTORY_TEST_*` in `d24_selftest.py` and
-  `factory_test_image` in `MW/D24/DSP/accept/manifest.json` updated together.
+  1** — and chip2 `d97645bf…`. **That identity is CONFIRMED BROKEN, measured
+  at S148, not just flagged (S147-1 closed for the rebuild/re-price half):**
+  S148 rebuilt arm C (twice, byte-identical both times) against today's
+  signed `shipping.config` and read back chip1
+  `c031613ac9a0a02e4c1d493bea19765d` / chip2
+  `8674f98fdf2975b974c8fc83430c4240` — chip 1 is confirmed **NOT**
+  `7f226919…` any more; the build-config word stamp moved with
+  `DSP4_C2_BQ_GRAPH`, same mechanism as arms A/B. Re-establishing v3 needs
+  `FACTORY_TEST_*` in `d24_selftest.py` and `factory_test_image` in
+  `MW/D24/DSP/accept/manifest.json` updated to these new md5s.
   **Not done here** — the record is signed and moving it is PW's, not a
-  side-effect of a switch window. §9.
+  side-effect of a switch window (or this rebuild task). §9.
 
 ### 8.3 The unit's DSP contract is five tags stale, not one
 
@@ -952,14 +1008,21 @@ not asked.
    worth ~17.4 points of capacity) and tells itself apart on the part by
    `DIAG_BUILD_CFG2 0xE2019E6F`. The accept manifest's and `d24_selftest.py`'s
    signed triple were updated to match (§8.7); nothing here is still open.
-2. **factory-test-v3, and arm C needs a fresh build first (S147-1).** Arm C
-   was built and priced at S146, but never named `DSP4_C2_BQ_GRAPH` on its
-   own build line, so it inherited the old default then and inherits the
-   new signed one now — its S146 md5s (including chip 1, previously
-   byte-identical to factory-test-v2) no longer reproduce. Adopting v3
-   still means editing a signed record (`accept/manifest.json`) and
-   `d24_selftest.py`'s pinned md5s, against a rebuilt and re-priced arm C;
-   that is PW's call and it should not ride along on a switch window.
+2. **factory-test-v3: arm C is rebuilt and re-priced (S148), adoption still
+   open.** Arm C was built and priced at S146, but never named
+   `DSP4_C2_BQ_GRAPH` on its own build line, so it inherited the old default
+   then and inherits the new signed one now — its S146 md5s (including
+   chip 1, previously byte-identical to factory-test-v2) no longer
+   reproduce (S147-1). S148 (2026-09-29) rebuilt arm C twice against today's
+   signed `shipping.config` (byte-identical both times: chip1
+   `c031613ac9a0a02e4c1d493bea19765d`, chip2
+   `8674f98fdf2975b974c8fc83430c4240`) and re-priced it off its own map
+   files (§2.3) — confirming, not just flagging, that chip 1 no longer
+   matches factory-test-v2's `7f226919…`. `build-images.sh` and this runbook
+   now carry the new md5s. Adopting v3 still means editing a signed record
+   (`accept/manifest.json`'s `factory_test_image`) and `d24_selftest.py`'s
+   pinned md5s to these S148 values; that edit is PW's call and was not made
+   here — S148 only rebuilt and re-priced, it did not adopt.
 3. **Republishing `_matrix.mxc` is a separate window.** It would hand the
    app's `DspApply` 3,800 DSP addresses for the first time and add six
    `Ramp*` columns the deployed pack does not carry. Neither is needed for
