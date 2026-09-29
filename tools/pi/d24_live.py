@@ -391,11 +391,13 @@ def action_no_signal(confirm=True):
     In CONFIRM mode it asks for ENTER again. With arrival as the go-ahead there
     is nothing to press to try again -- pushing the lead home IS the retry --
     so the sentence names the one button the screen does carry, which is the
-    operator's way of saying the socket is dead.
+    operator's way of saying the leads are right and the socket is dead
+    (LEADS CORRECT on the glass, PW 2026-09-29).
     """
     if confirm:
         return 'Push the lead in firmly at both ends, then press ENTER again.'
-    return 'Push the lead in firmly at both ends, or say NO SIGNAL.'
+    return ('Check both ends are in the right sockets and pushed home. '
+            'If they are, press LEADS CORRECT.')
 
 
 # THE TIMEOUT RAISES THE SAME QUESTION, AND SAYS HOW LONG IT WAITED (PW
@@ -698,7 +700,7 @@ def every_string(rows=()):
     out += [SIGNAL_SEEN, SIGNAL_HOLDING, NO_LOOP, LOOKING,
             status_wrong_input('MIC 7', 'MIC 5'),
             status_wrong_input('MIC 7', 'MIC 5 line'),
-            timeout_words('MIC 5', 20.0), 'NO SIGNAL', NO_SIGNAL_FAIL,
+            timeout_words('MIC 5', 20.0), 'LEADS CORRECT, NEXT >', NO_SIGNAL_FAIL,
             move_input('MIC 6'), move_input('MIC 6', False),
             move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
             swap_for_plug('MIC 7'), swap_for_plug('MIC 7', False),
@@ -812,7 +814,13 @@ def buttons_for(state, confirm=True):
     # to PAUSE, so auto-advance drew a screen on which the operator could say
     # nothing at all about a socket that would not carry -- which is the one
     # thing PW's ruling says a button is still for. See NOSIGNAL_BUTTONS.
-    if state in (WAITING, CHECKLEAD):
+    #
+    # ONLY ONCE THE TEST HAS GIVEN UP LISTENING (PW 2026-09-29): "there should
+    # be a button that confirms jacks are in correct slots, then test can move
+    # on". So the WAITING screen carries PAUSE alone -- a lead going in is the
+    # only answer it wants -- and LEADS CORRECT appears on CHECKLEAD, the screen
+    # the timeout raises. The command stays 'nosignal'; only the words changed.
+    if state == CHECKLEAD:
         return list(NOSIGNAL_BUTTONS)
     return ['pause']
 

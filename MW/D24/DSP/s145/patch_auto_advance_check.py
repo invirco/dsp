@@ -355,8 +355,10 @@ def test_the_window_is_asserted_not_assumed():
 # 3. NO SIGNAL
 # ---------------------------------------------------------------------------
 def test_no_signal_is_the_only_button():
-    check('the waiting screen carries NO SIGNAL and PAUSE, and no ENTER',
-          LV.buttons_for(LV.WAITING, False) == ['nosignal', 'pause'],
+    # PW 2026-09-29: LEADS CORRECT (command 'nosignal') only once the test has
+    # given up listening -- the waiting screen carries PAUSE alone.
+    check('the waiting screen carries PAUSE alone, no ENTER and no LEADS CORRECT',
+          LV.buttons_for(LV.WAITING, False) == ['pause'],
           repr(LV.buttons_for(LV.WAITING, False)))
     check('so does the check-the-lead screen',
           LV.buttons_for(LV.CHECKLEAD, False) == ['nosignal', 'pause'],
@@ -558,8 +560,9 @@ def test_the_timeout_raises_the_question_and_decides_nothing():
     check('... and offers the one button',
           raised and raised[0]['buttons'] == ['nosignal', 'pause'],
           repr(raised and raised[0]['buttons']))
-    check('... and one plain action, which is not a button name',
-          raised and 'Push the lead in firmly' in raised[0]['action'],
+    check('... and one plain action: check the sockets, then LEADS CORRECT',
+          raised and 'right sockets' in raised[0]['action']
+          and 'LEADS CORRECT' in raised[0]['action'],
           repr(raised and raised[0]['action']))
 
 
@@ -671,8 +674,8 @@ def test_a_whole_pass_has_no_enter_on_it():
     check('... and not one of them names ENTER in its words', not words,
           repr(words[:4]))
     waiting = [d for d in seen if d.get('state') == LV.WAITING]
-    check('every waiting screen offers NO SIGNAL',
-          waiting and all(d['buttons'] == ['nosignal', 'pause']
+    check('every waiting screen offers PAUSE alone (LEADS CORRECT waits for the timeout)',
+          waiting and all(d['buttons'] == ['pause']
                           for d in waiting),
           repr(sorted({tuple(d['buttons']) for d in waiting})))
     lead = [d for d in seen if d.get('state') == LV.CHECKLEAD]
@@ -771,8 +774,8 @@ def test_the_station_owns_its_own_screen_under_run_all():
     check('the station takes the flag for as long as it owns the screen',
           live.confirm is False)
     live.set(state=LV.WAITING, instruction='Plug AUX 1 into MIC 1.')
-    check('... so its waiting screen has NO SIGNAL and no dead ENTER',
-          live.d['buttons'] == ['nosignal', 'pause'], repr(live.d['buttons']))
+    check('... so its waiting screen has no dead ENTER (PAUSE alone)',
+          live.d['buttons'] == ['pause'], repr(live.d['buttons']))
     st.teardown()
     check('and teardown gives it back, so a later screen is unaffected',
           live.confirm is True)
