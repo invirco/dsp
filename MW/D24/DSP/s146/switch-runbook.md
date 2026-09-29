@@ -132,6 +132,20 @@ see.
 
 ### 2.1 Four arms were built; ONE of them ships
 
+**UPDATED S149 (2026-09-29): EVERY ARM'S CHIP-2 IMAGE MOVED; every arm's
+CHIP-1 IMAGE DID NOT.** Three chip-2 items landed between S148 and this
+revision, all PW-ruled and all defaulting ON in `shipping.config`: the
+live-crosspoint mix fabric (`DSP4_C2_MIX_FABRIC`, S148 lever L1), the
+follower pairing (L2) and the reverb cap (`DSP4_FX_REVERB_CAP=3`). They are
+chip-2 only by construction — `mix_fabric.asm` and `fx_cap.asm` live in
+`src/chip2/`, and chip 1 has neither a chip-2 mix bus nor an FX engine — and
+four independent builds confirm it: **all four arms' `chip1.ldr` md5s are
+unchanged.** Every chip-2 md5 in this document is re-recorded, the capacity
+table in §2.3 is re-read off the new maps, and the superseded values are
+kept visible. **The shipping TRIPLE does not move** (§2.2): none of the three
+switches is carried by a config word, so all three ride DIAG_BUILD_CFG3's
+instrument bit and read 0 at their shipping values.
+
 **UPDATED S147 (PW, 2026-09-29, "sign BQ_GRAPH"): arm B ships, not arm A.**
 PW signed `DSP4_C2_BQ_GRAPH=1` into `shipping.config` itself between S146 and
 this window, so arm B — priced below, never re-argued — is now what
@@ -169,9 +183,13 @@ and `d24_selftest.py`) is still PW's call per §9 item 2 and is **not** done
 here — only the rebuild and re-price.
 
 - arm C: chip1 `c031613ac9a0a02e4c1d493bea19765d` (433,508 B), chip2
-  `8674f98fdf2975b974c8fc83430c4240` (451,568 B)
+  **`0b63f4e044e00e4a7cbe7b2ff345c0b6`** (460,720 B) — S149
 - arm D: chip1 `c9bf6659fd888626465932c3814adb5f` (435,432 B), chip2
-  `edbdb100e7fb60b14e0e5285b156471c` (450,496 B)
+  **`c1d9f5db83bad18b78c000178a49191b`** (459,648 B) — S149
+
+Superseded chip-2 values (S148, before S149's three items): C
+`8674f98fdf2975b974c8fc83430c4240` (451,568 B), D
+`edbdb100e7fb60b14e0e5285b156471c` (450,496 B).
 
 Superseded (pre-S147 default, `DSP4_C2_BQ_GRAPH=0`, priced at S146): arm C
 chip1 `7f226919a5d181410c3804d92678da19` / chip2
@@ -181,17 +199,20 @@ chip1 `7f226919a5d181410c3804d92678da19` / chip2
 
 ### 2.2 The artefacts, and their provenance
 
-Tree: `main` at **`24cb19ff2944f8a63de2d7104d1951656aa08f6d`**, working tree
+Tree: `main` at **`00663c581c75e8090c36ea70c21659d3b59d1315`** (S149; was
+`24cb19ff2944f8a63de2d7104d1951656aa08f6d` at S146–S148), working tree
 clean (`git status --porcelain` empty but for the untracked build
 directories). Source tree fingerprint:
 
 ```
 find MW/D32/DSP/SHARC/src -type f | LC_ALL=C sort | xargs sha256sum | sha256sum
-  b0ebdd705406c6819aeb1c923a223eea89fbc68d4605e55d28219bc3a81dee29
+  567b5e8a22f7b4555059f2f3a0b77c15f87d1ece2d992ff4183f8c732fb7f075   (S149)
+  b0ebdd705406c6819aeb1c923a223eea89fbc68d4605e55d28219bc3a81dee29   (S146-S148, superseded)
 ```
 
-`./check-sharc-codegen-drift.sh`: **757 generated / 0 differ / 0 absent /
-53 hand-written** — the tree IS its generator's output, so the images are
+`./check-sharc-codegen-drift.sh`: **759 generated / 0 differ / 0 absent /
+53 hand-written** (757 at S146–S148; `chip2/mix_fabric.asm` and
+`chip2/fx_cap.asm` are the two new generated files) — the tree IS its generator's output, so the images are
 the contract's own images and not a tree that has drifted away from it.
 
 **The build is byte-deterministic.** Arm A was built **four** times this
@@ -217,20 +238,40 @@ factory-test-v2 image. See §8.2.
 | arm | file | bytes | md5 |
 |---|---|--:|---|
 | **A** | `chip1.ldr` | 426,464 | `1be74e042cff134c7085dfb08dade517` |
-| **A** | `chip2.ldr` | 408,412 | `2bddaa05367887eb2a349cde7b3d5055` |
-| **A** | `chip1.sym.json` | 216,923 | `bc796228028f595636020b51d454590c` |
-| **A** | `chip2.sym.json` | 159,996 | `bf7f48d105a094738138a3f7375415cd` |
-| A | `chip1.dxe` | 894,932 | `d7fe6e162963583911d50ecbcb8b5465` |
-| A | `chip2.dxe` | 760,684 | `7c9b9581c22133552a2a6504707f94c3` |
+| **A** | `chip2.ldr` | 413,168 | **`e2de920d22edbbe76c1210a737abf6b7`** |
+| **A** | `chip1.sym.json` | 216,923 | (re-generated; see the note below) |
+| **A** | `chip2.sym.json` | 160,885 | (re-generated; see the note below) |
+| A | `chip1.dxe` | 894,932 | (not gated) |
+| A | `chip2.dxe` | 767,648 | (not gated) |
 | B | `chip1.ldr` | 426,464 | `6d7b86ec69778900ce63b9eb79c144ea` |
-| B | `chip2.ldr` | 450,008 | `e76d2dc8463292a2ba2f6b9172cb6be5` |
-| B | `chip2.sym.json` | 163,185 | `353a294505418f605a16bac3fd16e796` |
-| **C (S148)** | `chip1.ldr` | 433,508 | `c031613ac9a0a02e4c1d493bea19765d` |
-| **C (S148)** | `chip2.ldr` | 451,568 | `8674f98fdf2975b974c8fc83430c4240` |
-| **C (S148)** | `chip2.sym.json` | 163,700 | (re-generated; not md5-gated) |
-| **D (S148)** | `chip1.ldr` | 435,432 | `c9bf6659fd888626465932c3814adb5f` |
-| **D (S148)** | `chip2.ldr` | 450,496 | `edbdb100e7fb60b14e0e5285b156471c` |
-| D (S148) | `chip2.sym.json` | 163,259 | (re-generated; not md5-gated) |
+| **B** | `chip2.ldr` | 459,152 | **`0a460926f8a2c9088bc0bc509f30769e`** |
+| B | `chip2.sym.json` | 164,344 | (re-generated; see the note below) |
+| **C (S149)** | `chip1.ldr` | 433,508 | `c031613ac9a0a02e4c1d493bea19765d` |
+| **C (S149)** | `chip2.ldr` | 460,720 | **`0b63f4e044e00e4a7cbe7b2ff345c0b6`** |
+| **C (S149)** | `chip2.sym.json` | 164,859 | (re-generated; not md5-gated) |
+| **D (S149)** | `chip1.ldr` | 435,432 | `c9bf6659fd888626465932c3814adb5f` |
+| **D (S149)** | `chip2.ldr` | 459,648 | **`c1d9f5db83bad18b78c000178a49191b`** |
+| D (S149) | `chip2.sym.json` | 164,418 | (re-generated; not md5-gated) |
+
+Superseded chip-2 `.ldr` md5s (S146–S148, kept for history — do not build
+against them): A `2bddaa05367887eb2a349cde7b3d5055` (408,412 B), B
+`e76d2dc8463292a2ba2f6b9172cb6be5` (450,008 B), C
+`8674f98fdf2975b974c8fc83430c4240` (451,568 B), D
+`edbdb100e7fb60b14e0e5285b156471c` (450,496 B).
+
+🔴 **THE `.sym.json` MD5s ARE NOT REPRODUCIBLE AND NEVER WERE — S149-7.**
+Arm A's `chip1.ldr` reproduces byte for byte at S149, and its
+`chip1.sym.json` does **not**: `8896ddff…` against the `bc796228…` recorded
+at S146. Compared key by key against the symbol map of a chip-1 image known
+to be byte-identical, **6,398 symbols both ways, zero differing addresses** —
+the only difference is the numbering of the compiler's own internal
+`___ADI_AGL_CRT_SW_BRANCHRETURN_nnnnn` labels, which moves when the *other*
+chip's compilation-unit count changes. So the symbol map is materially the
+same map and its md5 is not a provenance check. **Nothing gates on it**
+(`build-images.sh` gates `.ldr` only) and nothing should start: gate the
+`.ldr`, regenerate the `.sym.json`. Recorded because this table used to
+present those md5s beside the `.ldr` ones as though they carried the same
+weight.
 
 Superseded (pre-S147 default, `DSP4_C2_BQ_GRAPH=0`, priced at S146 — kept for
 history, do not build against these):
@@ -273,19 +314,32 @@ today's `shipping.config` — arm B's triple, confirmed on this tree
 **Memory is exact** — read out of these images' own linker map files by
 `tools/dsp/dsp_memreport.py`, not carried from a prediction:
 
-**As of S147, chip 2's "arm A" column below is the FALLBACK figure and the
-"arm B" column is what ships.** Both are unchanged from S146 — the images did
-not move, only which one this window loads. **C and D's columns were
-re-measured at S148**, directly off the S148 rebuild's own `chip1.map.xml` /
-`chip2.map.xml` via `tools/dsp/dsp_memreport.py` — not carried from S146 or
-predicted.
+**UPDATED S149: every chip-2 column below is re-read off the S149 rebuild's
+own map files.** L1 (the mix fabric), L2 (the follower pairing) and the
+reverb cap all land on chip 2 and all default ON, so all four arms' chip-2
+figures moved; **no chip-1 figure moved at all.** Chip 2's "arm A" column is
+the FALLBACK figure and the "arm B" column is what ships.
 
-| pool | chip 1, arms A/B | chip 1, **C (S148)** | chip 1, **D (S148)** | chip 2, arm A (fallback) | chip 2, **arm B (ships)** | chip 2, **C (S148)** | chip 2, **D (S148)** | limit |
+| pool | chip 1, arms A/B | chip 1, **C** | chip 1, **D** | chip 2, arm A (fallback) | chip 2, **arm B (ships)** | chip 2, **C** | chip 2, **D** | limit |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|
-| code (VISA SW) | 181,490 — 69.2 % | 187,142 — **71.4 %** | 184,378 — **70.3 %** | 173,168 — 66.1 % | **186,382 — 71.1 %** | 187,862 — **71.7 %** | 186,454 — **71.1 %** | 262,144 B |
-| DM data + stack | 309,612 — 82.5 % | 311,004 — **82.9 %** | 315,692 — **84.1 %** | 299,884 — 79.9 % | **328,268 — 87.5 %** | 328,348 — **87.5 %** | 328,684 — **87.6 %** | 375,264 B |
+| code (VISA SW) | 181,490 — 69.2 % | 187,142 — **71.4 %** | 184,378 — **70.3 %** | **175,492 — 66.9 %** | **189,838 — 72.4 %** | **191,316 — 73.0 %** | **189,910 — 72.4 %** | 262,144 B |
+| DM data + stack | 309,612 — 82.5 % | 311,004 — **82.9 %** | 315,692 — **84.1 %** | **302,316 — 80.6 %** | **333,956 — 89.0 %** | **334,044 — 89.0 %** | **334,380 — 89.1 %** | 375,264 B |
 | delay lines | 506,880 — 24.5 % | 572,416 — **27.6 %** | 506,880 — **24.5 %** | 1,886,112 — 91.0 % | **1,886,112 — 91.0 %** | 1,886,112 — **91.0 %** | 1,886,112 — **91.0 %** | 2,072,576 B |
 | IVT (NW code) | 128 — 49.2 % | 128 — 49.2 % | 128 — 49.2 % | 128 — 49.2 % | — | — | — | 260 B (fixed) |
+
+Superseded chip-2 figures (S146–S148, before S149's three items): arm A
+173,168 code / 299,884 DM; **arm B 186,382 — 71.1 % code / 328,268 — 87.5 %
+DM**; C 187,862 / 328,348; D 186,454 / 328,684. Delay was 1,886,112 on every
+arm then and is 1,886,112 on every arm now — **S149's three items do not
+move one byte of delay pool.**
+
+**What S149 cost chip 2, itemised from these maps:** L1 +2,098 code /
++2,352 DM (the shared gather scratch, 23 sources × 16 words, plus fifteen
+source-pointer tables); L2 +1,134 code / +3,256 DM (the GEQ pair's
+interleaved arrays are 683 words, the AFB pair's 133); the reverb cap +224
+code / +80 DM. **The chip-2 DM pool is now at 89.0 %, one point under
+`dsp_memreport`'s 90 % warn line, 41,308 bytes free** — recorded as S149-5,
+because a third chip-2 cascade pair of GEQ size would cross it.
 
 (Arm B's own chip-1 figures are identical to arm A's — the flag is chip-2
 only — so "arms A/B" is one column for chip 1, per §2.2's build-cfg-word
@@ -314,18 +368,12 @@ This reproduces S144's table to the byte. `DSP4_C2_BQ_GRAPH` and
 C and D's re-priced figures. It is the first image that asks for 1,886,112
 of 2,072,576 bytes and that is bench row 12.
 
-**C and D's chip-2 code and DM cost, S148 vs the superseded S146 figures**
-(both took the `DSP4_C2_BQ_GRAPH` flip from `shipping.config`'s default, the
-same way B did over A): arm C code 174,650 → 187,862 B (66.6 → 71.7 %), DM
-299,964 → 328,348 B (79.9 → 87.5 %); arm D code 173,240 → 186,454 B (66.1 →
-71.1 %), DM 300,300 → 328,684 B (80.0 → 87.6 %). Both track arm B's own A→B
-delta (+13,214 code / +28,384 DM) closely, as expected — same flag, same
-chip.
-
-**Taking arm B costs chip 2 +13,214 bytes of code (66.1 → 71.1 %) and
-+28,384 bytes of DM (79.9 → 87.5 %), and this window takes it** — S147
-signed it. It fits, with 46,996 DM bytes to spare, and the number was made
-against exactly this signature.
+**Taking arm B over arm A costs chip 2 +14,346 bytes of code (66.9 →
+72.4 %) and +31,640 bytes of DM (80.6 → 89.0 %), and this window takes it**
+— S147 signed `DSP4_C2_BQ_GRAPH`. It fits, with 41,308 DM bytes to spare.
+(Before S149 the same delta read +13,214 code / +28,384 DM; L2's interleaved
+arrays are inside `DSP4_C2_BQ_PAIRED_GRAPH`, so part of S149's cost lands on
+arm B and not on arm A, which is why the A→B delta grew.)
 
 **SPI surface, exact**, from the landed map the window installs:
 
@@ -340,6 +388,18 @@ against exactly this signature.
 Node census for D24 after the four config words gate the superset
 (`tools/dsp/product_fit.py --census`): **544 nodes run, 180 gated off**, of
 724 in the graph.
+
+**UPDATED S149 — the constructed landing moves DOWN, and by more than the
+levers alone.** Three things changed the arithmetic: L1 (the chip-2 mix
+fabric) is worth **1.59 points unconditionally** and 9.29 more once the desk
+is in use; L2 (the follower pairing) **1.27 points**; and S149-3 found that
+S148's in-use column priced the generic wrapper at an AVERAGE rate as though
+it were a MARGINAL one, which made every "as built" in-use figure **3.30
+points** too expensive. Recomputed on S148's own measured baselines
+(`MW/D24/DSP/s149/s149-report.md` §3): **arm B idles at ≈74.8 % and the worst
+regime the product can be put into — three reverbs, PW's cap, with the desk
+fully in use — lands at ≈87.4 %**, against S148's 110.27 % for the uncapped
+equivalent. **It is still a construction and still bench row 3.**
 
 **Cycles are NOT re-measured here and cannot be.** The percentages in
 S142/S143/S144 are constructed — counted from emitted instructions — and
@@ -356,12 +416,16 @@ the row that decides whether this graph ships.
 
 Two cautions that belong next to that number:
 
-- **The reverb regime does not fit and is not expected to.** Six FX engines
-  at Type 3 is +16.44 measured points over the Echo default's +1.53, which
-  puts chip 2 at ≈ 106.6 % on arm A. Arm B is what bought that back
-  (~17.4 points) — that was the case FOR the S147 signature, and it is now
-  shipping; the reverb regime is still not this window's concern, but the
-  arm this window carries is the one that makes it fit.
+- **The six-reverb regime is no longer a regime — PW capped it at three
+  (S149).** `DSP4_FX_REVERB_CAP=3` is in the image this window loads, and the
+  guard holds a fourth Reverb rather than loading it, so six engines at
+  Type 3 cannot be reached however the host is driven. Six FX engines at
+  Type 3 was +16.44 measured points over the Echo default's +1.53 — ≈106.6 %
+  on arm A — and arm B bought ~17.4 points of that back; the cap removes the
+  top half of the case outright. **A consequence for the bench, recorded as
+  S149-4: the six-reverb capacity row can no longer be BUILT on a
+  shipping-configured tree** (it now produces three reverbs and three
+  Echoes). Take that row with `DSP4_FX_REVERB_CAP=0`.
 - **`tools/dsp/product_fit.py`'s own percentages are not this graph's.**
   Its anchors are S27/S80 measured rows, all from before S142, and its
   `CODE_USED_C1` / `CODE_USED_C2` constants (180,954 / 164,168) are 536 and
@@ -378,16 +442,21 @@ Off-target, desk-side, nothing loaded to any part:
 ```
 python3 tools/pi/dsp4_boot.py --dir MW/D32/DSP/SHARC/build_s146_bq1 --dry-run
   chip 1: chip1.ldr 426464 B -> 427008 B padded (417 x 1024), CS GPIO6,  RDY GPIO8
-  chip 2: chip2.ldr 450008 B -> 450560 B padded (440 x 1024), CS GPIO24, RDY GPIO12
+  chip 2: chip2.ldr 459152 B -> 459776 B padded (449 x 1024), CS GPIO24, RDY GPIO12
   reset: GPIO16 pulsed low, 0.500s settle
   (2 chip(s), 10000000 Hz, SPI mode 1, 2 attempt(s) per chip)
 ```
+
+(Re-run at S149 on the rebuilt arm B. Before S149 chip 2 was 450,008 B
+padding to 440 blocks; the three chip-2 items take it to 459,152 B and 449.)
 
 Both streams also passed `tools/dsp/ldr_stream.py check` on this tree —
 *"8 blocks, no mid-stream fill blocks"* on each — and the loader's entry
 address was verified at `0x90004` (the RSTI vector) from the elfloader log.
 Chip 1 pads identically to arm A (unaffected, as everywhere else); chip 2
-pads to 440 blocks instead of 399, the pairing's extra code and DM.
+pads to 449 blocks instead of 399, the pairing's and S149's extra code and
+DM. Both `ldr_stream.py check` runs are green again at S149 — *"8 blocks, no
+mid-stream fill blocks"* on each.
 
 Contract gates re-run this session (S146) and again at S147 on the arm swap,
 all green on the tree the images came from — none of these four are
@@ -395,7 +464,7 @@ per-arm, so the swap does not move them:
 
 | gate | result |
 |---|---|
-| `check-sharc-codegen-drift.sh` | 757 generated, **0 differ** |
+| `check-sharc-codegen-drift.sh` | **759** generated, **0 differ** (S149; 757 before) |
 | `tools/dsp/product_fit.py --check-masks` | every product's `CFG_MTX_MASK` equals the population of the matrix buses its own cells address — D24 `0x00000000` **OK** |
 | `landed-d24.json` vs `MW/D24/MX/_matrix.csv` | **3,800 cells checked, 0 mismatches** on `DspSpi`/`DspPage`/`DspAdd`/`DspAddHex` |
 | `landed_map.py --json` determinism | same md5 on two runs |
@@ -474,13 +543,14 @@ md5sum $B/chip1.ldr $B/chip2.ldr
 ```
 
 **GATE:** the two md5s must be `6d7b86ec69778900ce63b9eb79c144ea` and
-`e76d2dc8463292a2ba2f6b9172cb6be5`. If either differs, the tree is not the
+`0a460926f8a2c9088bc0bc509f30769e` (S149; the chip-2 value was
+`e76d2dc8463292a2ba2f6b9172cb6be5` before S149's three items). If either differs, the tree is not the
 tree this document priced — stop, do not "fix it forward". Confirm
 `git rev-parse HEAD` and the tree clean, and re-run
 `./check-sharc-codegen-drift.sh`.
 
-Do NOT pass `DSP4_C2_BQ_GRAPH`, `DSP4_RTA`, `DSP4_CUE` or `DSP4_TEST_NODES`
-on this command line. Arm B is `shipping.config` untouched, as of S147 —
+Do NOT pass `DSP4_C2_BQ_GRAPH`, `DSP4_C2_MIX_FABRIC`, `DSP4_FX_REVERB_CAP`,
+`DSP4_RTA`, `DSP4_CUE` or `DSP4_TEST_NODES` on this command line. Arm B is `shipping.config` untouched, as of S147 —
 `DSP4_C2_BQ_GRAPH=1` is now the signed default, not an override.
 
 **Rollback:** N/A — nothing has left the hub.
@@ -712,7 +782,9 @@ Run all of it before touching a cable. Each line is a gate, not a note.
    entirely.
 3. **The staged image is the image that was built.**
    `md5sum /home/app/ship_s146/chip1.ldr /home/app/ship_s146/chip2.ldr` →
-   `6d7b86ec…` / `e76d2dc8…`. The triple alone cannot do this job: S124
+   `6d7b86ec…` / `0a460926…`. The triple alone cannot do this job — and
+   since S149 it is the ONLY thing that can, because all three of S149's
+   switches ride the instrument bit and the shipping triple is unmoved: S124
    proved two graphs can share one set of flags, which is why the md5 is
    the check that matters.
 4. **The address map on the unit is the one the images were generated
@@ -760,6 +832,41 @@ Standing preconditions for all of them: arm B booted and verified per §6
 boot of the session, and held; the CPLD in its shipping personality
 `d02d83b3cc22` (a loopback personality is for digital-only work and will not
 carry these).
+
+**ADDED S149 — three rows that go in FRONT of these twelve, in the order
+that makes each next number worth taking.** They are capacity rows, they
+need no analog path, and each one turns a construction this tree is now
+several sessions deep in into a measurement.
+
+**0a. The BYPASS row — the term the whole in-use column is built on, and it
+has never been measured.** With the pair booted and idle, read the driven
+chip-2 figure with every `Fx*AuxOn` at its default of 0 (the S23 bypass
+firing on all eight aux buses), then open ONE FX return into ONE aux and
+read it again. *PASS criterion: none — this row exists to produce a number.*
+It measures S148-1's 2,112 c/blk per node directly, and with it S149's whole
+per-crosspoint rate table (`MW/D24/DSP/s149/s149-report.md` §1.3) stops being
+an instruction count and becomes a calibration. **Take this before row 3**:
+row 3 measures the regime the levers help least, and on its own it cannot
+tell a good in-use construction from a bad one.
+
+**0b. The FABRIC's own before/after, on one driven row.** Same measurement
+as 0a with every aux fully patched, taken on arm B and then on an arm built
+`DSP4_C2_MIX_FABRIC=0` (the control, which reproduces the pre-S149 image on
+chip 2 byte for byte). *PASS:* the two agree on the audio (they are
+bit-exact by construction — `tools/dsp/c2_mix_fabric_ref.py` — so a
+difference is a defect, not a tolerance) and the fabric arm is lower by
+about the counted 8,696 instructions a block. **This is the only row that
+prices L1 rather than modelling it.**
+
+**0c. The reverb cap, at the cap.** Put four engines on Type Reverb over
+SPI, read back `Fx*Type` (must be what was written — the guard never
+rewrites it) and the live type (`_fx_type_live_*`, by symbol). *PASS:* three
+engines run Reverb, the fourth runs whatever it was running, chip-2 capacity
+sits at the three-reverb figure and not the four-reverb one, and moving one
+of the three off Reverb grants the held one **within one block**. Then the
+same with six requested. **Note S149-4: the six-reverb capacity row itself
+now needs `DSP4_FX_REVERB_CAP=0`** — on a shipping arm it will quietly
+measure three.
 
 **1. The MAIN L/R split.** Tone into one strip, `Chan{n}Pan` hard left, then
 hard right, capture both MAIN XLRs — **J57 = MAIN R = DAC_11
@@ -858,8 +965,9 @@ the host is unruled (S144-5); this row measures the DSP half either way.*
 and had gone stale against the signed default; S148 rebuilt it (twice,
 byte-identical both times) and re-priced it off its own map files. Use the
 CURRENT pair, chip1 `c9bf6659fd888626465932c3814adb5f` / chip2
-`edbdb100e7fb60b14e0e5285b156471c` (§2.2) — NOT the superseded
-`a026897f…` / `ebf2fea4…` pair this row was originally written against.
+**`c1d9f5db83bad18b78c000178a49191b`** (§2.2, re-recorded at S149) — NOT the
+superseded `edbdb100…` (S148) or `a026897f…` / `ebf2fea4…` (S146) pairs this
+row was written against.
 Assign the cue to Main, provoke a deliberate acoustic ring through the
 monitor speaker, read `_rta_ring` back.
 *PASS:* the saturating count pegs on the ringing band (cap 2,047 blocks =
@@ -886,14 +994,29 @@ nothing below it means anything.*
 
 ### 8.1 Capacity — the only real one
 
-**UPDATED S147.** Arm A landed at a **constructed** ≈ 91.7 % against a
+**UPDATED S149.** Arm A landed at a **constructed** ≈ 91.7 % against a
 boot-to-boot spread of 0.53 points; arm B — this window's image — is
-constructed ≈ 17 points lower (§2.3), on a graph where no cycle figure for
-either arm has ever been measured. If bench row 3 comes back above ~97 % on
-the Echo default, or shows any missed block, **abort the window** (§5) and
-take it back to the desk. Do not reach for arm A at the bench to dodge a
-capacity problem: `DSP4_C2_BQ_GRAPH` is now a signed default, not a rescue
-lever, and an abort here is a desk decision, not a bench one.
+constructed **≈ 74.8 % on the Echo default** after S149's two levers and its
+correction to S148's in-use arithmetic (§2.3, and
+`MW/D24/DSP/s149/s149-report.md` §3). **No cycle figure for either arm has
+ever been measured on a part**, and that has not changed: every number in
+that chain is a construction on S86's driven row.
+
+If bench row 3 comes back above ~97 % on the Echo default, or shows any
+missed block, **abort the window** (§5) and take it back to the desk. Do not
+reach for arm A at the bench to dodge a capacity problem:
+`DSP4_C2_BQ_GRAPH` is a signed default, not a rescue lever, and an abort
+here is a desk decision, not a bench one.
+
+**Two things to know before reading row 3's number.** (a) Row 3 measures the
+Echo default with nothing switched on, which is the regime the levers help
+LEAST in — L1's 9.29 points are all in the in-use column and only its 1.59
+unconditional points show on an idle desk. **A row-3 number close to the
+construction does not validate the in-use column**; the bypass row (§7's new
+first row) is what does. (b) The three S149 switches are **not carried by any
+config word**, so a part cannot tell you whether it is running them — the
+shipping triple is identical either way. The `.ldr` md5 (§6 gate 3) is the
+only check that can.
 
 ### 8.2 The automated factory self-test set stops working on this pair
 
@@ -915,7 +1038,9 @@ This is a consequence, not a defect, and it has a clean handling:
   S148 rebuilt arm C (twice, byte-identical both times) against today's
   signed `shipping.config` and read back chip1
   `c031613ac9a0a02e4c1d493bea19765d` / chip2
-  `8674f98fdf2975b974c8fc83430c4240` — chip 1 is confirmed **NOT**
+  `8674f98fdf2975b974c8fc83430c4240`, re-recorded at S149 as chip2
+  **`0b63f4e044e00e4a7cbe7b2ff345c0b6`** with chip 1 still unmoved — chip 1
+  is confirmed **NOT**
   `7f226919…` any more; the build-config word stamp moved with
   `DSP4_C2_BQ_GRAPH`, same mechanism as arms A/B. Re-establishing v3 needs
   `FACTORY_TEST_*` in `d24_selftest.py` and `factory_test_image` in
@@ -1016,7 +1141,9 @@ not asked.
    reproduce (S147-1). S148 (2026-09-29) rebuilt arm C twice against today's
    signed `shipping.config` (byte-identical both times: chip1
    `c031613ac9a0a02e4c1d493bea19765d`, chip2
-   `8674f98fdf2975b974c8fc83430c4240`) and re-priced it off its own map
+   `8674f98fdf2975b974c8fc83430c4240`; S149's three chip-2 items then moved
+   chip 2 again, to `0b63f4e044e00e4a7cbe7b2ff345c0b6`, with chip 1 still
+   unmoved) and re-priced it off its own map
    files (§2.3) — confirming, not just flagging, that chip 1 no longer
    matches factory-test-v2's `7f226919…`. `build-images.sh` and this runbook
    now carry the new md5s. Adopting v3 still means editing a signed record

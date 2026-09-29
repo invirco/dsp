@@ -321,6 +321,10 @@ def _regimes():
     for nid, real, model, err in _anchor_check():
         print(f'    {nid:14s} counted {real:6d}   model {model:6d}   '
               f'{err:+5.1f} %')
+    print('    (C2_WOOF_MIX is TWO sources, where the fixed term is most of')
+    print('     the cost and a linear model has nothing to fit. The model is')
+    print('     used only for the 21-source extrapolation above, which sits')
+    print('     between the two anchors it does reproduce.)')
 
 
 if __name__ == '__main__':

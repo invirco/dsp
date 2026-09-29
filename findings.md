@@ -6,6 +6,151 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE CAPACITY LEVERS PW APPROVED, BUILT AND PRICED (2026-09-29, session 149)
+
+Hub dispatch `tasks.md` 2026-09-29 11:00Z. Desk only — nothing flashed, no
+DSP load, no deploy, the unit not contacted at all. Report
+`MW/D24/DSP/s149/s149-report.md`.
+
+PW's rulings on S148: *"Yes, both"* (L1 the fabric, L2 the follower pairing)
+and *"cap reverbs to 3"*. All three are built, each committed on its own and
+measured on its own. **L1 is worth 9.29 points in the in-use regimes plus
+1.59 unconditionally; L2 1.27; the cap 7.45.** With all three, the worst
+regime the product can be put into — three reverbs and the desk fully in use
+— lands at **87.37 %** against a ~97 % abort line, where S148 had the
+uncapped equivalent at 110.27 %.
+
+### S149-1 — the chip-2 mix bus readout has no 80-bit saturation test, and a mix bus is exactly the caller that needs one
+
+**Severity: LOW in practice, HIGH in kind — it is review finding D1's shape,
+still standing on chip 2. Pre-existing; lever L1 reproduces it bit for bit
+BY DESIGN, because a bit-exact lever must.**
+
+`_mrf_rns28` (src/lib/mac64_fx.asm) asks saturation test (a) only — "bits
+63..59 are the sign of y" — and deliberately not test (b), the 80-bit one
+`_acc64_rns28` carries. Its own comment states the licence: *"its callers MAC
+a single Q4.28 x Q4.28 product, |x*g| <= 64.0 = 2^62, so the value is inside
+the 64-bit domain by construction"*. **A chip-2 MIX_BUS MACs up to
+TWENTY-THREE of them and is therefore not inside that domain.** Past
+|acc| = 2^63 — a bus sum past ±128.0, which needs about seventeen
+simultaneously-clipping sources at unity — the readout WRAPS where
+`_acc64_rns28` and `fixed_ref.mix_sum` saturate, and a wrapped sum is a
+clean, full-scale, wrong-sign sample: exactly the defect D1 fixed on chip 1's
+bus accumulators.
+
+Found by `tools/dsp/c2_mix_fabric_ref.py`, which fuzzes the emitted path
+against the normative model: **5 words in 64,000 fall outside the domain and
+disagree with `fixed_ref.mix_sum`** — on both the wrapper path and the fabric
+path identically, which is what says it is pre-existing and not introduced.
+
+Reaching it on a real desk needs seventeen sources at full scale into one
+bus, so this is not a bug anybody has heard. The fix is the four instructions
+test (b) costs, per sample per bus, and **it is an AUDIO CHANGE** — it turns a
+wrap into a saturate — so it is PW's to rule and was not taken here.
+
+### S149-2 — `C2_MAIN_XOVER` cannot be paired by the follower lever, and S148's L2 price is 2,691 c/blk too high
+
+S148 §8 priced lever L2 at ≈2.09 points over three pairs: `C2_MAIN_GEQ`+`_R`
+(3,057 c/blk), `C2_MAIN_XOVER`+`_R` (2,691) and `C2_MAIN_AFB`+`_R` (1,095).
+The first and third are built and paired. The crossover is not, and it is not
+a matter of effort: the native interleave needs a node whose cascade is ONE
+`_<pfx>_coeffs_A_<nid>` / `_<pfx>_state_A_<nid>` pair of a stated length, and
+`gen_crossover_fixed` emits an LP leg and an HP leg and calls
+`_bq_fx_cascade_N` **eight times** per instance. There is no single
+coefficient array to interleave, and `_C2_BQ_STAGES` has no entry for the
+class for exactly that reason — its own rule being that *a cascade whose
+length this table cannot state is left scalar rather than paired at a guessed
+length*.
+
+**L2 as built is worth 4,152 c/blk = 1.27 points, not 2.09.** Pairing the
+crossover is a new driver shape and a session of its own.
+
+### S149-3 — S148 §6.2 uses a 192 c/blk AVERAGE as a MARGINAL, and its whole "as built" in-use column is 3.30 points too expensive
+
+**Severity: MEDIUM, and it goes the HELPFUL way — every regime S148 called
+too expensive is less expensive than it said.**
+
+S23-5 measured the generic wrapper at 2,112 cycles/block for an
+eleven-source aux bus, i.e. 192 a source. That figure contains the node's
+FIXED cost — the ramp fold, the wrapper prologue, the per-sample call and
+return, the MRF clear and the readout — spread across eleven sources. S148
+then applied it per source to a **thirty-three**-source bus, where the fixed
+term is spread three times thinner.
+
+Counted off the emitted assembly (`tools/dsp/c2_mix_cost.py`, new), a chip-2
+mix bus is `~700 instructions fixed + 150 per declared switched source + 195
+per declared plain source`, which reproduces `C2_MIX_AUX_01` to 1 instruction
+in 2,394 and `C2_MIX_MAIN_L` to 17 in 5,202. At eleven sources the average IS
+192 cycles; at thirty-three it is not.
+
+Consequences, all in the S149 report §3: the in-use adder goes 57,906 →
+47,084 c/blk (17.67 → 14.37 points); **R3 as built 95.36 → 92.06 %** and **R4
+as built 110.27 → 106.97 %**; and **L1 is worth 9.29 points, not 12.47**, for
+the same reason read the other way — three of the missing points were never
+there to save. S148's *fabric* column needs no correction worth having: its
+15,574 c/blk against this session's counted 15,183 is 0.12 points apart,
+because the fabric's per-crosspoint rate really is what S148 assumed (74
+cycles/block counted against 84.6 assumed — better, not worse).
+
+### S149-4 — the six-reverb capacity row can no longer be built on a shipping-configured tree
+
+With `DSP4_FX_REVERB_CAP=3` in the image, `DSP4_FX_TYPE_DECLARED=1` plus six
+engines declared `type=Reverb` now produces **three** reverbs and three
+Echoes: the guard grants on the first block and the live type boots at Echo.
+That is the cap working. It also means S148's R2 and R4 rows are
+`DSP4_FX_REVERB_CAP=0` measurements from now on, and a capacity row taken on
+the shipping arm expecting six reverbs would quietly measure three. Recorded
+here and in the S149 bench list so the next one is taken on the arm that can
+produce it.
+
+### S149-5 — chip 2's DM pool is at 89.0 %, one point under the warn line
+
+Measured from the built images' own linker maps: chip 2's DM goes 87.5 %
+(the signed arm B) → 88.1 % with L1 → 89.0 % with L1 + L2 → 89.0 % with the
+cap as well, 41,308 bytes free against `dsp_memreport`'s 90 % warn. L2's
++3,256 bytes is the whole of the move and it is accounted for to the word
+(the GEQ pair's interleaved arrays are 683 words, the AFB pair's 133).
+
+**A third chip-2 cascade pair of GEQ size would cross the line.** That is not
+a reason to refuse one; it is a reason for it to be said out loud now rather
+than discovered at link time. The delay pool is unmoved at 91.0 % by all
+three items — not one byte.
+
+### S149-6 — `stereo_split_check.py` reads the emitted ASM as text, and a chip-2 mix node now carries two arms
+
+Both the fabric arm and the generic-wrapper arm are in the same node file, so
+gate A's *"declared input edges read by the emitted code"* is satisfied by
+whichever arm names a source — it cannot tell which arm the image will build.
+The fabric arm does name the same sources in the same order, and cannot do
+otherwise (`_mixsp_<nid>` and the wrapper's staging are generated from the
+same `node['inputs']` list), but **the gate did not prove that** and the
+report says so rather than claiming the pass covers it. Closing it properly
+means teaching the checker the preprocessor arms, which is the same job the
+next flag will need.
+
+### S149-7 — the `.sym.json` md5s are not reproducible and never were
+
+Found while re-recording the S146 runbook's artefact table. Arm A's
+`chip1.ldr` reproduces **byte for byte** at S149 and its `chip1.sym.json`
+does **not**: `8896ddff…` against the `bc796228…` S146 recorded beside it.
+
+Compared key by key against the symbol map of a chip-1 image known to be
+byte-identical: **6,398 symbols both ways, ZERO differing addresses.** The
+only difference is the numbering of the compiler's own internal
+`___ADI_AGL_CRT_SW_BRANCHRETURN_nnnnn` labels, which moves when the *other*
+chip's compilation-unit count changes — so a chip-2-only change renames
+chip 1's internal labels without moving one instruction.
+
+**Nothing gates on those md5s** — `build-images.sh` gates `.ldr` only — and
+nothing should start: gate the `.ldr`, regenerate the `.sym.json`. Recorded
+because the runbook's §2.2 table used to present the two md5s side by side as
+though they carried the same weight, and because a future session gating a
+symbol map on its md5 would get a failure with no defect behind it. (It also
+matters the other way: the stale-symbol-map trap is real — a wrong map peeks
+as plausible zeros — so the check that a symdir is the RIGHT one has to be
+the `.ldr` it was generated from, not the map's own hash.)
+
+
 ## THE FULL-CELL FIT: WILL TWO ADSP-21564s CARRY EVERY D24 CELL? (2026-09-29, session 148)
 
 Hub dispatch `tasks.md` 2026-09-29 09:38Z. Desk only — nothing flashed, no
