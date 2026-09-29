@@ -2254,20 +2254,43 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                 break
         if pending['paused']:
             raise Paused()
+        # YES / NO ON THE FACTORY GLASS (PW 2026-09-29: "add yes/no buttons
+        # too"). Under a factory run the live screen owns the glass and a
+        # dialog would sit hidden under it, so the question goes on the live
+        # screen with YES / NO / PAUSE and both channels are polled -- the
+        # live screen's command and the dialog's answer -- whichever the bench
+        # has. Without a live screen it is the plain dialog, as before.
+        def ask_yn(kind, title, lines, buttons, **extra):
+            if live is None:
+                return glass.ask(kind, title, lines, buttons, **extra)
+            live.set(state=LV.WAITING, instruction=' '.join(lines),
+                     lead_line='', extra='', banner='', banner_line='',
+                     action='', buttons=list(LV.YESNO_BUTTONS))
+            btns = glass.post(kind, title, lines, buttons, **extra)
+            while True:
+                live.beat()
+                cmd = live.command()
+                if cmd in ('yes', 'no', 'pause'):
+                    ans = dict(button=cmd, reason='the factory screen')
+                    break
+                ans = glass.poll(btns)
+                if ans is not None:
+                    break
+                time.sleep(ANSWER_POLL_S)
+            glass.taken(ans)
+            # The question is answered: take it off the glass, so its words do
+            # not stand over the next step's buttons.
+            live.set(state=LV.WAITING, instruction='',
+                     buttons=list(LV.PANEL_BUTTONS))
+            return ans
+
         # The indicators that no write can move: they are lit whenever the unit
         # is on, so one question grades them all.
         if 'always_on' in extra:
             nums, what = extra['always_on']
             owed_ao = [n for n in nums if n in owed]
-            if owed_ao and live is not None:
-                why = LV.panel_judgement_missed('The always-lit rings')
-                glass.progress(why)
-                live.set(extra=why)
-                for n in owed_ao:
-                    land(n, NODATA, why, operator=False)
-                owed_ao = []
             if owed_ao:
-                ans = glass.ask('instruct', 'Panel loop - the always-lit rings',
+                ans = ask_yn('instruct', 'Panel loop - the always-lit rings',
                                 ['Two indicators are lit whenever the unit is '
                                  'on and nothing can switch them off.',
                                  'Look at %s.' % what,
@@ -2289,14 +2312,9 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                                                    a.panel_timeout,
                                                    live=live,
                                                    panel=panel_name)))
-            if led_row in owed and live is not None:
-                why = LV.panel_judgement_missed('The ring around the encoder')
-                glass.progress(why)
-                live.set(extra=why)
-                land(led_row, NODATA, why, operator=False)
-            elif led_row in owed:
+            if led_row in owed:
                 PL.encoder_leds(bus)
-                ans = glass.ask('instruct', 'Panel loop - the encoder ring',
+                ans = ask_yn('instruct', 'Panel loop - the encoder ring',
                                 ['The eight indicators around the encoder have '
                                  'just been stepped round twice.',
                                  'Did all eight light in turn?'],

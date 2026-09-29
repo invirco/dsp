@@ -784,6 +784,12 @@ PANEL_BUTTONS = ['notlit', 'pause']
 # stopped.
 NOSIGNAL_BUTTONS = ['nosignal', 'pause']
 
+# YES / NO (PW 2026-09-29): the panel loop's two judgements -- the always-lit
+# rings and the encoder ring -- asked on the factory glass rather than recorded
+# as not measured. See `panel_judgement_missed`, which no longer has a caller
+# in a factory run.
+YESNO_BUTTONS = ['yes', 'no', 'pause']
+
 
 # The buttons on the glass, per state. The screen draws what it is given and
 # owns no rule about when a button exists: PW's ENTER is only offered where
@@ -985,5 +991,7 @@ class Live:
         # because `Live.command` is the ONLY channel the glass has -- a button
         # the screen draws and this method drops is a dead button, which is the
         # class of fault S137 found on the panel loop.
-        return (cmd if cmd in ('pause', 'enter', 'exit', 'notlit', 'nosignal')
+        # 'yes' / 'no' (PW 2026-09-29): the panel loop's judgements.
+        return (cmd if cmd in ('pause', 'enter', 'exit', 'notlit', 'nosignal',
+                               'yes', 'no')
                 else None)

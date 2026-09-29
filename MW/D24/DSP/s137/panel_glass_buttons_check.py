@@ -38,12 +38,26 @@ WANTS_KEY_PROMPT = ('press the button', 'press the lit button', 'find the light'
 def record_every_screen(LV):
     out = []
     original = LV.Live._flush
+    original_cmd = LV.Live.command
 
     def flush(self):
         original(self)
         out.append(dict(self.d))
+
+    # THE YES / NO SCREENS (PW 2026-09-29) are answered here: the desk has no
+    # operator, and until that ruling those two judgements were recorded as
+    # not measured under a live screen instead of being asked.
+    def command(self):
+        if list(self.d.get('buttons') or []) == list(LV.YESNO_BUTTONS):
+            return 'yes'
+        return original_cmd(self)
     LV.Live._flush = flush
-    return out, (lambda: setattr(LV.Live, '_flush', original))
+    LV.Live.command = command
+
+    def unhook():
+        LV.Live._flush = original
+        LV.Live.command = original_cmd
+    return out, unhook
 
 
 def main():
@@ -59,6 +73,7 @@ def main():
     bad_no_notlit = []
     bad_no_prompt = []
     bad_has_enter = []
+    yesno_screens = []
     total_screens = 0
     for st, script in SCRIPTS.items():
         live = LV.Live(os.path.join(tmp, 'runall'), run='panel', total=1,
@@ -89,6 +104,9 @@ def main():
             is_encoder = 'turn the encoder' in instr.lower()
             if 'enter' in btns:
                 bad_has_enter.append((st, instr, btns))
+            if btns == list(LV.YESNO_BUTTONS):
+                yesno_screens.append((st, instr))
+                continue        # a judgement: YES / NO / PAUSE, not NOT LIT
             if is_encoder:
                 # The ring-turn step has no lit/dark judgement to make, so
                 # NOT LIT is not offered for it -- only that ENTER stays dead.
@@ -102,6 +120,13 @@ def main():
 
     print('\n%d panel-step screens checked (both boards).' % total_screens)
     ok = True
+    print('%d yes/no judgement screen(s) asked on the glass:' % len(yesno_screens))
+    for st, instr in yesno_screens:
+        print('   [%s] %s' % (st, instr[:90]))
+    if not yesno_screens:
+        ok = False
+        print('\nFAIL: no yes/no screen was asked -- the always-lit rings and '
+              'the encoder ring went unasked again.')
     if bad_no_notlit:
         ok = False
         print('\nFAIL: %d screen(s) with no NOT LIT button:' % len(bad_no_notlit))
