@@ -212,9 +212,10 @@ SHIPPING2 = {
     # 0.03934 dB.
     'DSP4_DYN_LUT': 1,
     'DSP4_GATE_LINTHR': 1,
-    # NOT signed and not moved: PW has not ruled on chip 2's paired aux and
-    # main biquads, and DSP4_DYN_TABLES is incompatible with the pairing.
-    'DSP4_C2_BQ_GRAPH': 0,
+    # SIGNED S147 (PW, 2026-09-29, "sign BQ_GRAPH"): chip 2's paired aux and
+    # main biquads ship. DSP4_DYN_TABLES stays incompatible with the pairing
+    # and stays 0 regardless.
+    'DSP4_C2_BQ_GRAPH': 1,
     'DSP4_BQ_SIMD_PIPE': 0,
     'DSP4_SHARED_KERNELS': 15,
 }

@@ -4,8 +4,8 @@
  "dsp": {
   "build_cfg": [
    "0xCF45FF10",
-   "0xE2018E6F",
-   "0xC47C0F26"
+   "0xE2019E6F",
+   "0xC47C0FA6"
   ],
   "numeric_bounds_db": {
    "comp_numeric_max_db": 0.095,

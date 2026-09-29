@@ -6,6 +6,41 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## SIGNING `DSP4_C2_BQ_GRAPH` INTO `SHIPPING.CONFIG` (2026-09-29, session 147)
+
+Hub dispatch `tasks.md` 2026-09-29 08:37Z, PW's signature ("sign BQ_GRAPH").
+No flash, no DSP load, no deploy, no write of any kind to any unit — a
+config-file and bookkeeping change only, verified desk-side.
+
+**Outcome.** `DSP4_C2_BQ_GRAPH=1` is now `shipping.config`'s own default
+(signed, dated, next to the value); the shipping build (no override)
+reproduces S146's arm B byte for byte — chip1
+`6d7b86ec69778900ce63b9eb79c144ea`, chip2
+`e76d2dc8463292a2ba2f6b9172cb6be5`, triple `0xCF45FF10 / 0xE2019E6F /
+0xC47C0FA6` — confirmed by rebuild, not assumed. `check-sharc-codegen-drift.sh`
+757/0; `golden_harness.py` 59/59; `dsp_validate.py` OK on 724 nodes (D32
+tree), same four pre-existing process-order notes; `test_dsp_validate.py`
+20/20. `MW/D24/DSP/s146/switch-runbook.md` and `build-images.sh` are updated
+so arm B is documented as the window's image and arm A as the fallback/
+rollback arm, still staged and gated. **S146-3 CLOSED**: the accept
+manifest's `dsp.build_cfg` and `d24_selftest.py`'s `SIGNED_TRIPLE` are both
+corrected to `0xCF45FF10 / 0xE2019E6F / 0xC47C0FA6` and proved to match
+`cfg_words.py`'s independent computation from `shipping.config`, desk-side.
+
+**S147-1 — arms C and D are not re-priced against the signed configuration,
+and their S146 md5s no longer reproduce.** Neither `build_s146_tn`
+(`DSP4_TEST_NODES=1`) nor `build_s146_rta` (`DSP4_RTA=1 DSP4_CUE=1`) ever
+named `DSP4_C2_BQ_GRAPH` on its own build line, so both took it from
+`shipping.config`'s default — 0 at S146, 1 now — and a rebuild today produces
+a different image from the one S146 priced on both chips (arm C: chip1
+`c031613ac9a0a02e4c1d493bea19765d`, chip2 `8674f98fdf2975b974c8fc83430c4240`;
+arm D: chip1 `c9bf6659fd888626465932c3814adb5f`, chip2
+`edbdb100e7fb60b14e0e5285b156471c`). Arm C's chip 1 was previously
+byte-identical to factory-test-v2's — that identity is now broken, so the
+S131 stale-source proof it stood as needs re-establishing on a fresh build.
+Neither arm is used by this session; both need a rebuild and a re-price
+before arm C (factory-test-v3) or arm D (bench row 11) is next reached for.
+
 ## PREPARING THE WHOLE-SWITCH WINDOW FOR THE S142–S145 GRAPH (2026-09-28, session 146)
 
 Hub dispatch `tasks.md` 2026-09-28 19:31Z. Runbook

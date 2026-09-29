@@ -144,7 +144,10 @@ KNOWN_IMAGE = [((g & 63) << 2) | 1 for g in range(1, 25)] + [0x00]
 #   leaves behind -- is gain 63 phantom off UNMUTED, and is never written here.
 
 SHIPPING_CPLD = 'd02d83b3cc22'
-SIGNED_TRIPLE = ('0xCF45FF10', '0xE2018E6F', '0xC47C0F26')   # the S82-signed pair
+SIGNED_TRIPLE = ('0xCF45FF10', '0xE2019E6F', '0xC47C0FA6')   # S147-signed pair
+# (was S82's ('0xCF45FF10', '0xE2018E6F', '0xC47C0F26'); word 3 bit 7 --
+# DSP4_TX_DEFER, 0 -> 2 for the DAC fold fix -- was already stale (S146-3)
+# before word 2 bit 12 moved for DSP4_C2_BQ_GRAPH=1, PW, 2026-09-29.)
 
 # THE FACTORY-TEST IMAGE (PW ruling, S116 Q3): the DSP4_TEST_NODES=1 pair this
 # whole automated set runs on -- AL1 and AS-DAC need TEST_OSC, and S113 §4

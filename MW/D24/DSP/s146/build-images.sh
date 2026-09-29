@@ -6,12 +6,19 @@
 # That is only safe if "reproduces" means BYTE-IDENTICAL, so this script
 # refuses to leave an arm in place whose md5 is not the one S146 priced.
 #
-# Arm A is the only arm the S146 window loads. B, C and D are built so that
-# the decisions that need them (PW's DSP4_C2_BQ_GRAPH signature, a
-# factory-test-v3, bench row 11) cost no rebuild.
+# Arm A and arm B are fixed BYTE-CONTENT identities (S146), not "shipping.
+# config as it stands" -- A is the DSP4_C2_BQ_GRAPH=0 image, B is the
+# DSP4_C2_BQ_GRAPH=1 image. Which one needs the env override moves with
+# shipping.config's own default, and it just did: S147 (PW, 2026-09-29,
+# "sign BQ_GRAPH") landed DSP4_C2_BQ_GRAPH=1 IN shipping.config, so B is now
+# what shipping.config builds unadorned and A now needs the explicit
+# DSP4_C2_BQ_GRAPH=0 override to reproduce -- the two rows' flags swapped
+# accordingly, their recorded md5s did not. B ships (switch-runbook.md); A
+# is kept as the fallback/rollback arm, still staged. C and D still cost no
+# rebuild for the decisions that need them (factory-test-v3, bench row 11).
 #
 #   ./build-images.sh            # all four arms, each gated
-#   ./build-images.sh A          # just the shipping arm
+#   ./build-images.sh B          # just the shipping arm
 #
 # Provenance this was priced at (MW/D24/DSP/s146/switch-runbook.md §2.2):
 #   git HEAD                24cb19ff2944f8a63de2d7104d1951656aa08f6d
@@ -25,8 +32,8 @@ SHARC="$ROOT/MW/D32/DSP/SHARC"
 
 # arm | build dir suffix | extra build flags | chip1.ldr md5 | chip2.ldr md5
 ARMS=(
-"A|bq0|                                  |1be74e042cff134c7085dfb08dade517|2bddaa05367887eb2a349cde7b3d5055"
-"B|bq1|DSP4_C2_BQ_GRAPH=1                |6d7b86ec69778900ce63b9eb79c144ea|e76d2dc8463292a2ba2f6b9172cb6be5"
+"A|bq0|DSP4_C2_BQ_GRAPH=0                |1be74e042cff134c7085dfb08dade517|2bddaa05367887eb2a349cde7b3d5055"
+"B|bq1|                                  |6d7b86ec69778900ce63b9eb79c144ea|e76d2dc8463292a2ba2f6b9172cb6be5"
 "C|tn |DSP4_TEST_NODES=1                 |7f226919a5d181410c3804d92678da19|d97645bfb800290b8f998924d939361c"
 "D|rta|DSP4_RTA=1 DSP4_CUE=1             |a026897ff6fd33654733f85c077599d6|ebf2fea4cca2f740cd560b1155134cc3"
 )
