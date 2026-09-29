@@ -1,6 +1,15 @@
 ## HUB DISPATCH 2026-09-29 16:52Z — S151: NO FLASH — PW: "MAIN R output never seems to be active … check signal routing, and MAIN C also"   [status: 🟡 in progress — desk-only analysis of the s122 pair started 2026-09-29]   [model: opus]
 
 model: opus
+> **HUB ADDENDUM 17:04Z — PW: "go" (2026-09-29 18:04 BST). THE FLASH IS AUTHORISED, ON CONDITIONS.** PW has left the bench (unit on,
+> no leads patched, factory run stopped by the hub, d24-testui up). Once items 1–2 PROVE the cause and the pair that fixes MAIN R and
+> MAIN C: switch MW-D24-2 to it yourself — the WHOLE generation together if it moves (app + matrix pack + DSP pair + registry, S131
+> style, PW's 09-08 rule; the hub will build/deploy the app from mx26 main on request — put the request in the block and stop for it
+> rather than building the app yourself). Before anything is written: save the running images + pack + `pair.conf` for rollback and
+> record their md5s; after: readback-verify every image, run self-test sections B,C (no leads needed), and leave AN_EN low and
+> matrix-app as it was (inactive; d24-testui up). If the cause is NOT proven, or the switch needs anything beyond this, do not flash:
+> 🔴 note and stop. Nothing audio-wise can be proved without PW's leads — say what PW should hear on MAIN R / MAIN C next session.
+
 # S151 — why MAIN R (and MAIN C) are dead on MW-D24-2, proved from the images; a flashable pair ready for PW's go
 
 PW at the bench (factory RUN ALL, 2026-09-29 ~17:50 BST): MAIN R never shows signal; MAIN C also. Evidence from `/home/app/selftest/factory.log` on the unit (latest RUN ALL, started 16:40:55Z):

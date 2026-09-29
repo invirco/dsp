@@ -317,47 +317,64 @@ def load_ports():
 # AUX_DAC / MAIN_OUT_DAC tables are what the firmware actually emits. The two
 # agree, and together they say something this station has to act on:
 #
-#   THREE REAR SOCKETS HAVE NO HOST-REACHABLE SOURCE ON A D24.
-#   * PHONES L / PHONES R (analog J10, DAC_09/10) are C2_AUX_OUT_09/10 --
-#     aux buses 9 and 10. D24 declares Aux001..Aux008 and no more, so no cell
-#     exists to open them.
-#   * Centre/LF Out (analog J55, DAC_14) is C2_AUX_OUT_12 -- aux bus 12, the
-#     same story.
-#   The candidate doc says it plainly at its §148-154: "the headphones
-#   (DAC_09/10) have no DSP source node at all" and the Centre/LF XLR is a
-#   PARK for aux 12, not a design. This station therefore cannot drive those
-#   three sockets, and says so by name instead of generating a patch that
-#   would fail for a reason that is not the unit's fault.
+#   THE OUTPUT MAP MOVED WITH THE S143/S144 GRAPH (factory-test-v3, S151).
+#   Everything below was true of the pre-S143 pair and is no longer true of
+#   the pair this list runs on. The three rear sockets that had no
+#   host-reachable source have one now, and two of them are different
+#   sockets from the ones the old list drove:
 #
-#   MONITOR L / MONITOR R ARE THE CROSSOVER'S 3rd AND 4th OUTPUTS.
-#   Analog J53/J54 are DAC_15/16 = C2_MAIN_OUT_03/04, whose cells are named
-#   MainCtr001* and MainSub001*. So the rear monitor jacks are fed by the main
-#   crossover's CENTRE and SUB legs, not by the monitor bus (C2_MON_OUT goes
-#   to the codec and the panel speaker, which is a different thing entirely --
-#   S102 found the same and left the question open). Two consequences the list
-#   has to carry: the crossover is set wide and shallow for the station, and
-#   MONITOR R -- the SUB leg -- is tested at a LOW frequency, because a
-#   crossover exists precisely to stop 1 kHz reaching it.
+#   * MAIN R (J57, DAC_11) carries the RIGHT bus. Until S143 the chip-2
+#     main chain was mono from the master fader onward -- C2_MAIN_FDR read
+#     `_blk_C2_MIX_MAIN_L` and nothing read `_blk_C2_MIX_MAIN_R` (S142-1) --
+#     so C2_MAIN_OEQ_01 and C2_MAIN_OEQ_02 read the SAME block and both MAIN
+#     XLRs carried LEFT. `main:R` pans the donor hard right, which empties
+#     the only bus either XLR could carry, so the mainR patch asked the R
+#     socket for a signal the image could not put there and MAIN R read
+#     silence on a healthy board. S143 gives C2_MAIN_OEQ_02 its own
+#     C2_MAIN_XOVER_R, so the route is right now and was not before.
+#   * C/LF (J55, DAC_14) is C2_OUT3_OUT, fed through C2_OUT3_SEL from the
+#     CENTRE strip (C2_CTR_FDR <- C2_RECV_SUB <- C1_BUS_SUB, every channel's
+#     `Chan*CtrOn` send) or from the Woof strip, whichever `Main Out3Mode`
+#     selects. Until S144 the lane was C2_AUX_OUT_12 -- aux bus 12, and
+#     CFG_AUX_MASK on a D24 is 0x000000FF, so the bus was masked off in
+#     firmware and no cell could ever open it. It is a patch now.
+#   * MONITOR L / MONITOR R (J53/J54, DAC_15/16) carry the MONITOR BUS.
+#     Until S144 they were C2_MAIN_OUT_03/04, the main crossover's centre
+#     and high-pass legs, which is why the old list drove them through
+#     `xover:ctr` / `xover:sub` and tested the second one at 100 Hz. They
+#     are C2_MON_OUT_L / C2_MON_OUT_R now: the main bus taken at
+#     C2_MON_PICK (sel=2, post master fader) through C2_MON's own L and R
+#     levels. So they are an ordinary stereo pair, driven by the donor's
+#     PAN exactly as the MAIN XLRs are, and both are tested at 1 kHz.
+#   * PHONES L / PHONES R (J10, DAC_09/10) are C2_PHN_OUT_L/R, the same
+#     pick-off through `Mon PhonesLevel`. They are REACHABLE now and are
+#     still not driven here: a phones patch is a stereo TRS with a null
+#     sub-test and a level cell nothing has ever measured, which is its own
+#     piece of work (S151 note).
+#
+#   THE CROSSOVER IS OUT, AND IT IS OUT BY DEFAULT.  `Main CrossoverOn`
+#   (addr 1438) boots 0 and `_xover_coeffs_next_*` boots the compiled
+#   identity, so both MAIN XLRs are full-range with no write at all. The
+#   old list wrote `MainL CrossoverFreq/Slope` to set the two monitor legs
+#   wide and shallow; those two cells no longer exist (the family is
+#   `Main CrossoverFreq/Slope` now) and nothing this station measures reads
+#   a crossover leg any more, so the station writes no crossover cell.
+# Sockets this list does NOT drive, and why -- said by name, so a socket
+# never falls off the list silently. Nothing on a D24 is UNREACHABLE by the
+# firmware any more (S144 gave DAC_09/10/14 sources); what is left is one
+# pair this list has not been written for yet.
 UNREACHABLE = {
-    'C/LF': ('the Centre/LF XLR is DAC_14, which the firmware feeds from aux '
-             'bus 12 (C2_AUX_OUT_12); D24 declares aux buses 1-8 only, so no '
-             'cell can open it'),
-    'PHONES L': ('the headphone jack is DAC_09/10, which the firmware feeds '
-                 'from aux buses 9 and 10 (C2_AUX_OUT_09/10); D24 declares aux '
-                 'buses 1-8 only, so no cell can open it'),
-    'PHONES R': ('the headphone jack is DAC_09/10, which the firmware feeds '
-                 'from aux buses 9 and 10 (C2_AUX_OUT_09/10); D24 declares aux '
-                 'buses 1-8 only, so no cell can open it'),
+    'PHONES L': ('reachable since S144 (DAC_09 = C2_PHN_OUT_L, off the '
+                 'monitor pick-off through `Mon PhonesLevel`) but no patch '
+                 'is written for it yet: a phones patch is a stereo TRS with '
+                 'its own null sub-test and a level cell nothing has '
+                 'measured -- S151 note, owed'),
+    'PHONES R': ('reachable since S144 (DAC_10 = C2_PHN_OUT_R, off the '
+                 'monitor pick-off through `Mon PhonesLevel`) but no patch '
+                 'is written for it yet: a phones patch is a stereo TRS with '
+                 'its own null sub-test and a level cell nothing has '
+                 'measured -- S151 note, owed'),
 }
-
-# The crossover, set once for the station: as high and as gentle as the cell
-# laws allow (50..500 Hz, 6..24 dB/octave), so the two monitor legs overlap as
-# much as the product permits and each can be reached with one tone.
-XOVER_FREQ_HZ = 500.0
-XOVER_SLOPE = 6
-# MONITOR R is the SUB leg. 100 Hz is two octaves under the crossover, where a
-# 6 dB/octave leg is within about 1 dB of its passband.
-SUB_TONE_HZ = 100.0
 
 
 def socket_sort(names):
@@ -433,21 +450,42 @@ def cells_bus_masters(auxes):
         out += ['Aux%03dLevel001=f1.0' % a, 'Aux%03dMute001=0' % a,
                 'Aux%03dEqOn001=0' % a, 'Aux%03dLimiterOn001=0' % a,
                 'Aux%03dAntiFbOn001=0' % a, 'Aux%03dDelay001=0' % a]
-    # THE PANEL SPEAKER, SILENCED FIRST (S115). The monitor bus feeds the
-    # codec's talkback-speaker pair, the speaker amplifier runs from the
-    # digital board's 5 V and is live whenever the unit is up, and `defs`
-    # declares C2_MON at unity -- so every boot leaves the speaker wide open
-    # whether a test asked for it or not. This station drives the MAIN bus at
-    # full level for ten of its patches. Without these two writes it would
-    # play a 1 kHz tone out of the panel speaker for the length of the pass.
-    out += ['Mon001Level001=f0.0', 'Mon001Level002=f0.0']
+    # THE MONITOR BUS IS A MEASURED PATH NOW, NOT A HAZARD (S122, S144).
+    #
+    # It used to be both. Until S122 the monitor bus fed the codec's
+    # talkback-speaker pair, the speaker amplifier runs from the digital
+    # board's 5 V and is live whenever the unit is up, and `defs` declares
+    # C2_MON at unity -- so every boot left the panel speaker wide open and
+    # this station, which drives the MAIN bus at full level for ten of its
+    # patches, had to shut the monitor legs to stop a 1 kHz tone playing out
+    # of the panel for the length of the pass.
+    #
+    # S122 took the speaker off the monitor bus: C2_HPT_01 is C2_SPKR_OUT's
+    # only source and the monitor bus reaches no speaker at all. S144 then
+    # gave the monitor bus the two rear MONITOR jacks. So shutting these two
+    # legs no longer protects anything and now silences two sockets under
+    # test -- they are opened at unity, like every other bus master here.
+    out += ['Mon001Level001=f1.0', 'Mon001Level002=f1.0', 'Mon001Delay001=0']
+    # The monitor pick-off, asserted rather than assumed: 2 = post master
+    # fader (C2_MON_PICK sources are C2_MIX_MAIN_L, C2_MAIN_DLY, C2_MAIN_FDR
+    # and sel boots 2), which is the tap the MONITOR rows are written for.
+    out += ['Mon001PickOff001=2']
     out += ['Main001Level001=f1.0', 'Main001Mute001=0', 'Main001Delay001=0',
             'MainL001Level001=f1.0', 'MainL001Mute001=0',
-            'MainR001Level001=f1.0', 'MainR001Mute001=0',
-            'MainCtr001Level001=f1.0', 'MainCtr001Mute001=0',
-            'MainSub001Level001=f1.0', 'MainSub001Mute001=0',
-            'MainL001CrossoverFreq001=f%g' % XOVER_FREQ_HZ,
-            'MainL001CrossoverSlope001=%d' % XOVER_SLOPE]
+            'MainR001Level001=f1.0', 'MainR001Mute001=0']
+    # THE THIRD MAIN OUTPUT (S144). `Main Out3Mode` picks which strip the
+    # one C/LF XLR carries -- 0 = Centre, 1 = Woof -- and the station tests
+    # the CENTRE, because the Centre strip is what `Chan*CtrOn` reaches and
+    # the Woof strip is fed from the main L/R sum through a low-pass that a
+    # 1 kHz tone is meant not to survive. Its own processing goes off for
+    # S54-2's reason: a reading taken through a limiter is not a reading of
+    # the path. There is no `MainCtr Mute` and no `MainSub Mute` cell in this
+    # generation; the mute on this path is `Main Out3Mute`.
+    out += ['Main001Out3Mode001=0', 'Main001Out3Mute001=0',
+            'Main001Out3Delay001=0',
+            'MainCtr001Level001=f1.0', 'MainCtr001EqOn001=0',
+            'MainCtr001LimiterOn001=0', 'MainCtr001AntiFbOn001=0',
+            'MainSub001Level001=f1.0']
     return out
 
 
@@ -455,9 +493,22 @@ def route_cells(donor, drive, auxes):
     """The cells that change per patch: which bus the donor strip feeds.
 
     `drive` is the list's own word for the output under test -- 'aux:1',
-    'aux:1+2', 'main:L', 'main:R', 'xover:ctr', 'xover:sub' or 'none'. Every
-    other assign on the donor is written 0 in the same breath, so a route is
-    always asserted whole and never left half-set from the patch before.
+    'aux:1+2', 'main:L', 'main:R', 'ctr' or 'none'. Every other assign on the
+    donor is written 0 in the same breath, so a route is always asserted whole
+    and never left half-set from the patch before.
+
+    'main:L' / 'main:R' drive BOTH stereo pairs the main bus reaches -- the
+    MAIN XLRs (C2_MAIN_OUT_01/02) and the rear MONITOR jacks
+    (C2_MON_OUT_L/R) -- because both pairs take their two legs from the same
+    two buses and the donor's PAN is what separates them. That is only true
+    of the S143 graph: before it, C2_MAIN_FDR read the LEFT mix and nothing
+    read the right, so 'main:R' emptied every main socket at once.
+
+    'ctr' is the third main output. It is NOT a pan position: `Chan*CtrOn`
+    is its own assign into C1_BUS_SUB (the Centre/sub channel bus, PW ruling
+    R5), so a centre send is full level and the pan is left at the middle.
+    The old list spelled it 'xover:ctr' / 'xover:sub' because DAC_15/16 were
+    the main crossover's two legs; they are the monitor bus now (S144).
     """
     off = {'main': 0, 'ctr': 0}
     off_aux = dict((a, 0) for a in auxes)
@@ -469,7 +520,7 @@ def route_cells(donor, drive, auxes):
     elif kind == 'main':
         off['main'] = 1
         pan = 0.0 if arg == 'L' else 1.0
-    elif kind == 'xover':
+    elif kind == 'ctr':
         off['ctr'] = 1
     elif kind != 'none':
         raise SystemExit('unknown drive %r' % drive)
@@ -506,12 +557,14 @@ PARK_DRIVE = 'aux:1'
 PARK_IN = 'MIC 1'
 PARK_IN_STRIP = 1
 
-# The eight aux XLRs and the two main XLRs, in the order the K1 block proves
-# them. Every one is a socket in its own right and gets a patch of its own
-# before AUX 1 is parked for the rest of the block. (C/LF is missing on
-# purpose: see UNREACHABLE.)
+# The eight aux XLRs and the three main XLRs, in the order the K1 block
+# proves them. Every one is a socket in its own right and gets a patch of its
+# own before AUX 1 is parked for the rest of the block. C/LF is one of them
+# since S144 gave it a source (S151); its panel name is the one the rear
+# panel and the harness port table use, "C/LF" -- "Center/LF Out" in the
+# catalog, row 35, loop partner MIC 11.
 XLR_OUTS = [('AUX %d' % a, 'aux:%d' % a) for a in AUXES] + [
-    ('MAIN L', 'main:L'), ('MAIN R', 'main:R')]
+    ('MAIN L', 'main:L'), ('MAIN R', 'main:R'), ('C/LF', 'ctr')]
 
 # ---------------------------------------------------------------------------
 # THE PARKED KIT (PW 2026-09-27, ruling c; review §2.3)
@@ -564,14 +617,18 @@ def output_walk_order(parked):
 # while its XLR passes and both are worth a patch.
 STEREO_TRS_OUTS = [('AUX A %d-%d' % (a, a + 1), a, a + 1) for a in (1, 3, 5, 7)]
 
-# The two mono TRS output jacks. They are the crossover's centre and sub legs
-# (see UNREACHABLE's note), so the SUB one is tested low.
-MONO_TRS_OUTS = [('MONITOR L', 'xover:ctr', TONE_HZ,
-                  'the crossover CENTRE leg, tested in its passband'),
-                 ('MONITOR R', 'xover:sub', SUB_TONE_HZ,
-                  'the crossover SUB leg: a 1 kHz tone is what the crossover '
-                  'exists to keep out of it, so this one path is tested at '
-                  '%g Hz' % SUB_TONE_HZ)]
+# The two mono TRS output jacks. They are the MONITOR bus's two legs since
+# S144 -- C2_MON_OUT_L/R off C2_MON_PICK -- so they are a stereo pair driven
+# by the donor's pan, both in the passband, and neither of them is a
+# crossover leg any more.
+MONO_TRS_OUTS = [('MONITOR L', 'main:L', TONE_HZ,
+                  'the MONITOR bus LEFT leg (C2_MON), post master fader: the '
+                  'donor is panned hard left, so a reading here that follows '
+                  'MAIN L is the monitor path and not a crossover leg'),
+                 ('MONITOR R', 'main:R', TONE_HZ,
+                  'the MONITOR bus RIGHT leg (C2_MON_R). Hard right: this is '
+                  'the other half of the same pair, and it only exists at all '
+                  'because S143 gave chip 2 a right bus')]
 
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',

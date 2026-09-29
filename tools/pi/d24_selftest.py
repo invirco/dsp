@@ -166,11 +166,37 @@ SIGNED_TRIPLE = ('0xCF45FF10', '0xE2019E6F', '0xC47C0FA6')   # S147-signed pair
 # did not move, the graph did -- so the triple alone cannot tell the two pairs
 # apart and the `.ldr` md5 below is the only thing that can. That is why the
 # md5 pin exists.
-FACTORY_TEST_IMAGE_NAME = 'factory-test-v2'
-FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s122'
-FACTORY_TEST_BUILD_CFG = ('0xCF45FF10', '0xE3018E6F', '0xC47C0FA6')
-FACTORY_TEST_LDR_MD5 = {'chip1.ldr': '7f226919a5d181410c3804d92678da19',
-                        'chip2.ldr': '9e8a1a9edf19a90ce7ac3df1586c00f6'}
+#
+# v3 (S151, 2026-09-29, under PW's 18:04 BST "go") -- THE S142-S150 GRAPH.
+# Both chips move, and this time so does the triple: word 2 bit 12 is
+# DSP4_C2_BQ_GRAPH, 0 -> 1, signed by PW at S147. What the factory station
+# gets out of it is two rear sockets that could not work before:
+#
+#   * MAIN R (J57, DAC_11) carries the RIGHT bus (S143). Until now
+#     C2_MAIN_FDR read `_blk_C2_MIX_MAIN_L` and nothing read the right mix
+#     (S142-1), so both MAIN XLRs carried LEFT and the `mainR@24` patch --
+#     which pans the donor hard right -- asked the R socket for a signal the
+#     image could not put there. MAIN R read silence on a healthy board.
+#   * C/LF (J55, DAC_14) is the Centre strip's output (S144). It used to be
+#     aux bus 12, and CFG_AUX_MASK on a D24 is 0x000000FF, so the bus was
+#     masked off in firmware and no cell could reach it.
+#
+# It also moves the rear MONITOR jacks (DAC_15/16) off the main crossover's
+# two legs and onto the monitor bus, which is why the patch list is
+# regenerated in the same step (MW/D24/DSP/s151/).
+#
+# THE TRIPLE ALONE STILL CANNOT BE TRUSTED TO TELL TWO PAIRS APART -- S124-3
+# is the standing lesson, and v1/v2 are the proof -- so both md5s are pinned
+# here as well, and both are checked.
+FACTORY_TEST_IMAGE_NAME = 'factory-test-v3'
+FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s151'
+FACTORY_TEST_BUILD_CFG = ('0xCF45FF10', '0xE3019E6F', '0xC47C0FA6')
+FACTORY_TEST_LDR_MD5 = {'chip1.ldr': 'c031613ac9a0a02e4c1d493bea19765d',
+                        'chip2.ldr': '0b63f4e044e00e4a7cbe7b2ff345c0b6'}
+# Superseded, kept visible for a rollback: factory-test-v2, pair dir
+# /home/app/loopthd/s122, triple 0xCF45FF10 / 0xE3018E6F / 0xC47C0FA6,
+# chip1 7f226919a5d181410c3804d92678da19,
+# chip2 9e8a1a9edf19a90ce7ac3df1586c00f6.
 
 # ---------------------------------------------------------------------------
 # The key table. `board`/`item` are the workbook's strings verbatim; the number

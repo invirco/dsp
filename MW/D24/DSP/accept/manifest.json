@@ -29,24 +29,37 @@
  "factory_test_image": {
   "build_cfg": [
    "0xCF45FF10",
-   "0xE3018E6F",
+   "0xE3019E6F",
    "0xC47C0FA6"
   ],
   "ldr_md5": {
-   "chip1.ldr": "7f226919a5d181410c3804d92678da19",
-   "chip2.ldr": "9e8a1a9edf19a90ce7ac3df1586c00f6"
+   "chip1.ldr": "c031613ac9a0a02e4c1d493bea19765d",
+   "chip2.ldr": "0b63f4e044e00e4a7cbe7b2ff345c0b6"
   },
-  "measured_on": "MW-D24-2, 2026-09-26 (S116)",
-  "name": "factory-test-v2",
-  "note": "S116 ruling (PW, S113 Q3): the whole automated self-test set runs on this DSP4_TEST_NODES=1 pair for the whole session -- AL1 and AS-DAC need TEST_OSC, and every other verdict in the set is image-agnostic (S113 test-order.md §4), so the session never swaps to the shipping pair. tools/pi/d24_selftest.py asserts every DSP-touching press against this record (_check_factory_image); a mismatch is NO DATA 'wrong image loaded', never a silent run. Loading/verifying the SHIPPING image (dsp.build_cfg above) is a separate, later step and not part of this test. v2 (S124, 2026-09-26): S122's haptic path. chip1.ldr is byte-identical to v1; only chip2.ldr moves (6f11a1ddc6efd45ec30f536cef295292 -> 9e8a1a9edf19a90ce7ac3df1586c00f6). The build-cfg triple is IDENTICAL between v1 and v2, so the .ldr md5 is the only thing that tells the two pairs apart.",
-  "pair_dir": "/home/app/loopthd/s122",
+  "measured_on": "MW-D24-2, 2026-09-29 (S151)",
+  "name": "factory-test-v3",
+  "note": "S116 ruling (PW, S113 Q3): the whole automated self-test set runs on this DSP4_TEST_NODES=1 pair for the whole session -- AL1 and AS-DAC need TEST_OSC, and every other verdict in the set is image-agnostic (S113 test-order.md §4), so the session never swaps to the shipping pair. tools/pi/d24_selftest.py asserts every DSP-touching press against this record (_check_factory_image); a mismatch is NO DATA 'wrong image loaded', never a silent run. Loading/verifying the SHIPPING image (dsp.build_cfg above) is a separate, later step and not part of this test. v3 (S151, 2026-09-29, under PW's 18:04 BST \"go\"): the S142-S150 graph, built as S146 arm C and gated byte-for-byte by MW/D24/DSP/s146/build-images.sh. BOTH chips move, and so does the triple -- word 2 bit 12 is DSP4_C2_BQ_GRAPH, 0 -> 1, signed by PW at S147. It is taken because two rear sockets could not work before it: MAIN R (J57, DAC_11) carried the LEFT bus like MAIN L did, because the chip-2 main chain was mono from the master fader onward (S142-1), so the mainR@24 patch -- which pans the donor hard right -- emptied the only bus either MAIN XLR could carry; and C/LF (J55, DAC_14) was aux bus 12, which CFG_AUX_MASK=0x000000FF masks off on a D24, so no cell could ever open it. S143 gives MAIN R its own C2_MAIN_XOVER_R and S144 gives C/LF the Centre strip. The rear MONITOR jacks move off the crossover legs onto the monitor bus in the same step, which is why the patch list is regenerated with it (MW/D24/DSP/s151/).",
+  "pair_dir": "/home/app/loopthd/s151",
   "supersedes": {
+   "build_cfg": [
+    "0xCF45FF10",
+    "0xE3018E6F",
+    "0xC47C0FA6"
+   ],
    "ldr_md5": {
     "chip1.ldr": "7f226919a5d181410c3804d92678da19",
-    "chip2.ldr": "6f11a1ddc6efd45ec30f536cef295292"
+    "chip2.ldr": "9e8a1a9edf19a90ce7ac3df1586c00f6"
    },
-   "name": "factory-test-v1",
-   "pair_dir": "/home/app/loopthd/s109"
+   "name": "factory-test-v2",
+   "pair_dir": "/home/app/loopthd/s122",
+   "supersedes": {
+    "ldr_md5": {
+     "chip1.ldr": "7f226919a5d181410c3804d92678da19",
+     "chip2.ldr": "6f11a1ddc6efd45ec30f536cef295292"
+    },
+    "name": "factory-test-v1",
+    "pair_dir": "/home/app/loopthd/s109"
+   }
   }
  },
  "findings": [
