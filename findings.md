@@ -6,6 +6,85 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## MAIN R AND MAIN C, AND THE PAIR THAT FIXES THEM (2026-09-29, session 151)
+
+Hub dispatch `tasks.md` 2026-09-29 16:52Z and its 17:04Z addendum carrying
+PW's 18:04 BST "go". Report `MW/D24/DSP/s151/s151-report.md`. The unit was
+switched to **factory-test-v3** (S146 arm C, the S142–S150 graph with
+`DSP4_TEST_NODES=1`).
+
+**Neither socket was faulty, and they failed for two different reasons.**
+Proved from the deployed pair's own generated sources, not reconstructed:
+`C2_MAIN_OEQ_01` and `C2_MAIN_OEQ_02` both read `_blk_C2_MAIN_XOVER` and
+`C2_MAIN_FDR` reads `_blk_C2_MIX_MAIN_L`, so **both MAIN XLRs carried the
+LEFT bus** (S142-1 in the image), and the `mainR@24` route writes
+`Chan024Pan001=f1`, which makes the strip's left crosspoint coefficient
+exactly zero — it empties the only bus either XLR can carry. MAIN C, which
+the rear panel calls **C/LF**, is DAC_14 fed from `C2_AUX_OUT_12`, and
+`CFG_AUX_MASK` for a D24 is `0x000000FF`, so aux 9–12 are masked off in
+firmware: dead by construction.
+
+**THE −14.1 dBFS WAS THE INSTRUMENT, NOT A PATH, AND THE DIFFERENCE
+MATTERS.** The image puts exact digital zero on MAIN L under `Pan001=f1` —
+checked against the DSP's own initialisers, which leave every group, aux and
+FX send shut (`dsp4_config.py` writes config registers at `0xF000+` and never
+a cell neutral), so nothing bypasses the pan. What PW read is the strip
+meter's latched peak: `d24_patch.py` records the decay as "about 6 dB per
+second" and S138b-6 measured **6.52 dB/s**. The preceding patch left MIC 10
+at −7.6 dBFS; one second of that drain is −14.12. A real −6.5 dB residue
+would have meant the pan was not landing and a bug in the strip — the
+opposite conclusion from the same number.
+
+🔴 **S151-1 AL1 FAILS, AND IT FAILS THE SAME WAY ON THE PAIR THAT WAS THERE
+BEFORE.** After the switch AL1 reads CLIP, THD −21.9 dB against a −22.5
+ceiling. Rolled back to `/home/app/loopthd/s122` and graded by the old record
+out of a worktree at the pre-switch commit, it reads **−21.5 / −21.3** — the
+same failure. PW's own 16:41Z run passed at −23.8. So the change is on the
+bench between 16:41Z and 17:30Z and not in the images, and two more things
+say so: the tone level never moves (−29.3 to −29.7 dBFS across every run of
+both pairs, against the S124 law's −29.8), and the path is byte-identical —
+`C2_HPT_01` and `C2_SPKR_OUT` have the same row, the same generated ASM and
+the same addresses in both trees, and on chip 1 only `cue.asm` and `rta.asm`
+differ, both entirely inside `#if DSP4_CUE` / `#if DSP4_RTA && DSP4_CUE`,
+which are 0 in this arm. **What moved is not settled**: the baseline wanders
+2 dB run to run and the THD does not follow it, so it is not simply a noisier
+room. Strongest candidate is the rails — PW's passing run used
+`--al1-keep-rails` and held AN_EN up across the whole `[dsp]` batch, while
+every run here raised it for ~18 s and dropped it again. Bench item, not a
+desk one.
+
+🔴 **S151-2 the inter-chip sign-bit gate read FOLDED once on this pair**,
+immediately after a reset-and-boot, with chip 1 sending 42/64 negative words
+and chip 2 seeing none. Re-read moments later on the same boot: CLEAN, and
+CLEAN on the three reads after it, and the full B,C run had read CLEAN on
+both lanes before it. S89-1's known intermittent — `dsp4_boot_linked.sh`
+exists to retry a boot on exactly that exit code — recorded because it was
+seen on the new pair.
+
+🔴 **S151-3 the deployed factory patch list named four cells the contract had
+already dropped, and nothing had run the generator since.**
+`gen_patch_paths.py --check` refused before any of this session's work:
+`MainCtr001Mute001`, `MainSub001Mute001`, `MainL001CrossoverFreq001` and
+`MainL001CrossoverSlope001` are gone from generation `46109e9fb812` (the
+crossover family is `Main Crossover*` now, and neither the Centre nor the
+Woof strip has a mute cell — the mute on that path is `Main Out3Mute`). The
+no-fallback rule caught it; what did not exist was anything that ran the
+check between the contract move and a factory pass. The list is regenerated
+and deployed, and all nineteen new standing-master cells were written and
+read back on the part, because a standing write that does not land is a hard
+stop on the next pass.
+
+🔴 **S151-4 the shipping arm cannot run the factory station at all**, which
+is why the pair flashed is arm C and not arm B. TEST_OSC, `Test MeasChan` and
+the `_meas_a`/`_meas_b` fit every patch verdict rests on are inside
+`#if DSP4_TEST_NODES`, and `shipping.config` sets it to 0. Moving the signed
+`factory_test_image` record to v3 was reserved for PW by the S146 runbook
+(§8.2/§9); PW's "go" is what carries it, and it is recorded rather than
+slipped in. **Unlike v1 → v2 the build-cfg triple moves** — word 2 bit 12 is
+`DSP4_C2_BQ_GRAPH` — so the image check now catches a substituted pair two
+ways; both md5s stay pinned regardless, because S124-3 does not stop being
+true when the triple happens to move.
+
 ## THE AUX MATRIX, BUILT AS RULED (2026-09-29, session 150)
 
 Hub dispatch `tasks.md` 2026-09-29 13:05Z. Desk only — nothing flashed, no
