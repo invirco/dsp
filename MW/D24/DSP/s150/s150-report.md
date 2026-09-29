@@ -403,6 +403,20 @@ anywhere; the master already declares every one of them.
 | `check_shipping_config.sh` | consistent, **triple unmoved** `0xCF45FF10 / 0xE2019E6F / 0xC47C0FA6` |
 | `aux_matrix_ref.py` | every check passed, negative control fires |
 | `gen_dsp.py --check-proposal` | the graph is AHEAD of the landed contract — S150-3, by design |
+| `check-contract-drift.sh` | **RED, and deliberately so** — see below |
+
+🔴 **`check-contract-drift.sh` and `regenerate-dsp-contract.sh` do not pass
+on this tree and will not until the hub lands the proposal.** Both run
+`gen_dsp.py`, which refuses to generate anything while the graph proposes
+cells the landed `defs/products/<p>/dsp.csv` does not carry — 336 on D32,
+176 on D24, every one of them a matrix crosspoint. That refusal is the
+no-fallback policy working: the alternative is generation quietly falling
+back to the graph and producing an address map the defs pin does not
+describe. It is the same window S143 and S144 sat in between a graph change
+and a defs tag, and the same one `--propose` / `--params-dir` /
+`DSP_LANDED_DIR` exist to make workable. **It clears in one step: land the
+proposal, advance the pin.** Nothing else in this tree is left red, and the
+drift check leaves no diff behind (checked).
 
 ---
 
