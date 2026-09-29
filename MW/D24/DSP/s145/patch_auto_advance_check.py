@@ -564,6 +564,13 @@ def test_the_timeout_raises_the_question_and_decides_nothing():
           raised and 'right sockets' in raised[0]['action']
           and 'LEADS CORRECT' in raised[0]['action'],
           repr(raised and raised[0]['action']))
+    # PW 2026-09-29: "sometimes it says press leads correct, but no lead
+    # correct to press". Every screen that names the button must carry it.
+    dead = [(d.get('state'), d.get('buttons')) for d in seen
+            if 'LEADS CORRECT' in (d.get('action') or '')
+            and 'nosignal' not in (d.get('buttons') or [])]
+    check('no screen says LEADS CORRECT without the button on it', not dead,
+          repr(dead[:4]))
 
 
 def test_it_still_ends_if_nobody_comes_back():

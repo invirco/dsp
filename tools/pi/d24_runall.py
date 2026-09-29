@@ -2290,11 +2290,11 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
             nums, what = extra['always_on']
             owed_ao = [n for n in nums if n in owed]
             if owed_ao:
-                ans = ask_yn('instruct', 'Panel loop - the always-lit rings',
-                                ['Two indicators are lit whenever the unit is '
+                ans = ask_yn('instruct', 'Panel loop - the always-on LEDs',
+                                ['Two LEDs are on whenever the unit is '
                                  'on and nothing can switch them off.',
                                  'Look at %s.' % what,
-                                 'Are both lit?'], ['yes', 'no'], station=st)
+                                 'Are both on?'], ['yes', 'no'], station=st)
                 if ans['button'] == 'pause':
                     raise Paused()
                 for n in owed_ao:
@@ -2314,8 +2314,8 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                                                    panel=panel_name)))
             if led_row in owed:
                 PL.encoder_leds(bus)
-                ans = ask_yn('instruct', 'Panel loop - the encoder ring',
-                                ['The eight indicators around the encoder have '
+                ans = ask_yn('instruct', 'Panel loop - the encoder LEDs',
+                                ['The eight LEDs around the encoder have '
                                  'just been stepped round twice.',
                                  'Did all eight light in turn?'],
                                 ['yes', 'no'], row=led_row, station=st)
@@ -2527,7 +2527,7 @@ def panel_encoder(bus, glass, st, timeout, live=None, panel=''):
     btns = glass.post('instruct', 'Panel loop - the encoder',
                       ['Turn the encoder ONE click clockwise, then ONE click '
                        'anticlockwise.',
-                       'The tester reads the ring position each time.'],
+                       'The tester reads the encoder position each time.'],
                       ['notlit'], station=st)
     seen, last = [], None
     t0 = time.time()
@@ -2566,11 +2566,11 @@ def panel_encoder(bus, glass, st, timeout, live=None, panel=''):
     except OSError:
         pass
     if 1 in seen and -1 in seen:
-        return PASS, 'the ring position stepped both ways: %r' % (seen,)
+        return PASS, 'the encoder position stepped both ways: %r' % (seen,)
     if seen:
-        return FAIL, ('the ring only stepped %s'
+        return FAIL, ('the encoder only stepped %s'
                       % ('clockwise' if 1 in seen else 'anticlockwise'))
-    return NODATA, 'the encoder sent no ring position within %.0f s' % timeout
+    return NODATA, 'the encoder sent no position within %.0f s' % timeout
 
 
 def station_card(card, steps, glass, i, live=None, keys=None):

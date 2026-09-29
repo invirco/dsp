@@ -2277,7 +2277,14 @@ class Station:
         # already `enter`+`pause`. Nothing is broken there and re-stating it as
         # WAITING would quietly lose a named state that the screen dump and the
         # wording review both know by name.
-        if 'enter' in (d.get('buttons') or []):
+        # LEADS CORRECT (`nosignal`) is the same case since PW's 2026-09-29
+        # ruling moved it onto CHECK THE LEAD only: restating that screen as
+        # WAITING kept its "press LEADS CORRECT" and took the button away.
+        # A caller that names the banner or the action is REPLACING that
+        # screen (a wrong-socket warning coming down once the lead is right),
+        # and goes through.
+        if ({'enter', 'nosignal'} & set(d.get('buttons') or [])
+                and not {'banner', 'action'} & set(kw)):
             return
         for k in ('banner', 'banner_line', 'action'):
             kw.setdefault(k, d.get(k, ''))

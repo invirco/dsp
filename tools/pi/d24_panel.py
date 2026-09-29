@@ -183,20 +183,20 @@ PANEL_CELL = {'right': SKIN, 'left': None}      # None = not yet identified
 # the workbook -- so the hand crosses the panel once rather than jumping about.
 RIGHT = [
     # idx, name,            sw row, led row, what the indicator is
-    (6,  'FX MUTE',          59, 61, 'the RED ring'),
-    (1,  'HOME',             62, 63, 'the white ring'),
-    (2,  'MENU',             64, 65, 'the white ring'),
-    (3,  '+48',              66, 67, 'the white ring'),
-    (4,  'FEEDBACK',         68, 69, 'the white ring'),
-    (7,  'MUTE',             70, 71, 'the white ring'),
-    (8,  'SCENE',            72, 73, 'the white ring'),
-    (9,  'L',                74, 75, 'the white ring'),
-    (10, 'C',                76, 77, 'the white ring'),
-    (5,  'CH ASSIGN',        79, 80, 'the white ring'),
-    (11, 'R',                81, 82, 'the white ring'),
-    (12, 'MONITOR',          83, 84, 'the white ring'),
-    (13, 'REC/PLY',          85, 87, 'the RED ring'),
-    (14, 'STUDIO CTL',       88, 89, 'the white ring'),
+    (6,  'FX MUTE',          59, 61, 'the RED LED'),
+    (1,  'HOME',             62, 63, 'the white LED'),
+    (2,  'MENU',             64, 65, 'the white LED'),
+    (3,  '+48',              66, 67, 'the white LED'),
+    (4,  'FEEDBACK',         68, 69, 'the white LED'),
+    (7,  'MUTE',             70, 71, 'the white LED'),
+    (8,  'SCENE',            72, 73, 'the white LED'),
+    (9,  'L',                74, 75, 'the white LED'),
+    (10, 'C',                76, 77, 'the white LED'),
+    (5,  'CH ASSIGN',        79, 80, 'the white LED'),
+    (11, 'R',                81, 82, 'the white LED'),
+    (12, 'MONITOR',          83, 84, 'the white LED'),
+    (13, 'REC/PLY',          85, 87, 'the RED LED'),
+    (14, 'STUDIO CTL',       88, 89, 'the white LED'),
 ]
 LEFT = [
     (1, 'MONO AUX',          43, 44, 'the white pair'),
@@ -212,7 +212,7 @@ LEFT = [
 # unit is on and no write can move them.  One question grades both.
 ALWAYS_ON = {
     'right': ([60, 86],
-              'the white ring around FX MUTE and the white ring around REC/PLY'),
+              'the white LED on FX MUTE and the white LED on REC/PLY'),
 }
 
 # The encoder is the right panel's alone: rows 90 (the ring turns) and 91 (its
@@ -280,7 +280,7 @@ def wording(side, num):
         if num == turn:
             return ('Turn the encoder ONE click clockwise, then ONE click '
                     'anticlockwise.', '',
-                    'the ring position steps both ways')
+                    'the encoder position steps both ways')
         if num == leds:
             return ('The eight indicators around the encoder are stepped round '
                     'twice.', 'Did all eight light in turn?', '')
