@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-29 16:52Z — S151: NO FLASH — PW: "MAIN R output never seems to be active … check signal routing, and MAIN C also"   [status: 🔴 not started]   [model: opus]
+## HUB DISPATCH 2026-09-29 16:52Z — S151: NO FLASH — PW: "MAIN R output never seems to be active … check signal routing, and MAIN C also"   [status: 🟡 in progress — desk-only analysis of the s122 pair started 2026-09-29]   [model: opus]
 
 model: opus
 # S151 — why MAIN R (and MAIN C) are dead on MW-D24-2, proved from the images; a flashable pair ready for PW's go
