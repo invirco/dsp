@@ -220,6 +220,7 @@ reads bit 23 = 1 and calls itself an instrument, which is what it is.
 | `test_dsp_validate.py` | 20/20 |
 | `stereo_split_check.py` | passed — 779 declared input edges read, 928 fabric-gathered |
 | `follow_lockstep_check.py` | 11/11 |
+| `dsp_simulate.py --stereo-proof` | passed — every one-sided sink reads EXACTLY zero on the far side, both ways, centre control live and balanced |
 | `product_fit.py --check-masks` | all four products OK |
 | `check_shipping_config.sh` | consistent, triple unmoved |
 | `c2_mix_fabric_ref.py` | 64,000 block words, 0 disagreements, negative control fires |
