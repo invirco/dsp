@@ -49,6 +49,13 @@
 .global _fx_type_C2_FX_ENG_04;
 .var _fx_type_C2_FX_ENG_04 = 0;           /* 0=Echo,1=PingPong,2=Doubling,3=Reverb,4=Chorus,5=Flanger,6=Phaser */
 #endif
+/* WHAT THE ENGINE ACTUALLY RUNS (S149, PW's reverb cap). The word
+ * above is the REQUEST and stays exactly what the host wrote; the
+ * cap guard in chip2/fx_cap.asm grants it into this one, or holds
+ * it when three engines are already on Reverb. */
+#if DSP4_FX_REVERB_CAP
+.extern _fx_type_live_C2_FX_ENG_04;
+#endif
 /* An unimplemented Type parks its number here and the node
  * passes the sample through. Read by the family walk; nothing
  * on the part reads it. 0 = an algorithm ran. */
@@ -343,8 +350,19 @@ _C2_FX_ENG_04_process:
      */
     f15 = f0;                   /* dry input saved in f15 */
 
-    /* Dispatch on algorithm type */
+    /* Dispatch on algorithm type.
+     *
+     * THE LIVE TYPE, NOT THE REQUESTED ONE (S149, PW's reverb
+     * cap). `_fx_type_C2_FX_ENG_04` is exactly what the host wrote and
+     * is never rewritten; `_fx_type_live_C2_FX_ENG_04` is what the cap
+     * guard has granted. With DSP4_FX_REVERB_CAP=0 there is no
+     * guard and no live word and this reads the request, byte
+     * for byte as it always did. */
+    #if DSP4_FX_REVERB_CAP
+    r0 = dm(_fx_type_live_C2_FX_ENG_04);
+    #else
     r0 = dm(_fx_type_C2_FX_ENG_04);
+    #endif
 
 /* Types 1 (PingPong), 4 (Chorus), 5 (Flanger) and 6 (Phaser)
  * are NOT IMPLEMENTED for this class and fall to an EXPLICIT
@@ -552,7 +570,11 @@ jump (pc, .fx_bypass_C2_FX_ENG_04);
      * had nothing to do -- and it is how Type 0 = Echo, the
      * landed default, went four sessions without anyone noticing
      * it was not an algorithm. */
+    #if DSP4_FX_REVERB_CAP
+    r1 = dm(_fx_type_live_C2_FX_ENG_04);
+    #else
     r1 = dm(_fx_type_C2_FX_ENG_04);
+    #endif
     dm(_fx_bypassed_C2_FX_ENG_04) = r1;
     f0 = f15;                    /* dry pass-through */
     jump (pc, .fx_mixed_C2_FX_ENG_04);

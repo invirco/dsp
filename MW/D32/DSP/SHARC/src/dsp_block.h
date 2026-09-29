@@ -399,6 +399,33 @@
 #define DSP4_C2_MIX_FABRIC 0
 #endif
 
+/* HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29:
+ * "cap reverbs to 3"). S148 measured what the sixth costs: six engines from
+ * Type 0 to Type 3 is +58,845 cycles/block, which takes chip 2 from 76.06 %
+ * of budget to 94.02 % -- and 110.27 % with the desk in use. The cap is the
+ * cheapest of the trades S148 §8 listed because it costs nothing to
+ * implement and nothing to run.
+ *
+ * TWO LAYERS, and this is the LOWER one. The host is the single writer and
+ * greys the unavailable selections out; the DSP keeps its own guard so a bad
+ * write can never cost a missed block. Same shape as the no-feedback rule
+ * (S148 §4.3).
+ *
+ * THE FOURTH REVERB IS HELD, NOT DROPPED. `_fx_type_<nid>` stays exactly
+ * what the host wrote; `_fx_type_live_<nid>` is what the engine reads, and
+ * the guard copies one to the other subject to the cap. So a held request
+ * takes effect the moment a slot frees, and nothing on the wire has to be
+ * re-sent. Lowest engine index wins, and a release is granted before any
+ * grant, so swapping which three are on Reverb takes one block.
+ *
+ * DSP4_FX_REVERB_CAP=0 is the CONTROL: no guard, no live word, and the
+ * engines read `_fx_type_` exactly as they did -- which is also the arm the
+ * six-reverb capacity row has to be measured on, because with the cap on
+ * that row cannot be built. */
+#ifndef DSP4_FX_REVERB_CAP
+#define DSP4_FX_REVERB_CAP 3
+#endif
+
 /* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
  * The block kernel wrote one sample to the delay line and then read another
  * from it, per sample, and the delay lines are in L2 -- session 3 measured

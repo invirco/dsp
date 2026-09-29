@@ -291,6 +291,9 @@
 #if DSP4_CHAN_MASK
 .extern _mask_on;
 #endif
+#if DSP4_FX_REVERB_CAP
+.extern _fx_type_cap;
+#endif
 .extern _C2_RECV_MAIN_L_process;
 .extern _C2_RECV_MAIN_R_process;
 .extern _C2_RECV_SUB_process;
@@ -1274,6 +1277,9 @@ _chip2_process_all:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2brun1_end:
+#endif
+#if DSP4_FX_REVERB_CAP
+    call _fx_type_cap;   /* at most 3 engines on Reverb */
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
@@ -4398,6 +4404,9 @@ _chip2_process_all:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .c2grun1_end:
+#endif
+#if DSP4_FX_REVERB_CAP
+    call _fx_type_cap;   /* at most 3 engines on Reverb */
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;
@@ -7597,6 +7606,9 @@ _chip2_process_all:
 #endif
 #if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE
 .sgrun1_end:
+#endif
+#if DSP4_FX_REVERB_CAP
+    call _fx_type_cap;   /* at most 3 engines on Reverb */
 #endif
 #if (DSP4_NODE_LIMIT2 == 0 || 45 < DSP4_NODE_LIMIT2)
     call _C2_FX_ENG_01_process;

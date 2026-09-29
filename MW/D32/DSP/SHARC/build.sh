@@ -694,6 +694,20 @@ ASMFLAGS="$ASMFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
 DSP4_C2_MIX_FABRIC="${DSP4_C2_MIX_FABRIC:-1}"
 CFLAGS="$CFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
 ASMFLAGS="$ASMFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
+# HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29: "cap
+# reverbs to 3"). S148 measured the sixth: six engines from Type 0 to Type 3
+# is +58,845 cycles/block, 76.06 % -> 94.02 % of chip 2, and 110.27 % with
+# the desk in use. The DSP half of a two-layer rule -- the host greys the
+# unavailable selections out and this makes a bad write impossible to pay
+# for. A fourth Reverb is HELD, not dropped: `_fx_type_` stays exactly what
+# the host wrote and `_fx_type_live_` is what the engine reads, so a held
+# request is granted the moment a slot frees. DSP4_FX_REVERB_CAP=0 is the
+# CONTROL (no guard, no live word, the engines read the request byte for
+# byte as before) and is also the arm the six-reverb capacity row must be
+# measured on, because with the cap on that row cannot be built.
+DSP4_FX_REVERB_CAP="${DSP4_FX_REVERB_CAP:-3}"
+CFLAGS="$CFLAGS -DDSP4_FX_REVERB_CAP=$DSP4_FX_REVERB_CAP"
+ASMFLAGS="$ASMFLAGS -DDSP4_FX_REVERB_CAP=$DSP4_FX_REVERB_CAP"
 # THE DELAY LINE IN TWO PASSES (2026-09-03, review finding D25's remainder).
 # The block kernel alternated a write into the delay line with a read from it,
 # per sample, and the delay lines are in L2. Writing the whole block and then

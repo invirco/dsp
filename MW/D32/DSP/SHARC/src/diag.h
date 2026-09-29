@@ -728,6 +728,7 @@
     + (DSP4_DYN_SELFTEST     != 0) \
     + (DSP4_DYN_SHOOTOUT     != 0) \
     + (DSP4_FAULT_TRAP       != 0) \
+    + (DSP4_FX_REVERB_CAP    != 3) \
     + (DSP4_FCWM             != 1) \
     + (DSP4_GAIN_NOCHAIN     != 0) \
     + (DSP4_GAIN_SIMD_NEGCTL != 0) \

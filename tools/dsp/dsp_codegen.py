@@ -3658,6 +3658,13 @@ def gen_fx_engine(node):
         #else
         .var _fx_type_{nid} = 0;           /* 0=Echo,1=PingPong,2=Doubling,3=Reverb,4=Chorus,5=Flanger,6=Phaser */
         #endif
+        /* WHAT THE ENGINE ACTUALLY RUNS (S149, PW's reverb cap). The word
+         * above is the REQUEST and stays exactly what the host wrote; the
+         * cap guard in chip2/fx_cap.asm grants it into this one, or holds
+         * it when three engines are already on Reverb. */
+        #if DSP4_FX_REVERB_CAP
+        .extern _fx_type_live_{nid};
+        #endif
         /* An unimplemented Type parks its number here and the node
          * passes the sample through. Read by the family walk; nothing
          * on the part reads it. 0 = an algorithm ran. */
@@ -3831,8 +3838,19 @@ def gen_fx_engine(node):
              */
             f15 = f0;                   /* dry input saved in f15 */
 
-            /* Dispatch on algorithm type */
+            /* Dispatch on algorithm type.
+             *
+             * THE LIVE TYPE, NOT THE REQUESTED ONE (S149, PW's reverb
+             * cap). `_fx_type_{nid}` is exactly what the host wrote and
+             * is never rewritten; `_fx_type_live_{nid}` is what the cap
+             * guard has granted. With DSP4_FX_REVERB_CAP=0 there is no
+             * guard and no live word and this reads the request, byte
+             * for byte as it always did. */
+            #if DSP4_FX_REVERB_CAP
+            r0 = dm(_fx_type_live_{nid});
+            #else
             r0 = dm(_fx_type_{nid});
+            #endif
     """))
 
     # ----- Dispatch table (class-filtered) -----
@@ -4294,7 +4312,11 @@ def gen_fx_engine(node):
              * had nothing to do -- and it is how Type 0 = Echo, the
              * landed default, went four sessions without anyone noticing
              * it was not an algorithm. */
+            #if DSP4_FX_REVERB_CAP
+            r1 = dm(_fx_type_live_{nid});
+            #else
             r1 = dm(_fx_type_{nid});
+            #endif
             dm(_fx_bypassed_{nid}) = r1;
             f0 = f15;                    /* dry pass-through */
             jump (pc, .fx_mixed_{nid});
@@ -14001,6 +14023,33 @@ def gen_block_header(mtx_ctl=None, pool_counts=None):
 #define DSP4_C2_MIX_FABRIC 0
 #endif
 
+/* HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29:
+ * "cap reverbs to 3"). S148 measured what the sixth costs: six engines from
+ * Type 0 to Type 3 is +58,845 cycles/block, which takes chip 2 from 76.06 %
+ * of budget to 94.02 % -- and 110.27 % with the desk in use. The cap is the
+ * cheapest of the trades S148 §8 listed because it costs nothing to
+ * implement and nothing to run.
+ *
+ * TWO LAYERS, and this is the LOWER one. The host is the single writer and
+ * greys the unavailable selections out; the DSP keeps its own guard so a bad
+ * write can never cost a missed block. Same shape as the no-feedback rule
+ * (S148 §4.3).
+ *
+ * THE FOURTH REVERB IS HELD, NOT DROPPED. `_fx_type_<nid>` stays exactly
+ * what the host wrote; `_fx_type_live_<nid>` is what the engine reads, and
+ * the guard copies one to the other subject to the cap. So a held request
+ * takes effect the moment a slot frees, and nothing on the wire has to be
+ * re-sent. Lowest engine index wins, and a release is granted before any
+ * grant, so swapping which three are on Reverb takes one block.
+ *
+ * DSP4_FX_REVERB_CAP=0 is the CONTROL: no guard, no live word, and the
+ * engines read `_fx_type_` exactly as they did -- which is also the arm the
+ * six-reverb capacity row has to be measured on, because with the cap on
+ * that row cannot be built. */
+#ifndef DSP4_FX_REVERB_CAP
+#define DSP4_FX_REVERB_CAP 3
+#endif
+
 /* THE DELAY LINE'S TWO PASSES (2026-09-03, review finding D25's remainder).
  * The block kernel wrote one sample to the delay line and then read another
  * from it, per sample, and the delay lines are in L2 -- session 3 measured
@@ -15508,6 +15557,173 @@ def gen_c2_mix_fabric(max_src):
     a('    dm(i4, 0) = r0;')
     a('    rts;')
     a('_c2_mix_fabric.end:')
+    a('')
+    a('#endif')
+    a('')
+    return '\n'.join(out)
+
+
+FX_TYPE_REVERB = 3          # `_fx_type_` value 3 = Reverb (gen_fx_engine)
+
+
+def gen_fx_type_cap(fx_ids):
+    """chip2/fx_cap.asm -- at most N engines on Type Reverb at once.
+
+    PW's ruling, 2026-09-29: "cap reverbs to 3". S148 measured why -- six
+    engines from Type 0 (Echo) to Type 3 (Reverb) is +58,845 cycles/block,
+    and it is what puts chip 2 at 110.27 % in the in-use regime.
+
+    THE DSP HALF OF A TWO-LAYER RULE. The host is the single writer and
+    publishes which selections are available so skins can grey them out;
+    this is the guard underneath, so that a write the host should not have
+    made cannot cost a missed block. It is the same two-layer shape as the
+    no-feedback rule S148 §4.3 designed for the aux matrix.
+
+    HELD, NOT REFUSED, and that is a deliberate choice. `_fx_type_<nid>`
+    stays EXACTLY what the host wrote -- nothing on the wire is dropped or
+    rewritten, and a host read-back still says what was asked for --
+    while `_fx_type_live_<nid>` is what the engine reads. So:
+
+      * a fourth Reverb is never LOADED: the algorithm is not selected,
+        no reverb state is set up, and the engine costs what its live type
+        costs;
+      * the moment one of the three moves off Reverb the held request is
+        granted, with no further host traffic;
+      * which three win is DETERMINISTIC -- an engine already RUNNING
+        Reverb keeps its slot (a newcomer never evicts a reverb that is
+        audibly running), and among the engines newly asking the lowest
+        index wins -- and swapping takes one block, because every release
+        is granted before any grant.
+
+    THREE PASSES, all software loops over six engines at block rate, about
+    180 instructions a block. It is under 0.05 % of chip 2 and it does not
+    touch the per-sample path at all.
+
+    WHAT READS WHAT, so a bench tool is not left guessing: `_fx_type_` is
+    the REQUEST (the host's own word, unchanged), `_fx_type_live_` is what
+    RUNS. A capture that disagrees with the panel is the cap holding, and
+    the two words say so directly.
+    """
+    n = len(fx_ids)
+    out = []
+    a = out.append
+    a('/* chip2/fx_cap.asm - at most DSP4_FX_REVERB_CAP engines on Reverb */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py - do not edit. */')
+    a('/*')
+    for line in dedent(gen_fx_type_cap.__doc__).strip().splitlines():
+        a((' * ' + line).rstrip() if line.strip() else ' *')
+    a(' */')
+    a('#include "dsp_block.h"')
+    a('')
+    a('#if DSP4_FX_REVERB_CAP > 0 && CHIP_ID == 2')
+    a('')
+    a(f'#define FXCAP_N {n}')
+    a(f'#define FXCAP_REVERB {FX_TYPE_REVERB}')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    for nid in fx_ids:
+        a(f'.extern _fx_type_{nid};')
+    a('')
+    a('/* THE LIVE TYPE, one per engine. Boots at 0 (Echo) whatever the')
+    a(' * request is, and the guard grants on the first block -- which is')
+    a(' * what makes the cap hold from block 1 even in a build whose')
+    a(' * engines all DECLARE Reverb (DSP4_FX_TYPE_DECLARED=1). That arm')
+    a(' * can no longer put six engines on Reverb, which is the point;')
+    a(' * build the six-reverb capacity row with DSP4_FX_REVERB_CAP=0. */')
+    for nid in fx_ids:
+        a(f'.global _fx_type_live_{nid};')
+        a(f'.var _fx_type_live_{nid} = 0;')
+    a('')
+    a('/* The two sides, as address tables, so the passes are loops and not')
+    a(' * six copies of the same six instructions. */')
+    a(f'.var _fxcap_req[FXCAP_N] =')
+    for i, nid in enumerate(fx_ids):
+        a(f'    _fx_type_{nid}{"," if i < n - 1 else ";"}')
+    a(f'.var _fxcap_liv[FXCAP_N] =')
+    for i, nid in enumerate(fx_ids):
+        a(f'    _fx_type_live_{nid}{"," if i < n - 1 else ";"}')
+    a('')
+    a('.section/pm seg_pmco;')
+    a('')
+    a('/*--------------------------------------------------------------')
+    a(' * _fx_type_cap - run ONCE per block, before the first FX engine.')
+    a(' * Clobbers r0-r3, r5-r7, r9, i0-i3, l0-l3.')
+    a(' *-------------------------------------------------------------*/')
+    a('.global _fx_type_cap;')
+    a('_fx_type_cap:')
+    a('    l0 = 0;')
+    a('    l1 = 0;')
+    a('    l2 = 0;')
+    a('    l3 = 0;')
+    a('')
+    a('    /* ---- 1: every NON-Reverb request is granted at once ----')
+    a('     * Releases run before grants, which is what lets the host')
+    a('     * move Reverb from engine 2 to engine 5 in a single block. */')
+    a('    i0 = _fxcap_req;')
+    a('    i1 = _fxcap_liv;')
+    a('    r9 = FXCAP_N;')
+    a('    r6 = FXCAP_REVERB;')
+    a('.fxc_rel:')
+    a('    r0 = dm(i0, 1);')
+    a('    i2 = r0;')
+    a('    r1 = dm(i2, 0);               /* what the host asked for   */')
+    a('    r2 = dm(i1, 1);')
+    a('    i3 = r2;')
+    a('    comp(r1, r6);')
+    a('    if eq jump (pc, .fxc_rel_next);')
+    a('    dm(i3, 0) = r1;')
+    a('.fxc_rel_next:')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .fxc_rel);')
+    a('')
+    a('    /* ---- 2: how many are on Reverb now ---- */')
+    a('    i1 = _fxcap_liv;')
+    a('    r5 = 0;')
+    a('    r9 = FXCAP_N;')
+    a('.fxc_cnt:')
+    a('    r2 = dm(i1, 1);')
+    a('    i3 = r2;')
+    a('    r3 = dm(i3, 0);')
+    a('    comp(r3, r6);')
+    a('    if ne jump (pc, .fxc_cnt_next);')
+    a('    r5 = r5 + 1;')
+    a('.fxc_cnt_next:')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .fxc_cnt);')
+    a('')
+    a('    /* ---- 3: grant what fits ----')
+    a('     * An engine already on Reverb is skipped, so it keeps its slot')
+    a('     * however high its index: a newcomer never evicts a reverb that')
+    a('     * is audibly running. Among the engines newly asking, the walk')
+    a('     * is in index order, so the lowest win.')
+    a('     * A request that does not fit is HELD: the live word is left')
+    a('     * alone, the engine keeps running whatever it was running, and')
+    a('     * the request is still there to be granted next block. */')
+    a('    i0 = _fxcap_req;')
+    a('    i1 = _fxcap_liv;')
+    a('    r9 = FXCAP_N;')
+    a('    r7 = DSP4_FX_REVERB_CAP;')
+    a('.fxc_grant:')
+    a('    r0 = dm(i0, 1);')
+    a('    i2 = r0;')
+    a('    r1 = dm(i2, 0);')
+    a('    r2 = dm(i1, 1);')
+    a('    i3 = r2;')
+    a('    r3 = dm(i3, 0);')
+    a('    comp(r1, r6);')
+    a('    if ne jump (pc, .fxc_grant_next);   /* not asking for Reverb */')
+    a('    comp(r3, r6);')
+    a('    if eq jump (pc, .fxc_grant_next);   /* already on it         */')
+    a('    comp(r5, r7);')
+    a('    if ge jump (pc, .fxc_grant_next);   /* HELD: the cap is full */')
+    a('    dm(i3, 0) = r6;')
+    a('    r5 = r5 + 1;')
+    a('.fxc_grant_next:')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .fxc_grant);')
+    a('    rts;')
+    a('_fx_type_cap.end:')
     a('')
     a('#endif')
     a('')
@@ -21974,6 +22190,11 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # property of the FINAL chain and not of dsp.csv's row order.
         _c2_groups = c2_pair_groups(chip_label, chip_nodes, call_sequence)
         _c2_xpairs = c2_cross_pairs(chip_label, chip_nodes)
+        # The first FX engine of the FINAL chain: PW's reverb cap runs
+        # immediately before it (chip 2 only).
+        _fx_types = {n['id'] for n in chip_nodes if n['type'] == 'FX_ENGINE'}
+        _first_fx_nid = next((n for n in call_sequence if n in _fx_types),
+                             None) if chip_label == 'chip2' else None
         if _pre_bad:
             print(f'  {chip_label}: process order repaired -- '
                   f'{len(_pre_bad)} stale-read edge(s):')
@@ -22025,6 +22246,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write(f'.extern _bus_clear_all;\n')
                 f.write('#if DSP4_RTG_FABRIC\n')
                 f.write('.extern _rtg_fabric;\n')
+                f.write('#endif\n')
+            if chip_label == 'chip2' and _first_fx_nid:
+                f.write('#if DSP4_FX_REVERB_CAP\n')
+                f.write('.extern _fx_type_cap;\n')
                 f.write('#endif\n')
             for nid in call_sequence:
                 f.write(f'.extern _{nid}_process;\n')
@@ -22335,7 +22560,24 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                            and strip_re.match(_e[1])):
                         _last_strip = _i
 
+                # PW's REVERB CAP runs ONCE, immediately before the first
+                # FX engine -- the only window in which every host write of
+                # the block has landed and no engine has yet read a type.
+                # It is a guard, not a feature, so it is outside every
+                # DSP4_NODE_LIMIT guard for the same reason the fabric is:
+                # a prefix cut that keeps any engine must keep the cap.
+                _fx_first = -1
+                for _i, _e in enumerate(seq):
+                    if _e[0] == 'node' and _e[1] == _first_fx_nid:
+                        _fx_first = _i
+                        break
+
                 for idx, ent in enumerate(seq):
+                    if idx == _fx_first:
+                        f.write('#if DSP4_FX_REVERB_CAP\n')
+                        f.write('    call _fx_type_cap;   '
+                                '/* at most 3 engines on Reverb */\n')
+                        f.write('#endif\n')
                     if idx in runs:
                         _end, _sid, _rn = runs[idx]
                         f.write('#if DSP4_BLOCK_KERNELS && DSP4_SCOPE_GATE\n')
@@ -23230,6 +23472,18 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         # #if DSP4_C2_MIX_FABRIC, so a control build assembles an empty
         # file, and a tree cannot carry a copy sized for a widest bus the
         # graph no longer has.
+        # chip2/fx_cap.asm — PW's reverb cap (2026-09-29). Written whenever
+        # the graph has chip-2 FX engines; the whole file is inside
+        # #if DSP4_FX_REVERB_CAP, so the control arm assembles an empty one.
+        _c2fx = [n['id'] for n in nodes
+                 if n['chip'] == '2' and n['type'] == 'FX_ENGINE']
+        if _c2fx:
+            os.makedirs(os.path.join(output_dir, 'chip2'), exist_ok=True)
+            with atomic_open(os.path.join(output_dir, 'chip2',
+                                          'fx_cap.asm'), 'w',
+                             encoding='utf-8') as f:
+                f.write(gen_fx_type_cap(_c2fx))
+            files_written += 1
         _c2mix = [n for n in nodes
                   if n['chip'] == '2' and n['type'] == 'MIX_BUS'
                   and n['inputs']]
