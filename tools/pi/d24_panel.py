@@ -662,13 +662,21 @@ def sense_rows_for(side):
     return [s.num for s in SENSE.get(side, ())]
 
 
-def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None):
+def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
+                idle=None):
     """Grade the sense rows of one board by listening while the operator acts.
 
     `ask(instruction, row, phase_n, phase_total)` puts one phase's instruction
     on the glass and returns a `tick()` callable exactly as the button sweep's
     `ask` does -- polled between bus reads, so PAUSE stays live. A phase with
     an empty instruction is not asked at all and is listened through.
+
+    `idle` is the tick for those unasked phases: nothing on the glass changes,
+    but the run has to go on saying it is alive. Without it a 30 s listen with
+    no instruction (the temperature sense, row 94) let the factory screen's
+    heartbeat go stale, the screen took the run for dead and offered START,
+    and a press there tried to launch a second run ("the test did not start",
+    PW 2026-09-29).
 
     Returns {row number: (verdict, note)}.
     """
@@ -688,7 +696,7 @@ def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None):
             # THE DRAIN IS THE ARM, AND IT IS BEFORE THE PROMPT.
             bus.flush()
             tick = (ask(instruction, row.num, i, len(row.phases))
-                    if instruction else None)
+                    if instruction else idle)
             got = _listen(bus, row.cell_key, timeout, tick)
             if got == 'pause':
                 paused = True

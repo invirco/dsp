@@ -2362,9 +2362,22 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                         return 'skip'
                     return b
                 return tick
+
+            # The listen with nothing asked (row 94, the temperature sense):
+            # keep the heartbeat and PAUSE alive, change nothing on the glass.
+            def sense_idle():
+                if pending['paused']:
+                    return 'skip'
+                if live is not None:
+                    live.beat()
+                    if live.command() == 'pause':
+                        pending['paused'] = True
+                        return 'skip'
+                return None
             for num, (v, note) in PL.sense_sweep(
                     bus, side, sense_ask, timeout=a.panel_timeout,
-                    log=glass.progress, owed=owed).items():
+                    log=glass.progress, owed=owed,
+                    idle=sense_idle).items():
                 land(num, v, note, operator=False)
             if pending['paused']:
                 raise Paused()
