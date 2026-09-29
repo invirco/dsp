@@ -20,7 +20,17 @@
 #   ./build-images.sh            # all four arms, each gated
 #   ./build-images.sh B          # just the shipping arm
 #
-# Provenance the CURRENT md5s were taken at (S149, 2026-09-29):
+# Provenance the CURRENT md5s were taken at (S150, 2026-09-29):
+#   git HEAD                (this commit)
+#   check-sharc-codegen-drift.sh   760 generated / 0 differ
+#
+# S150 BUILT THE AUX MATRIX AND MOVED NOT ONE OF THESE FOUR MD5s. The switch
+# it added (DSP4_C2_AUX_MTX) defaults OFF, because its 360 crosspoint words
+# are proposed and not yet landed at the hub gate, so all four arms rebuild
+# the images S149 recorded BYTE FOR BYTE on both chips. Arm M below is the
+# matrix arm and it is the one that moves.
+#
+# Provenance of the four before that (S149, 2026-09-29):
 #   git HEAD                00663c581c75e8090c36ea70c21659d3b59d1315
 #   src tree sha256         567b5e8a22f7b4555059f2f3a0b77c15f87d1ece2d992ff4183f8c732fb7f075
 #   check-sharc-codegen-drift.sh   759 generated / 0 differ
@@ -62,8 +72,58 @@ ARMS=(
 "D|rta|DSP4_RTA=1 DSP4_CUE=1             |c9bf6659fd888626465932c3814adb5f|c1d9f5db83bad18b78c000178a49191b"
 )
 
+# ---- ARM M: THE AUX MATRIX (S150) --------------------------------------
+#
+# NOT one of the four, and it is built differently, because it cannot be
+# built the same way. `DSP4_C2_AUX_MTX=1` needs a dispatch table that has
+# addresses for the 360 crosspoint words, and those are PROPOSED and not
+# landed -- `MW/D32/DSP/SHARC/src/chip*/dsp_params.asm` tracks the LANDED
+# contract and correctly does not have them. So this arm is built out of a
+# SCRATCH copy of src/ with the GRAPH's own dispatch tables dropped in, via
+# gen_dsp.py --params-dir, which is exactly what that flag exists for: it
+# answers "does the graph assemble, link and fit" while the proposal is in
+# flight, and it never writes into the tree.
+#
+# SAME BYTES, DIFFERENT PROVENANCE. Nothing has gated these rows and the
+# defs pin does not describe this image. It is a desk image: do not stage
+# it, do not sign it. When the hub lands the proposal and the pin advances,
+# this becomes an ordinary arm -- and then the SHIPPING arm, if PW says so.
+#
+# Chip 1's image differs from arm B's in EXACTLY ONE CONSTANT, the
+# DIAG_BUILD_CFG3 instrument bit: the matrix is chip-2 code and chip 1 has
+# no aux sum. Chip 2: code 177,958 (67.9 %), DM 346,732 (92.4 % — OVER the
+# 90 % warn line, see the S150 report), delay 1,886,112 (91.0 %, unmoved).
+ARM_M_C1=e549e1fad764c790d272337f8b8a0f85
+ARM_M_C2=a317906713e9a11f193d98db94295f0c
+
 want="${1:-ALL}"
 rc=0
+
+if [ "$want" = "M" ]; then
+    scratch="$SHARC/build_s150_mtx"
+    src="$SHARC/src_s150_mtx"
+    echo "=== arm M  (the aux matrix, DSP4_C2_AUX_MTX=1, GRAPH provenance)"
+    rm -rf "$src" "$scratch"
+    python3 "$ROOT/MW/D32/DSP/gen_dsp.py" --force --propose \
+        --params-dir "$SHARC/params_s150_mtx" >/dev/null 2>&1 || true
+    cp -a "$SHARC/src" "$src"
+    cp "$SHARC/params_s150_mtx/chip1/dsp_params.asm" "$src/chip1/"
+    cp "$SHARC/params_s150_mtx/chip2/dsp_params.asm" "$src/chip2/"
+    ( cd "$SHARC" && env DSP4_C2_AUX_MTX=1 DSP_SRC_DIR="$src" \
+        DSP_BUILD_DIR="$scratch" ./build.sh all >"$scratch.log" 2>&1 ) || {
+        echo "  BUILD FAILED — see $scratch.log"; exit 1; }
+    g1="$(md5sum "$scratch/chip1.ldr" | cut -d' ' -f1)"
+    g2="$(md5sum "$scratch/chip2.ldr" | cut -d' ' -f1)"
+    if [ "$g1" = "$ARM_M_C1" ] && [ "$g2" = "$ARM_M_C2" ]; then
+        echo "  OK  chip1 $g1  chip2 $g2"
+        echo "  (desk image: the crosspoint addresses are PROPOSED, not landed)"
+        exit 0
+    fi
+    echo "  *** MD5 MISMATCH ***"
+    echo "      chip1 got $g1 want $ARM_M_C1"
+    echo "      chip2 got $g2 want $ARM_M_C2"
+    exit 1
+fi
 
 for row in "${ARMS[@]}"; do
     IFS='|' read -r arm suf flags m1 m2 <<<"$row"

@@ -1,5 +1,9 @@
 # Build outputs
 MW/*/DSP/SHARC/build/
+# S150 arm M's scratch tree and the graph's dispatch tables, both rebuilt
+# by MW/D24/DSP/s146/build-images.sh M and neither a source of truth.
+MW/*/DSP/SHARC/src_s150_mtx/
+MW/*/DSP/SHARC/params_s150_mtx/
 attic/d24-adau1466/DSP_Export/
 **/__pycache__/
 *.o

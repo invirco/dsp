@@ -6,6 +6,164 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE AUX MATRIX, BUILT AS RULED (2026-09-29, session 150)
+
+Hub dispatch `tasks.md` 2026-09-29 13:05Z. Desk only — nothing flashed, no
+DSP load, no deploy, MW-D24-2 not contacted at all. Report
+`MW/D24/DSP/s150/s150-report.md`.
+
+PW's rulings, 2026-09-29: the team model (aux i's FINISHED output feeds aux
+j's BUS before aux j's strip); *"matrix mixing should disallow all potential
+feedback paths, and grey out skin controls to help user"*; *"0.33 ms latency
+is ok, but no more"*. All three are built. **The four S146 arms do not move
+by one byte** — the switch defaults off until the hub lands the crosspoint
+addresses (S150-3).
+
+### S150-1 — chip 2's DM crosses the 90 % warn line with the matrix in: 92.4 %
+
+**Severity: MEDIUM. It fits — 28,532 bytes free — and it is over the line
+`dsp_memreport` draws, which S149-5 said the next chip-2 feature of this
+size would cross.**
+
+Arm M (`DSP4_C2_AUX_MTX=1`) lands chip 2's DM pool at **346,732 / 375,264 =
+92.4 %**, against arm B's 333,956 = 89.0 %. Accounted for to the word:
+`_mix_on_/_mix_send_/_mix_send_target_/_mix_send_step_/_mix_send_frames_`
+grow by 15 words each on twelve buses (900 words), `_mix_gq_` and `_mixsp_`
+by 15 each on twelve (360), the alignment history `_auxal_*` is 22 blocks of
+16 (352), `_c2mix_src` grows by three sources (48), the guard's four
+bitmask rows and its 144 gate words are 192, and the landed-contract
+dispatch and stride tables gain 720 entries. **Code goes the other way, by
+11,880 bytes**, because the matrix arm of an aux sum is fabric-only and the
+twelve unreachable generic wrappers stop being emitted.
+
+**Recommendation, not taken here: rebalance the LDF before the next chip-2
+feature, not after.** `seg_dmda` is `mem_block0_bw` (195,040 B, full) plus
+an overflow into `mem_block1_bw` (180,224 B, 81.7 % used and shared with
+`seg_dma`). `mem_block2_bw` is code overflow + PM data and is 58.8 % used
+with 54,040 bytes free; giving `seg_dmda` a THIRD overflow region there is a
+one-line LDF change in kind and a whole-image relayout in effect, which is
+why it is a session of its own and not a line in this one. Nothing here is
+blocked by it; the next thing will be.
+
+### S150-2 — the aux matrix changes the ramp STRIDE of cells that were already addressed, and nothing would have said so
+
+**Severity: HIGH in kind, caught. Found because a tool refused rather than
+guessed.**
+
+`_ramp_set_target` writes a ramped parameter's target, step and frames at
++s/+2s/+3s from the value, where `s` is the width of the parallel array —
+and for a chip-2 aux sum that array is `_mix_send_<nid>`, whose width IS the
+crosspoint count. The matrix takes it from 10 to 25. So **the stride of
+`Fx[1-6]AuxSend` and `Grp[1-4]AuxSend`, cells addressed since S23 and S143
+and untouched by this work, is different in the two arms** — and a dispatch
+table carrying one number would, in whichever arm it was not taken from,
+land a ramped send's target on a NEIGHBOURING crosspoint's level.
+
+`build_ramp_stride_map` read the emitted ASM as flat text and raised
+`conflicting ramp stride for _mix_send_C2_MIX_AUX_01: 25 vs 10`, which is
+the right failure and is the only reason this is a finding and not a defect.
+Fixed: the map is scanned per arm and `dsp_params.asm` emits both strides
+under the same `#if DSP4_C2_AUX_MTX` — 301 entries carry two.
+
+**The general shape is worth keeping.** A switch that changes an ARRAY
+WIDTH changes the runtime contract of every cell that indexes into it, not
+only of the cells it adds. Any future lever that widens a `_mix_send_`,
+`_rtg_send_` or similar family has this property and the stride table is
+where it shows up.
+
+### S150-3 — the matrix is built and cannot be reached: 360 crosspoint addresses are proposed, not landed
+
+**Severity: this is a handoff, not a defect, and it is why the switch ships
+OFF.**
+
+The cells exist in the master — `Aux[1-16]AuxSend/AuxOn[1-12]`,
+`MainL/MainR/MainCtr[1-1]AuxSend/AuxOn[1-12]`, all of them landed as
+UNMAPPED — and S150 gives them a reader. `gen_dsp.py --propose` has written
+the move from `dsp-unmapped.csv` to `dsp.csv` for all four products
+(`proposals/defs/products/*`): **336 cells on D32, 176 on D24**, 96 on D16,
+48 on D12, and nothing else in those files changes. Until the hub lands it
+and the defs pin advances, generation reads the landed pair and the tree's
+`dsp_params.asm` has no address for a crosspoint.
+
+An image built with `DSP4_C2_AUX_MTX=1` on the landed pin would therefore
+carry the alignment's +16 samples on every aux output and 1.54 points of
+cost for a feature no host can switch on, with S150-2's stride mismatch
+underneath. So the switch defaults 0, all four S146 arms are byte-identical
+to S149's, and arm M is a desk image built from the graph's own dispatch
+tables (`--params-dir`, which exists for exactly this window). **To adopt:
+land the proposal, advance the pin, `./regenerate-dsp-contract.sh`, set
+`DSP4_C2_AUX_MTX=1`, re-record the arm md5s.**
+
+### S150-4 — S149-1 answered: the matrix makes the 80-bit wrap REACHABLE on an aux bus for the first time
+
+**Severity: was LOW in practice on an aux bus and is no longer. PW's ruling,
+as S149 said; the recommendation is now to take it.**
+
+S149-1: `_mrf_rns28` asks saturation test (a) only, its comment licensing
+that by saying its callers MAC one Q4.28 x Q4.28 product, so past a bus sum
+of ±128.0 the chip-2 readout WRAPS to a clean, full-scale, WRONG-SIGN sample
+where `_acc64_rns28` and `fixed_ref.mix_sum` saturate. S149 measured what it
+takes to get there: **about seventeen simultaneously-clipping sources at
+unity into one bus.**
+
+That is the number the matrix moves. **A chip-2 aux sum had ELEVEN declared
+sources and could not reach seventeen at all; with the matrix it has
+twenty-six and can.** The main mixes (23) could already reach it and that is
+what S149-1 recorded; what is new is that the bus a live desk drives hardest
+— an aux fed by six FX returns, four groups, three masters and twelve auxes
+— joins them.
+
+**Recommendation: take test (b), and take it in both places at once.** It is
+the five instructions chip 1's `gen_mix_bus_fixed` already emits and
+documents — `ex` XOR the sign extension of `hi`, tested on the low sixteen
+bits, ORed into the same conditional move — applied to `_mrf_rns28` in
+`src/lib/mac64_fx.asm` AND to the copy inlined in `chip2/mix_fabric.asm`,
+which must stay bit-identical to it. Counted off the emitted code it is
+about 1,440 instructions a block across the fifteen chip-2 mix buses —
+**0.39 points** — and `c2_mix_fabric_ref.py`'s five disagreeing words in
+64,000 become zero, which is the check that it worked.
+
+**It is an AUDIO CHANGE** — a wrap becomes a clip — so it stays PW's. It is
+not built here.
+
+### S150-5 — the alignment snapshot is 932 instructions a block of pure block copy, and an MDMA could do it for nothing
+
+**Severity: a lever, not a defect. Recorded so the next capacity session has
+it.**
+
+`_c2_aux_mtx_pre` copies 22 source blocks — 352 words — at the head of every
+chip-2 block, two instructions a word, because the aux sums must read their
+non-matrix sources one block late and nothing else in the chain holds a
+previous block. That is 932 of the guard's 1,787 steady-state instructions
+and **0.25 of its 0.48 points**. It is a fixed-address, fixed-length,
+same-memory copy with a whole block period to complete in, which is the
+easiest MDMA descriptor there is. Not taken here because a DMA the chain
+depends on completing needs a completion discipline, and that is a design
+decision rather than an optimisation.
+
+**Two smaller ones beside it, both the same shape and both left.** The
+snapshot copies all twelve aux receives and the guard's request pass walks
+all twelve buses whatever `CFG_AUX_MASK` says, so **a D24 pays about 0.15
+points for four aux buses it does not have**; and the per-crosspoint fold
+runs for all twenty-five crosspoints of every live bus whether the host has
+ever touched them or not, which is what the S23 bypass already accepts one
+level up.
+
+### S150-6 — gate B of `stereo_split_check.py` can no longer see the matrix legs, and that is deliberate
+
+**Severity: a stated loss of coverage, the same shape as S149-6.**
+
+With the matrix edges counted, every aux output reaches both `C2_MIX_MAIN_L`
+and `C2_MIX_MAIN_R` — truthfully, because PW's design gives every aux a
+crosspoint from each — and gate B's claim about aux outputs collapses from
+"none" to "both", which is to say to nothing. The matrix crosspoints are
+therefore EXCLUDED from the cone and reported by name (180 of them on twelve
+buses), exactly as `link_in=` detector edges are, and the gate keeps the
+claim that is worth keeping: **with the matrix at its defaults an aux output
+carries exactly zero of the main mix.** What it can no longer catch is a
+split defect introduced THROUGH a matrix crosspoint. The row that covers
+that is bench row 0d.
+
 ## THE CAPACITY LEVERS PW APPROVED, BUILT AND PRICED (2026-09-29, session 149)
 
 Hub dispatch `tasks.md` 2026-09-29 11:00Z. Desk only — nothing flashed, no

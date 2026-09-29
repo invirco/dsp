@@ -61,13 +61,17 @@
 
 #if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
 
+#if DSP4_C2_AUX_MTX
+#define C2MIX_MAX_SRC 26
+#else
 #define C2MIX_MAX_SRC 23
+#endif
 
 .section/dm seg_dmda;
 
 /* The gathered live source blocks and their compacted coefficients.
  * SCRATCH, shared by every chip-2 MIX_BUS node -- see the note above.
- * Sized for the widest bus in this graph (23 sources). */
+ * Sized for the widest bus in this graph (23 sources, 26 with the aux matrix). */
 .global _c2mix_src;
 .var _c2mix_src[C2MIX_MAX_SRC*DSP4_BLOCK_SIZE];
 .global _c2mix_gq;

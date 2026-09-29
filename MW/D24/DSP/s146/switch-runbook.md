@@ -132,8 +132,20 @@ see.
 
 ### 2.1 Four arms were built; ONE of them ships
 
-**UPDATED S149 (2026-09-29): EVERY ARM'S CHIP-2 IMAGE MOVED; every arm's
-CHIP-1 IMAGE DID NOT.** Three chip-2 items landed between S148 and this
+**UPDATED S150 (2026-09-29): NOT ONE OF THE FOUR MD5s MOVED.** S150 built
+the aux matrix — PW's team model, its one-block alignment and its
+no-feedback guard — and its switch `DSP4_C2_AUX_MTX` defaults **OFF**,
+because the 360 crosspoint words it needs are PROPOSED and not yet landed at
+the hub gate. All four arms therefore rebuild the images S149 recorded
+**byte for byte on both chips**, which is the whole of S150's blast radius
+on this window: none. There is a fifth arm, **arm M**, built and md5-gated
+in `build-images.sh M` — the matrix turned on, built out of a scratch tree
+with the GRAPH's own dispatch tables because the landed ones cannot address
+a crosspoint that has not been gated. It is a DESK image: do not stage it,
+do not sign it. `MW/D24/DSP/s150/s150-report.md` is the case.
+
+**Superseded framing (S149, 2026-09-29): EVERY ARM'S CHIP-2 IMAGE MOVED;
+every arm's CHIP-1 IMAGE DID NOT.** Three chip-2 items landed between S148 and this
 revision, all PW-ruled and all defaulting ON in `shipping.config`: the
 live-crosspoint mix fabric (`DSP4_C2_MIX_FABRIC`, S148 lever L1), the
 follower pairing (L2) and the reverb cap (`DSP4_FX_REVERB_CAP=3`). They are
@@ -313,6 +325,24 @@ today's `shipping.config` — arm B's triple, confirmed on this tree
 
 **Memory is exact** — read out of these images' own linker map files by
 `tools/dsp/dsp_memreport.py`, not carried from a prediction:
+
+**UNCHANGED AT S150** — the aux matrix's switch defaults off, so every
+figure below is the one S149 measured and every arm still reproduces its
+image byte for byte. **Arm M**, the matrix arm, is the one that moves, and
+it moves the number this table is closest to its limit on:
+
+| pool | chip 2, arm B (ships) | chip 2, **arm M (matrix, desk only)** | limit |
+|---|--:|--:|--:|
+| code (VISA SW) | 189,838 — 72.4 % | **177,958 — 67.9 %** | 262,144 B |
+| DM data + stack | 333,956 — 89.0 % | **346,732 — 92.4 %  ← OVER THE WARN LINE** | 375,264 B |
+| delay lines | 1,886,112 — 91.0 % | **1,886,112 — 91.0 %** | 2,072,576 B |
+
+Code goes DOWN by 11,880 bytes, which is not a typo: the matrix arm of a
+chip-2 aux sum is fabric-only, so the twelve sums' generic per-sample
+wrappers — unreachable under `DSP4_C2_MIX_FABRIC=1` and assembled anyway
+since S149 — stop being emitted. DM goes UP by 12,776 and crosses
+`dsp_memreport`'s 90 % warn line, which S149-5 said the next chip-2 feature
+of this size would do. See S150-1.
 
 **UPDATED S149: every chip-2 column below is re-read off the S149 rebuild's
 own map files.** L1 (the mix fabric), L2 (the follower pairing) and the
@@ -833,6 +863,32 @@ boot of the session, and held; the CPLD in its shipping personality
 `d02d83b3cc22` (a loopback personality is for digital-only work and will not
 carry these).
 
+**ADDED S150 — three more, and they go AFTER S149's three and BEFORE the
+twelve. Every one of them needs arm M, which is a desk image until the hub
+lands the crosspoint addresses; none of them can be taken on the shipping
+arm, because on the shipping arm the matrix is compiled out.**
+
+**0d. The aux→aux path exists and goes the right way.** Open
+`Aux001AuxSend002` (aux 1 into aux 2) at unity with `Aux001AuxOn002` = 1,
+drive aux 1 only, and capture aux 2's output. *PASS: aux 2 carries aux 1's
+PROCESSED output — it must follow aux 1's own EQ, limiter and delay, which
+is what distinguishes PW's team model from a pre-strip tap. Then close it
+and confirm aux 2 reads exactly zero of aux 1.*
+
+**0e. The alignment, MEASURED, and it is the row that checks PW's ceiling.**
+With every matrix crosspoint closed, measure the aux through-DSP latency on
+arm M and on arm B (`DSP4_C2_AUX_MTX=0`). *PASS: arm M is EXACTLY 16 samples
+later, 98 samples against 82, and not 32. The main, monitor and phones paths
+must not move at all. A second block anywhere here is a 🔴 stop, not a
+trade: 0.33 ms is the whole budget PW signed.*
+
+**0f. The guard refusing a loop, on the part.** Open aux 1 → aux 2, then ask
+for aux 2 → aux 1. *PASS: the second send is inert — aux 1 carries exactly
+zero of aux 2 — `Aux002AuxOn001` still READS BACK 1 (the host's word is
+never written), and the desk does not howl. Then close aux 1 → aux 2 and
+confirm aux 2 → aux 1 becomes live within one block with no further
+traffic.* Then the longest loop the guard has to see: 1→2, 2→3, 3→1.
+
 **ADDED S149 — three rows that go in FRONT of these twelve, in the order
 that makes each next number worth taking.** They are capacity rows, they
 need no analog path, and each one turns a construction this tree is now
@@ -993,6 +1049,14 @@ nothing below it means anything.*
 ## 8. Risks, gates, abort criteria
 
 ### 8.1 Capacity — the only real one
+
+**UPDATED S150: this window's numbers do not move, because the aux matrix
+is not in this window's image.** Arm M's worst reachable regime is a
+constructed **90.28 %** (three reverbs, the desk in use, and the maximal
+legal matrix the guard will allow), against arm B's 87.36 % and the same
+~97 % abort line. The matrix costs 1.54 points unconditionally and 2.91 in
+that worst patch. It is 6.7 points inside the line and it is still a
+construction on S86's driven row, like everything else in this chain.
 
 **UPDATED S149.** Arm A landed at a **constructed** ≈ 91.7 % against a
 boot-to-boot spread of 0.53 points; arm B — this window's image — is

@@ -50,6 +50,9 @@ _FLAGS = {
     'DSP4_SCOPE_BLK_TAP': 0,
     'DSP4_AUXIN_BYPASS': 0,
     'DSP4_CHAN_MASK': 1,
+    # The aux matrix is OFF here so every number S149 recorded still
+    # reproduces; the matrix arm is counted by its own entry points below.
+    'DSP4_C2_AUX_MTX': 0,
 }
 
 
@@ -148,7 +151,10 @@ def _ev(nodes, counts):
         else:
             _, bound, body = node
             if bound not in counts:
-                raise KeyError(f'no loop bound for {bound!r}')
+                if re.fullmatch(r'\d+', bound):
+                    counts[bound] = int(bound)
+                else:
+                    raise KeyError(f'no loop bound for {bound!r}')
             n += counts[bound] * _ev(body, counts)
     return n
 
@@ -230,6 +236,192 @@ def wrapper_cost(nid, n_src, n_send):
 
 
 # ---------------------------------------------------------------------------
+# THE AUX MATRIX (S150)
+# ---------------------------------------------------------------------------
+
+def node_prologue(nid, mtx_on):
+    """What a chip-2 aux sum runs BEFORE it tail-jumps into the fabric.
+
+    The switched-send fold, the plain gains' conversion and -- under the
+    matrix arm -- the second fold loop that ANDs the no-feedback guard's
+    gate in. Counted off the emitted code, both arms, from the node's
+    entry to the `jump _c2_mix_fabric;` that ends it.
+
+    Returns (full, bypass): the path when at least one crosspoint is live,
+    and the S23 bypass path when none is and the plain gain is unity.
+    """
+    path = os.path.join(SRC, 'chip2', 'nodes', f'{nid}.asm')
+    p = _strip(path, dict(_FLAGS, DSP4_C2_MIX_FABRIC=1,
+                          DSP4_C2_AUX_MTX=1 if mtx_on else 0))
+    counts = {'DSP4_BLOCK_SIZE': BLOCK, 'DSP4_BLOCK_SIZE-1': BLOCK - 1,
+              'DSP4_BLOCK_HALF': BLOCK // 2}
+    head = next(k for k, (lbl, _) in enumerate(p) if lbl == f'_{nid}_process')
+    jmp = next(k for k, (_, ins) in enumerate(p)
+               if ins and ins.startswith('jump _c2_mix_fabric'))
+    run = next(k for k, (lbl, _) in enumerate(p) if lbl == f'.mixrun_{nid}')
+    cp = next(k for k, (lbl, _) in enumerate(p) if lbl == f'.mixcp_{nid}')
+    full = _ev(_tree(p[head:jmp + 1])[0], counts)
+    # The bypass leaves at the block copy: everything up to `.mixrun`
+    # minus the run-path jump, plus the copy loop and its two tail stores.
+    byp = _ev(_tree(p[head:run])[0], counts)
+    return full, byp
+
+
+def aux_pre_cost():
+    """`_c2_aux_mtx_pre`: the alignment snapshot and the guard.
+
+    Two numbers, because it has two regimes and they are three thousand
+    instructions apart:
+
+      steady   every block. The snapshot, the request bitmask, and the
+               dozen exclusive-ors that say the request has not changed.
+      worst    a block in which the request DID change: the closure is
+               rebuilt from nothing. Bounded by construction -- a DAG on
+               twelve nodes has at most sixty-six edges, so the update
+               walk runs at most sixty-six times.
+    """
+    path = os.path.join(SRC, 'chip2', 'aux_matrix.asm')
+    p = _strip(path, dict(_FLAGS, DSP4_C2_AUX_MTX=1))
+    txt = open(path, encoding='utf-8').read()
+    n = int(re.search(r'#define AUXMTX_N (\d+)', txt).group(1))
+    na = int(re.search(r'#define AUXAL_N (\d+)', txt).group(1))
+    counts = {'DSP4_BLOCK_SIZE': BLOCK, 'AUXMTX_N': n, 'AUXAL_N': na}
+
+    def at(lbl):
+        return next(k for k, (l, _) in enumerate(p) if l == lbl)
+
+    head, cp, req, chg = (at('_c2_aux_mtx_pre'), at('.amp_cp'),
+                          at('.amp_req'), at('.amp_chg'))
+    sv, j, i, u, g = (at('.amp_sv'), at('.amp_j'), at('.amp_i'),
+                      at('.amp_u'), at('.amp_g'))
+    end = len(p)
+    # software loops: body x trip count, counted between their labels
+    snap = _ev(_tree(p[head:cp])[0], counts) + na * _ev(
+        _tree(p[cp:req])[0], counts)
+    reqp = n * _ev(_tree(p[req:chg])[0], counts)
+    chgp = n * _ev(_tree(p[chg:sv - 1])[0], counts) + 3
+    steady = snap + reqp + chgp
+    # the rebuild. `.amp_j` .. `.amp_i` is the per-destination head;
+    # `.amp_i` .. `.amp_u` the per-source test; `.amp_u` .. `.amp_inext`
+    # the reach update, which runs only for a GRANTED edge.
+    inext = at('.amp_inext')
+    per_j = _ev(_tree(p[j:i])[0], counts)
+    per_i = _ev(_tree(p[i:u])[0], counts) + _ev(_tree(p[inext:g - 1])[0],
+                                                counts)
+    per_u = _ev(_tree(p[u:inext])[0], counts)
+    gate = n * _ev(_tree(p[g:end])[0], counts)
+    max_edges = n * (n - 1) // 2
+    rebuild = (n * per_j + n * n * per_i + max_edges * n * per_u + gate)
+    return {'steady': steady, 'snapshot': snap, 'request': reqp,
+            'change_test': chgp, 'worst': steady + rebuild,
+            'rebuild': rebuild, 'n': n, 'n_align': na}
+
+
+# The tree's own calibration, unchanged from S149 §1.3: S148 §6.2 prices
+# C2_MIX_AUX_01 off the S23 bypass at 2,112 cycles/block and this counts
+# 2,394 instructions on the same node and the same path.
+CPI = 2112.0 / 2394.0
+BUDGET = 327680.0          # chip 2, cycles/block at 983.04 MHz, 3,000 blk/s
+POINT = BUDGET / 100.0
+D24_AUX = 8                # CFG_AUX_MASK 0x00FF
+
+
+def pts(instr):
+    return instr * CPI / POINT
+
+
+def matrix_bill():
+    """The chip-2 aux-sum bill with and without the matrix, D24, counted.
+
+    THE MATRIX'S UNCONDITIONAL COST IS THE FOLD AND THE PRE-PASS, and it
+    is paid in every regime including the idle one, because a crosspoint
+    that is OFF still has its level ramped and its on/off bit folded once
+    a block -- that is how the S23 bypass knows it is off. What the
+    matrix does NOT cost when idle is the fabric: with every switched
+    coefficient zero the bypass still fires and the sum is still a block
+    copy.
+
+    THE IN-USE ROW IS THE WORST PATCH THE GUARD WILL ALLOW, not an
+    average. Every FX return and every group send open on every aux (the
+    S148 in-use definition), plus the MAXIMAL legal matrix: a DAG on
+    eight aux buses has at most 8*7/2 = 28 edges, which is bus j taking a
+    feed from every lower-numbered bus, plus all three masters into all
+    eight. Fifty-two more live crosspoints, and the no-feedback guard
+    makes it the most that can ever be live at once.
+    """
+    base_full, base_byp = node_prologue('C2_MIX_AUX_01', False)
+    mtx_full, mtx_byp = node_prologue('C2_MIX_AUX_01', True)
+    pre = aux_pre_cost()
+    p = _fabric_pairs()
+    rows = {}
+    # idle: every aux on the S23 bypass
+    rows['idle, every aux on the S23 bypass'] = (
+        D24_AUX * base_byp, D24_AUX * mtx_byp + pre['steady'])
+    # in use, without the matrix: 11 of 11 live
+    base_use = D24_AUX * (base_full + fabric_cost(11, 11, p))
+    mtx_use = pre['steady'] + sum(
+        mtx_full + fabric_cost(26, 14 + j, p) for j in range(D24_AUX))
+    rows['desk in use (worst legal patch with the matrix)'] = (
+        base_use, mtx_use)
+    return rows, pre, (base_full, base_byp, mtx_full, mtx_byp)
+
+
+# S149 §3.2's terms, arm B, D24, chip 2. Constructions on S148's MEASURED
+# baselines; nothing here was taken on a part.
+S149_R1 = 74.83          # Echo default, nothing switched on, L1+L2
+S149_DREV = 2.485        # one FX engine Echo -> Reverb
+S149_DUSE = 5.08         # the desk in use, on the fabric
+
+
+def _matrix_regimes():
+    rows, pre, pro = matrix_bill()
+    base_full, base_byp, mtx_full, mtx_byp = pro
+    print('the aux matrix, counted off the emitted code')
+    print(f'  cycles per instruction (S148 calibration)   {CPI:.3f}')
+    print()
+    print('  one aux sum, instructions per block:')
+    print(f'    prologue, S23 bypass taken      {base_byp:6d} -> '
+          f'{mtx_byp:6d}   (+{mtx_byp - base_byp})')
+    print(f'    prologue, full path             {base_full:6d} -> '
+          f'{mtx_full:6d}   (+{mtx_full - base_full})')
+    print()
+    print('  _c2_aux_mtx_pre, instructions per block:')
+    print(f'    alignment snapshot ({pre["n_align"]:2d} blocks)  '
+          f'{pre["snapshot"]:6d}')
+    print(f'    the request bitmask             {pre["request"]:6d}')
+    print(f'    "did it change?"                {pre["change_test"]:6d}')
+    print(f'    STEADY STATE                    {pre["steady"]:6d}'
+          f'   = {pts(pre["steady"]):.2f} points')
+    print(f'    a block in which it DID change  {pre["worst"]:6d}'
+          f'   = {pts(pre["worst"]):.2f} points, bounded')
+    print()
+    print('  D24 chip-2 aux bill, 8 buses:')
+    print(f'    {"regime":46s} {"before":>8s} {"after":>8s} {"points":>8s}')
+    deltas = {}
+    for k, (b, m) in rows.items():
+        deltas[k] = pts(m - b)
+        print(f'    {k:46s} {b:8d} {m:8d} {pts(m - b):+8.2f}')
+    print()
+    u3 = deltas['idle, every aux on the S23 bypass']
+    duse = deltas['desk in use (worst legal patch with the matrix)']
+    print('  the regimes, arm B (constructions on S149 §3.3, not new')
+    print('  measurements — no cycle figure here was taken on a part):')
+    print(f'    {"regime":54s} {"S149":>8s} {"S150":>8s}')
+    for label, rev, use in (
+            ('R1  Echo default, nothing switched on', 0, False),
+            ("R2' three reverbs (PW's cap), nothing switched on", 3, False),
+            ('R3  Echo default, desk IN USE', 0, True),
+            ("R4' three reverbs AND the desk in use", 3, True)):
+        was = S149_R1 + rev * S149_DREV + (S149_DUSE if use else 0.0)
+        now = was + (duse if use else u3)
+        print(f'    {label:54s} {was:7.2f}% {now:7.2f}%')
+    print()
+    print('  ABORT LINE ~97 %. The worst regime the product can be put')
+    print('  into is the last row, and the no-feedback guard is what')
+    print('  makes it a WORST case rather than an open-ended one.')
+
+
+# ---------------------------------------------------------------------------
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -238,8 +430,13 @@ def main():
     ap.add_argument('--sends', type=int, default=10)
     ap.add_argument('--regimes', action='store_true',
                     help='the D24 chip-2 table S149 reports')
+    ap.add_argument('--matrix', action='store_true',
+                    help='the aux matrix bill and the S150 regimes')
     args = ap.parse_args()
 
+    if args.matrix:
+        _matrix_regimes()
+        return 0
     n_src, n_send = args.sources, args.sends
     w = wrapper_cost(args.node, n_src, n_send)
     print(f'{args.node}: {n_src} declared sources, {n_send} switched')

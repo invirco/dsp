@@ -294,6 +294,9 @@
 #if DSP4_FX_REVERB_CAP
 .extern _fx_type_cap;
 #endif
+#if DSP4_C2_AUX_MTX
+.extern _c2_aux_mtx_pre;
+#endif
 .extern _C2_RECV_MAIN_L_process;
 .extern _C2_RECV_MAIN_R_process;
 .extern _C2_RECV_SUB_process;
@@ -612,6 +615,9 @@
 #endif
 .global _chip2_process_all;
 _chip2_process_all:
+#if DSP4_C2_AUX_MTX
+    call _c2_aux_mtx_pre;   /* aux matrix: align + no-feedback guard */
+#endif
 /* CHIP-2 PAIR ORDER (DSP4_PAIRED_GRAPH). Per family,
  * per pair: head A, head B, the paired dynamics
  * driver calls, tail A, tail B. Each family's run is

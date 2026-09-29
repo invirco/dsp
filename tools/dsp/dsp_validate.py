@@ -34,6 +34,15 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from csv_fields import parse_id_list, parse_params
 
+
+def _mtx_count(row):
+    """How many TRAILING sources of this row are the aux matrix (S150)."""
+    raw = (parse_params(row.get('params', '')).get('mtx_map') or '').strip()
+    if not raw:
+        return 0
+    return sum(len([x for x in part.split(':', 1)[1].split(',') if x.strip()])
+               for part in raw.split('|') if part.strip() and ':' in part)
+
 # ---------------------------------------------------------------------------
 REQUIRED_COLUMNS = {'id', 'chip', 'type', 'ch_count', 'inputs', 'outputs',
                     'spi_page', 'spi_addr', 'params', 'ramp_profile'}
@@ -160,8 +169,19 @@ EXTRA_PARAMS = {
     # `no_spi` (S144): this bus is a FIXED unity sum with no word a host
     # can write, so it deliberately takes no address -- declared, so that a
     # bus that lost its address by accident is still caught.
+    # `mtx_page`/`mtx_addr`/`mtx_map`/`mtx_late` (S150): the THIRD
+    # crosspoint block -- the AUX MATRIX. Every master output and every aux
+    # output into this aux bus. A third address block for the same reason
+    # the second one exists. These sources are read ONE BLOCK LATE by
+    # design (PW's team model, S148 option (ii)): they run LATER in the
+    # chip-2 chain, which is checked in dsp_codegen.mtx_order_violations
+    # and is why check 11 below does not count them as order edges or as
+    # cycles. `mtx_late` is how many TRAILING sources the DSP's
+    # no-feedback guard gates -- the aux feeds, not the masters, because
+    # an L/C/R master can never close a cycle.
     'MIX_BUS':        {'source_count', 'fx_sends', 'aux',
-                       'xp_page', 'xp_addr', 'xp_map', 'no_spi'},
+                       'xp_page', 'xp_addr', 'xp_map', 'no_spi',
+                       'mtx_page', 'mtx_addr', 'mtx_map', 'mtx_late'},
     # `source_from` / `mon_cells` / `cell_prefix` (S144): the phones pair
     # runs the MONITOR kernel off the monitor's own source select and
     # carries one level cell instead of two, so which of the node's three
@@ -588,6 +608,7 @@ def validate(csv_path):
     # which it now does (dsp_codegen.repair_process_order). A CYCLE it
     # cannot reorder away, and that is an error here.
     order_notes = []
+    mtx_late_rows = []
     for chip in ('1', '2'):
         chip_rows = [r for r in rows if (r.get('chip') or '').strip() == chip]
         ids = [(r.get('id') or '').strip() for r in chip_rows]
@@ -595,7 +616,23 @@ def validate(csv_path):
         edges = {}
         for i, r in enumerate(chip_rows):
             nid = ids[i]
-            srcs = [x for x in parse_id_list(r.get('inputs', '')) if x in pos]
+            allsrc = parse_id_list(r.get('inputs', ''))
+            # THE AUX MATRIX'S SOURCES ARE NOT ORDER EDGES AND NOT CYCLES
+            # (S150). `mtx_map` declares a block of trailing sources that
+            # are read ONE BLOCK LATE -- the previous block's output, the
+            # same standing a cross-chip input has -- so they impose no
+            # order on this chain and they cannot make a feedback path
+            # inside one block. The rule they DO obey is the opposite one,
+            # and dsp_codegen.mtx_order_violations is where it is checked:
+            # every one of them must run LATER than the sum that reads it,
+            # or it would not be a block old. The RUN-TIME feedback rule
+            # (no loop through the matrix at all) is PW's no-feedback
+            # ruling and lives in the DSP guard and the host, not here.
+            _nmtx = _mtx_count(r)
+            if _nmtx:
+                mtx_late_rows.append((nid, allsrc[len(allsrc) - _nmtx:]))
+                allsrc = allsrc[:len(allsrc) - _nmtx]
+            srcs = [x for x in allsrc if x in pos]
             edges[nid] = srcs
             for src in srcs:
                 if pos[src] > i:
@@ -644,6 +681,15 @@ def validate(csv_path):
     # ── Report ───────────────────────────────────────────────────────────────
     print(f"Validated {len(rows)} nodes in {os.path.basename(csv_path)}")
 
+    if mtx_late_rows:
+        _n = sum(len(v) for _, v in mtx_late_rows)
+        print(f'\n  {_n} one-block-late matrix edge(s) on '
+              f'{len(mtx_late_rows)} bus(es) — NOT order edges and not '
+              f'cycles (S150).')
+        print('  They must run LATER than the sum that reads them; '
+              'dsp_codegen.mtx_order_violations is where that is enforced,')
+        print('  against the FINAL chain rather than against this row '
+              'order.')
     if order_notes:
         print(f"\n  {len(order_notes)} process-order note(s) "
               f"(repaired by the generator, not errors):")

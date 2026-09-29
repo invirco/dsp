@@ -5,15 +5,15 @@
 # address typed here is an address no kernel answers on.
 #
 # Proposed by dsp, landed by the hub at the gate (PW ruling
-# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.2.
+# 2026-09-08 #5). defs-v* pin: defs-v2026.09.28.4.
 #
 # ONE ADDRESS MAP FOR THE WHOLE RANGE (decision D3): the superset
 # graph is expanded once and this file is the intersection of that
 # expansion with this product's cell set, so a cell two products
 # share has the same chip, page and address in both files.
 #
-# 2636 of 3949 defined cells reach a DSP address.
-# The other 1313 are named in dsp-unmapped.csv with the
+# 2732 of 3949 defined cells reach a DSP address.
+# The other 1217 are named in dsp-unmapped.csv with the
 # reason — every defined cell is in exactly one of the two files.
 #
 # Columns:
@@ -56,6 +56,18 @@ Aux001AntiFbNotchQ004,C2_AUX_AFB_01,ANTI_FB,2,1,76,0x004C,rw,InstantCtl,Instant,
 Aux001AntiFbNotchQ005,C2_AUX_AFB_01,ANTI_FB,2,1,77,0x004D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001AntiFbNotchQ006,C2_AUX_AFB_01,ANTI_FB,2,1,78,0x004E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001AntiFbOn001,C2_AUX_AFB_01,ANTI_FB,2,1,59,0x003B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2424,0x0978,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2454,0x0996,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2484,0x09B4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2514,0x09D2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2544,0x09F0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2574,0x0A0E,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux001AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2436,0x0984,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2466,0x09A2,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2496,0x09C0,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2526,0x09DE,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2556,0x09FC,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux001AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2586,0x0A1A,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux001Delay001,C2_AUX_DLY_01,DELAY,2,1,87,0x0057,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux001EqFreq001,C2_AUX_EQ_01,EQ_BIQUAD,2,1,4,0x0004,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux001EqFreq002,C2_AUX_EQ_01,EQ_BIQUAD,2,1,9,0x0009,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -134,6 +146,18 @@ Aux002AntiFbNotchQ004,C2_AUX_AFB_02,ANTI_FB,2,1,166,0x00A6,rw,InstantCtl,Instant
 Aux002AntiFbNotchQ005,C2_AUX_AFB_02,ANTI_FB,2,1,167,0x00A7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002AntiFbNotchQ006,C2_AUX_AFB_02,ANTI_FB,2,1,168,0x00A8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002AntiFbOn001,C2_AUX_AFB_02,ANTI_FB,2,1,149,0x0095,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2425,0x0979,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2455,0x0997,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2485,0x09B5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2515,0x09D3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2545,0x09F1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2575,0x0A0F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux002AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2437,0x0985,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2467,0x09A3,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2497,0x09C1,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2527,0x09DF,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2557,0x09FD,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux002AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2587,0x0A1B,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux002Delay001,C2_AUX_DLY_02,DELAY,2,1,177,0x00B1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux002EqFreq001,C2_AUX_EQ_02,EQ_BIQUAD,2,1,94,0x005E,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux002EqFreq002,C2_AUX_EQ_02,EQ_BIQUAD,2,1,99,0x0063,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -212,6 +236,18 @@ Aux003AntiFbNotchQ004,C2_AUX_AFB_03,ANTI_FB,2,1,256,0x0100,rw,InstantCtl,Instant
 Aux003AntiFbNotchQ005,C2_AUX_AFB_03,ANTI_FB,2,1,257,0x0101,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003AntiFbNotchQ006,C2_AUX_AFB_03,ANTI_FB,2,1,258,0x0102,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003AntiFbOn001,C2_AUX_AFB_03,ANTI_FB,2,1,239,0x00EF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2426,0x097A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2456,0x0998,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2486,0x09B6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2516,0x09D4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2546,0x09F2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2576,0x0A10,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux003AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2438,0x0986,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2468,0x09A4,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2498,0x09C2,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2528,0x09E0,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2558,0x09FE,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux003AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2588,0x0A1C,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux003Delay001,C2_AUX_DLY_03,DELAY,2,1,267,0x010B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux003EqFreq001,C2_AUX_EQ_03,EQ_BIQUAD,2,1,184,0x00B8,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux003EqFreq002,C2_AUX_EQ_03,EQ_BIQUAD,2,1,189,0x00BD,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -290,6 +326,18 @@ Aux004AntiFbNotchQ004,C2_AUX_AFB_04,ANTI_FB,2,1,346,0x015A,rw,InstantCtl,Instant
 Aux004AntiFbNotchQ005,C2_AUX_AFB_04,ANTI_FB,2,1,347,0x015B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004AntiFbNotchQ006,C2_AUX_AFB_04,ANTI_FB,2,1,348,0x015C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004AntiFbOn001,C2_AUX_AFB_04,ANTI_FB,2,1,329,0x0149,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2427,0x097B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2457,0x0999,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2487,0x09B7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2517,0x09D5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2547,0x09F3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2577,0x0A11,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux004AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2439,0x0987,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2469,0x09A5,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2499,0x09C3,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2529,0x09E1,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2559,0x09FF,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux004AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2589,0x0A1D,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux004Delay001,C2_AUX_DLY_04,DELAY,2,1,357,0x0165,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux004EqFreq001,C2_AUX_EQ_04,EQ_BIQUAD,2,1,274,0x0112,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux004EqFreq002,C2_AUX_EQ_04,EQ_BIQUAD,2,1,279,0x0117,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -368,6 +416,18 @@ Aux005AntiFbNotchQ004,C2_AUX_AFB_05,ANTI_FB,2,1,436,0x01B4,rw,InstantCtl,Instant
 Aux005AntiFbNotchQ005,C2_AUX_AFB_05,ANTI_FB,2,1,437,0x01B5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005AntiFbNotchQ006,C2_AUX_AFB_05,ANTI_FB,2,1,438,0x01B6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005AntiFbOn001,C2_AUX_AFB_05,ANTI_FB,2,1,419,0x01A3,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2428,0x097C,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2458,0x099A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2488,0x09B8,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2518,0x09D6,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2548,0x09F4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2578,0x0A12,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux005AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2440,0x0988,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2470,0x09A6,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2500,0x09C4,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2530,0x09E2,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2560,0x0A00,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux005AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2590,0x0A1E,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux005Delay001,C2_AUX_DLY_05,DELAY,2,1,447,0x01BF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux005EqFreq001,C2_AUX_EQ_05,EQ_BIQUAD,2,1,364,0x016C,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux005EqFreq002,C2_AUX_EQ_05,EQ_BIQUAD,2,1,369,0x0171,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -446,6 +506,18 @@ Aux006AntiFbNotchQ004,C2_AUX_AFB_06,ANTI_FB,2,1,526,0x020E,rw,InstantCtl,Instant
 Aux006AntiFbNotchQ005,C2_AUX_AFB_06,ANTI_FB,2,1,527,0x020F,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006AntiFbNotchQ006,C2_AUX_AFB_06,ANTI_FB,2,1,528,0x0210,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006AntiFbOn001,C2_AUX_AFB_06,ANTI_FB,2,1,509,0x01FD,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2429,0x097D,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2459,0x099B,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2489,0x09B9,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2519,0x09D7,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2549,0x09F5,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2579,0x0A13,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+Aux006AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2441,0x0989,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2471,0x09A7,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2501,0x09C5,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2531,0x09E3,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2561,0x0A01,rw,GainFast,Slew,3,8,Exp,Scalar,,
+Aux006AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2591,0x0A1F,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Aux006Delay001,C2_AUX_DLY_06,DELAY,2,1,537,0x0219,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 Aux006EqFreq001,C2_AUX_EQ_06,EQ_BIQUAD,2,1,454,0x01C6,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 1 coeff base
 Aux006EqFreq002,C2_AUX_EQ_06,EQ_BIQUAD,2,1,459,0x01CB,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,Band 2 coeff base
@@ -2520,6 +2592,18 @@ Main001Geq030,C2_MAIN_GEQ,GEQ,2,1,1412,0x0584,rw,EqSafe,LinearFrames,12,12,Linea
 Main001Geq031,C2_MAIN_GEQ,GEQ,2,1,1413,0x0585,rw,EqSafe,LinearFrames,12,12,Linear,CoeffSetAtomic,,
 Main001Level001,C2_MAIN_FDR,FADER_PAN,2,1,1379,0x0563,rw,GainFast,Slew,3,8,Exp,Scalar,,
 Main001Mute001,C2_MAIN_FDR,FADER_PAN,2,1,1381,0x0565,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2418,0x0972,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2448,0x0990,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2478,0x09AE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2508,0x09CC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2538,0x09EA,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2568,0x0A08,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainL001AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2419,0x0973,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainL001AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2449,0x0991,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainL001AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2479,0x09AF,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainL001AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2509,0x09CD,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainL001AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2539,0x09EB,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainL001AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2569,0x0A09,rw,GainFast,Slew,3,8,Exp,Scalar,,
 MainL001CompAtt001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1467,0x05BB,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainL001CompDetSrc001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1474,0x05C2,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainL001CompEqPos001,C2_MAIN_OCOMP_01,COMPRESSOR,2,1,1476,0x05C4,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
@@ -2565,6 +2649,18 @@ MainL001LimiterRel001,C2_MAIN_OLIM_01,LIMITER,2,1,1483,0x05CB,rw,DynSafe,LinearF
 MainL001LimiterThr001,C2_MAIN_OLIM_01,LIMITER,2,1,1481,0x05C9,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainL001Mtr001,C2_MTR_MAIN_01,METER,2,1,1829,0x0725,ro,,Instant,0,0,Linear,Scalar,,meter word +0: linear peak
 MainL001Mute001,C2_MAIN_OUT_01,OUTPUT_TDM,2,1,2168,0x0878,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn001,C2_MIX_AUX_01,MIX_BUS,2,1,2420,0x0974,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn002,C2_MIX_AUX_02,MIX_BUS,2,1,2450,0x0992,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn003,C2_MIX_AUX_03,MIX_BUS,2,1,2480,0x09B0,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn004,C2_MIX_AUX_04,MIX_BUS,2,1,2510,0x09CE,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn005,C2_MIX_AUX_05,MIX_BUS,2,1,2540,0x09EC,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxOn006,C2_MIX_AUX_06,MIX_BUS,2,1,2570,0x0A0A,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
+MainR001AuxSend001,C2_MIX_AUX_01,MIX_BUS,2,1,2421,0x0975,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainR001AuxSend002,C2_MIX_AUX_02,MIX_BUS,2,1,2451,0x0993,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainR001AuxSend003,C2_MIX_AUX_03,MIX_BUS,2,1,2481,0x09B1,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainR001AuxSend004,C2_MIX_AUX_04,MIX_BUS,2,1,2511,0x09CF,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainR001AuxSend005,C2_MIX_AUX_05,MIX_BUS,2,1,2541,0x09ED,rw,GainFast,Slew,3,8,Exp,Scalar,,
+MainR001AuxSend006,C2_MIX_AUX_06,MIX_BUS,2,1,2571,0x0A0B,rw,GainFast,Slew,3,8,Exp,Scalar,,
 MainR001CompAtt001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1512,0x05E8,rw,DynSafe,LinearFrames,6,20,Exp,Scalar,,
 MainR001CompDetSrc001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1519,0x05EF,rw,InstantCtl,Instant,0,0,Linear,Scalar,,
 MainR001CompEqPos001,C2_MAIN_OCOMP_02,COMPRESSOR,2,1,1521,0x05F1,rw,InstantCtl,Instant,0,0,Linear,Scalar,,

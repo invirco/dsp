@@ -694,6 +694,29 @@ ASMFLAGS="$ASMFLAGS -DDSP4_RTG_FABRIC=$DSP4_RTG_FABRIC"
 DSP4_C2_MIX_FABRIC="${DSP4_C2_MIX_FABRIC:-1}"
 CFLAGS="$CFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
 ASMFLAGS="$ASMFLAGS -DDSP4_C2_MIX_FABRIC=$DSP4_C2_MIX_FABRIC"
+# THE AUX MATRIX (2026-09-29, S150; S148's design, PW's rulings). Every aux
+# output and every master output into every aux bus, at a level, through a
+# switch -- PW's TEAM MODEL: aux i's FINISHED output feeds aux j's BUS,
+# before aux j's strip. The fifteen matrix sources are read ONE BLOCK LATE
+# (they run later in the chain, by construction and by check), which is what
+# keeps every aux SIMD pair; everything else the sum reads is then read one
+# block late too, from the `_auxal_` alignment snapshot, so the sum is
+# coherent. That is +16 samples on every aux output -- the aux through-DSP
+# contract is 98 samples / 2.042 ms -- and PW signed exactly that ceiling
+# ("0.33 ms latency is ok, but no more"). Carries its own no-feedback guard:
+# a loop-closing crosspoint is held at exactly zero and released when the
+# loop can no longer close. Forced off without block kernels or without
+# DSP4_C2_MIX_FABRIC (dsp_block.h).
+#
+# DEFAULTS OFF UNTIL THE CONTRACT LANDS. The 360 crosspoint words are
+# allocated and proposed (proposals/defs/products/*/dsp.csv) and the hub has
+# not gated them, so on the landed pin nothing can write a crosspoint --
+# =1 would buy +16 samples of aux latency and 1.54 points for a feature no
+# host can reach, and the landed dispatch table's ramp stride would be the
+# pre-matrix one. Land the proposal, advance the pin, regenerate, flip it.
+DSP4_C2_AUX_MTX="${DSP4_C2_AUX_MTX:-0}"
+CFLAGS="$CFLAGS -DDSP4_C2_AUX_MTX=$DSP4_C2_AUX_MTX"
+ASMFLAGS="$ASMFLAGS -DDSP4_C2_AUX_MTX=$DSP4_C2_AUX_MTX"
 # HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29: "cap
 # reverbs to 3"). S148 measured the sixth: six engines from Type 0 to Type 3
 # is +58,845 cycles/block, 76.06 % -> 94.02 % of chip 2, and 110.27 % with

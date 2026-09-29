@@ -437,16 +437,42 @@ def build_signal_edges(rows, ids):
     """
     edges = {}
     detectors = {}
+    matrix = {}
     for r in rows:
         nid = r['id'].strip()
-        link = parse_params(r.get('params', '')).get('link_in')
-        srcs = {s for s in parse_id_list(r.get('inputs', ''))
-                if s in ids and s != nid}
+        prm = parse_params(r.get('params', ''))
+        link = prm.get('link_in')
+        allsrc = parse_id_list(r.get('inputs', ''))
+        # AN AUX-MATRIX CROSSPOINT IS NOT A DEFAULT SIGNAL EDGE (S150),
+        # and this is the `link_in` distinction one step on. `mtx_map`
+        # declares a trailing block of crosspoints -- every master output
+        # and every aux output into this aux bus -- whose coefficients
+        # are ZERO until a host opens them. Counted in the cone they
+        # would make every aux output read "both" and gate B would stop
+        # being able to say anything about an aux at all. Excluded, the
+        # gate keeps its real claim: with the matrix at its defaults an
+        # aux output carries EXACTLY NONE of the main mix, and what it
+        # carries otherwise is what the host asked for. They are counted
+        # and reported rather than dropped in silence.
+        nmtx = _mtx_count(r)
+        if nmtx:
+            matrix[nid] = [x for x in allsrc[len(allsrc) - nmtx:] if x in ids]
+            allsrc = allsrc[:len(allsrc) - nmtx]
+        srcs = {s for s in allsrc if s in ids and s != nid}
         if link and link in srcs:
             srcs.discard(link)
             detectors[nid] = link
         edges[nid] = srcs
-    return edges, detectors
+    return edges, detectors, matrix
+
+
+def _mtx_count(row):
+    """How many TRAILING sources of this row are the aux matrix (S150)."""
+    raw = (parse_params(row.get('params', '')).get('mtx_map') or '').strip()
+    if not raw:
+        return 0
+    return sum(len([x for x in part.split(':', 1)[1].split(',') if x.strip()])
+               for part in raw.split('|') if part.strip() and ':' in part)
 
 
 def reachable_from(edges, roots, ids):
@@ -563,7 +589,7 @@ def main():
     errs, checked, exempt = gate_a(rows, blobs, node_text, ids, args.verbose)
     errs += check_rtg_exemption(rows, blobs, args.verbose)
     errs += gate_a2(rows, emitted_reads(rows, node_text, ids), args.verbose)
-    sig_edges, detectors = build_signal_edges(rows, ids)
+    sig_edges, detectors, mtx_edges = build_signal_edges(rows, ids)
     berrs, left, right, table = gate_b(rows, sig_edges, detectors, ids,
                                        args.verbose)
     errs += berrs
@@ -571,6 +597,11 @@ def main():
     if not args.verbose:
         print(f'  gate A: {checked} declared input edges read by the '
               f'emitted code ({exempt} fabric-gathered)')
+        if mtx_edges:
+            print(f'  gate B: {sum(len(v) for v in mtx_edges.values())} '
+                  f'aux-matrix crosspoint(s) on {len(mtx_edges)} bus(es) '
+                  f'EXCLUDED from the cone — coefficient zero by default, '
+                  f'S150')
         print(f'  gate B: {len(table)} chip-2 sinks checked; left cone '
               f'{len(left)}, right cone {len(right)}, '
               f'{len(detectors)} stereo-link detector edge(s)')

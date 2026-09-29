@@ -12,6 +12,214 @@
 #include "dsp_block.h"
 #include "lib/dyn_lut.h"
 
+#if DSP4_C2_AUX_MTX
+/* MIX_BUS (FIXED, D5): bus_id=aux02 — 26 sources, exact MRF sum */
+/* 1 fixed feed(s) + 25 switched send(s) */
+/* THE AUX MATRIX ARM (S150). 15 of the sources are the matrix:
+ * the three master outputs and the twelve aux outputs, read ONE
+ * BLOCK LATE because they run later in the chain. The other
+ * 11 are read from `_auxal_`, the one-block alignment
+ * snapshot, so the whole input set is the same age. The last
+ * 12 crosspoints carry the no-feedback guard's gate.
+ *
+ * FABRIC ONLY: DSP4_C2_AUX_MTX implies DSP4_C2_MIX_FABRIC, the
+ * call below is a tail jump, and there is nothing after it to
+ * fall into. See chip2/aux_matrix.asm. */
+
+.section/dm seg_dmda;
+.global _mix_gains_C2_MIX_AUX_02;
+.var _mix_gains_C2_MIX_AUX_02[1] = 1.0;   /* FLOAT (host) */
+.global _mix_gq_C2_MIX_AUX_02;
+.var _mix_gq_C2_MIX_AUX_02[26];               /* Q4.28 shadow */
+.extern _auxmtx_gate;
+.global _mix_on_C2_MIX_AUX_02;
+.var _mix_on_C2_MIX_AUX_02[25] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;        /* crosspoint on/off      */
+.global _mix_send_C2_MIX_AUX_02;
+.var _mix_send_C2_MIX_AUX_02[25] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;        /* send level, FLOAT      */
+.global _mix_send_target_C2_MIX_AUX_02;
+.var _mix_send_target_C2_MIX_AUX_02[25] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+.global _mix_send_step_C2_MIX_AUX_02;
+.var _mix_send_step_C2_MIX_AUX_02[25] = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+.global _mix_send_frames_C2_MIX_AUX_02;
+.var _mix_send_frames_C2_MIX_AUX_02[25] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+.global _buf_C2_MIX_AUX_02;
+.var _buf_C2_MIX_AUX_02;
+.global _blk_C2_MIX_AUX_02;
+.var _blk_C2_MIX_AUX_02[DSP4_BLOCK_SIZE];
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _auxal_C2_RECV_AUX_02;
+.extern _auxal_C2_FX_FDR_01;
+.extern _auxal_C2_FX_FDR_02;
+.extern _auxal_C2_FX_FDR_03;
+.extern _auxal_C2_FX_FDR_04;
+.extern _auxal_C2_FX_FDR_05;
+.extern _auxal_C2_FX_FDR_06;
+.extern _auxal_C2_GRP_COMP_01;
+.extern _auxal_C2_GRP_COMP_02;
+.extern _auxal_C2_GRP_COMP_03;
+.extern _auxal_C2_GRP_COMP_04;
+.extern _blk_C2_MAIN_DLY;
+.extern _blk_C2_MAIN_DLY_R;
+.extern _blk_C2_CTR_LIM;
+.extern _blk_C2_AUX_DLY_01;
+.extern _blk_C2_AUX_DLY_02;
+.extern _blk_C2_AUX_DLY_03;
+.extern _blk_C2_AUX_DLY_04;
+.extern _blk_C2_AUX_DLY_05;
+.extern _blk_C2_AUX_DLY_06;
+.extern _blk_C2_AUX_DLY_07;
+.extern _blk_C2_AUX_DLY_08;
+.extern _blk_C2_AUX_DLY_09;
+.extern _blk_C2_AUX_DLY_10;
+.extern _blk_C2_AUX_DLY_11;
+.extern _blk_C2_AUX_DLY_12;
+.global _mixsp_C2_MIX_AUX_02;
+.var _mixsp_C2_MIX_AUX_02[26] = _auxal_C2_RECV_AUX_02, _auxal_C2_FX_FDR_01, _auxal_C2_FX_FDR_02, _auxal_C2_FX_FDR_03, _auxal_C2_FX_FDR_04, _auxal_C2_FX_FDR_05, _auxal_C2_FX_FDR_06, _auxal_C2_GRP_COMP_01, _auxal_C2_GRP_COMP_02, _auxal_C2_GRP_COMP_03, _auxal_C2_GRP_COMP_04, _blk_C2_MAIN_DLY, _blk_C2_MAIN_DLY_R, _blk_C2_CTR_LIM, _blk_C2_AUX_DLY_01, _blk_C2_AUX_DLY_02, _blk_C2_AUX_DLY_03, _blk_C2_AUX_DLY_04, _blk_C2_AUX_DLY_05, _blk_C2_AUX_DLY_06, _blk_C2_AUX_DLY_07, _blk_C2_AUX_DLY_08, _blk_C2_AUX_DLY_09, _blk_C2_AUX_DLY_10, _blk_C2_AUX_DLY_11, _blk_C2_AUX_DLY_12;
+#endif
+
+.section/pm seg_pmco;
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+.extern _c2_mix_fabric;
+#endif
+.global _C2_MIX_AUX_02_process;
+_C2_MIX_AUX_02_process:
+#if DSP4_BLOCK_KERNELS
+    /* ---- the switched sends: ramp, then fold the on/off in ----
+     * One pass per BLOCK, exactly like ROUTING's send helper and
+     * for the same reason: left in the accumulate this is a
+     * float ramp step, a fix and a compare on every sample of
+     * every crosspoint. */
+    r11 = 0;                      /* the OR of every coefficient */
+    l0 = 0;
+    i0 = _mix_on_C2_MIX_AUX_02;
+    i4 = _mix_send_C2_MIX_AUX_02;
+    i5 = _mix_send_step_C2_MIX_AUX_02;
+    i6 = _mix_send_frames_C2_MIX_AUX_02;
+    i3 = _mix_send_target_C2_MIX_AUX_02;
+    i2 = _mix_gq_C2_MIX_AUX_02 + 1;
+    lcntr = 13, do .msrmp_C2_MIX_AUX_02 until lce;
+        r4 = dm(i6, 0);
+        r6 = DSP4_BLOCK_SIZE;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, BLOCK) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .mssnap_C2_MIX_AUX_02);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .mscvt_C2_MIX_AUX_02);
+    .mssnap_C2_MIX_AUX_02:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .mscvt_C2_MIX_AUX_02:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        r6 = 0;                       /* fold the on/off bit in */
+        r7 = dm(i0, 1);
+        r7 = pass r7;
+        if eq r4 = r6;
+        r11 = r11 or r4;              /* is ANY crosspoint live? */
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .msrmp_C2_MIX_AUX_02:
+        nop;
+    l7 = 0;
+    i7 = _auxmtx_gate + 12;
+    lcntr = 12, do .msrmp_g_C2_MIX_AUX_02 until lce;
+        r4 = dm(i6, 0);
+        r6 = DSP4_BLOCK_SIZE;
+        comp(r4, r6);
+        if lt r6 = r4;                /* n = min(frames, BLOCK) */
+        r4 = r4 - r6;
+        dm(i6, 1) = r4;
+        r4 = pass r6;
+        if eq jump (pc, .mssnap_g_C2_MIX_AUX_02);
+        f1 = dm(i4, 0);
+        f2 = dm(i5, 0);
+        f3 = float r6;
+        f2 = f2 * f3;                 /* step * n */
+        f1 = f1 + f2;
+        dm(i4, 0) = f1;
+        jump (pc, .mscvt_g_C2_MIX_AUX_02);
+    .mssnap_g_C2_MIX_AUX_02:
+        f1 = dm(i3, 0);               /* snap to target */
+        dm(i4, 0) = f1;
+    .mscvt_g_C2_MIX_AUX_02:
+        r4 = 0x4D800000;              /* 2^28 float */
+        f2 = r4;
+        f1 = f1 * f2;
+        r4 = fix f1;
+        r6 = 0;                       /* fold the on/off bit in */
+        r7 = dm(i0, 1);
+        r8 = dm(i7, 1);               /* the guard's gate  */
+        r7 = r7 and r8;
+        r7 = pass r7;
+        if eq r4 = r6;
+        r11 = r11 or r4;              /* is ANY crosspoint live? */
+        dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+        modify(i4, 1);
+        modify(i5, 1);
+        modify(i3, 1);
+    .msrmp_g_C2_MIX_AUX_02:
+        nop;
+    /* ---- the bypass: no crosspoint is live this block ----
+     * r11 is the OR of every switched coefficient, accumulated by
+     * the fold above. Zero means the sum is the plain source alone,
+     * and at a unity coefficient that sum IS the plain source --
+     * see the note in gen_mix_bus_fixed(). */
+    r11 = pass r11;
+    if ne jump (pc, .mixrun_C2_MIX_AUX_02);
+    r0 = dm(_mix_gains_C2_MIX_AUX_02);
+    r1 = 0x3F800000;              /* 1.0f -- anything else runs   */
+    comp(r0, r1);
+    if ne jump (pc, .mixrun_C2_MIX_AUX_02);
+    l0 = 0;
+    l1 = 0;
+    i0 = _auxal_C2_RECV_AUX_02;
+    i1 = _blk_C2_MIX_AUX_02;
+    lcntr = DSP4_BLOCK_HALF, do .mixcp_C2_MIX_AUX_02 until lce;
+        r0 = dm(i0, 1);
+        r2 = dm(i0, 1);
+        dm(i1, 1) = r0;
+    .mixcp_C2_MIX_AUX_02:
+        dm(i1, 1) = r2;
+    dm(_buf_C2_MIX_AUX_02) = r2;          /* the staging word the full
+                                   * path leaves behind too      */
+    rts;
+.mixrun_C2_MIX_AUX_02:
+#endif
+#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC
+    /* ---- the live-crosspoint fabric (S149 lever L1) ----
+     * The plain gains, once per block, and then the whole sum in
+     * one shared pass over this bus's LIVE crosspoints. See
+     * chip2/mix_fabric.asm for what the pass does and
+     * dsp_block.h's DSP4_C2_MIX_FABRIC note for why it is exact.
+     * A tail JUMP, not a call: the pass ends in the `rts` this
+     * node's caller is waiting on. */
+    r2 = 0x4D800000;              /* 2^28 float */
+    f2 = r2;
+        f1 = dm(_mix_gains_C2_MIX_AUX_02 + 0);
+        f1 = f1 * f2;
+        r1 = fix f1;
+        dm(_mix_gq_C2_MIX_AUX_02 + 0) = r1;
+    r0 = _mix_gq_C2_MIX_AUX_02;           /* this bus's coefficient row  */
+    r1 = 26;                 /* declared crosspoints        */
+    r2 = _mixsp_C2_MIX_AUX_02;            /* where each source's block is */
+    r3 = _blk_C2_MIX_AUX_02;              /* the block to publish        */
+    r4 = _buf_C2_MIX_AUX_02;              /* ...and its staging word     */
+    jump _c2_mix_fabric;
+#endif
+_C2_MIX_AUX_02_process.end:
+#else
 /* MIX_BUS (FIXED, D5): bus_id=aux02 — 11 sources, exact MRF sum */
 /* 1 fixed feed(s) + 10 switched send(s) */
 
@@ -58,7 +266,6 @@
 .global _mixsp_C2_MIX_AUX_02;
 .var _mixsp_C2_MIX_AUX_02[11] = _blk_C2_RECV_AUX_02, _blk_C2_FX_FDR_01, _blk_C2_FX_FDR_02, _blk_C2_FX_FDR_03, _blk_C2_FX_FDR_04, _blk_C2_FX_FDR_05, _blk_C2_FX_FDR_06, _blk_C2_GRP_COMP_01, _blk_C2_GRP_COMP_02, _blk_C2_GRP_COMP_03, _blk_C2_GRP_COMP_04;
 #endif
-
         #if DSP4_BLOCK_KERNELS
         .extern _blk_C2_RECV_AUX_02;
         .extern _blk_C2_FX_FDR_01;
@@ -102,7 +309,6 @@
         .global _bw_d0_C2_MIX_AUX_02;
         .var _bw_d0_C2_MIX_AUX_02;       /* walking sink pointer */
         #endif
-
 .section/pm seg_pmco;
 .extern _sample_idx;
 .extern _mrf_rns28;
@@ -544,3 +750,4 @@ _C2_MIX_AUX_02_process:
     dm(_buf_C2_MIX_AUX_02) = r0;
     rts;
 _C2_MIX_AUX_02_process.end:
+#endif

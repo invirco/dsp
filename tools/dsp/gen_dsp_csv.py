@@ -2129,6 +2129,71 @@ _out3_out_row = next(r for r in rows if r['id'] == 'C2_OUT3_OUT')
 p, a2 = c2_alloc.next(2)
 _out3_out_row['params'] += f';mo_page={p};mo_addr={a2}'
 
+# ===========================================================================
+# THE AUX MATRIX (S150; S148's design, PW's rulings 2026-09-29)
+# ===========================================================================
+#
+# `Aux[1-16]AuxSend/AuxOn[1-12]` and `MainL/MainR/MainCtr[1-1]AuxSend/AuxOn
+# [1-12]`: every aux output and every master output feeds every aux bus, at
+# a level, through a switch. PW ruled the TEAM MODEL on 2026-09-29 -- aux
+# i's FINISHED output feeds aux j's BUS, before aux j's strip, and each aux
+# keeps its own processing -- so the source is `C2_AUX_DLY_i`, the last node
+# of aux i's strip, and the destination is `C2_MIX_AUX_j`, which is the bus.
+#
+# THE SOURCES ARE READ ONE BLOCK LATE AND THAT IS THE WHOLE DESIGN (S148
+# option (ii), PW ruled). All fifteen run LATER in the chip-2 chain than the
+# aux sums do, so what a sum reads is the previous block's output -- which
+# is what makes a loop-free order unnecessary at the KERNEL level and keeps
+# every aux SIMD pair (option (i), a strict same-block order, forfeits 492
+# of chip 2's 648 paired cascade stages -- about 13 points). The one-block
+# alignment that pays for it is applied to the OTHER sources of the same
+# sum, unconditionally, in dsp_codegen.py; see DSP4_C2_AUX_MTX.
+#
+# THE ADDRESSES ARE A THIRD BLOCK, allocated HERE -- after `resolve_late_c2`
+# and after the Out3 mute, i.e. after every other chip-2 allocation -- so
+# 360 crosspoint words are ADDED and NOT ONE existing address moves. Same
+# mechanism and the same reason as ROUTING's `mtx_page`/`mtx_addr`,
+# OUTPUT_TDM's `mo_page`/`mo_addr` and S143's `xp_page`/`xp_addr`: the Grp
+# block cannot simply be widened, because everything allocated after it
+# would move.
+#
+# ORDER IS LOAD-BEARING: the three MASTER sources come first and the twelve
+# AUX sources last, so the sources the no-feedback guard gates are the TAIL
+# of the node's declared list. An L/C/R master can never close a cycle (the
+# reverse cone of the main and centre buses contains no `C2_AUX_*` node --
+# S148 §2b computed it, tools/dsp/aux_matrix_ref.py re-computes it) so
+# those three are never gated, and putting them first is what lets the
+# coefficient fold gate a contiguous tail instead of a hole in the middle.
+_MTX_MASTERS = [('MainL', 'C2_MAIN_DLY'),
+                ('MainR', 'C2_MAIN_DLY_R'),
+                ('MainCtr', 'C2_CTR_LIM')]
+_mtx_srcs = [nid for _, nid in _MTX_MASTERS] + \
+            [f'C2_AUX_DLY_{i:02d}' for i in range(1, NUM_AUX + 1)]
+# `|` between categories, `,` inside one: the params field is split on
+# `;`, so a category separator of `;` would not survive the CSV round
+# trip. parse_xp_map has read `|` since S143.
+_mtx_map = '|'.join([f'{cat}:1' for cat, _ in _MTX_MASTERS] +
+                    ['Aux:' + ','.join(str(i)
+                                       for i in range(1, NUM_AUX + 1))])
+_by_id_mtx = {r['id']: r for r in rows}
+for _nid in _mtx_srcs:
+    if _nid not in _by_id_mtx:
+        raise SystemExit(
+            f'ERROR: the aux matrix names {_nid} as a source and no row '
+            f'declares it. The matrix sources are the LAST node of each '
+            f'master and aux strip; refusing to guess.')
+for a in range(1, NUM_AUX + 1):
+    _r = _by_id_mtx[mix_aux_ids[a]]
+    _r['inputs'] += ';' + ';'.join(_mtx_srcs)
+    p, a2 = c2_alloc.next(2 * len(_mtx_srcs))
+    _r['params'] = _r['params'].replace(
+        f';source_count={1 + NUM_FX + NUM_GRP}',
+        f';source_count={1 + NUM_FX + NUM_GRP + len(_mtx_srcs)}')
+    # `mtx_late` is the count of TRAILING sources the no-feedback guard
+    # gates -- the twelve aux feeds, not the three masters.
+    _r['params'] += (f';mtx_page={p};mtx_addr={a2}'
+                     f';mtx_map={_mtx_map};mtx_late={NUM_AUX}')
+
 # --- Splice the FX chain and the aux FX sums ahead of the aux chain -----
 #
 # The FX engines and returns are ADDED late (their SPI addresses are

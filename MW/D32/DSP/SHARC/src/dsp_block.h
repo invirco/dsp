@@ -399,6 +399,73 @@
 #define DSP4_C2_MIX_FABRIC 0
 #endif
 
+/* THE AUX MATRIX (S150; S148's design, PW's rulings 2026-09-29).
+ *
+ * `Aux[1-16]AuxSend/AuxOn[1-12]` and `MainL/MainR/MainCtr[1-1]AuxSend/
+ * AuxOn[1-12]`: every aux output and every master output into every aux
+ * bus, at a level, through a switch. PW ruled the TEAM MODEL -- aux i's
+ * FINISHED output feeds aux j's BUS, before aux j's strip, and each aux
+ * keeps its own processing -- so the source is `C2_AUX_DLY_i` and the
+ * destination is `C2_MIX_AUX_j`.
+ *
+ * ONE BLOCK LATE, AND THAT IS WHAT MAKES IT AFFORDABLE. S148 priced the
+ * two readings of the team model: a strict SAME-BLOCK order needs the aux
+ * chain re-sequenced and forfeits the entire aux SIMD family -- 492 of
+ * chip 2's 648 paired cascade stages, about 13 points -- while reading
+ * the previous block's output keeps every pair. All fifteen matrix
+ * sources run LATER in the chip-2 chain than the sums that read them
+ * (mtx_order_violations() fails the build if one does not), so the read
+ * is one block late by construction and costs nothing to arrange.
+ *
+ * THE ALIGNMENT IS UNCONDITIONAL AND IT IS PW'S RULING. Everything else
+ * a sum reads is then read one block late too, from `_auxal_<src>` --
+ * the snapshot `_c2_aux_mtx_pre` takes at the head of the chain, before
+ * any of those nodes has published this block. Without it the matrix leg
+ * arrives a block after the direct leg and the first comb notch sits at
+ * about 1.5 kHz. It is not engaged per aux because it CANNOT be made
+ * click-free (S148): what a crossfade would fade is a signal against its
+ * own 333 us echo, a sweeping comb at any fade length.
+ *
+ * SO EVERY AUX OUTPUT IS +16 SAMPLES and the aux through-DSP contract is
+ * 98 samples / 2.042 ms, against 82 / 1.708 ms for main, monitor and
+ * phones. PW, 2026-09-29: "0.33 ms latency is ok, but no more" -- 16
+ * samples at 48 kHz is 0.3333 ms, so the budget is spent exactly once
+ * and a second block of alignment anywhere in this path is a stop.
+ *
+ * THE NO-FEEDBACK RULE HAS TWO LAYERS and this is the second. The host
+ * is the single writer, refuses a loop-closing write and publishes
+ * `Aux[1-12]AuxAvail[1-1]` so skins grey the cell out; underneath,
+ * `_c2_aux_mtx_pre` keeps its own transitive closure over the twelve aux
+ * nodes and holds a loop-closing coefficient at EXACTLY zero, releasing
+ * it the moment the loop can no longer close. tools/dsp/aux_matrix_ref.py
+ * is the proof.
+ *
+ * FORCED OFF without block kernels, and off without DSP4_C2_MIX_FABRIC:
+ * the matrix is built ON the fabric (a twenty-six-source generic wrapper
+ * stages twenty-six blocks on every sample), and the fabric's own
+ * control arm is the PRE-MATRIX image, which is what it has to stay.
+ * DSP4_C2_AUX_MTX=0 rebuilds the pre-matrix node byte for byte.
+ *
+ * AND IT DEFAULTS OFF, WHICH IS NOT A HEDGE ABOUT THE DESIGN. The 360
+ * crosspoint words are ALLOCATED and PROPOSED and the hub has not gated
+ * them, so on the landed defs pin there is no address a host can write
+ * to reach a crosspoint. An image built with this on would carry the
+ * alignment's +16 samples on every aux output, and 1.54 points, for a
+ * feature nothing can switch on -- and its `_mix_send_` arrays are 25
+ * words wide where the landed dispatch table's ramp stride says 10, so
+ * a ramped `Fx*AuxSend` would land on a neighbouring crosspoint. Both
+ * stop being true the moment the pin carries the addresses: land the
+ * proposal, run regenerate-dsp-contract.sh, flip this to 1. Until then
+ * a build with it on is an instrument and DIAG_BUILD_CFG3 bit 23 says
+ * so. */
+#ifndef DSP4_C2_AUX_MTX
+#define DSP4_C2_AUX_MTX 0
+#endif
+#if !DSP4_BLOCK_KERNELS || !DSP4_C2_MIX_FABRIC
+#undef DSP4_C2_AUX_MTX
+#define DSP4_C2_AUX_MTX 0
+#endif
+
 /* HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29:
  * "cap reverbs to 3"). S148 measured what the sixth costs: six engines from
  * Type 0 to Type 3 is +58,845 cycles/block, which takes chip 2 from 76.06 %

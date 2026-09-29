@@ -6109,6 +6109,9 @@ def add_global_decls(body):
     return '\n'.join(out)
 
 
+_ARM_SPLIT_RE = re.compile(r'^#if DSP4_C2_AUX_MTX$', re.M)
+
+
 def add_extern_decls(body):
     """Add .extern for symbols referenced via dm() but not locally declared.
 
@@ -6117,6 +6120,19 @@ def add_extern_decls(body):
     resolves cross-file buffer reads (upstream _buf_*, _buf_L_*, etc.)
     without requiring each generator to track its own imports.
     """
+    # A NODE EMITTED IN TWO ARMS IS TWO BODIES (S150). A chip-2 aux sum
+    # emits `#if DSP4_C2_AUX_MTX` / `#else` / `#endif`, only ONE of which
+    # is assembled, and each arm declares and references its own set --
+    # so each arm gets its own pass. Doing it once over the whole file
+    # would put every declaration in the first arm and leave the second
+    # referencing `_buf_` symbols it never declared.
+    if _ARM_SPLIT_RE.search(body):
+        head, rest = body.split('#if DSP4_C2_AUX_MTX\n', 1)
+        arm_a, rest = rest.split('\n#else\n', 1)
+        arm_b, tail = rest.rsplit('\n#endif\n', 1)
+        return (head + '#if DSP4_C2_AUX_MTX\n' + add_extern_decls(arm_a)
+                + '\n#else\n' + add_extern_decls(arm_b)
+                + '\n#endif\n' + tail)
     # Collect locally declared symbols
     local_vars = set(re.findall(r'\.var\s+(_\w+)', body))
     # Collect all dm(_sym) references (reads and writes)
@@ -12164,6 +12180,89 @@ def xp_map_count(params):
     return sum(len(i) for _, i in parse_xp_map(params))
 
 
+# ---------------------------------------------------------------------------
+# THE THIRD CROSSPOINT BLOCK — THE AUX MATRIX (S150)
+# ---------------------------------------------------------------------------
+#
+# `mtx_map=MainL:1|MainR:1|MainCtr:1|Aux:1,...,12` on a chip-2 aux sum says:
+# after the `fx_sends` and `xp_map` crosspoints, this node takes fifteen
+# more -- the three master outputs and the twelve aux outputs -- and their
+# SPI words live in a THIRD address block at `mtx_page`/`mtx_addr`, laid out
+# exactly as the second one is.
+#
+# IT IS A SEPARATE PARAM AND NOT MORE `xp_map` FOR AN ADDRESS REASON. One
+# map is one contiguous address block; widening the Grp block would move
+# every chip-2 address allocated after it, which is the thing this tree has
+# refused to do three times now (`mtx_page`, `mo_page`, `xp_page`).
+#
+# `mtx_late` IS THE NUMBER OF TRAILING SOURCES THE NO-FEEDBACK GUARD GATES.
+# The twelve aux feeds can close a cycle and the three masters cannot (an
+# L/C/R master's reverse cone contains no aux node -- S148 §2b, re-computed
+# by tools/dsp/aux_matrix_ref.py), so only the tail is gated, and the tail
+# is where it is so the coefficient fold gates a contiguous run.
+
+def parse_mtx_map(params):
+    """[(category, [source index, ...]), ...] from `mtx_map`, in order."""
+    raw = (params.get('mtx_map') or '').strip()
+    if not raw:
+        return []
+    return parse_xp_map({'xp_map': raw})
+
+
+def mtx_map_count(params):
+    return sum(len(i) for _, i in parse_mtx_map(params))
+
+
+def mtx_late_count(params):
+    """How many TRAILING sources the no-feedback guard gates."""
+    n = int(params.get('mtx_late', 0) or 0)
+    if n and n > mtx_map_count(params):
+        raise ValueError(
+            f'mtx_late={n} is more than the {mtx_map_count(params)} sources '
+            f'mtx_map declares. The gated sources are the LAST of them.')
+    return n
+
+
+# The body of the switched-send fold, shared by the ungated loop and
+# the gated one the aux matrix adds. `{sfx}` keeps the two loops'
+# internal labels apart and is EMPTY for the ungated loop, so a node
+# with no matrix block emits exactly the text it emitted before S150.
+_MIX_FOLD_BODY = """\
+                r4 = dm(i6, 0);
+                r6 = DSP4_BLOCK_SIZE;
+                comp(r4, r6);
+                if lt r6 = r4;                /* n = min(frames, BLOCK) */
+                r4 = r4 - r6;
+                dm(i6, 1) = r4;
+                r4 = pass r6;
+                if eq jump (pc, .mssnap{sfx}_{nid});
+                f1 = dm(i4, 0);
+                f2 = dm(i5, 0);
+                f3 = float r6;
+                f2 = f2 * f3;                 /* step * n */
+                f1 = f1 + f2;
+                dm(i4, 0) = f1;
+                jump (pc, .mscvt{sfx}_{nid});
+            .mssnap{sfx}_{nid}:
+                f1 = dm(i3, 0);               /* snap to target */
+                dm(i4, 0) = f1;
+            .mscvt{sfx}_{nid}:
+                r4 = 0x4D800000;              /* 2^28 float */
+                f2 = r4;
+                f1 = f1 * f2;
+                r4 = fix f1;
+                r6 = 0;                       /* fold the on/off bit in */
+                r7 = dm(i0, 1);
+{gate}                r7 = pass r7;
+                if eq r4 = r6;
+                r11 = r11 or r4;              /* is ANY crosspoint live? */
+                dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
+                modify(i4, 1);
+                modify(i5, 1);
+                modify(i3, 1);
+"""
+
+
 def gen_mix_bus_fixed(node):
     """Fixed MIX_BUS (D5). Chip 1: read the 64-bit bus accumulator with
     ONE rns+saturate (exact summing, fixed_ref.mix_sum). Chip 2:
@@ -12274,8 +12373,82 @@ def gen_mix_bus_fixed(node):
             #endif
             _{nid}_process.end:
         """)
+    # ---- LEVER S150: THE AUX MATRIX, AND WHY THE BODY IS EMITTED TWICE --
+    #
+    # `mtx_map` adds fifteen sources to every chip-2 aux sum -- the three
+    # master outputs and the twelve aux outputs -- and `DSP4_C2_AUX_MTX=0`
+    # has to rebuild the pre-matrix node BYTE FOR BYTE, the same discipline
+    # DSP4_C2_MIX_FABRIC's control arm keeps. A source list is not something
+    # the preprocessor can cut down, so the whole body is emitted once per
+    # arm and the arms are selected with #if/#else. Only ONE is assembled.
+    #
+    # THE ONE-BLOCK ALIGNMENT IS IN `blk_names` AND NOWHERE ELSE, which is
+    # the point of doing it here. Under the matrix arm EVERY source of an
+    # aux sum is exactly one block old:
+    #
+    #   * the fifteen MATRIX sources because they RUN LATER in the chip-2
+    #     chain than the aux sums do (checked, not assumed --
+    #     mtx_order_violations() fails the build if one does not), so what
+    #     the sum reads is last block's output;
+    #
+    #   * every OTHER source -- the aux's own interchip receive, the six FX
+    #     returns, the four group sends -- because it is read from
+    #     `_auxal_<src>`, the one-block alignment history that
+    #     `_c2_aux_mtx_pre` snapshots at the head of the chain, before any
+    #     of those nodes has published this block.
+    #
+    # UNCONDITIONAL, PW-RULED. S148 showed the alignment cannot be engaged
+    # per aux without a click: what a crossfade would be fading is a signal
+    # against its own 333 us echo, which is a sweeping comb at any fade
+    # length. So it is always on, it costs +16 samples on every aux output,
+    # and the aux through-DSP contract is 98 samples / 2.042 ms (PW,
+    # 2026-09-29: "0.33 ms latency is ok, but no more" -- 16 samples at
+    # 48 kHz is 0.3333 ms and that is the whole budget spent once).
+    #
+    # Without it the matrix path arrives a block after the direct path and
+    # the first comb notch sits at about 1.5 kHz.
+    n_mtx_all = mtx_map_count(p)
+
+    if not p.get('mtx_map'):
+        return _gen_mix_bus_c2(node, node['inputs'], False, n_mtx_all)
+    n_base = len(node['inputs']) - n_mtx_all
+    return (
+        '#if DSP4_C2_AUX_MTX\n'
+        + _gen_mix_bus_c2(node, node['inputs'], True, n_mtx_all)
+        + '#else\n'
+        + _gen_mix_bus_c2(node, node['inputs'][:n_base], False, n_mtx_all)
+        + '#endif\n')
+
+
+def _gen_mix_bus_c2(node, inputs, mtx_on, n_mtx_all):
+    """The whole chip-2 MIX_BUS body for ONE source list.
+
+    Module level and NOT nested inside gen_mix_bus_fixed, for a reason
+    worth stating: the emitted template's COLUMN is load-bearing.
+    textwrap.dedent strips the common prefix of the formatted string,
+    and c2_block_wrap anchors on a `.section/pm seg_pmco;` at exactly
+    eight spaces -- so indenting this body by one more level would
+    move every line of every chip-2 mix node and then fail to find the
+    anchor it needs.
+    """
+    p = node['params']
+    nid = node['id']
+    n_src = len(inputs)
+    n_mtx = n_mtx_all if mtx_on else 0
+    n_gate = mtx_late_count(p) if mtx_on else 0
+    n_direct = n_src - n_mtx
+    blk_names = [(f'_auxal_{s}' if k < n_direct and mtx_on
+                  else f'_blk_{s}') for k, s in enumerate(inputs)]
+    # A node with no matrix block emits ONE arm and the bare marker it
+    # always emitted; a node with two says which list each arm is built on.
+    arm_mark = '' if not p.get('mtx_map') else f' n={n_src}'
+    # A node emitted in two arms tells c2_block_wrap WHERE to put the
+    # wrapper's declarations, because only one of its two dm sections
+    # wants them. A single-arm node keeps the `.section/pm` anchor it
+    # has used since the wrapper existed.
+    decl_mark = '' if not p.get('mtx_map') else f'/* @C2BLKDECL n={n_src} */'
     macs = []
-    for k, inp in enumerate(node['inputs']):
+    for k, inp in enumerate(inputs):
         macs.append(f'r0 = dm(_buf_{inp});')
         macs.append(f'r1 = dm(_mix_gq_{nid} + {k});')
         macs.append('mrf = mrf + r0 * r1 (ssi);')
@@ -12301,7 +12474,8 @@ def gen_mix_bus_fixed(node):
     # which block a coefficient came from: both fold an on/off flag and a
     # ramped level into one Q4.28 word at block rate, and `_mix_gq_` is
     # what the accumulate reads.
-    n_send = int(p.get('fx_sends', 0) or 0) + xp_map_count(p)
+    n_send = (int(p.get('fx_sends', 0) or 0) + xp_map_count(p)
+              + (mtx_map_count(p) if mtx_on else 0))
     if n_send > n_src:
         raise ValueError(
             f'{nid}: fx_sends + xp_map = {n_send} switched source(s) but '
@@ -12326,6 +12500,7 @@ def gen_mix_bus_fixed(node):
         # at (+s/+2s/+3s from the value), and _ramp_set_target would
         # otherwise scribble target over the neighbouring send's level.
         send_vars = (
+            (f'        .extern _auxmtx_gate;\n' if n_gate else '') +
             f'        .var _mix_on_{nid}[{n_send}] = {zi};'
             f'        /* crosspoint on/off      */\n'
             f'        .var _mix_send_{nid}[{n_send}] = {zf};'
@@ -12333,6 +12508,42 @@ def gen_mix_bus_fixed(node):
             f'        .var _mix_send_target_{nid}[{n_send}] = {zf};\n'
             f'        .var _mix_send_step_{nid}[{n_send}] = {zf};\n'
             f'        .var _mix_send_frames_{nid}[{n_send}] = {zi};\n')
+        # THE FOLD RUNS AS ONE LOOP, OR AS TWO WHEN THE NO-FEEDBACK GUARD
+        # HAS A SAY (S150). `mtx_late` trailing crosspoints are aux -> aux
+        # feeds, and each carries a GATE word the guard owns: 1 while the
+        # edge cannot close a loop, 0 while it could. ANDing the gate into
+        # the host's `on` bit is the whole of layer 2 in the per-block
+        # path -- a held edge's coefficient is EXACTLY zero, which is what
+        # the cell's own note promises, and the fabric then does not
+        # gather it at all. The host's word is never written.
+        #
+        # Two loops rather than one gate array over every crosspoint: the
+        # FX and group sends can never close a cycle, so paying a load and
+        # an AND for them would be 156 instructions a block for nothing.
+        def _fold_loop(count, sfx, gated):
+            g = ('                r8 = dm(i7, 1);'
+                 '               /* the guard\'s gate  */\n'
+                 '                r7 = r7 and r8;\n') if gated else ''
+            return (f'            lcntr = {count}, '
+                    f'do .msrmp{sfx}_{nid} until lce;\n'
+                    + _MIX_FOLD_BODY.format(nid=nid, sfx=sfx, gate=g)
+                    + f'            .msrmp{sfx}_{nid}:\n'
+                      f'                nop;\n')
+
+        n_ungated = n_send - n_gate
+        _fb = []
+        if n_ungated:
+            _fb.append(_fold_loop(n_ungated, '', False))
+        if n_gate:
+            # The guard's gate row for THIS bus. One row per aux sum, the
+            # same twelve columns in the same order as the aux sources,
+            # and `_auxmtx_gate` is written ONLY by _c2_aux_mtx_pre.
+            _fb.append(f'            l7 = 0;\n'
+                       f'            i7 = _auxmtx_gate + '
+                       f'{n_gate * (int(p.get("aux", 0) or 0) - 1)};\n')
+            _fb.append(_fold_loop(n_gate, '_g', True))
+        fold_block = ''.join(_fb)
+
         send_cvt = f"""\
             /* ---- the switched sends: ramp, then fold the on/off in ----
              * One pass per BLOCK, exactly like ROUTING's send helper and
@@ -12347,42 +12558,7 @@ def gen_mix_bus_fixed(node):
             i6 = _mix_send_frames_{nid};
             i3 = _mix_send_target_{nid};
             i2 = _mix_gq_{nid} + {n_plain};
-            lcntr = {n_send}, do .msrmp_{nid} until lce;
-                r4 = dm(i6, 0);
-                r6 = DSP4_BLOCK_SIZE;
-                comp(r4, r6);
-                if lt r6 = r4;                /* n = min(frames, BLOCK) */
-                r4 = r4 - r6;
-                dm(i6, 1) = r4;
-                r4 = pass r6;
-                if eq jump (pc, .mssnap_{nid});
-                f1 = dm(i4, 0);
-                f2 = dm(i5, 0);
-                f3 = float r6;
-                f2 = f2 * f3;                 /* step * n */
-                f1 = f1 + f2;
-                dm(i4, 0) = f1;
-                jump (pc, .mscvt_{nid});
-            .mssnap_{nid}:
-                f1 = dm(i3, 0);               /* snap to target */
-                dm(i4, 0) = f1;
-            .mscvt_{nid}:
-                r4 = 0x4D800000;              /* 2^28 float */
-                f2 = r4;
-                f1 = f1 * f2;
-                r4 = fix f1;
-                r6 = 0;                       /* fold the on/off bit in */
-                r7 = dm(i0, 1);
-                r7 = pass r7;
-                if eq r4 = r6;
-                r11 = r11 or r4;              /* is ANY crosspoint live? */
-                dm(i2, 1) = r4;               /* Q4.28 crosspoint coeff */
-                modify(i4, 1);
-                modify(i5, 1);
-                modify(i3, 1);
-            .msrmp_{nid}:
-                nop;
-"""
+{fold_block}"""
     else:
         send_vars = ''
         send_cvt = ''
@@ -12420,7 +12596,7 @@ def gen_mix_bus_fixed(node):
     # sources and no switched ones, so they get neither this nor the prep
     # and their emitted text is byte-identical to the pre-S23 generator.
     if n_send and n_plain == 1:
-        plain0 = node['inputs'][0]
+        plain0 = blk_names[0]
         fast = f"""\
         #if DSP4_BLOCK_KERNELS
 {send_cvt}            /* ---- the bypass: no crosspoint is live this block ----
@@ -12436,7 +12612,7 @@ def gen_mix_bus_fixed(node):
             if ne jump (pc, .mixrun_{nid});
             l0 = 0;
             l1 = 0;
-            i0 = _blk_{plain0};
+            i0 = {plain0};
             i1 = _blk_{nid};
             lcntr = DSP4_BLOCK_HALF, do .mixcp_{nid} until lce;
                 r0 = dm(i0, 1);
@@ -12487,9 +12663,9 @@ def gen_mix_bus_fixed(node):
     fab_vars = ''
     fab_ext = ''
     if n_src >= 1:
-        fab_ptrs = ', '.join(f'_blk_{i}' for i in node['inputs'])
-        fab_decl = '\n'.join(f'        .extern _blk_{i};'
-                             for i in dict.fromkeys(node['inputs']))
+        fab_ptrs = ', '.join(blk_names)
+        fab_decl = '\n'.join(f'        .extern {i};'
+                             for i in dict.fromkeys(blk_names))
         fab_vars = (
             '        #if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC\n'
             f'{fab_decl}\n'
@@ -12518,6 +12694,42 @@ def gen_mix_bus_fixed(node):
             jump _c2_mix_fabric;
         #endif
 """
+    if mtx_on:
+        # THE MATRIX ARM IS FABRIC-ONLY, AND THAT IS NOT AN OPTIMISATION.
+        # DSP4_C2_AUX_MTX is forced off without DSP4_C2_MIX_FABRIC
+        # (dsp_block.h), so in THIS arm the generic wrapper and the
+        # per-sample body below are unreachable code -- the fabric call is
+        # a tail JUMP and nothing returns past it. Assembling them anyway
+        # costs 13 instructions per extra source per node twice over (the
+        # peeled sample and the loop) plus a walking pointer word each:
+        # measured at ~14 KB of chip-2 code and 720 bytes of DM for the
+        # twelve sums, spent on instructions that can never execute. So
+        # the arm stops at the fabric call.
+        return dedent(f"""\
+        /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — {n_src} sources, exact MRF sum */
+        /* {n_plain} fixed feed(s) + {n_send} switched send(s) */
+        /* THE AUX MATRIX ARM (S150). {n_mtx} of the sources are the matrix:
+         * the three master outputs and the twelve aux outputs, read ONE
+         * BLOCK LATE because they run later in the chain. The other
+         * {n_direct} are read from `_auxal_`, the one-block alignment
+         * snapshot, so the whole input set is the same age. The last
+         * {n_gate} crosspoints carry the no-feedback guard's gate.
+         *
+         * FABRIC ONLY: DSP4_C2_AUX_MTX implies DSP4_C2_MIX_FABRIC, the
+         * call below is a tail jump, and there is nothing after it to
+         * fall into. See chip2/aux_matrix.asm. */
+
+        .section/dm seg_dmda;
+        .var _mix_gains_{nid}[{max(n_plain, 1)}] = {ones};   /* FLOAT (host) */
+        .var _mix_gq_{nid}[{max(n_src, 1)}];               /* Q4.28 shadow */
+{send_vars}        .var _buf_{nid};
+        .var _blk_{nid}[DSP4_BLOCK_SIZE];
+{fab_vars}
+        .section/pm seg_pmco;
+{fab_ext}        .global _{nid}_process;
+        _{nid}_process:
+{fast}{fab}        _{nid}_process.end:
+        """)
     return dedent(f"""\
         /* MIX_BUS (FIXED, D5): bus_id={p.get('bus_id','?')} — {n_src} sources, exact MRF sum */
         /* {n_plain} fixed feed(s) + {n_send} switched send(s) */
@@ -12526,13 +12738,13 @@ def gen_mix_bus_fixed(node):
         .var _mix_gains_{nid}[{max(n_plain, 1)}] = {ones};   /* FLOAT (host) */
         .var _mix_gq_{nid}[{max(n_src, 1)}];               /* Q4.28 shadow */
 {send_vars}        .var _buf_{nid};
-{fab_vars}
+{fab_vars}        {decl_mark}
         .section/pm seg_pmco;
         .extern _sample_idx;
         .extern _mrf_rns28;
 {fab_ext}        .global _{nid}_process;
         _{nid}_process:
-{fast}{fab}        /* @C2BLKWRAP */
+{fast}{fab}        /* @C2BLKWRAP{arm_mark} */
             /* block-rate gain shadow refresh */
         /* The block-rate guard exists ONLY for the per-sample build. Under
          * DSP4_BLOCK_KERNELS the node chain runs ONCE per block with
@@ -12560,6 +12772,7 @@ def gen_mix_bus_fixed(node):
             rts;
         _{nid}_process.end:
     """)
+
 
 
 def gen_geq_tables(band_counts):
@@ -14023,6 +14236,73 @@ def gen_block_header(mtx_ctl=None, pool_counts=None):
 #define DSP4_C2_MIX_FABRIC 0
 #endif
 
+/* THE AUX MATRIX (S150; S148's design, PW's rulings 2026-09-29).
+ *
+ * `Aux[1-16]AuxSend/AuxOn[1-12]` and `MainL/MainR/MainCtr[1-1]AuxSend/
+ * AuxOn[1-12]`: every aux output and every master output into every aux
+ * bus, at a level, through a switch. PW ruled the TEAM MODEL -- aux i's
+ * FINISHED output feeds aux j's BUS, before aux j's strip, and each aux
+ * keeps its own processing -- so the source is `C2_AUX_DLY_i` and the
+ * destination is `C2_MIX_AUX_j`.
+ *
+ * ONE BLOCK LATE, AND THAT IS WHAT MAKES IT AFFORDABLE. S148 priced the
+ * two readings of the team model: a strict SAME-BLOCK order needs the aux
+ * chain re-sequenced and forfeits the entire aux SIMD family -- 492 of
+ * chip 2's 648 paired cascade stages, about 13 points -- while reading
+ * the previous block's output keeps every pair. All fifteen matrix
+ * sources run LATER in the chip-2 chain than the sums that read them
+ * (mtx_order_violations() fails the build if one does not), so the read
+ * is one block late by construction and costs nothing to arrange.
+ *
+ * THE ALIGNMENT IS UNCONDITIONAL AND IT IS PW'S RULING. Everything else
+ * a sum reads is then read one block late too, from `_auxal_<src>` --
+ * the snapshot `_c2_aux_mtx_pre` takes at the head of the chain, before
+ * any of those nodes has published this block. Without it the matrix leg
+ * arrives a block after the direct leg and the first comb notch sits at
+ * about 1.5 kHz. It is not engaged per aux because it CANNOT be made
+ * click-free (S148): what a crossfade would fade is a signal against its
+ * own 333 us echo, a sweeping comb at any fade length.
+ *
+ * SO EVERY AUX OUTPUT IS +16 SAMPLES and the aux through-DSP contract is
+ * 98 samples / 2.042 ms, against 82 / 1.708 ms for main, monitor and
+ * phones. PW, 2026-09-29: "0.33 ms latency is ok, but no more" -- 16
+ * samples at 48 kHz is 0.3333 ms, so the budget is spent exactly once
+ * and a second block of alignment anywhere in this path is a stop.
+ *
+ * THE NO-FEEDBACK RULE HAS TWO LAYERS and this is the second. The host
+ * is the single writer, refuses a loop-closing write and publishes
+ * `Aux[1-12]AuxAvail[1-1]` so skins grey the cell out; underneath,
+ * `_c2_aux_mtx_pre` keeps its own transitive closure over the twelve aux
+ * nodes and holds a loop-closing coefficient at EXACTLY zero, releasing
+ * it the moment the loop can no longer close. tools/dsp/aux_matrix_ref.py
+ * is the proof.
+ *
+ * FORCED OFF without block kernels, and off without DSP4_C2_MIX_FABRIC:
+ * the matrix is built ON the fabric (a twenty-six-source generic wrapper
+ * stages twenty-six blocks on every sample), and the fabric's own
+ * control arm is the PRE-MATRIX image, which is what it has to stay.
+ * DSP4_C2_AUX_MTX=0 rebuilds the pre-matrix node byte for byte.
+ *
+ * AND IT DEFAULTS OFF, WHICH IS NOT A HEDGE ABOUT THE DESIGN. The 360
+ * crosspoint words are ALLOCATED and PROPOSED and the hub has not gated
+ * them, so on the landed defs pin there is no address a host can write
+ * to reach a crosspoint. An image built with this on would carry the
+ * alignment's +16 samples on every aux output, and 1.54 points, for a
+ * feature nothing can switch on -- and its `_mix_send_` arrays are 25
+ * words wide where the landed dispatch table's ramp stride says 10, so
+ * a ramped `Fx*AuxSend` would land on a neighbouring crosspoint. Both
+ * stop being true the moment the pin carries the addresses: land the
+ * proposal, run regenerate-dsp-contract.sh, flip this to 1. Until then
+ * a build with it on is an instrument and DIAG_BUILD_CFG3 bit 23 says
+ * so. */
+#ifndef DSP4_C2_AUX_MTX
+#define DSP4_C2_AUX_MTX 0
+#endif
+#if !DSP4_BLOCK_KERNELS || !DSP4_C2_MIX_FABRIC
+#undef DSP4_C2_AUX_MTX
+#define DSP4_C2_AUX_MTX 0
+#endif
+
 /* HOW MANY FX ENGINES MAY BE ON TYPE REVERB AT ONCE (PW, 2026-09-29:
  * "cap reverbs to 3"). S148 measured what the sixth costs: six engines from
  * Type 0 to Type 3 is +58,845 cycles/block, which takes chip 2 from 76.06 %
@@ -15360,7 +15640,302 @@ def gen_rtg_fabric():
     return '\n'.join(out)
 
 
-def gen_c2_mix_fabric(max_src):
+def gen_c2_aux_matrix(aux_nodes):
+    """chip2/aux_matrix.asm -- the aux matrix's one-block alignment and its
+    no-feedback guard (S150).
+
+    `aux_nodes` are the chip-2 MIX_BUS nodes that declare `mtx_map`, in aux
+    order. Everything in the file is inside #if DSP4_C2_AUX_MTX, so the
+    control arm assembles an empty file.
+
+    TWO PASSES, BOTH AT BLOCK RATE, BOTH BEFORE THE FIRST AUX SUM.
+
+    1. THE ONE-BLOCK ALIGNMENT SNAPSHOT. Every source of an aux sum that is
+       NOT a matrix source is copied into `_auxal_<src>` here, at the head
+       of the chain, while `_blk_<src>` still holds the PREVIOUS block --
+       the interchip receive, the six FX returns, the four group sends.
+       The matrix sources need no copy because they run LATER in the chain
+       and are therefore one block old where the sum reads them
+       (mtx_order_violations() is what makes that a fact rather than a
+       hope). So the whole input set of every aux sum is exactly one block
+       old, which is what "coherent" means here.
+
+       WHY IT IS UNCONDITIONAL. S148: engaging the alignment per aux cannot
+       be made click-free, because what a crossfade would be fading is a
+       signal against its own 333 us echo -- a sweeping comb on programme
+       material at any fade length. PW ruled it always-on, and signed the
+       cost: +16 samples on every aux output, aux through-DSP contract 98
+       samples / 2.042 ms ("0.33 ms latency is ok, but no more").
+
+    2. THE NO-FEEDBACK GUARD -- layer 2 of PW's rule ("matrix mixing should
+       disallow all potential feedback paths"). Layer 1 is the HOST: single
+       writer, refuses a loop-closing write, publishes
+       `Aux[1-12]AuxAvail[1-1]` so skins grey the cell out. This is the
+       guard underneath, so that a write the host should not have made can
+       never cost a howl or a missed block.
+
+       It keeps a transitive closure over the twelve aux nodes -- the ONLY
+       cycle-capable subgraph on chip 2, because every other chip-2 source
+       of an aux sum comes from chip 1 over the TDM fabric and the master
+       and centre buses take no aux source at all (S148 2b computed it;
+       tools/dsp/aux_matrix_ref.py re-computes it from dsp.csv and fails if
+       it ever stops being true). An edge that would close a cycle is HELD:
+       its gate word is zero, the coefficient fold ANDs it into the host's
+       own `on` bit, and the crosspoint's coefficient is then EXACTLY zero
+       -- which is what the cell's own note in the master already promises.
+       It is released the moment the graph changes so that the loop can no
+       longer close.
+
+       THE HOST'S WORD IS NEVER WRITTEN, the same discipline as the reverb
+       cap: `_mix_on_` stays exactly what the host wrote, so a read-back
+       still says what the panel says, and the guard only ever reads it.
+
+       THE GRANT SET IS A PURE FUNCTION OF THE REQUEST, not of history: on
+       any change the closure is rebuilt from nothing in a fixed order
+       (destination bus ascending, then source aux ascending). Two units
+       given the same writes are in the same state, and there is no
+       sequence of writes that can leave a legal patch held.
+
+       AND IT COSTS NOTHING TO STAND STILL. The closure runs only when the
+       request changes -- a dozen word compares a block say whether it
+       did. A DAG on twelve nodes has at most sixty-six edges, so the
+       rebuild is bounded and the worst block is bounded with it.
+    """
+    n_aux = len(aux_nodes)
+    snaps = []
+    for nd in aux_nodes:
+        n_mtx = mtx_map_count(nd['params'])
+        for s in nd['inputs'][:len(nd['inputs']) - n_mtx]:
+            if s not in snaps:
+                snaps.append(s)
+    gates = [mtx_late_count(nd['params']) for nd in aux_nodes]
+    if len(set(gates)) != 1 or gates[0] != n_aux:
+        raise ValueError(
+            'the aux matrix guard is an n x n closure over the aux buses: '
+            f'{n_aux} buses but mtx_late = {sorted(set(gates))}. Every aux '
+            f'sum must gate exactly one crosspoint per aux.')
+    offs = []
+    for nd in aux_nodes:
+        n_send = (int(nd['params'].get('fx_sends', 0) or 0)
+                  + xp_map_count(nd['params']) + mtx_map_count(nd['params']))
+        offs.append(n_send - mtx_late_count(nd['params']))
+
+    out = []
+    a = out.append
+    a('/* chip2/aux_matrix.asm - the aux matrix alignment and no-feedback '
+      'guard */')
+    a('/* AUTO-GENERATED by tools/dsp/dsp_codegen.py - do not edit. */')
+    a('/*')
+    for line in dedent(gen_c2_aux_matrix.__doc__).split('\n')[2:]:
+        a((' * ' + line).rstrip() if line.strip() else ' *')
+    a(' */')
+    a('#include "dsp_block.h"')
+    a('')
+    a('#if DSP4_C2_AUX_MTX')
+    a('')
+    a(f'#define AUXMTX_N {n_aux}')
+    a(f'#define AUXAL_N {len(snaps)}')
+    a('')
+    a('.section/dm seg_dmda;')
+    a('')
+    a('/* ---- the one-block alignment history ---- */')
+    for s in snaps:
+        a(f'.extern _blk_{s};')
+    for s in snaps:
+        a(f'.global _auxal_{s};')
+        a(f'.var _auxal_{s}[DSP4_BLOCK_SIZE];')
+    a('.var _auxal_src[AUXAL_N] = ' + ',\n    '.join(f'_blk_{s}'
+                                                     for s in snaps) + ';')
+    a('.var _auxal_dst[AUXAL_N] = ' + ',\n    '.join(f'_auxal_{s}'
+                                                     for s in snaps) + ';')
+    a('')
+    a('/* ---- the guard ---- */')
+    for nd in aux_nodes:
+        a(f".extern _mix_on_{nd['id']};")
+    a('/* Where each destination bus keeps its TWELVE aux crosspoints\' on/off')
+    a(' * words. The matrix block is the tail of the node\'s switched list and')
+    a(' * the aux feeds are the tail of THAT, so one offset locates the row. */')
+    a('.var _auxmtx_on[AUXMTX_N] = ' + ',\n    '.join(
+        f"_mix_on_{nd['id']} + {o}" for nd, o in zip(aux_nodes, offs)) + ';')
+    a('/* THE GATE, one word per crosspoint, row-major by DESTINATION bus:')
+    a(' * row j is bus j+1, column i is source aux i+1. -1 = the edge may')
+    a(' * carry signal, 0 = it is HELD and the fold makes its coefficient')
+    a(' * exactly zero. Written ONLY here. Boots all-zero, which is the safe')
+    a(' * state: nothing passes until the guard has said it may. */')
+    a('.global _auxmtx_gate;')
+    a('.var _auxmtx_gate[AUXMTX_N*AUXMTX_N];')
+    a('/* One bitmask per destination bus: bit i = source aux i+1.')
+    a(' * `_auxmtx_req` is what the host asked for THIS block, `_auxmtx_prev`')
+    a(' * what it asked for last, `_auxmtx_live` what was granted, and')
+    a(' * `_auxmtx_reach` row j is the set of nodes reachable FROM aux j+1')
+    a(' * over the granted edges (including itself). */')
+    a('.global _auxmtx_req;')
+    a('.var _auxmtx_req[AUXMTX_N];')
+    a('.var _auxmtx_prev[AUXMTX_N];')
+    a('.global _auxmtx_live;')
+    a('.var _auxmtx_live[AUXMTX_N];')
+    a('.var _auxmtx_reach[AUXMTX_N];')
+    a('')
+    a('.section/pm seg_pmco;')
+    a('')
+    a('/*--------------------------------------------------------------')
+    a(' * _c2_aux_mtx_pre - run ONCE per block, at the HEAD of the chip-2')
+    a(' * chain, before any node of this block has published anything.')
+    a(' * Clobbers r0-r9, i0-i4, l0-l4.')
+    a(' *-------------------------------------------------------------*/')
+    a('.global _c2_aux_mtx_pre;')
+    a('_c2_aux_mtx_pre:')
+    a('    l0 = 0;')
+    a('    l1 = 0;')
+    a('    l2 = 0;')
+    a('    l3 = 0;')
+    a('    l4 = 0;')
+    a('')
+    a('    /* ---- 1: the one-block alignment snapshot ----')
+    a('     * Taken HERE and not anywhere else: at the head of the chain')
+    a('     * every `_blk_` below still holds the block before this one,')
+    a('     * which is exactly what the aux sums have to read. */')
+    a('    i0 = _auxal_src;')
+    a('    i1 = _auxal_dst;')
+    a('    r9 = AUXAL_N;')
+    a('.amp_cp:')
+    a('    r0 = dm(i0, 1);')
+    a('    r1 = dm(i1, 1);')
+    a('    i2 = r0;')
+    a('    i3 = r1;')
+    a('    lcntr = DSP4_BLOCK_SIZE, do .amp_cpw until lce;')
+    a('        r2 = dm(i2, 1);')
+    a('    .amp_cpw:')
+    a('        dm(i3, 1) = r2;')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .amp_cp);')
+    a('')
+    a('    /* ---- 2: what the host is asking for ----')
+    a('     * One bitmask per destination bus, read straight out of the')
+    a('     * host\'s own `on` words. Nothing here writes them. */')
+    a('    i0 = _auxmtx_on;')
+    a('    i1 = _auxmtx_req;')
+    a('    r9 = AUXMTX_N;')
+    a('.amp_req:')
+    a('    r0 = dm(i0, 1);')
+    a('    i2 = r0;')
+    a('    r3 = 0;                       /* the mask being built      */')
+    a('    r4 = 1;                       /* bit for source aux 1      */')
+    a('    lcntr = AUXMTX_N, do .amp_rq until lce;')
+    a('        r5 = dm(i2, 1);')
+    a('        r5 = pass r5;')
+    a('        if ne r3 = r3 or r4;')
+    a('    .amp_rq:')
+    a('        r4 = lshift r4 by 1;')
+    a('    dm(i1, 1) = r3;')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .amp_req);')
+    a('')
+    a('    /* ---- 3: did it change? ----')
+    a('     * The closure is a CONTROL-rate computation and this is what')
+    a('     * keeps it there. In the steady state the guard is a dozen')
+    a('     * exclusive-ors and a branch. */')
+    a('    i0 = _auxmtx_req;')
+    a('    i1 = _auxmtx_prev;')
+    a('    r3 = 0;')
+    a('    r9 = AUXMTX_N;')
+    a('.amp_chg:')
+    a('    r0 = dm(i0, 1);')
+    a('    r1 = dm(i1, 1);')
+    a('    r0 = r0 xor r1;')
+    a('    r3 = r3 or r0;')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .amp_chg);')
+    a('    r3 = pass r3;')
+    a('    if eq rts;')
+    a('')
+    a('    /* ---- 4: rebuild the closure, from nothing, in a fixed order ----')
+    a('     * `_auxmtx_reach` row j starts as {j} and grows as edges are')
+    a('     * granted. An edge i -> j is granted unless j ALREADY reaches i,')
+    a('     * which is the whole no-feedback rule: a self-feed is the i == j')
+    a('     * case and is refused by the same test, with no special case.')
+    a('     * Rebuilding rather than patching is what makes the answer a')
+    a('     * function of the request alone. */')
+    a('    i0 = _auxmtx_req;')
+    a('    i1 = _auxmtx_prev;')
+    a('    lcntr = AUXMTX_N, do .amp_sv until lce;')
+    a('        r0 = dm(i0, 1);')
+    a('    .amp_sv:')
+    a('        dm(i1, 1) = r0;')
+    a('    i1 = _auxmtx_live;')
+    a('    i2 = _auxmtx_reach;')
+    a('    r0 = 0;')
+    a('    r1 = 1;')
+    a('    lcntr = AUXMTX_N, do .amp_ini until lce;')
+    a('        dm(i1, 1) = r0;')
+    a('        dm(i2, 1) = r1;')
+    a('    .amp_ini:')
+    a('        r1 = lshift r1 by 1;')
+    a('')
+    a('    i0 = _auxmtx_req;')
+    a('    i1 = _auxmtx_live;')
+    a('    i2 = _auxmtx_reach;')
+    a('    r9 = AUXMTX_N;                /* destination bus j         */')
+    a('.amp_j:')
+    a('    r0 = dm(i0, 1);               /* req[j]                    */')
+    a('    r1 = 0;                       /* live[j], being built      */')
+    a('    r2 = 1;                       /* bit for source aux i      */')
+    a('    r8 = AUXMTX_N;                /* source aux i              */')
+    a('.amp_i:')
+    a('    r3 = r0 and r2;')
+    a('    if eq jump (pc, .amp_inext);  /* not asked for             */')
+    a('    r4 = dm(i2, 0);               /* reach[j]                  */')
+    a('    r3 = r4 and r2;')
+    a('    if ne jump (pc, .amp_inext);  /* j reaches i: HELD         */')
+    a('    r1 = r1 or r2;                /* granted                   */')
+    a('    /* every node that reaches i now reaches whatever j reaches */')
+    a('    i4 = _auxmtx_reach;')
+    a('    r5 = AUXMTX_N;')
+    a('.amp_u:')
+    a('    r6 = dm(i4, 0);')
+    a('    r7 = r6 and r2;')
+    a('    if ne r6 = r6 or r4;')
+    a('    dm(i4, 1) = r6;')
+    a('    r5 = r5 - 1;')
+    a('    if ne jump (pc, .amp_u);')
+    a('.amp_inext:')
+    a('    r2 = lshift r2 by 1;')
+    a('    r8 = r8 - 1;')
+    a('    if ne jump (pc, .amp_i);')
+    a('    dm(i1, 1) = r1;')
+    a('    modify(i2, 1);')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .amp_j);')
+    a('')
+    a('    /* ---- 5: publish the gates ----')
+    a('     * -1 and not 1: the fold ANDs this word into the host\'s `on`')
+    a('     * word, which is any nonzero value, so the gate has to be a')
+    a('     * full mask. */')
+    a('    i1 = _auxmtx_live;')
+    a('    i3 = _auxmtx_gate;')
+    a('    r5 = -1;')
+    a('    r9 = AUXMTX_N;')
+    a('.amp_g:')
+    a('    r1 = dm(i1, 1);')
+    a('    r2 = 1;')
+    a('    lcntr = AUXMTX_N, do .amp_gi until lce;')
+    a('        r4 = 0;')
+    a('        r3 = r1 and r2;')
+    a('        if ne r4 = r5;')
+    a('        dm(i3, 1) = r4;')
+    a('    .amp_gi:')
+    a('        r2 = lshift r2 by 1;')
+    a('    r9 = r9 - 1;')
+    a('    if ne jump (pc, .amp_g);')
+    a('    rts;')
+    a('_c2_aux_mtx_pre.end:')
+    a('')
+    a('#endif')
+    a('')
+    return '\n'.join(out)
+
+
+def gen_c2_mix_fabric(max_src, max_src_base=None):
     """chip2/mix_fabric.asm -- the LIVE-CROSSPOINT mix accumulate (chip 2).
 
     S149 LEVER L1, PW-approved on S148. Chip 1 has run a bus-major
@@ -15429,13 +16004,26 @@ def gen_c2_mix_fabric(max_src):
     a('')
     a('#if DSP4_BLOCK_KERNELS && DSP4_C2_MIX_FABRIC')
     a('')
-    a(f'#define C2MIX_MAX_SRC {max_src}')
+    if max_src_base is not None and max_src_base != max_src:
+        # THE SCRATCH IS SIZED PER ARM (S150). The aux matrix widens every
+        # aux sum, so the shared buffer has to grow with it -- but only in
+        # the arm that has the matrix, or DSP4_C2_AUX_MTX=0 would carry
+        # the wider buffer and stop being the pre-matrix image.
+        a('#if DSP4_C2_AUX_MTX')
+        a(f'#define C2MIX_MAX_SRC {max_src}')
+        a('#else')
+        a(f'#define C2MIX_MAX_SRC {max_src_base}')
+        a('#endif')
+        _w = f'{max_src_base} sources, {max_src} with the aux matrix'
+    else:
+        a(f'#define C2MIX_MAX_SRC {max_src}')
+        _w = f'{max_src} sources'
     a('')
     a('.section/dm seg_dmda;')
     a('')
     a('/* The gathered live source blocks and their compacted coefficients.')
     a(' * SCRATCH, shared by every chip-2 MIX_BUS node -- see the note above.')
-    a(f' * Sized for the widest bus in this graph ({max_src} sources). */')
+    a(f' * Sized for the widest bus in this graph ({_w}). */')
     a('.global _c2mix_src;')
     a('.var _c2mix_src[C2MIX_MAX_SRC*DSP4_BLOCK_SIZE];')
     a('.global _c2mix_gq;')
@@ -17870,7 +18458,7 @@ def c2_wrapped(node):
     return node['chip'] == '2'
 
 
-def blk_stage_ins(node):
+def blk_stage_ins(node, limit=None):
     """Input ids whose BLOCK the wrapper stages, in `inputs` order.
 
     A node whose only input is ITSELF (C2_USB_IN, C2_BT_IN -- the host writes
@@ -17878,11 +18466,19 @@ def blk_stage_ins(node):
     The host word is a block constant, so the wrapper simply runs the body
     BLOCK times and publishes BLOCK copies, which is what the per-sample build
     already produces for those two nodes.
+
+    `limit` is the AUX MATRIX ARM SELECTOR (S150). A chip-2 aux sum emits
+    its body twice -- with the matrix sources and without -- and the
+    DSP4_C2_AUX_MTX=0 arm must stage the ELEVEN sources it had before the
+    matrix existed, not the twenty-six the graph now declares, or its image
+    is not the pre-matrix image any more. The marker each arm carries says
+    how many of the list that arm is built on.
     """
-    return [i for i in node['inputs'] if i != node['id']]
+    ins = node['inputs'] if limit is None else node['inputs'][:limit]
+    return [i for i in ins if i != node['id']]
 
 
-def blk_wrap_decl(node, outs, wide=False):
+def blk_wrap_decl(node, outs, wide=False, limit=None):
     """DM declarations for the generic wrapper: the published block(s), the
     walking pointers and the saved sample index.
 
@@ -17898,7 +18494,7 @@ def blk_wrap_decl(node, outs, wide=False):
     the whole class of bug.
     """
     nid = node['id']
-    ins = blk_stage_ins(node)
+    ins = blk_stage_ins(node, limit)
     lines = ['        #if DSP4_BLOCK_KERNELS']
     for sym in outs:
         lines.append(f'        .var {sym}[DSP4_BLOCK_SIZE];')
@@ -17916,7 +18512,7 @@ def blk_wrap_decl(node, outs, wide=False):
 
 
 def blk_wrap_body(node, outs, wide=False, note='', park=None,
-                  park_guard=None, park_flag=None):
+                  park_guard=None, park_flag=None, limit=None):
     """The generic per-block wrapper, emitted AHEAD of the per-sample body.
 
     _sample_idx IS DRIVEN 0..BLOCK-1 by this loop, so every block-rate guard
@@ -17930,7 +18526,7 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
     a kernel that eats it would be a cross-node coupling with no declaration.
     """
     nid = node['id']
-    ins = blk_stage_ins(node)
+    ins = blk_stage_ins(node, limit)
     L = []
     a = L.append
     a('        #if DSP4_BLOCK_KERNELS')
@@ -18107,7 +18703,7 @@ def blk_wrap_body(node, outs, wide=False, note='', park=None,
     return '\n'.join(L)
 
 
-def blk_wrap_extern(node):
+def blk_wrap_extern(node, limit=None):
     """`.extern` for every input block the wrapper names.
 
     add_extern_decls only sees dm(_sym) references and these are DAG loads,
@@ -18116,7 +18712,7 @@ def blk_wrap_extern(node):
     failure the no-fallback policy asks for, not a silent one-sample-per-block
     read.
     """
-    ins = blk_stage_ins(node)
+    ins = blk_stage_ins(node, limit)
     if not ins:
         return ''
     body = '\n'.join(f'        .extern _blk_{i};' for i in ins)
@@ -18195,6 +18791,10 @@ _C2_PARK_GATE = {'FX_ENGINE': '_fx_on_', 'AUX_INPUT': '_auxin_on_'}
 # DSP4_AUXIN_BYPASS = 0 not one byte of this is emitted and the pair rebuilds
 # byte for byte (the same discipline DSP4_SCOPE_BLK_TAP carries).
 _C2_PARK_GUARD = {'AUX_INPUT': 'DSP4_AUXIN_BYPASS'}
+# `/* @C2BLKWRAP */` or `/* @C2BLKWRAP n=<k> */` -- see c2_block_wrap.
+_C2_WRAP_MARK_RE = re.compile(r'^/\* @C2BLKWRAP( n=\d+)? \*/$')
+_C2_WRAP_ARM_RE = re.compile(r'@C2BLKWRAP n=(\d+) \*/')
+_C2_WRAP_DECL_RE = re.compile(r'^/\* @C2BLKDECL n=\d+ \*/$')
 _C2_PARK_FLAG = {'AUX_INPUT': '_auxin_byp_'}
 
 
@@ -18225,17 +18825,46 @@ def c2_block_wrap(node, body):
 
     body = _C2_GUARD_RE.sub(_live, body)
 
-    decls = blk_wrap_extern(node) + blk_wrap_decl(node, outs, wide) + '\n'
-    anchor_pm = '\n        .section/pm seg_pmco;'
-    if anchor_pm in body:
-        body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
-    else:
-        # gen_compressor_fixed emits its sections unindented.
-        anchor_pm = '\n.section/pm seg_pmco;'
-        if anchor_pm not in body:
+    # THE MARKERS CARRY THEIR ARM (S150). A chip-2 aux sum emits its body
+    # once per DSP4_C2_AUX_MTX arm, so there are TWO markers and TWO
+    # `.section/pm` anchors, and each has to be given the wrapper built on
+    # ITS OWN source list -- the matrix arm's twenty-six, the control arm's
+    # eleven. `@C2BLKWRAP n=<k>` says how many; a bare marker means all.
+    # The two arms are mutually exclusive #if/#else, so each may declare
+    # the node's block and pointers for itself.
+    arms = [int(m) for m in _C2_WRAP_ARM_RE.findall(body)] or [None]
+
+    # WHERE THE DECLARATIONS GO. A node emitted in ONE arm has always put
+    # them after its first `.section/dm`-then-`.section/pm` boundary, and
+    # still does. A node emitted in TWO arms (an aux sum, S150) says where
+    # with a `@C2BLKDECL` marker, because only the arm that HAS a generic
+    # wrapper wants the wrapper's walking pointers -- the matrix arm is a
+    # tail jump into the fabric and declares its published block itself.
+    decl_marks = [ln for ln in body.split('\n')
+                  if _C2_WRAP_DECL_RE.match(ln.strip())]
+    if decl_marks:
+        if len(decl_marks) != len(arms):
             raise ValueError(
-                f'{nid}: no .section/pm anchor for the chip-2 block wrapper')
-        body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
+                f'{nid}: {len(decl_marks)} @C2BLKDECL marker(s) and '
+                f'{len(arms)} @C2BLKWRAP arm(s)')
+        for _k, _dm in zip(arms, decl_marks):
+            body = body.replace(
+                _dm + '\n',
+                blk_wrap_extern(node, _k) + blk_wrap_decl(node, outs, wide, _k)
+                + '\n', 1)
+    else:
+        decls = blk_wrap_extern(node) + blk_wrap_decl(node, outs, wide) + '\n'
+        anchor_pm = '\n        .section/pm seg_pmco;'
+        if anchor_pm in body:
+            body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
+        else:
+            # gen_compressor_fixed emits its sections unindented.
+            anchor_pm = '\n.section/pm seg_pmco;'
+            if anchor_pm not in body:
+                raise ValueError(
+                    f'{nid}: no .section/pm anchor for the chip-2 block '
+                    f'wrapper')
+            body = body.replace(anchor_pm, '\n' + decls + anchor_pm, 1)
 
     park = _C2_PARK_GATE.get(node['type'])
     park_guard = _C2_PARK_GUARD.get(node['type'])
@@ -18255,17 +18884,24 @@ def c2_block_wrap(node, body):
             park_flag += nid
     else:
         park_guard = park_flag = None
-    wrap = blk_wrap_body(node, outs, wide, park=park, park_guard=park_guard,
-                         park_flag=park_flag) + '\n'
     # The marker's indentation does not survive textwrap.dedent intact, so it
     # is matched on the stripped line rather than on a fixed column.
     marker_lines = [ln for ln in body.split('\n')
-                    if ln.strip() == '/* @C2BLKWRAP */']
-    if len(marker_lines) > 1:
-        raise ValueError(f'{nid}: more than one @C2BLKWRAP marker')
+                    if _C2_WRAP_MARK_RE.match(ln.strip())]
+    if len(marker_lines) != len(arms) and marker_lines:
+        raise ValueError(
+            f'{nid}: {len(marker_lines)} @C2BLKWRAP marker(s) and '
+            f'{len(arms)} arm(s)')
     if marker_lines:
-        body = body.replace(marker_lines[0] + '\n', wrap, 1)
+        for _k, _ml in zip(arms, marker_lines):
+            wrap = blk_wrap_body(node, outs, wide, park=park,
+                                 park_guard=park_guard, park_flag=park_flag,
+                                 limit=_k) + '\n'
+            body = body.replace(_ml + '\n', wrap, 1)
     else:
+        wrap = blk_wrap_body(node, outs, wide, park=park,
+                             park_guard=park_guard,
+                             park_flag=park_flag) + '\n'
         anchor = f'_{nid}_process:\n'
         if body.count(anchor) != 1:
             raise ValueError(
@@ -21788,12 +22424,56 @@ def process_order_violations(seq, by_id):
     pos = {nid: i for i, nid in enumerate(seq)}
     bad = []
     for i, nid in enumerate(seq):
-        srcs = list(by_id[nid]['inputs'])
+        srcs = list(mtx_early_inputs(by_id[nid]))
         if by_id[nid].get('follows'):
             srcs.append(by_id[nid]['follows'])
         for src in srcs:
             j = pos.get(src)
             if j is not None and j > i:
+                bad.append((nid, i, src, j))
+    return bad
+
+
+def mtx_early_inputs(node):
+    """This node's inputs MINUS its declared one-block-late block (S150).
+
+    The aux matrix's fifteen sources are read ONE BLOCK LATE by design --
+    that is S148 option (ii), the thing that keeps every aux SIMD pair --
+    so they are not chain-order edges at all, in exactly the way a
+    cross-chip input is not one. They have their OWN order rule, the
+    opposite of this one, and mtx_order_violations() is where it lives.
+    """
+    n = mtx_map_count(node['params'])
+    return node['inputs'][:len(node['inputs']) - n] if n else node['inputs']
+
+
+def mtx_order_violations(seq, by_id):
+    """Every aux-matrix source that does NOT run later than its consumer.
+
+    THE ONE-BLOCK-LATE READ IS A CHAIN PROPERTY AND THIS IS WHERE IT IS
+    CHECKED. `C2_MIX_AUX_j` reads `_blk_C2_AUX_DLY_i` and the three master
+    outputs directly, with no history buffer, and what makes that the
+    PREVIOUS block's output rather than this one's is simply that all
+    fifteen run later in the chain. Every other source of the same sum is
+    read from `_auxal_<src>`, the alignment snapshot, so the whole input
+    set is exactly one block old and the sum is coherent.
+
+    If a matrix source ever ran EARLIER the sum would mix a same-block
+    source with fifteen one-block-late ones -- a 333 us comb on one leg of
+    the matrix and nothing to say so. So it is a build error, not a note:
+    the alignment contract (98 samples / 2.042 ms, PW 2026-09-29) is the
+    thing being protected.
+    """
+    pos = {nid: i for i, nid in enumerate(seq)}
+    bad = []
+    for i, nid in enumerate(seq):
+        node = by_id[nid]
+        n = mtx_map_count(node['params'])
+        if not n:
+            continue
+        for src in node['inputs'][len(node['inputs']) - n:]:
+            j = pos.get(src)
+            if j is not None and j <= i:
                 bad.append((nid, i, src, j))
     return bad
 
@@ -22186,6 +22866,21 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             call_sequence, {n['id']: n for n in chip_nodes})
         call_sequence, _moved = repair_process_order(
             chip_label, call_sequence, chip_nodes)
+        # THE OTHER HALF OF THE ORDER RULE (S150): an aux-matrix source
+        # must run LATER than the sum that reads it, because that is what
+        # makes the read one block late. See mtx_order_violations.
+        _mtx_bad = mtx_order_violations(
+            call_sequence, {n['id']: n for n in chip_nodes})
+        if _mtx_bad:
+            _d = '; '.join(f'{c} reads the matrix source {p_} at #{j}, '
+                           f'which is not later than its own #{i}'
+                           for c, i, p_, j in _mtx_bad[:6])
+            raise ValueError(
+                f'{chip_label}: the aux matrix\'s one-block-late read is '
+                f'broken by the chain order. {_d}. Every `mtx_map` source '
+                f'must run AFTER the sum that reads it -- that is what '
+                f'makes it the PREVIOUS block\'s output and what the '
+                f'98-sample aux latency contract rests on.')
         # After the order repair, because the pair families' contiguity is a
         # property of the FINAL chain and not of dsp.csv's row order.
         _c2_groups = c2_pair_groups(chip_label, chip_nodes, call_sequence)
@@ -22195,6 +22890,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
         _fx_types = {n['id'] for n in chip_nodes if n['type'] == 'FX_ENGINE'}
         _first_fx_nid = next((n for n in call_sequence if n in _fx_types),
                              None) if chip_label == 'chip2' else None
+        _has_aux_mtx = (chip_label == 'chip2'
+                        and any(mtx_map_count(n['params'])
+                                for n in chip_nodes))
         if _pre_bad:
             print(f'  {chip_label}: process order repaired -- '
                   f'{len(_pre_bad)} stale-read edge(s):')
@@ -22251,6 +22949,10 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                 f.write('#if DSP4_FX_REVERB_CAP\n')
                 f.write('.extern _fx_type_cap;\n')
                 f.write('#endif\n')
+            if chip_label == 'chip2' and _has_aux_mtx:
+                f.write('#if DSP4_C2_AUX_MTX\n')
+                f.write('.extern _c2_aux_mtx_pre;\n')
+                f.write('#endif\n')
             for nid in call_sequence:
                 f.write(f'.extern _{nid}_process;\n')
             if strips:
@@ -22293,6 +22995,18 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
             f.write(f'_{chip_label}_process_all:\n')
             if chip_label == 'chip1':
                 f.write(f'    call _bus_clear_all;    /* zero all bus accumulators */\n')
+            if chip_label == 'chip2' and _has_aux_mtx:
+                # AT THE HEAD OF THE CHAIN AND OUTSIDE EVERY PREFIX CUT.
+                # The alignment snapshot has to be taken while every
+                # `_blk_` it copies still holds the PREVIOUS block, which
+                # is true here and nowhere later; and a DSP4_NODE_LIMIT2
+                # cut that keeps any aux sum must keep the guard that
+                # gates it, for the same reason the reverb cap sits
+                # outside the cut.
+                f.write('#if DSP4_C2_AUX_MTX\n')
+                f.write('    call _c2_aux_mtx_pre;   '
+                        '/* aux matrix: align + no-feedback guard */\n')
+                f.write('#endif\n')
             # Two orthogonal knobs on this chain, both default-off.
             #
             # DSP4_NODE_LIMIT is a raw PREFIX cut: 0 runs every node, N
@@ -23484,6 +24198,20 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                              encoding='utf-8') as f:
                 f.write(gen_fx_type_cap(_c2fx))
             files_written += 1
+        # chip2/aux_matrix.asm — the aux matrix's one-block alignment and
+        # its no-feedback guard (S150). Written whenever a chip-2 mix bus
+        # declares `mtx_map`; the whole file is inside #if DSP4_C2_AUX_MTX,
+        # so the control arm assembles an empty one.
+        _c2mtx = [n for n in nodes
+                  if n['chip'] == '2' and n['type'] == 'MIX_BUS'
+                  and mtx_map_count(n['params'])]
+        if _c2mtx:
+            os.makedirs(os.path.join(output_dir, 'chip2'), exist_ok=True)
+            with atomic_open(os.path.join(output_dir, 'chip2',
+                                          'aux_matrix.asm'), 'w',
+                             encoding='utf-8') as f:
+                f.write(gen_c2_aux_matrix(_c2mtx))
+            files_written += 1
         _c2mix = [n for n in nodes
                   if n['chip'] == '2' and n['type'] == 'MIX_BUS'
                   and n['inputs']]
@@ -23493,7 +24221,9 @@ def generate(csv_path, output_dir, force=False, node_type_filter=None):
                                           'mix_fabric.asm'), 'w',
                              encoding='utf-8') as f:
                 f.write(gen_c2_mix_fabric(
-                    max(len(n['inputs']) for n in _c2mix)))
+                    max(len(n['inputs']) for n in _c2mix),
+                    max(len(n['inputs']) - mtx_map_count(n['params'])
+                        for n in _c2mix)))
             files_written += 1
 
     # geq_tables.asm — the GEQ band-design constants, for every band count

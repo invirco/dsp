@@ -189,6 +189,16 @@ SHIPPING2 = {
     # Costs +16 samples of output latency on the chip that has it, so
     # the through-DSP contract figure is 82 samples / 1.708 ms at
     # block 16.
+    #
+    # THE AUX PATH IS 98 SAMPLES / 2.042 ms FROM S150, and only the aux
+    # path. PW ruled the aux matrix's team model on 2026-09-29 and signed
+    # its cost with it ("0.33 ms latency is ok, but no more"): every aux
+    # sum reads its whole input set one block late, so the alignment
+    # between the direct leg and the matrix leg is exact and every aux
+    # output is +16 samples. Main, monitor and phones are unchanged at
+    # 82 / 1.708 ms. Built only with DSP4_C2_AUX_MTX=1 (shipping.config);
+    # tools/dsp/aux_matrix_ref.py checks the figure by construction and
+    # fails if the alignment ever becomes two blocks.
     'DSP4_TX_EARLY': 2,
     'DSP4_GATHER_FIRST': 1,
     'DSP4_FX_TYPE_DECLARED': 0,

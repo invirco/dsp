@@ -39,7 +39,8 @@ REPO_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 sys.path.insert(0, os.path.join(REPO_ROOT, 'tools', 'dsp'))
 try:
     from dsp_codegen import (BLOCK as DSP_BLOCK, FRAME_MS, ms_to_frames,
-                             SAMPLE_RATE_HZ, parse_xp_map)
+                             SAMPLE_RATE_HZ, parse_xp_map,
+                             xp_map_count)
     import master_names
 except ImportError as exc:                       # no-fallback policy
     raise SystemExit(
@@ -1564,7 +1565,9 @@ def expand_dca(node, cat, inst):
 
 # ── MIX_BUS (bus pre-sum, mostly internal) ───────────────────────────────
 
-def _expand_mix_xpoints(node, prm, chip, nid, aux, n_fx):
+def _expand_mix_xpoints(node, prm, chip, nid, aux, n_fx,
+                        mapkey='xp_map', pagekey='xp_page',
+                        addrkey='xp_addr'):
     """The SECOND crosspoint block on a chip-2 aux sum (S143).
 
     `xp_map=Grp:1,2,3,4` says which sources the block carries and in what
@@ -1587,15 +1590,16 @@ def _expand_mix_xpoints(node, prm, chip, nid, aux, n_fx):
     unmapped with its reason rather than being given an address nothing
     reads (S21-4's shape).
     """
-    xmap = parse_xp_map(prm)
+    xmap = parse_xp_map({'xp_map': prm.get(mapkey)})
     if not xmap:
         return
-    xpg = prm.get('xp_page')
-    xpa = prm.get('xp_addr')
+    xpg = prm.get(pagekey)
+    xpa = prm.get(addrkey)
     if xpg is None or xpa is None:
-        sys.exit(f'ERROR: {nid} declares xp_map={prm.get("xp_map")!r} and no '
-                 f'xp_page/xp_addr, so its crosspoint words have no address. '
-                 f'gen_dsp_csv.py allocates them; refusing to guess.')
+        sys.exit(f'ERROR: {nid} declares {mapkey}={prm.get(mapkey)!r} and no '
+                 f'{pagekey}/{addrkey}, so its crosspoint words have no '
+                 f'address. gen_dsp_csv.py allocates them; refusing to '
+                 f'guess.')
     xpg, xpa = int(xpg), int(xpa)
     k = n_fx
     off = 0
@@ -1657,6 +1661,22 @@ def expand_mix_bus(node, cat, inst):
                          f'_mix_send_{nid} + {x-1}' if x > 1 else f'_mix_send_{nid}',
                          f'{nid} Fx{x} AuxSend')
         _expand_mix_xpoints(node, prm, chip, nid, aux, n_send)
+        # ── THE AUX MATRIX, THE THIRD BLOCK (S150) ──────────────────────
+        #
+        # `MainL/MainR/MainCtr[1-1]AuxSend/AuxOn[1-12]` and
+        # `Aux[1-16]AuxSend/AuxOn[1-12]`: this node sums ONE aux bus, so it
+        # carries one column of the matrix -- the three master outputs and
+        # the twelve aux outputs into THIS aux. Same layout as the second
+        # block, in a third address range allocated after every other
+        # chip-2 word so that adding 360 crosspoints moved none.
+        #
+        # The `k` base is n_send + the second block's width, because the
+        # kernel keeps ONE `_mix_on_`/`_mix_send_` array per node and this
+        # block's crosspoints are the tail of it.
+        _expand_mix_xpoints(node, prm, chip, nid, aux,
+                            n_send + xp_map_count(prm),
+                            mapkey='mtx_map', pagekey='mtx_page',
+                            addrkey='mtx_addr')
         return
     # 2 words: bus_id + source_count (internal, no _Cell)
     add_dispatch(chip, base, None, f'{nid} bus_id')
@@ -2372,8 +2392,40 @@ def build_ramp_stride_map(nodes_dir):
             continue
         path = os.path.join(nodes_dir, name)
         with open(path, encoding='utf-8') as f:
-            lines = f.read().splitlines()
+            text = f.read()
+        # A NODE EMITTED IN TWO ARMS HAS TWO LAYOUTS (S150), and the
+        # stride is a property of the one the IMAGE builds. An aux sum's
+        # `_mix_send_` array is 25 words wide with the aux matrix and 10
+        # without, so one number cannot describe both and reading the
+        # file as flat text would either pick one silently or (as it
+        # first did) refuse. Each arm is scanned on its own and the
+        # emitted stride table carries both, under the same #if.
+        arms = _mtx_arms(text)
+        for arm_key, arm_text in arms:
+            _scan_stride_arm(strides, name, arm_text.splitlines(), arm_key)
+    if not strides:
+        raise ValueError(
+            f"no ramp quads found under {nodes_dir}. The stride table is "
+            f"read out of the emitted .var layout and an empty one turns "
+            f"every ramped parameter into an unsettable one.")
+    return strides
 
+
+def _mtx_arms(text):
+    """[(arm key, text)] for a node body that may carry two S150 arms.
+
+    `None` for a node with one body; `'mtx'` and `'base'` for the two
+    halves of `#if DSP4_C2_AUX_MTX` / `#else` / `#endif`.
+    """
+    if '\n#if DSP4_C2_AUX_MTX\n' not in text:
+        return [(None, text)]
+    head, rest = text.split('\n#if DSP4_C2_AUX_MTX\n', 1)
+    a, rest = rest.split('\n#else\n', 1)
+    b, tail = rest.rsplit('\n#endif\n', 1)
+    return [('mtx', head + a + tail), ('base', head + b + tail)]
+
+
+def _scan_stride_arm(strides, name, lines, arm_key):
         decls = []                       # [(symbol, width)] in emission order
         for ln in lines:
             m = _VAR_RE.match(ln)
@@ -2409,11 +2461,20 @@ def build_ramp_stride_map(nodes_dir):
                     f"from the value, so one stride must describe all four.")
             found_here += 1
             prev = strides.get(value_sym)
-            if prev is not None and prev != width:
-                raise ValueError(
-                    f"conflicting ramp stride for {value_sym}: {prev} vs "
-                    f"{width} (in {name})")
-            strides[value_sym] = width
+            if arm_key is None:
+                if prev is not None and prev != width:
+                    raise ValueError(
+                        f"conflicting ramp stride for {value_sym}: {prev} vs "
+                        f"{width} (in {name})")
+                strides[value_sym] = width
+            else:
+                cur = prev if isinstance(prev, dict) else {}
+                if cur.get(arm_key, width) != width:
+                    raise ValueError(
+                        f"conflicting ramp stride for {value_sym} in arm "
+                        f"{arm_key}: {cur[arm_key]} vs {width} (in {name})")
+                cur[arm_key] = width
+                strides[value_sym] = cur
 
         if found_here != n_frames:
             raise ValueError(
@@ -2424,19 +2485,19 @@ def build_ramp_stride_map(nodes_dir):
                 f"because the fallback is a zero stride and a zero stride "
                 f"silently turns a ramped parameter into an unsettable one.")
 
-    if not strides:
-        raise ValueError(
-            f"no ramped parameters found under {nodes_dir}; the node ASM is "
-            f"missing or stale, and emitting an all-zero stride table would "
-            f"silently disable every ramp.")
-    return strides
-
 
 def _entry_stride(sym, strides):
-    """Stride for one dispatch entry symbol ('_sym' or '_sym + 3')."""
+    """Stride for one dispatch entry symbol ('_sym' or '_sym + 3').
+
+    An int, or {'mtx': s, 'base': s} when the symbol's array is a
+    different width in the two DSP4_C2_AUX_MTX arms (S150).
+    """
     if not sym:
         return 0
-    return strides.get(sym.split('+')[0].strip(), 0)
+    v = strides.get(sym.split('+')[0].strip(), 0)
+    if isinstance(v, dict) and len(set(v.values())) == 1:
+        return next(iter(v.values()))
+    return v
 
 
 def _build_chip_params(chip_num, table_name, out_path, strides=None,
@@ -2509,8 +2570,13 @@ def _build_chip_params(chip_num, table_name, out_path, strides=None,
         stride_vals.append(_entry_stride(entry[0] if entry else None, strides))
 
     hist = {}
+    n_armed = 0
     for v in stride_vals:
-        if v:
+        if isinstance(v, dict):
+            n_armed += 1
+            for w in sorted(set(v.values())):
+                hist[w] = hist.get(w, 0) + 1
+        elif v:
             hist[v] = hist.get(v, 0) + 1
     ramped_n = sum(hist.values())
 
@@ -2527,6 +2593,16 @@ def _build_chip_params(chip_num, table_name, out_path, strides=None,
     lines.append(' *')
     lines.append(f' * {ramped_n} ramped entries; strides ' +
                  '{' + ', '.join(f'{k}: {v}' for k, v in sorted(hist.items())) + '}')
+    if n_armed:
+        lines.append(' *')
+        lines.append(f' * {n_armed} entries carry TWO strides, under')
+        lines.append(' * #if DSP4_C2_AUX_MTX. The aux matrix widens every aux')
+        lines.append(" * sum's `_mix_send_` array from 10 crosspoints to 25, and")
+        lines.append(' * the stride IS that width -- so the FX and group sends')
+        lines.append(' * already addressed in this table ramp at a different')
+        lines.append(' * offset in the two arms. One number here would scribble')
+        lines.append(' * a neighbouring crosspoint in whichever arm it was not')
+        lines.append(' * taken from (S150).')
     lines.append(' */')
     lines.append(f'.global {table_name}_stride;')
     lines.append(f'.var {table_name}_stride[{size}] =')
@@ -2536,7 +2612,14 @@ def _build_chip_params(chip_num, table_name, out_path, strides=None,
         comma = ',' if addr < size - 1 else ';'
         v = stride_vals[addr]
         cmt = f'  /* 0x{addr:04X}: {comment} */' if comment else f'  /* 0x{addr:04X} */'
-        lines.append(f'    {v}{comma}{cmt}')
+        if isinstance(v, dict):
+            lines.append('#if DSP4_C2_AUX_MTX')
+            lines.append(f'    {v["mtx"]}{comma}{cmt}')
+            lines.append('#else')
+            lines.append(f'    {v["base"]}{comma}{cmt}')
+            lines.append('#endif')
+        else:
+            lines.append(f'    {v}{comma}{cmt}')
     lines.append('')
 
     # ---- Parallel wire-unit conversion table ----
