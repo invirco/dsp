@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-30 10:30Z — S152: chip-2 mix readout saturates (S150-1, PW ruled)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-30 10:30Z — S152: chip-2 mix readout saturates (S150-1, PW ruled)   [status: ⏸ HELD before any work — PW (2026-09-30): dsp work is on hold while rev D priority mods are done; session stopped 11:4x, nothing built or committed; re-dispatch this spec unchanged when PW releases dsp]   [model: opus]
 
 model: opus
 
