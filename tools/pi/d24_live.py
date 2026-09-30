@@ -602,6 +602,25 @@ def panel_already_passed(already, total):
             'are not repeated.' % (already, total))
 
 
+def panel_nothing_to_press(panel, what):
+    """A panel step that is NOT a press, for the glass (S153).
+
+    PW 2026-09-30: on a resumed pass whose presses had all passed, the board's
+    standing page ("press the button that is lit") stayed up through the
+    temperature-sense listen, and he twice looked for a lit button that did
+    not exist. A step that asks for nothing says so, and says what it IS doing.
+    """
+    return '%s: checking %s - nothing to press.' % (
+        panel_side_words(panel), what)
+
+
+def panel_no_presses_owed(panel):
+    """The line for a board whose every button already passed (S153): the
+    press page is not shown at all."""
+    return ('%s: every button already passed - nothing to press.'
+            % panel_side_words(panel))
+
+
 def panel_loop_words(panel=''):
     """The standing page for one board's sweep."""
     if not panel:

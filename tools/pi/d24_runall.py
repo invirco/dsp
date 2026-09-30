@@ -2134,7 +2134,23 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
     total_steps = len(on_board)
     already = sum(1 for r in on_board
                   if r.num not in ignored and state.verdict(r.num) == PASS)
-    if live is not None:
+    owed = set(r.num for r in rows
+               if r.group == st and r.num not in ignored
+               and state.verdict(r.num) != PASS)
+    # IS THERE ANYTHING TO PRESS AT ALL (S153, PW 2026-09-30)? On a resumed
+    # pass whose presses all passed, the standing page below still said "press
+    # the button that is lit" while only the temperature-sense listen ran, and
+    # PW twice hunted a board with no light on it. No press owed, no press page.
+    press_owed = any(s[2] in owed or s[3] in owed for s in PL.PANELS[side])
+    if live is not None and not press_owed:
+        live.set(state=LV.CHECKING,
+                 instruction=LV.panel_no_presses_owed(panel_name),
+                 lead_line='',
+                 extra=LV.panel_already_passed(already, total_steps),
+                 status=panel_name.capitalize(),
+                 n=0, total=total_steps, lead_n=0, lead_total=0,
+                 buttons=['pause'])
+    elif live is not None:
         # ONE STANDING PAGE PER BOARD, AND IT NAMES THE BOARD (S127, fixed
         # S128). It used to say "the front panel", which is two boards walked
         # one after the other, and the worker was never told when to move from
@@ -2225,9 +2241,6 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
         return tick
 
     try:
-        owed = set(r.num for r in rows
-                   if r.group == st and r.num not in ignored
-                   and state.verdict(r.num) != PASS)
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
                                log=glass.progress, owed=owed,
                                random_order=random_order,
@@ -2377,10 +2390,23 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                         pending['paused'] = True
                         return 'skip'
                 return None
+            # ...AND THE GLASS SAYS SO (S153). Without this the listen ran
+            # under whatever the last page was -- on a resumed pass, the
+            # board's "press the button that is lit".
+            def sense_quiet(row):
+                if live is not None:
+                    live.set(state=LV.CHECKING,
+                             instruction=LV.panel_nothing_to_press(
+                                 panel_name, row.what),
+                             lead_line='', extra='',
+                             status=panel_name.capitalize(),
+                             buttons=['pause'])
+                glass.progress('%s: %s, nothing to press'
+                               % (panel_name, row.what))
             for num, (v, note) in PL.sense_sweep(
                     bus, side, sense_ask, timeout=a.panel_timeout,
                     log=glass.progress, owed=owed,
-                    idle=sense_idle).items():
+                    idle=sense_idle, quiet=sense_quiet).items():
                 land(num, v, note, operator=False)
             if pending['paused']:
                 raise Paused()

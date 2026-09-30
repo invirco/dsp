@@ -147,3 +147,25 @@ outcome). The deploy is gated on `systemctl is-active d24-factory` reading
 inactive, with `.bak-s153-pre` backups of `d24_patch.py`, `d24_selftest.py`
 and `s121/patch-limits.csv`, and an atomic rename. It aborted once, cleanly,
 when PW pressed START between the check and the copy.
+
+Outcome: the first attempt aborted cleanly; the watcher deployed at
+13:37:18Z, and every file is md5-equal to the repo.
+
+## 9. Hub addendum: the press page on a resumed pass
+
+PW, 2026-09-30: on a resumed pass whose presses had all passed, the board's
+standing page ("press the button that is lit") stayed up while only row 94's
+temperature-sense listen ran. He twice looked for a light that was not
+there, and then the run "jumped to audio".
+
+* `d24_runall.panel_station` now works out whether any press step is owed on
+  the board. If none is, it puts up "<BOARD>: every button already passed -
+  nothing to press." (CHECKING, PAUSE only) instead of the press page.
+* `d24_panel.sense_sweep` has a `quiet(row)` hook, called as an unasked phase
+  starts. The station uses it to put up "<BOARD>: checking the temperature
+  sense - nothing to press." On a fresh pass the last press page used to stand
+  over that listen as well.
+* `MW/D24/DSP/s153/panel_resume_check.py` drives the real station. On the
+  pre-fix code it gives 4 FAIL; with the fix it passes, and the fresh-pass
+  control still opens on the press page. S137, S138b and S145 all pass.
+  Deployed 13:50:20Z with `.bak-s153-pre` rollbacks.

@@ -1,0 +1,145 @@
+the right board (M2) owns rows [59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94]
+ok   row 94, the temperature sense, is on it
+
+-- resumed: every row passed but 94
+   .. panel LEDs at step 10 of 31 (about 20 % brightness) for the switch-board test
+   .. panel loop: the right switch panel, 36 checks on this board, 35 of them already passed on an earlier pass
+   .. right switch panel: the temperature sense, nothing to press
+   .. the temperature sense (row 94): NO DATA -- nothing was transmitted on Sys001SwTempFan001 during the window, so there is no edge to grade. This is a panel-firmware precondition and NOT a fault in the jack or the sensor: the cell is only answered once H1S3 is rebuilt against a generation that carries it and reads the net. Re-run this row after that reflash
+   .. panel loop (right switch panel): 1 rows graded
+   [checking] RIGHT switch board: every button already passed - nothing to press.  ['pause']
+   [checking] RIGHT switch board: checking the temperature sense - nothing to press.  ['pause']
+ok   no screen asks for a press: []
+ok   the opening page says there is nothing to press: [('checking', 'RIGHT switch board: every button already passed - nothing to press.', ('pause',))]
+ok   the listen runs under "checking the temperature sense - nothing to press": [('checking', 'RIGHT switch board: checking the temperature sense - nothing to press.', ('pause',))]
+ok   ... with PAUSE and nothing else on it: [('checking', 'RIGHT switch board: checking the temperature sense - nothing to press.', ('pause',))]
+ok   row 94 was still graded: {94: ('NO DATA', 'nothing was transmitted on Sys001SwTempFan001 during the window, so there is no edge to grade. This is a panel-firmware precondition and NOT a fault in the jack or the sensor: the cell is only answered once H1S3 is rebuilt against a generation that carries it and reads the net. Re-run this row after that reflash')}
+
+-- control: a fresh pass on the same board
+   .. panel LEDs at step 10 of 31 (about 20 % brightness) for the switch-board test
+   .. panel loop: the right switch panel, 36 checks on this board, 0 of them already passed on an earlier pass
+   .. the right switch panel is lit on Sys001Skin001
+   .. light 6 (FX MUTE) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - FX MUTE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: FX MUTE.
+   It is the RED LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 1 (HOME) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - HOME (right switch panel)
+   On the RIGHT switch board: press the button that is lit: HOME.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 2 (MENU) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MENU (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MENU.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 3 (+48) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - +48 (right switch panel)
+   On the RIGHT switch board: press the button that is lit: +48.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 4 (FEEDBACK) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - FEEDBACK (right switch panel)
+   On the RIGHT switch board: press the button that is lit: FEEDBACK.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 7 (MUTE) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MUTE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MUTE.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 8 (SCENE) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - SCENE (right switch panel)
+   On the RIGHT switch board: press the button that is lit: SCENE.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 9 (L) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - L (right switch panel)
+   On the RIGHT switch board: press the button that is lit: L.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 10 (C) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - C (right switch panel)
+   On the RIGHT switch board: press the button that is lit: C.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 5 (CH ASSIGN) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - CH ASSIGN (right switch panel)
+   On the RIGHT switch board: press the button that is lit: CH ASSIGN.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 11 (R) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - R (right switch panel)
+   On the RIGHT switch board: press the button that is lit: R.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 12 (MONITOR) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - MONITOR (right switch panel)
+   On the RIGHT switch board: press the button that is lit: MONITOR.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 13 (REC/PLY) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - REC/PLY (right switch panel)
+   On the RIGHT switch board: press the button that is lit: REC/PLY.
+   It is the RED LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. light 14 (STUDIO CTL) - the panel acked the write in 1.8 ms
+
+== INSTRUCT: Panel loop - STUDIO CTL (right switch panel)
+   On the RIGHT switch board: press the button that is lit: STUDIO CTL.
+   It is the white LED that should be lit.
+   If nothing lit, press NOT LIT.
+   [notlit / skip / ignore / pause]
+   .. this instruction is 148 characters and the screen draws about 100: 'Two LEDs are on whenever the unit is on and nothing can switch them off. Look at the white LED on FX MUTE and the white LED on REC/PLY. Are both on?'
+
+== INSTRUCT: Panel loop - the always-on LEDs
+   Two LEDs are on whenever the unit is on and nothing can switch them off.
+   Look at the white LED on FX MUTE and the white LED on REC/PLY.
+   Are both on?
+   [yes / no / skip / ignore / pause]
+   -> yes (the factory screen)
+
+== INSTRUCT: Panel loop - the encoder
+   Turn the encoder ONE click clockwise, then ONE click anticlockwise.
+   The tester reads the encoder position each time.
+   [notlit / skip / ignore / pause]
+
+== INSTRUCT: Panel loop - the encoder LEDs
+   The eight LEDs around the encoder have just been stepped round twice.
+   Did all eight light in turn?
+   [yes / no / skip / ignore / pause]
+   -> yes (the factory screen)
+   .. right switch panel: the temperature sense, nothing to press
+   .. the temperature sense (row 94): NO DATA -- nothing was transmitted on Sys001SwTempFan001 during the window, so there is no edge to grade. This is a panel-firmware precondition and NOT a fault in the jack or the sensor: the cell is only answered once H1S3 is rebuilt against a generation that carries it and reads the net. Re-run this row after that reflash
+   .. panel loop (right switch panel): 33 rows graded
+ok   a fresh pass still opens on the press page: [('waiting', 'Work the RIGHT switch board. Press the button on it that is lit.', ('notlit', 'pause'))]
+ok   ... and its listen still says nothing to press: [('checking', 'RIGHT switch board: checking the temperature sense - nothing to press.', ('pause',))]
+
+all checks passed -- no unit, no bus, no write

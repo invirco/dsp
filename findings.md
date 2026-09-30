@@ -28,6 +28,8 @@ J31, and MIC 17's open input reads −52.
 (capture −87.59), against an open −81.0. Every other surveyed channel has 5.9–13.3 dB. MIC 1–4 and
 13–16 have never been measured open or terminated.
 
+**S153-5. A resumed pass put the press page up with nothing to press** (hub addendum, PW 2026-09-30). The board's standing page was written before the station knew whether any press was owed, and row 94's temperature listen changed nothing on the glass. Now: no press owed means no press page, and every unasked listen says what it is checking and that there is nothing to press. `s153/panel_resume_check.py` reproduces the fault on the old code and passes on the new.
+
 **S153-4. AS-ADC judges U15 again.** The exemption is now a per-unit file
 (`/home/app/selftest/adc-exempt.conf`), empty by default. The catalog item key still reads
 "(U15 dead, U39, U60)" and its limit text "KNOWN DEAD"; that wording is upstream.

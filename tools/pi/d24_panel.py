@@ -683,7 +683,7 @@ def sense_rows_for(side):
 
 
 def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
-                idle=None):
+                idle=None, quiet=None):
     """Grade the sense rows of one board by listening while the operator acts.
 
     `ask(instruction, row, phase_n, phase_total)` puts one phase's instruction
@@ -697,6 +697,10 @@ def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
     heartbeat go stale, the screen took the run for dead and offered START,
     and a press there tried to launch a second run ("the test did not start",
     PW 2026-09-29).
+
+    `quiet(row)`, if given, is called as an unasked phase starts, so the
+    glass can say what is running and that there is nothing to press (S153:
+    the board's press page used to stand over the temperature-sense listen).
 
     Returns {row number: (verdict, note)}.
     """
@@ -715,6 +719,8 @@ def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
         for i, (instruction, called) in enumerate(row.phases, 1):
             # THE DRAIN IS THE ARM, AND IT IS BEFORE THE PROMPT.
             bus.flush()
+            if not instruction and quiet is not None:
+                quiet(row)
             tick = (ask(instruction, row.num, i, len(row.phases))
                     if instruction else idle)
             got = _listen(bus, row.cell_key, timeout, tick)
