@@ -270,7 +270,22 @@ STOP_BUTTONS = ('pause',)
 PATCH_DECISIONS = {'skip': SKIPPED, 'ignore': IGNORED}
 
 # The factory-test pair, the same constants d24_selftest.py asserts against.
-FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s122'
+# THE PAIR THAT IS BOOTED, not a hard-wired one (hub 2026-09-30). The symbols
+# (TEST_MEAS window counter, osc, meters) move with every image: on S154's
+# factory-test-v4 the old s122 default pointed `_seq()` at a word that never
+# changes and the station waited for ever on its first floor reading.
+# `pair.conf` names the booted pair (d24_selftest.PAIR_CONF); s122 is only the
+# fallback when that file is missing.
+def _booted_pair(conf='/home/app/selftest/pair.conf',
+                 fallback='/home/app/loopthd/s122'):
+    try:
+        d = open(conf).read().strip()
+        return d if d and os.path.isdir(d) else fallback
+    except OSError:
+        return fallback
+
+
+FACTORY_TEST_PAIR_DIR = _booted_pair()
 OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
 
 
