@@ -1,3 +1,30 @@
+## HUB DISPATCH 2026-09-30 13:17Z — S153: 150 ohm noise-step auto-advance fix (+ AS-ADC U15 back in)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S153: fix the factory test's 150 ohm (noise) step auto-advance — it is sometimes 2.7 s and sometimes 14–17 s (PW 2026-09-30: "fix the 150R test"). Desk first; the fix is deployed to MW-D24-2 ONLY while no run is active (`systemctl is-active d24-factory` must read inactive), with a backup, and not before the dry run passes. No DSP load, no flash, no app deploy. PW is running the full test on the unit today — never stop or interfere with a live run.
+
+EVIDENCE (hub, from today's run, `/home/app/selftest/factory.log` from the line "D24 RUN ALL ... 2026-09-30T12:45:52Z"): every "Fit the 150 ohm terminator in MIC n" step ends one of two ways.
+- FAST (MIC 3, 8, 9, 11, 15, 19): "drop after ~2.7 s, present and steady (3 blocks, ~44 readings, spread ~0.9 dB)".
+- SLOW (the other ~16): "the signal went away again after 0.9–3.4 s -- the stability window starts over" TWICE, then "drop after 13.9–16.9 s, present and steady (3 blocks, 184–228 readings, spread 0.6–1.0 dB)".
+Hub diagnosis, to be confirmed or refuted by you: in `tools/pi/d24_patch.py` the noise row's arrival test is `met = hi - lvl >= detect_drop_db` (3 dB, provisional) with `hi` = the loudest reading since the prompt, and the instrument on a mic strip is the STRIP METER — which the file itself describes as a PEAK-HOLD latch (drains at ~6.5 dB/s, S151). A peak-hold reading of random noise at gain 63 is spiky: a noise peak lands within 3 dB of `hi` and the window restarts, and the 1.0 dB / 3-block steady rule then takes ~11 s to be met on a noise signal. The fast cases are the ones where `hi` was far above the terminated level (a big insertion or removal transient). Also check whether the "drop" is sometimes the LEAD REMOVAL rather than the plug insertion (the noise step is a swap: tone lead out, plug in, osc off and the preamp already at gain 63 when the prompt goes up).
+
+FIX, direction (yours to design and prove): judge the noise step on an RMS instrument, not the peak-hold meter — the measurement node is already pointed at the lane (`_prepare` sets `meas_chan(lane)`), and RMS of a terminated input over an 85 ms window is steady to a few tenths of a dB. Consider an ABSOLUTE criterion as well as, or instead of, the relative drop: the terminated level at gain 63 is known per channel from the survey (and from the T4b limit), so "the lane is at a terminated level and steady" is a better definition of "plug in" than "3 dB below the loudest moment". Keep every existing safety: wrong-lane naming, NO SIGNAL, the timeout question, pipelined scoring, PAUSE, and the stability window's purpose (a half-seated connector is never read as the measurement). Tone rows must be untouched — prove it.
+
+PROVE IT:
+1. The dry run / simulator the runner already has (S121/S128 sim, `--dry-run` or equivalent): feed it noise-step traces shaped like today's (peak-hold noise with the lead removal and plug insertion transients) and show fast, correct advances; and show it still refuses a plug that is not in (open input) and a lead left in.
+2. Replay today's slow cases if the logs allow; otherwise state the per-channel open vs terminated RMS at gain 63 from the 09-16 survey data (`MW/D24/DSP/s55`) and show the margin the new rule has on every powered channel, including MIC 1–4 and 13–16, which are live since PW's rev C mods today.
+3. Deploy only between runs (backup `d24_patch.py.bak-s153-pre`), then one noise step on the bench is PW's call — write it as a 🔴 ask, do not wait.
+4. Report the before/after step time, and leave `detect_drop_db` provisional status stated honestly in patch-limits.csv (the generator owns that file — regenerate, never hand-edit).
+
+Also in this block (small, same file family): the AS-ADC self-test row still labels U15 "dead" and exempts its lane from the verdict (`d24_selftest.py`, ADC_OF_LANE / the AS-ADC text). MW-D24-2's U15 group has front ends again (PW rev C mods 2026-09-30), so judge all three ADCs; keep the exemption available as a per-unit setting if a unit lacks the U15 front ends, never as the default.
+
+Rules: dsp is otherwise ON HOLD for PW's rev D mods — this block only. Never open a question dialog: 🔴 notes in the block. Commit and push main.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-30 10:30Z — S152: chip-2 mix readout saturates (S150-1, PW ruled)   [status: ⏸ HELD before any work — PW (2026-09-30): dsp work is on hold while rev D priority mods are done; session stopped 11:4x, nothing built or committed; re-dispatch this spec unchanged when PW releases dsp]   [model: opus]
 
 model: opus
