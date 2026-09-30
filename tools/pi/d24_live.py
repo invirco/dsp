@@ -377,6 +377,18 @@ def status_wrong_input(actual, wanted):
     return 'Signal on %s, expected %s.' % (actual, socket_words(wanted))
 
 
+# WHAT AN ALREADY-CARRYING SOCKET SAYS, THE MOMENT THE PROMPT SEES IT (PW
+# 2026-09-30, S155). `detect`'s removal-edge rule is right -- "move the other
+# end" and the noise swap both leave the lead in the same socket the prompt
+# goes up for -- but a socket that silently waits for a removal it never
+# names left the operator watching a plain WAITING screen with a lead already
+# seated: PW hit it on P1 (AUX 1 -> MIC 1), the run gave up at the 20 s
+# timeout and reparked while the tone sat on MIC 1 the whole time.
+def status_already_carrying(wanted):
+    return ('%s already has signal - unplug the lead and plug it back in.'
+            % socket_words(wanted))
+
+
 # The one plain action a red screen offers. Exactly one, always something the
 # person can do with their hands.
 def action_wrong_socket(actual, wanted, confirm=True):

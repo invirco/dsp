@@ -1,0 +1,14 @@
+-- test_frozen_at_zero_raises_in_the_settle_loop
+ok   a counter frozen from the first call raises MeasureStalled
+ok   ... naming the settle loop
+ok   ... and MEASURE_STALL_S is stated, not invented here
+ok   it did not spin forever doing it -- bounded polls
+ok   ... and it gave up within the stated bound, not early or late
+-- test_frozen_after_settling_raises_in_the_read_loop
+ok   a counter that settles and then freezes raises MeasureStalled
+ok   ... naming the read loop
+-- test_a_live_counter_never_raises
+ok   a counter that keeps moving returns normally
+ok   ... in well under the stall bound
+
+all checks passed -- no unit, no bus, no serial port

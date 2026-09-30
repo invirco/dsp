@@ -130,6 +130,16 @@ SETTLE_WINDOWS = 4
 READ_WINDOWS = 2
 ROUTE_SETTLE_WINDOWS = 6
 
+# HOW LONG THE TEST_MEAS WINDOW COUNTER MAY SIT STILL BEFORE A WAIT-FOR-IT
+# LOOP CALLS IT DEAD RATHER THAN SLOW (S155). A live counter turns over every
+# WIN_S; this is twenty of them, which nothing this station asks for (the
+# biggest settle/read request in the tree is a handful of windows) should ever
+# need. A STALE SYMBOL MAP (S155, fixed in e97cd357) points `_seq()` at a word
+# that never moves, so the counter it is "waiting to turn over" literally
+# never does -- measured on MW-D24-2: `Unit.measure()`'s bare `nap()` loops sat
+# there forever with the glass on "working - please wait" and nothing to press.
+MEASURE_STALL_S = 20 * WIN_S
+
 # THE GAIN STEP'S OWN READING (S125). Measured on MW-D24-2, 2026-09-26, by
 # stepping a known level and reading the node at every settle length, five
 # times each -- and by taking the same reading with the level there and with
@@ -467,6 +477,17 @@ class PatchList:
 # ---------------------------------------------------------------------------
 # The unit
 # ---------------------------------------------------------------------------
+class MeasureStalled(Exception):
+    """The TEST_MEAS window counter has not moved for MEASURE_STALL_S.
+
+    Raised out of `Unit.measure()`'s two wait-for-counter loops (S155) --
+    every caller reaches the glass through the same generic exception
+    reporting the station already had (AutoPhase._go and its like), so this
+    class exists only to give that report a name a reader can recognise
+    instead of a silent hang.
+    """
+
+
 class Unit:
     """Cells, meters and the measurement node, over ONE long-lived link.
 
@@ -638,16 +659,36 @@ class Unit:
         oscillator's reference -- the only signed quantity the part publishes.
         """
         sc = self.chip(1)
-        seq0 = self._seq()
+        seq0 = last_seq = self._seq()
+        t_stall = now()
         while (self._seq() - seq0) & 0xFFFFFFFF < settle:
             nap(WIN_S / 2)
+            cur = self._seq()
+            if cur != last_seq:
+                last_seq, t_stall = cur, now()
+            elif now() - t_stall > MEASURE_STALL_S:
+                raise MeasureStalled(
+                    'the TEST_MEAS window counter has not moved for %.1f s '
+                    '(settling) -- check the symbol map (symdir=%s)'
+                    % (MEASURE_STALL_S, self.symdir))
         rows, seen = [], None
         kf = from_f32(peek_settled(sc, sc.sym['_osc_k_C1_TEST_OSC']))
         on = self.read('Test001OscOn001') != 0
+        # t_stall resets on the ONE event that is real forward motion -- a
+        # window actually banked as a row -- so both retry branches below
+        # (the counter has not moved yet; the counter moved AGAIN mid-read)
+        # share one clock and neither can spin past MEASURE_STALL_S without
+        # a single row landing.
+        t_stall = now()
         while len(rows) < windows:
             s1 = self._seq()
             if s1 == seen:
                 nap(WIN_S / 3)
+                if now() - t_stall > MEASURE_STALL_S:
+                    raise MeasureStalled(
+                        'the TEST_MEAS window counter has not moved for %.1f s '
+                        '(reading) -- check the symbol map (symdir=%s)'
+                        % (MEASURE_STALL_S, self.symdir))
                 continue
             rms = self.readf('Test001RmsResult001')
             thd = self.readf('Test001ThdResult001')
@@ -655,7 +696,14 @@ class Unit:
             a = from_f32(peek_settled(sc, sc.sym['_meas_a_C1_TEST_MEAS']))
             b = from_f32(peek_settled(sc, sc.sym['_meas_b_C1_TEST_MEAS']))
             if self._seq() != s1:            # the window turned over mid-read
+                nap(WIN_S / 3)
+                if now() - t_stall > MEASURE_STALL_S:
+                    raise MeasureStalled(
+                        'the TEST_MEAS window counter has not moved for %.1f s '
+                        '(reading, mid-window) -- check the symbol map '
+                        '(symdir=%s)' % (MEASURE_STALL_S, self.symdir))
                 continue
+            t_stall = now()
             seen = s1
             row = dict(rms=rms, thd=thd, noise=nse, a=a, b=b)
             if on and kf > 0 and freq:
@@ -1938,6 +1986,15 @@ class Station:
         self.rows_out = []
         self.timing = []
         self.floors = {}
+        # THE PEAK-METER'S OWN IDLE READING, PER STRIP (S155 item 1). A strip
+        # in MIC_STRIPS is watched on its PEAK meter, not the node -- `watch`'s
+        # own branch -- and `floors` is a NODE RMS reading. Comparing one
+        # against the other is comparing two different instruments, and a
+        # peak-hold latch reads well above an RMS floor on ordinary idle noise
+        # alone (S153: the same meter drains at 6.52 dB/s, so a single peek is
+        # never "the idle level", only wherever the latch happens to be). See
+        # `measure_floors` and `detect`'s `hot0`.
+        self.peak_floors = {}
         self.live = live or LV.Live(None, enabled=False)
         self.an = analog or Analog(enabled=False)
         # PW 2026-09-28: SIGNAL ARRIVAL IS THE GO-AHEAD. This is ON, and
@@ -2110,10 +2167,27 @@ class Station:
             self.u.meas_chan(lane)
             m = self.u.measure(None, 0.0)
             self.floors[lane] = m.get('rms')
-        self.log('floors: %d lanes, %.1f to %.1f dBFS'
+            # THE PEAK METER'S OWN FLOOR, SAME LANE, SAME MOMENT (S155 item
+            # 1). `measure()` just spent SETTLE_WINDOWS+READ_WINDOWS worth of
+            # real time on this lane, so the latch is not fresh off the
+            # standing write either -- two peeks, WIN_S apart, and the lower
+            # one, so a latch still draining reads as what it is heading for,
+            # not as wherever it happened to be caught.
+            if lane in MIC_STRIPS:
+                p1 = self.u.meter_peak(lane)
+                nap(WIN_S)
+                p2 = self.u.meter_peak(lane)
+                peeks = [dbv(v) for v in (p1, p2) if v]
+                if peeks:
+                    self.peak_floors[lane] = min(peeks)
+        pk = list(self.peak_floors.values())
+        self.log('floors: %d lanes, %.1f to %.1f dBFS (node RMS); peak floor '
+                 '%s'
                  % (len(lanes),
                     min(v for v in self.floors.values() if v is not None),
-                    max(v for v in self.floors.values() if v is not None)))
+                    max(v for v in self.floors.values() if v is not None),
+                    ('%.1f to %.1f dBFS' % (min(pk), max(pk))) if pk
+                    else 'n/a'))
 
     # -- one patch ---------------------------------------------------------
     def prepare(self, rows):
@@ -2156,7 +2230,9 @@ class Station:
         # edge cannot land in a window nothing is watching.
         self.mj_arm(rows)
         return dict(lane=lane, freq=freq, level=lvl,
-                    floor=self.floors.get(lane), watch=self.watch(lane),
+                    floor=self.floors.get(lane),
+                    peak_floor=self.peak_floors.get(lane),
+                    watch=self.watch(lane),
                     sweep0=self.u.meter_sweep(MIC_STRIPS))
 
     # -- 2.2 the mini-jack insertion sense, on the patch step ---------------
@@ -2511,6 +2587,8 @@ class Station:
         self._met_at = None
         self._stable = []
         self._wrong = None
+        self._wrong_candidate = None
+        self._wrong_hits = 0
         # THE HINT IS PER STEP, NOT PER PASS. `_hinted` used to carry across
         # patches, so a patch that followed one where the tone was seen started
         # with the hint already "on" -- the status said "Signal found - press
@@ -2561,9 +2639,44 @@ class Station:
         if not tone and lvl0 is not None:
             self._noise_met(r, lvl0, drop)
         floor = prep.get('floor')
+        # SAME INSTRUMENT AS lvl0, OR IT IS NOT A FLOOR (S155 item 1, PW
+        # 2026-09-30 ~19:00 ruling: "a real bug ... the hot0 baseline and the
+        # floor must be the same instrument"). For a MIC strip `lvl0` just
+        # came off the PEAK meter (`watch`'s own branch); `prep['floor']` is
+        # the NODE RMS, a different instrument entirely, and a peak-hold
+        # latch reads comfortably >12 dB over an RMS floor on ordinary idle
+        # noise alone -- no lead, no transient, nothing the operator did.
+        # That is what P1 hit every single run (AUX 1 -> MIC 1, hub addendum
+        # 2026-09-30 ~18:50 and PW's confirmation at ~19:00 that nothing was
+        # plugged before the prompt): MIC 1's peak floor cleared its RMS
+        # floor by more than `rise` on its own, `hot0` came back True on an
+        # empty socket, and the removal edge it then demanded never arrived.
+        floor0 = prep.get('peak_floor') if lane in MIC_STRIPS else floor
         hot0 = bool(tone and lvl0 is not None and math.isfinite(lvl0)
-                    and floor is not None and lvl0 - floor >= rise)
+                    and floor0 is not None and lvl0 - floor0 >= rise)
         removal = 'not needed' if not hot0 else None
+        # THE PROMPT'S OWN NUMBERS, EVERY TIME (hub addendum 2026-09-30
+        # ~18:50, item a). Without this the only way to tell "hot0 tripped on
+        # an idle lane" from "the operator really did leave the lead in" was
+        # to read the bench, not the log.
+        if tone:
+            self.log('%s: %s at the prompt: lvl0 %s, floor0 %s (%s), rise '
+                     '%.1f dB, hot0 %s'
+                     % (r['patch'], r['in'],
+                        ('%.1f' % lvl0) if lvl0 is not None else '--',
+                        ('%.1f' % floor0) if floor0 is not None else '--',
+                        'peak' if lane in MIC_STRIPS else 'node RMS',
+                        rise, hot0))
+        # SAY SO, THE MOMENT IT'S TRUE (PW 2026-09-30, S155). Silence here is
+        # what sent P1 to the 20 s timeout with the tone sitting on MIC 1 the
+        # whole time -- the screen still said plain WAITING, so there was
+        # nothing on it to tell the operator a removal was even owed. The
+        # removal+arrival gate above is unchanged; this only names it.
+        if hot0:
+            self.log('%s: %s already carrying at the prompt -- a removal is '
+                     'owed before any arrival counts'
+                     % (r['patch'], r['in']))
+            self.waiting(status=LV.status_already_carrying(r['in']))
         # AND IT SEEDS THE EXTREMES. The lane at the prompt is part of "since the
         # prompt went up" -- it IS the moment the prompt went up -- so the
         # quietest-so-far and loudest-so-far start there rather than at the first
@@ -2812,19 +2925,35 @@ class Station:
         the operator reads. A sweep that finds the tone back where it belongs --
         or finds nothing at all -- takes the red screen down again, so a lead
         that was moved to the right socket does not leave a stale accusation up.
+
+        THE SAME STABILITY WINDOW THE ASKED-FOR LANE GETS (PW 2026-09-30,
+        S155). One sweep is one peak-hold instant, `where_is_it`'s own floor
+        margin notwithstanding, and a single noisy instant is exactly what
+        made P1 read "the tone is on MIC 15" -- the noisiest floor on the
+        unit -- when nothing had moved at all. The asked-for lane is never
+        graded off one reading either (`_stable_ok`, DETECT_STABLE_SAMPLES);
+        this claim now clears the same bar: the SAME lane has to win the
+        sweep DETECT_STABLE_SAMPLES times running before it is shown.
         """
         t = now()
         where = self.where_is_it(lane, self.u.meter_sweep(MIC_STRIPS),
                                  int(r['donor']))
         self.cost('looking for a misplaced lead', now() - t)
-        if where and where != self._wrong:
-            self.log('%s: the tone is on %s, not %s' % (r['patch'], where,
-                                                        r['in']))
-            self._say_wrong(r, where)
-        elif not where and self._wrong and not raised:
-            self._wrong = None
-            self.waiting(status=status or LV.status_words(LV.WAITING),
-                         banner='', banner_line='', action='')
+        if where:
+            if where == self._wrong_candidate:
+                self._wrong_hits += 1
+            else:
+                self._wrong_candidate, self._wrong_hits = where, 1
+            if self._wrong_hits >= DETECT_STABLE_SAMPLES and where != self._wrong:
+                self.log('%s: the tone is on %s, not %s' % (r['patch'], where,
+                                                            r['in']))
+                self._say_wrong(r, where)
+        elif self._wrong or self._wrong_candidate:
+            self._wrong_candidate, self._wrong_hits = None, 0
+            if self._wrong and not raised:
+                self._wrong = None
+                self.waiting(status=status or LV.status_words(LV.WAITING),
+                             banner='', banner_line='', action='')
 
     def _raise_no_signal(self, r, lane, waited):
         """The red screen the timeout puts up, and the one an ENTER press gets.
@@ -3483,9 +3612,27 @@ class Station:
         The donor strip is skipped for the same reason it is skipped in the
         isolation check: it carries the oscillator by construction, so it is
         always the loudest thing on the unit and would be named every time.
+
+        "LIT" IS RELATIVE TO THAT LANE'S OWN FLOOR, NOT A FLAT -90 dBFS (PW
+        2026-09-30, S155). MIC 15's floor is -75.5 dBFS, the noisiest on the
+        unit (S153) -- well clear of a flat -90 dBFS cutoff with nothing
+        plugged in at all, which is most likely what told P1 "the tone is on
+        MIC 15" while it sat on MIC 1 the whole time. `rise` is the same
+        margin the asked-for lane's own arrival test clears
+        (`detect_rise_db`), so a lane only counts as carrying a misplaced
+        tone once it has moved as far from quiet as an arrival is.
+
+        AND THE FLOOR IS THE PEAK FLOOR, THE SAME INSTRUMENT `sweep` IS ON
+        (S155 item 1's own lesson, applied here too): `sweep` is
+        `meter_sweep`'s peak-hold readings, so comparing it against
+        `self.floors` (the node RMS) is the identical peak-vs-RMS mismatch
+        that made `hot0` fire on an idle MIC 1 -- it would just as readily
+        make this sweep call an idle lane "lit" against its own RMS number.
         """
-        lit = [(dbv(v), k) for k, v in sweep.items()
-               if k != donor and v and dbv(v) > -90]
+        rise = self.lim['detect_rise_db']
+        lit = [(dbv(v) - self.peak_floors[k], k) for k, v in sweep.items()
+               if k != donor and v and self.peak_floors.get(k) is not None
+               and dbv(v) - self.peak_floors[k] >= rise]
         lit.sort(reverse=True)
         if not lit:
             return None

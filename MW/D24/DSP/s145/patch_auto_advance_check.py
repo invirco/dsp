@@ -116,6 +116,11 @@ def build(tmp, blocks=None, auto=True, answers=()):
                                   press_s=None if auto else PT.PRESS_S),
                     glass, PT.Limits.load(plist.dir), log=lambda s: None,
                     live=live, analog=an, blocks=blocks, auto_advance=auto)
+    # `measure_floors` is part of `standing()`, which a real pass always runs
+    # before the first `detect()` -- these tests call `detect()` on its own, so
+    # they owe it the same call, or `where_is_it` (S155: per-lane floor, not a
+    # flat dBFS number) sees an empty `self.floors` and never names a lane.
+    st.measure_floors()
     return st, glass, live
 
 
@@ -155,13 +160,21 @@ class Scripted(object):
         return dict(self.sweep)
 
 
-def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0):
-    """One `detect` call against a scripted lane."""
+def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0,
+               peak_floor=None):
+    """One `detect` call against a scripted lane.
+
+    `peak_floor` defaults to `floor` (S155: `hot0` compares `lvl0` against
+    `prep['peak_floor']` on a MIC strip, not `prep['floor']`, which is the
+    node RMS) -- a caller that does not care keeps the old one-instrument
+    fiction; S155's own checks pass the two apart on purpose.
+    """
     lane = int(rows[0]['lane'])
     sc = Scripted(st, live, levels, presses, sweep)
     st.watch = sc.watch
     st.u.meter_sweep = sc.meter_sweep
     prep = dict(lane=lane, freq=1000.0, level=-12.0, floor=floor,
+                peak_floor=floor if peak_floor is None else peak_floor,
                 watch=levels[0], sweep0={})
     how, ans, dt = st.detect(rows, prep, None)
     return how, ans, dt, sc
