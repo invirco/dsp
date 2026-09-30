@@ -871,7 +871,7 @@ def parse_lead_excludes(specs):
 
 class Builder:
     def __init__(self, ports, cells, excl_inputs=(), excl_leads=(),
-                 park_kit=True, input_order='three-walks'):
+                 park_kit=False, input_order='three-walks'):
         if input_order not in INPUT_ORDERS:
             raise SystemExit('--input-order must be one of %s'
                              % ', '.join(INPUT_ORDERS))
@@ -1600,6 +1600,12 @@ def main(argv=None):
                          '150 ohm plug, then the jack lead. one-stop: every '
                          'lead at one input before moving on. PW 2026-09-27 '
                          'ruled STOPWATCH FIRST -- see s126-stopwatch-card.md')
+    # PW RULING 2026-09-30: NO PARKED LEADS - "remove the parked cable request,
+    # I see no advantage, use one at a time". Every patch is one lead, plugged
+    # fresh at both ends. The parked kit (ruling c) is OFF by default; --park-kit
+    # keeps it available for a timing comparison only.
+    ap.add_argument('--park-kit', dest='park_kit', action='store_true',
+                    help='the OLD parked-kit list (ruling c), for a timing run')
     ap.add_argument('--no-park-kit', dest='park_kit', action='store_false',
                     help='every block homes on the first XLR output and the '
                          'reference input, as the list did before the parked '
