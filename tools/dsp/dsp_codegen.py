@@ -1169,6 +1169,25 @@ def resolve_link_from(nodes, by_id):
         master['link_deps'].append(n['id'])
 
 
+def dyn_on_default(node):
+    """A dynamics node's power-on `_on_` word: the graph's `on=` param, 1 if
+    absent (S154).
+
+    WHY A GRAPH PARAM AND NOT ALWAYS 1. A stage the product contract gives no
+    cell can never be switched by anyone -- not the app, not the factory
+    station -- so whatever it boots at is what it does forever. S154 found
+    four of them on the main path compiled ON at -20 dB 4:1 (`C2_MAIN_COMP`,
+    `C2_MAIN_OCOMP_01/02`) and -0.5 dB (`C2_MAIN_LIM`), holding MAIN_OUT_01/02
+    at -18 dBFS for a -6 dBFS drive while every AUX read -6.00. The graph
+    says `on=0` for those, and dsp_validate.py refuses an uncelled dynamics
+    master that compiles on.
+    """
+    v = str(node['params'].get('on', '1')).strip()
+    if v not in ('0', '1'):
+        raise ValueError(f"{node['id']}: on={v!r} is not 0 or 1")
+    return int(v)
+
+
 def comp_par_default(params):
     """CompPar's power-on value: (percent, Q0.31 word).
 
@@ -2208,7 +2227,7 @@ def gen_compressor(node):
         /* type={p.get('type','VCA')} parallel={p.get('parallel','0')}% */
 
         .section/dm seg_dmda;
-        .var _comp_on_{node['id']} = 1;
+        .var _comp_on_{node['id']} = {dyn_on_default(node)};
         .var _comp_threshold_{node['id']};
         .var _comp_ratio_{node['id']};
         .var _comp_attack_{node['id']};
@@ -4684,7 +4703,7 @@ def gen_limiter(node):
         /* threshold={p.get('threshold_db','-0.5')}dB */
 
         .section/dm seg_dmda;
-        .var _lim_on_{node['id']} = 1;
+        .var _lim_on_{node['id']} = {dyn_on_default(node)};
         .var _lim_threshold_{node['id']};
         .var _lim_attack_{node['id']};
         .var _lim_release_{node['id']};
@@ -13981,7 +14000,10 @@ def gen_block_header(mtx_ctl=None, pool_counts=None):
  * and under law 0 they ARE the linear law this graph has always run --
  * see tools/dsp/pan_table.py for the identity and its proof. So
  * DSP4_PAN_TABLE=0 is not just a control arm, it is the SAME AUDIO for
- * every non-LCR channel, which is what makes the switch measurable. */
+ * every non-LCR channel UNDER LAW 0, which is what makes the switch
+ * measurable. Since S154 the chip boots on law 2 (stereo constant power,
+ * -3 dB at the centre, PW ruling 2026-09-30), so a DSP4_PAN_TABLE=0 build
+ * runs the OLD linear law and is not the product's pan. */
 #ifndef DSP4_PAN_TABLE
 #define DSP4_PAN_TABLE 1
 #endif
@@ -16348,6 +16370,7 @@ def gen_pan_law():
         .section/dm seg_dmda;
         .extern {_PAN_TAB_SYM[0]};
         .extern {_PAN_TAB_SYM[1]};
+        .extern {_PAN_TAB_SYM[2]};
         .extern _sys_lcr_law;
 
         .section/pm seg_pmco;
@@ -16393,8 +16416,16 @@ def gen_pan_law():
             r4 = dm(_sys_lcr_law);
             r5 = {_PAN_TAB_SYM[0]};
             r6 = {_PAN_TAB_SYM[1]};
-            r4 = pass r4;
-            if ne r5 = r6;
+            r3 = 1;
+            comp(r4, r3);
+            if eq r5 = r6;
+            /* Law 2, stereo constant power (S154), is the boot law. Any
+             * word other than 1 or 2 reads law 0, as any word other than
+             * 0 used to read law 1 -- the address never leaves a table. */
+            r6 = {_PAN_TAB_SYM[2]};
+            r3 = 2;
+            comp(r4, r3);
+            if eq r5 = r6;
             r2 = r2 + r5;
             i4 = r2;
             l4 = 0;
@@ -16431,7 +16462,7 @@ def gen_pan_law():
 # The pan-law table symbols, by law index. Named here so the generator,
 # the FADER_PAN body and tools/dsp/map_syms.py consumers all spell them
 # the same way (PW ruling R5).
-_PAN_TAB_SYM = {0: '_pan_tab_lcr', 1: '_pan_tab_cp'}
+_PAN_TAB_SYM = {0: '_pan_tab_lcr', 1: '_pan_tab_cp', 2: '_pan_tab_scp'}
 
 
 def gen_bus_accumulators_fixed():
@@ -16525,14 +16556,19 @@ def gen_bus_accumulators_fixed():
         out.append(',\n'.join(rows) + ';')
     out.append('#endif')
     # `Sys[1-1]LcrLaw[1-1]`'s word. It is ONE word for the whole chip --
-    # the law is a system property, not a per-strip one -- and it boots at
-    # law 0, which is the law that reproduces the pre-R5 audio exactly.
+    # the law is a system property, not a per-strip one. It boots at
+    # pan_table.DEFAULT_LAW, law 2 = stereo constant power, -3 dB at the
+    # centre (PW ruling 2026-09-30, S154). Until S154 it booted at law 0,
+    # the pre-R5 linear law (-6 dB at the centre); no D24 cell selects the
+    # law, so the boot word IS the product's pan law and it is taken from
+    # the module that defines the tables, not spelled here a second time.
     # OUTSIDE the DSP4_PAN_TABLE guard on purpose: the control arm has to
     # link, and a cell whose address exists in one build and not the other
     # is not a control arm.
     out.append('#if CHIP_ID == 1')
     out.append('.global _sys_lcr_law;')
-    out.append('.var _sys_lcr_law = 0;')
+    out.append('.var _sys_lcr_law = %d;   /* %s (S154) */'
+               % (_pan.DEFAULT_LAW, _pan.LAW_NAMES[_pan.DEFAULT_LAW]))
     out.append('#endif')
     out.append('')
 
@@ -19116,7 +19152,7 @@ def gen_compressor_fixed(node):
 #include "blk_pool.h"
 
 .section/dm seg_dmda;
-        .var _comp_on_{nid} = 1;
+        .var _comp_on_{nid} = {dyn_on_default(node)};
         .var _comp_threshold_{nid} = -20.0;
         .var _comp_ratio_{nid} = 4.0;
         .var _comp_attack_{nid} = 0.01;
@@ -19461,7 +19497,7 @@ def gen_limiter_fixed(node):
         /* SPI page={node['spi_page']} addr={node['spi_addr']} */
 
         .section/dm seg_dmda;
-        .var _lim_on_{nid} = 1;
+        .var _lim_on_{nid} = {dyn_on_default(node)};
         .var _lim_threshold_{nid} = -0.5;
         .var _lim_attack_{nid} = 0.5;
         .var _lim_release_{nid} = 0.001;

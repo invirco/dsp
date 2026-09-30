@@ -188,12 +188,28 @@ SIGNED_TRIPLE = ('0xCF45FF10', '0xE2019E6F', '0xC47C0FA6')   # S147-signed pair
 # THE TRIPLE ALONE STILL CANNOT BE TRUSTED TO TELL TWO PAIRS APART -- S124-3
 # is the standing lesson, and v1/v2 are the proof -- so both md5s are pinned
 # here as well, and both are checked.
-FACTORY_TEST_IMAGE_NAME = 'factory-test-v3'
-FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s151'
+#
+# v4 (S154, 2026-09-30, PW: "let's fix these gain issues before returning to
+# factory test app") -- THE MAIN OUTPUTS TRACK THE AUX OUTPUTS, AND THE PAN IS
+# CONSTANT POWER. Both chips move; the triple does NOT (no build flag moved),
+# which is S124-3's case again and why the md5s are what tells v3 and v4
+# apart. Chip 2: `C2_MAIN_COMP`, `C2_MAIN_LIM` and `C2_MAIN_OCOMP_01/02` boot
+# OFF -- they have no cell in the D24 contract, booted ON at -20 dB 4:1, and
+# held MAIN_OUT_01/02 at -18 dBFS for a -6 dBFS drive while every AUX read
+# -6.00. Chip 1: the pan law boots at law 2, stereo constant power (-3.01 dB
+# per side at the centre, unity/zero at the extremes; PW ruling 2026-09-30),
+# instead of the linear law's -6.02. Proved on the part at the TX slots:
+# MAIN = AUX to +0.00 dB from -32 to -6 dBFS on both hard pans
+# (MW/D24/DSP/s154/).
+FACTORY_TEST_IMAGE_NAME = 'factory-test-v4'
+FACTORY_TEST_PAIR_DIR = '/home/app/loopthd/s154'
 FACTORY_TEST_BUILD_CFG = ('0xCF45FF10', '0xE3019E6F', '0xC47C0FA6')
-FACTORY_TEST_LDR_MD5 = {'chip1.ldr': 'c031613ac9a0a02e4c1d493bea19765d',
-                        'chip2.ldr': '0b63f4e044e00e4a7cbe7b2ff345c0b6'}
-# Superseded, kept visible for a rollback: factory-test-v2, pair dir
+FACTORY_TEST_LDR_MD5 = {'chip1.ldr': '7caa1bf46f4b325c39d60b7df2fe93e1',
+                        'chip2.ldr': '4a9406ed755e8bc0d02ac9937c70590f'}
+# Superseded, kept visible for a rollback: factory-test-v3, pair dir
+# /home/app/loopthd/s151, the same triple, chip1
+# c031613ac9a0a02e4c1d493bea19765d, chip2 0b63f4e044e00e4a7cbe7b2ff345c0b6.
+# Before it: factory-test-v2, pair dir
 # /home/app/loopthd/s122, triple 0xCF45FF10 / 0xE3018E6F / 0xC47C0FA6,
 # chip1 7f226919a5d181410c3804d92678da19,
 # chip2 9e8a1a9edf19a90ce7ac3df1586c00f6.
@@ -3662,6 +3678,58 @@ def ensure_pair(r):
             '\n--- after the boot ---\n%s' % (ev, log[-1200:], ev2), True)
 
 
+def cmd_ensure_pair(a):
+    """`--ensure-pair` (S154, PW 2026-09-30: "audio patch test keeps saying
+    test did not start").
+
+    A RESUMED pass goes straight to the step it stopped on, and the auto set --
+    the only thing that boots the pair -- was already done in that pass. So
+    after a reboot of the unit (MW-D24-2, 14:33) START resumed into the audio
+    patch station, `PT.Unit()` -> `check_factory_image()` ->
+    `dsp4_diag.resync()` raised "SPI_RDY never asserted", d24-factory exited 1
+    and every START hit the same wall. This is the cheap question asked first,
+    by the path the auto set already uses: `link_alive()`, and `boot_pair()`
+    only when the answer is no.
+
+    THE RAILS, AND WHY THEY ARE LOWERED HERE. `boot_pair()` refuses to boot
+    with AN_EN high (PW 09-10: analog last up, first down). After a reboot
+    AN_EN is low anyway; a pair that died with the rails UP is the one case
+    this lowers them for, and it says so. They are left down: the station
+    that needs them raises them, exactly as it does today.
+
+    It writes no result rows and no per-test logs (`r.run` is never called),
+    so it asks for none: without this the Rig makes its log directory under
+    the repo root, which does not exist on the unit."""
+    a.no_append = True
+    r = Rig(a)
+    print('ensure-pair -- %s' % stamp())
+    ok, ev = link_alive(r)
+    print(ev)
+    if ok:
+        print('ENSURE-PAIR OK: the pair is up; nothing written')
+        return 0
+    app_stop(r)
+    print(stage_setup(r)[:400])
+    an = r.an_en()
+    if 'hi' in an:
+        r.pin('%d op dl' % AN_EN_GPIO)
+        print('AN_EN was HIGH with the pair down -- LOWERED before the boot '
+              '(%s -> %s)' % (an.split('//')[0].strip(),
+                              r.an_en().split('//')[0].strip()))
+    print(boot_pair(r)[-1200:])
+    cok, ctxt = codec_init(r)
+    print('S_RUN (codec4619.py --run --reinit): %s'
+          % ('ok' if cok else 'NO REPLY: ' + ctxt[-200:]))
+    safe = _chain(r, SAFE_IMAGE)
+    print('595 chain SAFE: %s' % safe.split('|')[0].strip())
+    r.new_link_epoch()
+    ok2, ev2 = link_alive(r)
+    print(ev2)
+    print('ENSURE-PAIR %s: the pair was down, this run booted it; AN_EN %s'
+          % ('OK' if ok2 else 'FAILED', r.an_en().split('//')[0].strip()))
+    return 0 if ok2 else 1
+
+
 def codec_init(r):
     """Make H1S1 write the AK4619's init image, which on a cold unit nothing
     else has. (ok, evidence-text).
@@ -4012,10 +4080,20 @@ def main():
                          'factory session: starting matrix-app would take the DRM display away '
                          'from it. Everything else about handback is unchanged -- the 595 SAFE '
                          'image, CS_M and AN_EN are still put back.')
+    ap.add_argument('--ensure-pair', action='store_true',
+                    help='S154: make sure the DSP pair is up and nothing else. If it '
+                         'answers, write nothing. If it does not: AN_EN LOW, boot the '
+                         'staged pair (boot_pair), S_RUN (codec4619.py --run --reinit), '
+                         'the 595 chain to SAFE, and LEAVE THE RAILS DOWN -- the station '
+                         'that needs them raises them as it always has. RUN ALL calls '
+                         'this at the start of every pass, fresh or resumed. Exit 0 when '
+                         'the pair answers at the end, 1 when it does not.')
     a = ap.parse_args()
     if a.keys:
         check_keys(a.keys)
         return
+    if a.ensure_pair:
+        sys.exit(cmd_ensure_pair(a))
     a.section = set(x.strip().upper() for x in a.section.split(','))
     a.only = set(x.strip().upper() for x in a.only.split(',')) if a.only else None
     if a.only:

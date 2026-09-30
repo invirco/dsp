@@ -21,7 +21,7 @@
 .extern _buf_C2_MAIN_COMP;
 .extern _buf_C2_MAIN_COMP_R;
         .global _lim_on_C2_MAIN_LIM;
-        .var _lim_on_C2_MAIN_LIM = 1;
+        .var _lim_on_C2_MAIN_LIM = 0;
         .global _lim_threshold_C2_MAIN_LIM;
         .var _lim_threshold_C2_MAIN_LIM = -0.5;
         .global _lim_attack_C2_MAIN_LIM;

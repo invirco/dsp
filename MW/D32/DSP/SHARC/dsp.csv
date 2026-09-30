@@ -631,20 +631,20 @@ C2_MAIN_GEQ,2,GEQ,Main GEQ,2,C2_MAIN_FDR,C2_MAIN_AFB,1,1383,bands=31,EqSafe
 C2_MAIN_GEQ_R,2,GEQ,Main GEQ R,1,C2_MAIN_FDR_R,C2_MAIN_AFB_R,-1,-1,bands=31;follows=C2_MAIN_GEQ,EqSafe
 C2_MAIN_AFB,2,ANTI_FB,Main AntiFB,2,C2_MAIN_GEQ,C2_MAIN_COMP,1,2336,notch_count=6;fb_lim_db=-6.0,EqSafe
 C2_MAIN_AFB_R,2,ANTI_FB,Main AntiFB R,1,C2_MAIN_GEQ_R,C2_MAIN_COMP_R,-1,-1,notch_count=6;fb_lim_db=-6.0;follows=C2_MAIN_AFB,EqSafe
-C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_AFB;C2_MAIN_AFB_R,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;link_in=C2_MAIN_AFB_R,DynSafe
+C2_MAIN_COMP,2,COMPRESSOR,Main Comp,2,C2_MAIN_AFB;C2_MAIN_AFB_R,C2_MAIN_LIM,1,1414,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA;link_in=C2_MAIN_AFB_R;on=0,DynSafe
 C2_MAIN_COMP_R,2,COMPRESSOR,Main Comp R,1,C2_MAIN_AFB_R;C2_MAIN_AFB,C2_MAIN_LIM_R,-1,-1,follows=C2_MAIN_COMP;link_in=C2_MAIN_AFB,DynSafe
-C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP;C2_MAIN_COMP_R,C2_MAIN_DLY,1,1430,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0;link_in=C2_MAIN_COMP_R,DynSafe
+C2_MAIN_LIM,2,LIMITER,Main Lim,2,C2_MAIN_COMP;C2_MAIN_COMP_R,C2_MAIN_DLY,1,1430,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0;link_in=C2_MAIN_COMP_R;on=0,DynSafe
 C2_MAIN_LIM_R,2,LIMITER,Main Lim R,1,C2_MAIN_COMP_R;C2_MAIN_COMP,C2_MAIN_DLY_R,-1,-1,follows=C2_MAIN_LIM;link_in=C2_MAIN_COMP,DynSafe
 C2_MAIN_DLY,2,DELAY,Main Delay,2,C2_MAIN_LIM,C2_MAIN_XOVER;C2_MAIN_ST_OUT;C2_CODEC_AUX_OUT;C2_WOOF_MIX,1,1434,delay_ms=0.0;max_ms=250.0,InstantCtl
 C2_MAIN_DLY_R,2,DELAY,Main Delay R,1,C2_MAIN_LIM_R,C2_MAIN_XOVER_R;C2_MAIN_ST_OUT_R;C2_CODEC_AUX_OUT_R;C2_WOOF_MIX,-1,-1,delay_ms=0.0;max_ms=250.0;follows=C2_MAIN_DLY,InstantCtl
 C2_MAIN_XOVER,2,CROSSOVER,Main Xover,2,C2_MAIN_DLY,C2_MAIN_OUT_01,1,1436,freq=120.0;slope=24;on_cell=1;link_cell=1,EqSafe
 C2_MAIN_XOVER_R,2,CROSSOVER,Main Xover R,1,C2_MAIN_DLY_R,C2_MAIN_OUT_02,-1,-1,freq=120.0;slope=24;follows=C2_MAIN_XOVER,EqSafe
 C2_MAIN_OEQ_01,2,EQ_BIQUAD,Main Out 1 EQ,1,C2_MAIN_XOVER,C2_MAIN_OCOMP_01,1,1440,bands=4;coeffs=default,EqSafe
-C2_MAIN_OCOMP_01,2,COMPRESSOR,Main Out 1 Comp,1,C2_MAIN_OEQ_01,C2_MAIN_OLIM_01,1,1464,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
+C2_MAIN_OCOMP_01,2,COMPRESSOR,Main Out 1 Comp,1,C2_MAIN_OEQ_01,C2_MAIN_OLIM_01,1,1464,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA;on=0,DynSafe
 C2_MAIN_OLIM_01,2,LIMITER,Main Out 1 Lim,1,C2_MAIN_OCOMP_01,C2_MAIN_OUT_01,1,1480,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_01,2,OUTPUT_TDM,Main Out 1,1,C2_MAIN_OLIM_01,,1,1484,sport_id=1;slot_start=3;slot_count=1;sport_slots=8;signal=DAC_12;mo_page=1;mo_addr=2167,
 C2_MAIN_OEQ_02,2,EQ_BIQUAD,Main Out 2 EQ,1,C2_MAIN_XOVER_R,C2_MAIN_OCOMP_02,1,1485,bands=4;coeffs=default,EqSafe
-C2_MAIN_OCOMP_02,2,COMPRESSOR,Main Out 2 Comp,1,C2_MAIN_OEQ_02,C2_MAIN_OLIM_02,1,1509,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA,DynSafe
+C2_MAIN_OCOMP_02,2,COMPRESSOR,Main Out 2 Comp,1,C2_MAIN_OEQ_02,C2_MAIN_OLIM_02,1,1509,threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA;on=0,DynSafe
 C2_MAIN_OLIM_02,2,LIMITER,Main Out 2 Lim,1,C2_MAIN_OCOMP_02,C2_MAIN_OUT_02,1,1525,threshold_db=-0.5;attack_ms=0.1;release_ms=50.0,DynSafe
 C2_MAIN_OUT_02,2,OUTPUT_TDM,Main Out 2,1,C2_MAIN_OLIM_02,,1,1529,sport_id=1;slot_start=2;slot_count=1;sport_slots=8;signal=DAC_11;mo_page=1;mo_addr=2169,
 C2_WOOF_MIX,2,MIX_BUS,Woof LF Sum,1,C2_MAIN_DLY;C2_MAIN_DLY_R,C2_WOOF_SRC,-1,-1,bus_id=woof;source_count=2;no_spi=1,

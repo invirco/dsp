@@ -144,7 +144,10 @@
  * and under law 0 they ARE the linear law this graph has always run --
  * see tools/dsp/pan_table.py for the identity and its proof. So
  * DSP4_PAN_TABLE=0 is not just a control arm, it is the SAME AUDIO for
- * every non-LCR channel, which is what makes the switch measurable. */
+ * every non-LCR channel UNDER LAW 0, which is what makes the switch
+ * measurable. Since S154 the chip boots on law 2 (stereo constant power,
+ * -3 dB at the centre, PW ruling 2026-09-30), so a DSP4_PAN_TABLE=0 build
+ * runs the OLD linear law and is not the product's pan. */
 #ifndef DSP4_PAN_TABLE
 #define DSP4_PAN_TABLE 1
 #endif

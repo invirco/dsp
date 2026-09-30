@@ -439,6 +439,15 @@ class PatchList:
                 + self.routes['_standing_strips']
                 + self.routes['_standing_masters'])
 
+    def bypass(self):
+        """The processing bypass (S154, PW ruling 2026-09-30): every
+        processing stage on every path a patch uses, derived from the defs by
+        gen_patch_paths.cells_processing_bypass. The station reads each cell
+        before writing it and puts the found value back at handback. A list
+        generated before S154 has no such row, and then there is nothing to
+        bypass and nothing to restore."""
+        return list(self.routes.get('_standing_bypass', []))
+
 
 # ---------------------------------------------------------------------------
 # The unit
@@ -456,6 +465,12 @@ class Unit:
     sleeps are gone; read-back stays, because a write that did not land is the
     one failure mode that reads like a dead path.
     """
+
+    # Where the processing bypass keeps what it FOUND (S154) until the
+    # handback has written it back: a pass that dies between the two leaves
+    # this file behind, and the next pass restores from it instead of
+    # reading the bypassed zeros as the product's settings.
+    bypass_state = '/home/app/selftest/bypass-found.json'
 
     def __init__(self, symdir=FACTORY_TEST_PAIR_DIR, landed=None):
         sys.path.insert(0, '/home/app/dspboot')
@@ -1993,16 +2008,75 @@ class Station:
         self.live.set(state=LV.STARTING)
         self.an.up()
         donors = sorted({int(r['donor']) for r in self.L.paths})
-        cells = self.L.standing(donors)
+        byp = self.bypass_capture()
+        cells = self.L.standing(donors) + byp
         self.log('standing write: %d cells (every strip\'s assigns shut, both '
-                 'donor strips made transparent, every bus master at unity)'
-                 % len(cells))
+                 'donor strips made transparent, every bus master at unity, '
+                 '%d processing cells bypassed and restored at handback)'
+                 % (len(cells), len(byp)))
         bad = self.u.write(cells)
         if bad:
             raise SystemExit('the standing write did not land: %s'
                              % ', '.join(sorted(bad)[:8]))
         self.measure_floors()
         return len(cells)
+
+    def bypass_capture(self):
+        """Read every bypass cell BEFORE it is written (S154, PW ruling:
+        "the handback RESTORES each cell to the value found"). Returns the
+        bypass specs to write.
+
+        A record left by an earlier pass wins over a fresh read: that pass
+        wrote the bypass and never got to its handback, so what the cells
+        hold NOW is the bypass, not the product's settings."""
+        specs = self.L.bypass()
+        if not specs:
+            self._bypass_found = {}
+            return []
+        path = getattr(self.u, 'bypass_state', None)
+        found = {}
+        if path and os.path.exists(path):
+            with open(path) as fh:
+                found = json.load(fh)
+            self.log('bypass: %d settings from an earlier pass that never '
+                     'restored them (%s) -- restoring THOSE at handback, not '
+                     'what the cells hold now' % (len(found), path))
+        for spec in specs:
+            name = spec.partition('=')[0]
+            if name not in found:
+                found[name] = self.u.read(name) & 0xFFFFFFFF
+        if path:
+            tmp = path + '.tmp'
+            with open(tmp, 'w') as fh:
+                json.dump(found, fh, indent=0, sort_keys=True)
+            os.replace(tmp, path)
+        self._bypass_found = found
+        on = sorted(n for n, w in found.items() if w != 0)
+        self.log('bypass: %d processing cells read; %d were not 0: %s'
+                 % (len(found), len(on), ', '.join(on[:12])
+                    + (' ...' if len(on) > 12 else '')))
+        return specs
+
+    def bypass_restore(self):
+        """Write every bypassed cell back to the value found, and verify it.
+        The record is removed only when every one read back."""
+        found = getattr(self, '_bypass_found', None)
+        if not found:
+            return []
+        bad = self.u.write(['%s=0x%08X' % (n, w)
+                            for n, w in sorted(found.items())])
+        path = getattr(self.u, 'bypass_state', None)
+        if bad:
+            self.log('bypass: %d settings did NOT read back after the '
+                     'restore (%s); the record stays at %s for the next pass'
+                     % (len(bad), ', '.join(sorted(bad)[:8]), path))
+        else:
+            self.log('bypass: %d processing settings restored to the values '
+                     'found' % len(found))
+            if path and os.path.exists(path):
+                os.remove(path)
+            self._bypass_found = {}
+        return bad
 
     def measure_floors(self):
         """Each lane's own floor, once, with the oscillator off.
@@ -4089,6 +4163,12 @@ class Station:
             self.an.down()
         except Exception as e:                       # never mask the real error
             self.log('the rails and the chain could not be put back: %s' % e)
+        # THE PRODUCT'S PROCESSING SETTINGS GO BACK FIRST (S154), and on
+        # their own: a failure below must not cost the restore.
+        try:
+            self.bypass_restore()
+        except Exception as e:
+            self.log('the processing settings could not be restored: %s' % e)
         try:
             self.u.osc(on=False)
             self.u.write(self.L.routes['_standing_close'], verify=False)
@@ -4166,6 +4246,15 @@ class SimUnit:
             self.writes += 1
             nap(CELL_WRITE_S)
         return []
+
+    def read(self, name):
+        """The last word written, as the part would read it back; a cell
+        never written reads 1 -- a product setting found ON, which is the
+        case the bypass exists for."""
+        val = self.route.get(name)
+        if val is None:
+            return 1
+        return f32(val[1:]) if val.startswith('f') else int(val, 0)
 
     def osc(self, chan=None, freq=None, level_dbfs=None, on=None):
         # ONE NAP PER CELL ACTUALLY WRITTEN, not four every time: a gain step

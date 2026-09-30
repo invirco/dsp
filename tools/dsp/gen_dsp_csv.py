@@ -1167,12 +1167,27 @@ add('C2_MAIN_AFB_R', 2, 'ANTI_FB', 'Main AntiFB R', 1, _afb_in_l + '_R',
 _main_dyn_l = 'C2_MAIN_AFB'
 _main_dyn_r = 'C2_MAIN_AFB_R'
 
+# THE MAIN BUS COMPRESSOR, THE MAIN BUS LIMITER AND THE PER-OUTPUT
+# COMPRESSORS BOOT OFF (`on=0`, S154). None of them has a cell in the D24
+# contract -- the block's main-path dynamics are the two per-output limiters
+# (`MainL/MainR Limiter*`, C2_MAIN_OLIM_01/02) and nothing else -- so no host
+# can ever switch them, and whatever they boot at they do forever. They booted
+# ON at the compressor default (-20 dB, 4:1) and the brick wall's (-0.5 dB):
+# measured on MW-D24-2 with TEST_OSC hard left, MAIN_OUT_01 read -18.42 at a
+# -12 dBFS drive and -18.04 at -6 while AUX_OUT_01 read -12.00 / -6.00, and
+# with the three compressors' dispatch words written 0 the two tracked to the
+# hundredth from -32 to -6 on both legs. The nodes and their SPI words stay
+# (the address map does not move); a product that adopts cells for them
+# turns them on from the host. dsp_validate.py refuses an uncelled dynamics
+# master that compiles on.
+_UNCELLED_DYN_OFF = ';on=0'
+
 p, a2 = c2_alloc.next(16)
 add('C2_MAIN_COMP', 2, 'COMPRESSOR', 'Main Comp', 2,
     f'{_main_dyn_l};{_main_dyn_r}', 'C2_MAIN_LIM',
     spi_page=p, spi_addr=a2,
     params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;parallel=100;type=VCA'
-           f';link_in={_main_dyn_r}',
+           f';link_in={_main_dyn_r}{_UNCELLED_DYN_OFF}',
     ramp_profile='DynSafe')
 add('C2_MAIN_COMP_R', 2, 'COMPRESSOR', 'Main Comp R', 1,
     f'{_main_dyn_r};{_main_dyn_l}', 'C2_MAIN_LIM_R',
@@ -1184,7 +1199,7 @@ add('C2_MAIN_LIM', 2, 'LIMITER', 'Main Lim', 2,
     'C2_MAIN_COMP;C2_MAIN_COMP_R', 'C2_MAIN_DLY',
     spi_page=p, spi_addr=a2,
     params='threshold_db=-0.5;attack_ms=0.1;release_ms=50.0'
-           ';link_in=C2_MAIN_COMP_R',
+           ';link_in=C2_MAIN_COMP_R' + _UNCELLED_DYN_OFF,
     ramp_profile='DynSafe')
 add('C2_MAIN_LIM_R', 2, 'LIMITER', 'Main Lim R', 1,
     'C2_MAIN_COMP_R;C2_MAIN_COMP', 'C2_MAIN_DLY_R',
@@ -1276,7 +1291,8 @@ for out_n in range(1, 5):
     p, a2 = c2_alloc.next(16)
     add(n_comp, 2, 'COMPRESSOR', f'Main Out {out_n} Comp', 1, n_eq, n_lim,
         spi_page=p, spi_addr=a2,
-        params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA',
+        params='threshold_db=-20.0;ratio=4.0;attack_ms=5.0;release_ms=100.0;knee_db=6.0;makeup_db=0.0;type=VCA'
+               + _UNCELLED_DYN_OFF,
         ramp_profile='DynSafe')
 
     p, a2 = c2_alloc.next(4)

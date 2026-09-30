@@ -421,15 +421,12 @@ def cells_strip_transparent(d):
 
     The processing goes with it, for S54-2's reason: a strip left at the
     configuration defaults has its gate and compressor ON, so a reading taken
-    through one is not a reading of the path.
+    through one is not a reading of the path. SINCE S154 THAT IS NOT WRITTEN
+    HERE: `cells_processing_bypass` derives every processing cell from the
+    defs, and the station puts each back at handback. What stays here is the
+    strip's LEVEL path -- polarity, fader, mute, pan, gain.
     """
     return ['Chan%03dPol001=0' % d,
-            'Chan%03dEqOn001=0' % d,
-            'Chan%03dEqHpf001=0' % d,
-            'Chan%03dGateOn001=0' % d,
-            'Chan%03dCompOn001=0' % d,
-            'Chan%03dTubeOn001=0' % d,
-            'Chan%03dDelay001=0' % d,
             'Chan%03dLevel001=f1.0' % d,
             'Chan%03dMute001=0' % d,
             'Chan%03dPan001=f0.5' % d,
@@ -447,9 +444,7 @@ def cells_bus_masters(auxes):
     """Every bus master open at unity, so a reading is the PATH and not a fader."""
     out = []
     for a in auxes:
-        out += ['Aux%03dLevel001=f1.0' % a, 'Aux%03dMute001=0' % a,
-                'Aux%03dEqOn001=0' % a, 'Aux%03dLimiterOn001=0' % a,
-                'Aux%03dAntiFbOn001=0' % a, 'Aux%03dDelay001=0' % a]
+        out += ['Aux%03dLevel001=f1.0' % a, 'Aux%03dMute001=0' % a]
     # THE MONITOR BUS IS A MEASURED PATH NOW, NOT A HAZARD (S122, S144).
     #
     # It used to be both. Until S122 the monitor bus fed the codec's
@@ -465,27 +460,106 @@ def cells_bus_masters(auxes):
     # gave the monitor bus the two rear MONITOR jacks. So shutting these two
     # legs no longer protects anything and now silences two sockets under
     # test -- they are opened at unity, like every other bus master here.
-    out += ['Mon001Level001=f1.0', 'Mon001Level002=f1.0', 'Mon001Delay001=0']
+    out += ['Mon001Level001=f1.0', 'Mon001Level002=f1.0']
     # The monitor pick-off, asserted rather than assumed: 2 = post master
     # fader (C2_MON_PICK sources are C2_MIX_MAIN_L, C2_MAIN_DLY, C2_MAIN_FDR
     # and sel boots 2), which is the tap the MONITOR rows are written for.
     out += ['Mon001PickOff001=2']
-    out += ['Main001Level001=f1.0', 'Main001Mute001=0', 'Main001Delay001=0',
+    out += ['Main001Level001=f1.0', 'Main001Mute001=0',
             'MainL001Level001=f1.0', 'MainL001Mute001=0',
             'MainR001Level001=f1.0', 'MainR001Mute001=0']
     # THE THIRD MAIN OUTPUT (S144). `Main Out3Mode` picks which strip the
     # one C/LF XLR carries -- 0 = Centre, 1 = Woof -- and the station tests
     # the CENTRE, because the Centre strip is what `Chan*CtrOn` reaches and
     # the Woof strip is fed from the main L/R sum through a low-pass that a
-    # 1 kHz tone is meant not to survive. Its own processing goes off for
-    # S54-2's reason: a reading taken through a limiter is not a reading of
-    # the path. There is no `MainCtr Mute` and no `MainSub Mute` cell in this
-    # generation; the mute on this path is `Main Out3Mute`.
+    # 1 kHz tone is meant not to survive. Its own processing goes off with
+    # every other stage's, in `cells_processing_bypass`. There is no `MainCtr
+    # Mute` and no `MainSub Mute` cell in this generation; the mute on this
+    # path is `Main Out3Mute`.
     out += ['Main001Out3Mode001=0', 'Main001Out3Mute001=0',
-            'Main001Out3Delay001=0',
-            'MainCtr001Level001=f1.0', 'MainCtr001EqOn001=0',
-            'MainCtr001LimiterOn001=0', 'MainCtr001AntiFbOn001=0',
+            'MainCtr001Level001=f1.0',
             'MainSub001Level001=f1.0']
+    return out
+
+
+# ---------------------------------------------------------------------------
+# ALL PROCESSING BYPASSED FOR THE PATCH TEST (PW ruling 2026-09-30, S154)
+# ---------------------------------------------------------------------------
+# "ALL FILTERS / PROCESSING ARE BYPASSED FOR SIGNAL PATCH TESTING." Found at
+# the bench: the MAIN XLRs read ~6.5 dB under the AUX outputs because
+# `MainL/MainR LimiterOn` were ON -- the standing write made strips
+# transparent and bus masters unity by a HAND LIST that left output-bus
+# processing as found. The list below is DERIVED FROM THE DEFS, not written
+# out: every cell of the product whose node is a processing stage and whose
+# family is an On switch, every delay, and the strip HPF corner, on every
+# cell category a patch's signal can pass through. A stage the defs add
+# later is bypassed without anyone editing this file.
+#
+# The station READS each of these before the standing write and WRITES THE
+# FOUND VALUE BACK at handback (d24_patch.Station), so a test never leaves
+# the product's settings changed.
+#
+# NOT BYPASSABLE, AND SAID SO: the GEQs (`Main Geq`, and the aux/centre
+# GEQs) have NO On or Bypass cell in the contract -- their only cells are the
+# 31 band gains -- so no cell can take them out of the path. They boot flat.
+# And since S154 no uncelled dynamics stage boots on (dsp_validate.py
+# refuses one), so nothing on these paths is out of a cell's reach.
+PROC_TYPES = ('EQ_BIQUAD', 'HPF_LPF', 'GEQ', 'CROSSOVER', 'LIMITER',
+              'COMPRESSOR', 'GATE', 'ANTI_FB', 'TUBE_SAT')
+# Cell categories on a path this station drives or measures: the strips, the
+# aux buses, the groups (they sum into the main bus), the main bus and its
+# outputs, the Centre/LF and Woof strips, and the monitor/phones bus.
+BYPASS_CATS = ('Chan', 'Aux', 'Grp', 'Main', 'MainL', 'MainR', 'MainCtr',
+               'MainSub', 'Mon')
+_CELL_RE = re.compile(r'^([A-Za-z]+?)(\d{3})([A-Za-z0-9]+?)(\d{3})$')
+
+
+def cells_processing_bypass(strips, auxes, path=None):
+    """The bypass write, derived from the defs: [(name, why), ...] in file
+    order. Three rules, and nothing else:
+
+      * a PROCESSING node's On switch -> 0. The node type is the defs' own
+        column; the family ends in `On`. A compressor's or gate's SIDE-CHAIN
+        filter switch (`CompFilterOn`, `GateFilterOn`) is not a stage in the
+        path -- it shapes the detector of a stage that is already off -- and
+        is left alone.
+      * a DELAY node's cell -> 0 (0 ms).
+      * a strip's HPF corner (`EqHpf` on the HPF_LPF node) -> 0, which is the
+        bottom of its own scale (`0=20` Hz in the defs' value column): the
+        strip HPF has no On switch, so its lowest corner is its bypass.
+    Strips and aux buses outside `strips`/`auxes` are not on any path.
+    """
+    out = []
+    seen = set()
+    with open(path or DEFS_DSP, newline='') as fh:
+        for row in csv.reader(l for l in fh if not l.startswith('#')):
+            if len(row) < 3 or not row[0] or row[0] in seen:
+                continue
+            m = _CELL_RE.match(row[0])
+            if not m:
+                continue
+            cat, inst, fam, _ = m.groups()
+            if cat not in BYPASS_CATS:
+                continue
+            if cat == 'Chan' and int(inst) not in strips:
+                continue
+            if cat == 'Aux' and int(inst) not in auxes:
+                continue
+            ntype = row[2].strip()
+            why = None
+            if ntype in PROC_TYPES and fam.endswith('On') \
+                    and 'Filter' not in fam:
+                why = '%s %s off' % (ntype, row[1].strip())
+            elif ntype == 'DELAY':
+                why = 'DELAY %s 0 ms' % row[1].strip()
+            elif ntype == 'HPF_LPF' and fam == 'EqHpf':
+                why = 'HPF_LPF %s at its lowest corner' % row[1].strip()
+            if why:
+                seen.add(row[0])
+                out.append((row[0], why))
+    if not out:
+        raise SystemExit('the processing bypass came out EMPTY from %s: '
+                         'wrong file?' % (path or DEFS_DSP))
     return out
 
 
@@ -1259,7 +1333,9 @@ class Builder:
                     self.missing.append('%s: %s' % (rid, nm))
         for spec in (cells_close_assigns(STRIPS, AUXES)
                      + cells_all_strips_transparent(STRIPS)
-                     + cells_bus_masters(AUXES)):
+                     + cells_bus_masters(AUXES)
+                     + ['%s=0' % n for n, _ in
+                        cells_processing_bypass(STRIPS, AUXES)]):
             nm = spec.split('=')[0]
             if nm not in self.cells:
                 self.missing.append('standing: %s' % nm)
@@ -1368,6 +1444,9 @@ def write_routes(out, b):
         w.writerow(('_standing_strips',
                     ';'.join(cells_all_strips_transparent(STRIPS))))
         w.writerow(('_standing_masters', ';'.join(cells_bus_masters(AUXES))))
+        # S154: read before, written 0 for the pass, restored at handback.
+        w.writerow(('_standing_bypass', ';'.join(
+            '%s=0' % n for n, _ in cells_processing_bypass(STRIPS, AUXES))))
         for rid in sorted(b.routes):
             w.writerow((rid, ';'.join(b.routes[rid])))
     return path

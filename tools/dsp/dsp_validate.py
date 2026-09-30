@@ -114,9 +114,12 @@ NO_SPI_TYPES = {'INPUT_TDM', 'OUTPUT_TDM', 'INTERCHIP_RECV', 'INTERCHIP_SEND',
 # unrecognized param key rather than passed through silently.
 EXTRA_PARAMS = {
     'AUX_INPUT':      {'level_db', 'on', 'scope'},
+    # `on` (S154): the power-on value of the node's On word, 0 or 1,
+    # default 1. See check_uncelled_dynamics.
     'COMPRESSOR':     {'det_src', 'eq_pos', 'filter_hpf', 'filter_lpf',
                         'filter_on', 'filter_q', 'key', 'lim_mode',
-                        'parallel', 'type'},
+                        'parallel', 'type', 'on'},
+    'LIMITER':        {'on'},
     # `cell_prefix` (S144): the suffix prefix this node's cells carry --
     # `Main Out3Delay` is a DELAY whose cell spelling is prefixed `Out3`,
     # on the shared Centre/LF tail. Honoured by DELAY, OUTPUT_TDM, METER
@@ -363,6 +366,58 @@ def check_speaker_slot(rows):
                     "the panel speaker's (%s). No node but the haptic feed "
                     'may write it.' % (onid, sport, sorted(clash), nid))
     return out
+
+
+# THE PRODUCT CONTRACT the uncelled-dynamics check reads (D11: D24 is the
+# only DSP4 personality). Absent (a checkout without the submodule), the
+# check says so and is skipped, never passed.
+PRODUCT_CONTRACT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                '..', '..', 'defs', 'products', 'd24',
+                                'dsp.csv')
+
+# Dynamics masters that are uncelled AND compile on, and are allowed to:
+# every one sits on a path the D24 image masks off in firmware, so it never
+# carries audio -- strips 25..32 (DSP4_CHAN_MASK, 24 strips) and aux buses
+# 9..12 (CFG_AUX_MASK 0x000000FF, S151). A new name here is a ruling.
+UNCELLED_DYN_ON_OK = (
+    {'C1_COMP_%02d' % n for n in range(25, 33)}
+    | {'C2_AUX_LIM_%02d' % n for n in range(9, 13)})
+
+
+def check_uncelled_dynamics(rows, contract=PRODUCT_CONTRACT):
+    """S154: a compressor or limiter the product contract gives NO cell
+    must boot OFF (`on=0`), because nobody can ever switch it.
+
+    Four of them booted on and held MAIN_OUT_01/02 at -18 dBFS for a
+    -6 dBFS drive (C2_MAIN_COMP, C2_MAIN_OCOMP_01/02 at -20 dB 4:1, and
+    C2_MAIN_LIM), invisible to every cell the app and the factory station
+    can write. Returns (errors, note); never raises."""
+    if not os.path.exists(contract):
+        return [], ('uncelled-dynamics check SKIPPED: no product contract at '
+                    + os.path.normpath(contract))
+    celled = set()
+    with open(contract, newline='', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            parts = line.split(',')
+            if len(parts) > 1:
+                celled.add(parts[1].strip())
+    errs = []
+    for row_num, r in enumerate(rows, start=2):
+        nid = (r.get('id') or '').strip()
+        if (r.get('type') or '').strip() not in ('COMPRESSOR', 'LIMITER'):
+            continue
+        prm = parse_params(r.get('params', ''))
+        if prm.get('follows') or nid in celled or nid in UNCELLED_DYN_ON_OK:
+            continue
+        if str(prm.get('on', '1')).strip() != '0':
+            errs.append(f'  Row {row_num} [{nid}]: {r["type"].strip()} has no '
+                        f'cell in the product contract and boots ON -- no '
+                        f'host can ever switch it; give it on=0 (S154)')
+    return errs, (f'uncelled dynamics: every uncelled compressor/limiter '
+                  f'master boots off ({len(UNCELLED_DYN_ON_OK)} masked-path '
+                  f'exemptions)' if not errs else None)
 
 
 def validate(csv_path):
@@ -678,8 +733,13 @@ def validate(csv_path):
     # to another slot moves this check with it.
     errors.extend(check_speaker_slot(rows))
 
+    _ud_errs, _ud_note = check_uncelled_dynamics(rows)
+    errors.extend(_ud_errs)
+
     # ── Report ───────────────────────────────────────────────────────────────
     print(f"Validated {len(rows)} nodes in {os.path.basename(csv_path)}")
+    if _ud_note:
+        print('  ' + _ud_note)
 
     if mtx_late_rows:
         _n = sum(len(v) for _, v in mtx_late_rows)

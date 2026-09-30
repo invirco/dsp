@@ -6,6 +6,46 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## MAIN HELD AT −18 dBFS BY FOUR STAGES NO CELL COULD REACH (2026-09-30, session 154)
+
+Hub dispatch `tasks.md` 2026-09-30 16:03Z (+ the constant-power addendum). Report
+`MW/D24/DSP/s154/s154-report.md`. MW-D24-2 is now on **factory-test-v4**.
+
+**S154-1. `C2_MAIN_COMP`, `C2_MAIN_LIM` and `C2_MAIN_OCOMP_01/02` had no D24 cell and booted ON**
+(−20 dB 4:1; −0.5 dB). They held MAIN_OUT_01 at −18.42 / −18.04 dBFS for a −12 / −6 drive while
+AUX_OUT_01 read −12.00 / −6.00. Writing their On words to 0 made MAIN track AUX to the hundredth. Fixed in
+the generator (`on=0`, `dyn_on_default`), and `dsp_validate.check_uncelled_dynamics` now refuses any
+uncelled compressor/limiter master that boots on. The generator emitted every dynamics node ON
+regardless of params, so the defect class was general; the D24 masked paths (strips 25–32, aux 9–12)
+are the only exemptions.
+
+**S154-2. The pan law is now stereo constant power (PW ruling 2026-09-30).** It is law 2 in
+`pan_table.py`, is `DEFAULT_LAW` and is the boot word. Measured at the TX slots: −3.01/−3.01 at centre,
+−0.71/−8.21 at pan 0.25 (index 32; the grid has no 22.5°), and unity/zero at the ends. MON and PHN follow
+the same law. The old image's centre −6.02 was the linear law; together with S154-1 that accounts for the
+hub's ~6.7 dB.
+
+**S154-3. Several chip-2 `_blk_` symbols are not audio buffers.** `C2_MON_OUT_R`, `C2_MON_R` and
+`C2_PHN_R` read constants, and `_blk_C2_MON_OUT_L` / `_blk_C2_PHN_OUT_L` read signal at hard right.
+Measure outputs at `_tx_out_slot_*`. A live block cannot be bulk-read (its checksum fails), and a
+fixed-stride peek phase-locks to a 1 kHz tone (whole rows 0.69 dB low).
+
+**S154-4. Phones L/R are one design with identical values** (U90/U91 NJM4580, 6k2/2k), so the steady
+2 dB (R louder) is a part or assembly fault on MW-D24-2, not a DSP or design issue. The suspects are in
+the report §3 and belong in mx26's supplier notes. Reported and unverified: the op-amp + inputs are on GND,
+so only the DAC's N leg drives each channel, and there is no DC block at J10.
+
+**S154-5. The patch test bypasses every processing stage from the defs and restores the values found.**
+219 cells; 64 were found ON on a freshly booted v4 pair. GEQs have no On/Bypass cell and cannot be
+bypassed. The found values are persisted, so a pass that dies before handback is restored by the next one.
+
+**S154-6. A resumed RUN ALL now boots a dead pair first** (`--ensure-pair`, every pass). Proved both ways
+on the part; the AN_EN-high branch cannot be staged without pulsing reset with the rails up.
+
+**S154-7. `accept/manifest.json`'s `factory_test_image` is hand-kept inside a generated file.**
+`gen_accept_fixtures.py` does not write it, so a regeneration drops it. S151 and S154 both edited it in
+place.
+
 ## THE 150 OHM STEP GRADED THE LEAD ON ITS FAST CHANNELS (2026-09-30, session 153)
 
 Hub dispatch `tasks.md` 2026-09-30 13:17Z. Report `MW/D24/DSP/s153/s153-report.md`.

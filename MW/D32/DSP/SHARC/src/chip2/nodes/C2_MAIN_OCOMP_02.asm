@@ -22,7 +22,7 @@
 .section/dm seg_dmda;
 .extern _buf_C2_MAIN_OEQ_02;
         .global _comp_on_C2_MAIN_OCOMP_02;
-        .var _comp_on_C2_MAIN_OCOMP_02 = 1;
+        .var _comp_on_C2_MAIN_OCOMP_02 = 0;
         .global _comp_threshold_C2_MAIN_OCOMP_02;
         .var _comp_threshold_C2_MAIN_OCOMP_02 = -20.0;
         .global _comp_ratio_C2_MAIN_OCOMP_02;

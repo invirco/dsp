@@ -65,11 +65,22 @@ SHARC="$ROOT/MW/D32/DSP/SHARC"
 #   D  chip1 a026897ff6fd33654733f85c077599d6  chip2 ebf2fea4cca2f740cd560b1155134cc3
 #
 # arm | build dir suffix | extra build flags | chip1.ldr md5 | chip2.ldr md5
+# S154 (2026-09-30) MOVED ALL FOUR ARMS ON BOTH CHIPS, and no flag moved, so
+# the triples do not. Chip 1: the pan law boots at law 2 (stereo constant
+# power, PW ruling 2026-09-30) and carries a third resident table. Chip 2:
+# C2_MAIN_COMP, C2_MAIN_LIM and C2_MAIN_OCOMP_01/02 -- uncelled, and booted ON
+# -- boot OFF. Arm C is factory-test-v4, deployed on MW-D24-2. ARM B, THE
+# SHIPPING ARM, IS RE-RECORDED HERE AND NOT RE-SIGNED: signing it is PW's.
+# Superseded (S150 provenance, before S154):
+#   A  1be74e042cff134c7085dfb08dade517 / e2de920d22edbbe76c1210a737abf6b7
+#   B  6d7b86ec69778900ce63b9eb79c144ea / 0a460926f8a2c9088bc0bc509f30769e
+#   C  c031613ac9a0a02e4c1d493bea19765d / 0b63f4e044e00e4a7cbe7b2ff345c0b6
+#   D  c9bf6659fd888626465932c3814adb5f / c1d9f5db83bad18b78c000178a49191b
 ARMS=(
-"A|bq0|DSP4_C2_BQ_GRAPH=0                |1be74e042cff134c7085dfb08dade517|e2de920d22edbbe76c1210a737abf6b7"
-"B|bq1|                                  |6d7b86ec69778900ce63b9eb79c144ea|0a460926f8a2c9088bc0bc509f30769e"
-"C|tn |DSP4_TEST_NODES=1                 |c031613ac9a0a02e4c1d493bea19765d|0b63f4e044e00e4a7cbe7b2ff345c0b6"
-"D|rta|DSP4_RTA=1 DSP4_CUE=1             |c9bf6659fd888626465932c3814adb5f|c1d9f5db83bad18b78c000178a49191b"
+"A|bq0|DSP4_C2_BQ_GRAPH=0                |00eb01a39a55e69ab60cb3e7909fcbba|f7ddc3283df74add7b47b2f7f05d6dfb"
+"B|bq1|                                  |06e167fb005dfd6ed227bcf8287d2f90|2b99eb447b6e83ae953b87974eb2dca0"
+"C|tn |DSP4_TEST_NODES=1                 |7caa1bf46f4b325c39d60b7df2fe93e1|4a9406ed755e8bc0d02ac9937c70590f"
+"D|rta|DSP4_RTA=1 DSP4_CUE=1             |5c6161d5d167197fdfa303f2f4ccdb86|7e031c6377db4dceccd716ef5a37ee95"
 )
 
 # ---- ARM M: THE AUX MATRIX (S150) --------------------------------------

@@ -23,7 +23,7 @@
 .extern _buf_C2_MAIN_AFB;
 .extern _buf_C2_MAIN_AFB_R;
         .global _comp_on_C2_MAIN_COMP;
-        .var _comp_on_C2_MAIN_COMP = 1;
+        .var _comp_on_C2_MAIN_COMP = 0;
         .global _comp_threshold_C2_MAIN_COMP;
         .var _comp_threshold_C2_MAIN_COMP = -20.0;
         .global _comp_ratio_C2_MAIN_COMP;

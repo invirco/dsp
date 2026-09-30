@@ -3115,9 +3115,46 @@ def check_md(path):
 
 
 # ---------------------------------------------------------------------------
+def ensure_pair(a, glass):
+    """The DSP pair up before ANY station, fresh pass or resumed (S154).
+
+    A resumed pass goes straight to the step it stopped on, and the auto set
+    -- until now the only thing that booted the pair -- already ran in that
+    pass. After a reboot of the unit (MW-D24-2, 2026-09-30 14:33) START
+    resumed into the audio patch station, which found the SHARCs unbooted,
+    raised "SPI_RDY never asserted" and exited; every START hit the same
+    wall and the glass said the test did not start. `d24_selftest.py
+    --ensure-pair` asks `link_alive()` first and boots only when the answer
+    is no, rails down, S_RUN and the chain to SAFE, leaving the rails for the
+    station to raise. A pair that is up costs the two-second question.
+
+    A pair that still does not answer is SAID, not hidden: the stations
+    that follow need it and will report on their own terms."""
+    cmd = [sys.executable, os.path.join(a.tools, 'd24_selftest.py'), '--local',
+           '--ensure-pair']
+    if a.stage:
+        cmd += ['--stage', a.stage]
+    glass.progress('checking the DSP pair is up before the pass starts')
+    t0 = time.time()
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                          text=True)
+    for ln in proc.stdout.splitlines():
+        sys.stdout.write('   [pair] ' + ln + '\n')
+    sys.stdout.flush()
+    last = [ln for ln in proc.stdout.splitlines()
+            if ln.startswith('ENSURE-PAIR')]
+    glass.progress('DSP pair: %s (%.0f s)'
+                   % (last[-1] if last else 'no answer from the check (exit %s)'
+                      % proc.returncode, time.time() - t0))
+    return proc.returncode == 0
+
+
 def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
     passno = state.d['passes'] + 1
     t0 = time.time()
+    # THE PAIR FIRST, EVERY PASS (S154). Before the resume branch on purpose:
+    # a resumed pass is exactly the one that has nothing else to boot it.
+    ensure_pair(a, glass)
     # A PASS THAT IS STOPPED STILL TOOK TIME. `timing` is local and goes with
     # the exception, so the one figure a stopped report can still be honest
     # about lives where `main` can reach it.

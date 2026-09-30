@@ -6,6 +6,7 @@
 .section/dm seg_dmda;
 .extern _pan_tab_lcr;
 .extern _pan_tab_cp;
+.extern _pan_tab_scp;
 .extern _sys_lcr_law;
 
 .section/pm seg_pmco;
@@ -51,8 +52,16 @@ _pan_legs:
     r4 = dm(_sys_lcr_law);
     r5 = _pan_tab_lcr;
     r6 = _pan_tab_cp;
-    r4 = pass r4;
-    if ne r5 = r6;
+    r3 = 1;
+    comp(r4, r3);
+    if eq r5 = r6;
+    /* Law 2, stereo constant power (S154), is the boot law. Any
+     * word other than 1 or 2 reads law 0, as any word other than
+     * 0 used to read law 1 -- the address never leaves a table. */
+    r6 = _pan_tab_scp;
+    r3 = 2;
+    comp(r4, r3);
+    if eq r5 = r6;
     r2 = r2 + r5;
     i4 = r2;
     l4 = 0;

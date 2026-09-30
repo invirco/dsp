@@ -1,0 +1,5 @@
+ensure-pair -- 2026-09-30T16:29:48Z
+chip 1: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+chip 2: MAGIC 0xD5B40001 BOOT_STAGE 7 -> answering
+ENSURE-PAIR OK: the pair is up; nothing written
+26: op -- pd | hi // GPIO26 = output

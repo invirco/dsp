@@ -76,7 +76,24 @@ PAN_CENTRE = 63
 
 LAW_HARD_LCR = 0
 LAW_CONST_POWER = 1
-LAW_NAMES = {LAW_HARD_LCR: 'hard-LCR', LAW_CONST_POWER: 'constant-power'}
+LAW_STEREO_CP = 2
+LAW_NAMES = {LAW_HARD_LCR: 'hard-LCR', LAW_CONST_POWER: 'constant-power',
+             LAW_STEREO_CP: 'stereo-constant-power'}
+
+# THE LAW THE CHIP BOOTS ON (PW ruling 2026-09-30, S154): "the pan law is
+# constant power, -3 dB at centre (sin/cos), hard L/R stays unity". That is
+# the question the docstring above says R5 carried and did not answer --
+# what a NON-LCR channel reads under constant power -- and it is answered
+# with a law of its own rather than by redefining law 1, whose LCR legs R5
+# did rule and whose words the probes score against. Law 2's stored L/R
+# columns ARE cos/sin of p*90 degrees, so a stereo strip reads -3.01 dB per
+# side at the centre, unity on the near side at the extremes and EXACTLY
+# zero on the far side; its centre column is ZERO, so an LCR channel under
+# law 2 reads the same two legs and feeds no centre bus (a product that
+# wants three-bus constant power selects law 1). No D24 cell selects the law
+# (no `Sys LcrLaw`, no `Chan LcrOn`), so this default IS the D24 pan law;
+# dsp_codegen.py emits `_sys_lcr_law` from it.
+DEFAULT_LAW = LAW_STEREO_CP
 
 
 def _f32(x):
@@ -179,6 +196,16 @@ def columns(law, idx):
         c = _q428(gc)
         half = c >> 1
         return (_q428(gl) + half, c, _q428(gr) + half)
+    if law == LAW_STEREO_CP:
+        # Each side from its own function of p, not one from the other, so
+        # the extremes are exact: p = 0 gives cos 0 = 1 and sin 0 = 0, and
+        # p = 1 gives cos(pi/2) and sin(pi/2) -- the far side is forced to
+        # an exact zero there, because float cos(pi/2) is 6e-17, not 0.
+        p = pan_of(idx)
+        th = p * math.pi / 2.0
+        gl = 0.0 if idx == PAN_POSITIONS - 1 else math.cos(th)
+        gr = 0.0 if idx == 0 else math.sin(th)
+        return (_q428(gl), 0, _q428(gr))
     raise ValueError(f'unknown pan law {law} — laws are '
                      f'{sorted(LAW_NAMES)} (no-fallback policy)')
 
@@ -285,6 +312,22 @@ def check():
         worst = max(worst, abs(s2 - 1.0))
     out.append(('constant-power law: sum of squares == 1 in LCR mode',
                 worst < 2e-7, worst))
+
+    # 5b. THE S154 RULING, word for word: law 2 is constant power for a
+    #     NON-LCR channel, -3 dB at the centre, unity and zero at the ends.
+    sq = max(abs(sum((w / 2.0 ** 28) ** 2 for w in stereo_cols(
+        LAW_STEREO_CP, i)) - 1.0) for i in range(PAN_POSITIONS))
+    cl, cr = stereo_read(LAW_STEREO_CP, PAN_CENTRE)
+    ends = (stereo_cols(LAW_STEREO_CP, 0) == (0x10000000, 0)
+            and stereo_cols(LAW_STEREO_CP, PAN_POSITIONS - 1)
+            == (0, 0x10000000))
+    ok5b = (sq < 2e-7 and ends
+            and abs(20 * math.log10(cl) + 3.0103) < 0.001
+            and abs(20 * math.log10(cr) + 3.0103) < 0.001
+            and DEFAULT_LAW == LAW_STEREO_CP)
+    out.append(('stereo constant power: L^2+R^2 == 1, centre -3.01 dB both '
+                'sides, ends exactly unity/zero, and it is the boot law',
+                ok5b, (sq, round(20 * math.log10(cl), 4), ends)))
 
     # 6. The index arithmetic is the node's, and it round-trips: the
     #    float32 `Pan` that names an index must map back to it. This is
