@@ -878,7 +878,8 @@ def cells_for(panel, known=None):
 
 
 def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
-         can_say_notlit=True, left_cell='auto', random_order=False):
+         can_say_notlit=True, left_cell='auto', random_order=False,
+         confirm=None):
     """Walk one panel.  `ask` puts the step in front of the operator and returns
     the button they pressed on the glass, or None if they have not pressed one
     yet -- it is polled, because the panel and the glass race for every step.
@@ -915,7 +916,16 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
     `buttons` carries `notlit` and `command.json` carries the press, since
     the dialog protocol the ARMED screen draws no prompt for). See
     LED_NOT_SEEN: with no channel, the indicator half of each step is
-    recorded as not measured rather than inferred from a press."""
+    recorded as not measured rather than inferred from a press.
+
+    `confirm(step, why)` (S157, PW 2026-09-30: "the runner never moves past
+    a fail without operator confirmation", every station of RUN ALL) is
+    called when a step ends FAIL or NO DATA on the machine's own reading --
+    no key code in `timeout`, the wrong key, the wrong board, a write the
+    panel did not acknowledge. It returns 'record' (keep the fail, next
+    button), 'retry' (light it again and ask again) or 'pause'. NOT LIT is
+    not asked about: it IS the operator's own confirmation. With no
+    `confirm` the loop behaves as it always did."""
     steps = [Step(*s) for s in PANELS[panel]]
     if panel == 'left' and SW_LEFT is None:
         # S136: Sys001SwLeft001 is not on this unit's deployed pack (it lands
@@ -949,93 +959,114 @@ def loop(bus, panel, ask, timeout=30.0, log=print, owed=None, hold=None,
                    ' and '.join(CELL_NAME.get(c, hex(c)) for c in cells)
                    + (' (both, until a press says which one this board runs)'
                       if len(cells) > 1 else '')))
-        ack = bus.light(st.idx, cells)
-        # THE ACK IS A MEASUREMENT AND IT IS WORTH PRINTING. It separates "the
-        # host could not even get the write to the panel" from "the write went
-        # out and nothing lit", which is the whole of the question PW asked
-        # about the bottom three buttons.
-        log('light %d (%s) - the panel acked the write in %s'
-            % (st.idx, st.name,
-               ('%.1f ms' % ack) if ack is not None else 'NO ACK'))
-        if ack is None:
-            st.sw = st.led = NODATA
-            st.sw_note = st.led_note = 'the panel bus did not acknowledge the write'
-            continue
-        while True:
-            answer = ask(st, n, len(steps))
-            got = bus.wait_key(timeout, tick=answer)
-            if got is None:
-                st.sw = NODATA
-                st.led = NODATA
-                st.sw_note = 'no key code arrived within %.0f s' % timeout
-                st.led_note = 'not reached: the button sent nothing'
-                break
-            kind, value, ms = got
-            if kind == 'glass':
-                if value == 'notlit':
-                    # S137, PW's panel-loop ruling, verbatim: "a button to
-                    # press if led change is not observed so machine can
-                    # note, and skip to next." The LED is FAILED on the
-                    # operator's word; the switch underneath it was never
-                    # asked about, so it is NOT TESTED, not FAILED -- and the
-                    # step ends here, at once, with no retry.
-                    st.led = FAIL
-                    st.led_note = 'operator saw no light'
-                    st.sw = NOTTESTED
-                    st.sw_note = 'skipped: LED dark'
+        while True:                     # attempts at this step (S157)
+            ack = bus.light(st.idx, cells)
+            # THE ACK IS A MEASUREMENT AND IT IS WORTH PRINTING. It separates "the
+            # host could not even get the write to the panel" from "the write went
+            # out and nothing lit", which is the whole of the question PW asked
+            # about the bottom three buttons.
+            log('light %d (%s) - the panel acked the write in %s'
+                % (st.idx, st.name,
+                   ('%.1f ms' % ack) if ack is not None else 'NO ACK'))
+            if ack is None:
+                st.sw = st.led = NODATA
+                st.sw_note = st.led_note = 'the panel bus did not acknowledge the write'
+            while ack is not None:
+                answer = ask(st, n, len(steps))
+                got = bus.wait_key(timeout, tick=answer)
+                if got is None:
+                    st.sw = NODATA
+                    st.led = NODATA
+                    st.sw_note = 'no key code arrived within %.0f s' % timeout
+                    st.led_note = 'not reached: the button sent nothing'
                     break
-                st.sw = st.led = SKIPPED
-                st.sw_note = st.led_note = 'the operator skipped this button'
-                break
-            if kind not in ('skin', 'swleft'):
-                continue                       # an encoder detent in the middle
-            # WHICH BOARD PRESSED IT (S129). A press on Sys001SwLeft001 can
-            # only be the LEFT board and a press on Sys001Skin001 can only be
-            # the RIGHT one, so the cell the press arrived on IS the board --
-            # the thing the shared cell could never tell anybody.
-            from_cell = SW_LEFT if kind == 'swleft' else SKIN
-            if known is None:
-                known = from_cell
-                log('the %s answered on %s, so that is the cell this board '
-                    'runs; the other one is not written again'
-                    % (PANEL_NAME[panel], CELL_NAME.get(from_cell)))
-            elif from_cell != known:
-                # The wrong board. Before S129 this arrived on the same cell as
-                # a right press of the same index and was graded as a pass.
+                kind, value, ms = got
+                if kind == 'glass':
+                    if value == 'notlit':
+                        # S137, PW's panel-loop ruling, verbatim: "a button to
+                        # press if led change is not observed so machine can
+                        # note, and skip to next." The LED is FAILED on the
+                        # operator's word; the switch underneath it was never
+                        # asked about, so it is NOT TESTED, not FAILED -- and the
+                        # step ends here, at once, with no retry.
+                        st.led = FAIL
+                        st.led_note = 'operator saw no light'
+                        st.sw = NOTTESTED
+                        st.sw_note = 'skipped: LED dark'
+                        break
+                    st.sw = st.led = SKIPPED
+                    st.sw_note = st.led_note = 'the operator skipped this button'
+                    break
+                if kind not in ('skin', 'swleft'):
+                    continue                       # an encoder detent in the middle
+                # WHICH BOARD PRESSED IT (S129). A press on Sys001SwLeft001 can
+                # only be the LEFT board and a press on Sys001Skin001 can only be
+                # the RIGHT one, so the cell the press arrived on IS the board --
+                # the thing the shared cell could never tell anybody.
+                from_cell = SW_LEFT if kind == 'swleft' else SKIN
+                if known is None:
+                    known = from_cell
+                    log('the %s answered on %s, so that is the cell this board '
+                        'runs; the other one is not written again'
+                        % (PANEL_NAME[panel], CELL_NAME.get(from_cell)))
+                elif from_cell != known:
+                    # The wrong board. Before S129 this arrived on the same cell as
+                    # a right press of the same index and was graded as a pass.
+                    st.sw = FAIL
+                    st.sw_note = ('that press came from the %s, not the %s: it '
+                                  'arrived on %s'
+                                  % ('left switch panel' if kind == 'swleft'
+                                     else 'right switch panel',
+                                     PANEL_NAME[panel],
+                                     CELL_NAME.get(from_cell)))
+                    if st.led is None:
+                        st.led = NODATA
+                        st.led_note = ('not reached: the press came from the other '
+                                       'switch board')
+                    break
+                st.got, st.ms = value, ms
+                if value == st.idx:
+                    st.sw = PASS
+                    st.sw_note = 'key code %d in %.0f ms' % (value, ms)
+                    if st.led is None:
+                        if can_say_notlit:
+                            st.led = PASS
+                            st.led_note = ('%s lit, and the operator pressed the '
+                                           'button under it' % st.what)
+                        else:
+                            st.led = NODATA
+                            st.led_note = LED_NOT_SEEN
+                    break
+                other = dict((s.idx, s.name) for s in steps).get(value)
                 st.sw = FAIL
-                st.sw_note = ('that press came from the %s, not the %s: it '
-                              'arrived on %s'
-                              % ('left switch panel' if kind == 'swleft'
-                                 else 'right switch panel',
-                                 PANEL_NAME[panel],
-                                 CELL_NAME.get(from_cell)))
+                st.sw_note = ('on the %s, the tester lit %s and the key code that '
+                              'came back was %d%s'
+                              % (PANEL_NAME[panel], st.name, value,
+                                 ' (%s)' % other if other else ''))
                 if st.led is None:
                     st.led = NODATA
-                    st.led_note = ('not reached: the press came from the other '
-                                   'switch board')
+                    st.led_note = 'not reached: the wrong key code came back'
                 break
-            st.got, st.ms = value, ms
-            if value == st.idx:
-                st.sw = PASS
-                st.sw_note = 'key code %d in %.0f ms' % (value, ms)
-                if st.led is None:
-                    if can_say_notlit:
-                        st.led = PASS
-                        st.led_note = ('%s lit, and the operator pressed the '
-                                       'button under it' % st.what)
-                    else:
-                        st.led = NODATA
-                        st.led_note = LED_NOT_SEEN
+            # THE STEP DID NOT PASS ON THE MACHINE'S OWN READING: STOP AND ASK
+            # (S157). The button stays lit while the question is up.
+            if confirm is None or st.sw not in (FAIL, NODATA):
                 break
-            other = dict((s.idx, s.name) for s in steps).get(value)
-            st.sw = FAIL
-            st.sw_note = ('on the %s, the tester lit %s and the key code that '
-                          'came back was %d%s'
-                          % (PANEL_NAME[panel], st.name, value,
-                             ' (%s)' % other if other else ''))
-            if st.led is None:
-                st.led = NODATA
-                st.led_note = 'not reached: the wrong key code came back'
+            what = confirm(st, st.sw_note or '')
+            if what == 'retry':
+                log('%s: the operator asked for it again (was %s: %s)'
+                    % (st.name, st.sw, st.sw_note))
+                st.sw = st.led = st.sw_note = st.led_note = None
+                st.got = st.ms = None
+                cells = cells_for(panel, known)
+                continue
+            if what == 'pause':
+                st.sw = st.led = SKIPPED
+                st.sw_note = st.led_note = ('the run was paused at this '
+                                            'failed step')
+                break
+            st.sw_note = ('%s -- recorded by the operator after the step '
+                          'stopped' % (st.sw_note or st.sw))
+            log('%s: %s recorded by the operator' % (st.name, st.sw))
             break
     extra = {}
     if panel in ALWAYS_ON:

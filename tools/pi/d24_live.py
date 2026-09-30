@@ -98,35 +98,11 @@ def pick_up(lead, socket=None):
 
     There is no READY card and nothing to press at a block boundary (S123):
     the lead going into the socket IS the acknowledgement, so the only thing
-    the change needs is one more sentence on the same screen.
-
-    With the kit parked (S126, ruling c) the sentence can say WHERE the lead
-    is, which is the whole of what PW asked for: "a lead change becomes one
-    instruction -- pick up the lead hanging from AUX 3."
+    the change needs is one more sentence on the same screen. NOTHING IS
+    PARKED (PW 2026-09-30), so the lead is picked up off the bench, never off
+    a socket; `socket` is accepted and ignored for old callers.
     """
-    if socket:
-        return 'Pick up %s, hanging on %s.' % (lead_words(lead),
-                                               socket_words(socket))
     return 'Pick up %s.' % lead_words(lead)
-
-
-def take_off(lead, socket, in_socket=False):
-    """Free a socket that has a parked kit lead on it (S126, ruling c).
-
-    Every socket a lead can usefully be parked on is one some walk has to
-    visit, so the walk pays for it once -- here, as one more sentence on the
-    screen that was already asking for that socket, and never as a card.
-    """
-    if in_socket:
-        return 'Take %s out of %s first.' % (lead_words(lead),
-                                             socket_words(socket))
-    return 'Take %s off %s first.' % (lead_words(lead), socket_words(socket))
-
-
-def repark(lead, socket):
-    """The one instruction the ruling asks for when a socket a lead was parked
-    on does not work: hang it somewhere that does."""
-    return 'Hang %s on %s instead.' % (lead_words(lead), socket_words(socket))
 
 
 def socket_words(name):
@@ -145,34 +121,19 @@ def socket_words(name):
 def instruction_for(row, confirm=True):
     """The one big line: what to plug into what.
 
-    `row` is a patch-paths.csv row. The CSV's own `prompt` column says "Patch
-    AUX 5 to MIC 5", which is the list's voice; this is the operator's.
-
-    PW, 2026-09-26, having watched a pass advance under their hands: "I like
-    it, but let me plug in the cable, then hit Enter." So the instruction is
-    two things a person does in order, and it says both -- the step does not
-    end until the second one.
+    `row` is a patch-paths.csv row. ONE PLAIN SENTENCE FOR EVERY PATCH (PW
+    2026-09-30, "no parked leads, use one at a time"): "Patch AUX 5 to
+    MIC 5." or "Fit the 150 ohm terminator in MIC 5." Every patch is one lead
+    plugged fresh at both ends, so there is no "move the other end", no
+    swap, and no lead to take off first -- S157 retired all three.
     """
     into = socket_words(row.get('in'))
     out = (row.get('out') or '').strip()
     if not out:                                  # the terminator rows: no source
-        line = 'Put %s into %s' % (lead_words(row.get('lead')), into)
+        line = 'Fit the 150 ohm terminator in %s' % into
     else:
-        line = 'Plug %s into %s' % (out, into)
+        line = 'Patch %s to %s' % (out, into)
     return line + (', then press ENTER.' if confirm else '.')
-
-
-def move_input(name, confirm=True):
-    """The walk that finds a working loop, in the words of an ordinary
-    instruction. It is a diagnosis, and it must never read as one: a worker
-    is told to move a lead, not that the unit has a dead input."""
-    return ('Move the lead to %s%s'
-            % (socket_words(name), ', then press ENTER.' if confirm else '.'))
-
-
-def move_output(out, into, confirm=True):
-    return ('Move the other end to %s, and this end to %s%s'
-            % (out, socket_words(into), ', then press ENTER.' if confirm else '.'))
 
 
 # ---------------------------------------------------------------------------
@@ -200,37 +161,6 @@ def hands_off_words(what, secs):
 
 
 HANDS_OFF_NOTE = 'Do not touch the screen or the front panel until this clears.'
-
-
-def move_other_end(out, into, confirm=True):
-    """THE PATCH WHERE ONLY THE OUTPUT END MOVES (S129, item 7).
-
-    "Plug AUX 1 into MIC 7" is the right sentence when both ends move. It is
-    the WRONG one when the lead is already in MIC 7 and the only thing that has
-    to move is the other end, because a worker reads it, looks at MIC 7, sees a
-    lead in it, and presses ENTER.
-
-    That is what MIC 7 did on both of PW's completed passes, and the evidence
-    says the hardware is innocent: MIC 7 passes every tone patch in the loop
-    block at -12 dBFS, its 595 byte drives its own preamp and no other (+32.8
-    dB of noise at gain 63, measured lane by lane on 2026-09-27), its lane floor
-    is -113.9 dBFS in the middle of the pack, and its meter node reads a
-    -20 dBFS oscillator exactly. The patch it fails, three attempts running, is
-    the FIRST patch of the input block -- the one where the previous block left
-    the lead in MIC 7 and only the output end moves, from AUX 3 to AUX 1.
-
-    So the sentence says which end, and it says the other one stays put.
-    """
-    return ('Move the OTHER end of the lead to %s - this end stays in %s%s'
-            % (out, socket_words(into),
-               ', then press ENTER.' if confirm else '.'))
-
-
-def swap_for_plug(name, confirm=True):
-    """The noise step, which PW ruled is sequential: the lead comes out and
-    the plug goes into the socket it just left."""
-    return ('Take the lead out of %s and put the 150 ohm plug in%s'
-            % (socket_words(name), ', then press ENTER.' if confirm else '.'))
 
 
 # ---------------------------------------------------------------------------
@@ -287,22 +217,13 @@ USB_REAR_IS_THE_PANEL = ('The USB socket on the back panel is the touch '
                          'screen\'s. Leave it alone.')
 
 
-def park_kit_page(row, confirm=True):
-    """One kit item's setup page, from patch-kit.csv's facts.
-
-    The CSV carries the lead code, which end is parked and the panel socket;
-    the words are here, so there is one vocabulary and `--check-md` polices it.
-    """
-    lead, end, socket = row.get('lead'), row.get('end'), row.get('socket')
-    tail = ', then press ENTER.' if confirm else '.'
-    if end == 'bench':
-        return ('Put %s on the bench, where you can reach it%s'
-                % (lead_words(lead), tail))
-    if end == 'in':
-        return ('Put %s into %s and leave it there%s'
-                % (lead_words(lead), socket_words(socket), tail))
-    return ('Hang %s on %s and leave it there%s'
-            % (lead_words(lead), socket_words(socket), tail))
+def bench_kit_page(confirm=True):
+    """The one kit page (S157). NOTHING IS PARKED (PW 2026-09-30: "remove
+    the parked cable request, I see no advantage, use one at a time"), so
+    the leads are not hung on sockets at START: they go on the bench, and
+    each patch asks for one of them, plugged fresh at both ends."""
+    return ('Put the four test leads and the 150 ohm plug on the bench%s'
+            % (', then press ENTER.' if confirm else '.'))
 
 
 SETUP_SEEN = 'The unit can see it.'
@@ -330,7 +251,7 @@ def extra_for(row):
 
 def hold_note(n_checks):
     if n_checks > 1:
-        return 'Leave the lead in until the screen changes.'
+        return 'Keep the lead in until the screen changes.'
     return ''
 
 
@@ -377,16 +298,29 @@ def status_wrong_input(actual, wanted):
     return 'Signal on %s, expected %s.' % (actual, socket_words(wanted))
 
 
-# WHAT AN ALREADY-CARRYING SOCKET SAYS, THE MOMENT THE PROMPT SEES IT (PW
-# 2026-09-30, S155). `detect`'s removal-edge rule is right -- "move the other
-# end" and the noise swap both leave the lead in the same socket the prompt
-# goes up for -- but a socket that silently waits for a removal it never
-# names left the operator watching a plain WAITING screen with a lead already
-# seated: PW hit it on P1 (AUX 1 -> MIC 1), the run gave up at the 20 s
-# timeout and reparked while the tone sat on MIC 1 the whole time.
-def status_already_carrying(wanted):
-    return ('%s already has signal - unplug the lead and plug it back in.'
-            % socket_words(wanted))
+# A PATCH THAT ARRIVED AND DID NOT PASS (S157). PW 2026-09-30: "the runner
+# never moves past a fail without operator confirmation". The screen stops on
+# the patch, names what was wrong in one line, and says the two things the
+# operator can do with their hands. LEADS CORRECT records it; re-making the
+# patch runs it again (RETRY, once the app draws it, does the same without
+# touching the lead).
+def fail_banner(verdict):
+    return 'FAIL' if verdict == 'FAIL' else 'CHECK THE LEAD'
+
+
+def graded_fail_words(verdict, why):
+    """One line: what the reading found. `why` is the scorer's sentence."""
+    why = (why or '').strip().rstrip('.')
+    if len(why) > 90:
+        why = why[:87].rstrip() + '...'
+    return (why[:1].upper() + why[1:] + '.') if why else 'It did not pass.'
+
+
+def action_graded_fail(by_hand=True):
+    if by_hand:
+        return ('Press RETRY, or unplug the lead and plug it back in. If the '
+                'leads are right, press LEADS CORRECT.')
+    return 'Press RETRY to try again. If the plug is right, press LEADS CORRECT.'
 
 
 # The one plain action a red screen offers. Exactly one, always something the
@@ -409,7 +343,7 @@ def action_no_signal(confirm=True):
     if confirm:
         return 'Push the lead in firmly at both ends, then press ENTER again.'
     return ('Check both ends are in the right sockets and pushed home. '
-            'If they are, press LEADS CORRECT.')
+            'If they are, press LEADS CORRECT. RETRY tries it again.')
 
 
 # THE TIMEOUT RAISES THE SAME QUESTION, AND SAYS HOW LONG IT WAITED (PW
@@ -641,6 +575,46 @@ def panel_loop_words(panel=''):
             % panel_side_words(panel))
 
 
+# A PANEL STEP THAT DID NOT PASS (S157, PW 2026-09-30: "the runner never
+# moves past a fail without operator confirmation" -- every station of RUN
+# ALL). The glass goes red with the failure named; YES records the fail and
+# moves on, NO lights the button again and asks for the press again, PAUSE
+# pauses.
+# YES / NO because the deployed app draws them (mx26 d2b745e) and nothing else
+# that means two things.
+PANEL_FAIL_ACTION = 'YES records it as failed and moves on. NO lights it again.'
+PANEL_NO_ACK = 'The panel did not answer when the light was switched on.'
+
+
+def panel_retry_words(name):
+    return 'Press %s again.' % name
+
+
+def panel_fail_timeout(name, secs):
+    return 'Nothing came back from %s in %d seconds.' % (name, int(round(secs)))
+
+
+def panel_fail_wrong_key(name, other):
+    if other:
+        return 'The panel sent %s, not %s.' % (other, name)
+    return 'The panel sent a different button, not %s.' % name
+
+
+def panel_fail_wrong_board(board):
+    return 'That press came from the %s.' % board
+
+
+# A ROW THAT ENDS NO DATA SAYS WHY ON THE GLASS, IN ONE LINE (PW 2026-09-30:
+# the temperature sense "paused for the test but reported nothing"). The
+# reason is in panel words; the report carries the raw reading.
+NODATA_PANEL_FIRMWARE = 'the panel firmware does not send it yet'
+
+
+def nodata_words(what, why):
+    what = (what or '').strip()
+    return '%s: %s.' % (what[:1].upper() + what[1:], (why or '').rstrip('.'))
+
+
 def panel_judgement_missed(what):
     """A judgement this screen cannot put to the operator.
 
@@ -732,10 +706,16 @@ def every_string(rows=()):
             status_wrong_input('MIC 7', 'MIC 5'),
             status_wrong_input('MIC 7', 'MIC 5 line'),
             timeout_words('MIC 5', 20.0), 'LEADS CORRECT, NEXT >', NO_SIGNAL_FAIL,
-            move_input('MIC 6'), move_input('MIC 6', False),
-            move_output('AUX 2', 'MIC 1'), move_output('AUX 2', 'MIC 1', False),
-            swap_for_plug('MIC 7'), swap_for_plug('MIC 7', False),
             action_no_signal(), action_no_signal(False), action_failed(),
+            action_graded_fail(), action_graded_fail(False),
+            graded_fail_words('FAIL', 'the two channels did not cancel'),
+            fail_banner('FAIL'), fail_banner('NO DATA'), 'RETRY',
+            panel_retry_words('MONO AUX'), PANEL_FAIL_ACTION,
+            panel_fail_timeout('MONO AUX', 30), panel_fail_wrong_key(
+                'MONO AUX', 'FX MUTE'), panel_fail_wrong_key('MONO AUX', ''),
+            panel_fail_wrong_board('left switch panel'), PANEL_NO_ACK,
+            nodata_words('the temperature sense', NODATA_PANEL_FIRMWARE),
+            bench_kit_page(), bench_kit_page(False),
             action_not_tested(),
             HANDOVER, 'ENTER', 'PAUSE', 'START',
             finished_words(55, 0), finished_words(53, 2),
@@ -765,14 +745,6 @@ def every_string(rows=()):
             'PASS', 'FAIL', NOT_TESTED]
     for lead in sorted(LEAD_WORDS):
         out.append(pick_up(lead))
-        out.append(pick_up(lead, 'AUX 2'))
-        out.append(take_off(lead, 'AUX 2'))
-        out.append(take_off(lead, 'MIC 2', in_socket=True))
-        out.append(repark(lead, 'AUX 5'))
-        for end, sock in (('out', 'AUX 3'), ('in', 'MIC 2'), ('bench', '')):
-            row = dict(lead=lead, end=end, socket=sock)
-            out.append(park_kit_page(row))
-            out.append(park_kit_page(row, confirm=False))
     out += [SETUP_TITLE, setup_network(), setup_network(False),
             setup_usb(), setup_usb(confirm=False), USB_REAR_IS_THE_PANEL,
             SETUP_SEEN, SETUP_NOT_SEEN, SETUP_DONE]
@@ -814,6 +786,13 @@ PANEL_BUTTONS = ['notlit', 'pause']
 # the slot ENTER used to have, and PAUSE stays because a run can always be
 # stopped.
 NOSIGNAL_BUTTONS = ['nosignal', 'pause']
+# THE FAILED SCREEN'S BUTTONS (S157, PW 2026-09-30): NO SIGNAL (drawn as LEADS
+# CORRECT) records the fail and moves on, RETRY runs the step again from the
+# prompt, PAUSE pauses. The app draws all three since mx26 1f2a7db (RETRY in
+# the NO slot, sending `retry`). Re-making the patch by hand -- the lead pushed
+# home, or pulled and plugged again -- is a retry too; the station watches for
+# it anyway.
+FAILED_BUTTONS = ['nosignal', 'retry', 'pause']
 
 # YES / NO (PW 2026-09-29): the panel loop's two judgements -- the always-lit
 # rings and the encoder ring -- asked on the factory glass rather than recorded
@@ -858,7 +837,7 @@ def buttons_for(state, confirm=True):
     # only answer it wants -- and LEADS CORRECT appears on CHECKLEAD, the screen
     # the timeout raises. The command stays 'nosignal'; only the words changed.
     if state == CHECKLEAD:
-        return list(NOSIGNAL_BUTTONS)
+        return list(FAILED_BUTTONS)
     return ['pause']
 
 
@@ -1023,6 +1002,8 @@ class Live:
         # the screen draws and this method drops is a dead button, which is the
         # class of fault S137 found on the panel loop.
         # 'yes' / 'no' (PW 2026-09-29): the panel loop's judgements.
+        # 'retry' (S157): the FAILED screen's RETRY. Read here now so the app
+        # change that draws it needs nothing on this side.
         return (cmd if cmd in ('pause', 'enter', 'exit', 'notlit', 'nosignal',
-                               'yes', 'no')
+                               'yes', 'no', 'retry')
                 else None)

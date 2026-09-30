@@ -1,20 +1,20 @@
--- test_already_carrying_says_so_at_once
-ok   the glass says so the moment the prompt sees it already carrying
-ok   the log says so too
-ok   the removal+arrival rule itself is unchanged: this step still ends on the rise, after the removal
-ok   ... and not before the removal was seen
+-- test_hot0_and_arrival_never_touch_the_peak_meter
+ok   the step still arrives cleanly
+ok   detect never touched the peak meter for this lane
+-- test_p56_noise_to_tone_transition_with_a_1s_plug
+ok   no false hot0 from a previous noise step's decay
+ok   ... on the plug-in, not after 20 s of a removal that could never come (RMS polling costs a settle window a poll, so this is a few poll cycles, not the old peak meter's near-instant one)
+ok   the log shows the prompt read on the node, not the peak meter
+-- test_already_carrying_says_so_when_it_is_a_literal_repeat
+ok   S157: the already-carrying line is retired
+ok   ... a lane carrying at the prompt simply arrives
+ok   ... with no removal demanded
+-- test_move_the_other_end_never_says_already_carrying
+ok   it arrives at once, not after a removal that will never come
+ok   ... and never once says "already has signal" -- this shape is not hot0 any more
 -- test_a_lane_that_was_never_hot_gets_the_plain_screen
 ok   a lane quiet at the prompt still arrives normally
 ok   ... and never once says "already has signal"
--- test_p1_an_idle_lane_with_a_loud_peak_floor_still_arrives
-ok   the OLD bug is real: peak vs RMS alone would have said hot0
-ok   the FIXED station still arrives -- same instrument, no false removal demand
-ok   ... at the plug-in, not after 40 s of a removal that could never come
-ok   ... and the log shows hot0 False, on the peak floor, not the RMS one
--- test_p1_vs_p3_why_lane_1_differs_from_lane_3
-ok   MIC 1's modelled gap clears `rise` -- this is the one hot0 broke on
-ok   MIC 3's modelled gap does not -- consistent with it passing normally on the bench
-ok   and on the fixed code MIC 3's own step arrives cleanly either way
 -- test_a_loud_floor_sitting_still_is_never_named
 ok   the asked-for lane times out honestly (nothing ever arrived)
 ok   the noisy-floor lane is never named the whole run

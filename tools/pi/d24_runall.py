@@ -780,6 +780,9 @@ def write_ignore(path, serial, num, reason, catalog_md5):
 # The glass: one prompt file out, one answer file in
 # ---------------------------------------------------------------------------
 ANSWER_POLL_S = 0.05
+# How long a row that ended NO DATA holds its one-line reason on the glass
+# (S157): long enough to read, short enough not to be a stop.
+NODATA_SAY_S = 4.0
 
 
 class Glass:
@@ -2240,8 +2243,69 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
             return b
         return tick
 
+    names = dict((s_[0], s_[1]) for s_ in PL.PANELS[side])
+
+    def fail_words(step, why):
+        """The one line a stopped panel step shows, in panel words."""
+        why = why or ''
+        if 'did not acknowledge' in why:
+            return LV.PANEL_NO_ACK
+        if 'no key code arrived' in why or 'sent no position' in why:
+            return LV.panel_fail_timeout(step.name, a.panel_timeout)
+        if 'came from the' in why:
+            return LV.panel_fail_wrong_board(
+                'left switch panel' if 'left switch panel' in why.split(
+                    'came from the', 1)[1][:24] else 'right switch panel')
+        got = getattr(step, 'got', None)
+        return LV.panel_fail_wrong_key(step.name, names.get(got, ''))
+
+    def confirm_step(step, why, words=None):
+        """THE FAILED PANEL STEP WAITS FOR THE OPERATOR (S157, PW
+        2026-09-30: "the runner never moves past a fail without operator
+        confirmation"). YES records it and moves on, NO lights it again,
+        PAUSE pauses. Both channels, as `ask_yn` does: the live screen's
+        command and the dialog's answer."""
+        words = words or fail_words(step, why)
+        glass.progress('%s: %s -- stopped, waiting for the operator'
+                       % (step.name, why))
+        lines = [words, LV.PANEL_FAIL_ACTION]
+        if live is not None:
+            live.set(state=LV.CHECKLEAD, banner='FAIL',
+                     banner_line=step.name, instruction=words,
+                     lead_line='', extra='', status=panel_name.capitalize(),
+                     action=LV.PANEL_FAIL_ACTION,
+                     buttons=list(LV.YESNO_BUTTONS))
+        btns = glass.post('instruct', 'Panel loop - %s' % step.name, lines,
+                          ['yes', 'no'], row=getattr(step, 'sw_row', None),
+                          station=st)
+        while True:
+            ans = None
+            if live is not None:
+                live.beat()
+                cmd = live.command()
+                if cmd in ('yes', 'no', 'pause', 'retry'):
+                    ans = dict(button=cmd, reason='the factory screen')
+            if ans is None:
+                ans = glass.poll(btns)
+            if ans is not None:
+                break
+            time.sleep(ANSWER_POLL_S)
+        glass.taken(ans)
+        if live is not None:
+            live.set(state=LV.WAITING, instruction='', banner='',
+                     banner_line='', action='',
+                     buttons=list(LV.PANEL_BUTTONS))
+        b = ans.get('button')
+        if b == 'pause':
+            pending['paused'] = True
+            return 'pause'
+        if b in ('no', 'retry'):
+            return 'retry'
+        return 'record'
+
     try:
         steps, extra = PL.loop(bus, side, ask, timeout=a.panel_timeout,
+                               confirm=confirm_step,
                                log=glass.progress, owed=owed,
                                random_order=random_order,
                                hold=quiet_hold(quiet_flag, live=live,
@@ -2324,10 +2388,25 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
         if 'encoder' in extra:
             turn_row, led_row = extra['encoder']
             if turn_row in owed:
-                land(*((turn_row,) + panel_encoder(bus, glass, st,
-                                                   a.panel_timeout,
-                                                   live=live,
-                                                   panel=panel_name)))
+                while True:
+                    v, note = panel_encoder(bus, glass, st, a.panel_timeout,
+                                            live=live, panel=panel_name)
+                    if v not in (FAIL, NODATA):
+                        break
+                    # A FAILED ENCODER STEP STOPS TOO (S157).
+                    what = confirm_step(
+                        PL.Step(0, 'The encoder', turn_row, led_row, ''),
+                        note, words=(LV.panel_fail_timeout(
+                            'the encoder', a.panel_timeout)
+                            if v == NODATA else note[:1].upper() + note[1:]
+                            + '.'))
+                    if what == 'pause':
+                        raise Paused()
+                    if what == 'record':
+                        note += (' -- recorded by the operator after the step '
+                                 'stopped')
+                        break
+                land(turn_row, v, note)
             if led_row in owed:
                 PL.encoder_leds(bus)
                 ans = ask_yn('instruct', 'Panel loop - the encoder LEDs',
@@ -2403,11 +2482,38 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                              buttons=['pause'])
                 glass.progress('%s: %s, nothing to press'
                                % (panel_name, row.what))
+            what_of = dict((row.num, row.what) for row in PL.SENSE.get(side, ()))
             for num, (v, note) in PL.sense_sweep(
                     bus, side, sense_ask, timeout=a.panel_timeout,
                     log=glass.progress, owed=owed,
                     idle=sense_idle, quiet=sense_quiet).items():
                 land(num, v, note, operator=False)
+                # A ROW THAT ENDS NO DATA SAYS WHY ON THE GLASS (S157, PW
+                # 2026-09-30: row 94 "paused for the test but reported
+                # nothing"). One line in panel words, held NODATA_SAY_S. A
+                # declared fixture gap -- the panel firmware not sending the
+                # cell yet -- does not stop the run; the report carries the
+                # full note, which says what was (not) received.
+                if v == NODATA and live is not None \
+                        and not pending['paused']:
+                    why = (LV.NODATA_PANEL_FIRMWARE
+                           if 'nothing was transmitted' in note
+                           or 'not on this unit' in note else
+                           note.split(':')[0].split('.')[0])
+                    line = LV.nodata_words(what_of.get(num, 'this check'),
+                                           why)
+                    glass.progress('row %d on the glass: %s' % (num, line))
+                    live.set(state=LV.CHECKING, instruction=line,
+                             lead_line='', extra='', banner='NO DATA',
+                             banner_line='', status=panel_name.capitalize(),
+                             buttons=['pause'])
+                    t_say = time.time()
+                    while time.time() - t_say < NODATA_SAY_S:
+                        live.beat()
+                        if live.command() == 'pause':
+                            pending['paused'] = True
+                            break
+                        time.sleep(ANSWER_POLL_S)
             if pending['paused']:
                 raise Paused()
     finally:
@@ -2483,6 +2589,13 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
         # The screen is left showing how the pass ended -- the tally and who
         # the unit goes to -- exactly as a standalone run leaves it. The next
         # pass's setup pages are what take it down.
+    # -- what the operator confirmed (S157) -------------------------------
+    # PW 2026-09-30: "the end-of-run failure document lists what the operator
+    # confirmed". Every failed step the station stopped on and the operator
+    # answered is in the log here, and a confirmed row is judged 'operator'.
+    for c in getattr(station, 'confirmed', []):
+        glass.progress('operator confirmed %s on %s %s: %s'
+                       % (c['answer'], c['patch'], c['what'], c['failure']))
     # -- fold the paths onto the catalog rows -----------------------------
     per_row = {}
     for res in results:
@@ -2501,7 +2614,10 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
             note += ' (%d of %d checks on this item)' % (
                 sum(1 for h in hits if h['verdict'] == worst['verdict']),
                 len(hits))
-        state.put(num, v, pass_no=passno, judged='runner', measured=note,
+        confirmed = (worst['why'] == LV.NO_SIGNAL_FAIL
+                     or 'LEADS CORRECT' in (worst.get('detail') or ''))
+        state.put(num, v, pass_no=passno,
+                  judged='operator' if confirmed else 'runner', measured=note,
                   limit=worst.get('detail', ''), evidence='',
                   source='analog patch loop')
         verdicts[num] = v

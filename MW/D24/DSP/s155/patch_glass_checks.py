@@ -146,8 +146,10 @@ def test_p56_noise_to_tone_transition_with_a_1s_plug():
           'come (RMS polling costs a settle window a poll, so this is a few '
           'poll cycles, not the old peak meter\'s near-instant one)',
           dt < 2.0, '%.3f s' % dt)
-    check('the log shows hot0 False, on the node RMS, not the peak meter',
-          any('hot0 False' in s and 'node RMS' in s for s in logs[:2]),
+    # S157: the prompt's own line is the state machine's PROMPTED, on the
+    # node's coherent level; there is no hot0 any more.
+    check('the log shows the prompt read on the node, not the peak meter',
+          any('PROMPTED' in s and 'node coherent' in s for s in logs[:2]),
           repr(logs[:2]))
 
 
@@ -161,31 +163,27 @@ def test_p56_noise_to_tone_transition_with_a_1s_plug():
 #     still fire on.
 # ---------------------------------------------------------------------------
 def test_already_carrying_says_so_when_it_is_a_literal_repeat():
+    """SUPERSEDED BY S157 (PW 2026-09-30, "no parked leads, use one at a
+    time"). There is no already-carrying state on a tone row any more: every
+    patch is one lead plugged fresh and the route was written before the
+    prompt, so a lane carrying the right tone at the prompt is an early
+    arrival. The line and the gate are both gone; this proves it."""
     tmp = tempfile.mkdtemp(prefix='s155-hot0-')
     st, _g, live = H.build(tmp, blocks=['K1'])
     logs = []
     st.log = logs.append
     rows = H.tone_rows(st)
-    wanted = rows[0]['in']
-    st._same_connection = True    # the one shape hot0 still applies to
-    # already carrying at the prompt; the removal (the operator pulls it,
-    # S128's gate) comes a beat later, then the real arrival.
-    script = [-15.0] * 5 + [-96.0] * 5 + [-15.0] * 40
 
     def go():
-        return H.run_detect(st, live, rows, script)
+        return H.run_detect(st, live, rows, [-15.0] * 5 + [-96.0] * 5
+                            + [-15.0] * 40)
     (how, _a, dt, sc), seen = watched_screens(go)
-    check('the glass says so the moment the prompt sees it already carrying',
-          any(d.get('status') == LV.status_already_carrying(wanted)
-              for d in seen),
-          repr([d.get('status') for d in seen[:4]]))
-    check('the log says so too',
-          any('already carrying at the prompt' in s for s in logs),
-          repr(logs[:4]))
-    check('the removal+arrival rule itself is unchanged: this step still '
-          'ends on the rise, after the removal', how == 'rise', repr(how))
-    check('... and not before the removal was seen',
-          any('the lead came out of' in s for s in logs), repr(logs))
+    check('S157: the already-carrying line is retired',
+          not hasattr(LV, 'status_already_carrying'))
+    check('... a lane carrying at the prompt simply arrives', how == 'rise'
+          and dt < 1.0, '%s %.3f s' % (how, dt))
+    check('... with no removal demanded',
+          not any('the lead came out of' in s for s in logs), repr(logs[:4]))
 
 
 def test_move_the_other_end_never_says_already_carrying():
@@ -197,7 +195,6 @@ def test_move_the_other_end_never_says_already_carrying():
     st, _g, live = H.build(tmp, blocks=['K1'])
     rows = H.tone_rows(st)
     wanted = rows[0]['in']
-    st._same_connection = False
 
     def go():
         return H.run_detect(st, live, rows, [-7.6] * 4000)
@@ -206,7 +203,7 @@ def test_move_the_other_end_never_says_already_carrying():
           how == 'rise', repr(how))
     check('... and never once says "already has signal" -- this shape is '
           'not hot0 any more',
-          not any(d.get('status') == LV.status_already_carrying(wanted)
+          not any('already has signal' in (d.get('status') or '')
                   for d in seen),
           repr(sorted({d.get('status') for d in seen})[:6]))
 
@@ -218,7 +215,6 @@ def test_a_lane_that_was_never_hot_gets_the_plain_screen():
     st, _g, live = H.build(tmp, blocks=['K1'])
     rows = H.tone_rows(st)
     wanted = rows[0]['in']
-    st._same_connection = True
 
     def go():
         return H.run_detect(st, live, rows, [-96.0] * 5 + [-15.0] * 40)
@@ -226,7 +222,7 @@ def test_a_lane_that_was_never_hot_gets_the_plain_screen():
     check('a lane quiet at the prompt still arrives normally', how == 'rise',
           repr(how))
     check('... and never once says "already has signal"',
-          not any(d.get('status') == LV.status_already_carrying(wanted)
+          not any('already has signal' in (d.get('status') or '')
                   for d in seen),
           repr(sorted({d.get('status') for d in seen})[:6]))
 
@@ -258,7 +254,7 @@ def test_a_loud_floor_sitting_still_is_never_named():
                             sweep={noisy: at_floor})
     (how, _a, _dt, _sc), seen = watched_screens(go)
     check('the asked-for lane times out honestly (nothing ever arrived)',
-          how == 'timeout', repr(how))
+          how in ('timeout', 'waiting'), repr(how))
     named = [d for d in seen
              if d.get('status') == LV.status_wrong_input('MIC %d' % noisy,
                                                          rows[0]['in'])]
@@ -322,8 +318,12 @@ def test_a_single_noisy_sweep_is_not_enough_it_has_to_hold():
     def one_shot_sweep(strips):
         calls[0] += 1
         return {other: loud} if calls[0] == 1 else {}
-    sc = H.Scripted(st, live, [-96.0] * 400)
+    # S157: nothing ends the step by itself, so the harness presses PAUSE
+    # at H.HARNESS_PAUSE_POLL, as `H.run_detect` does.
+    sc = H.Scripted(st, live, [-96.0] * 400,
+                    presses={H.HARNESS_PAUSE_POLL: 'pause'})
     st.watch = sc.watch
+    st.watch_tone = lambda lane, prep, settle=1: sc.watch(lane)
     st.u.meter_sweep = one_shot_sweep
     prep = dict(lane=lane, freq=1000.0, level=-12.0, floor=-96.0,
                watch=-96.0, sweep0={})
@@ -331,8 +331,10 @@ def test_a_single_noisy_sweep_is_not_enough_it_has_to_hold():
     def go():
         return st.detect(rows, prep, None)
     (how, _a, _dt), _seen = watched_screens(go)
+    if how == 'glass' and (_a or {}).get('button') == 'pause':
+        how = 'waiting'
     check('one noisy sweep, gone on the next, is never named',
-          how == 'timeout' and not st._wrong, repr((how, st._wrong)))
+          how in ('timeout', 'waiting') and not st._wrong, repr((how, st._wrong)))
     check('... the sweep really ran more than once, so this proved something',
           calls[0] >= 2, repr(calls[0]))
 

@@ -1,0 +1,107 @@
+-- case_fresh_socket_fast_and_slow
+ok   fresh socket, lead in at 0.5 s: PASS, no stall
+ok   ... it arrived after the plug, not before (0.5 s)
+ok   fresh socket, lead in at 1.0 s: PASS, no stall
+ok   ... it arrived after the plug, not before (1.0 s)
+ok   fresh socket, lead in at 2.0 s: PASS, no stall
+ok   ... it arrived after the plug, not before (2.0 s)
+ok   fresh socket, lead in at 5.0 s: PASS, no stall
+ok   ... it arrived after the plug, not before (5.0 s)
+ok   fresh socket, lead in at 10.0 s: PASS, no stall
+ok   ... it arrived after the plug, not before (10.0 s)
+-- case_output_end_swap_1s_and_5s
+ok   output-end swap in 1.0 s: PASS
+ok   ... graded after the swap (1.0 s)
+ok   output-end swap in 5.0 s: PASS
+ok   ... graded after the swap (5.0 s)
+ok   output-end swap in 0.3 s: PASS
+ok   ... graded after the swap (0.3 s)
+-- case_noise_to_tone_residual
+ok   noise->tone, residual -54 dBFS on the lane, plug at 1.0 s: PASS
+ok   ... the residual did not arrive; the lead did (1.0 s)
+ok   noise->tone, residual -54 dBFS on the lane, plug at 3.0 s: PASS
+ok   ... the residual did not arrive; the lead did (3.0 s)
+-- case_terminator_swap_speeds
+ok   terminator: lead out at 0.2 s, plug 0.5 s later: graded on the plug
+ok   terminator: lead out at 0.2 s, plug 1.0 s later: graded on the plug
+ok   terminator: lead out at 0.2 s, plug 5.0 s later: graded on the plug
+ok   terminator: lead pulled, nothing fitted -- never graded; it stops and waits for the operator
+-- case_wrong_socket_named_then_moved
+ok   a lead in the wrong socket is named (MIC 3, expected MIC 2)
+ok   ... on the glass, in PW's shape
+ok   ... nothing was graded while it was there, and it PASSES once moved
+-- case_lead_left_in
+ok   a lead left in MIC 2 is named while MIC 3 is asked for
+ok   ... and MIC 3 is graded only after the lead moved
+-- case_draining_latch_is_never_a_claim
+ok   two draining latches, 8 s of waiting: no wrong-socket claim
+ok   ... and the patch passes at the plug
+-- case_p1_idle_mic1
+ok   idle MIC 1 (14 dB peak/RMS gap), plugged at 2 s: PASS at the plug
+-- case_dead_output_fails_and_stops
+ok   a dead output raises the FAILED screen at the timeout
+ok   ... and STOPS: nothing recorded before the operator answered
+ok   ... the FAILED screen carries LEADS CORRECT, RETRY and PAUSE
+ok   ... LEADS CORRECT records FAIL "no signal detected"
+ok   ... and the confirmation is listed
+-- case_timeout_waits_then_still_arrives
+ok   nobody for 125 s: the step waited (no give-up at 2 x 20 s) and the late lead still PASSES
+ok   ... it raised the question once, at 20 s
+-- case_retry_button_reprompts
+ok   RETRY on the FAILED screen prompts the same patch again
+ok   ... and the retried patch passes
+-- case_graded_fail_stops
+ok   a graded FAIL stops on its FAILED screen
+ok   ... the lead out for 1 s is a retry by hand, from the prompt
+ok   ... nothing recorded until LEADS CORRECT, 40 s into the retry
+ok   ... and the record says the operator confirmed it
+-- case_find_loop_waits_for_the_operator
+ok   P1 dead: the walk did NOT move to MIC 2 by itself (100 s)
+ok   ... it moved after LEADS CORRECT, and says so in the log
+ok   ... the confirmation is listed
+-- case_no_forbidden_words_anywhere
+
+  lead  patches  checks   machine s   per patch   hand s @ 2.0 s
+  --------------------------------------------------------------
+  K1         59     197        92.5        1.57           118
+  K4         24      24         9.2        0.38            48
+  K2          6      14         8.5        1.42            12
+  K3          2       4         2.1        1.04             4
+  --------------------------------------------------------------
+  all        91     239       112.3        1.23           182
+
+  projected pass: 182 s hands (182 s moving the lead + 0 s pressing ENTER) + 112 s machine = 4.9 min
+
+  block                     steps  readings   machine s   per step   hand s @ 2.0 s
+  ------------------------------------------------------------------------------
+  the outputs                  11        11         4.1      0.374              22
+  the inputs                   48       186        88.4      1.841              96
+  the TRS outputs               6        14         8.5      1.418              12
+  the line inputs              24        24         9.2      0.384              48
+  the mini-jack inputs          2         4         2.1      1.040               4
+  ------------------------------------------------------------------------------
+  the whole pass               91       239       112.3      1.234             182
+
+  where the machine seconds go
+    gain steps                    73.1 s
+    settled readings              22.5 s
+    getting the unit ready        18.6 s
+    putting the route up          13.6 s
+    looking for a misplaced lead     8.5 s
+    ...of which the 595 chain      214 writes, 1.7 s (8.1 ms each)
+
+  the operator waits for the machine only when the machine is slower than their hands:
+    worst block: the inputs at 1.841 s a step against 2.0 s of hand
+ok   471 screen lines, 92 dialog posts and the setup pages: none says 'other end' / 'stays' / 'park' / 'leave the lead'
+ok   every patch prompt is the plain "Patch <out> to <in>." or "Fit the 150 ohm terminator in <in>."
+ok   the only kit page puts the leads on the bench
+-- case_panel_step_stops
+ok   panel: a press that never came stops and asks
+ok   ... NO lights it again (lit twice) and the retried press PASSES
+ok   ... a wrong key stops and asks too, and YES records the FAIL
+ok   panel words: the stopped step names the failure plainly
+-- case_row94_says_why
+ok   row 94 NO DATA on the glass, one line in panel words
+ok   ... and the panel station puts it up for every NO DATA sense row
+
+all checks passed -- no unit, no bus, no write, no rails

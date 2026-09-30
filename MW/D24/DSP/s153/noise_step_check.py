@@ -268,7 +268,17 @@ def step(P, lane, mic):
     h.t0 = P.now()
     prep = dict(lane=mic, freq=None, level=None, floor=-116.0,
                 watch=None, sweep0={})
+    # S157: the step never ends by itself any more (PW 2026-09-30, "never
+    # move past a fail without operator confirmation"). A step still waiting
+    # 42 s in -- past the old 2 x 20 s give-up, inside the 45 s `Lane` the
+    # model records (past its end the lane reads silence) -- is ended by the
+    # harness pressing PAUSE and reported 'waiting'.
+    cmd = st.live.command
+    st.live.command = lambda: ('pause' if P.now() - h.t0 > 42.0
+                               else cmd())
     how, _ans, dt = st.detect(rows, prep, None)
+    if how == 'glass' and (_ans or {}).get('button') == 'pause':
+        how = 'waiting'
     return how, dt, lane.state(dt), logs
 
 
@@ -371,7 +381,7 @@ def main():
                                                   seed=7 + mic), mic)
             check('MIC %d, %s: not graded (%s at %.0f s)' % (mic, name, how,
                                                                dt),
-                  how == 'timeout')
+                  how in ('timeout', 'waiting'))
     # THE KNOWN LIMIT, shown rather than hidden: MIC 6 on S55's NODE figure
     # (-82.04) is 1.1 dB under its open input -- no second step to find -- and
     # on the capture's (-87.59) it is 6.6 dB. Which one the part reads today is

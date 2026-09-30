@@ -160,6 +160,14 @@ class Scripted(object):
         return dict(self.sweep)
 
 
+# S157: NOTHING ENDS A STEP BY ITSELF ANY MORE except an arrival -- the old
+# 2x-timeout give-up is gone (PW 2026-09-30, "never move past a fail without
+# operator confirmation"). A scripted detect that never arrives is ended by
+# the HARNESS pressing PAUSE this many polls in (well past 2 x 20 s), and
+# `run_detect` reports that as 'waiting': the station was still on the step.
+HARNESS_PAUSE_POLL = 1200
+
+
 def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0):
     """One `detect` call against a scripted lane.
 
@@ -170,12 +178,20 @@ def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0):
     that needs it True.
     """
     lane = int(rows[0]['lane'])
+    presses = dict(presses)
+    presses.setdefault(HARNESS_PAUSE_POLL, 'pause')
     sc = Scripted(st, live, levels, presses, sweep)
     st.watch = sc.watch
+    # S157: tone rows read the node's COHERENT level through `watch_tone`;
+    # the script feeds both instruments the same numbers.
+    st.watch_tone = lambda lane, prep, settle=1: sc.watch(lane)
     st.u.meter_sweep = sc.meter_sweep
     prep = dict(lane=lane, freq=1000.0, level=-12.0, floor=floor,
                 watch=levels[0], sweep0={})
     how, ans, dt = st.detect(rows, prep, None)
+    if how == 'glass' and (ans or {}).get('button') == 'pause' \
+            and sc.n >= HARNESS_PAUSE_POLL:
+        how = 'waiting'
     return how, ans, dt, sc
 
 
@@ -372,8 +388,9 @@ def test_no_signal_is_the_only_button():
     check('the waiting screen carries PAUSE alone, no ENTER and no LEADS CORRECT',
           LV.buttons_for(LV.WAITING, False) == ['pause'],
           repr(LV.buttons_for(LV.WAITING, False)))
-    check('so does the check-the-lead screen',
-          LV.buttons_for(LV.CHECKLEAD, False) == ['nosignal', 'pause'],
+    check('the check-the-lead (FAILED) screen carries LEADS CORRECT, RETRY '
+          'and PAUSE (S157)',
+          LV.buttons_for(LV.CHECKLEAD, False) == ['nosignal', 'retry', 'pause'],
           repr(LV.buttons_for(LV.CHECKLEAD, False)))
     check('the ENTER path is untouched',
           LV.buttons_for(LV.WAITING, True) == ['enter', 'pause'])
@@ -426,7 +443,7 @@ def test_enter_can_never_grade_a_patch_and_takes_two_presses_to_fail_one():
     how2, _a2, dt2, _s2 = run_detect(st2, live2, rows2, [-96.0] * 60,
                                      presses={3: 'enter'})
     check('one ENTER on a silent lane does NOT record anything',
-          how2 == 'timeout', repr(how2))
+          how2 == 'waiting', repr(how2))
     d2 = json.load(open(os.path.join(live2.dir, LV.LIVE_NAME)))
     check('... it raises the question instead', d2['state'] == LV.CHECKLEAD,
           repr(d2['state']))
@@ -452,7 +469,7 @@ def test_enter_can_never_grade_a_patch_and_takes_two_presses_to_fail_one():
         presses={3: 'enter', 30: 'enter', 60: 'enter'},
         sweep={other: PT.f32(10 ** (-15.0 / 20.0))})
     check('however many ENTERs, a tone on another input is never graded as the '
-          'asked row', how4 == 'timeout', repr(how4))
+          'asked row', how4 == 'waiting', repr(how4))
 
 
 def test_no_signal_is_refused_while_the_tone_is_elsewhere():
@@ -468,7 +485,7 @@ def test_no_signal_is_refused_while_the_tone_is_elsewhere():
                                  presses={3: 'nosignal', 60: 'nosignal'},
                                  sweep=sweep)
     check('NO SIGNAL is not honoured while the tone is on another input',
-          how == 'timeout', repr(how))
+          how == 'waiting', repr(how))
     d = json.load(open(os.path.join(live.dir, LV.LIVE_NAME)))
     check('... and the screen names the input it is actually on, in PW\'s shape',
           d['status'] == LV.status_wrong_input('MIC %d' % other, rows[0]['in']),
@@ -476,7 +493,7 @@ def test_no_signal_is_refused_while_the_tone_is_elsewhere():
     check('... with one plain action under it',
           d['action'] and 'move it to' in d['action'], repr(d['action']))
     check('... and NO SIGNAL still on it, because the operator may yet be right',
-          d['buttons'] == ['nosignal', 'pause'], repr(d['buttons']))
+          d['buttons'] == ['nosignal', 'retry', 'pause'], repr(d['buttons']))
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +540,7 @@ def test_the_wrong_input_is_named_while_they_stand_there():
     def fading_sweep(strips):
         return {} if sc.n > 30 else dict(sc.sweep)
     st2.watch = sc.watch
+    st2.watch_tone = lambda lane, prep, settle=1: sc.watch(lane)
     st2.u.meter_sweep = fading_sweep
     prep = dict(lane=int(rows2[0]['lane']), freq=1000.0, level=-12.0,
                 floor=-96.0, watch=-96.0, sweep0={})
@@ -570,7 +588,7 @@ def test_the_timeout_raises_the_question_and_decides_nothing():
           raised and '20 seconds' in raised[0]['status'],
           repr(raised and raised[0]['status']))
     check('... and offers the one button',
-          raised and raised[0]['buttons'] == ['nosignal', 'pause'],
+          raised and raised[0]['buttons'] == ['nosignal', 'retry', 'pause'],
           repr(raised and raised[0]['buttons']))
     check('... and one plain action: check the sockets, then LEADS CORRECT',
           raised and 'right sockets' in raised[0]['action']
@@ -585,15 +603,25 @@ def test_the_timeout_raises_the_question_and_decides_nothing():
           repr(dead[:4]))
 
 
-def test_it_still_ends_if_nobody_comes_back():
+def test_it_never_moves_on_by_itself():
+    """S157 (PW 2026-09-30): "the runner never moves past a fail without
+    operator confirmation". This used to assert a give-up at twice the
+    timeout; there is no give-up any more. Left alone, the step is still up
+    (and still listening) when the harness pauses it, long after 2 x 20 s."""
     tmp = tempfile.mkdtemp(prefix='s145-to2-')
     st, _g, live = build(tmp, blocks=['K1'])
     rows = tone_rows(st)
     secs = st.lim['detect_timeout_s']
     how, _a, dt, _sc = run_detect(st, live, rows, [-96.0] * 4000)
-    check('a station left alone gives up', how == 'timeout', repr(how))
-    check('... at twice the number it asked at, not before',
-          2 * secs <= dt < 2 * secs + 1.0, '%.1f s' % dt)
+    check('a station left alone does NOT give up', how == 'waiting',
+          repr(how))
+    check('... it was still waiting well past twice the timeout',
+          dt > 2 * secs, '%.1f s' % dt)
+    d = json.load(open(os.path.join(live.dir, LV.LIVE_NAME)))
+    check('... on the FAILED screen with all three buttons',
+          d['state'] == LV.CHECKLEAD
+          and d['buttons'] == ['nosignal', 'retry', 'pause'],
+          repr((d['state'], d['buttons'])))
 
 
 # ---------------------------------------------------------------------------
@@ -611,7 +639,6 @@ def test_move_the_other_end_needs_no_removal_edge():
     tmp = tempfile.mkdtemp(prefix='s145-rm-')
     st, _g, live = build(tmp, blocks=['K1'])
     rows = tone_rows(st)
-    st._same_connection = False   # announce()'s own value for this shape
     how, _a, dt, sc = run_detect(st, live, rows, [-15.0] * 4000)
     check('a lane already carrying the RIGHT tone at the prompt grades at '
           'once, not after a removal that can never come',
@@ -620,29 +647,20 @@ def test_move_the_other_end_needs_no_removal_edge():
           dt < 1.0, '%.3f s' % dt)
 
 
-def test_a_literal_repeat_still_needs_the_removal_edge():
-    """The one shape the addendum keeps the gate for: NEITHER end of the
-    connection changed (`_same_connection` True) -- the noise swap's own
-    shape, though noise rows never reach this branch (`tone` is false for
-    them); kept for a tone row that somehow repeats one exactly."""
-    tmp = tempfile.mkdtemp(prefix='s145-rm-same-')
-    st, _g, live = build(tmp, blocks=['K1'])
+def test_no_tone_row_has_a_removal_edge():
+    """S157 (PW 2026-09-30, "no parked leads, use one at a time"): every
+    patch is one lead plugged fresh at both ends and the route was written
+    before the prompt, so what the lane carries at the prompt is THIS
+    route's tone or nothing. S155's `_same_connection` gate is gone; a lane
+    already carrying the right tone arrives at once, whatever came before."""
+    st, _g, live = build(tempfile.mkdtemp(prefix='s145-rm-same-'),
+                         blocks=['K1'])
     rows = tone_rows(st)
-    st._same_connection = True
+    check('the S155 same-connection gate is gone',
+          not hasattr(st, '_same_connection'))
     how, _a, dt, sc = run_detect(st, live, rows, [-15.0] * 4000)
-    check('a literal repeat, never removed, is never graded, however loud',
-          how == 'timeout', repr(how))
-    # ... and once it is pulled and re-made, it advances
-    st2, _g2, live2 = build(tempfile.mkdtemp(prefix='s145-rm-same2-'),
-                            blocks=['K1'])
-    rows2 = tone_rows(st2)
-    st2._same_connection = True
-    how2, _a2, dt2, sc2 = run_detect(
-        st2, live2, rows2, [-15.0] * 5 + [-96.0] * 5 + [-15.0] * 40)
-    check('a removal followed by an arrival IS graded', how2 == 'rise',
-          repr(how2))
-    check('... and not until after the removal',
-          dt2 >= 10 * PT.DETECT_POLL_S, '%.3f s' % dt2)
+    check('a lane carrying the right tone at the prompt arrives at once',
+          how == 'rise' and dt < 1.0, '%s %.3f s' % (how, dt))
 
 
 # ---------------------------------------------------------------------------
@@ -683,7 +701,7 @@ def test_noise_rows_advance_on_the_drop():
                                 blocks=['K5'])
         how3, _a3, _dt3, _sc3 = run_detect(st3, live3, noise_rows(st3), trace,
                                            floor=-96.0)
-        check('%s is never graded' % name, how3 == 'timeout', repr(how3))
+        check('%s is never graded' % name, how3 == 'waiting', repr(how3))
 
 
 # ---------------------------------------------------------------------------
@@ -741,7 +759,7 @@ def test_a_whole_pass_has_no_enter_on_it():
           repr(sorted({tuple(d['buttons']) for d in waiting})))
     lead = [d for d in seen if d.get('state') == LV.CHECKLEAD]
     check('so does every check-the-lead screen',
-          all(d['buttons'] == ['nosignal', 'pause'] for d in lead),
+          all(d['buttons'] == ['nosignal', 'retry', 'pause'] for d in lead),
           repr(sorted({tuple(d['buttons']) for d in lead})))
     holding = [d for d in seen if d.get('status') == LV.SIGNAL_HOLDING]
     check('the arriving-signal line is the one that asks for nothing',
@@ -853,9 +871,9 @@ def main():
                test_no_signal_is_refused_while_the_tone_is_elsewhere,
                test_the_wrong_input_is_named_while_they_stand_there,
                test_the_timeout_raises_the_question_and_decides_nothing,
-               test_it_still_ends_if_nobody_comes_back,
+               test_it_never_moves_on_by_itself,
                test_move_the_other_end_needs_no_removal_edge,
-               test_a_literal_repeat_still_needs_the_removal_edge,
+               test_no_tone_row_has_a_removal_edge,
                test_noise_rows_advance_on_the_drop,
                test_s138b_still_works,
                test_the_station_owns_its_own_screen_under_run_all,

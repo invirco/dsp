@@ -75,9 +75,9 @@ def by_instruction(plist):
     out = {}
     for r in plist.paths:
         for confirm in (True, False):
+            # S157: one plain prompt per patch; the noise step's swap
+            # sentence is retired, so instruction_for covers every row.
             out.setdefault(LV.instruction_for(r, confirm), row_kind(r))
-            if r.get('expect') == 'noise':
-                out.setdefault(LV.swap_for_plug(r['in'], confirm), row_kind(r))
     return out
 
 

@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-30 18:25Z — S157: patch-station detection review and redesign (PW: stop and redesign)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-30 18:25Z — S157: patch-station detection review and redesign (PW: stop and redesign)   [status: 🔴 BUILT, DRY-RUN GREEN, DEPLOYED — waiting on PW's one bench pass. Tone arrival is on the node's COHERENT level over each lane's own floor (the peak meter is only a steady-twice hint), every failed step on every RUN ALL station stops for LEADS CORRECT / RETRY / PAUSE, the parked-lead code is gone, and row 94 says why on the glass. Log table: 278 prompts in 8 runs, the stalls are the runner's (peak-latch 60, auto loop-walk 47); at most 3 prompts are the unit. Dry run 57/57; S145/S153/S155/S128 suites green. MW-D24-2 has d24_patch 86f0a78e, d24_live ee9a3cd9, d24_runall 838e722d, d24_panel f523142c, backup /home/app/backup-s157-pre. 🔴 PW: one full bench pass; 🔴 H1S3 rebuild for row 94 is unscheduled]   [model: opus]
 
 model: opus
 
@@ -21,6 +21,50 @@ PW RULINGS ADDED 2026-09-30 ~19:35:
 - THE TEMPERATURE SENSE (row 94) "paused for the test but reported nothing" (PW): the runner logs "NO DATA -- nothing was transmitted on Sys001SwTempFan001 during the window ... the cell is only answered once H1S3 is rebuilt against a generation that carries it" — but the GLASS showed nothing. Rule: every row that ends NO DATA says WHY on the glass in one line, in panel words ("temperature sense: the panel firmware does not send it yet"), and the report carries the raw reading if any. Also state whether the H1S3 rebuild that would answer row 94 is scheduled anywhere; if not, 🔴 it.
 - NO PARKED LEADS (PW ~19:40: "remove the parked cable request, I see no advantage, use one at a time"). The generator now builds the list with the park kit OFF by default (hub, dsp commit "no parked leads"; deployed to s121). In the RUNNER, retire everything that assumed a parked end: `LV.move_other_end` ("Move the OTHER end … this end stays"), `swap_for_plug` folding, `check_parks`, `unpark`, `reparked`, and the removal-edge rule itself — EVERY patch is one lead plugged fresh at both ends, so arrival is always a fresh arrival: node level ≥ rise over the lane's idle floor, isolated, steady. The prompt for every patch is the plain "Patch <out> to <in>" (or "Fit the 150 ohm terminator in <in>"). The noise step follows its input's gain steps as now, but as its own plain patch, no "swap" wording. Prove: no prompt in the dry run contains "other end", "stays", "park" or "leave the lead".
 - TREE STATE AT DISPATCH: HEAD carries S155's half-built "tone rows on node RMS" change as a WIP commit (NOT deployed; suites green) — inherit or discard it, but say which. THE UNIT RUNS 7c373481's `d24_patch.py` (S155 items 1–3 + the hub's pair.conf fix e97cd357), so HEAD ≠ the unit: md5 both before you touch anything, and never deploy a file you have not diffed against the unit's copy.
+
+**S157 OUTCOME (2026-09-30).** Design `MW/D24/DSP/s157/s157-design.md` (written before the code), report `s157-report.md`, log table `factory-log-table.md` (`factory_log_table.py`), dry run `detector_dry_run.py` (+ `.out`).
+- **Tree state.** S155's WIP (tone rows on node RMS) is INHERITED and built on. RMS became the coherent level. S155's `_same_connection`/`hot0` gate and its "already has signal" line are removed: no tone row has a removal edge now.
+- 🟢 **1. The log.** 278 prompts over 8 auto-advance runs (09-29 15:16Z → 09-30 18:04Z). The before counts are in the report and match the hub's (16:40 7/6, 12:45 37/15; 18:04 reads 16 stalls because the log now runs to the stop). Causes:
+  - runner, peak-latch: 60
+  - runner, loop walk moving P1 on by itself: 47 (all of 15:03/17:33/17:46)
+  - wrong-socket claims that persisted, the log cannot say whose: 25
+  - unit: at most 3 (09-29 MAIN R under the S154 clamp; a correct jack-vs-XLR FAIL; 18:04 P7 MAIN L NO DATA after a peak-meter "rise" at 39.9 s, where the latch said arrived and the node said no tone)
+- 🟢 **2. The design.**
+  - Tone arrival = the node's COHERENT level (`coh_dbfs`, the verdict's own fit) ≥ `detect_rise_db` over the lane's idle floor, steady for the stability window. Noise and residuals cannot pass it, and the node has no history.
+  - The peak meter is a hint. It becomes a wrong-socket claim only if it is over its own peak floor on two sweeps 1 s apart and steady within 1 dB, so a draining latch is never claimed. Isolation is checked the same way at arrival.
+  - The removal edge exists only for the 150 Ω swap and for the hand retry of a graded fail, both on the node.
+  - Named states with a log line at each transition: `P<n> PROMPTED/ARRIVING/ARRIVED/WAITING/WRONG_SOCKET/FAILED/NO SIGNAL/RETRY` with level, floor and instrument.
+  - The dry run found a speed dependence in S153's noise step: a lead pulled within 0.35 s of the prompt could never arrive. Fixed: the prompt's own settled node reading is the first plateau. What remains is a physical floor: the socket must be open ≥ ~0.35 s between lead and plug.
+- 🟢 **3. Never past a fail without the operator (PW ~18:55).**
+  - Patch station: a timeout, wrong socket or graded FAIL / NO DATA / MISPATCH stops on the FAILED screen `['nosignal','retry','pause']` (the hub's app `1f2a7db` draws all three) and waits, with no hard bound. The detector keeps listening, and re-making the patch by hand is also a retry.
+  - Removed: the 2×timeout give-up, `reprompt`, NO DATA after `MAX_RETRIES`, `walked_past`, repark / `check_parks`, and the loop walk's automatic move. The loop walk now moves only after LEADS CORRECT.
+  - Switch panels and the encoder: no key, wrong key, wrong board or no ack stops the step. YES records it, NO lights it again.
+  - Every confirmation is logged, and a confirmed row is `judged=operator`.
+- 🟢 **PW's rulings.**
+  - No parked leads: `move_other_end`, `swap_for_plug`, `take_off`, `repark`, `move_input`/`move_output`, `park_kit_page` and unpark are retired. Every prompt is "Patch <out> to <in>." / "Fit the 150 ohm terminator in <in>.", and the kit is one bench page. The dry run proves that no screen, dialog or setup page says "other end", "stays", "park" or "leave the lead".
+  - The walk is MIC 1–24 in order, with no `walked_past` skip.
+  - Row 94 NO DATA holds "The temperature sense: the panel firmware does not send it yet." on the glass for 4 s. The report keeps the full note.
+- 🟢 **4. Dry run 57/57.** Covered:
+  - fresh socket at 0.5–10 s
+  - output-end swap at 0.3/1/5 s with the latch full
+  - noise→tone with a −54 dBFS residual and a 1 s plug
+  - 150 Ω swap with an immediate pull
+  - wrong socket, and a lead left in
+  - draining latches never claimed
+  - dead output FAILs and stops
+  - timeout waits 125 s, then still passes
+  - RETRY
+  - graded FAIL stops and is retried by hand
+  - the loop walk waits for LEADS CORRECT
+  - the panel stops and asks
+  - no forbidden words
+
+  S145/S153/S155/S128 suites updated where the ruling changed what they assert, all green. Two suites fail and predate this session: S138b `lamp_sweep_check` (fails identically at HEAD) and S127 `panel-on-glass.py` (`Args.left_cell`).
+- 🟢 **5. Deployed once, between runs** (`d24-factory` inactive, nothing running, `state.json` untouched).
+  - Backup: `/home/app/backup-s157-pre/` (`d24_patch` 62a4616c, `d24_live` 950b43b2, `d24_runall` ea21925d, `d24_panel` 81c58f3d).
+  - Deployed: `d24_patch` 86f0a78e, `d24_live` ee9a3cd9, `d24_runall` 838e722d, `d24_panel` f523142c. These equal this commit and compile on the unit; the unit's `--simulate` gives 246 PASS.
+- 🔴 **PW: one full bench pass**, then the after counts: `factory_log_table.py factory.log --since <stamp>`. Please also watch 18:04's P7 (MAIN L → MIC 1). It graded NO DATA on the node after the peak meter claimed an arrival: a bench question whether MAIN L carried.
+- 🔴 **The H1S3 rebuild that would answer row 94 is not scheduled anywhere** in dsp `tasks.md`. `Sys001SwTempFan001` sends nothing on the current H1S3 (variant B `43efd43f`, gen `46109e9fb812`). It needs an mx26/firmware dispatch: rebuild H1S3 against a generation whose firmware reads the TEMP net and publishes the cell.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
