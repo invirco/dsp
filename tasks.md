@@ -1,3 +1,21 @@
+## HUB DISPATCH 2026-09-30 17:36Z — S155: patch-station usability fixes (PW: fix and restart)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+PW 2026-09-30: "Fix and restart" — dsp RELEASED for this block now. A factory run is LIVE on MW-D24-2 (PW at the bench): when your fixes pass the dry run, you may stop it (`sudo systemctl stop d24-factory` — its handback puts the unit safe and restores the bypassed processing; runall/state.json keeps its place, never reset it), deploy with backups, then write a 🔴 line "deployed, PW press START" and stop. Do not start the run yourself.
+
+S155: factory patch-station usability fixes found at the bench 2026-09-30 (PW + hub, MW-D24-2, factory-test-v4). Deploy with backups first. dsp is otherwise on hold.
+
+1. **ALREADY-CARRYING SOCKET, SAY SO.** When a tone patch's prompt goes up and the asked-for lane is already carrying (hot0 in `d24_patch.py` ~L2564, which then requires a REMOVAL edge before any arrival counts), the glass currently waits silently and asks after 20 s. PW hit this on P1 (AUX 1 → MIC 1) with the lead already in: the run gave up and reparked to MIC 3 although the tone was arriving on MIC 1. Fix: the moment hot0 is true, the glass says "<socket> already has signal — unplug the lead and plug it back in" (panel names), and the log says so; the removal+arrival rule itself stays.
+2. **WRONG-SOCKET FALSE ALARM.** P1 logged "the tone is on MIC 15, not MIC 1" at the prompt, most likely MIC 15's own noise (the noisiest floor, −75.5 dBFS) tripping the other-lanes sweep (`_look_elsewhere` / `where_is_it`). Make the wrong-input claim require the same margin over THAT lane's own floor and the same stability window the asked-for lane gets, and prove it with the dry run on a noisy-floor lane.
+3. **NO SILENT INFINITE WAITS.** `Unit.measure()` waits on the TEST_MEAS window counter with no timeout; with stale symbols (fixed today in `e97cd357`: the station now reads the booted pair from pair.conf) it hung for ever with the glass on "working – please wait". Add a timeout (a few windows' worth) that raises a named error the glass shows, in every wait-for-counter loop of the station.
+
+Prove each on the dry run/simulator; one bench confirmation is PW's call (🔴). Commit and push main; close 🟢/🔴 with one line.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-30 16:03Z — S154: MAIN output gain clamp + main/aux/phones levels, then patch-test tool fixes   [status: 🟢 DONE, DEPLOYED — the clamp was C2_MAIN_COMP / C2_MAIN_LIM / C2_MAIN_OCOMP_01+02, uncelled and booted ON (-20 dB 4:1), now off in the generator with a validator guard; pan law is stereo constant power (law 2, boot default); MW-D24-2 is on factory-test-v4 (chip1 7caa1bf4 / chip2 4a9406ed, triple unchanged); MAIN = AUX +0.00 dB at the TX slots -32..-6 both hard pans, centre -3.01/-3.01, pan 0.25 -0.71/-8.21; patch test bypasses 219 defs-derived processing cells and restores them (proved, 0.00 dB); a resumed pass boots a dead pair (proved); phones 2 dB is a part (L/R designs identical). 🔴 bench asks: one START after a reboot; phones R1975/R1985 + input-pair check. 🔴 PW: shipping arm B md5 moved, not re-signed]   [model: opus]
 
 model: opus
