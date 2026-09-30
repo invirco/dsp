@@ -160,21 +160,20 @@ class Scripted(object):
         return dict(self.sweep)
 
 
-def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0,
-               peak_floor=None):
+def run_detect(st, live, rows, levels, presses=(), sweep=None, floor=-96.0):
     """One `detect` call against a scripted lane.
 
-    `peak_floor` defaults to `floor` (S155: `hot0` compares `lvl0` against
-    `prep['peak_floor']` on a MIC strip, not `prep['floor']`, which is the
-    node RMS) -- a caller that does not care keeps the old one-instrument
-    fiction; S155's own checks pass the two apart on purpose.
+    `floor` is the lane's node-RMS idle floor -- `prep['floor']`, the only
+    instrument tone AND noise rows read now (S155). `st._same_connection`
+    (default False, `Station.__init__`) governs whether `hot0`'s removal
+    edge applies at all; set it on `st` before calling this for a scenario
+    that needs it True.
     """
     lane = int(rows[0]['lane'])
     sc = Scripted(st, live, levels, presses, sweep)
     st.watch = sc.watch
     st.u.meter_sweep = sc.meter_sweep
     prep = dict(lane=lane, freq=1000.0, level=-12.0, floor=floor,
-                peak_floor=floor if peak_floor is None else peak_floor,
                 watch=levels[0], sweep0={})
     how, ans, dt = st.detect(rows, prep, None)
     return how, ans, dt, sc
@@ -600,18 +599,44 @@ def test_it_still_ends_if_nobody_comes_back():
 # ---------------------------------------------------------------------------
 # 6. the removal edge
 # ---------------------------------------------------------------------------
-def test_a_lane_already_carrying_needs_the_removal_edge_first():
+def test_move_the_other_end_needs_no_removal_edge():
+    """S155 P6 addendum, PW 2026-09-30 ~19:10: "the route change IS the
+    removal for other-end patches". `_prepare` rewrites the route before the
+    prompt goes up, so a "move the other end" patch's MIC input never
+    physically moves at all -- demanding a removal edge from it is what made
+    P6 (AUX 8 -> MIC 1) unpassable: the peak-hold meter's own 6.5 dB/s decay
+    could not fall `rise` dB before a fast swap re-latched it. `announce`
+    leaves `_same_connection` False for this shape (only the input matched,
+    not the output too); `detect` must not ask for a removal it will not get."""
     tmp = tempfile.mkdtemp(prefix='s145-rm-')
     st, _g, live = build(tmp, blocks=['K1'])
     rows = tone_rows(st)
-    # THE REAL CASE: "Move the other end to AUX 2" leaves the lead in the same
-    # socket, so the tone is there before the operator touches anything.
+    st._same_connection = False   # announce()'s own value for this shape
     how, _a, dt, sc = run_detect(st, live, rows, [-15.0] * 4000)
-    check('a lane that never changes is never graded, however loud it is',
+    check('a lane already carrying the RIGHT tone at the prompt grades at '
+          'once, not after a removal that can never come',
+          how == 'rise', repr(how))
+    check('... inside the stability window, nowhere near the 20 s timeout',
+          dt < 1.0, '%.3f s' % dt)
+
+
+def test_a_literal_repeat_still_needs_the_removal_edge():
+    """The one shape the addendum keeps the gate for: NEITHER end of the
+    connection changed (`_same_connection` True) -- the noise swap's own
+    shape, though noise rows never reach this branch (`tone` is false for
+    them); kept for a tone row that somehow repeats one exactly."""
+    tmp = tempfile.mkdtemp(prefix='s145-rm-same-')
+    st, _g, live = build(tmp, blocks=['K1'])
+    rows = tone_rows(st)
+    st._same_connection = True
+    how, _a, dt, sc = run_detect(st, live, rows, [-15.0] * 4000)
+    check('a literal repeat, never removed, is never graded, however loud',
           how == 'timeout', repr(how))
-    # ... and once the far end is pulled and re-made, it advances
-    st2, _g2, live2 = build(tempfile.mkdtemp(prefix='s145-rm2-'), blocks=['K1'])
+    # ... and once it is pulled and re-made, it advances
+    st2, _g2, live2 = build(tempfile.mkdtemp(prefix='s145-rm-same2-'),
+                            blocks=['K1'])
     rows2 = tone_rows(st2)
+    st2._same_connection = True
     how2, _a2, dt2, sc2 = run_detect(
         st2, live2, rows2, [-15.0] * 5 + [-96.0] * 5 + [-15.0] * 40)
     check('a removal followed by an arrival IS graded', how2 == 'rise',
@@ -829,7 +854,8 @@ def main():
                test_the_wrong_input_is_named_while_they_stand_there,
                test_the_timeout_raises_the_question_and_decides_nothing,
                test_it_still_ends_if_nobody_comes_back,
-               test_a_lane_already_carrying_needs_the_removal_edge_first,
+               test_move_the_other_end_needs_no_removal_edge,
+               test_a_literal_repeat_still_needs_the_removal_edge,
                test_noise_rows_advance_on_the_drop,
                test_s138b_still_works,
                test_the_station_owns_its_own_screen_under_run_all,

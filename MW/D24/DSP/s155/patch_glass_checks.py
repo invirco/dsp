@@ -1,17 +1,36 @@
 #!/usr/bin/env python3
-"""patch_glass_checks.py -- S155 items 1 and 2, PW's bench findings on
-factory-test-v4 (2026-09-30, hub dispatch 17:36Z):
+"""patch_glass_checks.py -- S155 items 1 and 2, and the THREE addenda that
+followed, all one root cause: the strip's PEAK meter is a decaying LATCH
+(6.5 dB/s, S153) and `detect` used to read it as if it were the lane's
+present-tense state.
 
-  1. ALREADY-CARRYING SOCKET, SAY SO. `detect`'s removal-edge gate (S128's
-     ruling, unchanged) is right to refuse an arrival on a lane that was
-     already hot at the prompt -- but it used to do that SILENTLY, and PW hit
-     it on P1 (AUX 1 -> MIC 1, the lead already in): the glass just said
-     WAITING for 20 s and the run reparked to MIC 3 while the tone sat on
-     MIC 1 the whole time.
+  1. ALREADY-CARRYING SOCKET (P1, AUX 1 -> MIC 1, hub ~18:50 / PW ~19:00).
+     `hot0` compared the PEAK meter against the node RMS floor -- two
+     instruments -- and an idle lane's own peak/RMS gap alone cleared
+     `detect_rise_db` with nothing plugged in at all.
   2. WRONG-SOCKET FALSE ALARM. `where_is_it`'s sweep used a flat -90 dBFS
-     cutoff, which MIC 15's own floor (-75.5 dBFS, the noisiest on the unit,
-     S153) clears on its own with nothing plugged in at all -- most likely
-     what told P1 "the tone is on MIC 15" while it sat on MIC 1.
+     cutoff on the peak meter, which MIC 15's own floor clears on its own.
+  3. P6 (AUX 8 -> MIC 1, hub ~19:10): a "move the other end" patch's MIC
+     input never physically moves -- the runner rewrites the ROUTE before
+     the prompt -- so the peak meter is mid-decay from the OLD donor, not
+     reading the new state. A swap faster than ~1.9 s (12 dB / 6.5 dB/s)
+     re-latches the meter on the NEW tone before the removal edge's `lo`
+     ever fell far enough, and the step could never pass, however correct.
+  4. P56 (MIC 24, hub ~19:20): the THIRD face of the same thing -- an EMPTY
+     socket read hot0 True because the peak meter was still decaying from
+     that lane's OWN previous gain-63 noise step (lvl0 -63.7, floor0
+     -101.7 node RMS).
+
+THE FIX, all three addenda: tone rows are judged on the MEASUREMENT NODE
+(RMS) throughout -- `lvl0`, `floor0`, and every poll -- never the strip's
+peak meter, which no longer appears anywhere in `detect`'s own arrival or
+hot0 path (only `_look_elsewhere`'s independent 1 s sweep still reads it,
+for item 2). The removal edge itself survives, gated on
+`self._same_connection` (set in `announce`/`find_loop`): true only when
+NEITHER end of the connection changed since the last prompt -- the noise
+swap's own shape, which never reaches this branch anyway (`_noise_met`
+judges noise rows). "Move the other end" no longer qualifies: the route
+write a moment ago already IS the removal.
 
 No unit, no bus: this reuses S145's own harness (`build`, `run_detect`,
 `Scripted`, a real `Live` behind a real `Station`) rather than rebuilding it,
@@ -69,18 +88,88 @@ def watched_screens(fn):
 
 
 # ---------------------------------------------------------------------------
-# 1. ALREADY-CARRYING SOCKET, SAY SO
+# 1. TONE ROWS NEVER READ THE PEAK METER ANY MORE -- the structural check
+#    that covers all three addenda (P1, P6, P56) in one proof: whatever
+#    story the peak meter's decay would tell, `detect`'s own lvl0/floor0/poll
+#    path for a tone row cannot hear it, because it never calls `meter_peak`.
 # ---------------------------------------------------------------------------
-def test_already_carrying_says_so_at_once():
+def test_hot0_and_arrival_never_touch_the_peak_meter():
+    """P56 addendum, PW ~19:20: an EMPTY MIC 24 read hot0 True because the
+    peak meter was still decaying from that SAME lane's own previous gain-63
+    noise step (lvl0 -63.7, floor0 -101.7 node RMS) -- a THIRD face of P1 and
+    P6's shared cause. `Scripted` overrides `meter_sweep` wholesale for this
+    harness, so the only thing that could call `meter_peak` during a plain
+    `detect()` is `watch`'s own peak branch -- which a tone row no longer
+    reaches at all."""
+    tmp = tempfile.mkdtemp(prefix='s155-p56-struct-')
+    st, _g, live = H.build(tmp, blocks=['K1'])
+    rows = H.tone_rows(st)
+    calls = []
+    orig_peak = st.u.meter_peak
+
+    def traced(strip):
+        calls.append(strip)
+        return orig_peak(strip)
+    st.u.meter_peak = traced
+
+    def go():
+        # an idle lane at the prompt (no lead, nothing driving it, just like
+        # P56's MIC 24), the operator's own plug about a second later.
+        return H.run_detect(st, live, rows, [-96.0] * 20 + [-12.0] * 40)
+    (how, _a, dt, _sc), _seen = watched_screens(go)
+    check('the step still arrives cleanly', how == 'rise', repr(how))
+    check('detect never touched the peak meter for this lane',
+          not calls, repr(calls))
+
+
+def test_p56_noise_to_tone_transition_with_a_1s_plug():
+    """The realistic P56 numbers (hub ~19:20): lvl0 -63.7, floor0 -101.7 on
+    the OLD peak-vs-RMS comparison -- a 38 dB gap that cleared `rise` with
+    NOTHING plugged in, purely from that lane's own gain-63 noise step still
+    draining on the peak meter. On the node, with nothing plugged, the lane
+    reads its own idle RMS floor; the operator's plug about a second later
+    is what actually moves it."""
+    tmp = tempfile.mkdtemp(prefix='s155-p56-')
+    st, _g, live = H.build(tmp, blocks=['K1'])
+    logs = []
+    st.log = logs.append
+    rows = H.tone_rows(st)
+    idle_rms = -101.7
+
+    def go():
+        return H.run_detect(st, live, rows,
+                            [idle_rms] * 20 + [-12.0] * 40, floor=idle_rms)
+    (how, _a, dt, _sc), _seen = watched_screens(go)
+    check('no false hot0 from a previous noise step\'s decay', how == 'rise',
+          repr(how))
+    check('... on the plug-in, not after 20 s of a removal that could never '
+          'come (RMS polling costs a settle window a poll, so this is a few '
+          'poll cycles, not the old peak meter\'s near-instant one)',
+          dt < 2.0, '%.3f s' % dt)
+    check('the log shows hot0 False, on the node RMS, not the peak meter',
+          any('hot0 False' in s and 'node RMS' in s for s in logs[:2]),
+          repr(logs[:2]))
+
+
+# ---------------------------------------------------------------------------
+# 1b. THE REMOVAL EDGE SURVIVES FOR ONE SHAPE ONLY: `_same_connection`
+#     (S155 P6 addendum, PW ~19:10 -- "the route change IS the removal for
+#     other-end patches"; the mechanism itself is exercised in S145's own
+#     `test_move_the_other_end_needs_no_removal_edge` and
+#     `test_a_literal_repeat_still_needs_the_removal_edge`). Here: the UX
+#     line PW's original item 1 asked for, proved on the one case it can
+#     still fire on.
+# ---------------------------------------------------------------------------
+def test_already_carrying_says_so_when_it_is_a_literal_repeat():
     tmp = tempfile.mkdtemp(prefix='s155-hot0-')
     st, _g, live = H.build(tmp, blocks=['K1'])
     logs = []
     st.log = logs.append
     rows = H.tone_rows(st)
     wanted = rows[0]['in']
-    # PW's P1: AUX 1 already in MIC 1 when the prompt goes up. The removal
-    # (the operator pulls it, S128's gate) comes a beat later, then the real
-    # arrival.
+    st._same_connection = True    # the one shape hot0 still applies to
+    # already carrying at the prompt; the removal (the operator pulls it,
+    # S128's gate) comes a beat later, then the real arrival.
     script = [-15.0] * 5 + [-96.0] * 5 + [-15.0] * 40
 
     def go():
@@ -99,14 +188,37 @@ def test_already_carrying_says_so_at_once():
           any('the lead came out of' in s for s in logs), repr(logs))
 
 
+def test_move_the_other_end_never_says_already_carrying():
+    """The control the whole P6 fix is about: a "move the other end" patch
+    (`_same_connection` False, `announce`'s own default) that is already
+    carrying the RIGHT tone at the prompt is NOT hot0 -- it just arrives,
+    with no removal line and no already-carrying line either."""
+    tmp = tempfile.mkdtemp(prefix='s155-hot0-p6-')
+    st, _g, live = H.build(tmp, blocks=['K1'])
+    rows = H.tone_rows(st)
+    wanted = rows[0]['in']
+    st._same_connection = False
+
+    def go():
+        return H.run_detect(st, live, rows, [-7.6] * 4000)
+    (how, _a, dt, _sc), seen = watched_screens(go)
+    check('it arrives at once, not after a removal that will never come',
+          how == 'rise', repr(how))
+    check('... and never once says "already has signal" -- this shape is '
+          'not hot0 any more',
+          not any(d.get('status') == LV.status_already_carrying(wanted)
+                  for d in seen),
+          repr(sorted({d.get('status') for d in seen})[:6]))
+
+
 def test_a_lane_that_was_never_hot_gets_the_plain_screen():
-    """The control: a lane that is QUIET at the prompt must get the ordinary
-    WAITING words, never the already-carrying line -- this is a status for a
-    real condition, not a new default."""
+    """The other control: a lane that is QUIET at the prompt must get the
+    ordinary WAITING words, never the already-carrying line."""
     tmp = tempfile.mkdtemp(prefix='s155-hot0-control-')
     st, _g, live = H.build(tmp, blocks=['K1'])
     rows = H.tone_rows(st)
     wanted = rows[0]['in']
+    st._same_connection = True
 
     def go():
         return H.run_detect(st, live, rows, [-96.0] * 5 + [-15.0] * 40)
@@ -117,82 +229,6 @@ def test_a_lane_that_was_never_hot_gets_the_plain_screen():
           not any(d.get('status') == LV.status_already_carrying(wanted)
                   for d in seen),
           repr(sorted({d.get('status') for d in seen})[:6]))
-
-
-# ---------------------------------------------------------------------------
-# 1b. THE P1 REPRODUCTION (hub addendum 2026-09-30 ~18:50, PW ~19:00): an
-#     IDLE lane whose peak floor reads >12 dB over its RMS floor -- no lead
-#     in before START, nothing plugged until the prompt (PW's own words:
-#     "nothing was plugged before start, it was only plugged when asked").
-# ---------------------------------------------------------------------------
-def test_p1_an_idle_lane_with_a_loud_peak_floor_still_arrives():
-    """The exact bug: MIC 1's own peak-hold floor sits >12 dB over its node
-    RMS floor -- nothing to do with a lead, the same lane on two different
-    instruments. The OLD `hot0` (peak `lvl0` against the RMS `floor`) read
-    that gap alone as "already carrying" on a socket with nothing in it, so
-    the removal edge it then demanded never came and the step burned its
-    full 40 s before the operator's own plug-in at the prompt (the real
-    sequence PW confirmed) was ever counted."""
-    tmp = tempfile.mkdtemp(prefix='s155-p1-')
-    st, _g, live = H.build(tmp, blocks=['K1'])
-    logs = []
-    st.log = logs.append
-    rows = H.tone_rows(st)
-    lane = int(rows[0]['lane'])
-    rms_floor = -90.0
-    peak_floor = -76.0          # 14 dB over the RMS floor -- MIC 15's own
-                                # gap (S153) is 75.5 dBFS on a -90ish RMS unit
-    rise = st.lim['detect_rise_db']
-    assert peak_floor - rms_floor > rise, 'the scenario has to clear `rise`'
-
-    # NOTHING PLUGGED BEFORE THE PROMPT: the lane sits at its own idle peak
-    # reading (not the RMS number -- the peak meter never reads the RMS
-    # floor, that is the whole bug) until poll 5, when the operator's plug
-    # -- the real sequence -- brings the tone up.
-    script = [peak_floor] * 5 + [-12.0] * 40
-
-    def go():
-        return H.run_detect(st, live, rows, script, floor=rms_floor,
-                            peak_floor=peak_floor)
-    (how, _a, dt, sc), seen = watched_screens(go)
-    check('the OLD bug is real: peak vs RMS alone would have said hot0',
-          (peak_floor - rms_floor) >= rise, '%.1f dB gap' % (peak_floor
-                                                             - rms_floor))
-    check('the FIXED station still arrives -- same instrument, no false '
-          'removal demand', how == 'rise', repr(how))
-    check('... at the plug-in, not after 40 s of a removal that could never '
-          'come', dt < 2.0, '%.2f s' % dt)
-    check('... and the log shows hot0 False, on the peak floor, not the '
-          'RMS one',
-          any('hot0 False' in s and '(peak)' in s for s in logs[:2]),
-          repr(logs[:2]))
-
-
-def test_p1_vs_p3_why_lane_1_differs_from_lane_3():
-    """PW's own question: what did the two lanes' idle peak readings say?
-    Modelled here with MIC 3's crest factor small enough that its peak never
-    clears the RMS floor by `rise` -- `hot0` is False on BOTH instrument
-    choices for MIC 3, which is why the bench saw it pass normally while
-    MIC 1, with the larger gap, was the one the old code broke on."""
-    tmp = tempfile.mkdtemp(prefix='s155-p1vp3-')
-    st, _g, live = H.build(tmp, blocks=['K1'])
-    rows = H.tone_rows(st)
-    rise = st.lim['detect_rise_db']
-    mic1_rms, mic1_peak = -90.0, -76.0     # gap 14 dB: clears `rise`
-    mic3_rms, mic3_peak = -90.0, -85.0     # gap  5 dB: does not
-    check('MIC 1\'s modelled gap clears `rise` -- this is the one hot0 broke '
-          'on', (mic1_peak - mic1_rms) >= rise,
-          '%.1f dB' % (mic1_peak - mic1_rms))
-    check('MIC 3\'s modelled gap does not -- consistent with it passing '
-          'normally on the bench',
-          (mic3_peak - mic3_rms) < rise, '%.1f dB' % (mic3_peak - mic3_rms))
-
-    def go():
-        return H.run_detect(st, live, rows, [mic3_peak] * 5 + [-12.0] * 40,
-                            floor=mic3_rms, peak_floor=mic3_peak)
-    (how, _a, dt, _sc), _seen = watched_screens(go)
-    check('and on the fixed code MIC 3\'s own step arrives cleanly either way',
-          how == 'rise' and dt < 2.0, '%s %.2f s' % (how, dt))
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +326,7 @@ def test_a_single_noisy_sweep_is_not_enough_it_has_to_hold():
     st.watch = sc.watch
     st.u.meter_sweep = one_shot_sweep
     prep = dict(lane=lane, freq=1000.0, level=-12.0, floor=-96.0,
-               peak_floor=-96.0, watch=-96.0, sweep0={})
+               watch=-96.0, sweep0={})
 
     def go():
         return st.detect(rows, prep, None)
@@ -314,10 +350,11 @@ def test_s145_still_passes():
 
 
 def main():
-    for fn in (test_already_carrying_says_so_at_once,
+    for fn in (test_hot0_and_arrival_never_touch_the_peak_meter,
+               test_p56_noise_to_tone_transition_with_a_1s_plug,
+               test_already_carrying_says_so_when_it_is_a_literal_repeat,
+               test_move_the_other_end_never_says_already_carrying,
                test_a_lane_that_was_never_hot_gets_the_plain_screen,
-               test_p1_an_idle_lane_with_a_loud_peak_floor_still_arrives,
-               test_p1_vs_p3_why_lane_1_differs_from_lane_3,
                test_a_loud_floor_sitting_still_is_never_named,
                test_the_same_lane_genuinely_carrying_is_still_named,
                test_a_single_noisy_sweep_is_not_enough_it_has_to_hold,

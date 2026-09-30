@@ -2028,6 +2028,15 @@ class Station:
         self._last_in = None     # so the noise step can say 'take the lead out'
         self._last_out = None    # and so a patch where ONLY the other end
                                  # moves can say which end (S129, item 7)
+        # IS THIS PATCH'S CONNECTION LITERALLY THE SAME ONE AS LAST TIME (S155
+        # P6 addendum, PW ~19:10)? Set in `announce`/`find_loop` from
+        # `_last_in`/`_last_out` BEFORE those are overwritten for the current
+        # row, so `detect` can tell "only the other end moved" (the route was
+        # just rewritten -- that rewrite IS the removal) from a true repeat
+        # (nothing rewired at all -- the noise swap's own shape, though noise
+        # rows never reach `detect`'s hot0 branch; kept for a tone row that
+        # somehow repeats one exactly).
+        self._same_connection = False
         # The parked ends, bound by the first step and not before it (S123
         # addendum 3). Until the loop is found there is no such thing as a
         # known-good socket, so there is nothing to park on.
@@ -2231,7 +2240,6 @@ class Station:
         self.mj_arm(rows)
         return dict(lane=lane, freq=freq, level=lvl,
                     floor=self.floors.get(lane),
-                    peak_floor=self.peak_floors.get(lane),
                     watch=self.watch(lane),
                     sweep0=self.u.meter_sweep(MIC_STRIPS))
 
@@ -2633,40 +2641,54 @@ class Station:
         # the lead's state; the plateau tracker in `_noise_met` owns everything
         # after that.
         self._plateaus, self._run, self._left = [], [], False
-        lvl0 = (self.watch(lane) if tone else
-                self.watch(lane, rms=True,
-                           settle=self.u.settle_owed(SETTLE_WINDOWS)))
+        # TONE ROWS ARE NOW JUDGED ON THE MEASUREMENT NODE TOO (S155 P6
+        # addendum, PW ~19:10). They used to read the strip's PEAK meter --
+        # cheap, no settle -- but that meter is a PEAK-HOLD LATCH draining at
+        # 6.5 dB/s (S153), and on a "move the other end" patch the MIC input
+        # never physically moves: the runner rewrites the route before the
+        # prompt, so at the prompt the meter is mid-DECAY from whatever the
+        # OLD donor left there, not reading the new state. `lo` (the extreme
+        # since the prompt) could only fall `rise` dB once ~1.9 s of that
+        # decay had passed; a swap faster than that re-latched the meter on
+        # the NEW tone before `lo` ever got low enough, and `lvl - lo` could
+        # then never reach `rise` -- the step could not pass, ever, however
+        # correct the patch was (P6 AUX 8 -> MIC 1, bench 2026-09-30 ~19:05).
+        # The node has no such history: it reads what is on the lane now.
+        lvl0 = self.watch(lane, rms=True,
+                          settle=self.u.settle_owed(SETTLE_WINDOWS))
         if not tone and lvl0 is not None:
             self._noise_met(r, lvl0, drop)
-        floor = prep.get('floor')
-        # SAME INSTRUMENT AS lvl0, OR IT IS NOT A FLOOR (S155 item 1, PW
-        # 2026-09-30 ~19:00 ruling: "a real bug ... the hot0 baseline and the
-        # floor must be the same instrument"). For a MIC strip `lvl0` just
-        # came off the PEAK meter (`watch`'s own branch); `prep['floor']` is
-        # the NODE RMS, a different instrument entirely, and a peak-hold
-        # latch reads comfortably >12 dB over an RMS floor on ordinary idle
-        # noise alone -- no lead, no transient, nothing the operator did.
-        # That is what P1 hit every single run (AUX 1 -> MIC 1, hub addendum
-        # 2026-09-30 ~18:50 and PW's confirmation at ~19:00 that nothing was
-        # plugged before the prompt): MIC 1's peak floor cleared its RMS
-        # floor by more than `rise` on its own, `hot0` came back True on an
-        # empty socket, and the removal edge it then demanded never arrived.
-        floor0 = prep.get('peak_floor') if lane in MIC_STRIPS else floor
-        hot0 = bool(tone and lvl0 is not None and math.isfinite(lvl0)
-                    and floor0 is not None and lvl0 - floor0 >= rise)
+        # `floor0` IS THE LANE'S IDLE FLOOR, SAME INSTRUMENT AS `lvl0` NOW
+        # (S155 item 1's own lesson: hot0's old peak-vs-RMS mismatch is what
+        # broke P1). Tone rows read `prep['floor']` (node RMS, from
+        # `self.floors` via `_prepare`) throughout, never `peak_floor` any
+        # more -- that dict still exists for `where_is_it`'s cheap 24-lane
+        # sweep, which stays on the peak meter (item 2).
+        floor0 = prep.get('floor')
+        # THE REMOVAL EDGE, ONLY WHEN NEITHER END OF THE CONNECTION CHANGED
+        # (S155 P6 addendum). "Move the other end" -- S128's own named case
+        # for this gate -- no longer qualifies: `_prepare` already rewrote
+        # the route a moment ago, and THAT rewrite is the removal. What is
+        # left is a literal repeat of the same (in, out) pair -- the noise
+        # swap's shape, though noise rows never reach this branch (`tone` is
+        # false for them) -- kept here only in case a tone row ever repeats
+        # one exactly.
+        same_connection = bool(tone and self._same_connection)
+        hot0 = bool(same_connection and lvl0 is not None
+                    and math.isfinite(lvl0) and floor0 is not None
+                    and lvl0 - floor0 >= rise)
         removal = 'not needed' if not hot0 else None
         # THE PROMPT'S OWN NUMBERS, EVERY TIME (hub addendum 2026-09-30
         # ~18:50, item a). Without this the only way to tell "hot0 tripped on
         # an idle lane" from "the operator really did leave the lead in" was
         # to read the bench, not the log.
         if tone:
-            self.log('%s: %s at the prompt: lvl0 %s, floor0 %s (%s), rise '
-                     '%.1f dB, hot0 %s'
+            self.log('%s: %s at the prompt: lvl0 %s, floor0 %s (node RMS), '
+                     'rise %.1f dB, same connection as last time %s, hot0 %s'
                      % (r['patch'], r['in'],
                         ('%.1f' % lvl0) if lvl0 is not None else '--',
                         ('%.1f' % floor0) if floor0 is not None else '--',
-                        'peak' if lane in MIC_STRIPS else 'node RMS',
-                        rise, hot0))
+                        rise, same_connection, hot0))
         # SAY SO, THE MOMENT IT'S TRUE (PW 2026-09-30, S155). Silence here is
         # what sent P1 to the 20 s timeout with the tone sitting on MIC 1 the
         # whole time -- the screen still said plain WAITING, so there was
@@ -2677,13 +2699,6 @@ class Station:
                      'owed before any arrival counts'
                      % (r['patch'], r['in']))
             self.waiting(status=LV.status_already_carrying(r['in']))
-        # AND IT SEEDS THE EXTREMES. The lane at the prompt is part of "since the
-        # prompt went up" -- it IS the moment the prompt went up -- so the
-        # quietest-so-far and loudest-so-far start there rather than at the first
-        # poll afterwards. Without this the first poll is its own baseline and a
-        # lane that was quiet at the prompt and loud one poll later never shows a
-        # rise at all.
-        lo = hi = (lvl0 if lvl0 is not None and math.isfinite(lvl0) else None)
         # The wrong-input sweep's own clock. The first one is owed a moment's
         # grace: at t0 the PREVIOUS patch's lead is very often still in its
         # socket, and naming that as a misplaced lead would be a red screen
@@ -2720,14 +2735,19 @@ class Station:
                 else:
                     return ('glass', ans, now() - t0)
             met = False
-            lvl = self.watch(lane) if tone else self.watch(lane, rms=True)
+            # BOTH ROW TYPES READ THE NODE NOW (S155 P6 addendum). A strip's
+            # peak meter is gone from this loop entirely -- `_look_elsewhere`
+            # (item 2) is the only thing left reading it, on its own 1 s
+            # sweep, and that never gates `met`.
+            lvl = self.watch(lane, rms=True)
             if lvl is not None and math.isfinite(lvl):
-                lo = lvl if lo is None else min(lo, lvl)
-                hi = lvl if hi is None else max(hi, lvl)
                 # NOT STICKY, and that is what makes the test honest: it is
                 # against the level RIGHT NOW, so a lead that went in and came
-                # out again reads as out.
-                met = ((lvl - lo >= rise) if tone
+                # out again reads as out. A tone row is met once it clears
+                # `rise` over its OWN IDLE FLOOR (`floor0`, same instrument) --
+                # not a `lo` tracked since the prompt, which is exactly the
+                # peak-hold latch's own decaying history by another name.
+                met = ((floor0 is not None and lvl - floor0 >= rise) if tone
                        else self._noise_met(r, lvl, drop))
                 # THE REMOVAL EDGE, for a lane that was already carrying. Until
                 # it has fallen back by the same threshold an arrival has to
@@ -3915,6 +3935,11 @@ class Station:
                     self.announce(pid, [row])
                     first = False
                 else:
+                    # A new candidate strip each time (`dead_in` rules out a
+                    # repeat), so this is never the same connection -- and
+                    # `announce` is skipped here, so nothing else would clear
+                    # a stale True from an earlier row (S155 P6 addendum).
+                    self._same_connection = False
                     self.live.set(state=LV.WAITING,
                                   instruction=(LV.move_input(name,
                                                              not self.auto)
@@ -4033,8 +4058,16 @@ class Station:
             line = LV.move_other_end(r['out'], r['in'], confirm=not self.auto)
         else:
             line = LV.instruction_for(r, confirm=not self.auto)
+        # SAME CONNECTION AS LAST TIME, OR NOT (S155 P6 addendum): read
+        # BEFORE `_last_in`/`_last_out` move on to this row, and true only
+        # when NEITHER end changed -- "only the other end moves" is a
+        # DIFFERENT case (the route write a moment ago already changes what
+        # this input carries) and must not set it.
+        cur_out = (r.get('out') or '').strip() or None
+        self._same_connection = (self._last_in == r['in']
+                                 and cur_out == self._last_out)
         self._last_in = r['in']
-        self._last_out = (r.get('out') or '').strip() or None
+        self._last_out = cur_out
         self.live.set(state=LV.WAITING, instruction=line,
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
