@@ -964,14 +964,12 @@ class Builder:
         gain steps, so the collision is put where it costs one folded sentence
         and hands the operator the lead the TRS block needs next.
         """
-        left = list(self.strips())
-        if not self.park_kit:
-            return left
-        _name, strip = self.kit()['K2']['lane'], None
-        strip = self.kit()['K2']['lane']
-        if strip in left and len(left) > 1:
-            left = [n for n in left if n != strip] + [strip]
-        return left
+        # PW RULING 2026-09-30: the walk goes 1-24 IN ORDER, no exceptions
+        # ("I see no reason not to"). The jack lead's parked input is NOT moved
+        # to the end any more: at that input the folded "take the jack lead
+        # out first" sentence (unpark, block_k1_inputs) carries the collision,
+        # which is what it was written for.
+        return list(self.strips())
 
     def park_in2(self):
         """The input the jack-to-XLR lead parks in: the first working input
