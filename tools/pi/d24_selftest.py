@@ -1844,11 +1844,35 @@ def _lane_verdict(r, rows, want, label, limit):
 # reading there is the product, not a fault.
 ADC_OF_LANE = {0: 'U15', 1: 'U39', 2: 'U60'}
 
+# THE PER-UNIT EXEMPTION (S153). All three converters are judged. MW-D24-2 ran
+# without U15's front ends from S86 to PW's rev C mods of 2026-09-30 -- panel
+# mics 1-4 and 13-16, XLRs J15-J22, preamps U17-U31 -- and this row used to
+# exempt U15 for EVERY unit, which is a verdict written for one board. A unit
+# that really lacks a group's front ends says so in this file, on that unit:
+# one converter ref per line (`U15`), `#` comments. No file, or an empty one,
+# means all three are scored. A ref that is not a converter is refused loudly
+# rather than read as "exempt nothing", because a typo would otherwise hide.
+ADC_EXEMPT_CONF = '/home/app/selftest/adc-exempt.conf'
 
-def t_asadc(r):
+
+def adc_exempt(path=ADC_EXEMPT_CONF):
+    """(set of exempt converter refs, list of unknown words) from this unit's
+    exemption file; both empty when there is no file."""
+    out, bad = set(), []
+    try:
+        with open(path) as fh:
+            for ln in fh:
+                for w in ln.split('#', 1)[0].replace(',', ' ').split():
+                    (out.add(w) if w in ADC_OF_LANE.values() else bad.append(w))
+    except OSError:
+        pass
+    return out, bad
+
+
+def t_asadc(r, exempt_path=ADC_EXEMPT_CONF):
     """Per-lane activity on the mic inputs, grouped by the converter that feeds
-    them. The verdict is on U39 and U60: U15's eight have no front end fitted on
-    MW-D24-2 (measured S86) and are reported, not scored."""
+    them. The verdict is on all three converters, less any this unit's
+    `adc-exempt.conf` names (reported, not scored)."""
     txt = rxscan(r)
     rows = []
     for ln in _lane_rows(txt):
@@ -1862,8 +1886,21 @@ def t_asadc(r):
             continue
     an = r.an_en()
     raw = 'AN_EN (GPIO%d) = %s\n%s' % (AN_EN_GPIO, an, '\n'.join(_lane_rows(txt)))
+    exempt, bad = adc_exempt(exempt_path)
+    judged = [a for a in sorted(ADC_OF_LANE.values()) if a not in exempt]
+    limit = '%s lanes alive and not stuck-at' % ' and '.join(judged or ['no'])
+    if exempt:
+        limit += ' (%s exempt on this unit, %s)' % (
+            ', '.join(sorted(exempt)), os.path.basename(exempt_path))
+    if bad:
+        return (NODATA, '%s names %s, which is not one of %s'
+                % (exempt_path, ', '.join(bad), '/'.join(sorted(ADC_OF_LANE.values()))),
+                limit, raw)
+    if not judged:
+        return (NODATA, '%s exempts every converter, so nothing is judged'
+                % exempt_path, limit, raw)
     if not rows:
-        return NODATA, 'no IN_* lanes in the scan', 'U39 and U60 lanes alive and not stuck-at', raw
+        return NODATA, 'no IN_* lanes in the scan', limit, raw
     by = {}
     for name, lane, state, rms, distinct in rows:
         by.setdefault(lane, []).append((name, state, rms, distinct))
@@ -1871,25 +1908,29 @@ def t_asadc(r):
     for lane in sorted(by):
         live = [x for x in by[lane] if x[1] == 'CARRYING']
         tag = ADC_OF_LANE.get(lane, 'strips 25-32, NET-only (no D24 ADC)')
+        if ADC_OF_LANE.get(lane) in exempt:
+            tag += ', exempt'
         parts.append('lane %d (%s): %d/%d CARRYING, rms %s dBFS'
                      % (lane, tag, len(live), len(by[lane]),
                         '%.1f..%.1f' % (min(x[2] for x in by[lane]),
                                         max(x[2] for x in by[lane]))))
-    scored = [lane for lane in by if ADC_OF_LANE.get(lane) in ('U39', 'U60')]
-    ok = bool(scored) and all(all(x[1] == 'CARRYING' for x in by[lane]) for lane in scored)
+    scored = [lane for lane in by if ADC_OF_LANE.get(lane) in judged]
+    missing = [a for a in judged if a not in [ADC_OF_LANE.get(l) for l in scored]]
     m = '; '.join(parts)
+    if missing:
+        return NODATA, m + '; no lanes in the scan for %s' % ', '.join(missing), \
+            limit, raw
+    ok = all(all(x[1] == 'CARRYING' for x in by[lane]) for lane in scored)
     if ok:
-        return PASS, m, 'U39 and U60 lanes alive and not stuck-at (U15\'s eight known dead)', \
-            raw + '\nU15 (lane 0) has no front end fitted on MW-D24-2 -- panel mics 1-4 and ' \
-                  '13-16, XLRs J15-J22, preamps U17-U31, measured S86. Its lanes are reported ' \
-                  'and not scored; the CONVERTER is fine, the front end is absent.'
+        return PASS, m, limit, raw + (
+            '\nExempt on this unit by %s: %s -- reported, not scored.'
+            % (exempt_path, ', '.join(sorted(exempt))) if exempt else '')
     if 'hi' not in an:
-        return (NODATA, m,
-                'U39 and U60 lanes alive and not stuck-at',
+        return (NODATA, m, limit,
                 raw + '\nPREREQUISITE: the analog rails. AN_EN (GPIO26) is low; raise them with '
                       '`sudo pinctrl set 26 op dh` and re-take. With them down a STATIC lane here '
                       'is the test state, not a converter fault.')
-    return FAIL, m, 'U39 and U60 lanes alive and not stuck-at', raw
+    return FAIL, m, limit, raw
 
 
 # RETIRED AS A MEASUREMENT (S124-4, ruled by measurement in S125).

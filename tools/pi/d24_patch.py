@@ -2163,7 +2163,7 @@ class Station:
         finally:
             self.mj.close()
 
-    def watch(self, lane):
+    def watch(self, lane, rms=False, settle=0):
         """The cheap level the auto-advance polls, in dB.
 
         A strip has a meter node and a meter needs no settling window, so a
@@ -2172,13 +2172,84 @@ class Station:
         meter of their own, so those patches watch the measurement node's own
         RmsResult instead: MeasChan is already pointed at them and is not
         moving, so the reading costs one SPI read and no settle.
+
+        `rms=True` is the NOISE step's instrument on every lane, strips too
+        (S153). The strip meter is a peak-hold latch: on noise at gain 63 it is
+        a sawtooth of random peaks draining at 6.52 dB/s, which is what made
+        the 150 ohm step take 14-17 s, and at the prompt it is still holding
+        the gain step's tone, which is what made the other steps end at 2.7 s
+        on the drain alone. The node's RMS over one 85.3 ms window is steady
+        to tenths of a dB on a terminated input. Each poll waits for the NEXT
+        window (`settle` >= 1) so no two readings are the same window, and
+        `settle` is what the caller owes on top of that.
         """
-        if lane in MIC_STRIPS:
+        if lane in MIC_STRIPS and not rms:
             v = self.u.meter_peak(lane)
             return dbv(v) if v else None
-        m = self.u.measure(None, 0.0, windows=1, settle=0)
+        m = self.u.measure(None, 0.0, windows=1,
+                           settle=max(1, settle) if rms else 0)
         v = m.get('rms')
         return v if v is not None and math.isfinite(v) else None
+
+    def _noise_met(self, r, lvl, drop):
+        """The 150 ohm step's arrival test, on the node's RMS (S153).
+
+        THE SWAP IS TWO MOVES, AND BOTH HAVE TO BE SEEN. At the prompt the tone
+        lead is still in, carrying AUX 1's idle output lifted 53 dB (S55: about
+        -51 dBFS). The operator pulls it (the input goes OPEN, -78..-82 dBFS on
+        the powered channels, S125) and fits the plug (TERMINATED, -86..-93,
+        S55). A test on the level alone cannot tell open from terminated on
+        every channel -- S55 found its own -70 dBFS rule could not on J31, and
+        MIC 17's open input sat at -52 in S125 -- so this one reads the SHAPE.
+
+        The lane is cut into PLATEAUS: a plateau is DETECT_STABLE_BLOCKS of
+        readings within DETECT_STEADY_DB, and a new one starts only after the
+        lane has left the last one by `drop` (a level change or the crackle of
+        a connector). The first is the lead as prompted. The plug is in when
+        the lane is `drop` below that first plateau AND `drop` below a LATER
+        one -- the open input it was pulled to. So:
+
+          * the lead left in never leaves its plateau: never met;
+          * the lead pulled and nothing fitted is one step down: never met;
+          * pull then plug is two: met, and the stability window grades it.
+
+        What it cannot see: a wiggle that leaves the lead in and settles for
+        256 ms before the pull reads as a plateau of its own; and a channel
+        whose open and terminated levels sit within `drop` of each other has
+        no second step to find. Both go to the timeout question, not to a
+        grade.
+        """
+        t = now()
+        span = DETECT_STABLE_BLOCKS * WIN_S
+        pl = self._plateaus
+        if pl and abs(lvl - pl[-1]) >= drop:
+            self._left = True
+        run = self._run + [(t, lvl)]
+        while max(v for _, v in run) - min(v for _, v in run) > DETECT_STEADY_DB:
+            run.pop(0)
+        self._run = run
+        if (len(run) >= DETECT_STABLE_SAMPLES
+                and run[-1][0] - run[0][0] + WIN_S >= span):
+            m = sum(v for _, v in run) / len(run)
+            if not pl:
+                pl.append(m)
+                self.log('%s: %s as the prompt went up: %.1f dBFS (node RMS)'
+                         % (r['patch'], r['in'], m))
+            elif self._left:
+                pl.append(m)
+                self._left = False
+                if len(pl) == 2 and m <= pl[0] - drop:
+                    self.log('%s: the lead came out of %s (%.1f -> %.1f dBFS)'
+                             % (r['patch'], r['in'], pl[0], m))
+                elif abs(m - pl[-2]) >= drop:
+                    # a re-settle at the same level (an open input's pops) is
+                    # a plateau of its own and says nothing worth a line
+                    self.log('%s: %s settled again at %.1f dBFS'
+                             % (r['patch'], r['in'], m))
+            else:
+                pl[-1] = m
+        return bool(len(pl) >= 2 and lvl <= pl[0] - drop
+                    and any(o - lvl >= drop for o in pl[1:]))
 
     def prearm_ok(self, rows):
         """Whether this patch's reading may be taken before ENTER (ruling d).
@@ -2388,7 +2459,18 @@ class Station:
         # would grade a patch nobody had made yet. The gate is therefore: until
         # the lane has been seen to LEAVE the state it was prompted in, no
         # arrival counts.
-        lvl0 = self.watch(lane)
+        #
+        # A NOISE ROW READS THE NODE'S RMS AND ITS FIRST READING PAYS THE
+        # SETTLE (S153). `_prepare` has just turned the oscillator off and
+        # moved the chain to gain 63, so a window that straddles either is not
+        # the lead's state; the plateau tracker in `_noise_met` owns everything
+        # after that.
+        self._plateaus, self._run, self._left = [], [], False
+        lvl0 = (self.watch(lane) if tone else
+                self.watch(lane, rms=True,
+                           settle=self.u.settle_owed(SETTLE_WINDOWS)))
+        if not tone and lvl0 is not None:
+            self._noise_met(r, lvl0, drop)
         floor = prep.get('floor')
         hot0 = bool(tone and lvl0 is not None and math.isfinite(lvl0)
                     and floor is not None and lvl0 - floor >= rise)
@@ -2436,15 +2518,15 @@ class Station:
                 else:
                     return ('glass', ans, now() - t0)
             met = False
-            lvl = self.watch(lane)
+            lvl = self.watch(lane) if tone else self.watch(lane, rms=True)
             if lvl is not None and math.isfinite(lvl):
                 lo = lvl if lo is None else min(lo, lvl)
                 hi = lvl if hi is None else max(hi, lvl)
                 # NOT STICKY, and that is what makes the test honest: it is
                 # against the level RIGHT NOW, so a lead that went in and came
                 # out again reads as out.
-                met = ((hi - lvl >= drop) if not tone
-                       else (lvl - lo >= rise))
+                met = ((lvl - lo >= rise) if tone
+                       else self._noise_met(r, lvl, drop))
                 # THE REMOVAL EDGE, for a lane that was already carrying. Until
                 # it has fallen back by the same threshold an arrival has to
                 # clear, nothing on this lane is an arrival.
@@ -2500,6 +2582,9 @@ class Station:
                              banner='', banner_line='', action='')
             if self.auto and self._met_at is not None:
                 ok, why = self._stable_ok()
+                if ok and not tone:
+                    why += ', node RMS plateaus %s, now %.1f dBFS' % (
+                        ' -> '.join('%.1f' % v for v in self._plateaus), lvl)
                 if ok:
                     self.log('%s: %s after %.0f ms, present and steady '
                              '(%d blocks, %d readings, spread %s)'
@@ -4230,22 +4315,35 @@ class World:
         self.plugged_in = None
         self.plugged_out = None
         self.plugged_lanes = set()
+        self.plugged_lead = None
         self.mispatched = set()
         self.pressed = set()     # (button, patch) -- a press happens once
 
-    def plug(self, out_port, in_port, lanes):
+    # THE THREE STATES OF THE NOISE SWAP, above the terminated floor (S153).
+    # A lead left in carries AUX 1's idle output lifted 53 dB -- S55 read the
+    # loop cable at -51 dBFS against the 150 ohm's -86 on J31 -- and an open
+    # input sits between: S125's -78..-82 against S55's -86..-93.
+    LEAD_IDLE_DB = 35.0
+    OPEN_DB = 9.0
+
+    def plug(self, out_port, in_port, lanes, lead=None):
         self.plugged_out, self.plugged_in = out_port, in_port
         self.plugged_lanes = set(lanes)
+        self.plugged_lead = lead
 
     def unplug(self):
-        self.plugged_in = self.plugged_out = None
+        self.plugged_in = self.plugged_out = self.plugged_lead = None
         self.plugged_lanes = set()
 
     def level(self, driven, lane, osc_on, osc_level):
         if not osc_on:
-            # the noise rows: an open input is noisier than a terminated one
-            terminated = (self.plugged_in is not None)
-            return self.floor + (0.0 if terminated else 9.0)
+            # the noise rows: an open input is noisier than a terminated one,
+            # and a lead still in is noisier than both
+            if lane not in self.plugged_lanes:
+                return self.floor + self.OPEN_DB
+            if self.plugged_lead != 'K5':
+                return self.floor + self.LEAD_IDLE_DB
+            return self.floor
         if not driven or lane not in self.plugged_lanes:
             return self.floor
         if 'dead:%s' % self.plugged_in in self.faults:
@@ -4375,15 +4473,25 @@ class SimPatcher(ManualPatcher):
         self.press_s = press_s
         self.log = log
         self.at = None
+        self.pull_at = None
         self.press_at = None
         self.pending = None
 
     def connect(self, patch, rows, glass):
         tok = ManualPatcher.connect(self, patch, rows, glass)
         r = rows[0]
-        self.w.unplug()
+        # THE NOISE SWAP IS TWO MOVES (S153): the tone lead stays in its
+        # socket until the operator's hand gets there, half way through their
+        # time, and the plug goes in at the end of it. Every other patch
+        # starts with the socket empty, as it always did.
+        self.pull_at = None
+        if r['expect'] == 'noise' and self.w.plugged_in == r['in']:
+            self.pull_at = now() + self.hand_s / 2.0
+        else:
+            self.w.unplug()
         self.pending = (r['out'], r['in'],
-                        sorted({int(x['lane']) for x in rows}), patch)
+                        sorted({int(x['lane']) for x in rows}), patch,
+                        r['lead'])
         self.at = now() + self.hand_s
         self.press_at = None
         return tok
@@ -4402,15 +4510,18 @@ class SimPatcher(ManualPatcher):
                     self.at = self.press_at = None
                     self.log('the operator presses %s on %s' % (b.upper(), inp))
                     return dict(button=b, reason='awaiting part')
+        if self.pull_at is not None and now() >= self.pull_at:
+            self.pull_at = None
+            self.w.unplug()
         if self.at is not None and now() >= self.at:
-            out, inp, lanes, patch = self.pending
+            out, inp, lanes, patch, lead = self.pending
             key = 'mispatch:%s' % inp
             if key in self.w.faults and patch not in self.w.mispatched:
                 self.w.mispatched.add(patch)
                 wrong = lanes[0] % 24 + 1    # the socket next door
-                self.w.plug(out, 'MIC %d' % wrong, [wrong])
+                self.w.plug(out, 'MIC %d' % wrong, [wrong], lead)
             else:
-                self.w.plug(out, inp, lanes)
+                self.w.plug(out, inp, lanes, lead)
             self.at = None
             self.press_at = (None if self.press_s is None
                              else now() + self.press_s)

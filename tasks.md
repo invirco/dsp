@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-09-30 13:17Z — S153: 150 ohm noise-step auto-advance fix (+ AS-ADC U15 back in)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-09-30 13:17Z — S153: 150 ohm noise-step auto-advance fix (+ AS-ADC U15 back in)   [status: 🟡 DESK DONE, DEPLOY WAITING FOR THE GAP AFTER PW'S LIVE RUN — the fast 2.7 s steps were the meter draining off the gain step's tone and graded the LEAD, not the plug; now node RMS + a two-step swap rule, 0.54 s after the plug on the model, 48/48 on the plug; AS-ADC scores U15 again]   [model: opus]
 
 model: opus
 
@@ -25,6 +25,15 @@ Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
 
+
+**S153 OUTCOME (session, 2026-09-30).** Report `MW/D24/DSP/s153/s153-report.md`, proof `MW/D24/DSP/s153/noise_step_check.py` (+ `.out`), findings S153-1..4.
+- 🟢 **Diagnosis confirmed, and the FAST case is the WRONG one.** At the prompt the strip meter still holds the gain step's tone latch (about −24 dBFS), so `hi` starts there and the 6.52 dB/s drain alone meets `hi − lvl ≥ 3 dB`. The window goes steady when the latch has drained to whatever is in the socket: about 44 polls ≈ 2.4 s × 6.52 ≈ 16 dB. So **MIC 3, 8, 9, 11, 15 and 19's noise figures in today's run were taken with the tone lead in, or the input open, and are not 150 ohm figures.** SLOW = the open input's peaks restart the window, then the steady rule on a peak-hold sawtooth. A 48 kHz model (sample noise, latch + drain, 4096-sample RMS windows) running the REAL S152 `detect` reproduces both: 36/48 graded on the plug, 12 ended at 2.1–5.4 s on the lead or the open input, and the rest 8.6 s after the plug (median).
+- 🟢 **Fix (`d24_patch.py`, noise rows only):** the node's RMS, one fresh 85 ms window per poll. The lane is cut into plateaus, and the step is met when it sits `detect_drop_db` below the lead it was prompted with AND below the open input it was pulled to. Then the unchanged stability window grades it. On the model: **48/48 graded on the plug, 0.54 s after it (median), 0.67 s worst; 5–6.5 s from the prompt, against 12–15 s.** Lead left in, and lead pulled with no plug, both time out and are never graded. No absolute threshold was used: S55's −70 dBFS rule failed on J31, and MIC 17's open input reads −52.
+- 🟢 **Tone rows untouched:** the S145 harness passes in full (its noise test now models the real swap, plus the two refusals), and the whole-pass dry run's verdict columns are identical row for row before and after.
+- 🟢 **Margin (item 2):** open → plug is 5.9–13.3 dB on 15 of 16 surveyed channels, against 3.0. 🔴 **MIC 6 is 1.1 dB on S55's node figure and 6.6 dB on its capture**; if the node is right, MIC 6 raises the no-signal question instead of advancing. MIC 17's lead → open is only 1.2 dB, so it relies on the pull's crackle. **MIC 1–4 and 13–16 have no open or terminated data at all.**
+- 🟢 **`detect_drop_db` stays 3.0, provisional,** and its `source` text in `s121/patch-limits.csv` now says so with the margins. That file is the generator's hand-tuned source; `gen_patch_paths.py --check` is OK and a regeneration is byte-identical.
+- 🟢 **AS-ADC scores U15, U39 and U60.** The exemption is now per unit, in `/home/app/selftest/adc-exempt.conf` (absent = none exempt; an unknown ref = NO DATA). Desk-tested on 7 cases. 🔴 **Hub:** the catalog item KEY `ADC AK5558 ×3 (U15 dead, U39, U60)` and its "U15's eight lanes are KNOWN DEAD" text are upstream catalog wording. The key is left as is because `ITEMS` matches the workbook on it.
+- 🔴 **BENCH ASK (PW's call, not waited on):** after the deploy, ONE noise step on the bench, ideally MIC 6 and one of MIC 1–4/13–16. `factory.log` now logs the node RMS plateaus: "as the prompt went up", "the lead came out of", and the final "drop after … node RMS plateaus A -> B -> C". That one line settles MIC 6's margin and gives the first open/terminated levels for the rev C channels.
 ## HUB DISPATCH 2026-09-30 10:30Z — S152: chip-2 mix readout saturates (S150-1, PW ruled)   [status: ⏸ HELD before any work — PW (2026-09-30): dsp work is on hold while rev D priority mods are done; session stopped 11:4x, nothing built or committed; re-dispatch this spec unchanged when PW releases dsp]   [model: opus]
 
 model: opus

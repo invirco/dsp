@@ -6,6 +6,32 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## THE 150 OHM STEP GRADED THE LEAD ON ITS FAST CHANNELS (2026-09-30, session 153)
+
+Hub dispatch `tasks.md` 2026-09-30 13:17Z. Report `MW/D24/DSP/s153/s153-report.md`.
+
+**S153-1. The 2.7 s noise steps were the peak meter draining off the gain step's tone, not the plug.**
+The arrival test was `hi - lvl >= 3 dB` on the strip meter. `hi` started at the latch the gain steps
+left (about −24 dBFS), and the 6.52 dB/s drain met it with nobody touching anything. On MIC 3, 8, 9,
+11, 15 and 19 today the reading was taken about 2.7 s after the prompt, before a 3–8 s hand move could
+have fitted the plug. Those noise figures are the lead or the open input, not 150 ohm. On the other
+channels the open input's peaks restarted the window, and the steady rule on a peak-hold sawtooth took
+14–17 s. A 48 kHz model reproduces both modes from the S152 code.
+
+**S153-2. Fixed: node RMS and a two-step swap rule.** The step ends when the lane is 3 dB below the
+lead it was prompted with AND 3 dB below the open input it was pulled to. On the model that is 0.54 s
+after the plug (median), 48 of 48 graded on the plug; the lead left in and the lead pulled with nothing
+fitted are never graded. No absolute threshold works on every channel: S55's −70 dBFS rule failed on
+J31, and MIC 17's open input reads −52.
+
+**S153-3. MIC 6's margin rests on which S55 instrument is right:** 1.1 dB (node T4 −82.04) or 6.6 dB
+(capture −87.59), against an open −81.0. Every other surveyed channel has 5.9–13.3 dB. MIC 1–4 and
+13–16 have never been measured open or terminated.
+
+**S153-4. AS-ADC judges U15 again.** The exemption is now a per-unit file
+(`/home/app/selftest/adc-exempt.conf`), empty by default. The catalog item key still reads
+"(U15 dead, U39, U60)" and its limit text "KNOWN DEAD"; that wording is upstream.
+
 ## MAIN R AND MAIN C, AND THE PAIR THAT FIXES THEM (2026-09-29, session 151)
 
 Hub dispatch `tasks.md` 2026-09-29 16:52Z and its 17:04Z addendum carrying

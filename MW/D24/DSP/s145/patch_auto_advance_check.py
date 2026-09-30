@@ -142,7 +142,7 @@ class Scripted(object):
         self.n = 0
         self.seen = []
 
-    def watch(self, lane):
+    def watch(self, lane, **_kw):
         i = min(self.n, len(self.levels) - 1)
         v = self.levels[i]
         self.n += 1
@@ -616,20 +616,36 @@ def test_noise_rows_advance_on_the_drop():
     rows = noise_rows(st)
     check('the drop threshold is the list\'s own',
           st.lim['detect_drop_db'] == 3.0, repr(st.lim['detect_drop_db']))
-    # an open mic input, then the 150 ohm plug goes in and its noise drops
+    # S153: the swap as it happens -- the tone lead still in (AUX 1 idle at
+    # gain 63), pulled with a crackle to an OPEN input, then the 150 ohm plug
+    # in with another crackle, and its noise drops below the open input's
+    lead, opn, term = [-51.0] * 8, [-80.0] * 10, [-88.0] * 40
     how, _a, dt, sc = run_detect(st, live, rows,
-                                 [-87.0] * 4 + [-96.0] * 40, floor=-96.0)
+                                 lead + [-30.0] + opn + [-35.0] + term,
+                                 floor=-96.0)
     check('a noise row ends on the drop', how == 'drop', repr(how))
-    check('... through the same stability window', dt >= 0.256, '%.3f s' % dt)
+    # the first scripted value is the reading taken as the prompt goes up
+    t_plug = (len(lead) + 1 + len(opn)) * PT.DETECT_POLL_S
+    check('... through the same stability window', dt >= t_plug + 0.256,
+          '%.3f s' % dt)
     # and a drop that does not hold does not grade
     st2, _g2, live2 = build(tempfile.mkdtemp(prefix='s145-noise2-'),
                             blocks=['K5'])
     how2, _a2, dt2, _sc2 = run_detect(
         st2, live2, noise_rows(st2),
-        [-87.0] * 4 + [-96.0] + [-87.0] * 5 + [-96.0] * 40, floor=-96.0)
+        lead + opn + [-88.0] * 3 + opn + term, floor=-96.0)
     check('a drop that comes back does not grade on the first one',
-          how2 == 'drop' and dt2 > 0.256 + 5 * PT.DETECT_POLL_S,
+          how2 == 'drop'
+          and dt2 >= (len(lead) + 2 * len(opn) + 2) * PT.DETECT_POLL_S + 0.256,
           '%.3f s' % dt2)
+    # the lead left in, and the lead pulled with nothing fitted, never grade
+    for name, trace in (('the lead left in', lead),
+                        ('the lead pulled and no plug fitted', lead + opn)):
+        st3, _g3, live3 = build(tempfile.mkdtemp(prefix='s145-noise3-'),
+                                blocks=['K5'])
+        how3, _a3, _dt3, _sc3 = run_detect(st3, live3, noise_rows(st3), trace,
+                                           floor=-96.0)
+        check('%s is never graded' % name, how3 == 'timeout', repr(how3))
 
 
 # ---------------------------------------------------------------------------

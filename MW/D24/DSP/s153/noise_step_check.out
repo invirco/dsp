@@ -1,0 +1,76 @@
+== 1. margin table: node RMS at gain 63, per powered channel (dispatch item 2)
+   drop = 3.0 dB (patch-limits.csv, provisional); the rule needs lead -> open >= drop (or a crackle between) AND open -> plug >= drop
+   input   J         open   T4 node   T4 capt   open-plug   lead-open
+   MIC 1   -      no data   no data   no data           -           -
+   MIC 2   -      no data   no data   no data           -           -
+   MIC 3   -      no data   no data   no data           -           -
+   MIC 4   -      no data   no data   no data           -           -
+   MIC 5   J25      -80.3    -87.97         -         7.7        29.3
+   MIC 6   J27      -81.0    -82.04    -87.59         1.1        30.0  <-- under drop on T4 node, 6.6 dB on the capture
+   MIC 7   J29      -82.2    -90.25    -91.59         8.1        31.2
+   MIC 8   J31      -80.5    -86.42    -86.64         5.9        29.5
+   MIC 9   J35      -81.4    -91.27    -90.64         9.2        30.4
+   MIC 10  J37      -81.7    -88.45    -93.50         6.8        30.7
+   MIC 11  J39      -81.3    -92.00    -92.31        10.7        30.3
+   MIC 12  J41      -79.3    -91.17    -92.95        11.8        28.3
+   MIC 13  -      no data   no data   no data           -           -
+   MIC 14  -      no data   no data   no data           -           -
+   MIC 15  -      no data   no data   no data           -           -
+   MIC 16  -      no data   no data   no data           -           -
+   MIC 17  J26      -52.2    -93.46    -92.90        40.7         1.2  <-- crackle needed
+   MIC 18  J28      -81.9    -91.61    -91.85         9.7        30.9
+   MIC 19  J30      -82.3    -91.60    -92.99         9.3        31.3
+   MIC 20  J32      -78.2    -86.51    -88.63         8.3        27.2
+   MIC 21  J36      -82.0    -91.04    -93.17         9.0        31.0
+   MIC 22  J38      -82.0    -92.61    -93.21        10.7        31.0
+   MIC 23  J40      -82.1    -92.32    -92.53        10.3        31.1
+   MIC 24  J42      -78.9    -92.20    -92.59        13.3        27.9
+   MIC 1-4 and 13-16: NO SURVEY DATA -- they had no front ends on 09-16 (S55) or 09-26 (S125); live since PW's rev C mods today
+
+== 2. the swap on every surveyed channel, before and after
+   pull at 1.5-3.0 s, plug 2.0-3.5 s later (a person), 3 seeds each
+   input   before (meter, S152)       after (node RMS, S153)    
+   MIC 5    12.5  13.3  13.9            4.7   5.5   5.9         
+   MIC 6     6.1   2.5L   5.3           6.3   6.5   5.6         
+   MIC 7     5.6   6.0  14.2            6.1   6.3   5.9         
+   MIC 8     4.7   5.3  12.8            5.0   5.5   5.1         
+   MIC 9    12.8  14.5   2.1L           4.6   6.1   5.9         
+   MIC 10    5.1   2.4L  14.3           5.5   6.1   5.5         
+   MIC 11    6.1   2.5L  13.5           6.5   6.1   5.0         
+   MIC 12    2.4L   5.1  13.2           6.1   5.5   4.5         
+   MIC 17   14.7   5.4O   4.4O          5.5   6.2   5.5         
+   MIC 18   12.6  14.6   4.5            4.4   4.7   4.9         
+   MIC 19   13.8   2.5L   2.5L          5.3   6.1   5.9         
+   MIC 20    5.8  13.3   2.5L           6.1   5.3   5.3         
+   MIC 21    5.7  14.4  13.4            6.1   5.5   4.9         
+   MIC 22   13.7  13.3   2.4L           5.1   4.6   6.1         
+   MIC 23    2.5L  13.4  13.5           6.6   5.0   5.0         
+   MIC 24   14.3   4.9  14.3            5.5   5.1   5.5         
+   (seconds from the prompt; L = the step ended with the tone LEAD still in, O = with the input OPEN -- a wrong reading either way)
+
+ok   BEFORE grades the plug on only 36 of 48 steps
+ok   AFTER grades the plug on every step (48 of 48)
+   before, when it did grade the plug: 8.6 s after the plug (median), worst 10.4 s
+   after: 0.54 s after the plug (median), worst 0.67 s
+ok   after: every step ends within 1.0 s of the plug going in: 0.67 s
+
+== 3. the refusals, after (node RMS)
+ok   MIC 7, the lead left in: not graded (timeout at 40 s)
+ok   MIC 7, the lead pulled, nothing fitted: not graded (timeout at 40 s)
+ok   MIC 17, the lead left in: not graded (timeout at 40 s)
+ok   MIC 17, the lead pulled, nothing fitted: not graded (timeout at 40 s)
+ok   MIC 6, the lead left in: not graded (timeout at 40 s)
+ok   MIC 6, the lead pulled, nothing fitted: not graded (timeout at 40 s)
+   MIC 6 on the node T4 -82.04 figure: timeout at 40.0 s (plug in the socket)
+   MIC 6 on the capture -87.59 figure: drop at 5.0 s (plug in the socket)
+ok   MIC 8, a slow operator (pull 6 s, plug 9 s): graded on the plug, 0.47 s after it
+   its log:
+     P25: MIC 8 as the prompt went up: -50.9 dBFS (node RMS)
+     P25: the lead came out of MIC 8 (-51.0 -> -80.4 dBFS)
+     P25: MIC 8 settled again at -86.6 dBFS
+     P25: drop after 9474 ms, present and steady (3 blocks, 4 readings, spread 0.11 dB, node RMS plateaus -51.0 -> -80.4 -> -80.4 -> -80.4 -> -86.6, now -86.6 dBFS)
+
+== 4. tone rows untouched: S145 harness + whole-pass dry run
+ok   patch_auto_advance_check.py passes: all checks passed -- no unit, no bus, no serial port, no write, no rails, no phantom
+
+all checks passed -- no unit, no bus, no write
