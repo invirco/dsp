@@ -1123,7 +1123,7 @@ class Builder:
                  in_='MIC %d line' % strip, drive=drive, lane=strip,
                  donor=donor_for(strip), expect='tone', level_ref='info',
                  polarity='inverted', rows='',
-                 prompt='Patch %s to the TRS centre of MIC %d' % (out, strip),
+                 prompt='Patch %s to LIN %d' % (out, strip),
                  park=PARK_OUT_END,
                  note='the jack centre reads INVERTED against this socket\'s '
                       'own XLR reference: the board wires the jack TIP to the '
