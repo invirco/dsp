@@ -1,0 +1,19 @@
+== MW/D24/DSP/s145/patch_auto_advance_check.py rc=0;  last: all checks passed -- no unit, no bus, no serial port, no write, no rails, no phantom
+== MW/D24/DSP/s153/noise_step_check.py rc=0;  last: all checks passed -- no unit, no bus, no write
+== MW/D24/DSP/s153/panel_resume_check.py rc=0;  last: all checks passed -- no unit, no bus, no write
+== MW/D24/DSP/s157/detector_dry_run.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s158/terminator_pass_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s159/rerun_ein_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s159/trs_dry_run.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s161/pause_exit_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s163/known_absent_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s163/untested_only_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s163/wrong_pair_park_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/s138b/click_trials_check.py rc=0;  last: all checks passed -- no SPI, no unit, no phantom, no terminator
+== MW/D24/DSP/s138b/lamp_sweep_check.py rc=1; FAIL the second input's screen says MOVE: ['Move the lamp fixture to MIC 2. Both lights should be dark - press NOT LIT if either is lit.']| last: 1 check(s) FAILED: the second input's screen says MOVE
+== MW/D24/DSP/s138b/mj_sense_check.py rc=0;  last: all checks passed -- no unit, no bus, no serial port, no write
+== MW/D24/DSP/s138b/sense_sweep_check.py rc=0;  last: all checks passed -- no unit, no serial port, no write, no BLOWER/FAN drive
+== MW/D24/DSP/s138b/shunt_sequence_check.py rc=0;  last: all checks passed -- no SPI, no unit, no rails, no phantom applied
+== MW/D24/DSP/s164/s164_check.py rc=0;  last: all checks passed -- no unit, no bus, no write, no rails
+
+[exited with code 0]

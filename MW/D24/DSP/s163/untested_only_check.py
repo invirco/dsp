@@ -47,16 +47,26 @@ print('     rows with no verdict: %d; failed/no-data rows kept: %d; walked %d pa
 check('untested set = exactly the rows with no verdict (failed rows are settled)',
       owed == set(never), sorted(owed ^ set(never)))
 fed = set()
+hr_only = set()
 for pid, rr in plist.patches:
     nums = {int(x) for r in rr for x in str(r.get('rows') or '').split()}
     if nums & owed or (not nums and pid not in carry['patches']):
         fed.add(pid)
-check('the resume walks exactly the patches that feed an untested row (%d)' % len(fed),
+    # S164: a gain-walk patch whose headroom sub-test (no catalog row) has
+    # never been recorded is owed for that sub-test alone
+    elif any(r.get('sub') == 'hr' for r in rr) and \
+            not (carry['patches'].get(pid) or {}).get('hr'):
+        fed.add(pid)
+        hr_only.add(pid)
+check('the resume walks exactly the patches that feed an untested row, or '
+      'whose headroom is unrecorded (S164) (%d)' % len(fed),
       set(got) == fed, sorted(set(got) ^ fed))
-only_failed = [pid for pid, rr in plist.patches if pid not in fed
+only_failed = [pid for pid, rr in plist.patches if pid not in fed - hr_only
                and {int(x) for r in rr for x in str(r.get('rows') or '').split()} & set(failed)]
-check('... no patch is walked only because its row FAILED (%d such patches stay unwalked)'
-      % len(only_failed), not (set(only_failed) & set(got)), sorted(set(only_failed) & set(got)))
+check('... no patch is walked only because its row FAILED (%d such patches stay '
+      'unwalked, or are walked for their headroom sub-test alone)'
+      % len(only_failed), not (set(only_failed) & (set(got) - hr_only)),
+      sorted(set(only_failed) & (set(got) - hr_only)))
 words = LV.rerun_words(len(got), len(plist.patches))
 check('the glass says "%s"' % words, any(words in json.dumps(s) for s in screens))
 check('... and the line names the RE-TEST FAILED request', 'RE-TEST FAILED' in words)

@@ -159,6 +159,11 @@ MEASURE_STALL_S = 20 * WIN_S
 # separation between a working element and a dead one.
 GAIN_SETTLE_WINDOWS = 2
 GAIN_READ_WINDOWS = 1
+# Input headroom (S164): windows settled after each drive step before THD is
+# read -- the level's exact 2 plus one, because THD is what is read.
+HEADROOM_SETTLE_WINDOWS = 3
+# The headroom sub-test's id in the list (gen_patch_paths.HEADROOM_SUB).
+HEADROOM_SUB = 'hr'
 
 # ---------------------------------------------------------------------------
 # PRE-ARMING THE READING (PW 2026-09-27, ruling d; review §2.4)
@@ -387,6 +392,10 @@ def dbpct(db):
     if db is None or not math.isfinite(db):
         return '--'
     return '%.2f dB = %.3f %%' % (db, pct_of_db(db))
+
+
+def r_in(row):
+    return str(row.get('in') or '')
 
 
 def dbv(x):
@@ -1069,11 +1078,24 @@ class Limits(dict):
     # directory without them leaves the 150 ohm pass ungraded, as it was.
     EIN_KEYS = ('t4b_ein_max_dbu', 't4b_ein_a_max_dbu')
 
+    # A KEY WHOSE VALUE IS `nan` IS DECLARED AND NOT YET SET (S164): the
+    # phones level before any unit has read it, the headroom reference before
+    # the first pass has measured one. It is kept apart from the numbers, so
+    # a reader can tell "recorded, not judged" from a key nobody wrote --
+    # which is an error, never a default. `nan` rather than an empty cell
+    # because every older station that reads this file float()s every value.
+    blank = ()
+
     @classmethod
     def load(cls, d):
         out = cls()
+        out.blank = set()
         for r in read_csv(os.path.join(d, 'patch-limits.csv')):
-            out[r['key']] = float(r['value'])
+            v = float(r['value'])
+            if math.isnan(v):
+                out.blank.add(r['key'])
+                continue
+            out[r['key']] = v
         lp = os.path.join(d, 'limits.csv')
         if os.path.exists(lp):
             for r in read_csv(lp):
@@ -1091,6 +1113,17 @@ class Limits(dict):
 
     def ein_ready(self):
         return all(k in self for k in self.EIN_KEYS + ('dac_fs_dbu',))
+
+    def window(self, key):
+        """A per-row window key (S164): its value, or None when the file
+        declares it `nan` (recorded, not judged). A key the file does not
+        declare at all is a list/limits mismatch and stops the station."""
+        if key in self:
+            return self[key]
+        if key in self.blank:
+            return None
+        raise SystemExit('patch-limits.csv has no %r: the patch list names it '
+                         'and the limits do not declare it' % key)
 
 
 class Scorer:
@@ -1145,6 +1178,9 @@ class Scorer:
         if want == 'noise':
             return self._score_noise(row, meas, notes)
 
+        if want == 'headroom':
+            return self._score_headroom(row, meas, notes, floor)
+
         if row['level_ref'] == 'gain':
             return self._score_gain_step(row, meas, siblings, notes)
 
@@ -1192,14 +1228,30 @@ class Scorer:
                 notes.append('no balanced reference on this lane yet, so the '
                              'level is reported and not judged')
             else:
-                want_db = r['h_db'] + self.lim['single_ended_db']
-                d = h - want_db
-                notes.append('%.2f dB, which is %+.2f dB from the %+.2f dB this '
-                             'lane\'s balanced reference predicts'
-                             % (h, d, want_db))
-                if abs(d) > self.lim['level_tol_db']:
-                    return (FAIL, 'the level is %+.1f dB off what a single-ended '
-                            'leg of this output should give' % d, notes)
+                # PER OUTPUT TYPE (S164): the row names its own key. The AUX A
+                # jacks carry the full balanced level (trs_aux_out_db); the
+                # phones pair has its own, blank until a unit has read it.
+                key = row.get('level_key') or ''
+                if not key:
+                    raise SystemExit('%s %s is a single-ended row with no '
+                                     'level_key: regenerate the patch list'
+                                     % (row['patch'], row.get('sub')))
+                rel = self.lim.window(key)
+                notes.append('%+.2f dB against this lane\'s balanced reference '
+                             '(%.2f dB)' % (h - r['h_db'], r['h_db']))
+                if rel is None:
+                    notes.append('RECORDED, NOT JUDGED: %s is not set yet -- '
+                                 'this reading is what sets it' % key)
+                else:
+                    want_db = r['h_db'] + rel
+                    d = h - want_db
+                    notes.append('%.2f dB, which is %+.2f dB from the %+.2f dB '
+                                 'this lane\'s balanced reference predicts (%s '
+                                 '%+.2f dB)' % (h, d, want_db, key, rel))
+                    if abs(d) > self.lim['level_tol_db']:
+                        return (FAIL, 'the level is %+.1f dB off what this '
+                                'output should give against the balanced '
+                                'reference' % d, notes)
         elif ref_mode == 'info':
             notes.append('%.2f dB loop gain, reported: no window is ruled for '
                          'this path yet' % h)
@@ -1362,6 +1414,68 @@ class Scorer:
         return FAIL, ('%s gain step %d is wrong: it adds %.1f dB and should '
                       'add %.1f dB' % (row['in'], int(code).bit_length(), got,
                                        want)), notes
+
+    def _score_headroom(self, row, meas, notes, floor=None):
+        """INPUT HEADROOM (PW 2026-10-01, S164): the level at 1 % THD+N.
+
+        The reading is `Station.headroom`'s ramp; this only says what it
+        means. While `headroom_ref_dbu` is blank the pass RECORDS and grades
+        nothing (PW: "this first pass records and does not fail on
+        headroom"); once the reference is written, an input more than
+        `headroom_tol_db` (PROVISIONAL) under it fails, and above it never
+        does."""
+        steps = meas.get('hr_steps') or []
+        if not steps:
+            return (NODATA, 'the headroom ramp took no reading: %s'
+                    % (meas.get('hr_why') or 'nothing came back'), notes)
+        notes.append('%d steps, drive %.1f to %.1f dBFS'
+                     % (len(steps), steps[0][0], steps[-1][0]))
+        # A RAMP WITH NO TONE UNDER IT IS NOT A HEADROOM. THD+N of a lane
+        # with nothing on it never reaches 1 %, and "above the ceiling" would
+        # be a claim about an input nobody drove.
+        rise = (steps[0][2] - floor) if floor is not None else None
+        if rise is None or rise < self.lim['tone_min_over_floor_db']:
+            return (NODATA, 'no tone reached %s for the headroom ramp: the '
+                    'lane sat %s over its own floor' % (
+                        r_in(row), '%.1f dB' % rise if rise is not None
+                        else 'nothing measurable'), notes)
+        ref = self.lim.window('headroom_ref_dbu')
+        if meas.get('hr_dbu') is None:
+            # No unit reference to put it in dBu: the converter's own figure
+            # is still recorded, and nothing is graded on a missing number.
+            said = ('%s 1 %% THD at %.1f dBFS drive, %.1f dBFS at the '
+                    'converter (THD+N %s); NOT in dBu: %s'
+                    % (r_in(row), meas['hr_drive_dbfs'], meas['hr_dbfs'],
+                       dbpct(meas['hr_thd_db']), meas.get('hr_why')))
+            if ref is None:
+                return PASS, said, notes
+            return NODATA, said, notes
+        if not meas.get('hr_reached'):
+            notes.append('THD+N stayed under %.0f dB to the drive ceiling'
+                         % self.lim['headroom_thd_db'])
+            return (PASS, 'headroom above %.1f dBu: 1 %% THD was not reached '
+                    'at the drive ceiling (%.1f dBFS at the converter, THD+N '
+                    '%s)' % (meas['hr_dbu'], meas['hr_dbfs'],
+                             dbpct(meas['hr_thd_db'])), notes)
+        said = ('headroom %.1f dBu at the connector, %.1f dBFS at the '
+                'converter (THD+N %s there)'
+                % (meas['hr_dbu'], meas['hr_dbfs'], dbpct(meas['hr_thd_db'])))
+        if meas.get('hr_at_start'):
+            said = ('headroom AT OR UNDER %.1f dBu: THD+N was already %s at '
+                    'the ramp\'s first step' % (meas['hr_dbu'],
+                                                 dbpct(meas['hr_thd_db'])))
+        if ref is None:
+            notes.append('RECORDED, NOT JUDGED: headroom_ref_dbu is not set '
+                         'yet -- this pass is what sets it')
+            return PASS, said, notes
+        tol = self.lim['headroom_tol_db']
+        d = meas['hr_dbu'] - ref
+        notes.append('%+.2f dB against the %.2f dBu reference (PROVISIONAL '
+                     'window: %.1f dB under it)' % (d, ref, tol))
+        if d < -tol:
+            return (FAIL, '%s -- %.1f dB under the %.1f dBu reference'
+                    % (said, -d, ref), notes)
+        return PASS, said, notes
 
     def _score_noise(self, row, meas, notes):
         n = meas.get('rms')
@@ -3473,6 +3587,99 @@ class Station:
         self.cost('gain steps', now() - t0)
         return m
 
+    # -- input headroom (PW 2026-10-01, S164) ---------------------------------
+    def headroom(self, r):
+        """The input's 1 % THD point: gain code 0, the drive ramped up in
+        `headroom_step_db` steps from `headroom_start_dbfs` until THD+N reaches
+        `headroom_thd_db`, never past `headroom_drive_max_dbfs`.
+
+        THE LEAD IS ALREADY IN: this rides the gain-walk patch (AUX 1 into the
+        input), after the seven steps, so it costs machine time only. The
+        crossing step is read TWICE and only a second reading over the target
+        ends the ramp, so one noisy window cannot call it. The level is
+        interpolated linearly in dB between the last step under the target and
+        the first over it. dBu at the connector is the drive plus the unit's
+        AUX 1 full scale (units.csv dac_fs_dbu); dBFS is the converter's own
+        coherent level at the same point. The oscillator is put back to the
+        row's own drive afterwards, whatever happened.
+
+        Each step settles HEADROOM_SETTLE_WINDOWS from the drive change before
+        it reads: the node's THD fit subtracts the window before, so a window
+        the change landed in reads as distortion (S125/S129: settle 2 + 1 is
+        exact for a level; one more here because THD is the quantity)."""
+        lim = self.lim
+        start, step = lim['headroom_start_dbfs'], lim['headroom_step_db']
+        top, target = lim['headroom_drive_max_dbfs'], lim['headroom_thd_db']
+        if step <= 0:
+            raise SystemExit('headroom_step_db must be positive')
+        freq = float(r['freq_hz']) if r['freq_hz'] else None
+        lane = int(r['lane'])
+        t0 = now()
+        self.an.image = None
+        self.an.chain(self.an.step_image(r['send_pos'], 0),
+                      'headroom, %s at gain code 0' % r['in'])
+        if self.an.wrote:
+            self.u.mark_moved()
+        if self._lane_up != lane:
+            self.u.meas_chan(lane)
+            self._lane_up = lane
+
+        def read(d):
+            self.u.osc(level_dbfs=d)
+            self.u.mark_moved()
+            m = self.u.measure(freq, d, windows=READ_WINDOWS,
+                               settle=self.u.settle_owed(
+                                   HEADROOM_SETTLE_WINDOWS))
+            lvl = m.get('coh_dbfs')
+            if lvl is None and m.get('rms') is not None:
+                lvl = m['rms'] + FS_SINE_DB
+            return m.get('thd'), lvl
+
+        steps, hit, why = [], None, ''
+        d = start
+        try:
+            while d <= top + 1e-9:
+                thd, lvl = read(d)
+                if thd is None or lvl is None or not math.isfinite(thd):
+                    why = 'no THD reading at %.1f dBFS drive' % d
+                    break
+                if thd >= target:
+                    thd2, lvl2 = read(d)
+                    if thd2 is not None and math.isfinite(thd2):
+                        thd, lvl = thd2, (lvl2 if lvl2 is not None else lvl)
+                steps.append((d, thd, lvl))
+                if thd >= target:
+                    hit = len(steps) - 1
+                    break
+                d = round(d + step, 4)
+        finally:
+            back = float(r['level_dbfs']) if r.get('level_dbfs') else start
+            self.u.osc(level_dbfs=back)
+            self.u.mark_moved()
+        m = dict(gain_code=0, hr_steps=steps, hr_reached=hit is not None,
+                 hr_why=why)
+        if steps:
+            if hit is None:
+                dd, tt, ll = steps[-1]
+            elif hit == 0:
+                dd, tt, ll = steps[0]
+            else:
+                (d0, t0_, l0), (d1, t1, l1) = steps[hit - 1], steps[hit]
+                f = (target - t0_) / (t1 - t0_) if t1 != t0_ else 1.0
+                dd, tt, ll = (d0 + f * (d1 - d0), target, l0 + f * (l1 - l0))
+            fs = lim.get('dac_fs_dbu')
+            m.update(hr_drive_dbfs=dd, hr_thd_db=tt, hr_dbfs=ll,
+                     hr_dbu=(dd + fs) if fs is not None else None,
+                     thd=tt, coh_dbfs=ll, h_db=ll - dd,
+                     hr_at_start=(hit == 0))
+            if fs is None:
+                m['hr_why'] = ('this unit has no dac_fs_dbu in units.csv, so '
+                               'the level cannot be put in dBu')
+            self.log('%s headroom ramp (drive dBFS:THD+N dB): %s' % (r['in'], ' '.join(
+                '%.1f:%.1f' % (x[0], x[1]) for x in steps)))
+        self.cost('headroom ramps', now() - t0)
+        return m
+
     # -- 1.2(b) the click-and-shunt trials ----------------------------------
     def transient(self, lane, action, pre_s=CLICK_PRE_S, post_s=CLICK_POST_S):
         """One lane, polled as fast as the link goes, with `action` fired once
@@ -3866,6 +4073,9 @@ class Station:
         """Every sub-test of one patch, with the lead left where it is."""
         out = []
         for i, r in enumerate(rows):
+            if r['expect'] == 'headroom':
+                out.append(dict(row=r, meas=self.headroom(r), sweep={}))
+                continue
             if str(r.get('gain_code') or '') != '' and r['expect'] != 'noise':
                 if i:
                     # the route and the instrument do not move between the
@@ -3998,7 +4208,9 @@ class Station:
                                detail='; '.join(notes),
                                h_db=m.get('h_db'), h_deg=m.get('h_deg'),
                                thd_db=m.get('thd'), noise_db=m.get('noise'),
-                               rms_db=m.get('rms')))
+                               rms_db=m.get('rms'),
+                               **dict((k, m.get(k)) for k in HR_FIELDS
+                                      if r['expect'] == 'headroom')))
         return scored
 
     def _drive_of(self, pid):
@@ -4038,7 +4250,8 @@ class Station:
             seq.append(((lead, block), patches))
         if self.owed_rows is not None:
             total = sum(len(p) for _k, p in seq)
-            seq = [(k, [(pid, rr) for pid, rr in p if self.owed_patch(pid, rr)])
+            seq = [(k, [(pid, self.owed_subs(pid, rr)) for pid, rr in p
+                        if self.owed_patch(pid, rr)])
                    for k, p in seq]
             seq = [(k, p) for k, p in seq if p]
             self.rerun = (sum(len(p) for _k, p in seq), total)
@@ -4094,10 +4307,40 @@ class Station:
         retest = bool(self.carry.get('retest_failed'))
         if retest and rows[0]['expect'] == 'noise' and self.lim.ein_ready():
             return rec.get('ein') != PASS
+        if self._hr_owed(pid, rows):
+            return True
         nums = {int(x) for r in rows for x in str(r.get('rows') or '').split()}
         if nums:
             return bool(nums & self.owed_rows)
         return (rec.get('verdict') != PASS) if retest else not rec
+
+    def _hr_owed(self, pid, rows):
+        """The headroom sub-test is owed until it has been recorded once
+        (S164); on RE-TEST FAILED, until it has passed. It folds onto no
+        catalog row, so the patch's own record is what says so."""
+        if not any(r.get('sub') == HEADROOM_SUB for r in rows):
+            return False
+        hr = ((self.carry.get('patches') or {}).get(pid) or {}).get('hr')
+        if not hr:
+            return True
+        return bool(self.carry.get('retest_failed')) and \
+            hr.get('verdict') != PASS
+
+    def owed_subs(self, pid, rows):
+        """The sub-tests of an owed patch that a resume walks (S164). A
+        gain-walk patch owed ONLY for its headroom sub-test walks that one
+        sub-test: the seven gain steps already carry their verdicts and are
+        not repeated (PW 2026-10-01, "only run untested tests"). The headroom
+        sub-test writes its own code-0 chain image and drive, so it stands
+        alone."""
+        hr = [r for r in rows if r.get('sub') == HEADROOM_SUB]
+        if not hr or not self._hr_owed(pid, rows):
+            return rows
+        rest = [r for r in rows if r.get('sub') != HEADROOM_SUB]
+        nums = {int(x) for r in rest for x in str(r.get('rows') or '').split()}
+        if nums & self.owed_rows:
+            return rows
+        return hr
 
     def patch_outcomes(self):
         """Per patch walked: its worst verdict, and for a 150 ohm patch
@@ -4110,6 +4353,13 @@ class Station:
             if 'EIN ' in (s.get('detail') or '') or \
                     str(s.get('why') or '').startswith(('EIN ', 'noise too high')):
                 e['ein'] = s['verdict']
+            # THE HEADROOM SUB-TEST FOLDS ONTO NO CATALOG ROW (S164), so this
+            # is where it is kept -- and where the resume reads that it was
+            # recorded, and the reference tool reads the figure.
+            if s.get('sub') == HEADROOM_SUB:
+                e['hr'] = dict((k, s.get(k)) for k in HR_FIELDS)
+                e['hr'].update(verdict=s['verdict'], why=s.get('why'),
+                               input=s.get('in'))
         return out
 
     def _prompt(self, pid, rows):
@@ -4856,6 +5106,14 @@ class SimUnit:
                 out.append('ctr')
         return sorted(out)
 
+    def main_legs(self):
+        """Which main leg the donor's PAN feeds (S164): hard left, hard
+        right, or both at one level -- the phones null. Handed to the world
+        beside `driven()`, which stays one word per bus."""
+        pan = self.route.get('Chan%03dPan001' % (self.osc_chan or 0), 'f0.5')
+        pan = float(pan[1:] if pan.startswith('f') else pan)
+        return ['L'] if pan <= 0.0 else ['R'] if pan >= 1.0 else ['L', 'R']
+
     def level_at(self, lane):
         """dB at `lane`, from the world's idea of what is plugged where.
 
@@ -4869,6 +5127,7 @@ class SimUnit:
         """
         if self.osc_on and lane == self.osc_chan:
             return self.osc_level
+        self.w.main_legs = self.main_legs()
         db = self.w.level(self.driven(), lane, self.osc_on, self.osc_level)
         # THE PREAMP IS PART OF THE MODEL SINCE PW'S SEVEN GAIN STEPS. Without
         # it a dry run cannot tell a correct step from a broken one, which is
@@ -4897,10 +5156,11 @@ class SimUnit:
                 settle=SETTLE_WINDOWS):
         nap(WIN_S * (settle + windows))
         db = self.level_at(self.lane)
-        out = dict(rms=db, thd=self.w.thd, noise=db - 60.0, n=windows,
-                   rms_spread=0.0)
+        out = dict(rms=db, thd=self.w.thd_at(self.lane, db), noise=db - 60.0,
+                   n=windows, rms_spread=0.0)
         if self.osc_on and db > -200:
             out['h_db'] = db - (level_dbfs if level_dbfs is not None else 0.0)
+            self.w.main_legs = self.main_legs()
             out['h_deg'] = self.w.phase(self.driven(), self.lane)
             out['coh_dbfs'] = db
         return out
@@ -4931,6 +5191,29 @@ class World:
 
     REF_PHASE = 42.0             # this unit's loop phase at 1 kHz, arbitrary
     thd = -72.0
+    # INPUT HEADROOM (S164): THD+N reaches 1 % (-40 dB) where the lane reads
+    # this, and climbs 10 dB per dB beyond it. `hr:<in>:<dB>` moves one
+    # input's clip point, which is how a dry run exercises the reference's
+    # exclusion and the PROVISIONAL window.
+    HR_CLIP_DBFS = -6.0
+    main_legs = ['L', 'R']           # set by SimUnit from the donor's pan
+    # One leg against the balanced reference, per output type: AUX A as
+    # MW-D24-2 measured it (P63 L, 2026-10-01), the phones at the design
+    # figure (the stage is the XLR's at half the balanced swing), and the
+    # info-only sockets at the old one-leg figure.
+    SINGLE_DB = (('AUX A', -1.42), ('PHONES', -6.02), ('MONITOR', -6.02),
+                 ('MINI-JACK', -6.02))
+
+    def thd_at(self, lane, db):
+        clip = self.HR_CLIP_DBFS
+        for f in self.faults:
+            if f.startswith('hr:'):
+                _k, who, dv = f.split(':')
+                if who.strip() == 'MIC %d' % int(lane):
+                    clip += float(dv)
+        if db is None or db < -200:
+            return self.thd
+        return max(self.thd, -40.0 + 10.0 * (db - clip))
 
     gain_table = {}
     send_pos = {}
@@ -5002,9 +5285,13 @@ class World:
         if 'dead:%s' % self.plugged_in in self.faults:
             return self.floor
         legs = len(driven)
+        if str(self.plugged_out).startswith('PHONES') and driven == ['main']:
+            legs = len(self.main_legs)     # the pan's legs, not the buses
         base = osc_level - 3.0            # the unit's own loop gain, flat
         if self.single_ended:
-            base -= 6.02
+            base += dict(self.SINGLE_DB).get(
+                next(k for k, _v in self.SINGLE_DB
+                     if str(self.plugged_out).startswith(k)))
             if legs > 1:                  # the null: two legs cancelling
                 base -= 34.0
                 if 'nonull:%s' % self.plugged_out in self.faults:
@@ -5014,7 +5301,7 @@ class World:
     @property
     def single_ended(self):
         return bool(self.plugged_out and self.plugged_out.startswith(
-            ('AUX A', 'MONITOR', 'MINI-JACK')))
+            ('AUX A', 'MONITOR', 'MINI-JACK', 'PHONES')))
 
     def phase(self, driven, lane):
         d = self.REF_PHASE
@@ -5036,6 +5323,9 @@ class World:
             # the ring leg reads inverted against the tip: that is the lead
             k = int(driven[0][3:])
             inverted = (k % 2 == 0)
+        if (str(self.plugged_out).startswith('PHONES')
+                and driven == ['main'] and self.main_legs == ['R']):
+            inverted = True                  # the ring, through the same lead
         if 'swap:%s' % self.plugged_out in self.faults:
             inverted = not inverted
         return d + (180.0 if inverted else 0.0)
@@ -5229,9 +5519,12 @@ class SimPatcher(ManualPatcher):
 # ---------------------------------------------------------------------------
 # Reports
 # ---------------------------------------------------------------------------
+# The headroom sub-test's own figures (S164), kept beside the generic ones so
+# the reference tool reads numbers, not sentences.
+HR_FIELDS = ('hr_dbu', 'hr_dbfs', 'hr_drive_dbfs', 'hr_thd_db', 'hr_reached')
 RESULT_COLUMNS = ('path', 'patch', 'lead', 'out', 'in', 'sub', 'rows',
                   'verdict', 'why', 'detail', 'h_db', 'h_deg', 'thd_db',
-                  'noise_db', 'rms_db')
+                  'noise_db', 'rms_db') + HR_FIELDS
 
 
 # ---------------------------------------------------------------------------

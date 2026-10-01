@@ -167,6 +167,17 @@ def donor_for(strip):
 # unit.
 SINGLE_ENDED_DB = -6.02
 LEVEL_TOL_DB = 3.0
+# THE SINGLE-ENDED WINDOW IS PER OUTPUT TYPE NOW (S164). The -6.02 above was
+# the guess for AUX A, and the output stage it waited on is in the netlist and
+# the BOMs: every AUX A tip/ring is the matching rear XLR's hot-minus-cold
+# re-received by one NJM4580L (phonejack U1..U8, all four resistors 10k 0.1 %,
+# unity), so a tip carries the FULL differential level -- 0 dB, not -6.02. The
+# phones jack is its own stage off DAC_09/10. Each single-ended sub-test names
+# the patch-limits.csv key its window is read from (`level_key`), so no number
+# for it lives here or in the station. SINGLE_ENDED_DB stays only for the
+# simulator's idea of a generic single leg.
+LEVEL_KEY_TRS = 'trs_aux_out_db'
+LEVEL_KEY_PHONES = 'phones_out_db'
 # The null: L-R with L and R driven identically. What is left is the L/R match
 # of the output stage plus the lead. -30 dB below the single-ended reading is
 # a placeholder that a crossed or absent channel cannot reach; a good unit sets
@@ -347,10 +358,8 @@ def load_ports():
 #     levels. So they are an ordinary stereo pair, driven by the donor's
 #     PAN exactly as the MAIN XLRs are, and both are tested at 1 kHz.
 #   * PHONES L / PHONES R (J10, DAC_09/10) are C2_PHN_OUT_L/R, the same
-#     pick-off through `Mon PhonesLevel`. They are REACHABLE now and are
-#     still not driven here: a phones patch is a stereo TRS with a null
-#     sub-test and a level cell nothing has ever measured, which is its own
-#     piece of work (S151 note).
+#     pick-off through `Mon PhonesLevel`. Driven since S164: one stereo TRS
+#     patch with the AUX A jacks' three sub-tests (block_k2).
 #
 #   THE CROSSOVER IS OUT, AND IT IS OUT BY DEFAULT.  `Main CrossoverOn`
 #   (addr 1438) boots 0 and `_xover_coeffs_next_*` boots the compiled
@@ -361,20 +370,10 @@ def load_ports():
 #   a crossover leg any more, so the station writes no crossover cell.
 # Sockets this list does NOT drive, and why -- said by name, so a socket
 # never falls off the list silently. Nothing on a D24 is UNREACHABLE by the
-# firmware any more (S144 gave DAC_09/10/14 sources); what is left is one
-# pair this list has not been written for yet.
-UNREACHABLE = {
-    'PHONES L': ('reachable since S144 (DAC_09 = C2_PHN_OUT_L, off the '
-                 'monitor pick-off through `Mon PhonesLevel`) but no patch '
-                 'is written for it yet: a phones patch is a stereo TRS with '
-                 'its own null sub-test and a level cell nothing has '
-                 'measured -- S151 note, owed'),
-    'PHONES R': ('reachable since S144 (DAC_10 = C2_PHN_OUT_R, off the '
-                 'monitor pick-off through `Mon PhonesLevel`) but no patch '
-                 'is written for it yet: a phones patch is a stereo TRS with '
-                 'its own null sub-test and a level cell nothing has '
-                 'measured -- S151 note, owed'),
-}
+# firmware any more (S144 gave DAC_09/10/14 sources), and since S164 the
+# phones pair has its patch, so the table is empty. It stays: a socket that
+# loses its path is named here, never dropped.
+UNREACHABLE = {}
 
 
 def socket_sort(names):
@@ -461,6 +460,11 @@ def cells_bus_masters(auxes):
     # legs no longer protects anything and now silences two sockets under
     # test -- they are opened at unity, like every other bus master here.
     out += ['Mon001Level001=f1.0', 'Mon001Level002=f1.0']
+    # THE PHONES PAIR'S OWN LEVEL (S164). C2_PHN takes the same pick-off as
+    # the monitor legs but through `Mon PhonesLevel` (one cell, both legs),
+    # not through Mon Level -- so the phones patch reads that cell, and it is
+    # opened at unity like every other master here.
+    out += ['Mon001PhonesLevel001=f1.0']
     # The monitor pick-off, asserted rather than assumed: 2 = post master
     # fader (C2_MON_PICK sources are C2_MIX_MAIN_L, C2_MAIN_DLY, C2_MAIN_FDR
     # and sel boots 2), which is the tap the MONITOR rows are written for.
@@ -604,8 +608,12 @@ def route_cells(donor, drive, auxes):
         for a in (int(x) for x in arg.split('+')):
             off_aux[a] = 1
     elif kind == 'main':
+        # 'main:C' (S164) is the phones null: the donor in the middle, so the
+        # two legs carry the same signal at the same level and cancel in the
+        # input's tip-minus-ring. Pan is an index (`fix(pan*126)`), and 0.5 is
+        # index 63, the table's own centre.
         off['main'] = 1
-        pan = 0.0 if arg == 'L' else 1.0
+        pan = {'L': 0.0, 'R': 1.0, 'C': 0.5}[arg]
     elif kind == 'ctr':
         off['ctr'] = 1
     elif kind != 'none':
@@ -703,6 +711,38 @@ def output_walk_order(parked):
 # while its XLR passes and both are worth a patch.
 STEREO_TRS_OUTS = [('AUX A %d-%d' % (a, a + 1), a, a + 1) for a in (1, 3, 5, 7)]
 
+# THE FRONT PHONES JACK (S164). Analog board J10, tip = DAC_09 = C2_PHN_OUT_L,
+# ring = DAC_10 = C2_PHN_OUT_R, both off the monitor pick-off (post master
+# fader) through `Mon PhonesLevel`. So it is driven like the MAIN and MONITOR
+# pairs, by the donor's PAN: hard left is the tip alone, hard right the ring
+# alone, the middle is both at one level -- the null. Same three sub-tests as
+# an AUX A jack, same lead (K2), same input.
+PHONES_OUT = 'PHONES'
+PHONES_PORTS = ('PHONES L', 'PHONES R')
+
+# INPUT HEADROOM (PW 2026-10-01, S164): the level at 1 % THD, at gain code 0,
+# measured in the gain-walk patch the XLR lead is already in. One more
+# sub-test per input, after the seven steps -- no hand move. It folds onto NO
+# catalog row (the row is the input's, and it already carries the gain walk's
+# verdict); the station keeps it per patch, and RUN ALL owes it until it has
+# been recorded once. The ramp's start, step, ceiling and target are
+# patch-limits.csv keys (headroom_*), not numbers here.
+HEADROOM_SUB = 'hr'
+
+# KIT ITEMS THE PLAN NEEDS AND NOBODY HAS BUILT (S164 item 4). Listed in the
+# plan so the station's gaps are written down where the kit is; no patch uses
+# them yet and none is generated until the item exists.
+FIXTURES_OWED = [
+    dict(lead='K6', name='XLR-F to XLR-M, -20 dB pad',
+         wiring='balanced in-line pad, 20 dB (e.g. 2 x 1k5 series + 300 ohm '
+                'shunt, both legs symmetric), pin 1 straight through',
+         enables='OUTPUT headroom: each XLR output ramped to 1 % THD (-40 dB) '
+                 'into one input at gain code 0. The outputs swing about '
+                 '5.6 dB more than an input takes, so without the pad the '
+                 'ramp measures the INPUT; 20 dB puts the output clip '
+                 '(about +23 dBu) at about +3 dBu at the input, well inside '
+                 'its range'),
+]
 # The two mono TRS output jacks. They are the MONITOR bus's two legs since
 # S144 -- C2_MON_OUT_L/R off C2_MON_PICK -- so they are a stereo pair driven
 # by the donor's pan, both in the passband, and neither of them is a
@@ -719,7 +759,7 @@ MONO_TRS_OUTS = [('MONITOR L', 'main:L', TONE_HZ,
 COLUMNS = ('path', 'patch', 'lead', 'block', 'out', 'in', 'sub', 'drive',
            'lane', 'donor', 'route', 'freq_hz', 'level_dbfs', 'expect',
            'level_ref', 'polarity', 'rows', 'prompt', 'note', 'park',
-           'gain_code', 'send_pos', 'unpark')
+           'gain_code', 'send_pos', 'unpark', 'level_key')
 
 # ---------------------------------------------------------------------------
 # THE ORDER (PW 2026-09-26)
@@ -1032,6 +1072,7 @@ class Builder:
         kw.setdefault('gain_code', '')
         kw.setdefault('unpark', '')
         kw.setdefault('send_pos', '')
+        kw.setdefault('level_key', '')
         kw.setdefault('prompt', '')
         kw.setdefault('freq_hz', TONE_HZ)
         kw.setdefault('level_dbfs', TONE_DBFS)
@@ -1127,6 +1168,16 @@ class Builder:
                                'the step\'s own expected gain so the converter '
                                'reads about the same level every step'
                                % (step.bit_length())))
+            self.add(lead='K1', block='the inputs', out=k1out, in_=inp,
+                     drive=k1drive, lane=strip, donor=donor_for(strip),
+                     expect='headroom', level_ref='headroom', polarity='-',
+                     sub=HEADROOM_SUB, gain_code=0, send_pos=pos, rows='',
+                     prompt='Patch %s to %s' % (k1out, inp),
+                     park=PARK_OUT_END,
+                     note='input headroom: gain code 0, the drive ramped '
+                          'until THD+N reaches 1 % (-40 dB); the level there '
+                          'in dBu at the connector and dBFS (PW 2026-10-01). '
+                          'Recorded per patch, on no catalog row')
             if not self.terminator_pass and not self.out_lead('K5'):
                 self.add_k5_patch(strip, block='the inputs')
             # ONE STOP PER INPUT (ruling g): the jack lead's own patch for this
@@ -1259,10 +1310,11 @@ class Builder:
                         in_=park_in, lane=park_strip, donor=DONOR_DEFAULT,
                         rows=self.rows_for('%s L' % jack, park_in),
                         prompt='Patch %s to %s' % (jack, park_in),
-                        park=PARK_IN_END)
+                        park=PARK_IN_END, level_key=LEVEL_KEY_TRS)
             self.add(sub='L', drive='aux:%d' % la, expect='tone',
                      level_ref='single', polarity='normal',
-                     note='tip alone: one leg of aux %d into a balanced input' % la,
+                     note='tip alone: aux %d re-received single-ended at its '
+                          'full balanced level (phonejack NJM4580L, unity)' % la,
                      **base)
             self.add(sub='R', drive='aux:%d' % ra, expect='tone',
                      level_ref='single', polarity='inverted',
@@ -1274,6 +1326,28 @@ class Builder:
                      note='both in phase: what is left is the L/R match. A '
                           'crossed or absent channel cannot null',
                      **base)
+        if not any(self.out_in(n) for n in PHONES_PORTS):
+            self.new_patch()
+            base = dict(lead='K2', block='the TRS outputs', out=PHONES_OUT,
+                        in_=park_in, lane=park_strip, donor=DONOR_DEFAULT,
+                        rows=self.rows_for(PHONES_PORTS[0], park_in),
+                        prompt='Patch %s to %s' % (PHONES_OUT, park_in),
+                        park=PARK_IN_END, level_key=LEVEL_KEY_PHONES)
+            self.add(sub='L', drive='main:L', expect='tone',
+                     level_ref='single', polarity='normal',
+                     note='tip alone: the donor panned hard left, DAC_09 '
+                          '(C2_PHN_OUT_L) through Mon PhonesLevel at unity',
+                     **base)
+            self.add(sub='R', drive='main:R', expect='tone',
+                     level_ref='single', polarity='inverted',
+                     note='ring alone: hard right, DAC_10 (C2_PHN_OUT_R); the '
+                          'input reads tip minus ring, so it reads inverted',
+                     **base)
+            self.add(sub='null', drive='main:C', expect='null',
+                     level_ref='null', polarity='-',
+                     note='the donor in the middle: both legs at one level, '
+                          'which cancel. A crossed or absent channel cannot '
+                          'null', **base)
 
     def block_k3(self):
         """The stereo mini-jacks: one balanced drive, both lanes at once.
@@ -1384,10 +1458,13 @@ HEAD_PATHS = """\
 #   drive       which bus the oscillator is routed to: the `route` column's cells do it
 #   lane        MeasChan: 1..24 a strip, 51/53/55 the codec return lanes
 #   donor       the strip the oscillator replaces (never the lane under test)
-#   expect      tone = a tone must be there; null = it must cancel; noise = no tone at all
+#   expect      tone = a tone must be there; null = it must cancel; noise = no tone at all;
+#               headroom = the drive is ramped to 1 %% THD at gain code 0 (S164)
 #   level_ref   ref = this reading SETS the lane's balanced reference
-#               single = about %.2f dB under that reference (one leg of a balanced pair)
+#               single = that reference plus the patch-limits.csv key in `level_key`
+#                        (per output type, S164; a value of nan = recorded, not judged)
 #               null   = at or below %.0f dB relative to the same jack's single-ended reading
+#               headroom = the 1 %% THD level, graded against patch-limits.csv headroom_*
 #               ein    = the input noise window, limits.csv t4b_ein_max_dbu
 #               info   = measured and reported, not judged (no window ruled yet)
 #   polarity    ref = sets the lane's reference phase; normal/inverted = against it;
@@ -1400,7 +1477,8 @@ HEAD_PATHS = """\
 #   unpark      a kit lead is parked on THIS patch's socket and has to come off
 #               before the lead in hand goes in (S126, ruling c). One folded
 #               sentence on the same screen; never a card of its own
-""" % (SINGLE_ENDED_DB, NULL_MAX_DB)
+#   level_key   single rows: the patch-limits.csv key the level window is read from
+""" % (NULL_MAX_DB,)
 
 HEAD_ROUTES = """\
 # patch-routes.csv -- GENERATED by tools/accept/gen_patch_paths.py (S121). Do not edit.
@@ -1600,6 +1678,14 @@ def write_plan(out, b):
             L.append('| %s | %s | %s |' % (name, p['catalog_row'],
                                            ', '.join(sorted(set(hits),
                                                             key=lambda s: int(s[1:])))))
+    L += ['', '## Fixtures owed', '',
+          'Kit items the plan needs that are not built. No patch uses them '
+          'until they exist.', '',
+          '| lead | what it is | how it is wired | what it enables |',
+          '|---|---|---|---|']
+    for f in FIXTURES_OWED:
+        L.append('| %s | %s | %s | %s |' % (f['lead'], f['name'], f['wiring'],
+                                            f['enables']))
     L += ['', '### Not run, and why', '',
           'These are not failures and not omissions. The socket exists; no cell '
           'this product declares can put a signal on it.', '',

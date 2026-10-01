@@ -175,6 +175,12 @@ def expected_walk(plist, owed, patches_rec):
             if rec.get('ein') != 'PASS':
                 out.append(pid)
             continue
+        # S164: a gain-walk patch is also owed while its headroom sub-test
+        # (no catalog row) has not been recorded -- on RE-TEST FAILED, until
+        # it has passed
+        if hr_owed(rr, rec):
+            out.append(pid)
+            continue
         nums = {int(x) for r in rr for x in str(r.get('rows') or '').split()}
         if nums:
             if nums & owed:
@@ -182,6 +188,11 @@ def expected_walk(plist, owed, patches_rec):
         elif rec.get('verdict') != 'PASS':
             out.append(pid)
     return out
+
+
+def hr_owed(rr, rec):
+    return (any(r.get('sub') == 'hr' for r in rr)
+            and (rec.get('hr') or {}).get('verdict') != 'PASS')
 
 
 def walked(hands):
@@ -246,14 +257,17 @@ def case_rerun_and_ein():
         if p not in got_u:
             got_u.append(p)
     print('     re-run walked %d patches: %s' % (len(got_u), ' '.join(got_u)))
-    check('re-run walks exactly the owed patches (%d of 92)' % len(want),
+    check('re-run walks exactly the owed patches (%d of %d)'
+          % (len(want), len(plist.patches)),
           got_u == want, (len(got_u), len(want),
                           sorted(set(want) ^ set(got_u))))
+    rec0 = RA.patch_carry(fresh_state(tempfile.mkdtemp())[1])['patches']
     passed = [p for p in ('P1', 'P2', 'P12', 'P36', 'P61', 'P62')
-              if p in got_u]
-    check('... and nothing that passed today (P1 P2 P12 P36 P61 P62)',
-          not passed, passed)
-    words = LV.rerun_words(len(want), 92)
+              if p in got_u and not hr_owed(dict(plist.patches)[p],
+                                            rec0.get(p) or {})]
+    check('... and nothing that passed today (P1 P2 P12 P36 P61 P62) except '
+          'for a headroom sub-test never recorded (S164)', not passed, passed)
+    words = LV.rerun_words(len(want), len(plist.patches))
     check('the glass says "%s"' % words,
           any(s.get('status') == words or words in str(s.get('lead_line'))
               or words in str(s.get('instruction')) for s in screens))

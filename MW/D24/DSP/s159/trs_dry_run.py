@@ -9,7 +9,9 @@ does, run through the REAL Station (detect / one_patch / acquire / score).
 
 THE MODEL (`TrsUnit`, on top of S157's TrueUnit). The K2 lead puts the jack's
 TIP on XLR pin 2 and its RING on pin 3, and the input reads pin 2 - pin 3:
-  * tip alone   -> the single-ended level (balanced - 6.02 dB), in phase;
+  * tip alone   -> the single-ended level (balanced - 1.42 dB since S164: the
+                   AUX A stage re-receives the full balanced level, and
+                   MW-D24-2 read 1.42 dB under it), in phase;
   * ring alone  -> the same level, INVERTED;
   * both        -> the NULL: a residual that flickers ABOUT the arrival
                    threshold (floor + 12 dB), as P63's -82..-123 dBFS did
@@ -55,7 +57,7 @@ LABELLED = {'AUX A 1-2': (1, 2), 'AUX A 3-4': (3, 4), 'AUX A 5-6': (5, 6),
             'AUX A 7-8': (7, 8)}
 REVERSED = {'AUX A 1-2': (7, 8), 'AUX A 3-4': (5, 6), 'AUX A 5-6': (3, 4),
             'AUX A 7-8': (1, 2)}
-SINGLE_DB = -6.02
+SINGLE_DB = -1.42      # S164: was the -6.02 one-leg guess; the unit's own P63 L
 
 
 class TrsUnit(DR.TrueUnit):
@@ -254,11 +256,15 @@ def case_reversed_then_moved():
 def case_prearm_guard():
     st, _h, _u, _l, _s = build(auto=False)
     ok = {}
-    for pid in ('P63', 'P91', 'P2'):
+    # the first mini-jack patch BY WHAT IT IS: S164's phones patch moved it
+    # from P91 to P92
+    mj = next(pid for pid, rr in st.L.patches
+              if str(rr[0]['in']).startswith('MINI-JACK'))
+    for pid in ('P63', mj, 'P2'):
         ok[pid] = st.prearm_ok(DR.rows_of(st, pid))
-    check('pre-arm refused for the TRS (P63) and mini-jack (P91) patches, '
-          'kept for a single-row patch (P2)',
-          ok == {'P63': False, 'P91': False, 'P2': True}, ok)
+    check('pre-arm refused for the TRS (P63) and mini-jack (%s) patches, '
+          'kept for a single-row patch (P2)' % mj,
+          ok == {'P63': False, mj: False, 'P2': True}, ok)
 
 
 def case_acquire_asserts_row1():

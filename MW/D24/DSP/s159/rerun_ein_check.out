@@ -6,10 +6,89 @@ ok   10 dB noisier: FAIL "noise too high: -117.2 dBu, limit -126.0 dBu"
 ok   no reference on the lane: NO DATA, never a guessed gain
 -- case_rerun_and_ein
 ok   carry: pass-4 references backfilled for 22 inputs (MIC 1 5.28, MIC 2 5.55); MIC 7 and MIC 24 have none (their rows hold the failing gain step) and are re-measured by their own re-walked K1 patch
-     re-run walked 56 patches: P18 P35 P37 P38 P39 P40 P41 P42 P43 P44 P45 P46 P47 P48 P49 P50 P51 P52 P53 P54 P55 P56 P57 P58 P59 P60 P63 P64 P65 P66 P67 P68 P69 P70 P71 P72 P73 P74 P75 P76 P77 P78 P79 P80 P81 P82 P83 P84 P85 P86 P87 P88 P89 P90 P91 P92
-ok   re-run walks exactly the owed patches (56 of 92)
-ok   ... and nothing that passed today (P1 P2 P12 P36 P61 P62)
-ok   the glass says "Re-run: 56 of 92 patches - only the ones that failed or were never tested."
+     prompt P12 AUX 1 -> MIC 1
+     prompt P13 AUX 1 -> MIC 2
+     prompt P14 AUX 1 -> MIC 3
+     prompt P15 AUX 1 -> MIC 4
+     prompt P16 AUX 1 -> MIC 5
+     prompt P17 AUX 1 -> MIC 6
+     prompt P18 AUX 1 -> MIC 7
+     prompt P19 AUX 1 -> MIC 8
+     prompt P20 AUX 1 -> MIC 9
+     prompt P21 AUX 1 -> MIC 10
+     prompt P22 AUX 1 -> MIC 11
+     prompt P23 AUX 1 -> MIC 12
+     prompt P24 AUX 1 -> MIC 13
+     prompt P25 AUX 1 -> MIC 14
+     prompt P26 AUX 1 -> MIC 15
+     prompt P27 AUX 1 -> MIC 16
+     prompt P28 AUX 1 -> MIC 17
+     prompt P29 AUX 1 -> MIC 18
+     prompt P30 AUX 1 -> MIC 19
+     prompt P31 AUX 1 -> MIC 20
+     prompt P32 AUX 1 -> MIC 21
+     prompt P33 AUX 1 -> MIC 22
+     prompt P34 AUX 1 -> MIC 23
+     prompt P35 AUX 1 -> MIC 24
+     prompt P37  -> MIC 1
+     prompt P38  -> MIC 2
+     prompt P39  -> MIC 3
+     prompt P40  -> MIC 4
+     prompt P41  -> MIC 5
+     prompt P42  -> MIC 6
+     prompt P43  -> MIC 7
+     prompt P44  -> MIC 8
+     prompt P45  -> MIC 9
+     prompt P46  -> MIC 10
+     prompt P47  -> MIC 11
+     prompt P48  -> MIC 12
+     prompt P49  -> MIC 13
+     prompt P50  -> MIC 14
+     prompt P51  -> MIC 15
+     prompt P52  -> MIC 16
+     prompt P53  -> MIC 17
+     prompt P54  -> MIC 18
+     prompt P55  -> MIC 19
+     prompt P56  -> MIC 20
+     prompt P57  -> MIC 21
+     prompt P58  -> MIC 22
+     prompt P59  -> MIC 23
+     prompt P60  -> MIC 24
+     prompt P63 AUX A 1-2 -> MIC 1
+     prompt P64 AUX A 3-4 -> MIC 1
+     prompt P65 AUX A 5-6 -> MIC 1
+     prompt P66 AUX A 7-8 -> MIC 1
+     prompt P67 PHONES -> MIC 1
+     prompt P68 AUX 1 -> MIC 1 line
+     prompt P69 AUX 1 -> MIC 2 line
+     prompt P70 AUX 1 -> MIC 3 line
+     prompt P71 AUX 1 -> MIC 4 line
+     prompt P72 AUX 1 -> MIC 5 line
+     prompt P73 AUX 1 -> MIC 6 line
+     prompt P74 AUX 1 -> MIC 7 line
+     prompt P75 AUX 1 -> MIC 8 line
+     prompt P76 AUX 1 -> MIC 9 line
+     prompt P77 AUX 1 -> MIC 10 line
+     prompt P78 AUX 1 -> MIC 11 line
+     prompt P79 AUX 1 -> MIC 12 line
+     prompt P80 AUX 1 -> MIC 13 line
+     prompt P81 AUX 1 -> MIC 14 line
+     prompt P82 AUX 1 -> MIC 15 line
+     prompt P83 AUX 1 -> MIC 16 line
+     prompt P84 AUX 1 -> MIC 17 line
+     prompt P85 AUX 1 -> MIC 18 line
+     prompt P86 AUX 1 -> MIC 19 line
+     prompt P87 AUX 1 -> MIC 20 line
+     prompt P88 AUX 1 -> MIC 21 line
+     prompt P89 AUX 1 -> MIC 22 line
+     prompt P90 AUX 1 -> MIC 23 line
+     prompt P91 AUX 1 -> MIC 24 line
+     prompt P92 AUX 1 -> MINI-JACK 1
+     prompt P93 AUX 1 -> MINI-JACK 2
+     re-run walked 79 patches: P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 P29 P30 P31 P32 P33 P34 P35 P37 P38 P39 P40 P41 P42 P43 P44 P45 P46 P47 P48 P49 P50 P51 P52 P53 P54 P55 P56 P57 P58 P59 P60 P63 P64 P65 P66 P67 P68 P69 P70 P71 P72 P73 P74 P75 P76 P77 P78 P79 P80 P81 P82 P83 P84 P85 P86 P87 P88 P89 P90 P91 P92 P93
+ok   re-run walks exactly the owed patches (79 of 93)
+ok   ... and nothing that passed today (P1 P2 P12 P36 P61 P62) except for a headroom sub-test never recorded (S164)
+ok   the glass says "Resume: 79 of 93 patches untested - failed rows kept (RE-TEST FAILED to repeat them)."
 ok   MIC 1 (row 1): EIN PASS, -127.9 dBu against -126.0, with the carried pass-4 reference
 ok   MIC 2 (row 2): FAIL "noise too high: -11x dBu, limit -126.0 dBu", replacing its old PASS (kept in history)
 ok   MIC 3 (row 3): FAIL "noise too high: -11x dBu, limit -126.0 dBu", replacing its old PASS (kept in history)
@@ -18,8 +97,21 @@ ok   MIC 8 (row 23): FAIL on the EIN (S55 HF excess)
 ok   MIC 20 (row 24): FAIL on the EIN (S55 HF excess)
 ok   the TRS rows 39-42 graded PASS on the labelled model
 ok   state keeps lane_refs, patch_loop and per-patch records with EIN
-     second re-run walked 11: P13 P14 P15 P19 P31 P38 P39 P40 P44 P56 P81
+     prompt P13 AUX 1 -> MIC 2
+     prompt P14 AUX 1 -> MIC 3
+     prompt P15 AUX 1 -> MIC 4
+     prompt P19 AUX 1 -> MIC 8
+     prompt P26 AUX 1 -> MIC 15
+     prompt P31 AUX 1 -> MIC 20
+     prompt P38  -> MIC 2
+     prompt P39  -> MIC 3
+     prompt P40  -> MIC 4
+     prompt P44  -> MIC 8
+     prompt P56  -> MIC 20
+     prompt P67 PHONES -> MIC 1
+     prompt P82 AUX 1 -> MIC 15 line
+     second re-run walked 13: P13 P14 P15 P19 P26 P31 P38 P39 P40 P44 P56 P67 P82
      rows still owed after the first re-run: [2, 3, 4, 23, 24, 97, 148]
-ok   the second re-run walks exactly what is still owed (11): the EIN-failing inputs' 150 ohm patches, the K1 patches of their now-failing rows [2, 3, 4, 23, 24], and any line patch that has not passed (the S157 model's noisy MIC 15 floor grades P81 NO DATA)
+ok   the second re-run walks exactly what is still owed (13): the EIN-failing inputs' 150 ohm patches, the K1 patches of their now-failing rows [2, 3, 4, 23, 24], and any line patch that has not passed (the S157 model's noisy MIC 15 floor grades P81 NO DATA)
 
 all checks passed -- no unit, no bus, no write, no rails

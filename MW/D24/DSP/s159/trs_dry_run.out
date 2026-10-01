@@ -17,12 +17,11 @@ ok   ... and says so on the glass
 ok   ... LEADS CORRECT records FAIL "the jack marked AUX A 1-2 carries AUX A 7-8" on all three sub-tests
 ok   ... the route is the patch's own again after every probe
 -- case_reversed_then_moved
-ok   reversed, lead moved after the name: P63 arrives and passes
+ok   reversed, lead moved after the name and RETRY: P63 arrives and passes
 -- case_prearm_guard
-ok   pre-arm refused for the TRS (P63) and mini-jack (P91) patches, kept for a single-row patch (P2)
+ok   pre-arm refused for the TRS (P63) and mini-jack (P92) patches, kept for a single-row patch (P2)
 -- case_acquire_asserts_row1
 ok   acquire reads row 1 (L) on aux 1 alone, whatever was up before
 ok   ... and its level is the single-ended one, not the null
 
 all checks passed -- no unit, no bus, no write, no rails
-exit 0

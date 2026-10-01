@@ -401,8 +401,6 @@ PATCH_STATIONS = {'M4'}
 PATCH_UNREACHED = {
     35: ('the Centre/LF socket is on a converter lane this product has no '
          'cell for: nothing the host can write puts a signal on it'),
-    97: ('the headphone socket is on two converter lanes this product has no '
-         'cells for: nothing the host can write puts a signal on it'),
     148: ('this row is a screen link, not an audio path: it does not belong '
           'to this station'),
 }
@@ -689,6 +687,8 @@ class State:
                 pass
         self.d.setdefault('rows', {})
         self.d.setdefault('passes', 0)
+        # rows this catalog + patch list can run (S164; see `settled`)
+        self.runnable = set()
 
     def save(self):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
@@ -713,6 +713,13 @@ class State:
         if v in (PASS, IGNORED):
             return True
         if not v or self.d.get('retest_failed'):
+            return False
+        # NOT TESTED IS THE CATALOG'S WORD, NEVER A MEASUREMENT (S164).
+        # `record_not_run` writes it on a row nothing could run; a row that
+        # has since become runnable (the phones jack: S164 wrote its patch)
+        # still carries it, and counting it as tested would mean the new test
+        # is never walked. `runnable` is set from the classification.
+        if v == NOTTESTED and num in self.runnable:
             return False
         if v == NODATA:
             text = ' '.join(str(e.get(k) or '') for k in
@@ -750,6 +757,13 @@ class State:
             self.d['rows'][key] = new
             return
         hist = e.pop('history', [])
+        # A MEASUREMENT ALWAYS SUPERSEDES THE CATALOG'S NOT TESTED (S164).
+        # NOT TESTED ranks above FAIL so a stale SKIPPED cannot outlive it
+        # (S119), but on a row that has since become runnable -- the phones
+        # jack -- the same rank would leave a measured FAIL in `history` under
+        # a NOT TESTED headline, and the report would never show it.
+        if e['verdict'] == NOTTESTED and verdict != NOTTESTED:
+            force = True
         if force or RANK[verdict] <= RANK.get(e['verdict'], 9):
             hist.append({k: v for k, v in e.items() if k != 'history'})
             new['history'] = hist
@@ -2762,6 +2776,10 @@ def keep_patch_state(state, station, passno):
         new = dict(old, verdict=e['verdict'], pass_no=passno, stamp=stamp())
         if 'ein' in e:
             new['ein'] = e['ein']
+        if 'hr' in e:
+            # the input's 1 % THD point (S164): what the resume reads to know
+            # it was recorded, and what headroom_ref.py averages
+            new['hr'] = dict(e['hr'], pass_no=passno)
         pats[pid] = new
     state.d['patches'] = pats
 
@@ -3697,6 +3715,7 @@ def main(argv=None):
         print('--reset-state also RUNS a pass (use --reset-only to reset and '
               'stop)', flush=True)
     state = State(state_path, a.serial, a.catalog_md5)
+    state.runnable = set(r.num for r in rows if r.category != 'not-run')
     # RE-TESTING FAILED ROWS IS A REQUEST, OFF BY DEFAULT (S163). `--retest-
     # failed`, or a file named `retest-failed` beside the state (what a glass
     # button writes), asks for the failed / no-data rows to be run again for

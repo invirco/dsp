@@ -1,0 +1,111 @@
+station under test: /home/peter/dsp/tools/pi/d24_patch.py
+-- case_list
+ok   AUX A: 8 single-ended rows, every one on trs_aux_out_db
+ok   P67 is the front PHONES jack on row 97: L main:L normal, R main:R inverted, null main:C, all on MIC 1 with the K2 lead
+ok   ... its single rows name phones_out_db
+ok   one headroom sub-test per gain-walk patch (24), last in the patch, gain code 0, on no catalog row
+ok   ... MIC 1..24, each on its own lane
+ok   Mon PhonesLevel opened at unity in the standing write
+ok   the phones null pans the donor to the middle (index 63)
+ok   the plan lists the -20 dB pad lead as an owed fixture, with the OUTPUT headroom it enables
+ok   PHONES L / R are proved by P67 in the coverage table, and nothing is left in "not run"
+ok   the committed list is exactly what the generator writes
+-- case_limits
+ok   trs_aux_out_db = 0.00 (unity NJM4580L re-receiver)
+ok   phones_out_db and headroom_ref_dbu are declared and unset (nan)
+ok   the old single_ended_db is gone
+ok   headroom keys: -40 dB target, -12 start, 0.5 step, 0 ceiling, 1.0 dB tolerance, 3.0 dB exclusion
+ok   a key the limits do not declare stops the station (no default)
+-- case_scorer
+ok   P63 L as the unit read it (ref - 1.42 dB): PASS (was "+4.6 dB off" against the old -6.02)
+ok   ... a leg at the OLD expectation (6 dB down) now FAILS
+ok   ... the tip inverted still FAILS (tip and ring swapped)
+ok   phones L: level RECORDED, NOT JUDGED (phones_out_db nan), PASS
+ok   ... even 24 dB off is recorded, not failed, until it is set
+ok   phones R inverted (the ring through tip-minus-ring): PASS
+ok   phones R in phase: FAIL
+ok   phones L/R 3 dB apart: FAIL on the stereo match (1.5 dB)
+ok   phones null 45 dB down: PASS
+ok   phones null only 10 dB down: FAIL
+-- case_resume
+ok   row 97 holds the catalog's NOT TESTED (S117 era); runnable now, so it is NOT settled
+ok   ... a NOT TESTED row that is still not-run stays settled
+ok   rows 39-42 (P63-P66) have no verdict: P63 is untested, not FAIL
+     prompt P12 AUX 1 -> MIC 1
+     prompt P13 AUX 1 -> MIC 2
+     prompt P14 AUX 1 -> MIC 3
+     prompt P15 AUX 1 -> MIC 4
+     prompt P16 AUX 1 -> MIC 5
+     prompt P17 AUX 1 -> MIC 6
+     prompt P18 AUX 1 -> MIC 7
+     prompt P19 AUX 1 -> MIC 8
+     prompt P20 AUX 1 -> MIC 9
+     prompt P21 AUX 1 -> MIC 10
+     prompt P22 AUX 1 -> MIC 11
+     prompt P23 AUX 1 -> MIC 12
+     prompt P24 AUX 1 -> MIC 13
+     prompt P25 AUX 1 -> MIC 14
+     prompt P26 AUX 1 -> MIC 15
+     prompt P27 AUX 1 -> MIC 16
+     prompt P28 AUX 1 -> MIC 17
+     prompt P29 AUX 1 -> MIC 18
+     prompt P30 AUX 1 -> MIC 19
+     prompt P31 AUX 1 -> MIC 20
+     prompt P32 AUX 1 -> MIC 21
+     prompt P33 AUX 1 -> MIC 22
+     prompt P34 AUX 1 -> MIC 23
+     prompt P35 AUX 1 -> MIC 24
+     prompt P63 AUX A 1-2 -> MIC 1
+     prompt P64 AUX A 3-4 -> MIC 1
+     prompt P65 AUX A 5-6 -> MIC 1
+     prompt P66 AUX A 7-8 -> MIC 1
+     prompt P67 PHONES -> MIC 1
+     prompt P68 AUX 1 -> MIC 1 line
+     prompt P69 AUX 1 -> MIC 2 line
+     prompt P70 AUX 1 -> MIC 3 line
+     prompt P71 AUX 1 -> MIC 4 line
+     prompt P72 AUX 1 -> MIC 5 line
+     prompt P73 AUX 1 -> MIC 6 line
+     prompt P74 AUX 1 -> MIC 7 line
+     prompt P75 AUX 1 -> MIC 8 line
+     prompt P76 AUX 1 -> MIC 9 line
+     prompt P77 AUX 1 -> MIC 10 line
+     prompt P78 AUX 1 -> MIC 11 line
+     prompt P79 AUX 1 -> MIC 12 line
+     prompt P80 AUX 1 -> MIC 13 line
+     prompt P81 AUX 1 -> MIC 14 line
+     prompt P82 AUX 1 -> MIC 15 line
+     prompt P83 AUX 1 -> MIC 16 line
+     prompt P84 AUX 1 -> MIC 17 line
+     prompt P85 AUX 1 -> MIC 18 line
+     prompt P86 AUX 1 -> MIC 19 line
+     prompt P87 AUX 1 -> MIC 20 line
+     prompt P88 AUX 1 -> MIC 21 line
+     prompt P89 AUX 1 -> MIC 22 line
+     prompt P90 AUX 1 -> MIC 23 line
+     prompt P91 AUX 1 -> MIC 24 line
+     prompt P92 AUX 1 -> MINI-JACK 1
+     prompt P93 AUX 1 -> MINI-JACK 2
+     resume walked 55: P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 P29 P30 P31 P32 P33 P34 P35 P63 P64 P65 P66 P67 P68 P69 P70 P71 P72 P73 P74 P75 P76 P77 P78 P79 P80 P81 P82 P83 P84 P85 P86 P87 P88 P89 P90 P91 P92 P93
+ok   the resume walks the 24 gain-walk patches (headroom) and P63-P93 (untested) -- 55 patches
+ok   ... each gain-walk patch is prompted for its headroom sub-test ALONE: no gain step re-measured
+ok   ... rows 1-24 keep their verdicts; rows 2-24 gain no new entry (row 1 is also folded by the TRS/phones patches read on MIC 1)
+ok   P63-P66 graded PASS against trs_aux_out_db (model leg -1.42 dB)
+ok   row 97 (front phones): PASS on its new patch, the level recorded
+ok   state.json keeps a headroom record for all 24 inputs
+ok   MIC 15 (the model's noisy lane, no tone under the ramp): NO DATA "no tone reached", never a "headroom above" claim
+ok   every other headroom = the model's 1 % point in dBu (drive + 23.13), to 0.05 dB: MIC 1 17.33 dBu
+ok   ... with dBFS at the converter and THD+N at the crossing = -40 dB
+ok   the ramp is logged step by step (drive:THD+N), 0.5 dB apart, for every input
+-- case_reference
+       MIC 15    --       pass 5  no level: no tone reached MIC 15 for the headroom ramp: the lane sat 33.2 dB over its own floor
+     median 17.33 dBu; average of 22 inputs (*) = 17.40 dBu; left out: MIC 5 13.3 dBu (-4.0 dB from the 17.3 dBu median); MIC 15 (no 1 % level: no tone reached MIC 15 for the headroom ramp: the lane sat 33.2 dB over its own floor)
+     wrote headroom_ref_dbu = 17.40 dBu into ../../../tmp/s164-lim-gevdpq1o/patch-limits.csv
+ok   headroom_ref.py: 23 per-input values written (MIC 15 has none), the reference = the average of the inputs within 3 dB of the median
+ok   ... MIC 5 (4 dB early) is LEFT OUT and named, MIC 15 named as having no level; MIC 9 (+1.5) is kept
+ok   ... the source names the unit and the pass
+ok   ... every other line of the hand-tuned file is untouched
+ok   the next pass grades it: 0.6 dB under PASS, 1.4 dB under FAIL (PROVISIONAL 1.0 dB), above never fails
+ok   a ramp that never reaches 1 % records "headroom above X dBu"
+
+all checks passed -- no unit, no bus, no write, no rails
