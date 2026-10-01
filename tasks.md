@@ -1,3 +1,21 @@
+## HUB DISPATCH 2026-10-01 16:35Z — S162: Q542 Schottky A/B - open-input FFT + cold drift map vs S160   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S162: Q542 SCHOTTKY A/B — re-run the S160 open-input FFT after the DC-restore fix. PW 2026-10-01 ~17:4x BST: an SS210A (100 V 2 A Schottky, SOD-123, taken from analog board 1) is now FITTED at Q542 on MW-D24-2's analog board 2 — cathode to the Q542 gate (after the 10 nF), anode to GND; the 10 nF + 4K7 AC-coupled drive stays. Hypothesis (hub): without DC restore the gate swing depended on duty and on the gap between bursts (τ = 10 nF · 4K7 ≈ 47 µs ≈ the 53–59 µs burst period of the 17–19 kHz hump), so the MIC 1–4 group converter's burst rate wandered with time/temperature; the Schottky pins the gate low level near 0 V so every pulse is identical.
+
+Hands-free, OPEN inputs, nothing plugged (PW is not needed). MW-D24-2 (app@192.168.1.219) is yours; no factory run is live — check runner.lock/pgrep first and never start RUN ALL. Booted pair's symbols only (never the s55 default SYMDIR=/home/app/s56). Same method as S160 (MW/D24/DSP/s160: TEST_MEAS captures, processing bypassed and restored, code 63) so the comparison is like-for-like.
+1. DRIFT MAP from a COLD rails-up: rails/AN_EN down ≥ 5 min first (converters cool), then rails up and, starting immediately, MIC 2 open at code 63: 2 × 16k captures every 30 s for 15 min → hump peak frequency, level (dB over the MIC 5 reference) and 10–20 kHz octave vs time. Also MIC 4 at 0, 5, 10, 15 min.
+2. Then the S160 set: MIC 1, 2, 3, 4, 5 open at code 63 (6 × 16k each) + MIC 2 at codes 0/32/48; octave table, 20–20k and A-weighted input-referred, prominent lines.
+3. Compare against S160 (before): does the 16.6–18.9 kHz hump disappear, shrink, stop drifting, or move? State the result per input in one line, with before/after plots (PNG) in MW/D24/DSP/s162/.
+4. NOT EIN (open inputs) — say so; the graded EIN comes from PW's failed-only re-run.
+5. Leave the unit as found (rails down, processing restored, no deploy). 🔴 note for the hub with the verdict and, if a hump remains, its frequency/level so the next step (LC post-filter / output C on the MIC 1–4 ±15 V) can be sized.
+Rules: single trunk — pull main first, commit + push main; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog — 🔴 notes.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 13:29Z — S161: runner EXIT dialog hang + PAUSE closes the pass   [status: 🟢 DONE, DEPLOYED (backup-s161-pre, d24_runall adb22004 = repo, no runner was live) — EXIT on the factory summary no longer posts the power-check dialog (rails lowered, lock released on exit, row 134 stays not tested; wizard path still asks); PAUSE in the patch station now raises Paused with current left on the step, so the pass stays open and START resumes there under the S159 failed-only rules; s161/pause_exit_check 9 checks + S145/S153/S157/S158/S159 suites green; no 🔴 for PW]   [model: sonnet]
 
 model: sonnet
