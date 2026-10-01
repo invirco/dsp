@@ -1,3 +1,17 @@
+## HUB DISPATCH 2026-10-01 13:29Z — S161: runner EXIT dialog hang + PAUSE closes the pass   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S161: two factory-runner bugs found in S159 (note 2 item 6), desk + dry run; deploy ONLY when no factory run is live on MW-D24-2 (check runner.lock + pgrep first; PW may be running the failed-only re-run — never stop it).
+1. EXIT on the factory summary screen leads to `session_end_power_check`, a DIALOG the factory glass cannot draw (S128 class) — the runner then sits holding runner.lock. Make the factory path never post a dialog the glass cannot draw: either draw it as a glass screen with buttons, or skip it on the factory path with the rails put safe.
+2. PAUSE inside the patch station closes the pass (pass N) instead of leaving it resumable at the step. Make PAUSE leave the pass open and resumable at that step (state.json), as the other stations do; START then resumes there (failed-only rules from S159 still apply).
+Model/dry-run proof for both; regression on S153/S157/S158/S159 suites; deploy with backup-s161-pre, md5s recorded; 🔴 note for PW only if a behaviour on the glass changes.
+Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 12:14Z — S159: stereo TRS patches never arrive (arrival wait drives the null?)   [status: 🟢 DONE, DEPLOYED between runs (backup-s159-pre) — the factory wait never drove the null (pre-arm is off on the auto path; the null hang is real only on the ENTER path, reproduced on f2f0b4e1, fixed); the TRS stall fits a jack-pair order reversal (AUX A 1-2 jack carrying aux 7/8), which the station now probes and names; RUN ALL re-runs only patches feeding a row without a PASS (56 of 92 from pass 4); the 150 ohm pass grades EIN from capture-arm 20–20k/A against limits.csv −126.0/−129.5 (the node's DC–24k RMS would fail every good input); S160 MIC 1-4 audit done (open inputs); all suites green — 🔴 PW: START for the re-run]   [model: opus]
 
 model: opus
