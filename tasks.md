@@ -18,6 +18,13 @@ HUB ADDENDUM 2 (PW 2026-10-01 ~13:35 BST): **APPLY THE EXISTING EIN LIMIT IN THE
 - Unweighted is the pass/fail; report A-weighted beside it if the node gives it, graded against −129.5.
 - Expected on MW-D24-2: MIC 2/3/4 fail (≈ −117..−118 dBu est.), MIC 8 / MIC 20 may fail (survey −123.2 / −125.2), MIC 1 ≈ −127.2 passes. Prove with today's recorded readings (s158 traces) before deploying — list every channel's EIN in your outcome.
 - The failed-only re-run (addendum 1) then includes the 150 ohm step for every input whose EIN row is not PASS under this limit — rows that passed on detection alone today are re-graded from their recorded reading where it exists, re-measured only if no usable reading was recorded.
+HUB ADDENDUM 3 (PW 2026-10-01 ~13:50 BST) — PRIORITY INTERRUPT: "pause testing and run some manual fft audits on mic 1-4 noise floors, to see what is causing noise failures." Park the S159 fix at a clean point (commit WIP, nothing deployed mid-audit); the factory run stays stopped and resumable. Do the MIC 1-4 part of the queued S160 spec NOW (mx26 docs/queued-dispatches/dsp-s160-ein-fail-fft.md — read it, incl. the hub pre-look and the lane-label caveat). PW is at the bench and talks to you through Remote Control; put every hand instruction in ONE short line in your output (panel names, e.g. "Fit the 150 ohm plug in MIC 2 now"), and the glass if you can.
+- Booted pair's symbols only (never the s55 default SYMDIR=/home/app/s56). Gain code 63.
+- Per input MIC 1 (reference), MIC 2, MIC 3, MIC 4, plus MIC 5 as a second good reference: 150 ohm fitted → 6 × 16k captures + node RMS; then OPEN (no plug) the same. MIC 2 also at codes 0 / 32 / 48 terminated.
+- Spectra overlaid against MIC 1/5; integrated 20-20k + A-weighted → EIN dBu (S57-R method) against the −126.0 dBu limit; list prominent lines (Hz, dB over reference) — especially a 60/120/240 Hz family, mains 50 Hz family, switcher spurs/aliases (find the MIC 1-4 group converter's switching frequency), HF hump, 1/f.
+- If lines appear: one A/B each where cheap — panel LEDs off, display backlight off, haptics idle — to name the source.
+- Verdict per input in one line, PNG plots in MW/D24/DSP/s160/, a 🔴 note for the hub (supplier notes A8). Then resume the S159 fix.
+HUB ADDENDUM 4 (PW 2026-10-01 ~13:55 BST): run the MIC 1-4 (+ MIC 5 reference) FFT audit UNTERMINATED — open inputs, nothing plugged, no hand steps for PW; same captures/analysis otherwise (code 63, plus MIC 2 at 0/32/48). The open-input spectra are for investigation; state clearly that EIN against −126 dBu needs the 150 ohm and is not graded from open readings.
 
 
 🔴 S159 NOTE 1 (interim, 2026-10-01 ~12:45Z) — run paused, two findings that change the ask:
