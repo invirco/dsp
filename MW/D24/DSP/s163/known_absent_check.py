@@ -3,6 +3,7 @@
 import os, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', '..', '..', '..', 'tools', 'pi'))
+os.environ.setdefault('MATRIX_ADDR_HOME', os.path.join(HERE, '..', 's138b', 'fixtures'))
 import d24_panel as PL
 FAILS = []
 def check(n, c, d=''):

@@ -4079,21 +4079,25 @@ class Station:
         return self.rows_out
 
     def owed_patch(self, pid, rows):
-        """Is this patch walked on a failed-only re-run? (S159)
+        """Is this patch walked on a resume? (S159, corrected S163)
 
-        Yes when it feeds a catalog row that has no PASS -- a FAIL, a NO
-        SIGNAL, a row never tested. A 150 ohm patch is owed until its input's
-        EIN has been GRADED and passed (PW 2026-10-01: the T4b limit applies
-        from now on, and a reading taken before it was ruled is not a grade).
-        A patch that folds onto no row at all (the line inputs) is owed until
-        it has passed once."""
+        PW 2026-10-01: "don't repeat failed tests (unless requested), only run
+        untested tests". A patch is walked when it feeds a row with NO verdict
+        yet (`owed_rows` is the untested set, built by the runner from
+        `State.settled`); a patch whose rows all carry a PASS or a FAIL is not.
+        With the operator's RE-TEST FAILED request (`carry['retest_failed']`)
+        the S159 rule applies again: any row without a PASS, and a 150 ohm
+        patch until its input's EIN has been graded and passed. A patch that
+        folds onto no row at all (the line inputs) is owed until it has a
+        recorded outcome."""
         rec = (self.carry.get('patches') or {}).get(pid) or {}
-        if rows[0]['expect'] == 'noise' and self.lim.ein_ready():
+        retest = bool(self.carry.get('retest_failed'))
+        if retest and rows[0]['expect'] == 'noise' and self.lim.ein_ready():
             return rec.get('ein') != PASS
         nums = {int(x) for r in rows for x in str(r.get('rows') or '').split()}
         if nums:
             return bool(nums & self.owed_rows)
-        return rec.get('verdict') != PASS
+        return (rec.get('verdict') != PASS) if retest else not rec
 
     def patch_outcomes(self):
         """Per patch walked: its worst verdict, and for a 150 ohm patch

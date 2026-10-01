@@ -116,7 +116,9 @@ def fresh_state(tmp):
     path = os.path.join(tmp, 'state.json')
     shutil.copy(os.path.join(DATA, 'state-pass4.json'), path)
     serial = json.load(open(path))['serial']
-    return rows, RA.State(path, serial, md5)
+    st = RA.State(path, serial, md5)
+    st.d['retest_failed'] = True      # S163: the on-request path (RE-TEST FAILED)
+    return rows, st
 
 
 ORIG = dict(find_list_dir=PT.find_list_dir, Unit=PT.Unit,

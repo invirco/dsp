@@ -1,0 +1,7 @@
+ok   row 94 (temperature sense) is NO DATA with the reason
+ok   ... instantly: no listen window (30 s timeout offered), no bus read
+ok   ... no operator prompt and no idle listen
+ok   ... the note carries the tag the glass uses to skip the hold
+ok   delete the table line and the row listens again (then times out NO DATA)
+
+all checks passed -- no unit, no bus, no write, no rails

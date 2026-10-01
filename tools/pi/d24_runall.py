@@ -700,6 +700,28 @@ class State:
     def row(self, num):
         return self.d['rows'].get(str(num))
 
+    def settled(self, num):
+        """Has this row been TESTED, so that a resume leaves it alone?
+        (S163, PW 2026-10-01: "don't repeat failed tests (unless requested),
+        only run untested tests".) A PASS always; a FAIL / SKIPPED / NO DATA
+        too, unless the operator asked for the failed rows again
+        (`retest_failed`). A NO DATA that only records an interruption -- the
+        run paused during the row, or the auto set died before reaching it --
+        is not a test, so that row is still untested and still owed."""
+        e = self.row(num)
+        v = e['verdict'] if e else ''
+        if v in (PASS, IGNORED):
+            return True
+        if not v or self.d.get('retest_failed'):
+            return False
+        if v == NODATA:
+            text = ' '.join(str(e.get(k) or '') for k in
+                            ('measured', 'evidence', 'reason', 'note'))
+            if ('paused during this row' in text
+                    or 'died before this row was reached' in text):
+                return False
+        return v in (FAIL, NODATA, SKIPPED, NOTTESTED)
+
     def verdict(self, num):
         e = self.row(num)
         return e['verdict'] if e else ''
@@ -1021,7 +1043,7 @@ def auto_plan(rows, state, ignored):
     owed, tests = [], []
     for r in sorted((x for x in rows if x.category == 'auto'),
                     key=lambda x: (x.order, x.num)):
-        if r.num in ignored or state.verdict(r.num) == PASS:
+        if r.num in ignored or state.settled(r.num):
             continue
         owed.append(r)
         for t in r.tests:
@@ -1833,7 +1855,7 @@ def run_background_rows(a, rows, state, ignored, glass, passno):
     for r in rows:
         if r.category != 'background' or r.num in ignored:
             continue
-        if state.verdict(r.num) == PASS:
+        if state.settled(r.num):
             continue
         v, m, lim, ev = measure(r.step['measure'], a.tools)
         state.put(r.num, v, pass_no=passno, judged='runner', measured=m,
@@ -1858,7 +1880,7 @@ def manual_rows_for(station, rows, state, ignored):
     out = []
     for r in sorted((x for x in rows if x.category == 'manual'
                      and x.group == station), key=lambda x: x.num):
-        if r.num in ignored or state.verdict(r.num) == PASS:
+        if r.num in ignored or state.settled(r.num):
             continue
         out.append(r)
     return out
@@ -2136,10 +2158,10 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
     on_board = [r for r in rows if r.group == st]
     total_steps = len(on_board)
     already = sum(1 for r in on_board
-                  if r.num not in ignored and state.verdict(r.num) == PASS)
+                  if r.num not in ignored and state.settled(r.num))
     owed = set(r.num for r in rows
                if r.group == st and r.num not in ignored
-               and state.verdict(r.num) != PASS)
+               and not state.settled(r.num))
     # IS THERE ANYTHING TO PRESS AT ALL (S153, PW 2026-09-30)? On a resumed
     # pass whose presses all passed, the standing page below still said "press
     # the button that is lit" while only the temperature-sense listen ran, and
@@ -2551,7 +2573,7 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     byrow = dict((r.num, r) for r in rows)
     owed = set(r.num for r in rows
                if r.group == st and r.num not in ignored
-               and state.verdict(r.num) != PASS)
+               and not state.settled(r.num))
     plist = PT.PatchList(PT.find_list_dir(LIST_DIR))
     limits = PT.Limits.load(plist.dir)
     unit = PT.Unit(symdir=a.patch_symdir)
@@ -2716,7 +2738,8 @@ def patch_carry(state):
                                       stamp=h.get('stamp'),
                                       source='row text (backfill)')
     return dict(lane_refs=refs, loop=state.d.get('patch_loop'),
-                patches=dict(state.d.get('patches') or {}))
+                patches=dict(state.d.get('patches') or {}),
+                retest_failed=bool(state.d.get('retest_failed')))
 
 
 def keep_patch_state(state, station, passno):
@@ -3010,7 +3033,7 @@ def owed_rows(rows, state, ignored):
     it: a NOT RUN row with nothing behind it is not owed, it is reported."""
     out = []
     for r in rows:
-        if r.num in ignored or state.verdict(r.num) in (PASS, IGNORED):
+        if r.num in ignored or state.settled(r.num):
             continue
         if r.category == 'not-run':
             continue
@@ -3464,6 +3487,7 @@ def one_pass(a, rows, state, ignored, glass, csv_path, resumed):
     record_not_run(rows, state, passno)
     state.d['passes'] = passno
     state.d['current'] = None
+    state.d.pop('retest_failed', None)
     timing['wall'] = time.time() - t0
     state.save()
     return timing
@@ -3562,6 +3586,9 @@ def main(argv=None):
                          '(ruling f): its fixture is not built, so its rows '
                          'are recorded NOT RUN with that reason and nobody '
                          'walks to it')
+    ap.add_argument('--retest-failed', action='store_true',
+                    help='run the failed / no-data rows again too (default: '
+                    'only never-tested rows are walked)')
     ap.add_argument('--auto-only', action='store_true')
     ap.add_argument('--manual-only', action='store_true')
     ap.add_argument('--report-only', action='store_true')
@@ -3670,6 +3697,18 @@ def main(argv=None):
         print('--reset-state also RUNS a pass (use --reset-only to reset and '
               'stop)', flush=True)
     state = State(state_path, a.serial, a.catalog_md5)
+    # RE-TESTING FAILED ROWS IS A REQUEST, OFF BY DEFAULT (S163). `--retest-
+    # failed`, or a file named `retest-failed` beside the state (what a glass
+    # button writes), asks for the failed / no-data rows to be run again for
+    # THIS pass; the flag is cleared when the pass closes.
+    _rt = os.path.join(os.path.dirname(state_path), 'retest-failed')
+    if getattr(a, 'retest_failed', False) or os.path.exists(_rt):
+        state.d['retest_failed'] = True
+        try:
+            os.remove(_rt)
+        except OSError:
+            pass
+        state.save()
     live, stale = read_ignored(a.ignored, a.serial, a.catalog_md5)
 
     if a.ignore:

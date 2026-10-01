@@ -344,8 +344,11 @@ def action_wrong_socket(actual, wanted, confirm=True):
 # failed tests only"). Said on the glass before the first patch, so the worker
 # knows why the count is short.
 def rerun_words(n, total):
-    return ('Re-run: %d of %d patches - only the ones that failed or were '
-            'never tested.' % (n, total))
+    # S163 (PW 2026-10-01: "don't repeat failed tests (unless requested), only
+    # run untested tests"): a resume walks the patches that feed an untested
+    # row; passes and fails stay as recorded.
+    return ('Resume: %d of %d patches untested - failed rows kept (RE-TEST '
+            'FAILED to repeat them).' % (n, total))
 
 
 def status_wrong_pair(actual, wanted):
