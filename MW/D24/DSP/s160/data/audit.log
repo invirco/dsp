@@ -1,0 +1,24 @@
+symbols: /home/app/loopthd/s154 (booted pair)
+standing + 219 bypass cells written (0 did not read back)
+   .. the analog rails are up
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain MIC 1 at code 63: verified
+MIC 1  code 63 strip  1: settled 5.0 s, node RMS -75.09 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 2 at code 63: verified
+MIC 2  code 63 strip  2: settled 5.0 s, node RMS -73.44 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 3 at code 63: verified
+MIC 3  code 63 strip  3: settled 5.1 s, node RMS -74.26 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 4 at code 63: verified
+MIC 4  code 63 strip  4: settled 5.0 s, node RMS -72.64 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 5 at code 63: verified
+MIC 5  code 63 strip  5: settled 5.1 s, node RMS -77.25 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 2 at code 0: verified
+MIC 2  code  0 strip  2: settled 5.0 s, node RMS -113.04 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 2 at code 32: verified
+MIC 2  code 32 strip  2: settled 5.0 s, node RMS -78.26 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. mic-pre chain MIC 2 at code 48: verified
+MIC 2  code 48 strip  2: settled 5.1 s, node RMS -75.48 dBFS, 6 x 16384 captures, overruns [0, 0, 0, 0, 0, 0]
+   .. the analog rails are down
+   .. mic-pre chain back to safe (phantom shunt engaged, gain 0, phantom off): verified
+bypass: 219 cells restored to the values found (0 did not read back)
+handed back: rails down, chain safe, sends shut
