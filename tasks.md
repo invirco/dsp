@@ -1,3 +1,21 @@
+## HUB DISPATCH 2026-10-01 17:45Z — S164: Phones 1-4 level, front phones patch, input headroom at 1% THD (averaged reference)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S164: Phones 1–4 level fix, the front phones jack patch, and INPUT HEADROOM at 1 % THD — then PW resumes (untested rows only). PW 2026-10-01 evening.
+
+0. The run may still be live at P63's FAILED screen: PAUSE it via the glass command channel (S161 keeps the pass open), back up runall/state.json (state.json.bak-s164-prepause). P63 must stay UNTESTED (not FAIL) — if the earlier FAILED screens recorded anything for rows 39–42, report it in the 🔴 note and do not clear it yourself (PW decides).
+1. PHONES 1–4 = the AUX A 1-2/3-4/5-6/7-8 stereo TRS jacks (P63–P66). The L/R/null structure is right (L normal, R inverted because the XLR input reads tip − ring, null both in phase). WRONG: the single-leg level expectation `ref + single_ended_db` (−6.02 dB, "one leg of a balanced pair"). These outputs come from the AK4619 codec through their own single-ended stage, not the AK4458 balanced path: measured tip alone = MIC 1 balanced ref − 1.4 dB (factory.log ~18792: −8.1 dBFS; hand check 09-30: AUX 1 XLR −6.5 vs AUX A TRS −7.3 into MIC 3). Derive the expected single-leg level from the AK4619 DAC full scale + the TRS output-stage gain (analog schematic / defs units), cross-check on the unit (PW moves the K2 lead across the four jacks through the glass), and set it per output type in the limits, not hard-coded. Keep level_tol, the R-inverted and null checks.
+2. FRONT PHONES JACK (analog board, row 97, Monitor feed, DAC_09/10 = C2_PHN_OUT_L/R via `Mon PhonesLevel`): write the missing patch — left only (normal), right only (inverted), null — with its level measured on the unit and set the same way. It is a never-tested row, so the resume runs it.
+3. INPUT HEADROOM — PW DEFINITION: headroom = the level at 1 % THD (−40 dB), in dBu at the connector; report THD in dB AND %. On every input (MIC 1–24), at gain code 0, during the gain-walk patch the lead is already in (AUX 1 → MIC n): ramp the drive in small steps until THD reaches 1 %, record that input level in dBu (S57-R / units.csv references) and dBFS. The output has ~5.6 dB more range than the input, so this measures the INPUT. **PW RULING: work out the values from this pass, then AVERAGE them to use as the reference** — store the reference (average across the 24 inputs, plus each input's value) in the limits file with its source pass, and grade later passes/units against it with a provisional tolerance of 1.0 dB below the reference (mark it PROVISIONAL for PW to confirm; this first pass records and does not fail on headroom). Exclude from the average, and name, any input more than 3 dB from the median.
+4. OUTPUT headroom needs a −20 dB pad lead (new fixture item): add it to the fixture list in the plan/spec with the measurement it enables; do not build the station yet.
+5. Model/dry-run proof; regression on S153/S157–S163 suites; deploy with backup-s164-pre; then a 🔴 note: "ready — press START", what the resume walks (untested rows: P63–P66, the phones patch, the headroom steps), est. time.
+Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog — 🔴 notes; PW's hands only through the glass.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 17:17Z — S163: WRONG_PAIR stops on a clear glass screen instead of looping   [status: 🟢 done — WRONG_PAIR now PARKS on a stable glass screen (no probing/listening, no ARRIVING flicker); LEADS CORRECT records FAIL "jack … carries aux 7/8 -- wiring/label order"; RETRY re-prompts; known-absent rows (row 94 temp) skip instantly via one table; deployed (backup-s163-pre), resume now walks UNTESTED rows only (30 patches), RE-TEST FAILED on request; run PAUSED, ready for START — 🔴 notes below]   [model: sonnet]
 
 model: sonnet
