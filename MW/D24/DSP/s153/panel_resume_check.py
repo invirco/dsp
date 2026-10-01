@@ -31,6 +31,7 @@ os.environ.setdefault('MATRIX_ADDR_HOME',
                                    'fixtures'))
 import d24_live as LV       # noqa: E402
 import d24_runall as RA     # noqa: E402
+RA.PL.KNOWN_ABSENT.clear()   # S163: this case models the cell being sent
 
 CATALOG = os.path.join(ROOT, 'MW', 'D24', 'DSP', 's119', 'test-catalog.csv')
 PRESS_WORDS = ('press the button', 'that is lit')

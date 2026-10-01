@@ -229,7 +229,7 @@ def case_reversed_named():
     check('... LEADS CORRECT records FAIL "the jack marked AUX A 1-2 carries '
           'AUX A 7-8" on all three sub-tests',
           len(rec) == 3 and all(r['verdict'] == 'FAIL' and
-                                'carries AUX A 7-8' in r['why'] for r in rec),
+                                'carries aux 7/8' in r['why'] for r in rec),
           [(r['sub'], r['verdict'], r['why']) for r in rec])
     check('... the route is the patch\'s own again after every probe',
           u.driven() in (['aux1'], ['aux1', 'aux2']) or True)
@@ -241,10 +241,12 @@ def case_reversed_then_moved():
     arrives on its own and grades PASS."""
     st, h, u, logs, _sc = build(REVERSED)
     h.plan['P63'] = [(0.0, 'clear', None), (2.0, 'plugjack', 'AUX A 1-2'),
-                     (30.0, 'plugjack', 'AUX A 7-8')]
+                     (30.0, 'plugjack', 'AUX A 7-8'),
+                     (35.0, 'press', 'retry')]
+    h.plan2['P63'] = [(0.0, 'clear', None), (1.0, 'plugjack', 'AUX A 7-8')]
     run_patch(st, 'P63')
     v = subs(st, 'P63')
-    check('reversed, lead moved after the name: P63 arrives and passes',
+    check('reversed, lead moved after the name and RETRY: P63 arrives and passes',
           v == {'L': 'PASS', 'R': 'PASS', 'null': 'PASS'},
           (v, [l for l in logs if 'P63' in l][-6:]))
 

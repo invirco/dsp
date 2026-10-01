@@ -2496,7 +2496,9 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                 # full note, which says what was (not) received.
                 if v == NODATA and live is not None \
                         and not pending['paused']:
-                    why = (LV.NODATA_PANEL_FIRMWARE
+                    why = (note[len(PL.KNOWN_ABSENT_TAG):]
+                           if note.startswith(PL.KNOWN_ABSENT_TAG) else
+                           LV.NODATA_PANEL_FIRMWARE
                            if 'nothing was transmitted' in note
                            or 'not on this unit' in note else
                            note.split(':')[0].split('.')[0])
@@ -2508,7 +2510,11 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                              banner_line='', status=panel_name.capitalize(),
                              buttons=['pause'])
                     t_say = time.time()
-                    while time.time() - t_say < NODATA_SAY_S:
+                    # A KNOWN-ABSENT ROW (S163) shows its line and moves on:
+                    # no hold, the next step's page replaces it.
+                    hold = (0.0 if note.startswith(PL.KNOWN_ABSENT_TAG)
+                            else NODATA_SAY_S)
+                    while time.time() - t_say < hold:
                         live.beat()
                         if live.command() == 'pause':
                             pending['paused'] = True

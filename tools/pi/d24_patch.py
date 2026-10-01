@@ -2918,6 +2918,7 @@ class Station:
         self._sweep_prev = None
         self._pair_seen = None
         self._pair_next = 0.0
+        self._parked = False
         self.waiting(status=status or LV.status_words(LV.WAITING))
         # The timeout raises the question; it no longer ends the step on the
         # ruled path. On the ENTER path it is ENTER_PATIENCE times the list's
@@ -2986,6 +2987,22 @@ class Station:
                     said_nothing = True
                 else:
                     return ('glass', ans, now() - t0)
+            # S163: A NAMED WRONG PAIR IS PARKED. Once the probe has found the
+            # pair this jack carries the station stops driving and stops
+            # listening: the probe's own tones and the route put back after
+            # them were what kept raising ARRIVING / WAITING every 0.7 s over
+            # the screen. Only a button leaves it -- LEADS CORRECT records the
+            # jack order, RETRY (handled above) re-prompts, PAUSE pauses. A
+            # lead moved by hand does nothing until RETRY; there is no loop.
+            if self._parked:
+                if said_nothing:
+                    self._step_log(r, 'NO SIGNAL', None, floor0,
+                                   'LEADS CORRECT on the wrong-pair screen '
+                                   'after %.1f s: the jack order is recorded'
+                                   % (now() - t0))
+                    return ('nosignal', None, now() - t0)
+                nap(DETECT_POLL_S)
+                continue
             met = False
             if first is not None:
                 lvl, first = first, None          # the prompt's own reading
@@ -3153,6 +3170,8 @@ class Station:
                 got = self._probe_pairs(r, lane, prep, floor0)
                 if got and got != self._pair_seen:
                     self._pair_seen = got
+                    self._parked = True
+                    self._met_at, self._stable = None, []
                     self.log('%s WRONG_PAIR: nothing on the tip of %s, but '
                              'AUX %d reaches %s through this jack -- it '
                              'carries %s' % (r['patch'], r['out'], got[0],
@@ -4148,7 +4167,7 @@ class Station:
                 # the row is a FAIL and the walk moves on.
                 self.p.done(tok)
                 self.confirmed.append(dict(patch=pid, what=rows[0]['in'],
-                                           failure='no signal arrived',
+                                           failure=('jack order: %s carries %s' % (rows[0]['out'], self.pair_name(self._pair_seen)) if self.trs(rows) and self._pair_seen else 'no signal arrived'),
                                            answer='LEADS CORRECT'))
                 self.record(self.no_signal(rows))
                 return None
@@ -4592,8 +4611,8 @@ class Station:
             # THE JACK CARRIES ANOTHER PAIR (S159), and the operator says the
             # lead is in the jack marked as asked: the jack order is the fault,
             # not a dead output. Recorded as such, in words a reader can act on.
-            why = ('the jack marked %s carries %s (AUX %d on the tip)'
-                   % (rows[0]['out'], self.pair_name(pair), pair[0]))
+            why = ('jack %s carries aux %d/%d -- wiring/label order'
+                   % (rows[0]['out'], pair[0], pair[0] + 1))
             detail = ('nothing reached %s from AUX %s; driving each other '
                       'pair\'s tip alone lit it on AUX %d, and the operator '
                       'confirmed the lead was in the jack marked %s (LEADS '

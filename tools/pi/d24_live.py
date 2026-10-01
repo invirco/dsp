@@ -349,13 +349,16 @@ def rerun_words(n, total):
 
 
 def status_wrong_pair(actual, wanted):
-    return 'This jack carries %s, expected %s.' % (actual, wanted)
+    # S163: this screen is PARKED (the station stops driving and listening),
+    # so it is one stable statement and a question, never a flicker.
+    return ('This jack carries %s (not %s). Check the lead is in the jack '
+            'labelled %s.' % (actual, wanted, wanted))
 
 
 def action_wrong_pair(actual, wanted):
-    return ('If the lead is in the jack marked %s, press LEADS CORRECT - the '
-            'jack order is recorded. If not, move it to %s.'
-            % (wanted, wanted))
+    return ('If it is, the jacks are wired or labelled in the wrong order: '
+            'press LEADS CORRECT to record it. If not, move the lead and '
+            'press RETRY.')
 
 
 def action_no_signal(confirm=True):

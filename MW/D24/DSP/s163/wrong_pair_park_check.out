@@ -1,0 +1,22 @@
+station under test: /home/peter/dsp/tools/pi/d24_patch.py
+ok   P63: after naming, the glass never leaves CHECKLEAD (no ARRIVING/WAITING flicker)
+ok   P63: the parked screen is one stable text, buttons LEADS CORRECT/RETRY/PAUSE
+ok   P63: named once, then no further probing or ARRIVING lines
+ok   P63: LEADS CORRECT records FAIL with the jack-order finding on all sub-tests
+ok   P64: after naming, the glass never leaves CHECKLEAD (no ARRIVING/WAITING flicker)
+ok   P64: the parked screen is one stable text, buttons LEADS CORRECT/RETRY/PAUSE
+ok   P64: named once, then no further probing or ARRIVING lines
+ok   P64: LEADS CORRECT records FAIL with the jack-order finding on all sub-tests
+ok   P65: after naming, the glass never leaves CHECKLEAD (no ARRIVING/WAITING flicker)
+ok   P65: the parked screen is one stable text, buttons LEADS CORRECT/RETRY/PAUSE
+ok   P65: named once, then no further probing or ARRIVING lines
+ok   P65: LEADS CORRECT records FAIL with the jack-order finding on all sub-tests
+ok   P66: after naming, the glass never leaves CHECKLEAD (no ARRIVING/WAITING flicker)
+ok   P66: the parked screen is one stable text, buttons LEADS CORRECT/RETRY/PAUSE
+ok   P66: named once, then no further probing or ARRIVING lines
+ok   P66: LEADS CORRECT records FAIL with the jack-order finding on all sub-tests
+ok   moved lead without RETRY: still parked, records the FAIL (no auto-loop)
+ok   RETRY re-prompts and the corrected lead passes
+ok   labelled jacks: no WRONG_PAIR, passes
+
+all checks passed -- no unit, no bus, no write, no rails

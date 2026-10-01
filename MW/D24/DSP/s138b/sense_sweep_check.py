@@ -33,6 +33,7 @@ TOOLS = os.path.join(HERE, '..', '..', '..', '..', 'tools', 'pi')
 sys.path.insert(0, TOOLS)
 os.environ.setdefault('MATRIX_ADDR_HOME', os.path.join(HERE, 'fixtures'))
 import d24_panel as PL      # noqa: E402
+_KA = dict(PL.KNOWN_ABSENT); PL.KNOWN_ABSENT.clear()   # S163: these cases model the panel firmware that DOES send the cell
 
 SCRIPTS = os.path.join(HERE, 'scripts')
 FAILS = []
@@ -140,6 +141,7 @@ def test_the_cell_is_resolved_by_name():
 
 
 def test_mode_sense_prints_json():
+    PL.KNOWN_ABSENT.update(_KA)   # the subprocess has the shipped table
     """The standalone entry, as a bench operator would run it."""
     import subprocess
     p = subprocess.run(
@@ -155,9 +157,11 @@ def test_mode_sense_prints_json():
     except Exception as e:
         check('--mode sense output parses', False, '%s: %r' % (e, p.stdout))
         return
+    PL.KNOWN_ABSENT.clear()
     check('it reports row 94 and its verdict',
           d['rows'] and d['rows'][0]['num'] == 94
-          and d['rows'][0]['verdict'] == PL.PASS, repr(d))
+          and d['rows'][0]['verdict'] == PL.NODATA
+          and d['rows'][0]['note'].startswith(PL.KNOWN_ABSENT_TAG), repr(d))
 
 
 class Row(object):

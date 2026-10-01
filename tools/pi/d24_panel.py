@@ -157,6 +157,19 @@ TEMPFAN, TEMPFAN_ABSENT = matrix_addr.try_resolve(CELL_NAMES['tempfan'])
 # carrying an address (S136: by name, never a literal) -- see `SENSE` below.
 CELL_ADDR = {'skin': SKIN, 'enc': ENC, 'swleft': SW_LEFT, 'swtalk': SW_TALK,
              'mjsw': MJSW, 'tempfan': TEMPFAN}
+# THE KNOWN-ABSENT PRECONDITIONS, IN ONE TABLE (S163, PW ruling 2026-10-01:
+# "if a test does not exist, don't wait for it, move on, eg temp test"). A row
+# whose precondition is known absent BEFORE its step starts is recorded
+# NO DATA with the reason at once -- no listen window, no timeout, no operator
+# prompt. Key: sense-row number (a patch / panel row elsewhere adds its own
+# number here); value: the reason, in panel words. To start testing a row when
+# its precondition lands (e.g. the H1S3 panel firmware that sends
+# Sys001SwTempFan001), delete its line. Nothing else names these rows.
+KNOWN_ABSENT = {
+    94: 'the panel firmware does not send it yet',
+}
+KNOWN_ABSENT_TAG = 'known absent: '
+
 CELL_ABSENT = {'swleft': SW_LEFT_ABSENT, 'swtalk': SW_TALK_ABSENT,
                'mjsw': MJSW_ABSENT, 'tempfan': TEMPFAN_ABSENT}
 
@@ -707,6 +720,11 @@ def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
     out = {}
     for row in SENSE.get(side, ()):
         if owed is not None and row.num not in owed:
+            continue
+        if row.num in KNOWN_ABSENT:
+            out[row.num] = (NODATA, KNOWN_ABSENT_TAG + KNOWN_ABSENT[row.num])
+            log('%s (row %d): NO DATA, not listened for -- %s'
+                % (row.what, row.num, out[row.num][1]))
             continue
         addr = CELL_ADDR.get(row.cell_key)
         if addr is None:
