@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-01 13:29Z — S161: runner EXIT dialog hang + PAUSE closes the pass   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-10-01 13:29Z — S161: runner EXIT dialog hang + PAUSE closes the pass   [status: 🟢 DONE, DEPLOYED (backup-s161-pre, d24_runall adb22004 = repo, no runner was live) — EXIT on the factory summary no longer posts the power-check dialog (rails lowered, lock released on exit, row 134 stays not tested; wizard path still asks); PAUSE in the patch station now raises Paused with current left on the step, so the pass stays open and START resumes there under the S159 failed-only rules; s161/pause_exit_check 9 checks + S145/S153/S157/S158/S159 suites green; no 🔴 for PW]   [model: sonnet]
 
 model: sonnet
 

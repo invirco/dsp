@@ -1,0 +1,10 @@
+ok   PAUSE at P45 raises Paused out of patch_station
+ok   the walk stopped there, not after the whole station
+ok   state.d["current"] still on the step (pass left open)
+ok   what was scored before the pause is kept (10 patches)
+ok   the resume does not re-walk patches that passed before the pause
+ok   the resume walks the paused patch and the failed ones, nothing else
+ok   factory path: EXIT posts no dialog
+ok   factory path: the rails are put safe
+ok   wizard path: the power question is still asked
+all checks passed -- no unit, no bus, no write, no rails

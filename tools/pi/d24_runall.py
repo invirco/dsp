@@ -2673,6 +2673,14 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     state.save()
     glass.progress('analog paths: %d rows graded from %d checks'
                    % (len(verdicts), len(results)))
+    # PAUSE LEAVES THE PASS OPEN (S161). The station ends a PAUSE by returning
+    # what it had scored so far, with `paused` set; the caller then took that
+    # as the station finishing, cleared `current` and closed the pass (pass 4,
+    # 2026-10-01). What was scored is folded and kept above; raising here
+    # leaves `current` on this step, so the next START resumes at it and the
+    # S159 failed-only rules walk only what is still owed.
+    if getattr(station, 'paused', False):
+        raise Paused()
     return verdicts
 
 
@@ -3490,6 +3498,22 @@ def session_end_power_check(state, glass):
     return verdict
 
 
+def session_end(a, state, glass):
+    # NEVER A DIALOG ON THE FACTORY PATH (S161). The armed factory display
+    # cannot draw one (S128 class): EXIT on the summary led here, the runner
+    # posted a dialog nobody could see and sat holding runner.lock. A pass that
+    # ran on the factory screen skips the check, with the rails put safe; row
+    # 134 stays not tested and the wizard (which draws dialogs) still asks.
+    if getattr(a, '_screen_built', False):
+        if not a.no_power_check:
+            print('the session-end power check is not put up: this pass ran '
+                  'on the factory screen, which draws no dialogs. Row 134 '
+                  'stays not tested.', flush=True)
+        lower_rails(glass)
+    elif not a.no_power_check:
+        session_end_power_check(state, glass)
+
+
 def main(argv=None):
     """`argv` so one runner can hand over to another in-process: the factory
     screen's START launches `d24_patch.py --run`, which is the whole ruled
@@ -3809,8 +3833,7 @@ def main(argv=None):
             break
         if not review(rows, state, live, glass, a):
             break
-    if not a.no_power_check:
-        session_end_power_check(state, glass)
+    session_end(a, state, glass)
     glass.clear()
 
 
