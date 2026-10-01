@@ -1,0 +1,13 @@
+station under test: /tmp/claude-1000/-home-peter-dsp/80553846-dff4-435f-a6c4-c42d9e453cf4/scratchpad/before/d24_patch.py
+-- case_labelled_auto
+ok   P63 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P63: the arrival wait drove aux 1 alone ([(), ('aux1',)])
+ok   P64 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P64: the arrival wait drove aux 3 alone ([(), ('aux3',)])
+ok   P65 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P65: the arrival wait drove aux 5 alone ([(), ('aux5',)])
+ok   P66 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P66: the arrival wait drove aux 7 alone ([(), ('aux7',)])
+
+all checks passed -- no unit, no bus, no write, no rails
+exit 0

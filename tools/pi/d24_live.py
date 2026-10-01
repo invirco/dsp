@@ -336,6 +336,28 @@ def action_wrong_socket(actual, wanted, confirm=True):
                ', then press ENTER.' if confirm else '.'))
 
 
+# THE STEREO TRS JACK THAT CARRIES ANOTHER PAIR (S159). The station drives the
+# other three pairs' tips in turn when nothing arrives, and a jack that lights
+# on one of them is named -- it is either the wrong jack or a panel whose jack
+# order does not match its labels, and only the operator can tell which.
+# A RE-RUN WALKS ONLY WHAT IS OWED (S159, PW 2026-10-01: "re-run test for
+# failed tests only"). Said on the glass before the first patch, so the worker
+# knows why the count is short.
+def rerun_words(n, total):
+    return ('Re-run: %d of %d patches - only the ones that failed or were '
+            'never tested.' % (n, total))
+
+
+def status_wrong_pair(actual, wanted):
+    return 'This jack carries %s, expected %s.' % (actual, wanted)
+
+
+def action_wrong_pair(actual, wanted):
+    return ('If the lead is in the jack marked %s, press LEADS CORRECT - the '
+            'jack order is recorded. If not, move it to %s.'
+            % (wanted, wanted))
+
+
 def action_no_signal(confirm=True):
     """The red screen's action when nothing arrived.
 

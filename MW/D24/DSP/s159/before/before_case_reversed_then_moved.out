@@ -1,0 +1,6 @@
+station under test: /tmp/claude-1000/-home-peter-dsp/80553846-dff4-435f-a6c4-c42d9e453cf4/scratchpad/before/d24_patch.py
+-- case_reversed_then_moved
+ok   reversed, lead moved after the name: P63 arrives and passes
+
+all checks passed -- no unit, no bus, no write, no rails
+exit 0

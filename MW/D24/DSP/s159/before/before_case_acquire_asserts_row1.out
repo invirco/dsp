@@ -1,0 +1,7 @@
+station under test: /tmp/claude-1000/-home-peter-dsp/80553846-dff4-435f-a6c4-c42d9e453cf4/scratchpad/before/d24_patch.py
+-- case_acquire_asserts_row1
+FAIL acquire reads row 1 (L) on aux 1 alone, whatever was up before: ('aux1', 'aux2')
+FAIL ... and its level is the single-ended one, not the null: -103.6140280599458
+
+2 check(s) FAILED
+exit 1

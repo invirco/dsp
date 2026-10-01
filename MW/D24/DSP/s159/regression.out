@@ -1,0 +1,5 @@
+s145       all checks passed -- no unit, no bus, no serial port, no write, no rails, no phantom
+s153       all checks passed -- no unit, no bus, no write
+s157       all checks passed -- no unit, no bus, no write, no rails
+s158       all checks passed -- no unit, no bus, no write, no rails
+s159       all checks passed -- no unit, no bus, no write, no rails

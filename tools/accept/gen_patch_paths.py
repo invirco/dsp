@@ -563,6 +563,18 @@ def cells_processing_bypass(strips, auxes, path=None):
     return out
 
 
+ACCEPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PRODUCT_LIMITS = ('limits.csv', 'units.csv')
+
+
+def same_file(a, b):
+    try:
+        with open(a, 'rb') as fa, open(b, 'rb') as fb:
+            return fa.read() == fb.read()
+    except OSError:
+        return False
+
+
 def route_cells(donor, drive, auxes):
     """The cells that change per patch: which bus the donor strip feeds.
 
@@ -1145,8 +1157,8 @@ class Builder:
                  send_pos=self.send_at[strip], rows=self.rows_for(inp),
                  prompt='Fit the 150 ohm terminator in %s' % inp,
                  note='the input noise, at the gain the 2026-09-16 '
-                      'survey used; the window is limits.csv '
-                      't4b_ein_max_dbu')
+                      'survey used; graded against limits.csv '
+                      't4b_ein_max_dbu / t4b_ein_a_max_dbu (PW 2026-10-01)')
 
     def add_talkback_patch(self):
         self.new_patch()
@@ -1641,6 +1653,13 @@ def main(argv=None):
                 park_kit=a.park_kit, input_order=a.input_order,
                 terminator_pass=a.terminator_pass).build()
     if a.check:
+        stale = [n for n in PRODUCT_LIMITS
+                 if not same_file(os.path.join(ACCEPT_DIR, n),
+                                  os.path.join(a.out, n))]
+        if stale:
+            print('STALE: %s in %s differ from tools/accept -- regenerate'
+                  % (', '.join(stale), os.path.relpath(a.out, ROOT)))
+            return 1
         print('OK: %d patches, %d paths, %d routes, %d sockets not run'
               % (b.patch, b.n, len(b.routes), len(b.notrun)))
         return 0
@@ -1661,6 +1680,18 @@ def main(argv=None):
         with open(dst_lim, 'w') as fh:
             fh.write(text)
         written.append(dst_lim)
+    # THE PRODUCT'S OWN LIMITS AND THE UNIT REFERENCES, copied the same way
+    # (S159, HUB ADDENDUM 2: "read the limit FROM that limits file -- never
+    # hard-code it"). The station takes the T4b EIN keys from limits.csv and
+    # the unit's DAC full scale from units.csv; the originals stay in
+    # tools/accept, where dsp4_accept.py reads them too.
+    for n in PRODUCT_LIMITS:
+        src, dst = os.path.join(ACCEPT_DIR, n), os.path.join(a.out, n)
+        with open(src) as fh:
+            text = fh.read()
+        with open(dst, 'w') as fh:
+            fh.write(text)
+        written.append(dst)
     for p in written:
         print('wrote %s' % os.path.relpath(p, ROOT))
     print('%d patches, %d measurements, %d sockets not run'

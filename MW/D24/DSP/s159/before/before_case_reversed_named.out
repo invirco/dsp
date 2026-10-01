@@ -1,0 +1,9 @@
+station under test: /tmp/claude-1000/-home-peter-dsp/80553846-dff4-435f-a6c4-c42d9e453cf4/scratchpad/before/d24_patch.py
+-- case_reversed_named
+FAIL reversed jacks: P63 names the pair the jack carries (AUX A 7-8): ['P63 PROMPTED: MIC 1 level -131.1, floor -87.0 (node coherent) -- rise 12.0 dB', 'P63 FAILED: MIC 1 level -131.1, floor -87.0 (node coherent) -- nothing has arrived in 20.2 s; waiting for the operator (LEADS CORRECT / RETRY / PAUSE)', 'P63: nothing has reached MIC 1 in 20.2 s -- asking', 'P63 NO SIGNAL: MIC 1 level -131.1, floor -87.0 (node coherent) -- the operator pressed it after 40.7 s', 'P63: recorded FAIL -- no signal detected']
+FAIL ... and says so on the glass
+FAIL ... LEADS CORRECT records FAIL "the jack marked AUX A 1-2 carries AUX A 7-8" on all three sub-tests: [('L', 'FAIL', 'no signal detected'), ('R', 'FAIL', 'no signal detected'), ('null', 'FAIL', 'no signal detected')]
+ok   ... the route is the patch's own again after every probe
+
+3 check(s) FAILED
+exit 1

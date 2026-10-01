@@ -286,10 +286,25 @@ TERM_SMALL_STEP_DB = 1.0
 # Before this, the sweep only ran when a step had already FAILED to detect, so a
 # lead in the wrong socket was silent for the whole 20 s timeout.
 WRONG_INPUT_POLL_S = 1.0
+# THE TRS PAIR PROBE (S159): how often a stereo TRS patch that has not arrived
+# drives the other three pairs' tips to find which pair the jack carries. One
+# probe is three route writes and three settled windows, about 2 s, so it runs
+# at the timeout and then every this many seconds while the step waits.
+TRS_PROBE_EVERY_S = 10.0
 
 PASS, FAIL, NODATA, SKIPPED = 'PASS', 'FAIL', 'NO DATA', 'SKIPPED'
 IGNORED = 'IGNORED'
 MISPATCH = 'MISPATCH'
+# worst-first, for one patch's own verdict (S159 re-run record)
+RANK_PATCH = {FAIL: 5, MISPATCH: 4, NODATA: 3, SKIPPED: 2, IGNORED: 1,
+              PASS: 0}
+# the 150 ohm pass's EIN capture (S159) -- see ein_bands() below
+EIN_CAP_N = 16384            # 2.93 Hz bins; 0.65 s to fill and read (S160)
+EIN_CAPS = 2
+EIN_SETTLE_MIN_S = 2.0       # after the plug, before the node is trusted
+EIN_SETTLE_MAX_S = 12.0      # ... and the most a settle may take
+EIN_SETTLE_AGREE_DB = 0.5    # two successive windows this close = settled
+FS_SINE_DB = 3.0103          # mean square of a full-scale sine is -3.01 dBFS
 
 # The ONLY button that ends a pass. S127: `skip` and `ignore` used to sit in
 # this set beside `pause`, so the one button an operator reaches for when a
@@ -637,6 +652,63 @@ class Unit:
     def readf(self, name):
         return from_f32(self.read(name))
 
+    # -- the capture arm (S159) ---------------------------------------------
+    def capture_meas(self, n):
+        """N contiguous samples of MeasChan's strip block, through the TEST_MEAS
+        capture arm (the S56 handshake, as dsp4_meascap does it -- but with
+        both words resolved BY NAME from the landed map, never a literal).
+        Returns (samples as floats, chip-1 block overruns during the run)."""
+        sc = self.chip(1)
+        buf = sc.sym.get('_meas_cap_buf_C1_TEST_MEAS')
+        if buf is None:
+            raise IOError('this pair has no TEST_MEAS capture arm (%s)'
+                          % self.symdir)
+        _c, a_arm = self.addr('Test001CaptureArm001')
+        _c, a_rdy = self.addr('Test001CaptureReady001')
+        for _ in range(8):
+            sc.d.link.write(a_rdy, 0, 0)
+            nap(0.02)
+            if sc.rd(a_rdy) == 0:
+                break
+        else:
+            raise IOError('CaptureReady would not clear')
+        ovr_sym = sc.sym.get('_diag_blk_overrun')
+        ovr0 = peek_settled(sc, ovr_sym) if ovr_sym else 0
+        got = 0
+        for _attempt in range(4):
+            sc.d.link.write(a_arm, int(n), 0)
+            t0 = now()
+            while now() - t0 < 3.0:
+                nap(0.05)
+                try:
+                    got = sc.rd(a_rdy)
+                except (IOError, OSError):
+                    got = 0
+                if got:
+                    break
+            if got:
+                break
+        if not got:
+            raise IOError('the capture never completed (CaptureArm dropped)')
+        ovr = ((peek_settled(sc, ovr_sym) - ovr0) & 0xFFFFFFFF
+               if ovr_sym else 0)
+        if '_bulk_state' in sc.sym:
+            import dsp4_bulk
+            words, _info = dsp4_bulk.read(sc, buf, got, log=lambda *a: None)
+        else:
+            words = [peek_settled(sc, buf + i) for i in range(got)]
+        return q28(words), ovr
+
+    def ein_capture(self, n=EIN_CAP_N, k=EIN_CAPS):
+        caps, ovr = [], []
+        for _ in range(k):
+            x, o = self.capture_meas(n)
+            caps.append(x)
+            ovr.append(o)
+        out = ein_bands(caps)
+        out.update(caps=k, n=n, overruns=ovr)
+        return out
+
     # -- meters ------------------------------------------------------------
     def meter_peak(self, strip):
         """One strip's linear peak, straight off the meter node's own word.
@@ -808,6 +880,52 @@ def peek_settled(sc, addr):
     return last if last is not None else 0
 
 
+# THE 150 OHM PASS'S NOISE INSTRUMENT (S159, HUB ADDENDUM 2). The node's
+# RmsResult is 10*log10(Sxx/N) over DC-24 kHz with no band limit
+# (dsp_codegen.py), and the T4b limit is 20 Hz-20 kHz: on a GOOD channel the
+# two differ by about 3 dB (S57: -124.2 against -127.2 dBu), so the node alone
+# would fail every input. The figure is therefore taken from the TEST_MEAS
+# CAPTURE ARM -- contiguous samples of the same strip block the node reads
+# (S56; proved on the s154 pair in S160, 0 overruns) -- band-integrated on the
+# unit by dsp4_fft, after the input has SETTLED: the S158 readings were taken
+# at arrival and the traces show the lane still falling seconds after the plug.
+
+
+def q28(words):
+    out = []
+    for w in words:
+        w &= 0xFFFFFFFF
+        out.append((w - (1 << 32) if w & 0x80000000 else w) / float(1 << 28))
+    return out
+
+
+def detrend(x):
+    """Mean and linear trend out: the sub-20 Hz wander (S57) inside one
+    capture is a slope, and the window would otherwise smear it upward."""
+    n = len(x)
+    tm = (n - 1) / 2.0
+    xm = sum(x) / n
+    sxx = sum((i - tm) ** 2 for i in range(n))
+    b = sum((i - tm) * (v - xm) for i, v in enumerate(x)) / sxx
+    return [v - xm - b * (i - tm) for i, v in enumerate(x)]
+
+
+def ein_bands(captures):
+    """[samples (float, full scale 1.0)] -> mean-square dBFS: 20 Hz-20 kHz,
+    the same A-weighted, and the raw DC-24k total, power-averaged."""
+    import dsp4_fft as FFT
+    u = a = tot = 0.0
+    for x in captures:
+        y = detrend(x)
+        u += 10 ** (FFT.band_power(y, FS, 20.0, 20000.0)[0] / 10.0)
+        a += 10 ** (FFT.band_power(y, FS, 20.0, 20000.0, aweight=True)[0]
+                    / 10.0)
+        tot += sum(v * v for v in x) / len(x)
+    k = float(len(captures))
+    return dict(u=10 * math.log10(u / k), a=10 * math.log10(a / k),
+                total=10 * math.log10(tot / k))
+
+
 def f32(x):
     import struct
     return struct.unpack('<I', struct.pack('<f', float(x)))[0]
@@ -943,12 +1061,36 @@ def pick_patcher(glass, want='auto', auto_advance=True):
 class Limits(dict):
     """patch-limits.csv, and nothing else. No number lives in this file."""
 
+    # THE EIN LIMIT IS THE PRODUCT'S, NOT THE STATION'S (HUB ADDENDUM 2 to
+    # S159, PW 2026-10-01: "apply the existing -126.0 dBu EIN limit"). The
+    # generator copies tools/accept/limits.csv -- the file PW ruled T4b into
+    # on 2026-09-21 -- and units.csv into the list directory beside
+    # patch-limits.csv, and only these keys are taken from them. A list
+    # directory without them leaves the 150 ohm pass ungraded, as it was.
+    EIN_KEYS = ('t4b_ein_max_dbu', 't4b_ein_a_max_dbu')
+
     @classmethod
     def load(cls, d):
         out = cls()
         for r in read_csv(os.path.join(d, 'patch-limits.csv')):
             out[r['key']] = float(r['value'])
+        lp = os.path.join(d, 'limits.csv')
+        if os.path.exists(lp):
+            for r in read_csv(lp):
+                if r.get('key') in cls.EIN_KEYS:
+                    out[r['key']] = float(r['value'])
+        up = os.path.join(d, 'units.csv')
+        if os.path.exists(up):
+            import socket
+            unit = os.environ.get('D24_UNIT') or socket.gethostname()
+            for r in read_csv(up):
+                if r.get('unit') == unit and r.get('dac_fs_dbu'):
+                    out['dac_fs_dbu'] = float(r['dac_fs_dbu'])
+                    out['unit'] = unit
         return out
+
+    def ein_ready(self):
+        return all(k in self for k in self.EIN_KEYS + ('dac_fs_dbu',))
 
 
 class Scorer:
@@ -1225,6 +1367,8 @@ class Scorer:
         n = meas.get('rms')
         if n is None or not math.isfinite(n):
             return NODATA, 'the noise reading did not come back', notes
+        if meas.get('ein_band_dbfs') is not None:
+            return self._score_ein(row, meas, notes)
         notes.append('%.1f dBFS at the lane with the terminator fitted' % n)
         # THE OPEN INPUT BESIDE IT (S158): what the lane read before the plug,
         # and how far the plug took it down. Informational -- it is how MIC
@@ -1241,6 +1385,60 @@ class Scorer:
                 notes + ['no EIN window is ruled for the factory station yet: '
                          'the figure is recorded, and limits.csv t4b_ein_max_dbu '
                          'is the design reference'])
+
+    def _score_ein(self, row, meas, notes):
+        """THE T4b LIMIT ON THE FACTORY 150 OHM PASS (HUB ADDENDUM 2 to S159,
+        PW 2026-10-01). EIN by the S57-R method: dBu = P + 3.01 + dac_fs_dbu
+        - G(code), P the capture's 20 Hz-20 kHz mean square (dBFS), G(code)
+        this lane's code-0 loop gain (its balanced reference, measured on THIS
+        unit through the K1 lead) plus the code's step from defs' gain table.
+        The code-0 full scale is never combined with the absolute code-63
+        gain -- that double count is the 5.6 dB S57-R found."""
+        lane = int(row['lane'])
+        ref = self.ref.get(lane)
+        step = meas.get('gain_step_db')
+        if ref is None or ref.get('h_db') is None or step is None:
+            return (NODATA, 'the noise was captured but cannot be input-'
+                    'referred: %s has no balanced reference yet (the AUX 1 '
+                    'tone patch into this input sets it)' % row['in'], notes)
+        g = ref['h_db'] + step
+        off = FS_SINE_DB + meas['dac_fs_dbu'] - g
+        u = meas['ein_band_dbfs'] + off
+        a = meas['ein_a_dbfs'] + off
+        meas['ein_dbu'], meas['ein_a_dbu'] = u, a
+        lim_u = self.lim['t4b_ein_max_dbu']
+        lim_a = self.lim['t4b_ein_a_max_dbu']
+        notes.append('EIN %.1f dBu 20 Hz-20 kHz unweighted (limit %.1f), '
+                     '%.1f dBu(A) (limit %.1f)' % (u, lim_u, a, lim_a))
+        notes.append('%d x %d-sample captures after %.1f s settling: lane '
+                     '%.2f dBFS 20-20k, %.2f A, %.2f DC-24k (node RmsResult '
+                     '%.2f)' % (meas['ein_caps'], meas['ein_n'],
+                                meas.get('ein_settle_s') or 0.0,
+                                meas['ein_band_dbfs'], meas['ein_a_dbfs'],
+                                meas['ein_total_dbfs'], meas['rms']))
+        notes.append('G(code %d) %.2f dB = reference %.2f%s + step %.2f; '
+                     'dBu = P + 3.01 + %.2f - G'
+                     % (meas.get('gain_code', 63), g, ref['h_db'],
+                        ' (carried from pass %s)' % ref['carried']
+                        if ref.get('carried') else '', step,
+                        meas['dac_fs_dbu']))
+        o = meas.get('open_db')
+        if o is not None and math.isfinite(o):
+            notes.append('open input %.1f dBFS before the plug' % o)
+        if meas.get('how'):
+            notes.append(meas['how'])
+        if any(meas.get('ein_overruns') or []):
+            notes.append('a DSP block overran during a capture: the figure '
+                         'may hold a discontinuity')
+        bad = []
+        if u > lim_u:
+            bad.append('%.1f dBu, limit %.1f dBu' % (u, lim_u))
+        if a > lim_a:
+            bad.append('%.1f dBu(A), limit %.1f dBu(A)' % (a, lim_a))
+        if bad:
+            return FAIL, 'noise too high: ' + '; '.join(bad), notes
+        return (PASS, 'EIN %.1f dBu, limit %.1f dBu (%.1f dBu(A), limit '
+                '%.1f)' % (u, lim_u, a, lim_a), notes)
 
     def _isolation(self, lane, sweep, donor=None, sweep0=None):
         """The loudest OTHER lane, if it is not far enough down.
@@ -2007,7 +2205,7 @@ class Station:
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
                  blocks=None, live=None, analog=None, auto_advance=True,
                  keys=None, prearm=True, trials=False, trial_only=None,
-                 mj_input=None):
+                 mj_input=None, owed_rows=None, carry=None):
         # 1.2(b). OFF unless asked for, because it is the one thing in this
         # station that applies phantom: `--click-trials`. `trial_only` is
         # `--trial-inputs`, PW naming the good channels by hand.
@@ -2079,8 +2277,29 @@ class Station:
         # The reference ends, bound by the first step (S123 addendum 3). They
         # name sockets in the prompts; nothing is parked on them (PW
         # 2026-09-30: every patch is one lead plugged fresh at both ends).
+        # THE FAILED-ONLY RE-RUN (S159, HUB ADDENDUM 1, PW 2026-10-01: "re-run
+        # test for failed tests only"). `owed_rows` is RUN ALL's set of
+        # catalog rows without a PASS; None (a standalone run) walks the whole
+        # list. `carry` is what the earlier passes left that a re-run needs
+        # and does not re-measure: each lane's balanced reference, the loop
+        # the find step bound, and every patch's last verdict (for the patches
+        # that fold onto no catalog row, and for the EIN grade).
+        self.owed_rows = set(owed_rows) if owed_rows is not None else None
+        self.carry = carry or {}
+        self.rerun = None        # (patches walked, patches in the list)
+        for lane, e in sorted((self.carry.get('lane_refs') or {}).items()):
+            self.sc.ref[int(lane)] = dict(h_db=float(e['h_db']),
+                                          h_deg=float(e['h_deg']),
+                                          carried=e.get('pass_no', '?'))
+        self._route_up = None    # the route last written by this station
+        self._lane_up = None     # ... and where MeasChan was last pointed
+        self._pair_seen = None   # TRS: the pair the jack really carries (S159)
         self.ref_in = None       # (panel name, strip)
         self.ref_out = None      # (panel name, drive)
+        _loop = self.carry.get('loop') or {}
+        if _loop.get('in') and _loop.get('out'):
+            self.ref_in = (_loop['in'][0], int(_loop['in'][1]))
+            self.ref_out = (_loop['out'][0], _loop['out'][1])
         self.dead_in = {}        # strip -> why, from the find-a-loop walk
         # EVERY FAILED STEP THE OPERATOR CONFIRMED (S157, PW 2026-09-30: "the
         # end-of-run failure document lists what the operator confirmed").
@@ -2247,6 +2466,8 @@ class Station:
         r = rows[0]
         lane = int(r['lane'])
         self.u.write(self.L.routes[r['route']])
+        self._route_up = r['route']
+        self._lane_up = lane
         # The preamp gain this patch starts at. A gain-step patch starts at
         # code 0 (its own reference); the noise patch starts at full gain,
         # which is also what makes the terminator's insertion visible.
@@ -2469,6 +2690,18 @@ class Station:
         r = rows[0]
         if r['expect'] != 'tone':
             return False
+        # ONE DRIVE AND ONE LANE, OR NO PRE-ARM (S159). `arm` runs `acquire`,
+        # which walks every sub-test -- and on a stereo TRS patch the last one
+        # is the NULL, so the route left up afterwards was both legs in phase,
+        # and the stability window that follows the pre-arm then watched the
+        # null residual instead of the tip: a patch that arrives once and then
+        # "goes away again" for ever. The mini-jack pair is the same shape on
+        # the lane (MeasChan left on the R leg). Those patches wait for their
+        # first row's single drive to be steady and only then read L / R /
+        # null, which is what the factory (auto) path has always done.
+        if (len({x['route'] for x in rows}) > 1
+                or len({str(x['lane']) for x in rows}) > 1):
+            return False
         return str(r.get('gain_code') or '') == ''
 
     def arm(self, rows, prep):
@@ -2683,6 +2916,8 @@ class Station:
         self._wrong_hits = 0
         self._hinted = False
         self._sweep_prev = None
+        self._pair_seen = None
+        self._pair_next = 0.0
         self.waiting(status=status or LV.status_words(LV.WAITING))
         # The timeout raises the question; it no longer ends the step on the
         # ruled path. On the ENTER path it is ENTER_PATIENCE times the list's
@@ -2908,6 +3143,26 @@ class Station:
                                'operator (LEADS CORRECT / RETRY / PAUSE)'
                                % waited)
                 self._raise_no_signal(r, lane, waited)
+            # THE TRS PAIR PROBE (S159). A stereo TRS patch whose tip never
+            # arrived is driven on the other pairs' tips, one at a time, and a
+            # jack that lights on one of them is named on the glass. Only once
+            # the step has FAILED, so a patch on its way in is never disturbed.
+            if (tone and raised and self._met_at is None and self.trs(rows)
+                    and now() >= self._pair_next):
+                self._pair_next = now() + TRS_PROBE_EVERY_S
+                got = self._probe_pairs(r, lane, prep, floor0)
+                if got and got != self._pair_seen:
+                    self._pair_seen = got
+                    self.log('%s WRONG_PAIR: nothing on the tip of %s, but '
+                             'AUX %d reaches %s through this jack -- it '
+                             'carries %s' % (r['patch'], r['out'], got[0],
+                                             r['in'], self.pair_name(got)))
+                    self.live.set(state=LV.CHECKLEAD, banner='CHECK THE LEAD',
+                                  banner_line='',
+                                  status=LV.status_wrong_pair(
+                                      self.pair_name(got), r['out']),
+                                  action=LV.action_wrong_pair(
+                                      self.pair_name(got), r['out']))
             # NO HARD BOUND ON THE RULED PATH (S157). The ENTER path, kept for
             # a timing run, still ends at its own deadline.
             if not self.auto and waited >= deadline_s:
@@ -2943,6 +3198,47 @@ class Station:
         if spread > DETECT_STEADY_DB:
             return False, ''
         return True, '%.2f dB' % spread
+
+    @staticmethod
+    def trs(rows):
+        """A stereo TRS output patch: L / R / null on one AUX A jack."""
+        return (len(rows) > 1 and str(rows[0].get('out') or '').startswith(
+            'AUX A') and str(rows[0].get('drive') or '').startswith('aux:'))
+
+    @staticmethod
+    def pair_name(pair):
+        return 'AUX A %d-%d' % pair
+
+    def _probe_pairs(self, r, lane, prep, floor):
+        """Drive each OTHER pair's tip alone and read this lane (S159).
+        Returns the (tip, ring) aux pair the jack carries, or None. The
+        patch's own route is put back before returning, whatever happened."""
+        own = int(str(r['drive']).split(':')[1].split('+')[0])
+        need = self.lim['tone_min_over_floor_db']
+        best = None
+        t0 = now()
+        try:
+            for k in (1, 3, 5, 7):
+                if k == own:
+                    continue
+                rid = route_id('aux:%d' % k, r['donor'])
+                if rid not in self.L.routes:
+                    continue
+                self.u.write(self.L.routes[rid])
+                self._route_up = rid
+                lvl = self.watch_tone(
+                    lane, prep, settle=max(1, self.u.settle_owed(
+                        ROUTE_SETTLE_WINDOWS)))
+                if (lvl is not None and floor is not None
+                        and lvl - floor >= need
+                        and (best is None or lvl > best[0])):
+                    best = (lvl, k)
+        finally:
+            self.u.write(self.L.routes[r['route']])
+            self._route_up = r['route']
+            self.u.mark_moved()
+            self.cost('finding which pair a TRS jack carries', now() - t0)
+        return (best[1], best[1] + 1) if best else None
 
     def _say_wrong(self, r, where):
         """Name the input the tone is actually on, and grade nothing.
@@ -3558,15 +3854,27 @@ class Station:
                     pass
                 out.append(dict(row=r, meas=self.gain_step(r), sweep={}))
                 continue
-            if i:
+            # THE ROW'S OWN DRIVE, ASSERTED (S159). Row 1 used to assume the
+            # route `_prepare` wrote was still up; anything that moved it in
+            # between -- a pre-arm that walked to the null, the TRS pair probe
+            # -- left row 1 reading whatever was last driven. A patch whose
+            # rows drive different buses re-writes row 1's route every time
+            # (a cell already holding its value is not a move, so no settle
+            # is owed for it); a single-drive patch does it when it is known
+            # to have moved.
+            multi = len({x['route'] for x in rows}) > 1
+            if i or multi or self._route_up != r['route'] \
+                    or self._lane_up != int(r['lane']):
                 self.u.write(self.L.routes[r['route']])
+                self._route_up = r['route']
                 freq = float(r['freq_hz']) if r['freq_hz'] else None
                 lvl = float(r['level_dbfs']) if r['level_dbfs'] else None
                 if r['expect'] != 'noise':
                     self.u.osc(chan=int(r['donor']), freq=freq,
                                level_dbfs=lvl, on=True)
-                if int(r['lane']) != int(rows[i - 1]['lane']):
+                if int(r['lane']) != self._lane_up:
                     self.u.meas_chan(int(r['lane']))
+                    self._lane_up = int(r['lane'])
             freq = float(r['freq_hz']) if r['freq_hz'] else None
             lvl = float(r['level_dbfs']) if r['level_dbfs'] else 0.0
             tm = now()
@@ -3582,7 +3890,15 @@ class Station:
             # is what is paid.
             settle = (READ_WINDOWS if r['expect'] == 'noise'
                       else self.u.settle_owed(ROUTE_SETTLE_WINDOWS))
+            ein = (r['expect'] == 'noise' and self.lim.ein_ready()
+                   and int(r['lane']) in MIC_STRIPS
+                   and hasattr(self.u, 'ein_capture'))
+            if ein:
+                settled_s = self.ein_settle(int(r['lane']))
+                settle = 1
             m = self.u.measure(freq, lvl, settle=settle)
+            if ein:
+                m.update(self.ein_reading(r, settled_s))
             self.cost('settled readings', now() - tm)
             sweep = (self.u.meter_sweep(MIC_STRIPS)
                      if int(r['lane']) in MIC_STRIPS and r['expect'] == 'tone'
@@ -3608,6 +3924,38 @@ class Station:
                 else:
                     self.click_results.append(self.click_trials(r, prep))
         return out
+
+    def ein_settle(self, lane):
+        """Wait for the terminated input to stop moving (S159). The plug's own
+        insertion transient takes seconds to leave a gain-63 input -- every
+        S158 trace still falls at the moment the step arrived -- so the node
+        is polled one window at a time until two successive windows agree,
+        never sooner than EIN_SETTLE_MIN_S and never longer than
+        EIN_SETTLE_MAX_S. Returns the seconds spent."""
+        t0 = now()
+        prev = None
+        while True:
+            v = self.watch(lane, rms=True, settle=1)
+            el = now() - t0
+            if (v is not None and prev is not None
+                    and abs(v - prev) <= EIN_SETTLE_AGREE_DB
+                    and el >= EIN_SETTLE_MIN_S) or el >= EIN_SETTLE_MAX_S:
+                return el
+            prev = v
+
+    def ein_reading(self, r, settled_s):
+        """The capture-arm figures the EIN is graded on, and what the scorer
+        needs to input-refer them (the code's gain step, the unit's DAC full
+        scale). The lane's code-0 loop gain is the scorer's own reference."""
+        e = self.u.ein_capture()
+        step = self.L.gain.get(int(r.get('gain_code') or 63))
+        return dict(ein_band_dbfs=e['u'], ein_a_dbfs=e['a'],
+                    ein_total_dbfs=e['total'], ein_caps=e['caps'],
+                    ein_n=e['n'], ein_overruns=e['overruns'],
+                    ein_settle_s=settled_s,
+                    gain_step_db=(step or {}).get('expected_db'),
+                    gain_code=int(r.get('gain_code') or 63),
+                    dac_fs_dbu=self.lim['dac_fs_dbu'])
 
     def score_patch(self, rows, prep, raw):
         sibs, scored = [], []
@@ -3669,7 +4017,20 @@ class Station:
                 if not patches:
                     continue
             seq.append(((lead, block), patches))
+        if self.owed_rows is not None:
+            total = sum(len(p) for _k, p in seq)
+            seq = [(k, [(pid, rr) for pid, rr in p if self.owed_patch(pid, rr)])
+                   for k, p in seq]
+            seq = [(k, p) for k, p in seq if p]
+            self.rerun = (sum(len(p) for _k, p in seq), total)
+            self.log('the re-run walks %d of %d patches: %s'
+                     % (self.rerun[0], total, ' '.join(
+                         pid for _k, p in seq for pid, _r in p)))
         self.index(seq)
+        if self.rerun is not None:
+            words = LV.rerun_words(*self.rerun)
+            self.live.set(status=words)
+            self._lead_line = words
         prepared = None
         for bi, ((lead, block), patches) in enumerate(seq):
             self.lead_card(lead, block, patches, bi + 1, len(seq))
@@ -3697,6 +4058,36 @@ class Station:
                 prepared = got
         self.finish()
         return self.rows_out
+
+    def owed_patch(self, pid, rows):
+        """Is this patch walked on a failed-only re-run? (S159)
+
+        Yes when it feeds a catalog row that has no PASS -- a FAIL, a NO
+        SIGNAL, a row never tested. A 150 ohm patch is owed until its input's
+        EIN has been GRADED and passed (PW 2026-10-01: the T4b limit applies
+        from now on, and a reading taken before it was ruled is not a grade).
+        A patch that folds onto no row at all (the line inputs) is owed until
+        it has passed once."""
+        rec = (self.carry.get('patches') or {}).get(pid) or {}
+        if rows[0]['expect'] == 'noise' and self.lim.ein_ready():
+            return rec.get('ein') != PASS
+        nums = {int(x) for r in rows for x in str(r.get('rows') or '').split()}
+        if nums:
+            return bool(nums & self.owed_rows)
+        return rec.get('verdict') != PASS
+
+    def patch_outcomes(self):
+        """Per patch walked: its worst verdict, and for a 150 ohm patch
+        whether the EIN was graded and how. RUN ALL keeps these (S159)."""
+        out = {}
+        for s in self.rows_out:
+            e = out.setdefault(s['patch'], dict(verdict=PASS))
+            if RANK_PATCH.get(s['verdict'], 9) > RANK_PATCH.get(e['verdict'], 9):
+                e['verdict'] = s['verdict']
+            if 'EIN ' in (s.get('detail') or '') or \
+                    str(s.get('why') or '').startswith(('EIN ', 'noise too high')):
+                e['ein'] = s['verdict']
+        return out
 
     def _prompt(self, pid, rows):
         """PROMPTED: the route up, the dialog posted, the instruction on the
@@ -4196,6 +4587,20 @@ class Station:
         why = LV.NO_SIGNAL_FAIL
         detail = ('the operator said no signal reached %s; no tone was on any '
                   'other input either' % rows[0]['in'])
+        pair = self._pair_seen if self.trs(rows) else None
+        if pair:
+            # THE JACK CARRIES ANOTHER PAIR (S159), and the operator says the
+            # lead is in the jack marked as asked: the jack order is the fault,
+            # not a dead output. Recorded as such, in words a reader can act on.
+            why = ('the jack marked %s carries %s (AUX %d on the tip)'
+                   % (rows[0]['out'], self.pair_name(pair), pair[0]))
+            detail = ('nothing reached %s from AUX %s; driving each other '
+                      'pair\'s tip alone lit it on AUX %d, and the operator '
+                      'confirmed the lead was in the jack marked %s (LEADS '
+                      'CORRECT): the panel\'s TRS jack order does not match '
+                      'its labels, or the lead was in another jack'
+                      % (rows[0]['in'], rows[0]['drive'][4:], pair[0],
+                         rows[0]['out']))
         self.log('%s: recorded FAIL -- %s' % (rows[0]['patch'], why))
         return [dict(path=r['path'], patch=r['patch'], lead=r['lead'],
                      out=r['out'], **{'in': r['in']}, sub=r['sub'],
@@ -4447,6 +4852,15 @@ class SimUnit:
         # the only way this session can check the step arithmetic at all.
         g = self.w.preamp_db(lane)
         return db + g if db > -200 else db
+
+    def ein_capture(self, n=EIN_CAP_N, k=EIN_CAPS):
+        """The capture arm, in arithmetic: the lane's noise as the model has
+        it, white, so 20-20k sits 0.8 dB under DC-24k and A about 2.4 under
+        that. Charged the S160 bench time (0.65 s a capture)."""
+        nap(0.65 * k)
+        db = self.level_at(self.lane)
+        return dict(u=db - 0.79, a=db - 3.2, total=db, caps=k, n=n,
+                    overruns=[0] * k)
 
     def meter_peak(self, strip):
         nap(PEEK_S)

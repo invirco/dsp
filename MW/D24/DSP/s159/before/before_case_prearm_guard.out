@@ -1,0 +1,6 @@
+station under test: /tmp/claude-1000/-home-peter-dsp/80553846-dff4-435f-a6c4-c42d9e453cf4/scratchpad/before/d24_patch.py
+-- case_prearm_guard
+FAIL pre-arm refused for the TRS (P63) and mini-jack (P91) patches, kept for a single-row patch (P2): {'P63': True, 'P91': True, 'P2': True}
+
+1 check(s) FAILED
+exit 1

@@ -2575,8 +2575,18 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     # glass at all (`--stdin`, `--autoskip`) reaches the fallback.
     if live is None:
         live, keys = pass_screen(a, glass)
+    # THE FAILED-ONLY RE-RUN (S159, PW 2026-10-01: "re-run test for failed
+    # tests only"). The station walks only the patches that feed an owed row
+    # -- and re-measures nothing a passed patch already settled: each lane's
+    # balanced reference and the bound loop come out of the state.
+    carry = patch_carry(state)
+    if carry['lane_refs']:
+        # the backfill is kept the moment it is made, so a pass that measures
+        # only some lanes does not leave the others with nothing to carry
+        state.d['lane_refs'] = dict(carry['lane_refs'])
     station = PT.Station(plist, unit, patcher, glass, limits,
-                         log=glass.progress, analog=an, live=live, keys=keys)
+                         log=glass.progress, analog=an, live=live, keys=keys,
+                         owed_rows=owed, carry=carry)
     try:
         results = station.run()
     finally:
@@ -2596,15 +2606,17 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     for c in getattr(station, 'confirmed', []):
         glass.progress('operator confirmed %s on %s %s: %s'
                        % (c['answer'], c['patch'], c['what'], c['failure']))
+    keep_patch_state(state, station, passno)
     # -- fold the paths onto the catalog rows -----------------------------
     per_row = {}
     for res in results:
         for num in (int(x) for x in (res['rows'] or '').split()):
             per_row.setdefault(num, []).append(res)
     verdicts = {}
-    for num, hits in sorted(per_row.items()):
-        if num not in byrow or num in ignored:
-            continue
+    def is_ein(h):
+        return str(h.get('why') or '').startswith(('EIN ', 'noise too high'))
+
+    def put_hits(num, hits, force=False):
         worst = max(hits, key=lambda h: RANK.get(h['verdict'], 9))
         v = worst['verdict']
         if v == PT.MISPATCH:                # never a unit verdict on its own
@@ -2616,11 +2628,35 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
                 len(hits))
         confirmed = (worst['why'] == LV.NO_SIGNAL_FAIL
                      or 'LEADS CORRECT' in (worst.get('detail') or ''))
-        state.put(num, v, pass_no=passno,
+        state.put(num, v, force=force, pass_no=passno,
                   judged='operator' if confirmed else 'runner', measured=note,
                   limit=worst.get('detail', ''), evidence='',
                   source='analog patch loop')
-        verdicts[num] = v
+        return v
+
+    for num, hits in sorted(per_row.items()):
+        if num not in byrow or num in ignored:
+            continue
+        # AN EIN GRADE REPLACES AN UNGRADED PASS (S159). A row that passed on
+        # "the noise was measured" before PW applied the T4b limit is re-run
+        # by ruling, and its new grade must be able to land even when worse.
+        # Only the EIN hit is forced: the row's other hits this pass (MIC 1
+        # also carries the TRS patches) go through the ordinary best-wins
+        # gate first, and the forced verdict is the worse of the EIN grade
+        # and whatever the row then holds -- the old PASS stays in history.
+        ein = [h for h in hits if is_ein(h)]
+        rest = [h for h in hits if not is_ein(h)]
+        if not ein:
+            verdicts[num] = put_hits(num, hits)
+            continue
+        if rest:
+            put_hits(num, rest)
+        cur = state.verdict(num)
+        w = max(ein, key=lambda h: RANK.get(h['verdict'], 9))
+        if cur and RANK.get(cur, 9) > RANK.get(w['verdict'], 9):
+            verdicts[num] = cur
+            continue
+        verdicts[num] = put_hits(num, ein, force=True)
     # -- the rows proved by the paths that run over them -------------------
     for num, partners in sorted(PATCH_PARTNERS.items()):
         if num not in byrow or num in ignored or num not in owed:
@@ -2638,6 +2674,59 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     glass.progress('analog paths: %d rows graded from %d checks'
                    % (len(verdicts), len(results)))
     return verdicts
+
+
+def patch_carry(state):
+    """What a re-run needs from the passes before it (S159): each lane's
+    balanced reference, the loop the find step bound, every patch's last
+    outcome. `lane_refs` is backfilled ONCE from the rows' own text for a
+    state written before this existed (pass 4 of 2026-10-01): the scorer has
+    always written "this reading is now MIC n's balanced reference: X dB,
+    Y deg" into the row it graded, and the newest such line per input wins."""
+    import re
+    refs = dict(state.d.get('lane_refs') or {})
+    if not refs:
+        pat = re.compile(r"this reading is now MIC (\d+)'s balanced "
+                         r"reference: (-?[\d.]+) dB, (-?[\d.]+) deg")
+        for _num, e in (state.d.get('rows') or {}).items():
+            for h in [e] + list(e.get('history') or []):
+                m = pat.search(str(h.get('limit') or ''))
+                if not m:
+                    continue
+                lane = m.group(1)
+                old = refs.get(lane)
+                if old is None or str(h.get('stamp')) > str(old['stamp']):
+                    refs[lane] = dict(h_db=float(m.group(2)),
+                                      h_deg=float(m.group(3)),
+                                      pass_no=h.get('pass_no'),
+                                      stamp=h.get('stamp'),
+                                      source='row text (backfill)')
+    return dict(lane_refs=refs, loop=state.d.get('patch_loop'),
+                patches=dict(state.d.get('patches') or {}))
+
+
+def keep_patch_state(state, station, passno):
+    """The other half of `patch_carry`: what this pass measured, kept."""
+    refs = dict(state.d.get('lane_refs') or {})
+    for lane, e in station.sc.ref.items():
+        if e.get('carried') or e.get('h_db') is None:
+            continue
+        refs[str(lane)] = dict(h_db=e['h_db'], h_deg=e.get('h_deg'),
+                               pass_no=passno, stamp=stamp())
+    if refs:
+        state.d['lane_refs'] = refs
+    if station.ref_in and station.ref_out:
+        state.d['patch_loop'] = dict(in_=None, **{
+            'in': list(station.ref_in), 'out': list(station.ref_out)})
+        state.d['patch_loop'].pop('in_', None)
+    pats = dict(state.d.get('patches') or {})
+    for pid, e in station.patch_outcomes().items():
+        old = pats.get(pid) or {}
+        new = dict(old, verdict=e['verdict'], pass_no=passno, stamp=stamp())
+        if 'ein' in e:
+            new['ein'] = e['ein']
+        pats[pid] = new
+    state.d['patches'] = pats
 
 
 def plain_rows(byrow, nums):

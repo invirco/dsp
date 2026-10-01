@@ -1,0 +1,28 @@
+station under test: /home/peter/dsp/tools/pi/d24_patch.py
+-- case_labelled_auto
+ok   P63 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P63: the arrival wait drove aux 1 alone ([(), ('aux1',)])
+ok   P64 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P64: the arrival wait drove aux 3 alone ([(), ('aux3',)])
+ok   P65 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P65: the arrival wait drove aux 5 alone ([(), ('aux5',)])
+ok   P66 labelled, factory path: arrived, L/R/null all PASS
+ok   ... P66: the arrival wait drove aux 7 alone ([(), ('aux7',)])
+-- case_confirm_enter_prearm
+ok   ENTER path: the wait never drives the null (both legs) before ENTER
+ok   ENTER path: L / R / null graded PASS
+-- case_reversed_named
+ok   reversed jacks: P63 names the pair the jack carries (AUX A 7-8)
+ok   ... and says so on the glass
+ok   ... LEADS CORRECT records FAIL "the jack marked AUX A 1-2 carries AUX A 7-8" on all three sub-tests
+ok   ... the route is the patch's own again after every probe
+-- case_reversed_then_moved
+ok   reversed, lead moved after the name: P63 arrives and passes
+-- case_prearm_guard
+ok   pre-arm refused for the TRS (P63) and mini-jack (P91) patches, kept for a single-row patch (P2)
+-- case_acquire_asserts_row1
+ok   acquire reads row 1 (L) on aux 1 alone, whatever was up before
+ok   ... and its level is the single-ended one, not the null
+
+all checks passed -- no unit, no bus, no write, no rails
+exit 0
