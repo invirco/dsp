@@ -1,3 +1,18 @@
+## HUB DISPATCH 2026-10-01 12:14Z — S159: stereo TRS patches never arrive (arrival wait drives the null?)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S159: THE STEREO TRS PATCHES NEVER ARRIVE — PW 2026-10-01 13:13 BST: "testing is frozen on aux 1-2 to mic 1, why?" Live RUN ALL on MW-D24-2 (S158 runner, d24_patch f2f0b4e1). DO NOT stop or restart PW's run; desk + dry run only until it ends; deploy only between runs (backup-s159-pre), never mid-run.
+
+Evidence (factory.log ~17458+): P63 "Patch AUX A 1-2 to MIC 1 (lead K2)" — the patch before (MONITOR R → MIC 1) arrived at -32.6 dBFS coherent; P63 PROMPTED at -150, FAILED at 20 s, then flickers -82..-93 dBFS coherent with "the signal went away again after 159-328 ms; the stability window starts over" — the signature of a NULL residual. s121/patch-paths.csv rows 207-209 give P63 three sub-tests: L (aux:1, normal), R (aux:2, inverted), null (aux:1+2, both in phase — PW's stereo-TRS ruling: the XLR input reads tip − ring, so in-phase both legs cancel). Hypothesis: the arrival wait drives the patch's NULL (or both legs) instead of one leg. The same patch also crawled on 2026-09-30 (factory.log ~15054: arrived after 18 s with dropouts), so it may predate S157/S158.
+
+Do: root-cause which drive is active during the arrival wait for multi-row TRS patches (P63-P66 and any other stereo TRS / phones pair patches, incl. the analog-board phones jack); make arrival wait on a single-leg drive (L) and only then run L / R-inverted / null; model + dry-run cases for each TRS patch; regression on S153/S157/S158 suites. Then a 🔴 note for PW: which rows of today's pass were affected and whether LEADS CORRECT (the hub's advice to PW) recorded valid L/R/null results.
+Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog — 🔴 notes; touch the unit only read-only while PW's run is live.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 10:07Z — S158: 150 ohm terminator step fails on the S157 runner (false MIC 1 pass, MIC 2/3 never arrive, carried-over NO SIGNAL)   [status: 🟢 done — 150 ohm step is now its own pass (one terminator MIC 1→24 after the AUX 1 walk), arrival on the plug vs the open input incl. MIC 2-4's 2 dB step after the insertion burst, ENTER on every 150 ohm screen; stale presses dropped; one runner per unit; 24/24 real insertions + 48/48 model graded on the plug; deployed (backup-s158-pre); RUN ALL left PAUSED — 🔴 PW note below]   [model: opus]
 
 model: opus
