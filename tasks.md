@@ -1,3 +1,19 @@
+## HUB DISPATCH 2026-10-01 17:17Z — S163: WRONG_PAIR stops on a clear glass screen instead of looping   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S163: WRONG_PAIR loops instead of stopping (PW 2026-10-01 18:1x: "still freezing on aux 1-2 to mic 1"). factory.log ~18358+: P63 "Patch AUX A 1-2 to MIC 1" — FAILED at 20 s, then `WRONG_PAIR: nothing on the tip of AUX A 1-2, but AUX 7 reaches MIC 1 through this jack -- it carries AUX A 7-8`, then an endless ARRIVING (-72 dBFS) / WAITING (-104..-112) flicker every ~0.7 s: the probe's own drive toggling keeps restarting the stability window, and the glass never shows a clear stop.
+Do (desk + dry run; deploy ONLY between runs — PW's run is live, check runner.lock/pgrep, never stop it; backup-s163-pre):
+1. Once WRONG_PAIR is identified, STOP probing and post a stable glass screen: "This jack carries AUX A 7-8 (not AUX A 1-2). Check the lead is in the jack labelled AUX A 1-2 — if it is, the jacks are wired or labelled in the wrong order." Buttons RETRY / LEADS CORRECT / PAUSE.
+2. LEADS CORRECT on a WRONG_PAIR screen records a FAIL with the finding ("jack AUX A 1-2 carries aux 7/8 — wiring/label order") — not "no signal" — and moves on; RETRY re-prompts cleanly; never auto-loop.
+3. Same for every TRS/phones pair patch (P63–P66 and the analog phones jack). Model/dry-run cases for each; regression on S153/S157/S158/S159/S161 suites.
+4. 🔴 note: whether the unit's AUX A jack order is reversed (if PW's bench check answers it, the hub adds it), and which rows record it.
+Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 16:35Z — S162: Q542 Schottky A/B - open-input FFT + cold drift map vs S160   [status: 🟢 done — the hump MOVED, not gone: MIC 2/3/4 20–20k now equal MIC 5 (−114.2..−114.8 dBu open, was −106.4..−107.2; 10–20k octave +0.2..+0.8 dB, was +8..+9) and stable when warm, but the group component now sits at 22.2 kHz cold → 23.6–23.7 kHz warm (or ~24.4 kHz folded), as strong as before (MIC 2 lane −73.3 dBFS in 22–24k), so node DC–24k RMS did not improve — 🔴 hub note below]   [model: opus]
 
 model: opus
