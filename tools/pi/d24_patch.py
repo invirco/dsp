@@ -79,6 +79,7 @@ import json
 import math
 import os
 import random
+import statistics
 import sys
 import time
 
@@ -252,6 +253,30 @@ DETECT_STEADY_DB = 1.0
 DETECT_POLL_S = 0.05
 DETECT_STABLE_SAMPLES = 2
 
+# THE 150 OHM STEP, READ AGAINST THE OPEN INPUT IT WAS PROMPTED ON (S158).
+# In the 150 ohm pass (PW 2026-10-01) the socket is EMPTY when the prompt goes
+# up, so the first readings ARE the open input: TERM_REF_READINGS of them,
+# medianed, are the reference. An open input at gain 63 is impulsive -- MIC 1
+# over 20 s on 2026-10-01: single windows up to 5.7 dB over its median and
+# down to 1.5 dB under it -- so the lane is followed on the median of the last
+# three readings, never on one.
+#
+# The plug is in when the lane settles `detect_drop_db` under the open input,
+# OR when it settles TERM_SMALL_STEP_DB under it AFTER an insertion burst (one
+# window TERM_BURST_DB or more over the open input -- the contacts making,
+# +20..+54 dB on 20 of the 24 insertions PW made on 2026-10-01, never over
+# +5.7 dB on an open input left alone). The small step is what MIC 2, 3 and 4
+# need: their terminated noise sits only 1.8-2.7 dB under their open noise
+# (S158 table), where every other input drops 3.3-15.6 dB. A burst counts for
+# TERM_BURST_HOLD_S: the settle follows the contacts within half a second on
+# every insertion recorded, and a touch long ago must not license a drift.
+# ENTER is on the screen the whole time and always ends the step.
+TERM_REF_READINGS = 3
+TERM_REF_SPAN = 20
+TERM_BURST_DB = 10.0
+TERM_BURST_HOLD_S = 3.0
+TERM_SMALL_STEP_DB = 1.0
+
 # HOW OFTEN THE OTHER TWENTY-THREE LANES ARE LOOKED AT WHILE WAITING (PW
 # 2026-09-28: "a tone arriving on an input OTHER than the one asked for is named
 # on the screen"). The sweep is one peeked word per strip and S121 measured all
@@ -297,6 +322,8 @@ def _booted_pair(conf='/home/app/selftest/pair.conf',
 
 FACTORY_TEST_PAIR_DIR = _booted_pair()
 OSC_SYM = '_osc_blk_q_C1_TEST_OSC'
+# The factory glass directory: RUN ALL's screen, dialogs and lock (S158).
+GLASS_DIR = '/home/app/selftest/runall'
 
 
 # ---------------------------------------------------------------------------
@@ -1199,6 +1226,17 @@ class Scorer:
         if n is None or not math.isfinite(n):
             return NODATA, 'the noise reading did not come back', notes
         notes.append('%.1f dBFS at the lane with the terminator fitted' % n)
+        # THE OPEN INPUT BESIDE IT (S158): what the lane read before the plug,
+        # and how far the plug took it down. Informational -- it is how MIC
+        # 2-4's 2 dB step (their terminated noise ~10 dB over the other 21
+        # inputs') was found, and how a reading taken on an open input would
+        # show itself.
+        o = meas.get('open_db')
+        if o is not None and math.isfinite(o):
+            notes.append('open input %.1f dBFS before it, %.1f dB higher'
+                         % (o, o - n))
+        if meas.get('how'):
+            notes.append(meas['how'])
         return (PASS, 'the input noise was measured with a 150 ohm source',
                 notes + ['no EIN window is ruled for the factory station yet: '
                          'the figure is recorded, and limits.csv t4b_ein_max_dbu '
@@ -1979,6 +2017,10 @@ class Station:
         # 2.2, PW addendum 1. `mj_input` is the patch whose insertion carries
         # the detect row; None = the first mini-jack patch in the list.
         self.mj_input = mj_input
+        # --verbose (S158): every reading a NOISE step's detector takes, with
+        # its time from the prompt and the plateaus as they stood. The only
+        # record of what the lane did between the one-line state changes.
+        self.trace = False
         self.mj = None           # the listener, opened at that patch
         self.mj_patch = None     # which patch id it was armed for
         self.mj_asked_removal = False
@@ -2355,65 +2397,63 @@ class Station:
         v = m.get('rms')
         return v if v is not None and math.isfinite(v) else None
 
-    def _noise_met(self, r, lvl, drop):
-        """The 150 ohm step's arrival test, on the node's RMS (S153).
+    def _terminator_met(self, r, lvl, drop):
+        """The 150 ohm step's arrival test, on the node's RMS (S158).
 
-        THE SWAP IS TWO MOVES, AND BOTH HAVE TO BE SEEN. At the prompt the tone
-        lead is still in, carrying AUX 1's idle output lifted 53 dB (S55: about
-        -51 dBFS). The operator pulls it (the input goes OPEN, -78..-82 dBFS on
-        the powered channels, S125) and fits the plug (TERMINATED, -86..-93,
-        S55). A test on the level alone cannot tell open from terminated on
-        every channel -- S55 found its own -70 dBFS rule could not on J31, and
-        MIC 17's open input sat at -52 in S125 -- so this one reads the SHAPE.
+        Read against the OPEN input the lane has been showing, never against
+        a plateau history: S157's plateau list let a wiggle of the tone lead
+        stand in for the open input, and MIC 1's P13 on 2026-10-01 was graded
+        on the open input at -76.9 dBFS (terminated is -87.0).
 
-        The lane is cut into PLATEAUS: a plateau is DETECT_STABLE_BLOCKS of
-        readings within DETECT_STEADY_DB, and a new one starts only after the
-        lane has left the last one by `drop` (a level change or the crackle of
-        a connector). The first is the lead as prompted. The plug is in when
-        the lane is `drop` below that first plateau AND `drop` below a LATER
-        one -- the open input it was pulled to. So:
-
-          * the lead left in never leaves its plateau: never met;
-          * the lead pulled and nothing fitted is one step down: never met;
-          * pull then plug is two: met, and the stability window grades it.
-
-        What it cannot see: a wiggle that leaves the lead in and settles for
-        256 ms before the pull reads as a plateau of its own; and a channel
-        whose open and terminated levels sit within `drop` of each other has
-        no second step to find. Both go to the timeout question, not to a
-        grade.
+        The reference is the median of up to TERM_REF_SPAN readings before the
+        last three, so a transient at the prompt is outvoted and a slow drift
+        is followed rather than mistaken for a plug; it is FROZEN while the
+        lane is under it, so the stability window is judged against the open
+        input and not against the plug's own first readings. See TERM_* for
+        the rule and the numbers.
         """
-        t = now()
-        span = DETECT_STABLE_BLOCKS * WIN_S
-        pl = self._plateaus
-        if pl and abs(lvl - pl[-1]) >= drop:
-            self._left = True
-        run = self._run + [(t, lvl)]
-        while max(v for _, v in run) - min(v for _, v in run) > DETECT_STEADY_DB:
-            run.pop(0)
-        self._run = run
-        if (len(run) >= DETECT_STABLE_SAMPLES
-                and run[-1][0] - run[0][0] + WIN_S >= span):
-            m = sum(v for _, v in run) / len(run)
-            if not pl:
-                pl.append(m)
-                self.log('%s: %s as the prompt went up: %.1f dBFS (node RMS)'
-                         % (r['patch'], r['in'], m))
-            elif self._left:
-                pl.append(m)
-                self._left = False
-                if len(pl) == 2 and m <= pl[0] - drop:
-                    self.log('%s: the lead came out of %s (%.1f -> %.1f dBFS)'
-                             % (r['patch'], r['in'], pl[0], m))
-                elif abs(m - pl[-2]) >= drop:
-                    # a re-settle at the same level (an open input's pops) is
-                    # a plateau of its own and says nothing worth a line
-                    self.log('%s: %s settled again at %.1f dBFS'
-                             % (r['patch'], r['in'], m))
-            else:
-                pl[-1] = m
-        return bool(len(pl) >= 2 and lvl <= pl[0] - drop
-                    and any(o - lvl >= drop for o in pl[1:]))
+        T = self._term
+        reads = T['reads']
+        if (T['ref_db'] is not None and T['burst_at'] is None
+                and lvl >= T['ref_db'] + TERM_BURST_DB):
+            T['burst_at'] = now() - self._t0_step
+            self.log('%s: something went into %s at %.1f s (%.1f dBFS, %.1f dB '
+                     'over the open input)' % (r['patch'], r['in'],
+                                               T['burst_at'], lvl,
+                                               lvl - T['ref_db']))
+        reads.append(lvl)
+        if len(reads) < TERM_REF_READINGS + 3:
+            return False
+        ref = T['frozen']
+        if ref is None:
+            ref = statistics.median(reads[-(3 + TERM_REF_SPAN):-3])
+            if T['ref_db'] is None:
+                self.log('%s: %s open at the prompt: %.1f dBFS (node RMS, '
+                         'median of %d)' % (r['patch'], r['in'], ref,
+                                            len(reads) - 3))
+        T['ref_db'] = ref
+        burst = (T['burst_at'] is not None and now() - self._t0_step
+                 - T['burst_at'] <= TERM_BURST_HOLD_S)
+        med = statistics.median(reads[-3:])
+        met = (med <= ref - drop or (burst and med <= ref - TERM_SMALL_STEP_DB)
+               or (T['frozen'] is not None and med <= ref - TERM_SMALL_STEP_DB
+                   and T['frozen_burst']))
+        if met and T['frozen'] is None:
+            T['frozen'], T['frozen_burst'] = ref, burst
+        elif not met:
+            T['frozen'], T['frozen_burst'] = None, False
+            if not burst:
+                T['burst_at'] = None
+        return met
+
+    def _term_words(self, lvl):
+        T = self._term
+        if T.get('ref_db') is None:
+            return 'no open reading yet'
+        return ('open %.1f dBFS, now %.1f (%.1f dB under it)%s'
+                % (T['ref_db'], lvl, T['ref_db'] - lvl,
+                   ', insertion at %.1f s' % T['burst_at']
+                   if T.get('burst_at') is not None else ', no insertion seen'))
 
     def prearm_ok(self, rows):
         """Whether this patch's reading may be taken before ENTER (ruling d).
@@ -2611,10 +2651,11 @@ class Station:
         Nothing in the test depends on how fast the operator moves or on what
         the last patch left behind.
 
-        NOISE ROWS are the one same-socket, same-route repeat left: the lead
-        comes out and the 150 ohm plug goes in, read as node RMS plateaus
-        (`_noise_met`, S153) -- the only removal edge in the station, and it
-        is on the node too.
+        NOISE ROWS (S158): in the 150 ohm pass the socket is empty at the
+        prompt, and the plug going into it is read on the node's RMS against
+        that open input (`_terminator_met`); ENTER is on the screen throughout
+        and always ends the step. In the old per-input order the tone lead is
+        in the socket at the prompt, and that step ends on ENTER only.
 
         NOTHING HERE ENDS A STEP BY ITSELF EXCEPT AN ARRIVAL (PW 2026-09-30:
         "the runner never moves past a fail without operator confirmation").
@@ -2648,28 +2689,39 @@ class Station:
         # number, as it always was.
         deadline_s = self.lim['detect_timeout_s'] * (1 if self.auto
                                                      else ENTER_PATIENCE)
-        self._plateaus, self._run, self._left = [], [], False
+        # THE FIRST PATCH OF A RUN GETS TWICE THE PATIENCE (S158). P1 of
+        # 2026-10-01 timed out at 20 s and arrived at 22.6: the operator had
+        # just come from the setup pages and picked the lead up. The red
+        # screen decides nothing, but it should not be the first thing the
+        # walk shows a worker who is doing nothing wrong.
+        deadline_s *= getattr(self, '_patience', 1.0)
+        # THE 150 OHM STEP IS ONE OF TWO SHAPES (S158). In the 150 ohm pass
+        # the socket is empty at the prompt and the step auto-advances on the
+        # plug (`_terminator_met`). If the patch before this one had the tone
+        # lead in THIS socket (the old per-input order) the prompt reading is
+        # the lead, not the open input, and no level rule can be trusted to
+        # tell the lead coming out from the plug going in -- that step ends on
+        # ENTER only.
+        press_only = (not tone and getattr(self, '_prev_in', None) == r['in']
+                      and getattr(self, '_prev_tone', False))
+        self._term = dict(ref_db=None, burst_at=None, reads=[], frozen=None,
+                          frozen_burst=False, out=False, warned=False,
+                          press_only=press_only)
         floor0 = prep.get('floor')
         settle0 = self.u.settle_owed(SETTLE_WINDOWS)
         if tone:
             lvl0 = self.watch_tone(lane, prep, settle=settle0)
         else:
             lvl0 = self.watch(lane, rms=True, settle=settle0)
-            # THE PROMPT'S OWN READING IS THE FIRST PLATEAU (S157). It is a
-            # settled node window taken as the prompt goes up -- present
-            # tense, the settle already paid -- so it IS the lead's state and
-            # needs no stability window of its own. Requiring one made the
-            # step depend on speed: a lead pulled within ~0.35 s of the prompt
-            # never formed a "lead in" plateau, the swap then showed only one
-            # step, and the plug could never arrive (found in the S157 dry
-            # run, MIC 3-5 and 20-24 at --hand 1).
             if lvl0 is not None and math.isfinite(lvl0):
-                self._plateaus.append(lvl0)
                 self.log('%s: %s as the prompt went up: %.1f dBFS (node RMS)'
                          % (r['patch'], r['in'], lvl0))
         self._step_log(r, 'PROMPTED', lvl0, floor0,
                        'rise %.1f dB' % rise if tone else
-                       'the terminator step: lead out, then the plug in')
+                       'the terminator step: ENTER only, the tone lead was in '
+                       'this socket' if press_only else
+                       'the terminator step: the plug into an open input, or '
+                       'ENTER')
         next_sweep = t0 + WRONG_INPUT_POLL_S
         raised = False
         state = 'WAITING'
@@ -2707,8 +2759,24 @@ class Station:
             else:
                 lvl = self.watch(lane, rms=True)
             if lvl is not None and math.isfinite(lvl):
-                met = ((floor0 is not None and lvl - floor0 >= rise) if tone
-                       else self._noise_met(r, lvl, drop))
+                if tone:
+                    met = floor0 is not None and lvl - floor0 >= rise
+                elif press_only:
+                    self._term['reads'].append(lvl)
+                    if (lvl0 is not None and statistics.median(
+                            self._term['reads'][-3:]) <= lvl0 - drop):
+                        self._term['out'] = True
+                else:
+                    met = self._terminator_met(r, lvl, drop)
+            if self.trace and not tone:
+                self.log('%s TRACE %6.2f s  %s dBFS  %s  open %s  insertion %s'
+                         % (r['patch'], now() - t0,
+                            ('%.2f' % lvl) if lvl is not None else '--',
+                            'met' if met else '   ',
+                            ('%.1f' % self._term['ref_db'])
+                            if self._term['ref_db'] is not None else '--',
+                            ('%.1f s' % self._term['burst_at'])
+                            if self._term['burst_at'] is not None else '--'))
             if met and self._met_at is None:
                 self._met_at = now()
                 self._stable = [(now(), lvl)]
@@ -2743,8 +2811,7 @@ class Station:
             if self.auto and self._met_at is not None:
                 ok, why = self._stable_ok()
                 if ok and not tone:
-                    why += ', node RMS plateaus %s, now %.1f dBFS' % (
-                        ' -> '.join('%.1f' % v for v in self._plateaus), lvl)
+                    why += ', node RMS ' + self._term_words(lvl)
                 if ok and tone and self._sweep_arrive is not None:
                     # ISOLATED: no other lane steadily carrying across the
                     # stability window. Logged, never blocking -- a tone that
@@ -2765,9 +2832,32 @@ class Station:
                                       DETECT_STABLE_BLOCKS,
                                       len(self._stable), why))
                     return (('drop' if not tone else 'rise'), None, now() - t0)
-            if self._met_at is None and now() >= next_sweep:
+            if tone and self._met_at is None and now() >= next_sweep:
                 next_sweep = now() + WRONG_INPUT_POLL_S
                 self._look_elsewhere(r, lane, status, raised)
+            # THE 150 OHM STEP: ENTER (or LEADS CORRECT, from an older screen)
+            # is the operator saying the plug is in, and it is measured. The
+            # one refusal is the per-input order's: the tone lead was in this
+            # socket and the lane never fell from it, so the press is asked
+            # once more before the lead's own noise is recorded as the input's.
+            if not tone and self.auto and (entered or said_nothing):
+                if (press_only and not self._term['out']
+                        and not self._term['warned']):
+                    self._term['warned'] = True
+                    self.log('%s: ENTER, but %s still reads %.1f dBFS, as it '
+                             'did with the tone lead in -- asking once more'
+                             % (r['patch'], r['in'], lvl if lvl is not None
+                                else float('nan')))
+                    self.live.set(state=LV.WAITING,
+                                  status=LV.terminator_lead_still_in(r['in']))
+                    nap(DETECT_POLL_S)
+                    continue
+                self._step_log(r, 'ENTER', lvl, floor0,
+                               'the operator says the terminator is in, after '
+                               '%.1f s; %s' % (now() - t0,
+                                               self._term_words(lvl)
+                                               if lvl is not None else ''))
+                return ('press', None, now() - t0)
             if entered and not self.auto:
                 return (('enter-ok' if met else 'enter-no'), None, now() - t0)
             if entered and self.auto and self._met_at is None:
@@ -2800,6 +2890,17 @@ class Station:
                 self.waiting(status=(LV.SIGNAL_SEEN if met
                                      else LV.status_words(LV.WAITING)))
             waited = now() - t0
+            if (not tone and not raised and waited >= deadline_s
+                    and self._met_at is None):
+                # No red screen on the 150 ohm step: ENTER has been on it all
+                # along, and a step that cannot fail cannot time out into one.
+                raised = True
+                self._step_log(r, 'WAITING', lvl, floor0,
+                               'nothing seen in %.1f s; ENTER ends it (%s)'
+                               % (waited, self._term_words(lvl)
+                                  if lvl is not None else ''))
+                self.live.set(state=LV.WAITING,
+                              status=LV.terminator_timeout_words(r['in']))
             if not raised and waited >= deadline_s and self._met_at is None:
                 raised = True
                 self._step_log(r, 'FAILED', lvl, floor0,
@@ -3560,7 +3661,13 @@ class Station:
         seq = []
         for (lead, block), patches in self.L.blocks():
             if self.only and lead not in self.only:
-                continue
+                # --block names a LEAD (S158). The input walk alternates K1
+                # and K5 inside one block keyed K1, so `--block K5` matched
+                # nothing; it now keeps that block's own K5 patches.
+                patches = [(pid, rr) for pid, rr in patches
+                           if rr[0]['lead'] in self.only]
+                if not patches:
+                    continue
             seq.append(((lead, block), patches))
         self.index(seq)
         prepared = None
@@ -3570,6 +3677,7 @@ class Station:
             for pi, (pid, rows) in enumerate(patches):
                 rows = self.rebind(rows)
                 arrived = None
+                self._patience = 2.0 if (bi == 0 and pi == 0) else 1.0
                 # STEP 1: FIND A WORKING LOOP. Every candidate is an ordinary
                 # prompt and every failed one waits for the operator (S157).
                 if (rows[0].get('park') or '') == 'find':
@@ -3661,12 +3769,23 @@ class Station:
                 self.log('%s RETRY: running it again from the prompt' % pid)
                 prep, tok = self._prompt(pid, rows)
                 continue
-            # ARRIVED: the reading.
+            # ARRIVED: the reading. The 150 ohm step's ENTER comes off with
+            # it; the next prompt puts its own buttons up.
+            self.live.wait_buttons = None
             t1 = now()
             self.live.set(state=LV.CHECKING)
             raw, _saved = self.confirm_armed(rows)
             if raw is None:
                 raw = self.acquire(rows, prep)
+            if rows[0]['expect'] == 'noise':
+                for item in raw:
+                    item['meas']['open_db'] = self._term.get('ref_db')
+                    item['meas']['how'] = (
+                        'ended by ENTER' if how == 'press' else
+                        'ended on the plug%s' % (
+                            ' (insertion at %.1f s)' % self._term['burst_at']
+                            if self._term.get('burst_at') is not None
+                            else ''))
             t_read = now() - t1
             self.p.done(tok)
             scored = self.score_patch(rows, prep, raw)
@@ -3960,8 +4079,25 @@ class Station:
         # never a lead to take off first: every patch is one lead plugged
         # fresh at both ends, so there is nothing else to say.
         line = LV.instruction_for(r, confirm=not self.auto)
+        # WHAT WAS IN THIS SOCKET A MOMENT AGO (S158): the patch before this
+        # one, which is what tells the 150 ohm step whether its socket is
+        # empty (the 150 ohm pass) or still has the tone lead in it.
+        self._prev_in = getattr(self, '_last_in', None)
+        self._prev_tone = getattr(self, '_last_tone', False)
         self._last_in = r['in']
         self._last_out = (r.get('out') or '').strip() or None
+        self._last_tone = r['expect'] != 'noise'
+        if r['expect'] == 'noise' and self.auto:
+            # ENTER IS ON THE 150 OHM SCREEN FROM THE PROMPT (S158), and it
+            # stays on it whatever is written over the prompt (see
+            # `Live.wait_buttons`).
+            self.live.wait_buttons = LV.TERMINATOR_BUTTONS
+            extra = LV.terminator_extra(self._prev_in
+                                        if not self._prev_tone else None,
+                                        lead_in=(self._prev_tone and
+                                                 self._prev_in == r['in']))
+        else:
+            self.live.wait_buttons = None
         self.live.set(state=LV.WAITING, instruction=line,
                       lead_line=lead_line, extra=extra,
                       n=n, lead_n=lead_n, lead_total=lead_total)
@@ -5448,6 +5584,27 @@ def cmd_run(a, plist):
               flush=True)
         print(LV.second_start_words(), flush=True)
         return 2
+    # ONE RUNNER PER UNIT, NOT PER DIRECTORY (S158). The lock above lives in
+    # `--dir`, so a bench run into a scratch dir took its own lock and ran
+    # BESIDE a RUN ALL that the glass had started -- one DSP, one chain, one
+    # pair of rails, two owners (2026-10-01 11:15: the scratch run's teardown
+    # lowered AN_EN and restored the processing cells under the factory run).
+    # The factory glass directory's lock is taken too whenever it is not the
+    # same place, and a run holding it refuses this one.
+    unit_lock = None
+    glass_dir = a.live or GLASS_DIR
+    if (os.path.isdir(glass_dir)
+            and os.path.realpath(glass_dir) != os.path.realpath(a.dir)):
+        unit_lock = RunLock(glass_dir)
+        if not unit_lock.take(log=lambda t: print('   .. %s' % t, flush=True)):
+            other = unit_lock.other
+            print('a run is already going on this unit (pid %s, started %s, '
+                  'lock in %s): this run is refused'
+                  % (other.get('pid'), other.get('stamp'), glass_dir),
+                  flush=True)
+            lock.release()
+            return 2
+    lock.partner = unit_lock            # released with it, in `end_of_run`
 
     glass = RA.Glass(a.dir, stdin=a.stdin)
     live = LV.Live(a.live or a.dir, run='patch',
@@ -5474,6 +5631,7 @@ def cmd_run(a, plist):
                      trials=a.click_trials,
                      trial_only=split_inputs(a.trial_inputs),
                      mj_input=a.mj_detect_input)
+        st.trace = bool(a.verbose)
 
         # A SIGNAL IS A WAY OUT LIKE ANY OTHER. The hub stops this station with
         # SIGINT and systemd stops it with SIGTERM; both used to leave the rails
@@ -5558,10 +5716,12 @@ def end_of_run(a, st, plist, live, lock, stopped=''):
                      failures=list(getattr(st, 'failures', [])))
         except Exception:
             pass
-    try:
-        lock.release()
-    except Exception:
-        pass
+    for lk in (lock, getattr(lock, 'partner', None)):
+        try:
+            if lk is not None:
+                lk.release()
+        except Exception:
+            pass
     # 1.2(b)'s TABLE, written on every way out and never graded. It is the
     # whole deliverable of a trials run, so it must survive a PAUSE, a signal
     # and an exception as the results CSV does.
@@ -5621,7 +5781,7 @@ def main(argv=None):
     ap.add_argument('--out', help='write the per-path results here')
     ap.add_argument('--strings',
                     help='dump every operator-facing string, for --check-md')
-    ap.add_argument('--dir', default='/home/app/selftest/runall',
+    ap.add_argument('--dir', default=GLASS_DIR,
                     help='the glass directory (--run)')
     ap.add_argument('--live', metavar='DIR',
                     help='write the factory screen\'s live status file here '

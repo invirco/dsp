@@ -316,11 +316,16 @@ def graded_fail_words(verdict, why):
     return (why[:1].upper() + why[1:] + '.') if why else 'It did not pass.'
 
 
+# A GRADED FAIL IS A MEASUREMENT, NOT A MISSING LEAD (S158). PW read P12's
+# "gain step 4 adds 34.6 dB and should add 34.3 dB" screen as the lead not
+# being detected: the action line only talked about leads. It now says the
+# signal was found first, so a red screen after an arrival reads as what it is.
 def action_graded_fail(by_hand=True):
     if by_hand:
-        return ('Press RETRY, or unplug the lead and plug it back in. If the '
-                'leads are right, press LEADS CORRECT.')
-    return 'Press RETRY to try again. If the plug is right, press LEADS CORRECT.'
+        return ('The signal arrived - the measurement is out of limits. Press '
+                'RETRY to measure again, or LEADS CORRECT to record it.')
+    return ('The plug was in - the measurement is out of limits. Press RETRY '
+            'to measure again, or LEADS CORRECT to record it.')
 
 
 # The one plain action a red screen offers. Exactly one, always something the
@@ -344,6 +349,40 @@ def action_no_signal(confirm=True):
         return 'Push the lead in firmly at both ends, then press ENTER again.'
     return ('Check both ends are in the right sockets and pushed home. '
             'If they are, press LEADS CORRECT. RETRY tries it again.')
+
+
+# THE 150 OHM STEP ENDS ON A PRESS (PW 2026-10-01: "maybe a key input is
+# required for 150r, it's harder to detect than a signal"). Nothing arrives at
+# a terminated input: the plug changes the noise by 0 to 11 dB depending on the
+# channel (S158 measured 1.7 dB on MIC 3, 10 dB on MIC 1), so the operator
+# says when it is in. ENTER is the app's own button, drawn whenever `buttons`
+# carries it.
+TERMINATOR_BUTTONS = ['enter', 'pause']
+
+
+def terminator_extra(from_socket=None, lead_in=False):
+    """The line under the 150 ohm instruction. In the 150 ohm pass the plug
+    comes from the socket before; in the old per-input order the tone lead
+    has to come out first, and that step only ends on ENTER."""
+    if lead_in:
+        return 'Take the tone lead out first, then press ENTER.'
+    if from_socket:
+        return ('Move it from %s. It moves on by itself; ENTER if it does not.'
+                % socket_words(from_socket))
+    return 'It moves on by itself when the plug is in; ENTER if it does not.'
+
+
+def terminator_timeout_words(socket):
+    return ('Nothing seen at %s yet. If the terminator is in, press ENTER.'
+            % socket_words(socket))
+
+
+def terminator_lead_still_in(socket):
+    """The one refusal: the input still reads as it did with the tone lead in,
+    and that lead was in it a moment ago. A second ENTER measures anyway --
+    the operator has looked and the plug is in."""
+    return ('%s still reads as if the tone lead is in. Take it out, fit the '
+            'terminator, press ENTER again.' % socket_words(socket))
 
 
 # THE TIMEOUT RAISES THE SAME QUESTION, AND SAYS HOW LONG IT WAITED (PW
@@ -708,6 +747,9 @@ def every_string(rows=()):
             timeout_words('MIC 5', 20.0), 'LEADS CORRECT, NEXT >', NO_SIGNAL_FAIL,
             action_no_signal(), action_no_signal(False), action_failed(),
             action_graded_fail(), action_graded_fail(False),
+            terminator_extra(), terminator_extra('MIC 1'),
+            terminator_extra(lead_in=True), terminator_timeout_words('MIC 5'),
+            terminator_lead_still_in('MIC 5'),
             graded_fail_words('FAIL', 'the two channels did not cancel'),
             fail_banner('FAIL'), fail_banner('NO DATA'), 'RETRY',
             panel_retry_words('MONO AUX'), PANEL_FAIL_ACTION,
@@ -861,13 +903,25 @@ class Live:
         self.cmd_path = os.path.join(dirpath or '.', COMMAND_NAME)
         self.seq = 0
         self.t0 = time.time()
+        # THE SCREEN A PRESS BELONGS TO (S158). `screen` counts the screens
+        # that ASK something -- a new instruction or a new set of buttons --
+        # and `screen_t` is when the current one went up. A press is an answer
+        # to the screen it was pressed on and to no other: see `command`.
+        self.screen = 0
+        self.screen_t = self.t0
+        # THE BUTTONS A WAITING SCREEN CARRIES WHILE ONE STEP OWNS IT (S158).
+        # None is `buttons_for(WAITING)`. The 150 ohm step sets ENTER + PAUSE
+        # here for as long as its prompt is up, so a verdict or a status line
+        # written over that prompt does not take ENTER off it.
+        self.wait_buttons = None
         # `confirm` is PW's ruling of 2026-09-26: the operator plugs the lead
         # in and presses ENTER, and the step does not end until they do. It is
         # what puts the ENTER button on the screen; auto-advance is the same
         # loop with this off.
         self.confirm = bool(confirm)
         self.d = dict(
-            v=1, run=run, seq=0, state=STARTING, stamp='', heartbeat=0.0,
+            v=1, run=run, seq=0, screen=0, state=STARTING, stamp='',
+            heartbeat=0.0,
             instruction='', lead_line='', extra='', status=status_words(STARTING),
             busy=True, banner='', banner_line='', action='',
             n=0, total=int(total), lead_n=0, lead_total=0,
@@ -931,7 +985,10 @@ class Live:
                 raise AssertionError('%r is not a screen state' % state)
             kw.setdefault('status', status_words(state))
             kw.setdefault('busy', state in BUSY_STATES)
-            kw.setdefault('buttons', buttons_for(state, self.confirm))
+            kw.setdefault('buttons',
+                          list(self.wait_buttons)
+                          if self.wait_buttons and state == WAITING
+                          else buttons_for(state, self.confirm))
             if state != VERDICT and state != CHECKLEAD:
                 kw.setdefault('banner', '')
                 kw.setdefault('banner_line', '')
@@ -943,6 +1000,11 @@ class Live:
                 kw.setdefault('can_pause', False)
             elif state != SUMMARY:
                 kw.setdefault('can_pause', True)
+        if any(k in kw and kw[k] != self.d.get(k)
+               for k in ('buttons', 'instruction')):
+            self.screen += 1
+            self.screen_t = time.time()
+            kw['screen'] = self.screen
         self.d.update(kw)
         self._flush()
 
@@ -994,6 +1056,21 @@ class Live:
         if float(c.get('stamp', 0)) < self.t0:
             return None                      # left over from a previous run
         cmd = c.get('command')
+        # A PRESS ANSWERS THE SCREEN IT WAS PRESSED ON (S158). P16 of
+        # 2026-10-01 recorded NO SIGNAL "pressed after 0.7 s": the operator's
+        # LEADS CORRECT on P15 had been taken, and a second tap -- or the
+        # app's own second write -- was still in this file when P16's prompt
+        # went up, so the next patch spent it. An app that sends `screen`
+        # (live.json's own field, echoed) is held to it exactly; one that does
+        # not is held to its `stamp`: a press older than the screen now up was
+        # made on an earlier one. PAUSE and EXIT are never dropped -- a stale
+        # PAUSE pauses, which is harmless, and EXIT only exists on the summary.
+        if cmd not in ('pause', 'exit') and self._stale(c):
+            print('   .. a %r press for an earlier screen was dropped (screen '
+                  '%s, pressed %.1f s before this one went up)'
+                  % (cmd, c.get('screen', '?'),
+                     self.screen_t - float(c.get('stamp', 0))), flush=True)
+            return None
         # 'notlit' (S137): the panel loop's own second button, drawn only
         # while `buttons` is `PANEL_BUTTONS`; see `panel_station`'s `ask`.
         # 'nosignal' (PW 2026-09-28): the patch loop's, drawn on every WAITING
@@ -1007,3 +1084,11 @@ class Live:
         return (cmd if cmd in ('pause', 'enter', 'exit', 'notlit', 'nosignal',
                                'yes', 'no', 'retry')
                 else None)
+
+    def _stale(self, c):
+        if c.get('screen') is not None:
+            try:
+                return int(c['screen']) != self.screen
+            except (TypeError, ValueError):
+                return True
+        return float(c.get('stamp', 0)) < self.screen_t

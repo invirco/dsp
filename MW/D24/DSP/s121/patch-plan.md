@@ -21,7 +21,7 @@ One of each. The order above is the order the station walks, so the operator cha
 |---|---|---|---|---|---|
 | 1 | K1 | the outputs | 11 | 11 | the input end, in MIC 1 |
 | 2 | K1 | the inputs | 25 | 169 | the output end, on AUX 1 |
-| 3 | K5 | the inputs | 24 | 24 | nothing: the terminator moves on its own |
+| 3 | K5 | the 150 ohm pass | 24 | 24 | nothing: the terminator moves on its own |
 | 4 | K2 | the TRS outputs | 6 | 14 | the input end, in MIC 1 |
 | 5 | K4 | the line inputs | 24 | 24 | the output end, on AUX 1 |
 | 6 | K3 | the mini-jack inputs | 2 | 4 | the output end, on AUX 1 |
@@ -32,31 +32,31 @@ Every D24 analog socket, and what proves it.
 
 | socket | catalog row | proved by |
 |---|---|---|
-| MIC 1 | 1 | P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P61, P62, P63, P64, P65, P66, P67 |
-| MIC 2 | 2 | P14, P15, P68 |
-| MIC 3 | 3 | P16, P17, P69 |
-| MIC 4 | 4 | P18, P19, P70 |
-| MIC 13 | 5 | P36, P37, P79 |
-| MIC 14 | 6 | P38, P39, P80 |
-| MIC 15 | 7 | P40, P41, P81 |
-| MIC 16 | 8 | P42, P43, P82 |
-| MIC 5 | 9 | P20, P21, P71 |
-| MIC 6 | 10 | P22, P23, P72 |
-| MIC 9 | 11 | P28, P29, P75 |
-| MIC 10 | 12 | P30, P31, P76 |
-| MIC 11 | 13 | P32, P33, P77 |
-| MIC 12 | 14 | P34, P35, P78 |
-| MIC 17 | 15 | P44, P45, P83 |
-| MIC 18 | 16 | P46, P47, P84 |
-| MIC 19 | 17 | P48, P49, P85 |
-| MIC 21 | 18 | P52, P53, P87 |
-| MIC 22 | 19 | P54, P55, P88 |
-| MIC 23 | 20 | P56, P57, P89 |
-| MIC 24 | 21 | P58, P59, P90 |
-| MIC 7 | 22 | P24, P25, P73 |
-| MIC 8 | 23 | P26, P27, P74 |
-| MIC 20 | 24 | P50, P51, P86 |
-| AUX 1 | 25 | P1, P12, P14, P16, P18, P20, P22, P24, P26, P28, P30, P32, P34, P36, P38, P40, P42, P44, P46, P48, P50, P52, P54, P56, P58, P60, P67, P68, P69, P70, P71, P72, P73, P74, P75, P76, P77, P78, P79, P80, P81, P82, P83, P84, P85, P86, P87, P88, P89, P90, P91, P92 |
+| MIC 1 | 1 | P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P37, P61, P62, P63, P64, P65, P66, P67 |
+| MIC 2 | 2 | P13, P38, P68 |
+| MIC 3 | 3 | P14, P39, P69 |
+| MIC 4 | 4 | P15, P40, P70 |
+| MIC 13 | 5 | P24, P49, P79 |
+| MIC 14 | 6 | P25, P50, P80 |
+| MIC 15 | 7 | P26, P51, P81 |
+| MIC 16 | 8 | P27, P52, P82 |
+| MIC 5 | 9 | P16, P41, P71 |
+| MIC 6 | 10 | P17, P42, P72 |
+| MIC 9 | 11 | P20, P45, P75 |
+| MIC 10 | 12 | P21, P46, P76 |
+| MIC 11 | 13 | P22, P47, P77 |
+| MIC 12 | 14 | P23, P48, P78 |
+| MIC 17 | 15 | P28, P53, P83 |
+| MIC 18 | 16 | P29, P54, P84 |
+| MIC 19 | 17 | P30, P55, P85 |
+| MIC 21 | 18 | P32, P57, P87 |
+| MIC 22 | 19 | P33, P58, P88 |
+| MIC 23 | 20 | P34, P59, P89 |
+| MIC 24 | 21 | P35, P60, P90 |
+| MIC 7 | 22 | P18, P43, P73 |
+| MIC 8 | 23 | P19, P44, P74 |
+| MIC 20 | 24 | P31, P56, P86 |
+| AUX 1 | 25 | P1, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P67, P68, P69, P70, P71, P72, P73, P74, P75, P76, P77, P78, P79, P80, P81, P82, P83, P84, P85, P86, P87, P88, P89, P90, P91, P92 |
 | AUX 2 | 26 | P2 |
 | AUX 3 | 27 | P3 |
 | AUX 4 | 28 | P4 |
@@ -69,7 +69,7 @@ Every D24 analog socket, and what proves it.
 | C/LF | 35 | P11 |
 | MONITOR L | 36 | P61 |
 | MONITOR R | 37 | P62 |
-| TALKBACK | 38 | P60 |
+| TALKBACK | 38 | P36 |
 | AUX A 1-2 L | 39 | P63 |
 | AUX A 1-2 R | 39 | P63 |
 | AUX A 3-4 L | 40 | P64 |

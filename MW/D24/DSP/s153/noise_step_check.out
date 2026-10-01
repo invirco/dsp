@@ -65,12 +65,12 @@ ok   MIC 6, the lead pulled, nothing fitted: not graded (waiting at 42 s)
    MIC 6 on the capture -87.59 figure: drop at 5.0 s (plug in the socket)
 ok   MIC 8, a slow operator (pull 6 s, plug 9 s): graded on the plug, 0.47 s after it
    its log:
-     P27: MIC 8 as the prompt went up: -50.8 dBFS (node RMS)
-     P27 PROMPTED: MIC 8 level -50.8, floor -116.0 (node RMS) -- the terminator step: lead out, then the plug in
-     P27: the lead came out of MIC 8 (-51.0 -> -80.4 dBFS)
-     P27 ARRIVING: MIC 8 level -86.5, floor -116.0 (node RMS)
-     P27: MIC 8 settled again at -86.6 dBFS
-     P27 ARRIVED: MIC 8 level -86.6, floor -116.0 (node RMS) -- drop after 9474 ms, present and steady (3 blocks, 4 readings, spread 0.11 dB, node RMS plateaus -51.0 -> -80.4 -> -80.4 -> -80.4 -> -86.6, now -86.6 dBFS)
+     P44: MIC 8 as the prompt went up: -50.8 dBFS (node RMS)
+     P44 PROMPTED: MIC 8 level -50.8, floor -116.0 (node RMS) -- the terminator step: lead out, then the plug in
+     P44: the lead came out of MIC 8 (-51.0 -> -80.4 dBFS)
+     P44 ARRIVING: MIC 8 level -86.5, floor -116.0 (node RMS)
+     P44: MIC 8 settled again at -86.6 dBFS
+     P44 ARRIVED: MIC 8 level -86.6, floor -116.0 (node RMS) -- drop after 9474 ms, present and steady (3 blocks, 4 readings, spread 0.11 dB, node RMS plateaus -51.0 -> -80.4 -> -80.4 -> -80.4 -> -86.6, now -86.6 dBFS)
 
 == 4. tone rows untouched: S145 harness + whole-pass dry run
 ok   patch_auto_advance_check.py passes: all checks passed -- no unit, no bus, no serial port, no write, no rails, no phantom

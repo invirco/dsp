@@ -871,11 +871,13 @@ def parse_lead_excludes(specs):
 
 class Builder:
     def __init__(self, ports, cells, excl_inputs=(), excl_leads=(),
-                 park_kit=False, input_order='three-walks'):
+                 park_kit=False, input_order='three-walks',
+                 terminator_pass=True):
         if input_order not in INPUT_ORDERS:
             raise SystemExit('--input-order must be one of %s'
                              % ', '.join(INPUT_ORDERS))
         self.park_kit = bool(park_kit)
+        self.terminator_pass = bool(terminator_pass)
         self.input_order = input_order
         self.ports, self.cells = ports, cells
         self.send_at = load_send_pos()
@@ -1113,24 +1115,40 @@ class Builder:
                                'the step\'s own expected gain so the converter '
                                'reads about the same level every step'
                                % (step.bit_length())))
-            if not self.out_lead('K5'):
-                self.new_patch()
-                self.add(lead='K5', block='the inputs', out='', in_=inp,
-                         drive='none', lane=strip, donor=donor_for(strip),
-                         expect='noise', level_ref='ein', polarity='-',
-                         level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
-                         send_pos=pos, rows=self.rows_for(inp),
-                         prompt='Fit the 150 ohm terminator in %s' % inp,
-                         note='the input noise, at the gain the 2026-09-16 '
-                              'survey used; the window is limits.csv '
-                              't4b_ein_max_dbu')
+            if not self.terminator_pass and not self.out_lead('K5'):
+                self.add_k5_patch(strip, block='the inputs')
             # ONE STOP PER INPUT (ruling g): the jack lead's own patch for this
             # input rides here instead of in a walk of its own. Same patch,
             # same reading, same row -- only the order changes.
             if self.input_order == 'one-stop' and not self.out_lead('K4'):
                 self.add_k4_patch(strip, block='the inputs')
-        if self.out_in('TALKBACK'):
-            return
+        if not self.out_in('TALKBACK'):
+            self.add_talkback_patch()
+        # THE 150 OHM PASS (PW 2026-10-01: "doing all 150r tests in a single
+        # pass is way more efficient and easier to detect"). One terminator
+        # walks every input after the XLR lead has: the socket it is fitted
+        # to is EMPTY when its prompt goes up, so the only thing that happens
+        # on that lane is the plug going in -- no tone lead coming out first,
+        # which is the step S158 found indistinguishable from the plug on the
+        # inputs whose open and terminated noise sit 2 dB apart.
+        if self.terminator_pass and not self.out_lead('K5'):
+            for strip in self.input_walk_strips():
+                self.add_k5_patch(strip, block='the 150 ohm pass')
+
+    def add_k5_patch(self, strip, block):
+        inp = 'MIC %d' % strip
+        self.new_patch()
+        self.add(lead='K5', block=block, out='', in_=inp,
+                 drive='none', lane=strip, donor=donor_for(strip),
+                 expect='noise', level_ref='ein', polarity='-',
+                 level_dbfs='', freq_hz='', gain_code=EIN_GAIN_CODE,
+                 send_pos=self.send_at[strip], rows=self.rows_for(inp),
+                 prompt='Fit the 150 ohm terminator in %s' % inp,
+                 note='the input noise, at the gain the 2026-09-16 '
+                      'survey used; the window is limits.csv '
+                      't4b_ein_max_dbu')
+
+    def add_talkback_patch(self):
         self.new_patch()
         k1out, k1drive = self.kit()['K1']['socket'], self.kit()['K1']['drive']
         self.add(lead='K1', block='the inputs', out=k1out,
@@ -1610,11 +1628,18 @@ def main(argv=None):
                     help='every block homes on the first XLR output and the '
                          'reference input, as the list did before the parked '
                          'kit (ruling c). For a before/after timing run')
+    ap.add_argument('--terminator-each-input', dest='terminator_pass',
+                    action='store_false', default=True,
+                    help='the 2026-09-26 order: the 150 ohm plug follows the '
+                         'XLR lead at every input. Superseded by PW 2026-10-01 '
+                         '(one 150 ohm pass after the input walk); kept for a '
+                         'before/after timing run')
     a = ap.parse_args(argv)
     excl_in = parse_excludes(a.exclude)
     excl_lead = parse_lead_excludes(a.exclude_lead)
     b = Builder(load_ports(), load_cells(), excl_in, excl_lead,
-                park_kit=a.park_kit, input_order=a.input_order).build()
+                park_kit=a.park_kit, input_order=a.input_order,
+                terminator_pass=a.terminator_pass).build()
     if a.check:
         print('OK: %d patches, %d paths, %d routes, %d sockets not run'
               % (b.patch, b.n, len(b.routes), len(b.notrun)))

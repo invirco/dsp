@@ -1,0 +1,344 @@
+   .. reading the Enter key from /dev/input/event2 (vc4-hdmi-0)
+   .. reading the Enter key from /dev/input/event4 (vc4-hdmi-1)
+   .. the analog rails are up
+   .. bypass: 219 processing cells read; 64 were not 0: Aux001LimiterOn001, Aux002LimiterOn001, Aux003LimiterOn001, Aux004LimiterOn001, Aux005LimiterOn001, Aux006LimiterOn001, Aux007LimiterOn001, Aux008LimiterOn001, Chan001CompOn001, Chan001EqHpf001, Chan002CompOn001, Chan002EqHpf001 ...
+   .. standing write: 608 cells (every strip's assigns shut, both donor strips made transparent, every bus master at unity, 219 processing cells bypassed and restored at handback)
+   .. floors: 27 lanes, -114.5 to -75.5 dBFS (node RMS); peak floor -103.8 to -77.3 dBFS
+   .. the inputs - 24 patches
+   .. the mic-pre chain writer is open (fast)
+   .. mic-pre chain at zero gain: verified
+   .. mic-pre chain MIC 1 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 1  (lead K5)
+   Fit the 150 ohm terminator in MIC 1.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P13: MIC 1 as the prompt went up: -53.8 dBFS (node RMS)
+   .. P13 PROMPTED: MIC 1 level -53.8, floor -112.7 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P13 FAILED: MIC 1 level -53.6, floor -112.7 (node RMS) -- nothing has arrived in 20.0 s; waiting for the operator (LEADS CORRECT / RETRY / PAUSE)
+   .. P13: nothing has reached MIC 1 in 20.0 s -- asking
+   .. P13: the lead came out of MIC 1 (-53.6 -> -76.6 dBFS)
+   .. P13: MIC 1 settled again at -54.5 dBFS
+   .. P13 ARRIVING: MIC 1 level -87.1, floor -112.7 (node RMS)
+   .. P13: MIC 1 settled again at -86.9 dBFS
+   .. P13 ARRIVED: MIC 1 level -87.0, floor -112.7 (node RMS) -- drop after 31730 ms, present and steady (3 blocks, 3 readings, spread 0.24 dB, node RMS plateaus -53.6 -> -77.0 -> -77.5 -> -54.8 -> -87.0, now -87.0 dBFS)
+   .. mic-pre chain MIC 2 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 2  (lead K5)
+   Fit the 150 ohm terminator in MIC 2.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P15: MIC 2 as the prompt went up: -75.5 dBFS (node RMS)
+   .. P15 PROMPTED: MIC 2 level -75.5, floor -113.6 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P15 FAILED: MIC 2 level -77.6, floor -113.6 (node RMS) -- nothing has arrived in 20.1 s; waiting for the operator (LEADS CORRECT / RETRY / PAUSE)
+   .. P15: nothing has reached MIC 2 in 20.1 s -- asking
+   .. P15 NO SIGNAL: MIC 2 level -78.3, floor -113.6 (node RMS) -- the operator pressed it after 66.1 s
+   .. P15: recorded FAIL -- no signal detected
+   .. mic-pre chain MIC 3 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 3  (lead K5)
+   Fit the 150 ohm terminator in MIC 3.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P17: MIC 3 as the prompt went up: -57.6 dBFS (node RMS)
+   .. P17 PROMPTED: MIC 3 level -57.6, floor -112.6 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P17: the lead came out of MIC 3 (-57.6 -> -76.2 dBFS)
+   .. P17 FAILED: MIC 3 level -78.2, floor -112.6 (node RMS) -- nothing has arrived in 20.1 s; waiting for the operator (LEADS CORRECT / RETRY / PAUSE)
+   .. P17: nothing has reached MIC 3 in 20.1 s -- asking
+   .. P17 ARRIVING: MIC 3 level -79.3, floor -112.6 (node RMS)
+   .. P17 WAITING: MIC 3 level -79.3, floor -112.6 (node RMS) -- the signal went away again after 146 ms; the stability window starts over
+   .. P17 ARRIVING: MIC 3 level -79.0, floor -112.6 (node RMS)
+   .. P17 WAITING: MIC 3 level -78.7, floor -112.6 (node RMS) -- the signal went away again after 191 ms; the stability window starts over
+   .. P17 ARRIVING: MIC 3 level -79.1, floor -112.6 (node RMS)
+   .. P17 ARRIVED: MIC 3 level -79.2, floor -112.6 (node RMS) -- drop after 485983 ms, present and steady (3 blocks, 3 readings, spread 0.06 dB, node RMS plateaus -57.6 -> -76.3 -> -78.9 -> -79.0 -> -77.7 -> -75.9 -> -79.1, now -79.2 dBFS)
+   .. mic-pre chain MIC 4 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 4  (lead K5)
+   Fit the 150 ohm terminator in MIC 4.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P15 FAIL: no signal detected
+   .. P19: MIC 4 as the prompt went up: -36.4 dBFS (node RMS)
+   .. P19 PROMPTED: MIC 4 level -36.4, floor -113.6 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P19: the lead came out of MIC 4 (-36.4 -> -75.5 dBFS)
+   .. P19: MIC 4 settled again at -61.6 dBFS
+   .. P19 ARRIVING: MIC 4 level -78.9, floor -113.6 (node RMS)
+   .. P19: MIC 4 settled again at -78.8 dBFS
+   .. P19 ARRIVED: MIC 4 level -78.8, floor -113.6 (node RMS) -- drop after 5387 ms, present and steady (3 blocks, 3 readings, spread 0.03 dB, node RMS plateaus -36.4 -> -76.1 -> -76.2 -> -61.6 -> -78.8, now -78.8 dBFS)
+   .. mic-pre chain MIC 5 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 5  (lead K5)
+   Fit the 150 ohm terminator in MIC 5.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P17 PASS: the input noise was measured with a 150 ohm source
+   .. P21: MIC 5 as the prompt went up: -38.9 dBFS (node RMS)
+   .. P21 PROMPTED: MIC 5 level -38.9, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P21: the lead came out of MIC 5 (-38.9 -> -78.8 dBFS)
+   .. P21 ARRIVING: MIC 5 level -82.4, floor -114.2 (node RMS)
+   .. P21: MIC 5 settled again at -87.4 dBFS
+   .. P21 ARRIVED: MIC 5 level -87.4, floor -114.2 (node RMS) -- drop after 4281 ms, present and steady (3 blocks, 3 readings, spread 0.03 dB, node RMS plateaus -38.9 -> -78.8 -> -79.0 -> -87.4, now -87.4 dBFS)
+   .. mic-pre chain MIC 6 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 6  (lead K5)
+   Fit the 150 ohm terminator in MIC 6.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P19 PASS: the input noise was measured with a 150 ohm source
+   .. P23: MIC 6 as the prompt went up: -42.2 dBFS (node RMS)
+   .. P23 PROMPTED: MIC 6 level -42.2, floor -113.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P23: the lead came out of MIC 6 (-42.2 -> -79.8 dBFS)
+   .. P23 ARRIVING: MIC 6 level -85.0, floor -113.2 (node RMS)
+   .. P23: MIC 6 settled again at -84.8 dBFS
+   .. P23 ARRIVED: MIC 6 level -84.2, floor -113.2 (node RMS) -- drop after 4431 ms, present and steady (3 blocks, 3 readings, spread 0.89 dB, node RMS plateaus -42.2 -> -79.9 -> -84.8, now -84.2 dBFS)
+   .. mic-pre chain MIC 7 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 7  (lead K5)
+   Fit the 150 ohm terminator in MIC 7.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P21 PASS: the input noise was measured with a 150 ohm source
+   .. P25: MIC 7 as the prompt went up: -33.9 dBFS (node RMS)
+   .. P25 PROMPTED: MIC 7 level -33.9, floor -113.8 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P25: the lead came out of MIC 7 (-33.9 -> -79.7 dBFS)
+   .. P25 ARRIVING: MIC 7 level -83.0, floor -113.8 (node RMS)
+   .. P25: MIC 7 settled again at -82.7 dBFS
+   .. P25 ARRIVED: MIC 7 level -82.9, floor -113.8 (node RMS) -- drop after 18270 ms, present and steady (3 blocks, 3 readings, spread 0.17 dB, node RMS plateaus -33.9 -> -79.6 -> -82.8, now -82.9 dBFS)
+   .. mic-pre chain MIC 8 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 8  (lead K5)
+   Fit the 150 ohm terminator in MIC 8.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P23 PASS: the input noise was measured with a 150 ohm source
+   .. P27: MIC 8 as the prompt went up: -32.1 dBFS (node RMS)
+   .. P27 PROMPTED: MIC 8 level -32.1, floor -113.9 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P27: the lead came out of MIC 8 (-32.1 -> -79.7 dBFS)
+   .. P27 ARRIVING: MIC 8 level -84.2, floor -113.9 (node RMS)
+   .. P27: MIC 8 settled again at -85.4 dBFS
+   .. P27 ARRIVED: MIC 8 level -85.1, floor -113.9 (node RMS) -- drop after 4012 ms, present and steady (3 blocks, 3 readings, spread 0.61 dB, node RMS plateaus -32.1 -> -79.8 -> -79.3 -> -85.4, now -85.1 dBFS)
+   .. mic-pre chain MIC 9 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 9  (lead K5)
+   Fit the 150 ohm terminator in MIC 9.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P25 PASS: the input noise was measured with a 150 ohm source
+   .. P29: MIC 9 as the prompt went up: -36.0 dBFS (node RMS)
+   .. P29 PROMPTED: MIC 9 level -36.0, floor -114.3 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P29: the lead came out of MIC 9 (-36.0 -> -81.0 dBFS)
+   .. P29 ARRIVING: MIC 9 level -87.2, floor -114.3 (node RMS)
+   .. P29: MIC 9 settled again at -87.1 dBFS
+   .. P29 ARRIVED: MIC 9 level -87.2, floor -114.3 (node RMS) -- drop after 3923 ms, present and steady (3 blocks, 3 readings, spread 0.10 dB, node RMS plateaus -36.0 -> -79.9 -> -87.1, now -87.2 dBFS)
+   .. mic-pre chain MIC 10 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 10  (lead K5)
+   Fit the 150 ohm terminator in MIC 10.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P27 PASS: the input noise was measured with a 150 ohm source
+   .. P31: MIC 10 as the prompt went up: -36.1 dBFS (node RMS)
+   .. P31 PROMPTED: MIC 10 level -36.1, floor -113.6 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P31: the lead came out of MIC 10 (-36.1 -> -80.7 dBFS)
+   .. P31 ARRIVING: MIC 10 level -89.9, floor -113.6 (node RMS)
+   .. P31: MIC 10 settled again at -90.5 dBFS
+   .. P31 ARRIVED: MIC 10 level -90.4, floor -113.6 (node RMS) -- drop after 4092 ms, present and steady (3 blocks, 8 readings, spread 0.20 dB, node RMS plateaus -36.1 -> -80.7 -> -90.5, now -90.4 dBFS)
+   .. mic-pre chain MIC 11 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 11  (lead K5)
+   Fit the 150 ohm terminator in MIC 11.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P29 PASS: the input noise was measured with a 150 ohm source
+   .. P33: MIC 11 as the prompt went up: -34.4 dBFS (node RMS)
+   .. P33 PROMPTED: MIC 11 level -34.4, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P33: the lead came out of MIC 11 (-34.4 -> -79.9 dBFS)
+   .. P33 ARRIVING: MIC 11 level -88.6, floor -114.2 (node RMS)
+   .. P33: MIC 11 settled again at -85.9 dBFS
+   .. P33 ARRIVED: MIC 11 level -85.6, floor -114.2 (node RMS) -- drop after 3231 ms, present and steady (3 blocks, 3 readings, spread 0.45 dB, node RMS plateaus -34.4 -> -79.9 -> -85.9, now -85.6 dBFS)
+   .. mic-pre chain MIC 12 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 12  (lead K5)
+   Fit the 150 ohm terminator in MIC 12.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P31 PASS: the input noise was measured with a 150 ohm source
+   .. P35: MIC 12 as the prompt went up: -33.1 dBFS (node RMS)
+   .. P35 PROMPTED: MIC 12 level -33.1, floor -112.6 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P35: the lead came out of MIC 12 (-33.1 -> -75.1 dBFS)
+   .. P35 ARRIVING: MIC 12 level -90.1, floor -112.6 (node RMS)
+   .. P35: MIC 12 settled again at -90.1 dBFS
+   .. P35 ARRIVED: MIC 12 level -89.5, floor -112.6 (node RMS) -- drop after 3129 ms, present and steady (3 blocks, 3 readings, spread 0.53 dB, node RMS plateaus -33.1 -> -76.6 -> -89.9, now -89.5 dBFS)
+   .. mic-pre chain MIC 13 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 13  (lead K5)
+   Fit the 150 ohm terminator in MIC 13.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P33 PASS: the input noise was measured with a 150 ohm source
+   .. P37: MIC 13 as the prompt went up: -29.5 dBFS (node RMS)
+   .. P37 PROMPTED: MIC 13 level -29.5, floor -114.5 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P37: the lead came out of MIC 13 (-29.5 -> -79.0 dBFS)
+   .. P37 ARRIVING: MIC 13 level -88.2, floor -114.5 (node RMS)
+   .. P37: MIC 13 settled again at -87.8 dBFS
+   .. P37: MIC 13 settled again at -94.1 dBFS
+   .. P37 ARRIVED: MIC 13 level -94.0, floor -114.5 (node RMS) -- drop after 3990 ms, present and steady (3 blocks, 4 readings, spread 0.24 dB, node RMS plateaus -29.5 -> -79.8 -> -87.8 -> -94.1, now -94.0 dBFS)
+   .. mic-pre chain MIC 14 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 14  (lead K5)
+   Fit the 150 ohm terminator in MIC 14.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P35 PASS: the input noise was measured with a 150 ohm source
+   .. P39: MIC 14 as the prompt went up: -37.9 dBFS (node RMS)
+   .. P39 PROMPTED: MIC 14 level -37.9, floor -113.9 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P39: the lead came out of MIC 14 (-37.9 -> -81.5 dBFS)
+   .. P39 ARRIVING: MIC 14 level -93.4, floor -113.9 (node RMS)
+   .. P39 ARRIVED: MIC 14 level -93.8, floor -113.9 (node RMS) -- drop after 3465 ms, present and steady (3 blocks, 4 readings, spread 0.69 dB, node RMS plateaus -37.9 -> -81.6, now -93.8 dBFS)
+   .. mic-pre chain MIC 15 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 15  (lead K5)
+   Fit the 150 ohm terminator in MIC 15.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P37 PASS: the input noise was measured with a 150 ohm source
+   .. P41: MIC 15 as the prompt went up: -56.3 dBFS (node RMS)
+   .. P41 PROMPTED: MIC 15 level -56.3, floor -114.4 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P41: MIC 15 settled again at -52.6 dBFS
+   .. P41 ARRIVING: MIC 15 level -63.4, floor -114.4 (node RMS)
+   .. P41: MIC 15 settled again at -92.9 dBFS
+   .. P41 ARRIVED: MIC 15 level -92.7, floor -114.4 (node RMS) -- drop after 2999 ms, present and steady (3 blocks, 12 readings, spread 0.53 dB, node RMS plateaus -56.3 -> -52.6 -> -92.9, now -92.7 dBFS)
+   .. mic-pre chain MIC 16 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 16  (lead K5)
+   Fit the 150 ohm terminator in MIC 16.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P39 PASS: the input noise was measured with a 150 ohm source
+   .. P43: MIC 16 as the prompt went up: -48.3 dBFS (node RMS)
+   .. P43 PROMPTED: MIC 16 level -48.3, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P43: the lead came out of MIC 16 (-48.3 -> -81.7 dBFS)
+   .. P43 ARRIVING: MIC 16 level -92.7, floor -114.2 (node RMS)
+   .. P43: MIC 16 settled again at -94.0 dBFS
+   .. P43 ARRIVED: MIC 16 level -93.7, floor -114.2 (node RMS) -- drop after 2882 ms, present and steady (3 blocks, 3 readings, spread 0.66 dB, node RMS plateaus -48.3 -> -81.8 -> -94.0, now -93.7 dBFS)
+   .. mic-pre chain MIC 17 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 17  (lead K5)
+   Fit the 150 ohm terminator in MIC 17.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P41 PASS: the input noise was measured with a 150 ohm source
+   .. P45: MIC 17 as the prompt went up: -33.4 dBFS (node RMS)
+   .. P45 PROMPTED: MIC 17 level -33.4, floor -113.5 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P45: the lead came out of MIC 17 (-33.4 -> -81.6 dBFS)
+   .. P45: MIC 17 settled again at -70.0 dBFS
+   .. P45 ARRIVING: MIC 17 level -80.4, floor -113.5 (node RMS)
+   .. P45: MIC 17 settled again at -86.8 dBFS
+   .. P45 ARRIVED: MIC 17 level -86.4, floor -113.5 (node RMS) -- drop after 3017 ms, present and steady (3 blocks, 4 readings, spread 0.86 dB, node RMS plateaus -33.4 -> -81.8 -> -70.0 -> -86.8, now -86.4 dBFS)
+   .. mic-pre chain MIC 18 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 18  (lead K5)
+   Fit the 150 ohm terminator in MIC 18.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P43 PASS: the input noise was measured with a 150 ohm source
+   .. P47: MIC 18 as the prompt went up: -29.7 dBFS (node RMS)
+   .. P47 PROMPTED: MIC 18 level -29.7, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P47: the lead came out of MIC 18 (-29.7 -> -81.8 dBFS)
+   .. P47 ARRIVING: MIC 18 level -91.9, floor -114.2 (node RMS)
+   .. P47: MIC 18 settled again at -91.6 dBFS
+   .. P47 ARRIVED: MIC 18 level -92.2, floor -114.2 (node RMS) -- drop after 3412 ms, present and steady (3 blocks, 3 readings, spread 0.97 dB, node RMS plateaus -29.7 -> -81.9 -> -91.8, now -92.2 dBFS)
+   .. mic-pre chain MIC 19 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 19  (lead K5)
+   Fit the 150 ohm terminator in MIC 19.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P45 PASS: the input noise was measured with a 150 ohm source
+   .. P49: MIC 19 as the prompt went up: -37.3 dBFS (node RMS)
+   .. P49 PROMPTED: MIC 19 level -37.3, floor -114.1 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P49: the lead came out of MIC 19 (-37.3 -> -81.3 dBFS)
+   .. P49 ARRIVING: MIC 19 level -87.7, floor -114.1 (node RMS)
+   .. P49 ARRIVED: MIC 19 level -89.1, floor -114.1 (node RMS) -- drop after 3052 ms, present and steady (3 blocks, 3 readings, spread 0.09 dB, node RMS plateaus -37.3 -> -81.4, now -89.1 dBFS)
+   .. mic-pre chain MIC 20 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 20  (lead K5)
+   Fit the 150 ohm terminator in MIC 20.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P47 PASS: the input noise was measured with a 150 ohm source
+   .. P51: MIC 20 as the prompt went up: -40.0 dBFS (node RMS)
+   .. P51 PROMPTED: MIC 20 level -40.0, floor -113.9 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P51: the lead came out of MIC 20 (-40.0 -> -79.0 dBFS)
+   .. P51 ARRIVING: MIC 20 level -83.0, floor -113.9 (node RMS)
+   .. P51: MIC 20 settled again at -83.1 dBFS
+   .. P51 ARRIVED: MIC 20 level -83.0, floor -113.9 (node RMS) -- drop after 2781 ms, present and steady (3 blocks, 3 readings, spread 0.17 dB, node RMS plateaus -40.0 -> -79.0 -> -83.1, now -83.0 dBFS)
+   .. mic-pre chain MIC 21 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 21  (lead K5)
+   Fit the 150 ohm terminator in MIC 21.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P49 PASS: the input noise was measured with a 150 ohm source
+   .. P53: MIC 21 as the prompt went up: -42.8 dBFS (node RMS)
+   .. P53 PROMPTED: MIC 21 level -42.8, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P53: the lead came out of MIC 21 (-42.8 -> -88.3 dBFS)
+   .. P53: MIC 21 settled again at -81.6 dBFS
+   .. P53 ARRIVING: MIC 21 level -87.3, floor -114.2 (node RMS)
+   .. P53: MIC 21 settled again at -87.7 dBFS
+   .. P53 ARRIVED: MIC 21 level -87.5, floor -114.2 (node RMS) -- drop after 12039 ms, present and steady (3 blocks, 3 readings, spread 0.81 dB, node RMS plateaus -42.8 -> -89.0 -> -81.8 -> -87.7, now -87.5 dBFS)
+   .. mic-pre chain MIC 22 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 22  (lead K5)
+   Fit the 150 ohm terminator in MIC 22.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P51 PASS: the input noise was measured with a 150 ohm source
+   .. P55: MIC 22 as the prompt went up: -37.5 dBFS (node RMS)
+   .. P55 PROMPTED: MIC 22 level -37.5, floor -114.1 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P55: the lead came out of MIC 22 (-37.5 -> -82.1 dBFS)
+   .. P55 ARRIVING: MIC 22 level -90.9, floor -114.1 (node RMS)
+   .. P55: MIC 22 settled again at -89.2 dBFS
+   .. P55 ARRIVED: MIC 22 level -89.2, floor -114.1 (node RMS) -- drop after 4089 ms, present and steady (3 blocks, 6 readings, spread 0.04 dB, node RMS plateaus -37.5 -> -81.8 -> -89.2, now -89.2 dBFS)
+   .. mic-pre chain MIC 23 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 23  (lead K5)
+   Fit the 150 ohm terminator in MIC 23.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P53 PASS: the input noise was measured with a 150 ohm source
+   .. P57: MIC 23 as the prompt went up: -36.0 dBFS (node RMS)
+   .. P57 PROMPTED: MIC 23 level -36.0, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P57: the lead came out of MIC 23 (-36.0 -> -80.6 dBFS)
+   .. P57 ARRIVING: MIC 23 level -89.8, floor -114.2 (node RMS)
+   .. P57 WAITING: MIC 23 level -83.7, floor -114.2 (node RMS) -- the signal went away again after 191 ms; the stability window starts over
+   .. P57 ARRIVING: MIC 23 level -90.3, floor -114.2 (node RMS)
+   .. P57: MIC 23 settled again at -90.7 dBFS
+   .. P57 ARRIVED: MIC 23 level -91.0, floor -114.2 (node RMS) -- drop after 3813 ms, present and steady (3 blocks, 3 readings, spread 0.03 dB, node RMS plateaus -36.0 -> -81.3 -> -90.8, now -91.0 dBFS)
+   .. mic-pre chain MIC 24 at gain code 63: verified
+
+== PATCH: Fit the 150 ohm terminator in MIC 24  (lead K5)
+   Fit the 150 ohm terminator in MIC 24.
+   It advances on its own when the lead is in.
+   [nosignal / retry / skip / ignore / pause]
+   .. P55 PASS: the input noise was measured with a 150 ohm source
+   .. P59: MIC 24 as the prompt went up: -29.1 dBFS (node RMS)
+   .. P59 PROMPTED: MIC 24 level -29.1, floor -114.2 (node RMS) -- the terminator step: lead out, then the plug in
+   .. P59: the lead came out of MIC 24 (-29.1 -> -72.7 dBFS)
+   .. P59 ARRIVING: MIC 24 level -90.4, floor -114.2 (node RMS)
+   .. P59: MIC 24 settled again at -90.7 dBFS
+   .. P59 ARRIVED: MIC 24 level -90.9, floor -114.2 (node RMS) -- drop after 3399 ms, present and steady (3 blocks, 3 readings, spread 0.09 dB, node RMS plateaus -29.1 -> -75.1 -> -90.7, now -90.9 dBFS)
+   .. P57 PASS: the input noise was measured with a 150 ohm source
+   .. the analog rails are down
+   .. mic-pre chain back to safe (phantom shunt engaged, gain 0, phantom off): verified
+   .. bypass: 219 processing settings restored to the values found
+wrote /home/app/selftest/s158-k5/patch-results.csv
+
+  lead  patches  checks   machine s   per patch   hand s @ 5.0 s
+  --------------------------------------------------------------
+  K1         23      23        10.2        0.44           115
+  --------------------------------------------------------------
+  all        23      23        10.2        0.44           115
+
+  projected pass: 115 s hands (115 s moving the lead + 0 s pressing ENTER) + 10 s machine = 2.1 min
+SCREEN-CLEARED

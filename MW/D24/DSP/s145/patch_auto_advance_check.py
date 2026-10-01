@@ -667,41 +667,74 @@ def test_no_tone_row_has_a_removal_edge():
 # 7. the noise rows
 # ---------------------------------------------------------------------------
 def test_noise_rows_advance_on_the_drop():
+    """S158 (supersedes S153's plateau rule): in the 150 ohm pass the socket
+    is EMPTY at the prompt, so the first readings are the open input and the
+    plug is judged against them -- `detect_drop_db` under it, or
+    TERM_SMALL_STEP_DB under it after an insertion burst. The numbers are
+    2026-10-01's (S158 table): MIC 1 open -77.2, terminated -87.0; MIC 2 open
+    -75.5, a -54 insertion, terminated -77.3."""
     tmp = tempfile.mkdtemp(prefix='s145-noise-')
     st, _g, live = build(tmp, blocks=['K5'])
     rows = noise_rows(st)
     check('the drop threshold is the list\'s own',
           st.lim['detect_drop_db'] == 3.0, repr(st.lim['detect_drop_db']))
-    # S153: the swap as it happens -- the tone lead still in (AUX 1 idle at
-    # gain 63), pulled with a crackle to an OPEN input, then the 150 ohm plug
-    # in with another crackle, and its noise drops below the open input's
-    lead, opn, term = [-51.0] * 8, [-80.0] * 10, [-88.0] * 40
-    how, _a, dt, sc = run_detect(st, live, rows,
-                                 lead + [-30.0] + opn + [-35.0] + term,
-                                 floor=-96.0)
-    check('a noise row ends on the drop', how == 'drop', repr(how))
-    # the first scripted value is the reading taken as the prompt goes up
-    t_plug = (len(lead) + 1 + len(opn)) * PT.DETECT_POLL_S
+    opn, term = [-77.2] * 12, [-87.0] * 40
+    how, _a, dt, sc = run_detect(st, live, rows, opn + [-38.8] + term,
+                                 floor=-110.0)
+    check('a noise row ends on the plug', how == 'drop', repr(how))
+    t_plug = (len(opn) + 1) * PT.DETECT_POLL_S
     check('... through the same stability window', dt >= t_plug + 0.256,
           '%.3f s' % dt)
-    # and a drop that does not hold does not grade
+    # the same 10 dB step with no insertion burst seen still grades
+    st1, _g1, live1 = build(tempfile.mkdtemp(prefix='s145-noise1-'),
+                            blocks=['K5'])
+    how1, _a1, _dt1, _s1 = run_detect(st1, live1, noise_rows(st1),
+                                      opn + term, floor=-110.0)
+    check('a clean 10 dB step with no burst grades', how1 == 'drop',
+          repr(how1))
+    # MIC 2: a 1.8 dB step, after a burst -- grades
     st2, _g2, live2 = build(tempfile.mkdtemp(prefix='s145-noise2-'),
                             blocks=['K5'])
-    how2, _a2, dt2, _sc2 = run_detect(
+    how2, _a2, _dt2, _s2 = run_detect(
         st2, live2, noise_rows(st2),
-        lead + opn + [-88.0] * 3 + opn + term, floor=-96.0)
+        [-75.5] * 12 + [-53.9, -56.2, -74.7] + [-77.3] * 40, floor=-110.0)
+    check('MIC 2\'s 1.8 dB step grades after the insertion burst',
+          how2 == 'drop', repr(how2))
+    # ... and the same 1.8 dB with no burst does not (an open input's own
+    # wander is up to 1.5 dB on a median of three)
+    st3, _g3, live3 = build(tempfile.mkdtemp(prefix='s145-noise3-'),
+                            blocks=['K5'])
+    how3, _a3, _dt3, _s3 = run_detect(st3, live3, noise_rows(st3),
+                                      [-75.5] * 12 + [-77.3] * 400,
+                                      floor=-110.0)
+    check('a 1.8 dB drift with no insertion is never graded', how3 == 'waiting',
+          repr(how3))
+    # a drop that does not hold does not grade on the first one
+    st4, _g4, live4 = build(tempfile.mkdtemp(prefix='s145-noise4-'),
+                            blocks=['K5'])
+    how4, _a4, dt4, _s4 = run_detect(
+        st4, live4, noise_rows(st4),
+        opn + [-87.0] * 3 + opn + term, floor=-110.0)
     check('a drop that comes back does not grade on the first one',
-          how2 == 'drop'
-          and dt2 >= (len(lead) + 2 * len(opn) + 2) * PT.DETECT_POLL_S + 0.256,
-          '%.3f s' % dt2)
-    # the lead left in, and the lead pulled with nothing fitted, never grade
-    for name, trace in (('the lead left in', lead),
-                        ('the lead pulled and no plug fitted', lead + opn)):
-        st3, _g3, live3 = build(tempfile.mkdtemp(prefix='s145-noise3-'),
-                                blocks=['K5'])
-        how3, _a3, _dt3, _sc3 = run_detect(st3, live3, noise_rows(st3), trace,
-                                           floor=-96.0)
-        check('%s is never graded' % name, how3 == 'waiting', repr(how3))
+          how4 == 'drop'
+          and dt4 >= (2 * len(opn) + 3) * PT.DETECT_POLL_S + 0.256,
+          '%.3f s' % dt4)
+    # an open input left alone, spikes and all, never grades
+    st5, _g5, live5 = build(tempfile.mkdtemp(prefix='s145-noise5-'),
+                            blocks=['K5'])
+    spiky = ([-77.2, -77.3, -78.6, -77.1, -71.6, -77.2, -78.7, -77.3] * 60)
+    how5, _a5, _dt5, _s5 = run_detect(st5, live5, noise_rows(st5), spiky,
+                                      floor=-110.0)
+    check('an open input left alone (MIC 1\'s own spikes) is never graded',
+          how5 == 'waiting', repr(how5))
+    # ENTER always ends it
+    st6, _g6, live6 = build(tempfile.mkdtemp(prefix='s145-noise6-'),
+                            blocks=['K5'])
+    how6, _a6, _dt6, _s6 = run_detect(st6, live6, noise_rows(st6),
+                                      [-75.5] * 400, presses={20: 'enter'},
+                                      floor=-110.0)
+    check('ENTER ends the 150 ohm step and it is measured', how6 == 'press',
+          repr(how6))
 
 
 # ---------------------------------------------------------------------------
@@ -740,20 +773,33 @@ def test_a_whole_pass_has_no_enter_on_it():
     seen, _out = every_screen(['--simulate', '--list-dir', LIST_DIR,
                                '--live', tmp, '--dir', tmp])
     check('the dry run wrote screens', len(seen) > 100, repr(len(seen)))
-    withenter = [d for d in seen if 'enter' in (d.get('buttons') or [])]
-    check('NOT ONE screen of a whole pass carries an ENTER button',
+    # S158 (PW 2026-10-01): the 150 ohm screens are the one place ENTER is
+    # offered -- "a key input is required for 150r". Everywhere else, none.
+    def term(d):
+        return 'terminator' in (d.get('instruction') or '')
+    withenter = [d for d in seen if 'enter' in (d.get('buttons') or [])
+                 and not term(d)]
+    check('NOT ONE screen outside the 150 ohm pass carries an ENTER button',
           not withenter,
           repr([(d['state'], d['buttons']) for d in withenter[:4]]))
     words = []
     for d in seen:
+        if term(d):
+            continue
         for k in ('instruction', 'status', 'action', 'extra', 'lead_line'):
             v = d.get(k) or ''
             if 'ENTER' in v:
                 words.append((d.get('state'), k, v))
     check('... and not one of them names ENTER in its words', not words,
           repr(words[:4]))
-    waiting = [d for d in seen if d.get('state') == LV.WAITING]
-    check('every waiting screen offers PAUSE alone (LEADS CORRECT waits for the timeout)',
+    tw = [d for d in seen if term(d) and d.get('state') == LV.WAITING]
+    check('every 150 ohm waiting screen carries ENTER and PAUSE',
+          tw and all(d['buttons'] == ['enter', 'pause'] for d in tw),
+          repr(sorted({tuple(d['buttons']) for d in tw})))
+    waiting = [d for d in seen if d.get('state') == LV.WAITING
+               and not term(d)]
+    check('every other waiting screen offers PAUSE alone (LEADS CORRECT waits '
+          'for the timeout)',
           waiting and all(d['buttons'] == ['pause']
                           for d in waiting),
           repr(sorted({tuple(d['buttons']) for d in waiting})))

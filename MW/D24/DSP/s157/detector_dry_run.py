@@ -347,61 +347,61 @@ def case_noise_to_tone_residual():
         st, h, u, live, logs, _sc = build()
         u.residual[2] = (-54.0, PT.now() + 6.0)
         u.seed_latch(2, -50.0)
-        h.plan['P14'] = [(0.0, 'clear', None), (hand, 'plug', None)]
-        got, dt = one(st, 'P14')
-        prompted = logged(logs, 'P14 PROMPTED')
+        h.plan['P13'] = [(0.0, 'clear', None), (hand, 'plug', None)]
+        got, dt = one(st, 'P13')
+        prompted = logged(logs, 'P13 PROMPTED')
         check('noise->tone, residual -54 dBFS on the lane, plug at %.1f s: '
-              'PASS' % hand, verdict_of(st, 'P14')
-              and set(verdict_of(st, 'P14')) == {'PASS'},
-              (verdict_of(st, 'P14'), [l for l in logs if 'P14' in l][:6]))
-        arr = logged(logs, 'P14 ARRIVED')
+              'PASS' % hand, verdict_of(st, 'P13')
+              and set(verdict_of(st, 'P13')) == {'PASS'},
+              (verdict_of(st, 'P13'), [l for l in logs if 'P13' in l][:6]))
+        arr = logged(logs, 'P13 ARRIVED')
         check('... the residual did not arrive; the lead did (%.1f s)' % hand,
-              arr and not logged(logs, 'P14 ARRIVING', 'level -8')[:0]
+              arr and not logged(logs, 'P13 ARRIVING', 'level -8')[:0]
               and dt >= hand, (dt, prompted, arr))
 
 
 def case_terminator_swap_speeds():
-    """The 150 ohm step, the one same-socket repeat left: the tone lead is
-    in MIC 1 when the prompt goes up; the operator pulls it at once (0.2 s)
-    and fits the plug 0.5 / 1 / 5 s later. The prompt's own node reading is
-    the "lead in" state, so a pull right after the prompt still shows both
-    steps (S157 fix; the dry run found it at --hand 1)."""
-    for gap in (0.5, 1.0, 5.0):
+    """The 150 ohm step in the 150 ohm pass (S158, PW 2026-10-01): the
+    socket is EMPTY at the prompt -- the plug is still in the input before --
+    and the operator fits it 1 / 2 / 5 s later. Graded on the plug, never on
+    the open input, and no red screen."""
+    for gap in (1.0, 2.0, 5.0):
         st, h, u, live, logs, _sc = build()
-        rows = rows_of(st, 'P13')
-        u.plugs = [('aux:1', [1], 'MIC 1', 'K1')]
-        u.w.plug('AUX 1', 'MIC 1', [1], 'K1')
-        h.plan['P13'] = [(0.2, 'clear', None), (0.2 + gap, 'plug', None)]
-        got, dt = one(st, 'P13', rows)
-        check('terminator: lead out at 0.2 s, plug %.1f s later: graded on '
-              'the plug' % gap, verdict_of(st, 'P13') == ['PASS']
-              and dt >= 0.2 + gap and not logged(logs, 'P13 FAILED'),
-              (verdict_of(st, 'P13'), dt, [l for l in logs if 'P13' in l][:6]))
+        rows = rows_of(st, 'P37')
+        u.plugs = []
+        u.w.unplug()
+        h.plan['P37'] = [(gap, 'plug', None)]
+        got, dt = one(st, 'P37', rows)
+        check('terminator into an empty socket %.1f s after the prompt: '
+              'graded on the plug' % gap, verdict_of(st, 'P37') == ['PASS']
+              and dt >= gap and not logged(logs, 'P37 FAILED'),
+              (verdict_of(st, 'P37'), dt, [l for l in logs if 'P37' in l][:6]))
     st, h, u, live, logs, _sc = build()
-    rows = rows_of(st, 'P13')
-    u.plugs = [('aux:1', [1], 'MIC 1', 'K1')]
-    u.w.plug('AUX 1', 'MIC 1', [1], 'K1')
-    h.plan['P13'] = [(0.5, 'clear', None), (60.0, 'press', 'nosignal')]
-    got, dt = one(st, 'P13', rows)
-    check('terminator: lead pulled, nothing fitted -- never graded; it stops '
-          'and waits for the operator', dt >= 60.0
-          and logged(logs, 'P13 FAILED'), dt)
+    rows = rows_of(st, 'P37')
+    u.plugs = []
+    u.w.unplug()
+    h.plan['P37'] = [(60.0, 'press', 'done')]
+    got, dt = one(st, 'P37', rows)
+    check('terminator: nothing fitted -- never graded on its own, no red '
+          'screen, and ENTER at 60 s measures it', dt >= 60.0
+          and not logged(logs, 'P37 FAILED') and logged(logs, 'P37 ENTER'),
+          (dt, [l for l in logs if 'P37' in l][-4:]))
 
 
 def case_wrong_socket_named_then_moved():
     st, h, u, live, logs, sc = build()
-    h.plan['P14'] = [(0.0, 'clear', None), (1.0, 'plug_into', ('MIC 3', 3)),
+    h.plan['P13'] = [(0.0, 'clear', None), (1.0, 'plug_into', ('MIC 3', 3)),
                      (6.0, 'clear', None), (6.5, 'plug', None)]
-    got, dt = one(st, 'P14')
-    w = logged(logs, 'P14 WRONG_SOCKET', 'MIC 3')
+    got, dt = one(st, 'P13')
+    w = logged(logs, 'P13 WRONG_SOCKET', 'MIC 3')
     check('a lead in the wrong socket is named (MIC 3, expected MIC 2)', w,
-          [l for l in logs if 'P14' in l][:8])
+          [l for l in logs if 'P13' in l][:8])
     named = [d for d in sc if d.get('status')
              == LV.status_wrong_input('MIC 3', 'MIC 2')]
     check('... on the glass, in PW\'s shape', named)
     check('... nothing was graded while it was there, and it PASSES once '
-          'moved', set(verdict_of(st, 'P14')) == {'PASS'} and dt >= 6.5,
-          (verdict_of(st, 'P14'), dt))
+          'moved', set(verdict_of(st, 'P13')) == {'PASS'} and dt >= 6.5,
+          (verdict_of(st, 'P13'), dt))
 
 
 def case_lead_left_in():
@@ -411,14 +411,14 @@ def case_lead_left_in():
     st, h, u, live, logs, sc = build()
     u.plugs = [('aux:1', [2], 'MIC 2', 'K1')]
     u.w.plug('AUX 1', 'MIC 2', [2], 'K1')
-    h.plan['P16'] = [(5.0, 'clear', None), (5.5, 'plug', None)]
-    got, dt = one(st, 'P16')
+    h.plan['P14'] = [(5.0, 'clear', None), (5.5, 'plug', None)]
+    got, dt = one(st, 'P14')
     check('a lead left in MIC 2 is named while MIC 3 is asked for',
-          logged(logs, 'P16 WRONG_SOCKET', 'MIC 2'),
-          [l for l in logs if 'P16' in l][:6])
+          logged(logs, 'P14 WRONG_SOCKET', 'MIC 2'),
+          [l for l in logs if 'P14' in l][:6])
     check('... and MIC 3 is graded only after the lead moved',
-          set(verdict_of(st, 'P16')) == {'PASS'} and dt >= 5.5,
-          (verdict_of(st, 'P16'), dt))
+          set(verdict_of(st, 'P14')) == {'PASS'} and dt >= 5.5,
+          (verdict_of(st, 'P14'), dt))
 
 
 def case_draining_latch_is_never_a_claim():
@@ -428,13 +428,13 @@ def case_draining_latch_is_never_a_claim():
     st, h, u, live, logs, sc = build()
     u.seed_latch(15, -4.0)
     u.seed_latch(23, -7.6)
-    h.plan['P14'] = [(0.0, 'clear', None), (8.0, 'plug', None)]
-    got, dt = one(st, 'P14')
+    h.plan['P13'] = [(0.0, 'clear', None), (8.0, 'plug', None)]
+    got, dt = one(st, 'P13')
     check('two draining latches, 8 s of waiting: no wrong-socket claim',
           not logged(logs, 'WRONG_SOCKET'),
           logged(logs, 'WRONG_SOCKET'))
     check('... and the patch passes at the plug',
-          set(verdict_of(st, 'P14')) == {'PASS'} and dt >= 8.0)
+          set(verdict_of(st, 'P13')) == {'PASS'} and dt >= 8.0)
 
 
 def case_p1_idle_mic1():

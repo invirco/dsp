@@ -61,21 +61,29 @@ def check(name, cond, detail=''):
         FAILS.append(name)
 
 
-def load_before():
-    """d24_patch.py as it was at S152, imported under its own name."""
+def load_before(rev=BEFORE_REV, name='d24_patch_before'):
+    """d24_patch.py as it was at `rev` (S152 by default), imported under
+    its own name."""
     src = subprocess.check_output(
-        ['git', '-C', ROOT, 'show', '%s:tools/pi/d24_patch.py' % BEFORE_REV])
+        ['git', '-C', ROOT, 'show', '%s:tools/pi/d24_patch.py' % rev])
     d = tempfile.mkdtemp(prefix='s153-before-')
-    p = os.path.join(d, 'd24_patch_before.py')
+    p = os.path.join(d, name + '.py')
     with open(p, 'wb') as fh:
         fh.write(src)
-    spec = importlib.util.spec_from_file_location('d24_patch_before', p)
+    spec = importlib.util.spec_from_file_location(name, p)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
 
 
-import d24_patch as AFTER   # noqa: E402
+# AFTER IS PINNED TO THE LAST TREE THAT CARRIED THIS RULE (S158). S158
+# retired the lead-out-then-plug swap: the 150 ohm step is its own pass with
+# the socket empty at the prompt, read against the open input, and the
+# per-input shape this harness models is ENTER-only there. This file stays the
+# record of what S153's rule did; s158/terminator_pass_check.py is the
+# current one (it re-runs this model's Lane in the pass shape).
+AFTER_REV = 'f87002c8'
+AFTER = load_before(AFTER_REV, 'd24_patch_after')
 BEFORE = load_before()
 
 

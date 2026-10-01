@@ -22,10 +22,10 @@ ok   ... the residual did not arrive; the lead did (1.0 s)
 ok   noise->tone, residual -54 dBFS on the lane, plug at 3.0 s: PASS
 ok   ... the residual did not arrive; the lead did (3.0 s)
 -- case_terminator_swap_speeds
-ok   terminator: lead out at 0.2 s, plug 0.5 s later: graded on the plug
-ok   terminator: lead out at 0.2 s, plug 1.0 s later: graded on the plug
-ok   terminator: lead out at 0.2 s, plug 5.0 s later: graded on the plug
-ok   terminator: lead pulled, nothing fitted -- never graded; it stops and waits for the operator
+ok   terminator into an empty socket 1.0 s after the prompt: graded on the plug
+ok   terminator into an empty socket 2.0 s after the prompt: graded on the plug
+ok   terminator into an empty socket 5.0 s after the prompt: graded on the plug
+ok   terminator: nothing fitted -- never graded on its own, no red screen, and ENTER at 60 s measures it
 -- case_wrong_socket_named_then_moved
 ok   a lead in the wrong socket is named (MIC 3, expected MIC 2)
 ok   ... on the glass, in PW's shape
@@ -63,36 +63,38 @@ ok   ... the confirmation is listed
 
   lead  patches  checks   machine s   per patch   hand s @ 2.0 s
   --------------------------------------------------------------
-  K1         59     197        92.5        1.57           118
+  K1         35     173        81.0        2.31            70
+  K5         24      24        11.3        0.47            48
   K4         24      24         9.2        0.38            48
   K2          6      14         8.5        1.42            12
   K3          2       4         2.1        1.04             4
   --------------------------------------------------------------
-  all        91     239       112.3        1.23           182
+  all        91     239       112.1        1.23           182
 
   projected pass: 182 s hands (182 s moving the lead + 0 s pressing ENTER) + 112 s machine = 4.9 min
 
   block                     steps  readings   machine s   per step   hand s @ 2.0 s
   ------------------------------------------------------------------------------
   the outputs                  11        11         4.1      0.374              22
-  the inputs                   48       186        88.4      1.841              96
+  the inputs                   24       162        76.9      3.204              48
+  the 150 ohm pass             24        24        11.3      0.471              48
   the TRS outputs               6        14         8.5      1.418              12
   the line inputs              24        24         9.2      0.384              48
   the mini-jack inputs          2         4         2.1      1.040               4
   ------------------------------------------------------------------------------
-  the whole pass               91       239       112.3      1.234             182
+  the whole pass               91       239       112.1      1.232             182
 
   where the machine seconds go
     gain steps                    73.1 s
     settled readings              22.5 s
     getting the unit ready        18.6 s
     putting the route up          13.6 s
-    looking for a misplaced lead     8.5 s
-    ...of which the 595 chain      214 writes, 1.7 s (8.1 ms each)
+    looking for a misplaced lead     6.6 s
+    ...of which the 595 chain      215 writes, 1.7 s (8.1 ms each)
 
   the operator waits for the machine only when the machine is slower than their hands:
-    worst block: the inputs at 1.841 s a step against 2.0 s of hand
-ok   471 screen lines, 92 dialog posts and the setup pages: none says 'other end' / 'stays' / 'park' / 'leave the lead'
+    worst block: the inputs at 3.204 s a step against 2.0 s of hand
+ok   448 screen lines, 92 dialog posts and the setup pages: none says 'other end' / 'stays' / 'park' / 'leave the lead'
 ok   every patch prompt is the plain "Patch <out> to <in>." or "Fit the 150 ohm terminator in <in>."
 ok   the only kit page puts the leads on the bench
 -- case_panel_step_stops
