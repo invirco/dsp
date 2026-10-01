@@ -1,3 +1,27 @@
+## HUB DISPATCH 2026-10-01 10:07Z — S158: 150 ohm terminator step fails on the S157 runner (false MIC 1 pass, MIC 2/3 never arrive, carried-over NO SIGNAL)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S158: THE 150 Ω TERMINATOR STEP FAILS ON THE S157 RUNNER — PW 2026-10-01 11:05 BST: "test is failing at 150R tests, stop and fix". The hub PAUSED the run at P17 (command.json pause; log "the pass stopped at P17 (pause)"), resumable. MW-D24-2 (app@192.168.1.219) is yours for this dispatch; nothing else is using it. Deployed runner = S157 (d24_patch 86f0a78e, d24_live ee9a3cd9); backup /home/app/backup-s157-pre.
+
+Evidence (/home/app/selftest/factory.log, today's run, AUX 1 → MIC n then "Fit the 150 ohm terminator in MIC n"):
+1. MIC 1 / P13 PASSED FALSELY (probably): plateaus "-52.1 -> -52.1 -> -76.5", ARRIVED at -76.9 dBFS "drop after 6181 ms". The S157 change that appends the prompt-time level as a plateau (comment near tools/pi/d24_patch.py:2660, "found in the S157 dry run, MIC 3-5 and 20-24 at --hand 1") plus the first detected plateau gives two equal plateaus, so the LEAD-OUT drop alone satisfied the two-step swap rule — the noise recorded may be the OPEN input, not 150 Ω. Compare an earlier good P13 (log line ~14199): "-53.9 -> -77.1 -> -88.0" (lead out, then terminator ~11 dB lower).
+2. MIC 2 / P15 and MIC 3 / P17 FAILED: "the lead came out (-54.1 -> -75.3)", then "nothing has arrived in 20.0 s" at -77.2 / -77.4. The plug-in step (a DROP of a few to ~11 dB from the open level) is never recognised as an arrival by the S157 arrival logic. Find out why (threshold/direction/plateau bookkeeping/gain code in force), and whether PW's plug actually changed the level (-75.3 → -77.4 is only ~2 dB).
+3. P16 (AUX 1 → MIC 3) NO SIGNAL "the operator pressed it after 0.7 s" — immediately after PW pressed NO SIGNAL on P15. Likely a CARRIED-OVER press: d24_live.command() reads command.json with no sequence number, so a second tap (or a duplicate write from the app) lands on the next prompt. Fix so a command only counts against the prompt it was pressed on (prompt seq/stamp in command.json, app side if needed — the app is mx26 src/sw/app FactoryView; say exactly what the app must send and the hub lands that half).
+
+Do:
+- Root-cause 1–3 from the runner code + log; fix in dsp tools/pi; add dry-run/model cases that reproduce each (two-equal-plateau false pass; terminator drop recognised at fast and slow hands; carried-over press ignored).
+- Re-validate the 150 Ω EIN rule against S153's record (0.54 s on the model, 48/48 on the plug) — no regression of the S153/S157 fixes.
+- Deploy to MW-D24-2 with a backup (backup-s158-pre) and record md5s; prove on the unit with ONE hand-free check you can do (e.g. the detector replayed on today's captured levels, or a dry run); the live re-test is PW's.
+- Results: P15, P16 and P17 FAILs were runner faults, not the unit — and MIC 1's P13 PASS may have graded the open input. Do NOT clear or re-run anything yourself (PW 09-30: never re-run passed tests by clearing rows). Write a 🔴 note for PW listing exactly which rows are affected and the options (resume as-is / retest those rows), and leave the run paused and resumable.
+- Unit safety: leave AN_EN/rails as you found them; nothing deploys mid-run (it is paused).
+
+Rules: single trunk — pull main first, commit + push main; update this block's status (🟢/🔴) with a short outcome; no AI attribution; never open a question dialog — 🔴 notes in the block.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-09-30 18:25Z — S157: patch-station detection review and redesign (PW: stop and redesign)   [status: 🔴 BUILT, DRY-RUN GREEN, DEPLOYED — waiting on PW's one bench pass. Tone arrival is on the node's COHERENT level over each lane's own floor (the peak meter is only a steady-twice hint), every failed step on every RUN ALL station stops for LEADS CORRECT / RETRY / PAUSE, the parked-lead code is gone, and row 94 says why on the glass. Log table: 278 prompts in 8 runs, the stalls are the runner's (peak-latch 60, auto loop-walk 47); at most 3 prompts are the unit. Dry run 57/57; S145/S153/S155/S128 suites green. MW-D24-2 has d24_patch 86f0a78e, d24_live ee9a3cd9, d24_runall 838e722d, d24_panel f523142c, backup /home/app/backup-s157-pre. 🔴 PW: one full bench pass; 🔴 H1S3 rebuild for row 94 is unscheduled]   [model: opus]
 
 model: opus
