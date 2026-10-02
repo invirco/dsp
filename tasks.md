@@ -1,3 +1,28 @@
+## HUB DISPATCH 2026-10-02 14:02Z — S166 — desk design study: D24 clock tree as master or slave to Dante   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S166: DESK DESIGN STUDY — the D24 clock tree as MASTER **or** SLAVE to Dante. PW RULING 2026-10-02: "D24 clocks need to be master or slave to Dante" — both roles are required, selectable. No hardware, no flash, no CPLD programming, MW-D24-2 untouched. No RTL or firmware lands in this dispatch; trial fits in a scratch copy are allowed and wanted where they settle a question.
+
+Start from S165 (review/s165_slot3_desk_check.md §1, §2, §6) and study-d24-dante-card.md. Facts already established — do not re-derive: U3 = MAX V 5M1270ZT144, no PLL, 881/1270 LE; `dsp4_clkgen` free-runs on the 49.152 MHz XO (sysclk PIN_88 = GCLK3) and makes bck8/bck16/fs8/fs16, `dsp_clk` (SHARC CLKIN = sysclk/2), and the converter clock; slot 3 BCK_3/FS_3 = U3.142/141 through 33R, ordinary I/O, Global = no; the same two nets (C1/L0) feed the converters (BCLK is the converters' MCLK, PW 09-17); slot pins B1–B3 carry no net on rev C; A1 is the shared option RST. S165's lane result: two 32×32 cards need TDM16 option lanes with a second clock pair (24.576 MHz) from U3.85/81 (copper).
+PW 09-17 intent that still stands: jitter cleaning lives on the Dante carrier (our board, hosting an Audinate 32×32 module); no VCXO wanted on the D24; changeover may mute.
+
+D24 AS MASTER (Dante module slaves to the D24's word clock): confirm it is zero-change on the D24 and state what the carrier must receive (FS only, or BCK + FS, levels, which slot pins).
+
+D24 AS SLAVE (everything in the D24 follows the Dante clock) — this is the design question. Evaluate at least these, each with what it needs in copper (rev C wire mod / rev D), CPLD logic, dsp firmware, and on the carrier:
+ A. The card supplies only BCK 12.288 MHz + FS on the existing pair; U3 clocks its fabric from it. Show what breaks without a 2×/4× clock (bck16 24.576 MHz for the TDM16 fabric between the SHARCs, `dsp_clk`, anything using both edges) and whether it can be made to work.
+ B. The card supplies a 24.576 MHz BCK (the S165 TDM16 slot scheme) + FS: can the whole tree (bck16 direct, bck8 = ÷2, fs, `dsp_clk`) run from it with no multiplier? Which pin must it arrive on (clock-capable input: find the 5M1270ZT144 dedicated clock pins from the Quartus pin-out data or a trial fit), and what does that do to the U3.85/81 proposal?
+ C. The carrier supplies a 49.152 MHz master clock (its own PLL / clock multiplier, locked to the Dante module) on a spare slot pin (B1–B3) to a U3 global clock pin, replacing the XO as the fabric clock when selected. Copper cost on the Digital board and DSP card.
+ D. Anything better you can justify (e.g. the Audinate module's own MCLK output, if its data says it has one — "not found" if you have no module data).
+For the workable options: the clock-source SWITCH (XO ↔ Dante) — glitch-free mux in a PLL-less CPLD, what the SHARCs need when CLKIN changes source (PLL relock, SPORT restart, mute window), what the converters need (AK5558/AK4458 reset/resync on a clock step), loss-of-Dante fallback to the XO, and who commands the role (cell / M MCU / strap). Jitter: the converters' MCLK is then the Dante-derived clock passed through U3 — state the path and what limits it; "not measured" where it is.
+Interaction with the slot-1 usbcard (always a clock slave of the D24) and with MW-Net in slot 3 (which side leads there — state the assumption and mark it for PW).
+
+Deliver: review/s166_dante_clock_master_slave.md (provenance header per the mandate) with a recommendation, a comparison table, the ordered work list (copper rev C / rev D, RTL, dsp firmware, defs cells, carrier requirements for the PCB team — no Matrix vocabulary in the carrier requirements section, it will be lifted into a team-facing document), and 🔴 notes for anything PW must rule. tasks.md block as usual. Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog; a figure you cannot find is written "not found"; estimates are labelled estimates.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-02 11:02Z — S165 — desk check: option slot 3 by code alone (clock pin direction, CPLD capacity, lane budget)   [status: 🟢 done — desk check in review/s165_slot3_desk_check.md: slot 3 with the D24 as clock leader is code-only (pins 141/142 already outputs, 33R taps, no buffers; ~1 LE/lane); card-as-clock-leader is NOT a tri-state, needs opus-tier clock-tree design; both 32x32 cards need TDM16 option lanes (64 in/out, DSPA I3/I5/I6/I7, DSPB O4-O7) and re-framing in U3 does not fit (881/1270 LE now, est. +450/card) — fits only with a second clock pair on spare pins 85/81 (rev-C wire mod, bench) — 🔴 notes below]   [model: sonnet]
 
 model: sonnet
