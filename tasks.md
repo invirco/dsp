@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-02 14:02Z — S166 — desk design study: D24 clock tree as master or slave to Dante   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-02 14:02Z — S166 — desk design study: D24 clock tree as master or slave to Dante   [status: 🟢 done — review/s166_dante_clock_master_slave.md: master = zero change (BCK_3/FS_3 out on A5/A4); slave = option C: carrier sends 49.152 MHz REFCLK on slot B1 → U3.91 (dedicated GCLK3; dedicated clock pins are 18/20/89/91, the XO on 88 is NOT one), glitch-free switch in U3 trial-fitted at 946/1270 LE (+65), slack +4.24 ns, sim: no runt, 45 ns stall, 0.70 µs dead-clock fallback (< AK4458 10 µs reset); SHARC CLKIN stays on the XO so no firmware change; D24 drives slot BCK/FS in both roles; rev-C mod = 3 wires on the Digital board via J33 (PLL1_1/1_2/1_3 already reach U3), DSP card none; A rejected (no bck16), B dominated — 🔴 notes 1–7 in the review (architecture, B1–B3 contract, MW-Net leads?, loss policy, S165 pair → U3.96/97, rev-D XO pin, Audinate OEM docs)]   [model: opus]
 
 model: opus
 
