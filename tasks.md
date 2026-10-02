@@ -1,3 +1,24 @@
+## HUB DISPATCH 2026-10-02 11:02Z — S165 — desk check: option slot 3 by code alone (clock pin direction, CPLD capacity, lane budget)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S165: DESK CHECK — can option slot 3 (MW-Net card or Dante card) be brought in by code alone? PW 2026-10-02. No hardware, no flash, no CPLD programming, MW-D24-2 untouched. Escalate to opus only if the fitter/timing analysis needs design judgement — say so in the note, do not guess.
+
+Context (PW rulings 2026-10-02): the D24's STANDARD slot-1 card is the USB-only usbcard (RT1186, 4 lanes each way as today); slot 3 is OPTIONAL and carries an MW-Net card or a Dante card; slot 2 is retired. Copper fact (mx26 docs/d24-signals-index.md, opt3 rows; docs/d24-tdm-map.md §1): slot-3 lanes NI8–11 / NO8–11 reach J18 and CPLD U3 pins (LOGIC_PLL4_x / LOGIC_PLL3_x, pairwise _0/_1 ↔ _2/_3 swapped vs the slot names) but are NOT in the CPLD RTL. Dante clocking ruling (PW 09-17): all converters use BCLK as MCLK (TDM8 @48k, 12.288 MHz); a Dante card that leads the clock = the CPLD tri-states its BCK/FS drivers and follows; Dante as follower = zero change.
+
+Answer these, each with its evidence (file + line, pin number, fitter report figure):
+1. CLOCK PIN DIRECTION: which U3 pins carry slot 3's FS_n / BCK_n (and any MCLK/reset/enable lines) per the netlist; are they on I/O that can be made inputs (or bidirectional) in this CPLD family, on a clock-capable/global input if the fabric is to run from them; what series parts sit in the path (resistors, buffers) that would block or load a card-driven clock. Verdict: code-only / needs a board mod (name it) / unknown (say what would settle it).
+2. CPLD CAPACITY: device, current utilisation from the latest fitter report (logic cells / macrocells, pins, global clocks), and an estimate of the added logic for (a) slot-3 4-in/4-out lane routing with its own per-slot lane map, (b) a clock-source mux (internal 49.152 MHz XO chain vs slot-3 BCK/FS) with glitch-safe switch-over, (c) TDM8 ↔ TDM16 packing if the lane budget needs it. Verdict: fits / marginal / does not fit, with the margin.
+3. LANE BUDGET INTO THE SHARCS: with slot 1 (usbcard, 32×32) AND slot 3 (32×32 Dante, or MW-Net up to its declared channel count) both live, how many lanes each way are needed vs available (docs/d24-tdm-map.md §2: I5 is the one free input lane today). State the cheapest scheme that carries both (e.g. TDM16 packing, which lanes), and what it changes in the SHARC SPORT/SRU setup and in defs `products/d24/tdm-map.csv`. Desk only — no RTL or firmware written.
+4. EXCLUSIVE OPERATION (PW 09-27): Dante and MW-Net never run together; with only ONE slot-3 card fitted at a time, does anything else in the RTL need to know which card is present (ID/strap lines on the slot)?
+5. Work list: the ordered code changes (CPLD RTL, dsp firmware, defs rows) with a size estimate each, and which need bench hands.
+
+Deliver: review/s165_slot3_desk_check.md (provenance header per the mandate) + a tasks.md block. Rules: single trunk; status 🟢/🔴 + short outcome; no AI attribution; never open a question dialog — 🔴 notes for anything PW-level; a figure you cannot find is written "not found", never estimated without saying so.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-01 17:45Z — S164: Phones 1-4 level, front phones patch, input headroom at 1% THD (averaged reference)   [status: 🟢 done — AUX A jacks are the XLR outputs re-received at UNITY (phonejack NJM4580L, 10k 0.1 %), not the AK4619: window now ref + trs_aux_out_db 0.00 dB (unit read −1.42, passes); front PHONES patch P67 (row 97, L/R/null by pan, level recorded until measured); input headroom = 1 % THD ramp at code 0 on every gain-walk patch, averaged by tools/accept/headroom_ref.py; −20 dB pad lead listed as owed fixture; run PAUSED, deployed (backup-s164-pre), resume walks 55 patches — 🔴 note below]   [model: opus]
 
 model: opus
