@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-02 11:02Z — S165 — desk check: option slot 3 by code alone (clock pin direction, CPLD capacity, lane budget)   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-10-02 11:02Z — S165 — desk check: option slot 3 by code alone (clock pin direction, CPLD capacity, lane budget)   [status: 🟢 done — desk check in review/s165_slot3_desk_check.md: slot 3 with the D24 as clock leader is code-only (pins 141/142 already outputs, 33R taps, no buffers; ~1 LE/lane); card-as-clock-leader is NOT a tri-state, needs opus-tier clock-tree design; both 32x32 cards need TDM16 option lanes (64 in/out, DSPA I3/I5/I6/I7, DSPB O4-O7) and re-framing in U3 does not fit (881/1270 LE now, est. +450/card) — fits only with a second clock pair on spare pins 85/81 (rev-C wire mod, bench) — 🔴 notes below]   [model: sonnet]
 
 model: sonnet
 
@@ -18,6 +18,18 @@ Deliver: review/s165_slot3_desk_check.md (provenance header per the mandate) + a
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+**HUB ADDENDUM 2026-10-02 (PW, after dispatch) — S165 item 6: WIDER OPTION LANES.** PW: "we currently assign 4 TDM8 lanes to each option card, but 2 TDM16 (or even 1 TDM32) per option card could be more efficient, if the CPLD can handle it." Answer in the same review doc, desk only:
+6a. CPLD side: can U3 run option-slot lanes at TDM16 (BCLK 24.576 MHz, 32-bit slots @48k) and at TDM32 (49.152 MHz) — clock source (the 49.152 MHz XO chain), the timing report's fmax / I/O timing on the slot pins, and the logic cost of TDM8↔TDM16↔TDM32 re-framing vs today's lane routing. Which slot pins does each scheme free (per slot: 4+4 data today → 2+2 or 1+1)?
+6b. SHARC side: does a TDM16 (or TDM32) option lane let the CPLD pass card audio to the fabric with LESS logic (the fabric is already TDM16), and what does it change in the lane budget of item 3?
+6c. Card-side fact from the hub (do not re-derive): the RT118x SAI minimum BCLK cycle is 40 ns = 25 MHz (IMXRT1180EC Rev 8 §4.6.2, both master and slave rows). So TDM16 at 24.576 MHz fits on paper with ~2 % period margin (setup/hold over the slot connector to be judged), and TDM32 at 49.152 MHz does NOT fit the RT118x SAI. State the CPLD-side margin for TDM16 and whether TDM32 is worth keeping open for a non-RT118x card (Dante module limits: "not found" unless you have the module data).
+6d. Verdict table: 4×TDM8 (today) / 2×TDM16 / 1×TDM32 per slot — fits CPLD? fits card? pins freed, logic delta, risk.
+
+🔴 S165 NOTE — FOR PW / HUB (2026-10-02). Full answers with evidence: review/s165_slot3_desk_check.md (items 1–5 and addendum 6a–6d, verdict table §6d).
+- **Q1 follower or leader?** D24 leads / card follows = zero CPLD change. Card leads / U3 follows is a clock-tree redesign (no PLL, XO drives fabric + SHARC clocks), needs opus-tier — recommend the D24 always leads (Brooklyn in external-word-clock mode).
+- **Q2 TDM16 copper?** Both cards at 32x32 need 4 TDM16 lanes each way; TDM8 gives only 32 in / 40 out total. TDM16 on the slot needs a second clock pair from U3.85/81 (rev-C wire mod: R67/R64 slot 3, R66/R63 slot 1; rev D layout). Re-framing inside U3 does not fit (ESTIMATE +~450 LE/card on 881/1270).
+- **Q3 carrier format:** specify the Dante / MW-Net carrier as 2xTDM16 in/out, not 4xTDM8, if Q2 is yes. TDM32 rejected (RT118x 40 ns min BCLK; no clean 49.152 MHz BCK in MAX V). Brooklyn 3 TDM16 capability: not found.
+- Not found / not analysed: GCLK-capable pin list, slot-pin I/O timing (no I/O constraints in the .sdc), DSPB TX SRU for O4-O7, SHARC max bit clock. defs products/d24/tdm-map.csv does not exist at defs-v2026.09.28.4.
 
 ## HUB DISPATCH 2026-10-01 17:45Z — S164: Phones 1-4 level, front phones patch, input headroom at 1% THD (averaged reference)   [status: 🟢 done — AUX A jacks are the XLR outputs re-received at UNITY (phonejack NJM4580L, 10k 0.1 %), not the AK4619: window now ref + trs_aux_out_db 0.00 dB (unit read −1.42, passes); front PHONES patch P67 (row 97, L/R/null by pan, level recorded until measured); input headroom = 1 % THD ramp at code 0 on every gain-walk patch, averaged by tools/accept/headroom_ref.py; −20 dB pad lead listed as owed fixture; run PAUSED, deployed (backup-s164-pre), resume walks 55 patches — 🔴 note below]   [model: opus]
 
