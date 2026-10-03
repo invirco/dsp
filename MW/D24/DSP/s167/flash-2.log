@@ -1,0 +1,3 @@
+15:17:34 image P1.bin: 2216 B
+15:17:37 FLASHED: {'erase_s': 0.04, 'write_s': 1.7, 'verify_s': 1.05, 'verified_bytes': 2216, 'go': True, 'total_s': 2.8}
+15:17:37 i H1S4-PDL1 open=1 fmt=E115200 rx=2426 tx=2732 err=1 drop=0

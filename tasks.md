@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 CONNECT/ACK PROVEN — the fresh P1's ROM bootloader answers through CM4 → MH1 → H1S4 relay → J8: 0x7F → 0x79, Get = bootloader v3.1 with 11 commands, Get ID = 0x453, over the mod's PA9/PA10; relay left OPEN at 8E1 (ROM session trained and live), runner untouched at station 3 — next: step E write, then the desk items]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (15:18 BST) — P1 FIRST PROGRAM DONE OVER THE CABLE: 2216 B erased/written/verified in 2.8 s, Go; the app answers "P1 1.0-s167", switches S00, ":" acked with every lamp held lit; runner untouched at station 3 — PW: confirm the lamps, then one hand step below]   [model: opus]
 
 model: opus
 
@@ -109,6 +109,15 @@ H1S4 counters after: `rx=27 tx=15 err=1 drop=0`. The single rx/err byte arrived 
 - An open relay only changes H1S4's pedal UART: 8E1, blink forwarding stopped. Everything else H1S4 does is unchanged, and the runner's bus traffic (ML/CC/chain through H1S1, codec) contains no `/%` lines. The runner is not affected.
 - **Rule: the bus is single-user.** While the runner is past ENTER I send nothing on `/dev/serial0`, and step E (first program over the cable) waits until the runner is idle at a prompt again. The hub says when.
 - Side effect to expect: anything in the runner that sends S_RESET/S_RUN (e.g. an H1S1 restart) also restarts H1S4. That closes the relay and resumes blink forwarding, which mis-trains the pedal's ROM. The next ROM session then needs one more pedal re-plug at J8 (relay opened first). The fresh pedal stays in its ROM; nothing is lost.
+
+🟢 **S167 STEP E, FIRST PROGRAM — DONE (2026-10-03 15:17 BST). BUS FREE AT 15:18; PW may use the glass.**
+- Before the write, read over the live ROM session: Get = v3.1, Get ID = 0x453, **OPTR = 0xFFFFFEAA (factory): RDP 0xAA (level 0), nBOOT_SEL=1, nBOOT1=1, nBOOT0=1, NRST_MODE=3.** nBOOT_SEL=1 means the BOOT0 pin (J5 pin 2) is IGNORED, so step D option (3), the jumper, cannot work on this part. A blank part reaches the ROM only through the empty-flash check, which is exactly what happened.
+- First attempt failed on the first 66-byte write packet. Cause: **MH1 holds ONE 100-byte host line and answers `+` when it has forwarded it**; the tool sent the second relay line before that `+` and overwrote the first mid-forward (H1S4 `tx` rose by 18, not 66). The ROM was left mid-command. `rom-recover` clocked 48 × 0xFF → NACK → Get answered v3.1: clean, no re-plug. The tool now waits for MH1's `+` after every line (`d24_pedal.py`).
+- Second attempt (`MW/D24/DSP/s167/flash-2.log`): `P1.bin` md5 `0f6ff26b…`, 2216 B. **Mass erase 0.04 s, write 1.70 s (35 × 64 B), read-back verify 1.05 s, identical, Go. Total 2.8 s.**
+- The new app at 115200 8N1 through the same relay: `V` → `P1 1.0-s167 uid=203836484D435011003B0070`; `S` → `S00` (both footswitches released); `:` → `:\n`.
+- **Relay left OPEN at 8N1**, so H1S4 forwards no `.`: **all 13 lamps (LD1–LD4 + 7-segment incl. both dots) should be lit and stay lit now, at full brightness.** The current measurement PW deferred can be taken whenever wanted.
+- 🔴 **PW, ONE hand check:** look at the pedal. Are all four LEDs and the whole display lit? Then press and release footswitch 1, then footswitch 2. I will read the `S..` reports the next time I have the bus. Say when done; it is not urgent.
+- Next in order: update from the app (`!BOOT` → ROM → re-flash → Go → nBOOT0 restored by the app), then the power-cut case. Each needs the bus for ~1 min and at most one re-plug from PW, asked one at a time.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
