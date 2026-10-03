@@ -18,7 +18,7 @@
 // PROTOCOL, 115200 8N1, one byte commands unless shown:
 //   ':'          all lamps on, reply ":\n"          (the stub's behaviour, kept)
 //   '.'          all lamps off, reply ".\n"
-//   'V'          reply "P1 <version> uid=<24 hex>\n"
+//   'V'          reply "P1 <version> uid=<24 hex> optr=<8 hex>\n"
 //   'S'          reply "S<sw1><sw2>\n", 1 = pressed; also sent on every change
 //   'L' + 4 hex  lamp bitmap (bit order below), reply "L<4 hex>\n"
 //   'D' + digit  brightness 0..9 (0 = off, 9 = full), reply "D<d>\n"
@@ -314,6 +314,7 @@ int main(void)
             const uint32_t *uid = (const uint32_t *)UID_BASE;
             TxStr("P1 " P1_VERSION " uid=");
             TxHex(uid[2], 8); TxHex(uid[1], 8); TxHex(uid[0], 8);
+            TxStr(" optr="); TxHex(FLASH->OPTR, 8);
             TxByte('\n');
             break;
         }

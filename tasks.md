@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 BUS FREE (16:13 BST) — P1 first program over the cable DONE; display dark = FJ8102AY common-CATHODE part + Q3/Q4 inverted on copper (both confirmed); pedal all-on; waiting for PW: bodge (P1-cc.bin ready) / correct part / carry on with step E]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (16:17 BST) — STEP E UPDATE-FROM-APP PROVEN: P1-cc running ("1.0-s167-cc", optr=FFFFFEAA restored); PW may remove Q3 and ground DIM0 now; then the walk to verify the FJ8102AY pinout, then the power-cut case]   [model: opus]
 
 model: opus
 
@@ -167,6 +167,22 @@ After the walk the pedal is left with **everything ON** (`:`), the maximum DIM0 
 1. **Q3/Q4 are inverted on the PCB as drawn:** the emitters follow the switched rails (3.3 V on, 0 V off), so emitter = DIM rail and collector = +3V3, on copper as well as on the schematic. They do turn on (both rails reach 3.3 V at today's loads), in inverse mode. That gain is the risk for a full display load on a correct part. Next rev: turn them round or use a P-MOSFET.
 2. **The FJ8102AY is common-cathode, by measurement:** with DIM0 switched off it floats at 1.9 V, one LED drop below the segment pins (held HIGH = "off" in the common-anode firmware). Current flows from the segment pins through the segment LEDs into the common. That happens only if the common is the CATHODE. On a common-anode part the floating common would sit at or below the segment pins' level with no forward drop to show. Agrees with the A = cathode suffix.
 Still open for PW: (i) Q3 out + DIM0 to GND and `P1-cc.bin` over the cable, (ii) a common-anode display + Q3 fix, or (iii) carry on with step E as is.
+
+🟢 **S167 STEP E — UPDATE FROM THE RUNNING APP: PROVEN (16:16 BST). `P1-cc.bin` IS RUNNING. PW: Q3 out + DIM0 to GND whenever ready.** (log `MW/D24/DSP/s167/update-1.log`)
+| t | step | result |
+|---|---|---|
+| 16:16:36 | app `V` (relay 8N1) | `P1 1.0-s167 uid=203836484D435011003B0070` |
+| +0 ms | host → app `!BOOT\n` | app replies `!BOOT\n` in 10 ms, then OPTR nBOOT0 := 0, OBL_LAUNCH (reset) |
+| +19 ms | relay → 8E1 | `oE115200`; blink forwarding still stopped, so the ROM's first byte is ours |
+| 16:16:37 | ROM sync `7F` | ACK |
+| | Get / Get ID | v3.1 / 0x453 |
+| | ROM read OPTR | **0xFBFFFEAA** = nBOOT_SEL 1, nBOOT1 1, **nBOOT0 0** (set by the app) |
+| 16:16:37–40 | mass erase / write 2644 B (`P1-cc.bin`, md5 `793aa3f5…`) / verify / Go | 0.04 s / 2.02 s / 1.27 s, identical, Go ACKed; 3.34 s total |
+| +2.6 s | relay 8N1, app `V` | **`P1 1.0-s167-cc uid=203836484D435011003B0070 optr=FFFFFEAA`** |
+**Option bytes:** factory `0xFFFFFEAA` → `!BOOT` writes `0xFBFFFEAA` (nBOOT0 = 0, the next reset goes to the ROM) → after Go the new app sees nBOOT0 = 0 with nBOOT_SEL = 1, writes `0xFFFFFEAA` and relaunches the option bytes. **The pedal reports `optr=FFFFFEAA` itself**, so the restore is proven on the part, not inferred. No host write to the option bytes is needed. If a write fails before Go, nBOOT0 stays 0 and every power-up lands in the ROM again (the basis of the power-cut case, still to run).
+`V` now carries `optr=` (added before this update; `P1.bin` common-anode build rebuilt to match: 2264 B, md5 `baf55b3b…`; `P1-cc.bin` 2644 B, md5 `793aa3f5…`, both at -Os).
+**Q3 — may it stay fitted? Yes, and with PW removing it the question is moot.** PB1 (DIM_0) is analog/Hi-Z from reset and untouched by the ROM (USART1 PA9/PA10, I2C1 PB6/PB7 only); the CC image holds TIM3 CCR4 = 0 (PB1 low) from Init. With Q1 off, R23 + R21 pull Q3's base to +3V3: base–emitter reverse-biased 3.3 V against grounded DIM0, below the 2N4403's 5 V rating, so off. Even DIM_0 driven high would only put Q3 in inverse mode at a few times Q1's ~2.5 mA base drive (≈10–15 mA), not a short.
+**With DIM0 still floating, the CC image lights no segment** (expected). LD1–LD4 work as before. After PW's bodge: tell me, and I run a slow single-segment walk (5 s each, announced live) to confirm the FJ8102AY pinout pin by pin (incl. the left dot on pin 6), then the power-cut case.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
