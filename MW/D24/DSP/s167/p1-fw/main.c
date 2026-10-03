@@ -31,7 +31,15 @@
 
 #include "stm32c031xx.h"
 
+#ifndef SEG_CC
+#define SEG_CC 0                                 // 1: common-CATHODE display (FJ8102AY on the
+                                                 // first rev B pedal), DIM0 tied to GND, Q3 out
+#endif
+#if SEG_CC
+#define P1_VERSION "1.0-s167-cc"
+#else
 #define P1_VERSION "1.0-s167"
+#endif
 
 // lamp bitmap, bit n:
 //  0 LD1 PB9  1 LD2 PA0  2 LD3 PA2  3 LD4 PA3
@@ -45,10 +53,22 @@ static const struct { GPIO_TypeDef *port; uint8_t pin; } LAMP[13] = {
 #define LAMPS_ALL 0x1FFFu
 
 static volatile uint32_t ticks;
+static volatile uint32_t lampMap;                // what Lamps() was last asked for
+static volatile int segLevel = 9;                // SEG_CC: software dimming of the segments
 static volatile uint8_t rxBuf[64];
 static volatile uint8_t rxHead, rxTail;
 
-void SysTick_Handler(void) { ticks++; }
+static void LampsDrive(uint32_t map, int segsOn);
+
+void SysTick_Handler(void)
+{
+    ticks++;
+#if SEG_CC
+    // 100 Hz, ten steps: the segments have no switched rail to PWM any more
+    int phase = (int)(ticks % 10);
+    LampsDrive(lampMap, phase < segLevel);
+#endif
+}
 
 void USART1_IRQHandler(void)
 {
@@ -96,20 +116,34 @@ static void PinMode(GPIO_TypeDef *g, int pin, uint32_t mode, uint32_t pull, uint
     }
 }
 
-static void Lamps(uint32_t map)
+// LD1..LD4 (bits 0-3) are always active low on the DIM1 rail. The segments
+// (bits 4-12) are active low on the DIM0 rail (common anode), or with SEG_CC
+// active HIGH into a common cathode tied to GND.
+static void LampsDrive(uint32_t map, int segsOn)
 {
     for (int i = 0; i < 13; i++)
     {
         uint32_t bit = 1u << LAMP[i].pin;
-        LAMP[i].port->BSRR = (map & (1u << i)) ? (bit << 16) : bit;   // low = lit
+        int on = (map >> i) & 1;
+        if (SEG_CC && i >= 4)
+            LAMP[i].port->BSRR = (on && segsOn) ? bit : (bit << 16);  // high = lit
+        else
+            LAMP[i].port->BSRR = on ? (bit << 16) : bit;               // low = lit
     }
+}
+
+static void Lamps(uint32_t map)
+{
+    lampMap = map;
+    LampsDrive(map, 1);
 }
 
 static void Brightness(int level)                // 0..9
 {
     uint32_t ccr = (level >= 9) ? 1000 : (uint32_t)level * 100;
     TIM3->CCR3 = ccr;                            // DIM_1, LD1..LD8
-    TIM3->CCR4 = ccr;                            // DIM_0, 7-segment
+    TIM3->CCR4 = SEG_CC ? 0 : ccr;               // DIM_0, 7-segment (Q1 off when Q3 is out)
+    segLevel = level;
 }
 
 static void Init(void)
@@ -128,7 +162,8 @@ static void Init(void)
     RCC->APBENR2 |= RCC_APBENR2_USART1EN;
 
     // lamps: outputs, high (off) first so nothing flashes on the way out
-    for (int i = 0; i < 13; i++) LAMP[i].port->BSRR = 1u << LAMP[i].pin;
+    for (int i = 0; i < 13; i++)
+        LAMP[i].port->BSRR = (SEG_CC && i >= 4) ? (1u << (LAMP[i].pin + 16)) : (1u << LAMP[i].pin);
     for (int i = 0; i < 13; i++) PinMode(LAMP[i].port, LAMP[i].pin, 1, 0, 0);
 
     PinMode(GPIOC, 14, 0, 0, 0);                 // old TX, still on the TX net

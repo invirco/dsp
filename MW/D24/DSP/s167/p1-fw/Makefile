@@ -14,5 +14,11 @@ P1.bin: P1.elf
 P1.elf: main.c system_stm32c0xx.c startup_stm32c031k4ux.s
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
+# common-cathode variant for the FJ8102AY pedal (Q3 out, DIM0 to GND)
+P1-cc.bin: main.c system_stm32c0xx.c startup_stm32c031k4ux.s
+	$(CC) $(CFLAGS) -DSEG_CC=1 $^ $(LDFLAGS) -o P1-cc.elf
+	arm-none-eabi-objcopy -O binary P1-cc.elf $@
+	arm-none-eabi-size P1-cc.elf
+
 clean:
-	rm -f P1.elf P1.bin P1.hex P1.map
+	rm -f P1.elf P1.bin P1.hex P1.map P1-cc.elf P1-cc.bin
