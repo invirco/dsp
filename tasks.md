@@ -1,3 +1,25 @@
+## HUB DISPATCH 2026-10-03 16:50Z — S169: P1 firmware — one image for both display polarities (stored setting + auto-detect), proven on the bench pedal   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S169: P1 FIRMWARE — ONE IMAGE FOR BOTH DISPLAY POLARITIES (PW ruling 2026-10-03: "draw option 1 and add the polarity setting"). Run after S168 has moved the P1 source to `MW/D24/FW/P1/`.
+
+Background: the rev B pedal on the bench was built with a common-CATHODE display (FJ8102AY) where the BOM has a common-ANODE Kingbright SA08-11YWA. Today there are two builds (`P1.bin` CA, `P1-cc.bin` CC). The next P1 rev (red item E on `D24 P1 mods.pdf`) deletes Q1/Q3/R19/R21/R23 and drives the display common rail DIM0 directly from U2 pins 11–14 (PA4–PA7) tied together, push-pull: HIGH = common anode, LOW = common cathode, ~25 mA shared by four pins. The bench pedal has the rev B interim instead: Q3 removed, DIM0 hard-wired to GND (so only CC can light on it), PA4–PA7 not connected.
+
+Wanted:
+1. ONE P1 image with a runtime display-polarity setting: stored in flash (survives power cycles and is preserved or re-applied across an update — say how), set and read by host command, reported in the `V` line. Default for a blank setting: decide and justify (BOM part = common anode; but a wrong default on a CC pedal is only a dark display, never damage — check that claim for both wrong combinations on BOTH hardware variants: next-rev direct drive, and rev B with Q3 fitted / with the interim).
+2. The firmware drives PA4–PA7 as the DIM0 rail for the next-rev hardware (all four together, same state, never fighting each other; software dimming in both polarities), while still working on the bench pedal's interim (DIM0 grounded: PA4–PA7 unconnected, PB1/DIM_0 held low). State per-pin and total currents against the C031 datasheet limits (per pin, per port, ΣIVDD/ΣIVSS) with the numbers and the datasheet reference.
+3. AUTO-DETECT: establish whether the firmware can find the polarity itself at start-up (probe one segment each way and read which direction conducts — are the segment pins ADC-capable on this part, is a digital read enough, what does it do with no display fitted, with the interim, with Q3 fitted). If it is reliable, implement it as the default with the stored setting as an override; if not, say why and keep the stored setting only. Never light the display in the wrong sense for longer than the probe.
+4. Keep everything S167 proved: `!BOOT`, the option-byte restore, `V` (now with the polarity and how it was decided), `S` reports, lamp commands, both dots.
+5. Build at -Os, record size and md5; host test where practical. Then update the bench pedal over the cable (the proven path; the factory runner uses SPI only — still check nobody else is on `/dev/serial0`, and never touch the runner), show `V`, run a lamp walk and ask PW by 🔴 note to confirm it. The CA drive cannot be proven on this pedal's hardware — say exactly what remains unproven until a next-rev or re-worked pedal exists.
+6. Update `MW/D24/FW/P1/README.md` and the app-update note's item 5 (one image instead of two) as a 🔴 hub item.
+
+Do not touch: the D24's other MCUs, defs, the factory run. Hand steps for PW one at a time, in plain words.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-03 16:45Z — S168: MCU firmware into the repo — MW/D24/FW/<MCU>/ (P1, H1S1, H1S3, H1S4, MH1), desk only   [status: 🟢 done — all five MCU images reproduce byte-for-byte from MW/D24/FW/<MCU>/ (P1 baf55b3b/793aa3f5, H1S4 base f54848b0 + relay ff79052e, H1S1 19a5492d from ~/build-h1s1, H1S3 43efd43f from unit s131fw/H1S3-B, MH1 flashed = dimset 1110c60a hex, NOT fwbuild MH1.elf 0fe9717a); table in MW/D24/FW/README.md; REV D UPDATE HOLD filed there; MH1 chip not re-read (unit untouched)]   [model: sonnet]
 
 model: sonnet
