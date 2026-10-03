@@ -1,0 +1,36 @@
+18:40:42 P disp=CC by=stored set=CC
+18:40:42 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:42 i H1S4-PDL1 open=1 fmt=N115200 rx=20093 tx=20283 err=5 drop=0
+18:40:42 pedal: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=stored set=CC probe=CC adc=885,884,004,004
+18:40:42 check: UpToDate — pedal runs 1.1-s169, the app carries 1.1-s169
+18:40:42 image 1.1-s169 md5 f0fd3cff8642e0547669b8cd003ee7dd 4196 B, pages 0-2
+18:40:42 GLASS: Updating the foot pedal — do not unplug
+18:40:42 before: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=stored set=CC probe=CC adc=885,884,004,004
+18:40:42 !BOOT reply: !BOOT\x0A
+18:40:42 sync: ACK
+18:40:42 OPTR=0xFBFFFEAA RDP=0xAA nBOOT_SEL=1 nBOOT1=1 nBOOT0=0 NRST_MODE=3
+18:40:42 GLASS: Updating the foot pedal — do not unplug  5%
+18:40:43 GLASS: Updating the foot pedal — do not unplug  15%
+18:40:43 GLASS: Updating the foot pedal — do not unplug  25%
+18:40:44 GLASS: Updating the foot pedal — do not unplug  35%
+18:40:44 GLASS: Updating the foot pedal — do not unplug  45%
+18:40:45 GLASS: Updating the foot pedal — do not unplug  55%
+18:40:45 GLASS: Updating the foot pedal — do not unplug  65%
+18:40:46 GLASS: Updating the foot pedal — do not unplug  75%
+18:40:47 GLASS: Updating the foot pedal — do not unplug  85%
+18:40:48 GLASS: Updating the foot pedal — do not unplug  95%
+18:40:48 flashed: pages 0-2 erased, 4196 B written and verified in 5.8 s (attempt 1)
+18:40:48 Go 0x08000000
+18:40:49 after: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=stored set=CC probe=CC adc=886,885,003,003
+18:40:49 done in 6.7 s: 1.1-s169 disp=CC set=CC
+18:40:49 GLASS: Foot pedal updated
+18:40:49 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:49 OK: updated to 1.1-s169
+exit=0
+18:40:49 P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=stored set=CC probe=CC adc=886,885,003,003
+18:40:49 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:49 P disp=CC by=probe set=auto
+18:40:49 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:50 P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=886,885,004,004
+18:40:50 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:50 i H1S4-PDL1 open=1 fmt=N115200 rx=25030 tx=25272 err=5 drop=0

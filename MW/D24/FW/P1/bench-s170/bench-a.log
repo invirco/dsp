@@ -1,0 +1,15 @@
+18:40:34 i H1S4-PDL1 open=1 fmt=N115200 rx=19736 tx=20278 err=5 drop=0
+18:40:35 P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=885,884,004,004
+18:40:35 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:35 i H1S4-PDL1 open=1 fmt=N115200 rx=19846 tx=20279 err=5 drop=0
+18:40:35 pedal: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=885,884,004,004
+18:40:35 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:35 check: UpToDate — pedal runs 1.1-s169, the app carries 1.1-s169
+18:40:35 the app would: nothing
+18:40:35 i H1S4-PDL1 open=1 fmt=N115200 rx=19956 tx=20280 err=5 drop=0
+18:40:35 pedal: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=885,884,004,004
+18:40:35 check: UpToDate — pedal runs 1.1-s169, the app carries 1.1-s169
+18:40:35 relay restored (open N115200): oN115200 H1S4-PDL1
+18:40:35 OK: up to date (1.1-s169): nothing to do
+exit=0
+18:40:36 i H1S4-PDL1 open=1 fmt=N115200 rx=20066 tx=20281 err=5 drop=0

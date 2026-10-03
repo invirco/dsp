@@ -9,6 +9,7 @@ STM32C031K4U6 (UFQFPN32, 16 KB flash) on the P1 pedal board (rev B, serial-progr
 - Retired builds (in git history, commit before S169): `P1.bin` 1.0-s167 common-anode `baf55b3b…`; `P1-cc.bin` 1.0-s167-cc `793aa3f5…`.
 - Image on the bench pedal (plugged into MW-D24-2 J8): **`P1.bin` 1.1-s169 `f0fd3cff…`**, updated over the cable 2026-10-03 18:01 BST, OPTR `0xFFFFFEAA`; setting `auto`, decided `CC` by the probe. Logs: `bench-s169/`.
 - **How flashed:** over the cable only. `tools/pi/d24_pedal.py update --bin P1.bin` on the unit's CM4 (opens the H1S4 relay, reads `V`, sends `!BOOT`, re-opens the relay at 8E1, ROM bootloader (AN2606): 0x7F sync, Get ID `0x453`, OPTR check, **page erase 0..n-1**, write, verify, Go, reads `V` again). First program on a blank part: `rom-id` + `rom-flash` after a re-plug with the relay open at 8E1 (S167 report, "update procedure"). Power-cut mid-write proven recoverable (S167). No SWD needed. Rev D requirement: see `../README.md`.
+- **From the D24 app (S170):** mx26 `src/sw/app/Services/Pedal/` carries this image (embedded copy + manifest written by mx26 `scripts/sync-p1-image.sh`; `--check` fails when this `P1.bin` moves and the app copy does not). Headless twin: mx26 `src/sw/pedal-update` (`check`, `update [--force]`, `program`, `lamps`, `set`). Bench logs: `bench-s170/`.
 
 ## Commands
 
