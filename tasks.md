@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (15:18 BST) — P1 FIRST PROGRAM DONE OVER THE CABLE: 2216 B erased/written/verified in 2.8 s, Go; the app answers "P1 1.0-s167", switches S00, ":" acked with every lamp held lit; runner untouched at station 3 — PW: confirm the lamps, then one hand step below]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 BUS FREE (16:13 BST) — P1 first program over the cable DONE; display dark = FJ8102AY common-CATHODE part + Q3/Q4 inverted on copper (both confirmed); pedal all-on; waiting for PW: bodge (P1-cc.bin ready) / correct part / carry on with step E]   [model: opus]
 
 model: opus
 
@@ -158,6 +158,15 @@ After the walk the pedal is left with **everything ON** (`:`), the maximum DIM0 
 - 🔴 **PW/hub decision:** (i) do the Q3-out / DIM0-to-GND bodge on this pedal and I flash `P1-cc.bin` over the cable (it doubles as the update test); or (ii) swap the display for a CA part and fix Q3; or (iii) leave the display for now and continue step E (update-from-app and power-cut) with the CA image.
 
 🔴 **DIM OFF HELD** (16:11 BST): pedal acked `.` (all lamps off) and `D0` (TIM3 CCR3 = CCR4 = 0, so DIM_1/PB0 and DIM_0/PB1 held LOW, Q1/Q2 off). PW: re-measure the Q3 and Q4 emitters now. I restore all-on (`D9` + `:`) on the hub's word.
+
+🟢 **S167 — both display faults CONFIRMED ON THE BOARD (PW meter, recorded 16:13 BST); pedal restored to all-on (`D9` + `:` acked); BUS FREE.**
+| | lamps all ON (rails on) | both DIM rails OFF (`.` + `D0`) |
+|---|---|---|
+| Q4 emitter (DIM1) | 3.3 V | **0 V** |
+| Q3 emitter (DIM0) | 3.3 V | **1.9 V** |
+1. **Q3/Q4 are inverted on the PCB as drawn:** the emitters follow the switched rails (3.3 V on, 0 V off), so emitter = DIM rail and collector = +3V3, on copper as well as on the schematic. They do turn on (both rails reach 3.3 V at today's loads), in inverse mode. That gain is the risk for a full display load on a correct part. Next rev: turn them round or use a P-MOSFET.
+2. **The FJ8102AY is common-cathode, by measurement:** with DIM0 switched off it floats at 1.9 V, one LED drop below the segment pins (held HIGH = "off" in the common-anode firmware). Current flows from the segment pins through the segment LEDs into the common. That happens only if the common is the CATHODE. On a common-anode part the floating common would sit at or below the segment pins' level with no forward drop to show. Agrees with the A = cathode suffix.
+Still open for PW: (i) Q3 out + DIM0 to GND and `P1-cc.bin` over the cable, (ii) a common-anode display + Q3 fix, or (iii) carry on with step E as is.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
