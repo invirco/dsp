@@ -225,6 +225,8 @@ One lamp at a time, **4 s each, two passes** (pass 1 16:25:00–16:25:52, pass 2
 - Retry: erase 0.04 s, write 2.03 s, verify 1.27 s (2648 B identical), Go; 3.36 s. App `V` = `P1 1.0-s167-cc … optr=FFFFFEAA` (nBOOT0 restored by the app), `:` acked → all on.
 - **Why it is safe by design:** nBOOT0 is cleared by the old app BEFORE the erase and restored only by the NEW app after a verified write and Go. Any interruption in between (power, cable, host crash) leaves a part that powers up in the ROM. The host retries by sending 0x7F with the relay held open at 8E1, so no blink byte reaches the pedal first. The one unrecoverable case left is a corrupt option-byte write itself (the two OBL launches); a power cut during those few ms is not covered by this test.
 
+🔴 **S167 FOOTSWITCH CHECK (16:35 BST):** PW's first press/release of FS1 then FS2 happened before I was listening. The reports themselves are lost (nothing held `/dev/serial0` open, so the CM4 discarded them). But the relay counters show **exactly 16 bytes from the pedal** between 16:33:26 and 16:35:45 (rx 9713 → 9729), i.e. four 4-byte `S..` reports (press/release × 2) and **no extra (bounce) reports**. **I am listening NOW until about 16:38:** 🔴 PW, please repeat: FS1 press ~1 s, release, then FS2 the same.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
