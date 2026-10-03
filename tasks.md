@@ -137,6 +137,13 @@ R19 = 3.3 V / 0.7 V (PW): the MCU drives DIM_0 and Q1 is on. The fault is downst
 - (c) Keep the 470 Ω segment resistors (≈2.3 mA a segment at 3.3 V); the LED resistors give well under 1 mA for white/blue and could come down if the LEDs are too dim.
 Interim for rev B boards: swap Q3 (and Q4) collector/emitter by rotating the part if the footprint allows, or a bodge wire. PW's call; no firmware change helps.
 
+🔴 **S167 — pedal alive, segment A really commanded, really dark (16:02 BST).** Over the bus: `V` → `P1 1.0-s167 uid=203836484D435011003B0070`, `S` → `S00`, `L0010` re-applied and echoed `L0010`. The firmware has no separate lamp read-back; the `L` echo IS the bitmap it applied. So the MCU is alive and driving PA11 (pin 22, segment a) low with DIM0 on, and segment A stays dark.
+Hint for the hub's marking question: in Kingbright's naming **SA = common ANODE, SC = common CATHODE**. An SC08-11YWA fitted where the SA08 belongs would have its common pins (3/5/11/16) on DIM0 as cathodes and could never light from this circuit. That would also fit "completely dark" better than starvation, which should leave a faint glow.
+**WALK, starting 16:04:00 BST:** one lamp at a time, **4 s each**, in this order, run TWICE (≈52 s a pass), timestamps logged:
+`LD1, LD2, LD3, LD4, seg a (top), seg b (top right), seg c (bottom right), seg d (bottom), seg e (bottom left), seg f (top left), seg g (middle), "L" (pin 6, no chip: should stay dark), DP (right dot)`.
+After the walk the pedal is left with **everything ON** (`:`), the maximum DIM0 load, for the hub's DIM0 measurement at display pin 3 vs pin 1.
+🔴 PW: say which of the 13 lit.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
