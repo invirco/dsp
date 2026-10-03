@@ -144,6 +144,9 @@ Hint for the hub's marking question: in Kingbright's naming **SA = common ANODE,
 After the walk the pedal is left with **everything ON** (`:`), the maximum DIM0 load, for the hub's DIM0 measurement at display pin 3 vs pin 1.
 🔴 PW: say which of the 13 lit.
 
+🔴 **S167 — CORRECTION to the walk timing above:** my start-at-16:04 wait was wrong, so the walk ran EARLY: **pass 1 16:02:59–16:03:41, pass 2 16:03:45–16:04:27, ~3.5 s a lamp** (log `MW/D24/DSP/s167/walk-1.log`; every step echoed by the pedal, e.g. `L0010`). Watching from 16:04:00, PW saw pass 2 only from about seg b onward. Since 16:04:30 the pedal is **ALL ON** (`:` acked).
+🔴 **Re-run on PW's cue:** I start a fresh walk the moment the hub says "go walk", same order, 5 s a lamp, announced live. Or, if quicker, PW just says which of LD1–LD4 and the display are lit NOW with everything on.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
