@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 RELAY OPEN — PW RE-PLUG PEDAL (unplug the pedal cable at the D24 "P1 Foot Pedal" socket J8, wait 5 s, plug back in, tell me when done)]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 CONNECT/ACK PROVEN — the fresh P1's ROM bootloader answers through CM4 → MH1 → H1S4 relay → J8: 0x7F → 0x79, Get = bootloader v3.1 with 11 commands, Get ID = 0x453, over the mod's PA9/PA10; relay left OPEN at 8E1 (ROM session trained and live), runner untouched at station 3 — next: step E write, then the desk items]   [model: opus]
 
 model: opus
 
@@ -92,6 +92,18 @@ Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a549
 - The relay stays open only between my commands. The bus itself is free while PW re-plugs, so the runner is unaffected either way.
 
 🔴 **RELAY OPEN — PW RE-PLUG PEDAL** (15:08:49 BST: `/%oE115200 H1S4-PDL1`. H1S4 tx counter held at 8 from 15:08:50 to 15:08:54, so no blink is being forwarded. Runner still at station 3, PID 11543.)
+
+🟢 **S167 — FIRST CONTACT WITH THE PEDAL (2026-10-03 15:11 BST). The fresh P1's ROM bootloader answers over the cable.**
+Sequence: relay opened at 115200 8E1 at 15:08:49 (blink forwarding stopped, tx counter frozen at 8). PW re-plugged the pedal at J8 (5 s out). Then, through `/dev/serial0` → MH1 → H1S4 relay (S167 `ff79052e`):
+| host sent | pedal ROM replied (hex) | first reply after send | meaning |
+|---|---|---|---|
+| `7F` | `79` | 5.4 ms | ACK: auto-baud locked on the first byte |
+| `00 FF` (Get) | `79 0B 31 00 01 02 11 21 31 44 63 73 82 92 79` | 9.7 ms | bootloader **v3.1**; 11 commands: Get, GetVersion, GetID, ReadMemory, Go, WriteMemory, ExtendedErase, WriteProtect, WriteUnprotect, ReadoutProtect, ReadoutUnprotect |
+| `02 FD` (Get ID) | `79 01 04 53 79` | 7.5 ms | **PID 0x0453** = STM32C031 (the hub's 0x443 is the C011's ID; 0x453 is right for this part) |
+| `01 FE` (Get Version) | `79 31 00 00 79` | 7.7 ms | v3.1, option bytes 00 00 |
+H1S4 counters after: `rx=27 tx=15 err=1 drop=0`. The single rx/err byte arrived during the re-plug, before the 0x7F, with the relay open (line glitch as the pedal powered up; the ROM never saw a byte from us before 0x7F).
+**What this proves:** (1) both LVDS pairs and the J8 cable work; (2) the mod is right: the ROM talks on **PA9 pin 19 TX / PA10 pin 21 RX** on the UFQFPN32, as AN2606 says; (3) a never-programmed C031 enters its ROM from empty flash at power-up; (4) the relay is transparent enough for the ROM (8E1, auto-baud, ACK round trips 5–10 ms host to host). The earlier silence was the blank part: no stub to echo, and the ROM mis-trained by the blink bytes.
+**State left:** relay OPEN at 8E1, so the trained ROM session stays usable for step E (first program). The bus is free between commands. Runner untouched (PID 11543, station 3 waiting for ENTER). Closing is `/%X`; a pedal re-plug is needed after that to retrain the ROM.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
