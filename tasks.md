@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 blocked — the pedal round trip stops at H1S4: USART2 (PA2→pedal) carries bytes out, but PA3/USART2 RX is never read, so the stub's ":\n" reply cannot reach the host on the flashed firmware; smallest fix = H1S4-only relay (MH1 untouched), ruling needed before any flash; no device touched]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 desk work under PW ruling (b) — H1S4 relay flash AFTER the factory pass; flash nothing until then]   [model: opus]
 
 model: opus
 
@@ -58,6 +58,8 @@ My recommendation: **(b)** if the factory pass finishes today, otherwise **(a)**
 - P1 mod item 4 settled from ST's pin database (STM32C031K(4-6)Ux, UFQFPN32): **pin 17 = PB2** (the schematic's "PB15" is wrong). Pins 19/21 are PA9/PA10 only while the PA11/PA12 remap is off (the reset default). **Closed by hub (AN2606 Rev 61, STM32C031 table 11 note):** the USART1 PA9/PA10 → PA11/PA12 remap applies only to the TSSOP20 and UFQFN28 packages. On the UFQFPN32 the ROM uses the real PA9 (pin 19) TX and PA10 (pin 21) RX, which are the pins PW wired. Still to be proven on the part at step E.
 
 Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a5492d`, H1S3 `43efd43f`, H1S4 `f54848b0` (`/home/app/firmware/*.shex`); MH1 = `fwbuild/MH1/Debug/MH1.elf` `0fe9717a` (on disk; flash not read back). The unit is exactly as found.
+
+🟢 **PW RULING 2026-10-03 (via hub): option (b).** The H1S4 relay is flashed AFTER the factory pass completes; until then flash nothing and do only passive reads of the unit. Desk work meanwhile: the H1S4 relay image (md5 + diff vs `f54848b0`), `d24_pedal.py` with a host-side test, the P1 firmware for the mod (step C, size at -Os) and the step D recommendation. Then a READY TO FLASH note; the hub confirms the pass is complete after PW says so.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
