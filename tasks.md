@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (16:34 BST) — STEP E COMPLETE: first program, update-from-app and power-cut-mid-write all PROVEN over the cable; pedal running 1.0-s167-cc all-on; next: step D/F write-up]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 done — P1 over its cable PROVEN end to end: H1S4 relay (ff79052e, flashed under PW GO, runner state restored), P1 firmware 1.0-s167-cc (first program, update-from-app, power-cut retry all over J8; lamps, display after Q3-out/DIM0-GND bodge, footswitches verified); report s167/s167-report.md; 🔴 hub items: fw.csv P44=PA2/P45=PA3, firmware home (MW/D24/FW recommended), next P1 rev (CA display, Q3/Q4 orientation, symbol fixes), rev D update hold; runner waiting at P13 for the operator]   [model: opus]
 
 model: opus
 
@@ -226,6 +226,8 @@ One lamp at a time, **4 s each, two passes** (pass 1 16:25:00–16:25:52, pass 2
 - **Why it is safe by design:** nBOOT0 is cleared by the old app BEFORE the erase and restored only by the NEW app after a verified write and Go. Any interruption in between (power, cable, host crash) leaves a part that powers up in the ROM. The host retries by sending 0x7F with the relay held open at 8E1, so no blink byte reaches the pedal first. The one unrecoverable case left is a corrupt option-byte write itself (the two OBL launches); a power cut during those few ms is not covered by this test.
 
 🔴 **S167 FOOTSWITCH CHECK (16:35 BST):** PW's first press/release of FS1 then FS2 happened before I was listening. The reports themselves are lost (nothing held `/dev/serial0` open, so the CM4 discarded them). But the relay counters show **exactly 16 bytes from the pedal** between 16:33:26 and 16:35:45 (rx 9713 → 9729), i.e. four 4-byte `S..` reports (press/release × 2) and **no extra (bounce) reports**. **I am listening NOW until about 16:38:** 🔴 PW, please repeat: FS1 press ~1 s, release, then FS2 the same.
+
+🟢 **S167 FOOTSWITCHES — VERIFIED over the cable (16:36 BST, `MW/D24/DSP/s167/listen-1.log`):** `16:36:16 S10` (FS1 down), `16:36:17 S00` (FS1 up), `16:36:19 S01` (FS2 down), `16:36:21 S00` (FS2 up). Exactly one report per edge, no bounce (20 ms debounce), the right switch each time. **SW2 on PB2 (pin 17) confirmed working after the mod.** Matches the first round's 16-byte count. Every P1 function is now proven over the cable: lamps (all 13), display, both footswitches, version/UID/OPTR, ROM entry, update, power-cut recovery.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
