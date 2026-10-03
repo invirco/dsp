@@ -119,6 +119,13 @@ H1S4 counters after: `rx=27 tx=15 err=1 drop=0`. The single rx/err byte arrived 
 - 🔴 **PW, ONE hand check:** look at the pedal. Are all four LEDs and the whole display lit? Then press and release footswitch 1, then footswitch 2. I will read the `S..` reports the next time I have the bus. Say when done; it is not urgent.
 - Next in order: update from the app (`!BOOT` → ROM → re-flash → Go → nBOOT0 restored by the app), then the power-cut case. Each needs the bus for ~1 min and at most one re-plug from PW, asked one at a time.
 
+🔴 **S167 — display dark, LEDs lit (PW 15:2x). Firmware checked; it looks right. ONE meter check for PW.**
+Firmware (`p1-fw/main.c`): TIM3 CH3 (PB0, pin 15 → DIM_1, the LEDs, which WORK) and CH4 (PB1, pin 16 → DIM_0, the display) are configured identically: PWM1, preload on, CC3E+CC4E enabled, CCR3 = CCR4 = 1000 > ARR 999 (always high), both pins AF1 = TIM3 (the same AF the CubeMX stub used), one timer running. The nine segment pins are push-pull outputs driven LOW for the lamp test and for `:`: PA11 (22), PA12 (23) as GPIO with no remap, PA15 (26), PB3–PB8 (27–32), matching the stub's CubeMX pin names (the schematic symbol's PD0–PD3 labels on 26–29 are wrong for the C031, as with "PB15" on 17). Every segment is dark, including both dots, on two different ports. That points at the common DIM0 rail, not the cathodes.
+**PW, one check (the lamps are being held on right now, nothing to send):** meter on DC volts, black probe on J5 pin 3 (GND). Put the red probe on each end of **R19** in turn (the 1K resistor feeding Q1's base, near Q1/Q3 at the DIM_0 corner). Report both readings.
+- One end about **3.3 V** and the other about **0.7 V** → the MCU drives DIM_0 high and Q1 is switching; the fault is Q3 (or R21/R23) or the DIM0 track to the display V+ pins. Hardware.
+- Both ends about **0 V** → PB1 is not driving: firmware or the pin. I change the firmware to drive PB1 as a plain GPIO high and update it over the cable (that is the update-from-app test anyway).
+- **3.3 V on both ends** → Q1 base open (R19 or Q1 not soldered).
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
