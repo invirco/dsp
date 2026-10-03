@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 16:50Z — S169: P1 firmware — one image for both display polarities (stored setting + auto-detect), proven on the bench pedal   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-03 16:50Z — S169: P1 firmware — one image for both display polarities (stored setting + auto-detect), proven on the bench pedal   [status: 🟢 done — ONE P1 image 1.1-s169 (`P1.bin` f0fd3cff, 4188 B) on the bench pedal, updated over the cable; polarity = stored PA/PC override, else ADC auto-probe on segments A/F (bench: probe=CC, 0.53 VDD path vs ≤4 counts open, repeatable), else CA; setting in flash page 7, kept across update (host now page-erases; proven); CA drive unproven until a next-rev/reworked pedal; ruling premise corrected (interim + CA = inverted display, not dark, no damage); 🔴 PW: look at the pedal + one re-plug; 🔴 hub: app-update note item 5]
 
 model: opus
 
@@ -19,6 +19,35 @@ Do not touch: the D24's other MCUs, defs, the factory run. Hand steps for PW one
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+🟢 **S169 OUTCOME (2026-10-03 18:05 BST).** Full write-up: `MW/D24/FW/P1/README.md` § Display polarity; bench logs `MW/D24/FW/P1/bench-s169/`.
+1. **One image:** `P1.bin` 1.1-s169, md5 `f0fd3cff8642e0547669b8cd003ee7dd`, 4188 B text at -Os (14 336 B usable; page 7 reserved). `P1-cc.bin` retired (git history). New commands `PA`/`PC`/`PU`/`P?`. `V` now ends `disp=CC by=probe set=auto probe=CC adc=885,884,002,001`.
+2. **Storage:** append-only records in flash page 7. A power cut mid-write leaves the old value. **Kept across an update** because `d24_pedal.py rom-flash`/`update` now erase only the image's pages (S167 mass-erased) and refuse an image that reaches page 7. `update` also re-reads `set=` and re-applies it if lost. Bench: `PC` stored → update → `set=CC by=stored`.
+3. **Fallback default: CA** (BOM part). **Correction to the ruling's premise:** "wrong default = dark only" holds wherever the rail follows the firmware (next rev, rev B with Q3: every wrong combination is a 3.3 V reverse bias, VR max 5 V). On the **interim** (DIM0 hard to GND), CA makes the display show **inverted** at normal segment current: not damage, not dark. Table in the README.
+4. **Rail drive:** PA4–PA7 set by one BSRR write and switched by one MODER write (never split). PB1 at 100 % for CA / 0 % for CC (also lights a rev-B-as-designed CA pedal). Brightness is software PWM on the segment pins in both polarities; the rail never toggles. **Currents** against DS13867 Rev 3 Table 22: segment ≤ 3 mA/pin; rail ≤ 27 mA over four pins (≤ 6.8 mA each; one pin alone self-limits ≈ 12 mA < 20 mA abs max); ΣI(PIN) ≤ 35 of 80 mA sunk, ≈ 30 of 80 mA sourced; IVDD ≈ 33 of 100, IVSS ≈ 38 of 100. No per-port limit exists in the datasheet.
+5. **Auto-detect: reliable, so it is the default.** Only PA11 (A) and PA12 (F) of the segment pins have ADC inputs. A digital read cannot work: an LED at ~40 µA sits at ~0.5 VDD, between VIL and VIH. Each probe takes 2 ms with ≈ 40 µA in two segments, so nothing lights visibly in either sense. Expected results:
+   - next-rev CA → CA; next-rev CC → CC;
+   - interim → CC (**measured**: path 0x885–0x888, open ≤ 4 counts, three starts);
+   - Q3 fitted + CA → CA;
+   - Q3 fitted + CC → none (that board cannot light either way);
+   - no display → none → stored setting or CA.
+   Caveat: the ADC reads the pad in input mode, which is outside RM0490's documented use. If that fails it gives none/odd, never a wrong answer.
+6. **Kept from S167:** `!BOOT` and the option-byte restore (exercised twice: OPTR `FBFFFEAA` in the ROM → `FFFFFEAA` after Go), `V`, `S` (`S00`), lamps, both dots (walk acked).
+7. **Unproven until a next-rev or reworked pedal exists:**
+   - CA lighting through PA4–PA7 or PB1/Q3;
+   - the CA probe's path reading;
+   - the four-pin rail sharing and droop;
+   - the "none" case with no display;
+   - a true power cycle keeping the setting (two ROM/option-byte resets did keep it).
+8. **Unit:** only P1 changed (1.0-s167-cc `793aa3f5` → 1.1-s169 `f0fd3cff`). Relay left open at 8N1 as S167 left it; the pedal holds all lamps on. Before every pedal command: nothing on `/dev/serial0` (fuser empty). Runner PID 11543 untouched (SPI fds only; live.json still "Patch AUX 1 to MIC 2 / CHECK THE LEAD"). AN_EN as found (high: the runner's rails, not touched). Staged copies in `/home/app/s169/`.
+
+🔴 **S169 — PW, two looks at the pedal, one at a time:**
+1. Look at the pedal on MW-D24-2 now. The walk ended with **everything lit at full**: the eight small LEDs, all seven bars of the display and both dots. Tell the hub "all lit", or name what is dark.
+2. Then unplug the pedal's cable from J8 on the back of the D24 and plug it back in. **Expected:** every lamp lights for about a third of a second, then all go dark. Tell the hub what you saw. The next session then reads `V`; it should still say `set=auto by=probe probe=CC`. That closes the power-cycle item.
+
+🔴 **S169 — hub items:**
+- **App-update note, item 5:** replace "two images (`P1.bin` CA, `P1-cc.bin` CC)" with "**one image `P1.bin` (1.1-s169, `f0fd3cff`) for both polarities**". The app should not choose an image. After an update it reads `V` and checks `disp=`. To pin a pedal, it sends `PA`/`PC` once. The setting survives updates only if the app's ROM step **erases pages 0..n-1, never a mass erase** (`d24_pedal.py` `Rom.page_erase`). If the app ever mass-erases, it must re-send the `set=` it read before the update.
+- **Next P1 rev (item E):** keep segment A on PA11 and F on PA12, or move the probe to two other ADC-capable segment pins (PA0–PA8, PA11–PA14, PB0–PB2 on this package). Otherwise auto-detect is lost. Never fit PA4–PA7→DIM0 on a board whose DIM0 is still grounded (half-done rework): CA would drive four pins straight into GND.
 
 ## HUB DISPATCH 2026-10-03 16:45Z — S168: MCU firmware into the repo — MW/D24/FW/<MCU>/ (P1, H1S1, H1S3, H1S4, MH1), desk only   [status: 🟢 done — all five MCU images reproduce byte-for-byte from MW/D24/FW/<MCU>/ (P1 baf55b3b/793aa3f5, H1S4 base f54848b0 + relay ff79052e, H1S1 19a5492d from ~/build-h1s1, H1S3 43efd43f from unit s131fw/H1S3-B, MH1 flashed = dimset 1110c60a hex, NOT fwbuild MH1.elf 0fe9717a); table in MW/D24/FW/README.md; REV D UPDATE HOLD filed there; MH1 chip not re-read (unit untouched)]   [model: sonnet]
 

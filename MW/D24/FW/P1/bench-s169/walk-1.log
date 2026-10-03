@@ -1,0 +1,27 @@
+18:02:24 oN115200 H1S4-PDL1
+18:02:24 LD1       L0001
+18:02:27 LD2       L0002
+18:02:30 LD3       L0004
+18:02:33 LD4       L0008
+18:02:36 seg a     L0010
+18:02:39 seg b     L0020
+18:02:42 seg c     L0040
+18:02:45 seg d     L0080
+18:02:48 seg e     L0100
+18:02:51 seg f     L0200
+18:02:54 seg g     L0400
+18:02:57 left dot  L0800
+18:03:00 right dot L1000
+18:03:03 all      L1FFF
+18:03:03 bright 9 D9
+18:03:05 bright 8 D8
+18:03:06 bright 7 D7
+18:03:08 bright 6 D6
+18:03:10 bright 5 D5
+18:03:11 bright 4 D4
+18:03:13 bright 3 D3
+18:03:14 bright 2 D2
+18:03:16 bright 1 D1
+18:03:17 bright 0 D0
+18:03:19 end      D9 L1FFF
+18:03:19 i H1S4-PDL1 open=1 fmt=N115200 rx=19612 tx=20269 err=4 drop=0

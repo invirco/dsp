@@ -26,9 +26,19 @@ up (re-plug, or the app's ENTER-BOOTLOADER which resets it), then 0x7F first.
     d24_pedal.py app --send ':'               send text to the P1 app, print replies
     d24_pedal.py rom-id                       0x7F sync (if needed), Get, Get ID, Get Version
     d24_pedal.py rom-read --addr 0x1FFF7800 --len 16
-    d24_pedal.py rom-flash --bin P1.bin [--no-go]   erase, write, verify, Go
+    d24_pedal.py rom-flash --bin P1.bin [--no-go] [--mass-erase]   erase, write, verify, Go
     d24_pedal.py enter-boot                   the app's "!BOOT", relay re-opened at 8E1 first
+    d24_pedal.py update --bin P1.bin          the whole app update (S169): V, !BOOT, ROM
+                                              flash, Go, V; the polarity setting is kept
+    d24_pedal.py polarity --set A|C|U|?       P1 display polarity: anode, cathode, auto, read
+    d24_pedal.py walk [--secs 3]              light each lamp alone, then D9..D0 on all, end all on
     d24_pedal.py --selftest                   off-target: the ROM client against a model
+
+THE SETTINGS PAGE (S169): P1 keeps its settings (display polarity) in flash
+page 7 (0x08003800), outside the 14 KB the image may use. rom-flash erases
+only the pages the image needs, so the setting survives an update; a first
+program on a blank part, or --mass-erase, leaves it blank (= auto). `update`
+also reads the setting from `V` before and re-applies it after if it was lost.
 """
 import argparse
 import os
@@ -39,6 +49,8 @@ PORT = '/dev/serial0'
 ACK, NACK = 0x79, 0x1F
 FLASH_BASE = 0x08000000
 OPTR_ADDR = 0x1FFF7800
+PAGE = 2048
+SETTINGS_PAGE = 7                      # P1 settings; the image must stay below it
 
 
 def log(msg):
@@ -224,6 +236,16 @@ class Rom(object):
         self.l.send(b'\xff\xff\x00')
         self._ack('Mass erase', timeout=10.0)
 
+    def page_erase(self, pages):
+        """Extended Erase of a page list (N-1, then 2-byte page numbers, XOR)."""
+        self._cmd(0x44, 'Extended Erase')
+        body = (len(pages) - 1).to_bytes(2, 'big') + b''.join(p.to_bytes(2, 'big') for p in pages)
+        cs = 0
+        for b in body:
+            cs ^= b
+        self.l.send(body + bytes([cs]))
+        self._ack('Erase pages %s' % pages, timeout=10.0)
+
     def write(self, addr, data):
         if len(data) % 4 or not 0 < len(data) <= 256:
             raise RomError('write block must be 4..256 bytes, a multiple of 4')
@@ -239,13 +261,21 @@ class Rom(object):
         self._cmd(0x21, 'Go')
         self._addr(addr, 'Go addr')
 
-    def flash(self, image, block=64, go=True):
-        """Erase, write, verify, Go. Returns a timing record."""
+    def flash(self, image, block=64, go=True, mass=False):
+        """Erase, write, verify, Go. Returns a timing record. Erases only the
+        pages the image covers unless mass=True: page 7 holds P1's settings."""
         t = {}
         t0 = time.time()
         pad = (-len(image)) % 8                 # the C031 programs double words
         image = image + b'\xff' * pad
-        self.mass_erase()
+        npages = (len(image) + PAGE - 1) // PAGE
+        if npages > SETTINGS_PAGE:
+            raise RomError('image of %d B reaches the settings page %d' % (len(image), SETTINGS_PAGE))
+        if mass:
+            self.mass_erase()
+        else:
+            self.page_erase(list(range(npages)))
+        t['erased'] = 'mass' if mass else 'pages 0-%d' % (npages - 1)
         t['erase_s'] = round(time.time() - t0, 2)
         t1 = time.time()
         for off in range(0, len(image), block):
@@ -345,8 +375,22 @@ class RomModel(object):
                     self.out.append(ACK)
             elif c == 0x44:
                 self.out.append(ACK)
-                yield 3
-                self.flash[:] = b'\xff' * len(self.flash)
+                head = yield 2
+                n = int.from_bytes(head, 'big')
+                if n == 0xFFFF:
+                    yield 1
+                    self.flash[:] = b'\xff' * len(self.flash)
+                else:
+                    body = yield 2 * (n + 1) + 1
+                    cs = 0
+                    for b in head + body[:-1]:
+                        cs ^= b
+                    if cs != body[-1]:
+                        self.out.append(NACK)
+                        continue
+                    for i in range(n + 1):
+                        pg = int.from_bytes(body[2 * i:2 * i + 2], 'big')
+                        self.flash[pg * PAGE:(pg + 1) * PAGE] = b'\xff' * PAGE
                 self.out.append(ACK)
             else:
                 self.out.append(NACK)
@@ -383,16 +427,118 @@ def selftest():
         raise AssertionError('verify must catch a flipped bit')
     except RomError as e:
         assert 'VERIFY FAILED' in str(e)
+    # S169: the settings page survives a page-erase update, not a mass erase
+    m3 = RomModel()
+    rec = (0x50310002).to_bytes(4, 'little') + (0x50310002 ^ 0xFFFFFFFF).to_bytes(4, 'little')
+    m3.flash[SETTINGS_PAGE * PAGE:SETTINGS_PAGE * PAGE + 8] = rec
+    m3.flash[3000] = 0x00                       # old image content beyond the new one
+    r3 = Rom(m3)
+    r3.sync()
+    t = r3.flash(bytes(4196), go=False)
+    assert t['erased'] == 'pages 0-2', t
+    assert bytes(m3.flash[SETTINGS_PAGE * PAGE:SETTINGS_PAGE * PAGE + 8]) == rec
+    assert m3.flash[5000] == 0xFF               # page 2 was erased with the rest
+    r3.flash(bytes(4196), go=False, mass=True)
+    assert m3.flash[SETTINGS_PAGE * PAGE] == 0xFF
+    try:
+        r3.flash(bytes(SETTINGS_PAGE * PAGE + 8), go=False)
+        raise AssertionError('an image reaching page 7 must be refused')
+    except RomError as e:
+        assert 'settings page' in str(e)
+    for line, want in (('P1 1.1-s169 uid=0 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=1,2,3,4', 'auto'),
+                       ('P1 1.1-s169 uid=0 optr=FFFFFEAA disp=CC by=stored set=CC probe=CC adc=1,2,3,4', 'CC'),
+                       ('P1 1.0-s167-cc uid=0 optr=FFFFFEAA', None)):
+        assert v_field(line, 'set') == want, line
     print('selftest: OK -- sync, Get, Get ID 0x453, OPTR read, erase/write/verify/Go '
-          '(%d B), a flipped bit is caught by verify' % len(img))
+          '(%d B), a flipped bit is caught by verify; page erase keeps the settings page, '
+          'mass erase clears it, an image reaching page 7 is refused, V fields parse' % len(img))
     return 0
+
+
+def v_field(line, key):
+    for tok in (line or '').split():
+        if tok.startswith(key + '='):
+            return tok[len(key) + 1:]
+    return None
+
+
+def app_line(rl, text, want, secs=1.0):
+    """Send to the P1 app and return the first reply line starting with want."""
+    rl.drain(0.02)
+    rl.send(text.encode())
+    buf = b''
+    t0 = time.time()
+    while time.time() - t0 < secs:
+        buf += rl.recv(1, 0.05)
+        for line in buf.split(b'\n')[:-1]:
+            if line.startswith(want.encode()):
+                return line.decode('ascii', 'replace')
+    return None
+
+
+WALK = ['LD1', 'LD2', 'LD3', 'LD4', 'seg a', 'seg b', 'seg c', 'seg d', 'seg e', 'seg f',
+        'seg g', 'left dot', 'right dot']
+
+
+def walk(rl, secs):
+    """One lamp at a time (bit order of the P1 'L' command), then the
+    brightness steps on everything, then everything on at full."""
+    for i, name in enumerate(WALK):
+        log('%-9s %s' % (name, app_line(rl, 'L%04X' % (1 << i), 'L')))
+        time.sleep(secs)
+    log('all      %s' % app_line(rl, 'L1FFF', 'L'))
+    for d in '9876543210':
+        log('bright %s %s' % (d, app_line(rl, 'D' + d, 'D')))
+        time.sleep(secs / 2)
+    log('end      %s %s' % (app_line(rl, 'D9', 'D'), app_line(rl, 'L1FFF', 'L')))
+
+
+def update(rl, path):
+    """The app update as the D24 app would run it (S167 procedure, S169 setting)."""
+    img = open(path, 'rb').read()
+    log('image %s: %d B' % (path, len(img)))
+    log(rl.open('N'))
+    before = app_line(rl, 'V', 'P1 ')
+    log('before: %s' % before)
+    if before is None:
+        raise RuntimeError('the P1 app does not answer V: use rom-id/rom-flash by hand')
+    keep = v_field(before, 'set')
+    rl.send(b'!BOOT\n')
+    log('reply: %r' % rl.recv(6, 1.0))
+    log(rl.open('E'))
+    rom = Rom(rl)
+    log('sync: %s' % rom.sync())
+    pid = rom.get_id()
+    if pid != 0x453:
+        raise RomError('Get ID 0x%03X, not 0x453' % pid)
+    optr = int.from_bytes(rom.read(OPTR_ADDR, 4), 'little')
+    log(optr_text(optr))
+    if optr >> 26 & 1:
+        raise RomError('nBOOT0 is 1 in the ROM session: stop')
+    log('FLASHED: %s' % rom.flash(img))
+    log(rl.open('N'))
+    after = None
+    for _ in range(10):
+        time.sleep(0.5)
+        after = app_line(rl, 'V', 'P1 ')
+        if after:
+            break
+    log('after: %s' % after)
+    if after is None:
+        raise RuntimeError('the new app does not answer V')
+    now = v_field(after, 'set')
+    if keep in ('CA', 'CC') and now != keep:
+        log('setting %s was lost: re-applied: %s' % (keep, app_line(rl, 'P' + keep[1], 'P ', 2.0)))
+        log('after: %s' % app_line(rl, 'V', 'P1 '))
+    return after
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('action', nargs='?', default='info',
                     choices=['info', 'open', 'close', 'app', 'rom-id', 'rom-read',
-                             'rom-flash', 'rom-recover', 'enter-boot'])
+                             'rom-flash', 'rom-recover', 'enter-boot', 'update', 'polarity',
+                             'walk'])
     ap.add_argument('--fmt', default='E', choices=['E', 'N'])
     ap.add_argument('--send', default=':')
     ap.add_argument('--secs', type=float, default=1.0)
@@ -400,6 +546,9 @@ def main():
     ap.add_argument('--len', type=int, default=16)
     ap.add_argument('--bin')
     ap.add_argument('--no-go', action='store_true')
+    ap.add_argument('--mass-erase', action='store_true',
+                    help='rom-flash: erase everything, the settings page too')
+    ap.add_argument('--set', default='?', choices=['A', 'C', 'U', '?'])
     ap.add_argument('--no-sync', action='store_true',
                     help='the ROM session is already trained: skip 0x7F')
     ap.add_argument('--selftest', action='store_true')
@@ -420,6 +569,14 @@ def main():
             rl.send(a.send.encode().decode('unicode_escape').encode('latin-1'))
             time.sleep(a.secs)
             log('reply: %r' % rl.drain(0.05))
+        elif a.action == 'update':
+            update(rl, a.bin)
+        elif a.action == 'walk':
+            log(rl.open('N'))
+            walk(rl, a.secs if a.secs != 1.0 else 3.0)
+        elif a.action == 'polarity':
+            log(rl.open('N'))
+            log(app_line(rl, 'P' + a.set, 'P ', 2.0))
         elif a.action == 'enter-boot':
             log(rl.open('N'))
             rl.send(b'!BOOT\n')
@@ -447,7 +604,7 @@ def main():
             elif a.action == 'rom-flash':
                 img = open(a.bin, 'rb').read()
                 log('image %s: %d B' % (a.bin, len(img)))
-                t = rom.flash(img, go=not a.no_go)
+                t = rom.flash(img, go=not a.no_go, mass=a.mass_erase)
                 log('FLASHED: %s' % t)
         log(rl.info())
     finally:

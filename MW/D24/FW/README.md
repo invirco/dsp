@@ -10,7 +10,7 @@ Firmware sources for the D24's five small MCUs, one folder each (PW ruling 2026-
 | H1S1 | STM32U575RIT6 | codec/595/power-word interface | `H1S1/` (= `~/build-h1s1`) | `H1S1.shex` `19a5492d…` | YES, byte-for-byte | `app cli loadfw H1S1` (after `sreset.py` if needed) |
 | H1S3 | STM32F030R8T6 | right switch panel (talkback variant B) | `H1S3/` (= unit `s131fw/H1S3-B`) | `H1S3.shex` `43efd43f…` (id H1S4) | YES, byte-for-byte | `app cli loadfw H1S3` |
 | H1S4 | STM32F030R8T6 | left switch panel + pedal relay | `H1S4/` (S139 base + S167 relay) | `H1S4.shex` `ff79052e…` (id H1S3) | YES: base `f54848b0` and relay `ff79052e`, both byte-for-byte | `app cli loadfw H1S4` |
-| P1 | STM32C031K4U6 | foot pedal | `P1/` | `P1-cc.bin` `793aa3f5…` (bench pedal, OPTR `0xFFFFFEAA`) | YES, `P1.bin` `baf55b3b…` and `P1-cc.bin` byte-for-byte | over the J8 cable: relay + ROM bootloader (8E1) |
+| P1 | STM32C031K4U6 | foot pedal | `P1/` | `P1.bin` 1.1-s169 `f0fd3cff…` (bench pedal, OPTR `0xFFFFFEAA`; S169: one image for both display polarities, replaces `P1-cc.bin` `793aa3f5…`) | YES, byte-for-byte (S169 build) | over the J8 cable: relay + ROM bootloader (8E1), `d24_pedal.py update` |
 
 Full md5s are in each folder's README. Pitfalls found while reproducing:
 - The unit's `/home/app/fwbuild/{H1S3,MH1}` are NOT the flashed sources: H1S3's flashed image is variant B from `s131fw/H1S3-B`; MH1's flashed image is the dimset build, while `fwbuild/MH1/Debug/MH1.elf` (`0fe9717a`) is the unpatched 08-19 build. `fwbuild/H1S1` carries a stale generation; use `~/build-h1s1`.

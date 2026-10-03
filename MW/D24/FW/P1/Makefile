@@ -1,5 +1,6 @@
 # P1 application, headless: make CUBE=~/build-p1
 # CMSIS headers come from the P1 CubeIDE project (Drivers/CMSIS).
+# One image for both display polarities since S169 (no P1-cc build).
 CUBE ?= $(HOME)/build-p1
 CC = arm-none-eabi-gcc
 CFLAGS = -mcpu=cortex-m0plus -mthumb -Os -ffunction-sections -fdata-sections -Wall \
@@ -14,11 +15,5 @@ P1.bin: P1.elf
 P1.elf: main.c system_stm32c0xx.c startup_stm32c031k4ux.s
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
-# common-cathode variant for the FJ8102AY pedal (Q3 out, DIM0 to GND)
-P1-cc.bin: main.c system_stm32c0xx.c startup_stm32c031k4ux.s
-	$(CC) $(CFLAGS) -DSEG_CC=1 $^ $(LDFLAGS) -o P1-cc.elf
-	arm-none-eabi-objcopy -O binary P1-cc.elf $@
-	arm-none-eabi-size P1-cc.elf
-
 clean:
-	rm -f P1.elf P1.bin P1.hex P1.map P1-cc.elf P1-cc.bin
+	rm -f P1.elf P1.bin P1.hex P1.map

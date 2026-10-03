@@ -1,0 +1,11 @@
+18:01:22 image P1.bin: 4196 B
+18:01:22 oN115200 H1S4-PDL1
+18:01:22 before: P1 1.0-s167-cc uid=203836484D435011003B0070 optr=FFFFFEAA
+18:01:22 reply: b'!BOOT\n'
+18:01:22 oE115200 H1S4-PDL1
+18:01:22 sync: ACK
+18:01:22 OPTR=0xFBFFFEAA RDP=0xAA nBOOT_SEL=1 nBOOT1=1 nBOOT0=0 NRST_MODE=3
+18:01:27 FLASHED: {'erased': 'pages 0-2', 'erase_s': 0.08, 'write_s': 3.2, 'verify_s': 2.0, 'verified_bytes': 4200, 'go': True, 'total_s': 5.3}
+18:01:27 oN115200 H1S4-PDL1
+18:01:28 after: P1 1.1-s169 uid=203836484D435011003B0070 optr=FFFFFEAA disp=CC by=probe set=auto probe=CC adc=885,884,002,001
+18:01:28 i H1S4-PDL1 open=1 fmt=N115200 rx=14443 tx=15175 err=4 drop=0
