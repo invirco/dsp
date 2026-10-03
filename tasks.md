@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 in progress — 🔴 PW LOAD NOTE: pedal LEDs CANNOT be lit from the host with the stub firmware; see note below]   [model: opus]
 
 model: opus
 
@@ -29,6 +29,12 @@ F. WRITE UP: what works, the update procedure as it would run from the D24 app, 
 Do not touch: defs (propose fw.csv/pin corrections as 🔴 hub items), the factory-run state, rev A MW-D24-1, AN_EN/rails. Bench instructions to PW use panel names and connector names in plain words; one hand step at a time.
 
 Outcome wanted: A–F status in five lines, image hashes on every device touched, the 🔴 PW/hub items with options, and whether the unit is exactly as found (or what changed and why resume still works).
+
+🔴 **S167 NOTE FOR HUB/PW (2026-10-03 ~14:20Z) — LEDs are NOT on, and the host cannot turn them on with the stub firmware.**
+- The bytes already reach the pedal: MH1 broadcasts `:` / `.` to every panel MCU every 254 ms (read passively on `/dev/serial0`, no writes), and H1S4 (left switch) forwards each one to the pedal as `:\n` / `.\n` on USART2 = PA2 (PDL_TX, pin 16) / PA3 (PDL_RX, pin 17). So if the old pins still work after the mod, the stub is already getting a `:` twice a second.
+- **The stub can never light an LED.** `~/build-p1` sets up TIM3 CH3/CH4 on PB0/PB1 (DIM_0/DIM_1 → Q1/Q3, Q2/Q4, the high-side supply for every LED and display segment) but never calls `HAL_TIM_PWM_Start`, so DIM0/DIM1 stay off. Its `:` handler only pulls the cathodes low. That fits what PW sees: LEDs dark at idle.
+- **"Hold lit" is also not possible from the host today.** MH1's `.` follows 254 ms after each `:`, and the shipping H1S4 has no way to stop forwarding it.
+- **To measure P1 under load now (PW, pick one):** (a) put a bench load on the pedal supply. All LEDs + 7-seg at 470 Ω from 3.3 V is about 8 LEDs × ~3 mA + 8 segments × ~3 mA ≈ 50 mA, so ~100 Ω across the 5 V gives a comparable ~50 mA. (b) Flash the S167 P1 lamp-test image at J5 with an ST-Link (it powers up with DIM on and every LED and segment lit, and holds). I am building it now; the file and command will follow in this block.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
