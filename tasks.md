@@ -126,6 +126,17 @@ Firmware (`p1-fw/main.c`): TIM3 CH3 (PB0, pin 15 → DIM_1, the LEDs, which WORK
 - Both ends about **0 V** → PB1 is not driving: firmware or the pin. I change the firmware to drive PB1 as a plain GPIO high and update it over the cable (that is the update-from-app test anyway).
 - **3.3 V on both ends** → Q1 base open (R19 or Q1 not soldered).
 
+🔴 **S167 — dark display: the hub's two observations checked against the primary sources (15:45 BST).**
+R19 = 3.3 V / 0.7 V (PW): the MCU drives DIM_0 and Q1 is on. The fault is downstream of Q1.
+1. **Q3/Q4 inverted: CONFIRMED on the schematic** (`D24 P1.pdf` rev B, 13/11/2025). Both 2N4403 PNPs are drawn with the **collector on +3V3 and the emitter (arrow) on DIM0/DIM1**. A high-side PNP needs the emitter on +3V3 and the collector on the rail. As drawn, Q1 pulls the base down through R21 (1K, ~2.5 mA) and the transistor runs in INVERSE mode (forward gain of a 2N4403 is ~100; inverse gain is a few). With almost no load (the eight LEDs on DIM1 take well under 1 mA each) it saturates and the rail sits near 3.2 V, so the LEDs light. The display wants ~2.3 mA × 8 segments ≈ 18 mA; Q3 cannot supply it, and the rail collapses toward the base voltage (~2.6 V), leaving little for a ~2.0 V segment plus its 470 Ω. Hence LEDs on, display dark (yellow GaAsP/GaP is very dim at a few hundred µA). Not yet checked: whether the PCB footprint follows the schematic. PW's DIM0/DIM1 voltages will show it.
+2. **Display forward voltage / pinout: RULED OUT.** Kingbright SA08-11YWA datasheet (`_mx/MW/D24/HW/MW_P1 rev B/SA08-11YWA.pdf`): single chip per segment, **VF 1.95 V typ / 2.4 V max at 10 mA**, common anode on **3, 5, 11, 16**, cathodes a=1 b=14 c=12 d=10 e=4 f=2 g=13 DP=9. The LD9 symbol matches pin for pin. One correction: pin 6 is "NO CHIP" and the part has only a RIGHT-hand decimal, so the symbol's "L" (pin 6 → PB6) can never light. A 3.3 V supply lights it comfortably.
+**Live split, running now:** the pedal is set to `L0010` = **segment A only** (top bar), all LEDs off, a one-segment load (~2 mA) that an inverted Q3 should carry. 🔴 **PW: does the top bar of the display glow (even faintly)?** Yes → starvation, as above. No → DIM0 is open (Q3 not fitted/not soldered, or the DIM0 track), and the DIM0 voltage reading decides.
+**What the next P1 rev needs:**
+- (a) Q3/Q4 turned round: emitter to +3V3, collector to DIM0/DIM1. Better still, a small P-MOSFET high-side switch (logic-level, Vgs(th) well under 3.3 V) for each rail, with Q1/Q2 as they are (or the MOSFET gate driven straight from the open-drain MCU pin with a pull-up).
+- (b) Schematic symbol fixes: U2 pin 17 = PB2 (not PB15); pins 26–29 = PA15, PB3, PB4, PB5 (not PD0–PD3); LD9 pin 6 = no chip (drop "L", free PB6).
+- (c) Keep the 470 Ω segment resistors (≈2.3 mA a segment at 3.3 V); the LED resistors give well under 1 mA for white/blue and could come down if the LEDs are too dim.
+Interim for rev B boards: swap Q3 (and Q4) collector/emitter by rotating the part if the footprint allows, or a bodge wire. PW's call; no firmware change helps.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
