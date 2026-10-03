@@ -1,0 +1,1545 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2021 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
+
+//
+// PW NOTES:
+// C4 LD file is used, manually upgraded memory size from 16K to 64K,
+// C8 MCU used on DSP3 proto, as more memory required for CubeIDE projects.
+// ".myKey" SECTION also added to LD file, for security key.
+//
+// MH1 code, for DSP3 architecture
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim16;
+
+UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+char flashData[13] = { 0x00 };
+char flashCheck[13] = { 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00 };
+char flashString[3] = "  ";
+char flashKey[13] = { 0x00, 0x92, 0xf8, 0xcf, 0x6b, 0x43, 0xe9, 0x74, 0x10,
+		0xf0, 0x50, 0xb6, 0xe4 };
+char blink = 0, blinkReady = 0;
+char matrixFill = 0; // flag to signal complete matrix data load, stop other processes
+char printHostMenu = 1; // flag to reprint host init menu
+char myChar = ' ', myByte = 0; // general purpose character and byte
+char myRXstring[100] = { 0 }; // general purpose RX string
+char myTXstring[100] = { 0 }; // general purpose TX string
+char myVstring[100] = { 0 }; // general purpose V string for verification
+
+char debugFlag = 0;
+char hostMessage[100] = { 0 }; // buffer for host string messages
+char hostMessageReady = 0; // host message ready flag
+char hostMessageRequested = 0; // host message has been requested from M
+char sMessage[100] = { 0 }; // buffer for S mcu string messages
+char sMessageReady = 0; // S message ready flag
+//char hFound = 0;
+char myHString[5];
+char sPresent = 0; // slave device is present and responsive
+char eor = 0; // generic end of record flag
+char flashUpdateError = 0; // mcu flash update error flag
+char myHS = 0x00; // HS address
+char myHSerased = 0x00; // HS address of last erased device, used to prevent erasing large memory devices more than once
+char x_add[2] = { 0 }; // flash extended address, msb, lsb
+char rat = 16; // PANEL_DIM level index 0 (brightest) .. 31 (dimmest); 16 = 204/2561 = 8.0 %
+unsigned char serData;
+volatile unsigned char serPtr;
+int myH;
+int myMcuPtr;
+int i; // general purpose index
+int error = 0; // generic error flag
+// PANEL_DIM duty table, TIM16 period 2560: index 0 = 100 %, 31 = 0.74 % (the rev B-era DimSet table)
+const int DIM[] = {
+	2560, 2185, 1865, 1593, 1360, 1161, 991, 847,
+	723,  617,  527,  450,  384,  328,  280, 239,
+	204,  174,  149,  127,  108,   93,   79,  68,
+	 58,   49,   42,   36,   31,   26,   22,   19
+};
+#define DIM_LEVELS ((int)(sizeof(DIM) / sizeof(DIM[0])))
+
+/*
+ const char __attribute__((section (".myKey"))) flashSerial[13] = { 0xaa, 0xff,
+ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+ */
+
+const char HEX[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b',
+		'c', 'd', 'e', 'f' };
+// addresses of all S mcu in system
+const char mcuList[] = { 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18 };
+// list of all system PCBs by number and description,
+// note this causes compiler suspicion when declared const
+/*
+ const char *pcbName[] = { "M&W D24 DSP4     MCU",
+ "M&W D24 DSP4     LOGIC",
+ "M&W D24 SW RIGHT MCU",
+ "M&W D24 SW LEFT  MCU",
+ "Spare            MCU",
+ "Spare            MCU",
+ "Spare            MCU",
+ "Spare            MCU",};
+ */
+const char *pcbName[] = { "PCB1: MW D24 DSP4         MCU H",
+		"PCB1: MW D24 DSP4 LOGIC   MCU H", "PCB2: MW D24 SW RIGHT     MCU H",
+		"PCB3: MW D24 SW LEFT      MCU H", "PCB0: Spare               MCU H",
+		"PCB0: Spare               MCU H", "PCB0: Spare               MCU H",
+		"PCB0: Spare               MCU H", };
+const char NIBBLE[128] = { // for fast conversion of ascii to hex
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03,
+				0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+				0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
+/* USER CODE BEGIN PFP */
+void SB1(void);
+void SB2(void);
+void SB3(void);
+void SB4(void);
+void SB5(void);
+void SB6(void);
+void SB7(void);
+void SB8(void);
+
+void UART1_Write_Text(char *text);
+void UART1_Write(char textChar);
+char UART1_Read(void);
+char UART2_Read(void);
+
+void TxS(char myChar);
+void TxSmessage(void);
+void TxHostMessage(void);
+void TxString(char numBytes);
+
+void ResetAllSlaves(void);
+void Delay_ms(int ms);
+int WaitForSlaveAck(unsigned long timeoutFlag);
+void EraseFlash(void);
+
+void Debug(void);
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+// VECTOR
+void (*S_Boot[])(void) = {
+	SB1, SB2, SB3, SB4, SB5, SB6, SB7, SB8 };
+
+void GetUID(void) {
+	//unsigned long *temp = 0x1fff7a10; // for STM32F401RE
+	//unsigned long *temp = 0x1ffff7ac; // for STM32F030R8
+	long unsigned int *temp = (long unsigned int*)0x1fff7590UL; // for STM32G031C4T6
+	flashData[1] = temp[0] & 0xff;
+	flashData[2] = temp[0] >> 8 & 0xff;
+	flashData[3] = temp[0] >> 16 & 0xff;
+	flashData[4] = temp[0] >> 24 & 0xff;
+	flashData[5] = temp[1] & 0xff;
+	flashData[6] = temp[1] >> 8 & 0xff;
+	flashData[7] = temp[1] >> 16 & 0xff;
+	flashData[8] = temp[1] >> 24 & 0xff;
+	flashData[9] = temp[2] & 0xff;
+	flashData[10] = temp[2] >> 8 & 0xff;
+	flashData[11] = temp[2] >> 16 & 0xff;
+	flashData[12] = temp[2] >> 24 & 0xff;
+}
+
+//void Encrypt(void) {for (i = 1; i < sizeof flashSerial; i++) {flashSerial[i] =  flashData[i] ^ 85 ^ flashKey[i] ^ flashSerial[i - 1];}} // untested
+/*
+ void Decrypt(void) {
+ int i;
+ for (i = 1; i < sizeof flashCheck; i++) {
+ flashCheck[i] = flashSerial[i] ^ flashSerial[i - 1] ^ flashKey[i] ^ 85;
+ }
+ }
+ */
+void SerialCheck(void) {
+	int i;
+	for (i = 1; i < sizeof flashData; i++) {
+		if (flashData[i] != flashCheck[i]) {
+			while (1) {
+			}
+		}
+	}
+}
+
+void Blink(void) {
+	if (blinkReady) {
+		if (blink == 0x4) { // blink LEDs on
+							//Led0Green();
+			HAL_GPIO_WritePin(GPIOB, BLINK_Pin, GPIO_PIN_SET);
+			UART1_Write(S_BLINK_ON);
+			UART1_Write(0x0a);
+			TxS(S_BLINK_ON);
+			TxS(0x0a);
+		} else if (blink == 0x0) { // blink LEDs off
+								   //Led0Off();
+			HAL_GPIO_WritePin(GPIOB, BLINK_Pin, GPIO_PIN_RESET);
+			UART1_Write(S_BLINK_OFF);
+			UART1_Write(0x0a);
+			TxS(S_BLINK_OFF);
+			TxS(0x0a);
+		} else { // send 100mS tick for bargraph ballistics etc.
+				 //UART1_Write(S_TICK); UART1_Write(0x0a);
+				 //TxS(S_TICK); //TxS(0x0a);
+		}
+		blinkReady = 0;
+	}
+}
+
+void UART1_Write_Text(char *textString) {
+	int i = 0;
+	char hex[4] = { 0 };
+	while (textString[i] != 0)
+		i++;
+	HAL_UART_Transmit(&huart1, textString, i, 1000);
+}
+
+void UART1_Write(char textChar) {
+	char textString[1];
+	textString[0] = textChar;
+	HAL_UART_Transmit(&huart1, textString, 1, 1000);
+}
+
+char UART1_Read(void) {
+	char myChar[1] = " ";
+	HAL_UART_Receive(&huart1, myChar, 1, 100);
+	return myChar[0];
+}
+
+char UART1_Data_Ready(void) {
+	if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE) == SET)
+		return 1;
+	else
+		return 0;
+}
+
+char UART1_Tx_Idle(void) {
+	return __HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE);
+}
+
+void UART2_Write_Text(char *textString) {
+	int i = 0;
+	char hex[4] = { 0 };
+	while (textString[i] != 0)
+		i++;
+	HAL_UART_Transmit(&huart2, textString, i, 1000);
+}
+
+void UART2_Write(char textChar) {
+	char textString[1];
+	textString[0] = textChar;
+	HAL_UART_Transmit(&huart2, textString, 1, 1000);
+}
+
+char UART2_Read(void) {
+	char myChar[1] = " ";
+	HAL_UART_Receive(&huart2, myChar, 1, 100);
+	return myChar[0];
+}
+
+char UART2_Data_Ready(void) {
+	if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE) == SET)
+		return 1;
+	else
+		return 0;
+}
+
+char UART2_Tx_Idle(void) {
+	return __HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE);
+}
+
+void IntToHex(int input, char *output) {
+	output[0] = HEX[(input & 0xf000) >> 12];
+	output[1] = HEX[(input & 0xf00) >> 8];
+	output[2] = HEX[(input & 0xf0) >> 4];
+	output[3] = HEX[input & 0xf];
+}
+
+void PrintNameSerial(void) {
+	UART1_Write_Text("\n// Product Name   : ");
+	UART1_Write_Text(PROJECT_NAME);
+	UART1_Write('\n');
+	UART1_Write_Text("// MCU MH1 FW rev : ");
+	UART1_Write_Text(M_FW_REV);
+	//UART1_Write('\n');
+	//UART1_Write_Text("// Valid Serial   : "); // ***TESTING ONLY*** remove from release version
+
+	/*
+	 for (i = 1; i < sizeof flashSerial; i++) {
+	 sprintf(flashString, "%02x", flashSerial[i]);
+	 UART1_Write_Text(flashString);
+
+
+
+	 }
+	 */
+	UART1_Write('\n');
+}
+
+void WaitForHostMessage(void) {
+	i = 0;
+	myChar = 0x00;
+	while (myChar != 0x0a) {
+		if (UART1_Data_Ready() == 1) {
+			// wait for host new character
+			myChar = UART1_Read(); // read new character
+			myRXstring[i] = myChar; // put character into string buffer
+			i++; // increment pointer
+			__HAL_UART_CLEAR_FLAG(&huart1, UART_FLAG_RXNE);
+		}
+	}
+}
+
+void McuScan(void) { // scan all mcu to see if present in system
+	UART2_Read(); // to flush buffer
+	UART1_Write_Text("\n// scanning hardware");
+	PrintNameSerial();
+	for (i = 0; i < sizeof(mcuList); i++) {
+		myMcuPtr = mcuList[i];
+		myH = (myMcuPtr & 0xf0) >> 4;
+		IntToHex(myMcuPtr, myHString);
+		ResetAllSlaves();
+		Delay_ms(10); // reset all mcu
+		//select S MCU and send test byte
+		S_Boot[i]();
+		Delay_ms(100); // wait for S MCU to settle in boot mode
+		//TxS(0x7f);
+		// clear data received flag
+		__HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
+		UART2_Write(0x7f);
+		// report back S MCU status
+		error = WaitForSlaveAck(TIMEOUT100MS);
+		switch (error) {
+		case 0:
+			UART1_Write_Text("// found      ");
+			break;
+		case 1:
+			UART1_Write_Text("// MISSING!!! ");
+			break;
+		case 2:
+			UART1_Write_Text("// error      ");
+			break;
+		}
+		//UART1_Write_Text(pcbName[myH - 1]);
+		UART1_Write_Text(pcbName[i]);
+		UART1_Write(myHString[2]);
+		UART1_Write('S');
+		UART1_Write(myHString[3]);
+		UART1_Write_Text("\n");
+	}
+	ResetAllSlaves();
+	Delay_ms(10); // reset all mcu
+	UART1_Write_Text("// hardware scan complete\n");
+}
+
+void SB1(void) {
+	HAL_GPIO_WritePin(GPIOC, S1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOC, S0_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOC, S0_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB2(void) {
+	HAL_GPIO_WritePin(GPIOA, S5_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, S4_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOA, S4_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB3(void) {
+	HAL_GPIO_WritePin(GPIOA, S9_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, S8_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOA, S8_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB4(void) {
+	HAL_GPIO_WritePin(GPIOB, S13_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, S12_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOB, S12_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB5(void) {
+	HAL_GPIO_WritePin(GPIOB, S17_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, S16_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);	//S16_O = 1;
+	HAL_GPIO_WritePin(GPIOB, S16_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB6(void) {
+	HAL_GPIO_WritePin(GPIOC, S21_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOC, S20_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOC, S20_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB7(void) {
+	HAL_GPIO_WritePin(GPIOD, S25_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, S24_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(GPIOA, S24_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void SB8(void) {
+	HAL_GPIO_WritePin(GPIOB, S29_Pin, GPIO_PIN_SET);	//S28_O = 0;
+	HAL_GPIO_WritePin(S28_GPIO_Port, S28_Pin, GPIO_PIN_RESET);
+	Delay_ms(1);
+	HAL_GPIO_WritePin(S28_GPIO_Port, S28_Pin, GPIO_PIN_SET);
+	//S2M_O = 1;
+}
+
+void Delay_ms(int ms) {
+	HAL_Delay(ms);
+}
+
+void ResetAllSlaves(void) {
+	//S2S_Pin = 0;
+	HAL_GPIO_WritePin(GPIOB, S2S_Pin, GPIO_PIN_SET); // this pin must be set for M2S communication
+	//S0_Pin = 0; // reset = 0 //S20_Pin = 0;
+	HAL_GPIO_WritePin(GPIOC, S0_Pin | S20_Pin, GPIO_PIN_RESET);
+	//S4_Pin = 0; //S8_Pin = 0; //S24_Pin = 0;
+	HAL_GPIO_WritePin(GPIOA, S4_Pin | S8_Pin | S24_Pin, GPIO_PIN_RESET);
+	//S12_Pin = 0; //S16_Pin = 0;
+	HAL_GPIO_WritePin(GPIOB, S12_Pin | S16_Pin, GPIO_PIN_RESET);
+	//S28_Pin = 0;
+	HAL_GPIO_WritePin(S28_GPIO_Port, S28_Pin, GPIO_PIN_RESET);
+	//S1_Pin = 0; // boot0 = 0 //S21_Pin = 0;
+	HAL_GPIO_WritePin(GPIOC, S1_Pin | S21_Pin, GPIO_PIN_RESET);
+	//S5_Pin = 0; //S7_Pin = 0; //S9_Pin = 0; //S19_Pin = 0; //S23_Pin = 0;
+	HAL_GPIO_WritePin(GPIOA, S5_Pin | S7_Pin | S9_Pin | S19_Pin | S23_Pin,
+			GPIO_PIN_RESET);
+	//S11_Pin = 0; //S13_Pin = 0; //S15_Pin = 0; //S17_Pin = 0; //S29_Pin = 0; //S31_Pin = 0;
+	HAL_GPIO_WritePin(GPIOB,
+	S11_Pin | S13_Pin | S15_Pin | S17_Pin | S29_Pin | S31_Pin, GPIO_PIN_RESET);
+	//S3_Pin = 0; // send default 0, 1 = send data
+	HAL_GPIO_WritePin(S3_GPIO_Port, S3_Pin, GPIO_PIN_RESET);
+	//S25_Pin = 0; //S27_Pin = 0;
+	HAL_GPIO_WritePin(GPIOD, S25_Pin | S27_Pin, GPIO_PIN_RESET);
+}
+
+int WaitForSlaveAck(unsigned long timeoutFlag) {
+	//timeoutFlag = TIMEOUT;
+	char retFlag = 1;
+	while (timeoutFlag) { // note delete if not working
+		if (UART2_Data_Ready() == 1) {
+			if (UART2_Read() == 0x79) {
+				sPresent = 1;
+				return 0;
+			} // correct S response
+			else {
+				sPresent = 0;
+				//return 2;
+				retFlag = 2;
+			}
+		} // S response error
+
+		timeoutFlag--; // maybe needs revision? use timer?
+
+	}
+	//Led1Red(); // hardware error flag
+	sPresent = 0;
+	//return 1; // no S response
+	return retFlag;
+}
+
+int WaitForEraseAck(unsigned long timeoutFlag) {
+	//timeoutFlag = TIMEOUT;
+	char retFlag = 1;
+	while (timeoutFlag) { // note delete if not working
+		if (UART2_Data_Ready() == 1) {
+			if (UART2_Read() == 0x79) {
+				sPresent = 1;
+				return 0;
+			} // correct S response
+			else {
+				sPresent = 0;
+				//return 2;
+				retFlag = 2;
+			}
+		} // S response error
+
+		//timeoutFlag--; // maybe needs revision? use timer?
+
+	}
+	//Led1Red(); // hardware error flag
+	sPresent = 0;
+	//return 1; // no S response
+	return retFlag;
+}
+
+char GetCharHexByte(char mschar, char lschar) {
+	return (NIBBLE[mschar] << 4) + NIBBLE[lschar];
+}
+
+void UpdateFirmware(void) {
+	error = 0;
+	eor = 0;
+	while (!eor) {
+		UART1_Write(S_FLASH);
+		UART1_Write(0x0a); // request new firmware record from host
+		WaitForHostMessage(); // wait for complete record received from host
+		// get firmware record type
+		if (myRXstring[0] == ':') {
+			myByte = GetCharHexByte(myRXstring[7], myRXstring[8]);
+		} else {
+			break;
+		}
+		switch (myByte) {
+		case 0x00:
+			//UART1_Write_Text("// flash data record\n");
+			if (sPresent) { // firmware data record
+				int chkSum = 0;
+				TxS(0x31);
+				TxS(0xce); //UART1_Write_Text("// write memory command\n");
+				error += WaitForSlaveAck(TIMEOUTR);
+				myTXstring[0] = x_add[0];
+				myTXstring[1] = x_add[1]; // get extended flash address
+				myTXstring[2] = GetCharHexByte(myRXstring[3], myRXstring[4]);
+				myTXstring[3] = GetCharHexByte(myRXstring[5], myRXstring[6]); // get flash record address
+				myTXstring[4] = myTXstring[0] ^ myTXstring[1] ^ myTXstring[2]
+						^ myTXstring[3]; // get xor checksum
+				TxString(5); // send write address to slave
+				error = WaitForSlaveAck(TIMEOUTR);
+
+				/*				// original code for 16 byte chunks
+				 myTXstring[0] = 15; // number of data bytes -1
+				 myTXstring[1] = GetCharHexByte(myRXstring[9], myRXstring[10]);
+				 myTXstring[2] = GetCharHexByte(myRXstring[11], myRXstring[12]);
+				 myTXstring[3] = GetCharHexByte(myRXstring[13], myRXstring[14]);
+				 myTXstring[4] = GetCharHexByte(myRXstring[15], myRXstring[16]);
+				 myTXstring[5] = GetCharHexByte(myRXstring[17], myRXstring[18]);
+				 myTXstring[6] = GetCharHexByte(myRXstring[19], myRXstring[20]);
+				 myTXstring[7] = GetCharHexByte(myRXstring[21], myRXstring[22]);
+				 myTXstring[8] = GetCharHexByte(myRXstring[23], myRXstring[24]);
+				 myTXstring[9] = GetCharHexByte(myRXstring[25], myRXstring[26]);
+				 myTXstring[10] = GetCharHexByte(myRXstring[27], myRXstring[28]);
+				 myTXstring[11] = GetCharHexByte(myRXstring[29], myRXstring[30]);
+				 myTXstring[12] = GetCharHexByte(myRXstring[31], myRXstring[32]);
+				 myTXstring[13] = GetCharHexByte(myRXstring[33], myRXstring[34]);
+				 myTXstring[14] = GetCharHexByte(myRXstring[35], myRXstring[36]);
+				 myTXstring[15] = GetCharHexByte(myRXstring[37], myRXstring[38]);
+				 myTXstring[16] = GetCharHexByte(myRXstring[39], myRXstring[40]);
+				 myTXstring[17] = myTXstring[0] ^ myTXstring[1] ^ myTXstring[2]
+				 ^ myTXstring[3] ^ myTXstring[4] ^ myTXstring[5]
+				 ^ myTXstring[6] ^ myTXstring[7] ^ myTXstring[8]
+				 ^ myTXstring[9] ^ myTXstring[10] ^ myTXstring[11]
+				 ^ myTXstring[12] ^ myTXstring[13] ^ myTXstring[14]
+				 ^ myTXstring[15] ^ myTXstring[16];
+				 TxString(18); // send data to slave
+				 */
+				// modify to allow for less than 16 byte chunks...
+				myTXstring[0] = GetCharHexByte(myRXstring[1], myRXstring[2])
+						- 1; // number of data bytes -1
+				for (int numBytes = 0; numBytes < myTXstring[0] * 2 + 1;
+						numBytes += 2) {
+					myTXstring[1 + numBytes / 2] = GetCharHexByte(
+							myRXstring[9 + numBytes],
+							myRXstring[10 + numBytes]);
+				}
+				chkSum = myTXstring[0];
+				for (int numBytes = 0; numBytes < myTXstring[0] + 1;
+						numBytes++) {
+					chkSum ^= myTXstring[1 + numBytes];
+				}
+				myTXstring[myTXstring[0] + 2] = chkSum;
+				TxString(myTXstring[0] + 3); // send data to slave
+
+				//UART1_Write_Text("// data record sent\n");
+
+				error = WaitForSlaveAck(TIMEOUTR);
+
+				/*
+				 if (!error) {
+				 UART1_Write_Text("// verifying data\n");
+				 char verified = 1;
+				 // read data from flash
+				 TxS(0x11);
+				 TxS(0xee); //UART1_Write_Text("// read memory command\n");
+				 WaitForSlaveAck(TIMEOUTR);
+				 UART1_Write_Text("// read memory request\n");
+
+				 myTXstring[0] = x_add[0];
+				 myTXstring[1] = x_add[1]; // get extended flash address
+				 myTXstring[2] = GetCharHexByte(myRXstring[3],
+				 myRXstring[4]);
+				 myTXstring[3] = GetCharHexByte(myRXstring[5],
+				 myRXstring[6]); // get flash record address
+				 myTXstring[4] = myTXstring[0] ^ myTXstring[1]
+				 ^ myTXstring[2] ^ myTXstring[3]; // get xor checksum
+				 TxString(5); // send read address to slave
+
+				 if (!WaitForSlaveAck(TIMEOUTR)) {
+				 UART1_Write_Text("// sent read address\n");
+				 }
+
+				 myTXstring[0] = GetCharHexByte(myRXstring[1], myRXstring[2])
+				 - 1; // number of data bytes -1
+				 myTXstring[1] = myTXstring[0] ^ 0xff;
+				 TxString(2);
+
+				 if (!WaitForSlaveAck(TIMEOUTR)) {
+				 UART1_Write_Text("// requested number of bytes\n");
+
+				 // read and verify data
+				 for (int numBytes = 0; numBytes < myTXstring[0] * 2 + 1;
+				 numBytes += 2) {
+				 long timeoutFlag = 0xfffff;
+				 while (timeoutFlag) { // note delete if not working
+				 if (UART2_Data_Ready() == 1) {
+				 if (UART2_Read()
+				 != GetCharHexByte(
+				 myRXstring[9 + numBytes],
+				 myRXstring[10 + numBytes])) {
+				 verified = 0;
+				 timeoutFlag = 0;
+				 } // S response error
+				 else {UART1_Write_Text(printf("// %X\n",GetCharHexByte));}
+				 }
+				 timeoutFlag--; // maybe needs revision? use timer?
+				 if (timeoutFlag == 0)
+				 verified = 0;
+				 }
+				 }
+				 }
+
+				 UART1_Write_Text("// got the data\n");
+
+				 }
+				 */
+				if (error == 0) {
+					UART1_Write_Text("// flash update success\n");
+				} else {
+					UART1_Write_Text("//  flash update error\n");
+					flashUpdateError = 1;
+				}
+
+			}
+			//}
+			break;
+		case 0x04:
+			sPresent = 1; // extended address record
+			UART1_Write_Text("// flash extended address record\n");
+			x_add[0] = GetCharHexByte(myRXstring[9], myRXstring[10]); // store flash extended address msb
+			x_add[1] = GetCharHexByte(myRXstring[11], myRXstring[12]); // store flash extended address lsb
+			myHS = GetCharHexByte(myRXstring[4], myRXstring[6]); // store HnSn address
+			if (myHSerased != myHS) // if HnSn has changed then reset MCU and erase flash, else continue writing extended memory
+					{
+
+				//TxH(P_INIT);
+				ResetAllSlaves();
+				Delay_ms(10); // reset all mcu
+
+				//TxH(myHS);
+				S_Boot[(myHS & 0xf) - 1](); // select S MCU into boot mode
+				Delay_ms(100); // send mcu id and wait for response - 100mS for larger MCU bootloader startup times
+
+				//UART1_Write_Text("// erasing flash\n");
+				EraseFlash();
+			}
+			myHSerased = myHS;
+			break;
+		case 0x01:
+			UART1_Write_Text("// flash end of firmware record\n"); // firmware record end
+			if (!flashUpdateError) {
+				UART1_Write_Text(
+						"// all connected mcu flash updates successful\n");
+				//Led1Off();
+			} else {
+				UART1_Write_Text(
+						"// all connected mcu firmware updates NOT successful!!!\n");
+				//Led1Red();
+			}
+			eor = 1;
+			//TxH(P_INIT);
+			ResetAllSlaves();
+			Delay_ms(10); // reset all mcu
+			break;
+		default:
+			UART1_Write_Text("// break\n");
+			break;
+		}
+	}
+}
+
+void EraseFlash(void) {
+	TxS(0x7f); // send 0x7f to slave MCU to initiate bootloader code sequence
+	if (WaitForEraseAck(TIMEOUTR))
+		return; // return if slave response error
+	//UART1_Write_Text("// init MCU bootloader\n");
+	TxS(0x44);
+	TxS(0xbb); // erase flash
+	if (WaitForEraseAck(TIMEOUTR))
+		return; // return if slave response error
+	//UART1_Write_Text("// prepare MCU erase\n");
+	TxS(0xff);
+	TxS(0xff);
+	TxS(0x00); // erase all memory
+	if (WaitForEraseAck(TIMEOUTR))
+		return; // return if slave response error
+	//UART1_Write_Text("// flash erased\n");
+}
+
+void WaitForNotBusy() {
+	//while (!BUSY_Pin) {
+	while (!HAL_GPIO_ReadPin(BUSY_GPIO_Port, BUSY_Pin)) {
+	}
+}
+
+void CheckS(void) {
+	// set S2S mode, S2S_pin = 0
+	HAL_GPIO_WritePin(GPIOB, S2S_Pin, GPIO_PIN_RESET);
+	if (sMessageReady) {
+		TxSmessage();
+	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(S2_GPIO_Port, S2_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOF, S3_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(S2_GPIO_Port, S2_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOF, S3_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOA, S6_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOA, S7_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOA, S6_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOA, S7_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOB, S10_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOB, S11_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOB, S10_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOB, S11_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOB, S14_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOB, S15_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOB, S14_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOB, S15_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOB, S18_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOA, S19_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOB, S18_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOA, S19_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOA, S22_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOA, S23_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOA, S22_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOA, S23_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(S26_GPIO_Port, S26_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOD, S27_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(S26_GPIO_Port, S26_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOD, S27_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+//	if (sMessageReady) {
+//		TxSmessage();
+//	} // if S has sent message, forward it to host
+	if (!HAL_GPIO_ReadPin(GPIOB, S30_Pin)) {
+		WaitForNotBusy();
+		HAL_GPIO_WritePin(GPIOB, S31_Pin, GPIO_PIN_SET);
+		while (!HAL_GPIO_ReadPin(GPIOB, S30_Pin)) {
+		} // wait for S to finish sending data
+		HAL_GPIO_WritePin(GPIOB, S31_Pin, GPIO_PIN_RESET);
+		WaitForNotBusy();
+	}
+	if (sMessageReady) {
+		TxSmessage();
+	} // if S has sent message, forward it to host
+	  // set M2S mode, S2S_pin = 1
+	HAL_GPIO_WritePin(GPIOB, S2S_Pin, GPIO_PIN_SET);
+
+}
+
+void TxString(char numBytes) {
+	for (i = 0; i < numBytes; i++) {
+		TxS(myTXstring[i]);
+	}
+} // send bytes to slave
+
+void DimSet(unsigned char level);
+
+static int HexNibble(char c) {
+	if (c >= '0' && c <= '9') return c - '0';
+	if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+	if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+	return -1;
+}
+
+void CheckHost(void) {
+	if (hostMessageReady) { // host message ready to send to hardware
+		if (hostMessage[0] == S_DIMI) {
+			// PANEL_DIM absolute level: '>' + two hex digits (00..1F), newline-terminated,
+			// so the level can never collide with the newline or the raw P_DIMI/P_DIMD bytes.
+			// Handled here, never forwarded to the slaves.
+			int hi = HexNibble(hostMessage[1]), lo = HexNibble(hostMessage[2]);
+			if (hi >= 0 && lo >= 0)
+				DimSet((unsigned char)((hi << 4) | lo));
+			hostMessageReady = 0;
+			UART1_Write(S_RUN);
+			UART1_Write(0x0a); // request next message from host
+			return;
+		}
+		TxHostMessage(); // send host message to hardware
+		while (!UART2_Tx_Idle()) {
+		} // wait for buffer to empty before signalling for new data
+		UART1_Write(S_RUN);
+		UART1_Write(0x0a); // request next message from host
+	}
+}
+
+void CheckDebug(void) {
+	if (debugFlag) {
+		Debug();
+		debugFlag = 0;
+	}
+}
+
+void Debug(void) {
+}
+
+void DimSet(unsigned char level) {
+	if (level >= DIM_LEVELS)
+		level = DIM_LEVELS - 1;
+	rat = level;
+	TIM16->CCR1 = DIM[rat];
+}
+
+void DimI(void) {
+	if (rat < DIM_LEVELS - 1)
+		rat++;
+	//PWM_TIM3_Set_Duty(ratio/(DIM[rat]), _PWM_NON_INVERTED, _PWM_CHANNEL2); // set dim duty cycle
+	TIM16->CCR1 = DIM[rat];
+}
+void DimD(void) {
+	if (rat > 0)
+		rat--;
+	//PWM_TIM3_Set_Duty(ratio/(DIM[rat]), _PWM_NON_INVERTED, _PWM_CHANNEL2); // set dim duty cycle
+	TIM16->CCR1 = DIM[rat];
+}
+
+void MatrixFill(void) // rev200523
+{
+	int mi = 1;
+	int matrixSize = 0;
+	// disable interrupts
+	//RXNEIE_USART1_CR1_bit = 0;
+	//NVIC_IntDisable(IVT_INT_USART1);
+	__HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
+	//DisableInterrupts();
+	__disable_irq();
+	// transmit matrix fill start token
+	TxS(S_FILL_START);
+	// get matrix length from host
+	while (!UART1_Data_Ready) {
+	}
+	matrixSize = UART1_Read() << 8;
+	while (!UART1_Data_Ready) {
+	}
+	matrixSize += UART1_Read();
+	// loop until matrix fill end
+	while (mi <= matrixSize) {
+		if (UART1_Data_Ready) {
+			myChar = UART1_Read(); // read new character
+			TxS(myChar); // send char to bus
+			mi++;
+		}
+	}
+	matrixFill = 0;
+	// enable interrupts
+	//RXNEIE_USART1_CR1_bit = 1;
+	//NVIC_IntEnable(IVT_INT_USART1);
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
+	//EnableInterrupts();
+	__enable_irq();
+}
+
+void TxSmessage(void) { // send S message to Host
+	myChar = 0;
+	int i = 0;
+	while (myChar != 0x0a) {
+		myChar = sMessage[i];
+		i++;
+		UART1_Write(myChar);
+	}
+	sMessageReady = 0;
+}
+
+void TxHostMessage(void) {
+	myChar = 0;
+	int i = 0;
+	//if (hostMessage[0] == S_DIMI)
+	//	TxH(P_DIMI); // check for H dim inc message
+	//else if (hostMessage[0] == S_DIMD)
+	//	TxH(P_DIMD); // check for H dim dec message
+	if (hostMessage[0] == S_FILL_START)
+		matrixFill = 1; // check for matrixFill message
+	else {
+		while (myChar != 0x0a) { // send Host message to S
+			myChar = hostMessage[i];
+			i++;
+			TxS(myChar);
+		}
+	}
+	hostMessageReady = 0;
+}
+
+void TxS(char myChar) {
+	UART2_Write(myChar); // send char to bus
+	while (!UART2_Tx_Idle()) {
+	}
+}
+
+void StartAllSlaves(void) {
+	//S0_Pin = 1; // S1 reset = 1
+	HAL_GPIO_WritePin(GPIOC, S1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, S0_Pin, GPIO_PIN_SET);
+	//S4_Pin = 1; // S2 reset = 1
+	HAL_GPIO_WritePin(GPIOA, S5_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, S4_Pin, GPIO_PIN_SET);
+	//S8_Pin = 1; // S3 reset = 1
+	HAL_GPIO_WritePin(GPIOA, S9_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, S8_Pin, GPIO_PIN_SET);
+	//S12_Pin = 1; // S4 reset = 1
+	HAL_GPIO_WritePin(GPIOB, S13_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, S12_Pin, GPIO_PIN_SET);
+	//S16_Pin = 1; // S5 reset = 1
+	HAL_GPIO_WritePin(GPIOB, S17_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, S16_Pin, GPIO_PIN_SET);
+	//S20_Pin = 1; // S6 reset = 1
+	HAL_GPIO_WritePin(GPIOC, S21_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOC, S20_Pin, GPIO_PIN_SET);
+	//S24_Pin = 1; // S7 reset = 1
+	HAL_GPIO_WritePin(GPIOD, S25_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOA, S24_Pin, GPIO_PIN_SET);
+	//S28_Pin = 1; // S8 reset = 1
+	HAL_GPIO_WritePin(GPIOB, S29_Pin, GPIO_PIN_RESET);	//S28_O = 0;
+	HAL_GPIO_WritePin(S28_GPIO_Port, S28_Pin, GPIO_PIN_SET);
+}
+
+void EchoH1S1(void) {
+	ResetAllSlaves();
+	//select S MCU and send test byte
+	S_Boot[0]();
+	Delay_ms(100); // wait for S MCU to settle in boot mode
+	// clear data received flag
+	__HAL_UART_CLEAR_FLAG(&huart1, UART_FLAG_RXNE);
+	__HAL_UART_CLEAR_FLAG(&huart2, UART_FLAG_RXNE);
+	//UART2_Write(0x7f);
+	// report back S MCU status
+	//error = WaitForSlaveAck(TIMEOUT100MS);
+	UART1_Write(0x7f);
+	while (1) {
+		// if RX on UART1, TX to UART2
+		if (UART1_Data_Ready()) {
+			UART2_Write(UART1_Read());
+			while (!UART2_Tx_Idle()) {
+			}
+		}
+		// if RX on UART2, TX to UART1
+		if (UART2_Data_Ready()) {
+			UART1_Write(UART2_Read());
+			while (!UART1_Tx_Idle()) {
+			}
+		}
+	}
+}
+
+/* USER CODE END 0 */
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+	/* USER CODE BEGIN 1 */
+
+	/* bypass this section for debug
+	 // security check
+	 GetUID();
+	 //Encrypt(); only use for testing
+	 Decrypt();
+	 SerialCheck();
+	 */
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_TIM16_Init();
+	MX_USART1_UART_Init();
+	MX_USART2_UART_Init();
+	MX_TIM3_Init();
+	/* USER CODE BEGIN 2 */
+	ResetAllSlaves();
+	///*
+	// pre main loop
+
+	while (1) {
+		/*
+		 if (printHostMenu) {
+		 PrintNameSerial();
+		 printHostMenu = 0;
+		 }
+		 */
+		WaitForHostMessage();
+		if (myRXstring[0] == S_RUN)
+			break; // jump to main loop
+		else if (myRXstring[0] == S_SCAN) {
+			McuScan();
+		} // scan hardware
+		else if (myRXstring[0] == S_FLASH) {
+			UpdateFirmware();
+		} // update firmware
+		else if (myRXstring[0] == '@') {
+			EchoH1S1();
+		} // echo to h1s1
+		// 2026-08-19 rev C bring-up: loopback probe expected by the app's
+		// FirmwareLoader preflight before S_SCAN/S_FLASH (loadfw).
+		else if (myRXstring[0] == '?') {
+			UART1_Write_Text("\n// MH1 UART1 loopback OK\n");
+		}; // host loopback probe
+	}
+
+	//*/
+	HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
+	HAL_TIM_Base_Start_IT(&htim3);
+
+	StartAllSlaves();
+
+	// tx resuming normal operation message
+	//UART1_Write_Text("\n// resuming normal operation\n");
+	//HAL_UART_Transmit(&huart1, "\n// resuming normal operation\n", 30, 100);
+	UART1_Write_Text("\n// resuming normal operation\n");
+	UART1_Write_Text("\n// debug only\n");
+	// tx P_MAIN
+	//HAL_UART_Transmit(&huart1, P_MAIN, 1, 10); // \n?
+
+	// enable UART interrupts
+	UART1_Read();
+	UART2_Read();
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
+	__HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+		//while (!BUSY_Pin) {
+		WaitForNotBusy();
+		Blink(); // send blink sync signal to all system mcu and host
+		WaitForNotBusy();
+		CheckS(); // check S mcu for new data
+		WaitForNotBusy();
+		CheckHost(); // check Host for new data
+		WaitForNotBusy();
+		CheckDebug();
+		WaitForNotBusy();
+		if (matrixFill)
+			MatrixFill();
+	}
+	/* USER CODE END 3 */
+}
+
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+
+	/** Configure the main internal regulator output voltage
+	 */
+	HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+	RCC_OscInitStruct.PLL.PLLN = 8;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+	RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+		Error_Handler();
+	}
+	/** Initializes the peripherals clocks
+	 */
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+/**
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM3_Init(void) {
+
+	/* USER CODE BEGIN TIM3_Init 0 */
+
+	/* USER CODE END TIM3_Init 0 */
+
+	TIM_ClockConfigTypeDef sClockSourceConfig = { 0 };
+	TIM_MasterConfigTypeDef sMasterConfig = { 0 };
+
+	/* USER CODE BEGIN TIM3_Init 1 */
+
+	/* USER CODE END TIM3_Init 1 */
+	htim3.Instance = TIM3;
+	htim3.Init.Prescaler = 61;
+	htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim3.Init.Period = 65535;
+	htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+	if (HAL_TIM_Base_Init(&htim3) != HAL_OK) {
+		Error_Handler();
+	}
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK) {
+		Error_Handler();
+	}
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN TIM3_Init 2 */
+
+	/* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
+ * @brief TIM16 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM16_Init(void) {
+
+	/* USER CODE BEGIN TIM16_Init 0 */
+
+	/* USER CODE END TIM16_Init 0 */
+
+	TIM_OC_InitTypeDef sConfigOC = { 0 };
+	TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = { 0 };
+
+	/* USER CODE BEGIN TIM16_Init 1 */
+
+	/* USER CODE END TIM16_Init 1 */
+	htim16.Instance = TIM16;
+	htim16.Init.Prescaler = 0;
+	htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim16.Init.Period = 2560;
+	htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	htim16.Init.RepetitionCounter = 0;
+	htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+	if (HAL_TIM_Base_Init(&htim16) != HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_TIM_PWM_Init(&htim16) != HAL_OK) {
+		Error_Handler();
+	}
+	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	sConfigOC.Pulse = 204; // boot at DIM[16] (8.0 %) until the host restores its saved level (was 25 = 1 %)
+	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+	if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+	sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+	sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+	sBreakDeadTimeConfig.DeadTime = 0;
+	sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+	sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+	sBreakDeadTimeConfig.BreakFilter = 0;
+	sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+	if (HAL_TIMEx_ConfigBreakDeadTime(&htim16, &sBreakDeadTimeConfig)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN TIM16_Init 2 */
+
+	/* USER CODE END TIM16_Init 2 */
+	HAL_TIM_MspPostInit(&htim16);
+
+}
+
+/**
+ * @brief USART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART1_UART_Init(void) {
+
+	/* USER CODE BEGIN USART1_Init 0 */
+
+	/* USER CODE END USART1_Init 0 */
+
+	/* USER CODE BEGIN USART1_Init 1 */
+
+	/* USER CODE END USART1_Init 1 */
+	huart1.Instance = USART1;
+	huart1.Init.BaudRate = 115200;
+	huart1.Init.WordLength = UART_WORDLENGTH_8B;
+	huart1.Init.StopBits = UART_STOPBITS_1;
+	huart1.Init.Parity = UART_PARITY_NONE;
+	huart1.Init.Mode = UART_MODE_TX_RX;
+	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart1) != HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_UARTEx_EnableFifoMode(&huart1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART1_Init 2 */
+
+	/* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART2_UART_Init(void) {
+
+	/* USER CODE BEGIN USART2_Init 0 */
+
+	/* USER CODE END USART2_Init 0 */
+
+	/* USER CODE BEGIN USART2_Init 1 */
+
+	/* USER CODE END USART2_Init 1 */
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+	huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart2) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART2_Init 2 */
+
+	/* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOC, S0_Pin | S20_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOC, S1_Pin | S21_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(S3_GPIO_Port, S3_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOA, S4_Pin | S8_Pin | S24_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOA, S5_Pin | S7_Pin | S9_Pin | S19_Pin | S23_Pin,
+			GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOB,
+	S11_Pin | S13_Pin | S15_Pin | S17_Pin | S29_Pin | S31_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOB, S12_Pin | S16_Pin | S2S_Pin | BLINK_Pin,
+			GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOD, S25_Pin | S27_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(S28_GPIO_Port, S28_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin : BUSY_Pin */
+	GPIO_InitStruct.Pin = BUSY_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S0_Pin S1_Pin S20_Pin S21_Pin */
+	GPIO_InitStruct.Pin = S0_Pin | S1_Pin | S20_Pin | S21_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : S2_Pin */
+	GPIO_InitStruct.Pin = S2_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(S2_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : S3_Pin */
+	GPIO_InitStruct.Pin = S3_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(S3_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S4_Pin S5_Pin S7_Pin S8_Pin
+	 S9_Pin S19_Pin S23_Pin S24_Pin */
+	GPIO_InitStruct.Pin = S4_Pin | S5_Pin | S7_Pin | S8_Pin | S9_Pin | S19_Pin
+			| S23_Pin | S24_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S6_Pin S22_Pin */
+	GPIO_InitStruct.Pin = S6_Pin | S22_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S10_Pin S14_Pin S18_Pin S30_Pin */
+	GPIO_InitStruct.Pin = S10_Pin | S14_Pin | S18_Pin | S30_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S11_Pin S12_Pin S13_Pin S15_Pin
+	 S16_Pin S17_Pin S29_Pin S31_Pin
+	 S2S_Pin BLINK_Pin */
+	GPIO_InitStruct.Pin = S11_Pin | S12_Pin | S13_Pin | S15_Pin | S16_Pin
+			| S17_Pin | S29_Pin | S31_Pin | S2S_Pin | BLINK_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : S25_Pin S27_Pin S28_Pin */
+	GPIO_InitStruct.Pin = S25_Pin | S27_Pin | S28_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : S26_Pin */
+	GPIO_InitStruct.Pin = S26_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(S26_GPIO_Port, &GPIO_InitStruct);
+
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

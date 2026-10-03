@@ -1,0 +1,502 @@
+// matrix.cs include in H1S1 DSP
+
+// include
+#include <string.h>
+#include "matrix.h"
+
+//#include "c:/dropbox/_mx/MW/D24/MX/mxDef.h"
+//#include "c:/dropbox/_mx/MW/D24/MX/skinDef.h"
+
+// matrix start
+const unsigned int MATRIX[] = // local matrix cells
+{
+   0x0, // reserved and unused
+   Sys001Enc001,
+   Sys001Skin001,
+   Sys001Test001,
+   Sys001Test002,
+};
+enum // MATRIX cell pointers
+{
+   p0, // reserved and unused
+   pSys001Enc001,
+   pSys001Skin001,
+   pSys001Test001,
+   pSys001Test002,
+   MATRIX_X,
+};
+
+// matrix end
+
+// define 
+const char AX[] = { 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', };
+const char DX[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', };
+enum { TXD, TXF, RXD, RXF, MATRIX_Y };              // matrix cell data and flags
+unsigned char matrix[MATRIX_X][MATRIX_Y] ;          // matrix cell data and flag array
+
+// variable
+char ledOff[] = { 0x0, 0x0 };
+char ledOn[] = { 0x0, 0x1 };
+char matrixFill = 0;                                // flag to sequentially fill matrix cells
+char s_blink = 0;							        // system blink mode, 0 = LED off, 1 = LED on
+char s_blink1 = 0;                                  // last activated blink status
+char s_help = 0;							        // system help mode, all controls send non-executable values
+char ignor = 0;                                     // if = 1 then ignore, for messaging only
+char test = 1;								        // test flag
+char testMessage[100] = "// H1S1 DSP\n";            // test message
+unsigned int a = 0;							        // matrix address
+unsigned char d = 0;						        // matrix data
+char encLed = 0;                                    // variable selects encoder led: 0 = off, 1-8 sets radio led
+char radioLed = 0;                                  // variable selects sw led: 0 = off, 1-14 sets radio led
+char ledFollowSw = 0;                               // 0 = blink mode, 1 = led follows switch
+unsigned int TXptr = 1;
+unsigned long timeSplice = 0;
+char micGainCstm[25] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00 };
+char ak4619SpiMode[4] = { 0xDE, 0xAD, 0xDA, 0x7A };
+/* The READ command code (S81). The datasheet pairing recorded at S69 is
+   9.12 Table 27 / 9.13: the command code's MSB is the R/W flag and the low
+   seven bits are the access area, so the write code 0xC3 has the read code
+   0x43 -- SAME seven low bits, MSB cleared. The S80-Q5 note proposing 0xC1
+   does not fit that rule in either direction (0xC1 still has the write MSB
+   set, and 0x41 is a different access area), so 0x43 is the default here.
+   It is a VARIABLE and not a literal precisely because the two candidates
+   disagree: bus cell Sys001Test001 := 0xFD sets it, so the bench can settle
+   the question by measurement instead of by reading, with no reflash. */
+unsigned char codecReadCmd = 0x43;
+unsigned char codecReadGuard = 0;
+/* Index 21 is register 12H (bytes 0-2 are the SPI write header, so 00H is
+   index 3). It was 0x04, the part's reset default, which is DAC1SEL=00
+   (SDIN1) and DAC2SEL=01 (SDIN2). SDIN2 is AK4619 pin 2, N/C on this board
+   (netlist G3619), and datasheet 200900082-E-00 9.3 says SDIN2 is IGNORED
+   in TDM mode anyway - so DAC2, i.e. AOUT2L/R = CODEC_OUT_3/4 = the aux
+   outputs, was fed from nothing and would have stayed silent even after
+   the CPLD stopped tying SDIN1 low (S108-2 / S109).
+   0x00 sets DAC2SEL=00 = SDIN1 (Table 18), which in TDM256 SLOT=1 puts
+   DAC2L/R on SDIN1 slots 2/3 - exactly where C2_CODEC_AUX_OUT sends
+   CODEC_OUT_3/4 (dsp.csv slot_start=2, slot_count=2). DAC1 is unchanged. */
+char ak4619[24] = { //0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00, 
+                    0xC3, 0x00, 0x00, 0x37, 0xAC, 0x10, 0x00,
+                    0xBB, 0xBB, 0x30, 0x30, 0x30, 0x30, 0x00, 
+                    0x00, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 
+                    0x00, 0x05, 0x0A };
+
+// typedef
+GPIO_InitTypeDef GPIO_InitStruct = { 0 };           // hal gpio
+GPIO_InitTypeDef GPIO_BusyStruct = { 0 };           // hal gpio
+
+// extern
+extern char UART1_Read();                           // placed inside hal interupt
+extern SPI_HandleTypeDef hspi1; 
+extern UART_HandleTypeDef huart1;
+
+void TestMessage(void);
+void StartAK4619(void);
+void CodecPoll(void);
+void TestMicPres(void);
+void TimeSplice(void);
+void SpiTx(GPIO_TypeDef *port, uint16_t cs, int numBytes, unsigned char bytePtr[]);
+void SpiTxRx(GPIO_TypeDef *port, uint16_t cs, int numBytes, unsigned char txPtr[], unsigned char rxPtr[]);
+void DspTx(GPIO_TypeDef* port, uint16_t cs, int address, int numBytes, unsigned char bytePtr[]);
+
+// function
+void Poll(void) // TX, check if any cell data, or test message is flagged to send
+{
+    if (test) { HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_RESET); } // if test message is ready, set data ready flag to H mcu
+    //if (matrix[iPtr][TXF]) { TXptr = iPtr; HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_RESET); } // set ready flag
+    if (matrix[TXptr][TXF]) { HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_RESET); } // set ready flag
+    // instead of checking TX/RX flags, check if TXD and RXD are different?
+    //if (matrix[iPtr][TXD] != matrix[iPtr][RXD]) { TXptr = iPtr; HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_RESET); } // set ready flag
+    // note reasons to use TXF and RXF:
+    // TXD and TXF are local flags, and confirm that data has been successfully sent and received, and executed
+    // TXD and RXF can be applied to sequential cell groups, for efficiency, e.g. strings, or atomic data
+    //else { iPtr++; if (iPtr == MATRIX_X) iPtr = 1; } // inc pointer to check next control
+    else { TXptr++; if (TXptr == MATRIX_X) TXptr = 1; } // inc pointer to check next control
+    if (HAL_GPIO_ReadPin(S3_GPIO_Port, S3_Pin)) // check MH MCU data request
+    {
+        if (test) { TestMessage(); } // send test message
+        else // send matrix cell data
+        {
+            int dataLen = 0;
+            uint8_t data[10];
+            if (MATRIX[TXptr] & 0xf000) { data[dataLen] = AX[MATRIX[TXptr] >> 12 & 0x0f]; dataLen++; }      // write A ms nibble
+            if (MATRIX[TXptr] & 0xff00) { data[dataLen] = AX[MATRIX[TXptr] >> 8 & 0x0f]; dataLen++; }
+            if (MATRIX[TXptr] & 0xfff0) { data[dataLen] = AX[MATRIX[TXptr] >> 4 & 0x0f]; dataLen++; }
+            if (MATRIX[TXptr] & 0xffff) { data[dataLen] = AX[MATRIX[TXptr] & 0x0f]; dataLen++; }            // write A ls nibble
+            if (matrix[TXptr][TXD] & 0xf0) { data[dataLen] = DX[matrix[TXptr][TXD] >> 4]; dataLen++; }      // write D ms nibble
+            if (matrix[TXptr][TXD] & 0xff) { data[dataLen] = DX[matrix[TXptr][TXD] & 0x0f]; dataLen++; }    // write D ls nibble
+            data[dataLen] = '\n'; dataLen++;
+            HAL_UART_Transmit(&huart1, data, dataLen, HAL_MAX_DELAY);
+            if (matrix[TXptr][TXF]) matrix[TXptr][TXF]--;
+        }
+        while (HAL_GPIO_ReadPin(S3_GPIO_Port, S3_Pin)) { } // wait for MH MCU data request reset to avoid bus contention
+    }
+}
+
+/* CODEC REGISTER WRITE FROM THE MATRIX BUS (S69, PW ruling 2026-09-19:
+ * "use h1s1 to get the test spec, and we'll add a dedicated CS6 wire later").
+ *
+ * The AK4619's gain is NOT a 595 code -- it is MGN2R[3:0] in register 05H,
+ * inside the codec -- so until the CS6 wire exists the only way to reach it
+ * is H1S1's own SPI master. Two cells that already exist and that the app
+ * does not use carry the write:
+ *
+ *   Sys001Test001 = the register address (05H for the mic gains)
+ *   Sys001Test002 = the data byte, and writing it is what TRIGGERS the write
+ *
+ * so the bus line pair "imjn5\n" + "imjoB2\n" sets 05H := 0xB2, MGN2L +27 dB
+ * / MGN2R 0 dB. Register 0xFF is not a codec register and means "re-run
+ * StartAK4619()", a re-init lever that needs no reset of the whole bus.
+ *
+ * 0xC3 + 16-bit address + one data byte is the single-register write form
+ * (datasheet 9.12 Table 27: MSB of the command code is the R/W flag, the
+ * low seven bits are the access area; 9.13 gives 0xC3 write / 0x43 read).
+ * The block form StartAK4619() uses is the same command with N data bytes
+ * and an auto-incrementing address.
+ *
+ * CALLED FROM MainLoop, NOT FROM Eol. Eol runs in the UART interrupt and
+ * SpiTx blocks for up to a second; a codec write must not sit inside the
+ * bus receive path. The flag is cleared after the write, so a line that
+ * arrives while the previous write is still in flight is not lost.
+ *
+ * hspi1 shares SCK/MOSI copper with the CM4's SPI0 (the two-master wiring
+ * on rev D; the 2026-08-21 change removed H1S1's PERIODIC writes for this
+ * reason). Nothing here is periodic: one write per bus line, only when the
+ * host asks. The HOST is what has to keep its own SPI quiet around it. */
+/* THE READ ARM (S81, hub ruling 2026-09-20 Q5a). Until this the codec path
+ * was write-only in both halves -- no read command and no return cell -- so
+ * "does the AK4619 answer on SPI at all" needed a scope on the converter
+ * board. It is now one bus exchange.
+ *
+ * Two more sentinels join 0xFF in the ADDRESS cell, and neither is an
+ * AK4619 register (the map ends at 14H):
+ *
+ *   Sys001Test001 := 0xFE   READ. The DATA cell then carries the register
+ *                           number, and writing it triggers the read. The
+ *                           contents come back on Sys001Test001.
+ *   Sys001Test001 := 0xFB   RETURN THE GUARD BYTE of the last read, on
+ *                           Sys001Test001. Writing the data cell triggers
+ *                           it; the value written is not used.
+ *   Sys001Test001 := 0xFD   SET THE READ COMMAND CODE from the data cell.
+ *                           No SPI traffic; see codecReadCmd above.
+ *
+ * so "imjnFE\n" + "imjo05\n" reads 05H, and "imjnFD\n" + "imjoC1\n" first
+ * would make the next read use 0xC1 instead.
+ *
+ * TWO BYTES MATTER PER READ, and they are fetched one at a time:
+ *
+ *   rx[3]  the register's contents, the answer itself
+ *   rx[1]  the byte the part drove while the master was still clocking out
+ *          the ADDRESS -- the NEGATIVE CONTROL, held in codecReadGuard and
+ *          fetched with 0xFB. If MISO were echoing the master's own MOSI
+ *          (the U2-buffer fault) the data byte would come back as the
+ *          register NUMBER; the guard says which of the two shapes a part
+ *          that answers with the command code here is in.
+ *
+ * *** THE REPLY GOES ON THE ADDRESS CELL AND NEVER ON THE DATA CELL, AND
+ * THAT IS THE WHOLE DESIGN. *** The first S81 build answered on BOTH cells
+ * and it FREE-RAN on the part: the matrix bus is multi-drop, so H1S1 hears
+ * its own reply come back, Eol() stored it in the DATA cell, RXF went up,
+ * and CodecPoll read the register whose number was the previous answer --
+ * 00H returning 0x37, then 37H returning 0x00, alternating, a burst of
+ * unasked SPI on the copper the CM4 boots the SHARCs over. It terminated
+ * only by accident, when the echoed guard poisoned the address cell into
+ * the write branch, which transmits nothing.
+ *
+ * The rule that prevents it is structural rather than careful: the TRIGGER
+ * is RXF on the DATA cell, so nothing this firmware transmits may ever land
+ * there. An echo onto the ADDRESS cell is inert -- it changes a sentinel
+ * that the host rewrites before every request and that triggers nothing by
+ * itself.
+ *
+ * Poll() emits no data nibbles for a TXD of 0x00, so a returned zero is the
+ * address alone -- "imjn\n" -- which is still distinct from no reply, and a
+ * reply at all is the proof the arm ran (nothing else in this firmware ever
+ * flags this cell for transmit).
+ *
+ * Full duplex needs SpiTxRx(): SpiTx() is HAL_SPI_Transmit and discards
+ * MISO. hspi1 is already SPI_DIRECTION_2LINES with PA6 as SPI1_MISO, so
+ * this needs no re-init and changes nothing about the write path. */
+void CodecPoll(void)
+{
+    if (matrix[pSys001Test002][RXF])
+    {
+        unsigned char reg = matrix[pSys001Test001][RXD];
+        unsigned char val = matrix[pSys001Test002][RXD];
+        if (reg == 0xFF) { StartAK4619(); }
+        else if (reg == 0xFD) { codecReadCmd = val; }
+        else if (reg == 0xFB)
+        {
+            matrix[pSys001Test001][TXD] = codecReadGuard;
+            matrix[pSys001Test001][TXF] = 1;
+        }
+        else if (reg == 0xFE)
+        {
+            unsigned char w[4] = { 0x00, 0x00, 0x00, 0x00 };
+            unsigned char r[4] = { 0x00, 0x00, 0x00, 0x00 };
+            w[0] = codecReadCmd; w[2] = val;
+            SpiTxRx(GPIOA, CS_C_Pin, 4, w, r);
+            codecReadGuard = r[1];
+            matrix[pSys001Test001][TXD] = r[3];
+            matrix[pSys001Test001][TXF] = 1;
+        }
+        else
+        {
+            unsigned char w[4] = { 0xC3, 0x00, reg, val };
+            SpiTx(GPIOA, CS_C_Pin, 4, w);
+        }
+        matrix[pSys001Test002][RXF] = 0;
+    }
+}
+
+void MainInit()
+{
+    // init matrix bus
+    GPIO_InitStruct.Pin = S2_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(S2_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_SET); // data ready handshake pin
+    // init uart interrupt busy pin
+    GPIO_BusyStruct.Pin = BUSY_Pin;    
+    // main init
+    // reset converters and mic pre shift registers
+    HAL_GPIO_WritePin(GPIOA, RST_C_Pin, GPIO_PIN_RESET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(GPIOA, RST_C_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+    StartAK4619();
+    TestMicPres();
+}
+
+void MainLoop()
+{
+    if (s_blink != s_blink1)
+    {
+        if (s_blink)
+        {
+            // blink on routines here...
+            HAL_GPIO_WritePin(GPIOB, BLINK_Pin, GPIO_PIN_SET);
+            /* CS1..CS8 DspTx(0xF520) writes removed 2026-08-21 -- see
+               the note in TimeSplice(). These asserted CS1/CS2, which
+               are the SHARCs' own boot chip selects, while the CM4 may
+               be mid boot stream. They also did nothing: 0xF520 is
+               legacy ADAU-era protocol that the SHARC firmware does not
+               implement. The BLINK_Pin write above is kept. */
+        }
+        else
+        {
+            // blink off routines here...
+            HAL_GPIO_WritePin(GPIOB, BLINK_Pin, GPIO_PIN_RESET);
+            /* CS1..CS8 DspTx(0xF520) writes removed 2026-08-21 -- see
+               the note in TimeSplice(). */
+        }
+        s_blink1 = s_blink;
+    }
+        Poll();
+        CodecPoll();
+        TimeSplice();
+}
+
+void TimeSplice()
+{
+    if (timeSplice > 1000000)
+    {
+        timeSplice = 0;
+        /* TestMicPres() removed from the periodic path 2026-08-21.
+           It pushes 25 bytes at CS_M on SPI1, and SPI1 is physically the
+           same SCK/MOSI the CM4 boots the two SHARCs over -- one bus,
+           two masters, no arbitration. Because this fires off a MainLoop
+           ITERATION counter rather than a timer, the burst landed every
+           ~40-254 ms depending on serial load, which corrupted any boot
+           stream longer than about 220 ms and made the 258 KB chip-1
+           image impossible to load at any SPI clock.
+           TestMicPres() is still called once at init (see Setup), so mic
+           gain is still applied -- only the pointless re-application
+           every million loops is gone. */
+    }
+    timeSplice++;
+}
+
+// matrix functions
+void Spare(void) { }
+void Meter(void) { }                        // legacy allocation to control meter ballistics, instead of dsp control
+void MfOn(void) { matrixFill = 1; }         // start matrix fill mode
+void MfOf(void) { }                         // stop matrix fill mode
+void BlkOn(void) { s_blink = 1; Meter(); }  // blink on
+void BlkOf(void) { s_blink = 0; Meter(); }  // blink off
+void Tick(void) { Meter(); }                // unused legacy tick counter
+void HlpOn(void) { s_help = 1; }            // help mode on, no data loaded to cells during this mode
+void HlpOf(void) { s_help = 0; }            // hrlp mode off
+void IgnOn(void) { ignor = 1; }             // ignore data characters, for system comment logs only (prefixed with "//"
+void Test(void) { test = 1; }               // send mcu test message to host if true
+void TestMessage(void)                      // send mcu test message to host
+{
+    HAL_UART_Transmit(&huart1, (uint8_t*)testMessage, (uint16_t)strlen(testMessage), HAL_MAX_DELAY);
+    test = 0;
+}
+
+void Eol(void) // RX, end-of-line, bus matrix message received
+{
+    //GPIO_BusyStruct.Pin = BUSY_Pin;
+    GPIO_BusyStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_BusyStruct);
+    HAL_GPIO_WritePin(BUSY_GPIO_Port, BUSY_Pin, GPIO_PIN_RESET); // mcu/bus is busy
+    if ((!s_help) && (!ignor)) 
+    { 
+        for (int i = 1; i < MATRIX_X; i++) // find local matrix address
+        {
+            if (a == MATRIX[i]) // local matrix address found
+            {
+                matrix[i][RXD] = d; // write local matrix data
+                if (matrix[i][RXF] < 2) matrix[i][RXF]++;
+                break;
+            }
+        }
+    }
+    d = 0;                  // reset local data value
+    ignor = 0;              // reset ignore comment flag
+    if (matrixFill) a++;    // inc matrix fill address
+    else a = 0;             // reset local address value
+    HAL_GPIO_WritePin(S2_GPIO_Port, S2_Pin, GPIO_PIN_SET);  // message decoded and data stored, handshake with H mcu
+    //GPIO_BusyStruct.Pin = BUSY_Pin;
+    GPIO_BusyStruct.Mode = GPIO_MODE_INPUT;
+    HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_BusyStruct);        // mcu/bus is not busy
+}
+
+// matrix bus message, address and data translator
+void A_00(void) { a <<= 4; a += 0x00; } void A_01(void) { a <<= 4; a += 0x01; }
+void A_02(void) { a <<= 4; a += 0x02; } void A_03(void) { a <<= 4; a += 0x03; }
+void A_04(void) { a <<= 4; a += 0x04; } void A_05(void) { a <<= 4; a += 0x05; }
+void A_06(void) { a <<= 4; a += 0x06; } void A_07(void) { a <<= 4; a += 0x07; }
+void A_08(void) { a <<= 4; a += 0x08; } void A_09(void) { a <<= 4; a += 0x09; }
+void A_0A(void) { a <<= 4; a += 0x0A; } void A_0B(void) { a <<= 4; a += 0x0B; }
+void A_0C(void) { a <<= 4; a += 0x0C; } void A_0D(void) { a <<= 4; a += 0x0D; }
+void A_0E(void) { a <<= 4; a += 0x0E; } void A_0F(void) { a <<= 4; a += 0x0F; }
+void D_00(void) { d <<= 4; d += 0x00; } void D_01(void) { d <<= 4; d += 0x01; }
+void D_02(void) { d <<= 4; d += 0x02; } void D_03(void) { d <<= 4; d += 0x03; }
+void D_04(void) { d <<= 4; d += 0x04; } void D_05(void) { d <<= 4; d += 0x05; }
+void D_06(void) { d <<= 4; d += 0x06; } void D_07(void) { d <<= 4; d += 0x07; }
+void D_08(void) { d <<= 4; d += 0x08; } void D_09(void) { d <<= 4; d += 0x09; }
+void D_0A(void) { d <<= 4; d += 0x0A; } void D_0B(void) { d <<= 4; d += 0x0B; }
+void D_0C(void) { d <<= 4; d += 0x0C; } void D_0D(void) { d <<= 4; d += 0x0D; }
+void D_0E(void) { d <<= 4; d += 0x0E; } void D_0F(void) { d <<= 4; d += 0x0F; }
+
+// action
+void(*Rx_Fun[])(void) = // matrix bus message character vector table
+{
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x00 - 0x07 nul, soh, stx, etx, eot, enq, ack, bel
+    Spare, Spare, Eol,   Spare, Spare, Spare, Spare, Spare, // 0x08 - 0x0f  bs, tab,  lf,  vt,  ff,  cr,  so,  si
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x10 - 0x17 dle, dc1, dc2, dc3, dc4, nak, syn, etb
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x18 - 0x1f can,  em, sub, esc,  fs,  gs,  rs,  us
+    Spare, Spare, Spare, Spare, Spare, Spare, Test,  Spare, // 0x20 - 0x27 ' ', '!', '"', '#', '$', '%', '&', '''
+    Spare, Spare, Spare, Spare, Spare, Tick,  BlkOf, IgnOn, // 0x28 - 0x2f '(', ')', '*', '+', ',', '-', '.', '/'
+    D_00,  D_01,  D_02,  D_03,  D_04,  D_05,  D_06,  D_07,  // 0x30 - 0x37 '0', '1', '2', '3', '4', '5', '6', '7'
+    D_08,  D_09,  BlkOn, HlpOf, Spare, Spare, Spare, HlpOn, // 0x38 - 0x3f '8', '9', ':', ';', '<', '=', '>', '?'
+    Spare, D_0A,  D_0B,  D_0C,  D_0D,  D_0E,  D_0F,  Spare, // 0x40 - 0x47 '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G'
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x48 - 0x4f 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x50 - 0x57 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W'
+    Spare, Spare, Spare, Spare, Spare, Spare, Spare, Spare, // 0x58 - 0x5f 'X', 'Y', 'Z', '[', '\', ']', '^', '_'
+    Spare, D_0A,  D_0B,  D_0C,  D_0D,  D_0E,  D_0F,  Spare, // 0x60 - 0x67 ''', 'a', 'b', 'c', 'd', 'e', 'f', 'g'
+    A_00,  A_01,  A_02,  A_03,  A_04,  A_05,  A_06,  A_07,  // 0x68 - 0x6f 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o'
+    A_08,  A_09,  A_0A,  A_0B,  A_0C,  A_0D,  A_0E,  A_0F,  // 0x70 - 0x77 'p', 'q', 'r', 's', 't', 'u', 'v', 'w'
+    Spare, Spare, Spare, Spare, MfOf,  Spare, MfOn,  Spare, // 0x78 - 0x7f 'x', 'y', 'z', '{', '|', '}', '~', del
+}
+;
+
+// interrupt
+void Uart1_Int()
+{
+    Rx_Fun[UART1_Read() & 0x7f](); // accept only ascii characters (0-128), store or execute bus message, byte-by-byte
+}
+
+void TestMicPres()
+{
+    // HAL_GPIO_WritePin(GPIOA, RST_C_Pin, GPIO_PIN_SET);
+    
+    char micGain55[25] = {0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+                          0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+                          0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+                          0x00};
+    char micGainAA[25] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+                          0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+                          0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+                          0x00};
+    char micGainFull[25] = {0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc,
+                            0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc,
+                            0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc, 0xfc,
+                            0x00};
+    char micGainMin[25] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                           0x00};
+
+    //micGainCstm[18]+=4; micGainCstm[18] &= 0xfc;
+    //SpiTx(GPIOA, CS_M_Pin, 25, micGainMin);
+    SpiTx(GPIOA, CS_M_Pin, 25, micGainFull);
+}
+
+void StartAK4619()
+{
+    SpiTx(GPIOA, CS_C_Pin, 4, ak4619SpiMode);
+    SpiTx(GPIOA, CS_C_Pin, 24, ak4619);
+}
+
+void SpiTx(GPIO_TypeDef *port, uint16_t cs, int numBytes,
+		unsigned char bytePtr[]) {
+	
+	int i = 0;
+    uint8_t buffer[numBytes];
+	for (i = 0; i < numBytes; i++)
+	{
+	    buffer[i] = bytePtr[i];
+	}
+	
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, buffer, numBytes, 1000);
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_SET);
+}
+
+/* SpiTx with MISO kept (S81). Deliberately a SEPARATE function rather than
+   a flag on SpiTx: SpiTx has three other callers -- StartAK4619 twice and
+   TestMicPres once -- and the 595 mic-pre chain shares this SPI with the
+   codec, so the write path must stay byte-identical and provably untouched
+   in the disassembly. Same CS discipline, same 1 s timeout. */
+void SpiTxRx(GPIO_TypeDef *port, uint16_t cs, int numBytes,
+		unsigned char txPtr[], unsigned char rxPtr[]) {
+
+	int i = 0;
+    uint8_t txBuffer[numBytes];
+    uint8_t rxBuffer[numBytes];
+	for (i = 0; i < numBytes; i++)
+	{
+	    txBuffer[i] = txPtr[i];
+	    rxBuffer[i] = 0;
+	}
+
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_RESET);
+    HAL_SPI_TransmitReceive(&hspi1, txBuffer, rxBuffer, numBytes, 1000);
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_SET);
+
+	for (i = 0; i < numBytes; i++)
+	{
+	    rxPtr[i] = rxBuffer[i];
+	}
+}
+
+void DspTx(GPIO_TypeDef* port, uint16_t cs, int address, int numBytes, unsigned char bytePtr[])
+{
+    int i = 0;
+    uint8_t buffer[numBytes + 3];
+    buffer[0] = 0;
+    buffer[1] = address >> 8;
+    buffer[2] = address & 0xff;
+    for (i = 0; i < numBytes; i++)
+    {
+        buffer[i + 3] = bytePtr[i];
+    }
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi1, buffer, numBytes + 3, 1000);
+    HAL_GPIO_WritePin(port, cs, GPIO_PIN_SET);
+}

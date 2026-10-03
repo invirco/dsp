@@ -1,0 +1,82 @@
+--- main.c.orig	2026-09-28 14:05:52.610767826 +0100
++++ main.c	2026-09-28 14:07:09.158955890 +0100
+@@ -84,14 +84,21 @@
+ char myHS = 0x00; // HS address
+ char myHSerased = 0x00; // HS address of last erased device, used to prevent erasing large memory devices more than once
+ char x_add[2] = { 0 }; // flash extended address, msb, lsb
+-char rat = 4;
++char rat = 16; // PANEL_DIM level index 0 (brightest) .. 31 (dimmest); 16 = 204/2561 = 8.0 %
+ unsigned char serData;
+ volatile unsigned char serPtr;
+ int myH;
+ int myMcuPtr;
+ int i; // general purpose index
+ int error = 0; // generic error flag
+-const int DIM[] = { 2560, 1434, 803, 450, 252, 141, 79, 43, 25 };
++// PANEL_DIM duty table, TIM16 period 2560: index 0 = 100 %, 31 = 0.74 % (the rev B-era DimSet table)
++const int DIM[] = {
++	2560, 2185, 1865, 1593, 1360, 1161, 991, 847,
++	723,  617,  527,  450,  384,  328,  280, 239,
++	204,  174,  149,  127,  108,   93,   79,  68,
++	 58,   49,   42,   36,   31,   26,   22,   19
++};
++#define DIM_LEVELS ((int)(sizeof(DIM) / sizeof(DIM[0])))
+ 
+ /*
+  const char __attribute__((section (".myKey"))) flashSerial[13] = { 0xaa, 0xff,
+@@ -850,8 +857,29 @@
+ 	}
+ } // send bytes to slave
+ 
++void DimSet(unsigned char level);
++
++static int HexNibble(char c) {
++	if (c >= '0' && c <= '9') return c - '0';
++	if (c >= 'A' && c <= 'F') return c - 'A' + 10;
++	if (c >= 'a' && c <= 'f') return c - 'a' + 10;
++	return -1;
++}
++
+ void CheckHost(void) {
+ 	if (hostMessageReady) { // host message ready to send to hardware
++		if (hostMessage[0] == S_DIMI) {
++			// PANEL_DIM absolute level: '>' + two hex digits (00..1F), newline-terminated,
++			// so the level can never collide with the newline or the raw P_DIMI/P_DIMD bytes.
++			// Handled here, never forwarded to the slaves.
++			int hi = HexNibble(hostMessage[1]), lo = HexNibble(hostMessage[2]);
++			if (hi >= 0 && lo >= 0)
++				DimSet((unsigned char)((hi << 4) | lo));
++			hostMessageReady = 0;
++			UART1_Write(S_RUN);
++			UART1_Write(0x0a); // request next message from host
++			return;
++		}
+ 		TxHostMessage(); // send host message to hardware
+ 		while (!UART2_Tx_Idle()) {
+ 		} // wait for buffer to empty before signalling for new data
+@@ -870,8 +898,15 @@
+ void Debug(void) {
+ }
+ 
++void DimSet(unsigned char level) {
++	if (level >= DIM_LEVELS)
++		level = DIM_LEVELS - 1;
++	rat = level;
++	TIM16->CCR1 = DIM[rat];
++}
++
+ void DimI(void) {
+-	if (rat < 8)
++	if (rat < DIM_LEVELS - 1)
+ 		rat++;
+ 	//PWM_TIM3_Set_Duty(ratio/(DIM[rat]), _PWM_NON_INVERTED, _PWM_CHANNEL2); // set dim duty cycle
+ 	TIM16->CCR1 = DIM[rat];
+@@ -1248,7 +1283,7 @@
+ 		Error_Handler();
+ 	}
+ 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+-	sConfigOC.Pulse = 25;
++	sConfigOC.Pulse = 204; // boot at DIM[16] (8.0 %) until the host restores its saved level (was 25 = 1 %)
+ 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+ 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+ 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;

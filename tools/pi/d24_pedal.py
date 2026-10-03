@@ -6,7 +6,7 @@ normal operation, so stop it first and put it back, as `d24_bus_probe.py`
 requires. The bus is single-user: never run this beside the factory runner.
 
 THE PATH: /dev/serial0 -> MH1 (run mode) -> slave bus -> H1S4, the left switch
-MCU, running the S167 relay (`MW/D24/DSP/s167/h1s4-relay`) -> USART2 PA2/PA3
+MCU, running the S167 relay (`MW/D24/FW/H1S4`) -> USART2 PA2/PA3
 -> U36/U37 -> J8 -> P1. Host and H1S4 exchange "/%" comment lines, which
 every other panel MCU ignores (see pedal_relay.cs for the wire protocol):
     /%O<N|E>[baud]  open at 8N1 (P1 app) or 8E1 (ROM bootloader)

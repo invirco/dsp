@@ -1,0 +1,1 @@
+The S167 firmware sources moved to MW/D24/FW/ (P1, H1S4) in S168; this folder keeps the logs and report.

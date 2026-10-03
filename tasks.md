@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 16:45Z — S168: MCU firmware into the repo — MW/D24/FW/<MCU>/ (P1, H1S1, H1S3, H1S4, MH1), desk only   [status: 🟡 dispatched]   [model: sonnet]
+## HUB DISPATCH 2026-10-03 16:45Z — S168: MCU firmware into the repo — MW/D24/FW/<MCU>/ (P1, H1S1, H1S3, H1S4, MH1), desk only   [status: 🟢 done — all five MCU images reproduce byte-for-byte from MW/D24/FW/<MCU>/ (P1 baf55b3b/793aa3f5, H1S4 base f54848b0 + relay ff79052e, H1S1 19a5492d from ~/build-h1s1, H1S3 43efd43f from unit s131fw/H1S3-B, MH1 flashed = dimset 1110c60a hex, NOT fwbuild MH1.elf 0fe9717a); table in MW/D24/FW/README.md; REV D UPDATE HOLD filed there; MH1 chip not re-read (unit untouched)]   [model: sonnet]
 
 model: sonnet
 
