@@ -157,6 +157,8 @@ After the walk the pedal is left with **everything ON** (`:`), the maximum DIM0 
 - **Proper fix for the next P1 rev:** fit the common-ANODE part (SA08-11YWA or an FJ8102**B**Y), and turn Q3/Q4 round (emitter to +3V3) or use a logic-level P-MOSFET per rail. Add to the BOM: "common anode only; no A-suffix substitutes".
 - 🔴 **PW/hub decision:** (i) do the Q3-out / DIM0-to-GND bodge on this pedal and I flash `P1-cc.bin` over the cable (it doubles as the update test); or (ii) swap the display for a CA part and fix Q3; or (iii) leave the display for now and continue step E (update-from-app and power-cut) with the CA image.
 
+🔴 **DIM OFF HELD** (16:11 BST): pedal acked `.` (all lamps off) and `D0` (TIM3 CCR3 = CCR4 = 0, so DIM_1/PB0 and DIM_0/PB1 held LOW, Q1/Q2 off). PW: re-measure the Q3 and Q4 emitters now. I restore all-on (`D9` + `:`) on the hub's word.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
