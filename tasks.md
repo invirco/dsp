@@ -184,6 +184,25 @@ Still open for PW: (i) Q3 out + DIM0 to GND and `P1-cc.bin` over the cable, (ii)
 **Q3 — may it stay fitted? Yes, and with PW removing it the question is moot.** PB1 (DIM_0) is analog/Hi-Z from reset and untouched by the ROM (USART1 PA9/PA10, I2C1 PB6/PB7 only); the CC image holds TIM3 CCR4 = 0 (PB1 low) from Init. With Q1 off, R23 + R21 pull Q3's base to +3V3: base–emitter reverse-biased 3.3 V against grounded DIM0, below the 2N4403's 5 V rating, so off. Even DIM_0 driven high would only put Q3 in inverse mode at a few times Q1's ~2.5 mA base drive (≈10–15 mA), not a short.
 **With DIM0 still floating, the CC image lights no segment** (expected). LD1–LD4 work as before. After PW's bodge: tell me, and I run a slow single-segment walk (5 s each, announced live) to confirm the FJ8102AY pinout pin by pin (incl. the left dot on pin 6), then the power-cut case.
 
+🔴 **S167 WALK — STARTS EXACTLY 16:25:00 BST** (after PW's Q3-out / DIM0-to-GND bodge; pedal re-powered at 16:2x, booted from flash: `V` = `P1 1.0-s167-cc … optr=FFFFFEAA`, `S00`, all on since 16:23:03).
+One lamp at a time, **4 s each, two passes** (pass 1 16:25:00–16:25:52, pass 2 16:25:52–16:26:44), then everything ON:
+| # | pass 1 at | pass 2 at | lamp | MCU pin | display pin (Kingbright layout, to verify) |
+|---|---|---|---|---|---|
+| 1 | 16:25:00 | 16:25:52 | LD1 | PB9 | — |
+| 2 | :04 | :56 | LD2 | PA0 | — |
+| 3 | :08 | 16:26:00 | LD3 | PA2 | — |
+| 4 | :12 | :04 | LD4 | PA3 | — |
+| 5 | :16 | :08 | seg a (top) | PA11 | 1 |
+| 6 | :20 | :12 | seg b (top right) | PA15 | 14 |
+| 7 | :24 | :16 | seg c (bottom right) | PB5 | 12 |
+| 8 | :28 | :20 | seg d (bottom) | PB7 | 10 |
+| 9 | :32 | :24 | seg e (bottom left) | PB3 | 4 |
+| 10 | :36 | :28 | seg f (top left) | PA12 | 2 |
+| 11 | :40 | :32 | seg g (middle) | PB4 | 13 |
+| 12 | :44 | :36 | left dot "L" | PB6 | 6 |
+| 13 | :48 | :40 | right dot "R" | PB8 | 9 |
+🔴 PW: for each step, say what lit (or that it was the expected one).
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
