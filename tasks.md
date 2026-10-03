@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 in progress — 🔴 PW LOAD NOTE: pedal LEDs CANNOT be lit from the host with the stub firmware; see note below]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 blocked — the pedal round trip stops at H1S4: USART2 (PA2→pedal) carries bytes out, but PA3/USART2 RX is never read, so the stub's ":\n" reply cannot reach the host on the flashed firmware; smallest fix = H1S4-only relay (MH1 untouched), ruling needed before any flash; no device touched]   [model: opus]
 
 model: opus
 
@@ -35,6 +35,29 @@ Outcome wanted: A–F status in five lines, image hashes on every device touched
 - **The stub can never light an LED.** `~/build-p1` sets up TIM3 CH3/CH4 on PB0/PB1 (DIM_0/DIM_1 → Q1/Q3, Q2/Q4, the high-side supply for every LED and display segment) but never calls `HAL_TIM_PWM_Start`, so DIM0/DIM1 stay off. Its `:` handler only pulls the cathodes low. That fits what PW sees: LEDs dark at idle.
 - **"Hold lit" is also not possible from the host today.** MH1's `.` follows 254 ms after each `:`, and the shipping H1S4 has no way to stop forwarding it.
 - **To measure P1 under load now (PW, pick one):** (a) put a bench load on the pedal supply. All LEDs + 7-seg at 470 Ω from 3.3 V is about 8 LEDs × ~3 mA + 8 segments × ~3 mA ≈ 50 mA, so ~100 Ω across the 5 V gives a comparable ~50 mA. (b) Flash the S167 P1 lamp-test image at J5 with an ST-Link (it powers up with DIM on and every LED and segment lit, and holds). I am building it now; the file and command will follow in this block.
+
+🔴 **S167 RULING NEEDED (2026-10-03 ~14:30Z) — the pedal connect/ack is NOT possible on the firmware as flashed. Where the path stops, and the smallest change that opens it.**
+
+Path, traced from source and schematics, and read on the unit (read-only: one passive 3 s listen on `/dev/serial0`, no writes, no flash, AN_EN low, factory runner untouched):
+1. CM4 `/dev/serial0` (115200 8N1) → **MH1** USART1. MH1 (STM32G031, `fwbuild/MH1`) is in run mode. It forwards every host line to the slave bus on USART2, and every slave line (S2/S3 handshake) back to the host. **This hop works both ways.**
+2. Slave bus → **H1S4** USART1 PA9/PA10 (left switch U4 STM32F030R8; it carries socket id H1S3 per S135). **This hop works both ways.**
+3. H1S4 → pedal: **USART2 TX = PA2 (pin 16) = P44 = PDL_TX** → U36 → J8 → P1. Outbound **works today without any host action**: MH1 broadcasts `:`/`.` every 254 ms (heard live on the bus), and H1S4's `MainLoop()` sends `:\n`/`.\n` out of USART2 on each change. So the pedal already gets a `:` twice a second.
+4. Pedal → H1S4: **USART2 RX = PA3 (pin 17) = P45 = PDL_RX**. **THIS IS WHERE THE PATH STOPS.** The flashed H1S4 (`f54848b0`, S139) only initialises USART2. It never enables RXNE and never starts a receive, and nothing reads USART2 RDR. The stub's `:\n` lands in the register, overruns and is lost. No host command can change that. (MH1's `@` echo mode does not help: it puts socket 1, H1S1, into its ROM and holds H1S4 in reset.)
+So **the host cannot see a single byte from the pedal on any firmware now on the unit.** The fw.csv "verify=1" item is now resolved: P44 = PA2 / pin 16, P45 = PA3 / pin 17 on the left switch MCU (schematic "D24 Left Switch" p2) → 🔴 hub: defs fw.csv correction.
+
+**Smallest change that opens the path (H1S4 only; MH1, H1S1 and H1S3 untouched):** about 40 lines in H1S4 `matrix.cs` plus one call in `stm32f0xx_it.c`. Enable USART2 RXNE, collect pedal bytes, and send them to the host as a comment line `/%r<hex>` through the existing S2/S3 handshake. Lines that start with `/` are ignored by every panel MCU (IgnOn), so nothing else on the bus acts on them. Host→pedal goes the same way as `/%T<hex>` lines. While no relay is open, behaviour is identical to S139. The build baseline is proven: a desk rebuild of the flashed H1S4 reproduces `f54848b0` byte-for-byte (unit source + s139 matrix.cs/matrix.h, one makefile `.ld` path fix, gcc 14.2.1 = the unit's).
+Options for PW:
+- **(a)** Flash that H1S4 superset (`app cli loadfw H1S4`, matrix-app stays stopped, ~15 KB). **Cost:** loadfw resets MH1, and MH1 holds ALL panel MCUs in reset until S_RUN, so H1S1 restarts too. That puts the 595 chain at H1S1's power-up default, not the SAFE pattern the factory runner verified at 14:33. The runner is live (pass 5, station 3, waiting for ENTER on the glass). So this must happen while PW is NOT pressing ENTER, and afterwards I re-run the runner's own `codec4619.py --run --reinit` + 595-SAFE write and verify 200/200 before handing back. Rollback: `H1S4.shex.bak-s131-pregen` is the pre-S131 image, so I would save the current `f54848b0` as `H1S4.shex.bak-s167-pre` first.
+- **(b)** Do it after the factory pass completes: no risk to the run, same change.
+- **(c)** No firmware change: a USB-serial + LVDS receiver on the J8 pair at the bench (the pedal side is plain 115200 8N1). This proves the pedal and the mod, not the D24 path.
+My recommendation: **(b)** if the factory pass finishes today, otherwise **(a)** with PW confirming the glass will not be touched during the ~1 min flash + chain restore.
+
+**Two facts for PW at the bench (correction to the LED note above):**
+- Even with the path open, **the stub cannot light an LED.** It never starts TIM3 PWM on PB0/PB1 (DIM_1/DIM_0), so the LED and display supply (Q3/Q4) stays off. A `:` gets an echo but no light. The LEDs need new P1 firmware at J5 (ST-Link) whatever happens.
+- Load estimate corrected: white/blue LEDs at 470 Ω from ~3.1 V draw well under 1 mA each, and the yellow 7-segment ~2 mA a segment. Everything lit is **≈20 mA**, not 50. For a load test now: ≈250 Ω (¼ W) across the 5 V pedal supply.
+- P1 mod item 4 settled from ST's pin database (STM32C031K(4-6)Ux, UFQFPN32): **pin 17 = PB2** (the schematic's "PB15" is wrong). Pins 19/21 are PA9/PA10 only while the PA11/PA12 remap is off (the reset default). 🔴 Open risk for step E: whether the C031 ROM bootloader uses pins 19/21 or the remapped pads 22/23 (which drive segments A/F on P1) is not settled. AN2606 for this part is needed.
+
+Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a5492d`, H1S3 `43efd43f`, H1S4 `f54848b0` (`/home/app/firmware/*.shex`); MH1 = `fwbuild/MH1/Debug/MH1.elf` `0fe9717a` (on disk; flash not read back). The unit is exactly as found.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
