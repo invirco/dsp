@@ -76,12 +76,20 @@ Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a549
 - Host ↔ MH1 ↔ H1S4 relay, round trip: `/%I` → `/%i H1S4-PDL1 open=0 …`; `/%ON115200` → `/%oN115200 H1S4-PDL1`; `/%X` → `/%x`.
 - To the pedal at 115200 8N1: `:` ×3 then `.`. **No reply** (stub should echo `.\n` after a `:`). H1S4 counters: `tx=4 rx=0 err=0`.
 - To the pedal at 115200 8E1 (ROM): `0x7F` ×2, `00 00`. **No ACK.** Counters: `tx=8 rx=0 err=0`.
+  **↳ NOT a valid ROM test (hub, 2026-10-03):** a blank part's ROM auto-bauds on the FIRST byte after power-up. The blink forwarding (`:`/`.` at 8N1 every 254 ms) reached the pedal long before this 0x7F, so a blank part would have trained on the wrong byte and stayed deaf until its next power-up. **This run proves nothing about whether the ROM is present.**
 - `err=0` and `rx=0` mean PA3 (PDL_RX) sat idle-HIGH the whole time: no bytes and no break. So the line from the pedal is held high (the 10K pull-up or a pedal pin), but nothing is transmitting on it.
 - Relay left CLOSED: power-up state, blink forwarding to the pedal resumed.
 
 **Why the pedal is silent is not settled from here.** In order of likelihood: the pedal is not running the stub (no firmware, other firmware, or not running); the pedal is not powered at 3.3 V; or there is a fault on the J8 → U4 (pedal RX) or U3 → J8 (pedal TX) pairs. The stub cannot show anything on its LEDs, so the host cannot tell these apart.
 **ONE hand step for PW (meter only, no power change):** on the pedal's 6-pin programming header J5, measure **pin 1 to pin 3** (pin 1 = +3V3, pin 3 = GND). Expect 3.3 V. Report the reading.
 (Next after that, depending on the reading: with an ST-Link on J5, read the pedal's flash back, which says whether the stub is in it and gives the option bytes, nBOOT_SEL included. That also settles step D.)
+
+**S167 — the valid ROM test, ready to run when the hub/PW say so (needs one re-plug of the pedal cable; the runner must be idle at its ENTER screen, PW hands off the glass for ~1 min):**
+1. Me: `/%OE115200` (relay open at 8E1). H1S4 stops forwarding blink while the relay is open, so from here the pedal receives nothing until step 3.
+2. PW: unplug the pedal cable at the D24's "P1 Foot Pedal" socket, wait 5 s, plug it back in. Say when done.
+3. Me: `/%T7F` as the very first byte → a blank part answers `/%r79` (ACK). Then Get (`00 FF`), Get ID (`02 FD`, expect PID 0x443) and Get Version, with every byte and time recorded. Then `/%X`; blink forwarding resumes.
+- No ACK on a freshly powered pedal means either the flash is not blank (programmed, so the ROM is not entered) or the pedal's RX/TX path is broken. The J5 3V3 reading and whether the pedal was ever programmed (both asked by the hub) separate those cases.
+- The relay stays open only between my commands. The bus itself is free while PW re-plugs, so the runner is unaffected either way.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
