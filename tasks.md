@@ -105,6 +105,11 @@ H1S4 counters after: `rx=27 tx=15 err=1 drop=0`. The single rx/err byte arrived 
 **What this proves:** (1) both LVDS pairs and the J8 cable work; (2) the mod is right: the ROM talks on **PA9 pin 19 TX / PA10 pin 21 RX** on the UFQFPN32, as AN2606 says; (3) a never-programmed C031 enters its ROM from empty flash at power-up; (4) the relay is transparent enough for the ROM (8E1, auto-baud, ACK round trips 5–10 ms host to host). The earlier silence was the blank part: no stub to echo, and the ROM mis-trained by the blink bytes.
 **State left:** relay OPEN at 8E1, so the trained ROM session stays usable for step E (first program). The bus is free between commands. Runner untouched (PID 11543, station 3 waiting for ENTER). Closing is `/%X`; a pedal re-plug is needed after that to retrain the ROM.
 
+**S167 — can PW take the factory runner past ENTER while the relay is open? YES, with one rule.**
+- An open relay only changes H1S4's pedal UART: 8E1, blink forwarding stopped. Everything else H1S4 does is unchanged, and the runner's bus traffic (ML/CC/chain through H1S1, codec) contains no `/%` lines. The runner is not affected.
+- **Rule: the bus is single-user.** While the runner is past ENTER I send nothing on `/dev/serial0`, and step E (first program over the cable) waits until the runner is idle at a prompt again. The hub says when.
+- Side effect to expect: anything in the runner that sends S_RESET/S_RUN (e.g. an H1S1 restart) also restarts H1S4. That closes the relay and resumes blink forwarding, which mis-trains the pedal's ROM. The next ROM session then needs one more pedal re-plug at J8 (relay opened first). The fresh pedal stays in its ROM; nothing is lost.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
