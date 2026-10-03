@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (16:17 BST) — STEP E UPDATE-FROM-APP PROVEN: P1-cc running ("1.0-s167-cc", optr=FFFFFEAA restored); PW may remove Q3 and ground DIM0 now; then the walk to verify the FJ8102AY pinout, then the power-cut case]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 BUS FREE (16:34 BST) — STEP E COMPLETE: first program, update-from-app and power-cut-mid-write all PROVEN over the cable; pedal running 1.0-s167-cc all-on; next: step D/F write-up]   [model: opus]
 
 model: opus
 
@@ -214,6 +214,16 @@ One lamp at a time, **4 s each, two passes** (pass 1 16:25:00–16:25:52, pass 2
 - **PW: at 16:33:15 (±5 s) UNPLUG the pedal cable at the D24's "P1 Foot Pedal" socket, count 5 seconds, PLUG IT BACK IN.** Nothing else.
 - Expected: the pedal comes back in its ROM (display dark: half-written flash, nBOOT0 still 0). From the re-plug I send 0x7F once a second until it answers, read the option bytes (expect nBOOT0 = 0), write the whole image again, verify, Go. The display then lights (all on) and `V` reports `optr=FFFFFEAA`. Expected done by about 16:35. Every step is logged with times.
 - If PW misses the window (unplugs after about 16:33:45), the test is void and the pedal is left working. We repeat at a new announced time.
+
+🟢 **S167 STEP E — POWER CUT MID-WRITE: PROVEN (16:33 BST).** Log `MW/D24/DSP/s167/powercut-1.log`, script `powercut.py`.
+- PW's early pull (~16:30:50) was only a re-power: the pedal booted back into the app and, with the relay open, nothing mis-trained. It left two stray bytes (`00 F8`) in the relay buffer, which showed up in front of the `!BOOT` echo at 16:33:00. Harmless (`sync` drains first).
+- 16:33:00 `!BOOT` → ROM: sync ACK, OPTR `0xFBFFFEAA` (nBOOT0 = 0), mass erase ACK.
+- 16:33:03–16:33:13: blocks 0–10 (704 B) written, ACKed, one a second.
+- **16:33:13: block 11 @0x080002C0 FAILED ("got 02": a garbage byte as the supply fell) = THE CUT**, ~13 s after start, inside the announced window. 🔴 Hub: please confirm with PW that the pull was at ~16:33:13 and the re-plug ~5 s later; the log shows exactly that.
+- 0x7F once a second from the failure on: one `00` glitch byte at 16:33:19, then **ACK at 16:33:20, 6.1 s after the cut**. No second re-plug needed (the relay stays open, so no blink byte can reach the ROM first).
+- **After the cut:** Get ID 0x453; **OPTR still `0xFBFFFEAA` (nBOOT0 = 0), so the half-written part BOOTS INTO THE ROM, not the broken image**; the 704 B written before the cut read back intact.
+- Retry: erase 0.04 s, write 2.03 s, verify 1.27 s (2648 B identical), Go; 3.36 s. App `V` = `P1 1.0-s167-cc … optr=FFFFFEAA` (nBOOT0 restored by the app), `:` acked → all on.
+- **Why it is safe by design:** nBOOT0 is cleared by the old app BEFORE the erase and restored only by the NEW app after a verified write and Go. Any interruption in between (power, cable, host crash) leaves a part that powers up in the ROM. The host retries by sending 0x7F with the relay held open at 8E1, so no blink byte reaches the pedal first. The one unrecoverable case left is a corrupt option-byte write itself (the two OBL launches); a power cut during those few ms is not covered by this test.
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
