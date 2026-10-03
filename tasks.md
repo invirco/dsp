@@ -1,3 +1,29 @@
+## HUB DISPATCH 2026-10-03 17:23Z — S170: the D24 app updates the P1 pedal over the cable — pedal service, decision logic, glass text, tests, headless bench proof   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S170: THE D24 APP UPDATES THE P1 PEDAL OVER THE CABLE (PW 2026-10-03: "queue the app work now"). The procedure is proven by hand (S167, S169) through `tools/pi/d24_pedal.py`; build it into the Avalonia app.
+
+WHERE: the canonical app is `~/mx26/src/sw/app/` on main (mandate — never the stale `~/repos/mx` or `_mx4` copies). Pull mx26 main first (this checkout is behind and shows a dirty `defs` pointer: sync the submodule to the pinned tag `defs-v2026.10.03.1`, do not commit a different pin). Commit to mx26 main in small commits; the hub also commits `pipeline.md` there — pull/rebase, never force.
+Read first: `mx26/docs/queued-dispatches/app-pedal-update-procedure.md` (the requirement, items 1–5), `dsp MW/D24/DSP/s167/s167-report.md` (§ update procedure, § relay), `dsp MW/D24/FW/P1/README.md` (the 1.1-s169 image, `V` line format, `PA`/`PC`/`PU`, page 7, page-erase rule), `dsp tools/pi/d24_pedal.py` (the reference implementation, incl. waiting for MH1's `+` after every relay line).
+
+BENCH STATE — the factory runner is LIVE on MW-D24-2 (d24-testui, rails up, PW at the bench). The GUI app is NOT deployed or started on the unit in this dispatch (matrix-app conflicts with testui). No MCU of the D24 is flashed. The pedal on J8 runs `P1.bin` 1.1-s169 (`f0fd3cff…`); the left switch MCU carries the relay build `ff79052e`.
+
+BUILD:
+1. A pedal service in the app (Core/Services, no UI dependency): relay open/close and format switch, `V` parse (version, `disp=`, `by=`, `set=`, `optr=`), ROM session (sync, Get, Get ID = 0x453, read OPTR, page erase of the image's pages ONLY — never a mass erase, refuse an image that reaches page 7 — write in 64-byte blocks, read-back verify, Go), `!BOOT`, the retry rule on any failure after the sync (stay at 8E1, sync once a second, repeat), re-apply `set=` if it was lost, and bus exclusivity with every other user of the panel bus inside the app.
+2. The decision logic: read `V`; compare with the P1 image the app carries (ONE image for both display polarities; embed it with its md5 and version, sourced from `dsp MW/D24/FW/P1/` — say how the app build picks it up and how a stale copy is detected); offer the update when they differ; program a blank pedal (no `V`, ROM answers) without asking; do nothing when no pedal answers.
+3. The glass: plain words, one line — "Updating the foot pedal — do not unplug", progress, done, or "retrying"; and the one instruction a rev C unit can need: "Unplug the foot pedal cable, wait 5 seconds, plug it back in" (rev C cannot switch pedal power; rev D will, via the power MCU's update hold — leave the hook, do not invent the command).
+4. Tests: unit tests against a simulated relay + ROM (ACK/NACK, a cut mid-write, a mis-trained ROM, a lost `+`, a wrong chip ID, an image reaching page 7); plus a HEADLESS runner (console entry point or test host, no GUI) that can be executed on the unit against the real pedal.
+5. BENCH PROOF with the headless runner on MW-D24-2 (allowed: `/dev/serial0` only, and only when `fuser` shows it free; never touch the factory runner, its files, AN_EN or the rails): (a) no-op when versions match; (b) forced update from the running app, setting preserved; (c) the interrupted case — ask PW for one timed cable pull by 🔴 note (one hand step, plain words, exact clock time); finish with the pedal on 1.1-s169, all lamps on, relay as you found it.
+6. If the relay is missing on a unit (left switch MCU without the `/%` commands): the app reports "foot pedal update not available on this unit" — it does NOT flash the left switch MCU itself (default NO until PW rules otherwise; write it as a 🔴 PW item with options).
+
+Not in scope: deploying the GUI app to the unit, defs changes (a pedal firmware-version or update-status cell, if you think the app needs one, is a 🔴 hub proposal — do not add cells), the power MCU.
+Outcome wanted: what was built and where, test counts, the bench proof lines, the app commit(s), and the 🔴 PW/hub items with options.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-03 16:50Z — S169: P1 firmware — one image for both display polarities (stored setting + auto-detect), proven on the bench pedal   [status: 🟢 done — ONE P1 image 1.1-s169 (`P1.bin` f0fd3cff, 4188 B) on the bench pedal, updated over the cable; polarity = stored PA/PC override, else ADC auto-probe on segments A/F (bench: probe=CC, 0.53 VDD path vs ≤4 counts open, repeatable), else CA; setting in flash page 7, kept across update (host now page-erases; proven); CA drive unproven until a next-rev/reworked pedal; ruling premise corrected (interim + CA = inverted display, not dark, no damage); PW looks done: all lit, re-plug lamp test OK, V after the power cycle set=auto by=probe probe=CC; 🔴 hub: app-update note item 5]
 
 model: opus
