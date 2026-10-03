@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 UNIT SAFE FOR PW (15:06 BST) — H1S4 relay flashed (ff79052e) and answering; runner untouched (same PID, station 3, state files identical, chain SAFE 200/200, pair up); the PEDAL DOES NOT ANSWER: 8 bytes sent at 8N1 and 8E1 (":" "." and ROM 0x7F), 0 bytes and 0 line errors back — next step is one PW hand check]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 RELAY OPEN — PW RE-PLUG PEDAL (unplug the pedal cable at the D24 "P1 Foot Pedal" socket J8, wait 5 s, plug back in, tell me when done)]   [model: opus]
 
 model: opus
 
@@ -90,6 +90,8 @@ Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a549
 3. Me: `/%T7F` as the very first byte → a blank part answers `/%r79` (ACK). Then Get (`00 FF`), Get ID (`02 FD`, expect PID 0x443) and Get Version, with every byte and time recorded. Then `/%X`; blink forwarding resumes.
 - No ACK on a freshly powered pedal means either the flash is not blank (programmed, so the ROM is not entered) or the pedal's RX/TX path is broken. The J5 3V3 reading and whether the pedal was ever programmed (both asked by the hub) separate those cases.
 - The relay stays open only between my commands. The bus itself is free while PW re-plugs, so the runner is unaffected either way.
+
+🔴 **RELAY OPEN — PW RE-PLUG PEDAL** (15:08:49 BST: `/%oE115200 H1S4-PDL1`. H1S4 tx counter held at 8 from 15:08:50 to 15:08:54, so no blink is being forwarded. Runner still at station 3, PID 11543.)
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
