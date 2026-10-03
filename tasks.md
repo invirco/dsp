@@ -1,3 +1,27 @@
+## HUB DISPATCH 2026-10-03 16:45Z — S168: MCU firmware into the repo — MW/D24/FW/<MCU>/ (P1, H1S1, H1S3, H1S4, MH1), desk only   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+
+S168: THE MCU FIRMWARE MOVES INTO THE REPO — `MW/D24/FW/<MCU>/` (PW ruling 2026-10-03, S167 hub item: "where the firmware lives" = this repo, as S167 recommended). Desk work. The D24 factory runner is LIVE on MW-D24-2 (waiting at a patch step, rails up, PW at the bench): the unit may be READ (file listings, hashes, scp of sources/images) but nothing is flashed, restarted, written or sent on `/dev/serial0`. No `/%` relay commands — the pedal relay stays as S167 left it.
+
+Create, one folder per MCU: `MW/D24/FW/P1/`, `H1S1/`, `H1S3/`, `H1S4/`, `MH1/`.
+1. P1: today's `MW/D24/DSP/s167/p1-fw` (move, keep history with `git mv`). Both builds documented: `P1.bin` (common anode, the BOM display) and `P1-cc.bin` (common cathode, the rev B interim on pedals built with FJ8102AY); md5 of each as built; the image now on the bench pedal named.
+2. H1S4: the S139 base + the S167 relay (`s167/h1s4-relay`), with the proof that the base rebuilds `f54848b0` byte-for-byte and the relay build is `ff79052e`.
+3. H1S1: from `~/build-h1s1` ONLY (never the unit's `fwbuild`); record which commit/state reproduces the flashed `19a5492d`. If it does not reproduce byte-for-byte, say so plainly and stop on that MCU — do not guess.
+4. H1S3 and MH1: locate the true source for the flashed `43efd43f` (H1S3) and the `MH1.elf` `0fe9717a` on the unit; same rule — reproduce or report.
+5. In each folder: Core sources, linker script, makefile (headless, arm-none-eabi-gcc — state the version), the flashed image (`.shex`/`.bin`) with md5, and a short README: what the MCU is, how to build, how it is flashed (`app cli loadfw …`, the S_RESET step S167 found, the pedal's cable path), and the image currently on MW-D24-2. Leave ST `Drivers/` out; record the CubeMX/HAL pack version each project needs and where to get it.
+6. A top `MW/D24/FW/README.md`: one table — MCU, part, role, source folder, flashed image hash on MW-D24-2 today, how flashed.
+7. Update `tools/pi/d24_pedal.py` paths if they point into `s167/`; leave the S167 logs and report where they are, with a pointer to the new home.
+If any of this turns into root-cause work of unknown shape (a source that will not reproduce its image), STOP on that item, write what you found, mark it 'needs opus' — do not grind.
+
+Also file, as text only (no firmware change now): in the power-MCU section of tasks.md / the def the requirement PW ruled today — REV D UPDATE HOLD: a host command that suspends the pedal heartbeat check for a bounded, re-armable time (60 s) with the pedal supply held on, plus host-commanded pedal power-cycle with the relay open; reason: the P1 ROM bootloader sends no heartbeat (S167).
+
+Outcome wanted: the table from item 6, which images reproduce byte-for-byte and which do not, anything that needs a ruling as a 🔴 note.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟢 done — P1 over its cable PROVEN end to end: H1S4 relay (ff79052e, flashed under PW GO, runner state restored), P1 firmware 1.0-s167-cc (first program, update-from-app, power-cut retry all over J8; lamps, display after Q3-out/DIM0-GND bodge, footswitches verified); report s167/s167-report.md; 🔴 hub items: fw.csv P44=PA2/P45=PA3, firmware home (MW/D24/FW recommended), next P1 rev (CA display, Q3/Q4 orientation, symbol fixes), rev D update hold; runner waiting at P13 for the operator]   [model: opus]
 
 model: opus
