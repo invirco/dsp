@@ -1,3 +1,39 @@
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+S167: THE P1 PEDAL OVER ITS CABLE — a host↔pedal relay through the left switch MCU, P1 firmware for the serial-program mod, and the ROM bootloader proven end to end. PW 2026-10-03: "bring dsp up and dispatch the relay and P1 firmware." Requirement behind it (PW): P1 must take its FIRST program and every UPDATE over the J8 cable.
+
+BENCH STATE (PW, 10-03): one P1 rev B pedal is MODIFIED and plugged into the D24 (assumed MW-D24-2 J8 — verify; PW has not confirmed which unit, nor whether that unit's digital board carries the rev C interim R107 = 300R → 5.0 V at J8 instead of 9 V; either supply runs P1). MW-D24-2 (app@192.168.1.219) is up in d24-testui with the factory run PAUSED (S164 deployed, 55 untested patches — PW's top priority). DO NOT disturb that run: no change to its state files, and any firmware you put on a panel MCU or H1S1 must be recorded (image hash before/after, on every device you touch) and either restored at the end or left as a proven superset whose resume still works — say which, prove it. AN_EN stays low; no rails, no analog needed for any of this.
+
+THE P1 MOD AS FITTED (`D24 P1 mods.pdf`, blue, 2026-10-03; MCU U2 = STM32C031K4U6, UFQFPN32):
+1. U2 pin 19 (PA9) → TX net (LVDS driver U3 pin 5). Pin 2 (PC14, the old TX) is STILL on the net — make it an input.
+2. SW2 track cut at pin 21 (PA10).
+3. RX net (LVDS receiver U4 pin 5) → pin 21 (PA10). Pin 8 (PA1, the old RX) is STILL on the net — input.
+4. SW2 → pin 17. The schematic symbol calls pin 17 "PB15", which a 32-pin C031 does not have (hub believes PB2) — settle it from the datasheet/CMSIS, do not guess.
+5. 10K pull-up TX net → +3V3 (hub ASSUMED fitted — PW has not confirmed). The SN65LVDS1 driver input has an internal pull-down: with nothing driving, the D24 sees a continuous LOW (break), not idle.
+The cable carries only the two LVDS pairs + power: no reset, no BOOT0. NRST and PA14/BOOT0-SWCLK are on J5 only.
+
+ROM BOOTLOADER FACTS (AN2606 Rev 61, STM32C031): USART1 only, PA10 RX / PA9 TX, 8E1, auto-baud on 0x7F; also I2C1 PB6/PB7 (on P1 these drive two display segments — static, harmless). Entry (pattern 11): main flash EMPTY (with nBOOT0=1/nBOOT_SEL=1, or BOOT0 pin=0/nBOOT_SEL=0), or nBOOT0 bit=0 with nBOOT_SEL=1, or BOOT0 pin=1 with nBOOT_SEL=0; BOOT_LOCK=0. The empty flag is re-read at power-up/option-byte load, not on a plain reset. NOT bench-proven on this part — proving it is the point.
+
+P1 SOURCE: copied by the hub to `~/build-p1` on this machine (from Dropbox `_mx/MW/D24/FW/P1`, CubeIDE project, objects stripped; last build 2025-12-30 = 15 408 B of 16 384 B at -O0 with HAL). It is a STUB: USART1 115200 8N1 on PA1/PC14; a received ':' lights every LED and echoes ":\n", '.' clears them and echoes ".\n". It is in no git repo. Whether the pedal on the bench runs this build is unknown.
+
+WANTED, in this order — stop and report at the first step that needs a ruling:
+A. SEE THE PEDAL (no firmware change anywhere if possible). Establish the real path host → MH1/H1S1 → left switch MCU H1S4 (PDL_TX/PDL_RX, lswitch ports P44/P45 — silicon pins unresolved in defs fw.csv, resolve them) → U36/U37 → J8 → P1, and what each firmware on the unit does with pedal bytes today (name the flashed image hash of H1S1, H1S3, H1S4, MH1; the H1S1 source is ~/build-h1s1 ONLY, never the unit's fwbuild). Can the host already send ':' and see ":\n" come back? If yes, show it (that proves the mod left the old pins working). Ask PW by 🔴 note what the pedal's LEDs/display show.
+B. THE RELAY. The smallest change that lets the host exchange raw bytes with the pedal at a host-chosen format (115200 8N1 for the app, 8E1 for the ROM) — a pass-through mode in H1S4 (and whatever H1S1/MH1 must forward), entered and left by command, timing-transparent enough for the ROM's auto-baud and ACK timeouts. Host tool on the CM4 (`d24_pedal.py`): open relay, send/receive, close. State the baud ceiling the chain supports and why.
+C. P1 FIRMWARE for the mod, built from ~/build-p1 with arm-none-eabi-gcc (headless, -Os; record size — the K4 has 16 KB): USART1 on PA9/PA10 (AF1), PC14 and PA1 as inputs, SW2 on the real pin 17 port, the stub's ':' '.' behaviour kept, plus: a version/identity reply, the two footswitch states reported on change, and an ENTER-BOOTLOADER command that programs the option bytes so the next reset lands in the ROM bootloader (nBOOT_SEL=1, nBOOT0=0) and resets. State the exact option-byte values before/after and how the host restores them (nBOOT0=1) after a verified write.
+D. GETTING C INTO THE PEDAL THE FIRST TIME. The pedal holds old firmware and there is no SWD probe on this machine (no openocd/STM32_Programmer here; the CM4 has openocd but J5 is not on its mux). Options to evaluate and recommend, as a 🔴 PW hand step in plain words: (1) PW flashes at J5 with an ST-Link from a machine that has one (which, and the exact command/file); (2) PW mass-erases at J5 only, then the ROM takes the first program over the cable through your relay — this is the real first-program path and the better proof; (3) no probe at all: a jumper J5 pin 2 (SWCLK/BOOT0) → pin 1 (+3V3) at power-up reaches the ROM only if this part's nBOOT_SEL is 0 — read what the factory default is for the C031 and say whether it can work.
+E. PROVE IT through the relay with a ROM-protocol host (stm32flash or a small script: 0x7F sync, Get, Get ID = 0x443?, erase, write, verify, Go): first program on an empty part; then an UPDATE from the running app via the enter-bootloader command; then a power cut mid-write (PW pulls the cable) → pedal comes back in the ROM, write completes on retry. Record every step's bytes/timings. Note: with the rev C interim the D24 cannot switch pedal power — after first program use Go or ask PW to re-plug.
+F. WRITE UP: what works, the update procedure as it would run from the D24 app, what rev D / the next P1 rev must provide (CHANGE 6 drops the pedal supply on heartbeat loss — the ROM sends none: say what the power MCU must do during an update), and where each firmware source should live in git (🔴 PW item with your recommendation: P1 and the panel MCUs currently sit outside any Matrix repo).
+
+Do not touch: defs (propose fw.csv/pin corrections as 🔴 hub items), the factory-run state, rev A MW-D24-1, AN_EN/rails. Bench instructions to PW use panel names and connector names in plain words; one hand step at a time.
+
+Outcome wanted: A–F status in five lines, image hashes on every device touched, the 🔴 PW/hub items with options, and whether the unit is exactly as found (or what changed and why resume still works).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-02 14:02Z — S166 — desk design study: D24 clock tree as master or slave to Dante   [status: 🟢 done — review/s166_dante_clock_master_slave.md: master = zero change (BCK_3/FS_3 out on A5/A4); slave = option C: carrier sends 49.152 MHz REFCLK on slot B1 → U3.91 (dedicated GCLK3; dedicated clock pins are 18/20/89/91, the XO on 88 is NOT one), glitch-free switch in U3 trial-fitted at 946/1270 LE (+65), slack +4.24 ns, sim: no runt, 45 ns stall, 0.70 µs dead-clock fallback (< AK4458 10 µs reset); SHARC CLKIN stays on the XO so no firmware change; D24 drives slot BCK/FS in both roles; rev-C mod = 3 wires on the Digital board via J33 (PLL1_1/1_2/1_3 already reach U3), DSP card none; A rejected (no bck16), B dominated — 🔴 notes 1–7 in the review (architecture, B1–B3 contract, MW-Net leads?, loss policy, S165 pair → U3.96/97, rev-D XO pin, Audinate OEM docs)]   [model: opus]
 
 model: opus
