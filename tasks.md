@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🟡 desk work under PW ruling (b) — H1S4 relay flash AFTER the factory pass; flash nothing until then]   [model: opus]
+## HUB DISPATCH 2026-10-03 13:46Z — S167: P1 pedal over its cable — host relay through the left switch MCU, P1 firmware for the serial-program mod, ROM bootloader proof   [status: 🔴 UNIT SAFE FOR PW (15:06 BST) — H1S4 relay flashed (ff79052e) and answering; runner untouched (same PID, station 3, state files identical, chain SAFE 200/200, pair up); the PEDAL DOES NOT ANSWER: 8 bytes sent at 8N1 and 8E1 (":" "." and ROM 0x7F), 0 bytes and 0 line errors back — next step is one PW hand check]   [model: opus]
 
 model: opus
 
@@ -60,6 +60,28 @@ My recommendation: **(b)** if the factory pass finishes today, otherwise **(a)**
 Image hashes (files on the unit, unchanged; no device was touched): H1S1 `19a5492d`, H1S3 `43efd43f`, H1S4 `f54848b0` (`/home/app/firmware/*.shex`); MH1 = `fwbuild/MH1/Debug/MH1.elf` `0fe9717a` (on disk; flash not read back). The unit is exactly as found.
 
 🟢 **PW RULING 2026-10-03 (via hub): option (b).** The H1S4 relay is flashed AFTER the factory pass completes; until then flash nothing and do only passive reads of the unit. Desk work meanwhile: the H1S4 relay image (md5 + diff vs `f54848b0`), `d24_pedal.py` with a host-side test, the P1 firmware for the mod (step C, size at -Os) and the step D recommendation. Then a READY TO FLASH note; the hub confirms the pass is complete after PW says so.
+
+🔴 **S167 — UNIT SAFE FOR PW TO TOUCH AGAIN (2026-10-03 15:06 BST / 14:06Z). Relay flashed under PW's GO; the pedal does not answer yet.**
+
+**What was done (option (a), hub GO):**
+1. H1S4 relay image built from the byte-exact S139 baseline (`f54848b0` reproduced), plus `Core/Inc/pedal_relay.cs` (new) and hooks in `matrix.cs` (Uart1_Int, Poll, MainLoop blink guard) and `stm32f0xx_it.c` (USART2 IRQ). `H1S4.shex` md5 **`ff79052ef96b09976173bb842a11382a`** (1349 records, 21 544 B, header id H1S3 = same socket as before), elf text 20 580 (was 13 872). Off-target check: normal bus lines pass through to Rx_Fun unchanged, and only `/%`+uppercase lines become commands.
+2. Rollback copy: `/home/app/firmware/H1S4.shex.bak-s167-pre` = `f54848b0` (the S139 image that was running).
+3. Flash: the first `app cli loadfw H1S4` failed at its MH1 loopback probe (MH1 was in run mode). Nothing was written. Then `fwbuild/sreset.py` (S_RESET) + `app cli loadfw H1S4` → **`OK: H1S4` in 21.7 s**.
+4. Restore, in the runner's own order: `codec4619.py --run --reinit` → S_RUN announced `// H1S1 DSP`, `// H1S4 SW Left`, `// H1S3 SW Right` (all three back; H1S4's identity line unchanged), `StartAK4619() requested`; `s55_chain.py` SAFE → **`VERIFIED 200/200 01×24 00`**; CS_M GPIO27 + GPIO6/24 `op dh`. Then `d24_selftest.py --local --ensure-pair` → **"ENSURE-PAIR OK: the pair is up; nothing written"** (BOOT_STAGE 7 both).
+5. Runner proof, before vs after: d24_patch PID 11543 still running; live.json still `setup / Station 3 of 3 / "Next: analog paths … Press ENTER."` (only the heartbeat seq moved); `state.json 05a0b047…`, `patch-results.csv 41ab9891…`, `progress.txt 758ce005…` byte-identical; `factory.log` not written (1 135 340 B, 14:33:39); AN_EN GPIO26 `op pd lo` throughout. The runner has NOT been taken past ENTER since. Its next steps use H1S1 (ML/CC/chain), which was restarted and re-set exactly as ENSURE-PAIR leaves it. H1S4 with the relay closed behaves as S139 did.
+
+**Device hashes after:** H1S4 = `ff79052e` (FLASHED, S167 relay); H1S1 = `19a5492d` and H1S3 = `43efd43f` (not flashed: restarted by S_RESET/S_RUN only); MH1 = not flashed (reset by S_RESET only; on-disk `MH1.elf 0fe9717a`); P1 pedal = unknown, not touched.
+
+**Connect/ack result — the relay half is PROVEN, the pedal half is NOT:**
+- Host ↔ MH1 ↔ H1S4 relay, round trip: `/%I` → `/%i H1S4-PDL1 open=0 …`; `/%ON115200` → `/%oN115200 H1S4-PDL1`; `/%X` → `/%x`.
+- To the pedal at 115200 8N1: `:` ×3 then `.`. **No reply** (stub should echo `.\n` after a `:`). H1S4 counters: `tx=4 rx=0 err=0`.
+- To the pedal at 115200 8E1 (ROM): `0x7F` ×2, `00 00`. **No ACK.** Counters: `tx=8 rx=0 err=0`.
+- `err=0` and `rx=0` mean PA3 (PDL_RX) sat idle-HIGH the whole time: no bytes and no break. So the line from the pedal is held high (the 10K pull-up or a pedal pin), but nothing is transmitting on it.
+- Relay left CLOSED: power-up state, blink forwarding to the pedal resumed.
+
+**Why the pedal is silent is not settled from here.** In order of likelihood: the pedal is not running the stub (no firmware, other firmware, or not running); the pedal is not powered at 3.3 V; or there is a fault on the J8 → U4 (pedal RX) or U3 → J8 (pedal TX) pairs. The stub cannot show anything on its LEDs, so the host cannot tell these apart.
+**ONE hand step for PW (meter only, no power change):** on the pedal's 6-pin programming header J5, measure **pin 1 to pin 3** (pin 1 = +3V3, pin 3 = GND). Expect 3.3 V. Report the reading.
+(Next after that, depending on the reading: with an ST-Link on J5, read the pedal's flash back, which says whether the stub is in it and gives the option bytes, nBOOT_SEL included. That also settles step D.)
 
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
