@@ -203,6 +203,18 @@ One lamp at a time, **4 s each, two passes** (pass 1 16:25:00–16:25:52, pass 2
 | 13 | :48 | :40 | right dot "R" | PB8 | 9 |
 🔴 PW: for each step, say what lit (or that it was the expected one).
 
+🟢 **S167 — FJ8102AY WORKING on the bodged pedal; pinout VERIFIED (16:2x BST).**
+- PW bodge: **Q3 removed, DIM0 tied to GND**; pedal re-plugged and booted from flash into `1.0-s167-cc` (`optr=FFFFFEAA`), so nBOOT0 = 1 holds across a power cycle.
+- PW: **display LIT, all segments on.** P1 regulator input **4.95 V with everything lit** (5.0 V at the digital board, rev C interim R107 = 300R): ~50 mV of cable/connector drop at full load. (The P1 current measurement PW deferred is now possible.)
+- Walk 16:25:00–16:26:44, 4 s a lamp, two passes, every step echoed (`MW/D24/DSP/s167/walk-2.log`). **PW: ALL 13 lamps lit IN ORDER, both dots work.** So the **FJ8102AY pinout = the Kingbright 0.8" layout with the left dot on pin 6**: commons 3/5/11/16, a=1 b=14 c=12 d=10 e=4 f=2 g=13 DP-left=6 DP-right=9, VERIFIED on the part. The LD9 symbol is right for this part, including "L" on pin 6 (it is only wrong for the SA08-11YWA, which has no chip there).
+- Pedal left ALL ON (`:` acked 16:26:44).
+
+🔴 **S167 POWER-CUT TEST — STARTS EXACTLY 16:33:00 BST. ONE HAND STEP FOR PW:**
+- 16:33:00 I send `!BOOT`: the pedal goes to its ROM (display goes dark), the flash is erased, then the new image is written **slowly on purpose, one block a second, until about 16:33:45**.
+- **PW: at 16:33:15 (±5 s) UNPLUG the pedal cable at the D24's "P1 Foot Pedal" socket, count 5 seconds, PLUG IT BACK IN.** Nothing else.
+- Expected: the pedal comes back in its ROM (display dark: half-written flash, nBOOT0 still 0). From the re-plug I send 0x7F once a second until it answers, read the option bytes (expect nBOOT0 = 0), write the whole image again, verify, Go. The display then lights (all on) and `V` reports `optr=FFFFFEAA`. Expected done by about 16:35. Every step is logged with times.
+- If PW misses the window (unplugs after about 16:33:45), the test is void and the pedal is left working. We repeat at a new announced time.
+
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
