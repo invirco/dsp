@@ -1,3 +1,42 @@
+## HUB DISPATCH 2026-10-05 10:40Z — S171 — the MXU carries all firmware (+ S149/S150 records check)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+
+TWO PARTS, IN ORDER. Part 1 is a short records check; do it first, commit it, then go on to part 2.
+
+PART 1 — RECORDS CHECK ON S149 AND S150 (read-only, minutes). The hub's pipeline has no landing entry for either: S149 was dispatched 2026-09-29 (opus: L1 chip-2 aux mixes onto the live-crosspoint fabric, then L2 follower SIMD pairing, plus the reverb-cap guard) and S150 was last logged "🟢 15:46 BST 09-29, desk only, awaiting hub landing" (aux matrix). From this repo's tasks.md, commits and build records, state for each: did it land, at which commit, what was built and measured, what is flashed or deployed anywhere, and what is still owed. Also state whether the S146 DSP-graph switch window was ever executed on a unit. Write the answer as a short dated note at the top of tasks.md (facts with commit hashes; "not found" where the record is silent). Do not build, flash or change any code in part 1. PW's 2026-09-30 "DSP work on hold while rev D priority mods are done" ruling stands: nothing in this dispatch resumes DSP graph work.
+
+PART 2 — S171, as queued 2026-10-04. The unit (MW-D24-2) is powered OFF: do the desk part in full; every step that needs the unit is listed in the block as owed, not attempted. The spec follows verbatim.
+
+S171: THE MXU PACKAGE CARRIES EVERY FIRMWARE IMAGE OF THE D24 (PW 2026-10-04: "does mxu file contain ALL fw files (including P1)? it seems it should" → "yes, queue the dispatch"). One package = one generation of the whole unit. Today it is not: the hub read the builder (`src/sw/app/Core/SoftwareUpdateHelper.cs`, `BuildUpdatePackage`) on 2026-10-04 and found —
+
+IN the MXU today: the app binary; `P1.bin` (embedded in the app binary, `app.csproj` + `Services/Pedal/P1Image.cs`, md5/version checked); `H1S1.shex`, `H1S3.shex`, `H1S4.shex` (from the MCU list, default `H1S1,H1S3,H1S4`, read from `<FwPath>/<id>/Debug/<id>.shex`); `MH1.bin` (`<FwPath>/MH1/Debug/MH1.bin`); matrix, settings, skins, manual; `matrix-integrity.json` over config + firmware.
+NOT in the MXU today: the two SHARC loader images (DSP A, DSP B); the CPLD bitstream (flashed separately by OpenOCD from the CM4); the power MCU (U34) image. A missing MCU image is only a WARNING in the log, so a package can be built without one.
+NOT VERIFIED by the hub — establish first and say so in the block: (a) where `FwPath` points on the build machine and whether it is the dsp repo home PW ruled on 2026-10-03 (`MW/D24/FW/<MCU>/`, S168) or an older tree; (b) how the DSP pair, the CPLD bitstream and the power MCU image reach a unit today (the S131 switch treated the DSP images as a pack separate from the app), with the exact files, paths and tools; (c) whether the power MCU can be programmed in-system from the CM4 at all on rev C, and by what path.
+
+WHERE: the canonical app is `~/mx26/src/sw/app/` on main (mandate — never the stale `~/repos/mx` or `_mx4` copies). Pull mx26 main first; sync the `defs` submodule to the pinned tag, do not commit a different pin. Small commits to mx26 main; the hub also commits `pipeline.md` there — pull/rebase, never force. Firmware sources and the on-unit tools are in the dsp repo (`MW/D24/FW/`, `tools/pi/`).
+Read first: `mx26/docs/ref-matrix-software-updates.md`, `mx26/scripts/broadcast-build.sh`, `mx26/src/sw/app/bin/mxu-expand.py` and `mxu-autodeploy.sh`, `Core/Boot.cs` (MCU flash + pedal check), `mx26/docs/investigation-matrix-generation-2026-09-27.md` and `defs/tools/matrix_gen_id.py` (what "generation" means today), dsp `MW/D24/FW/*/README.md`, the S131 record for how a whole-generation switch was done by hand.
+
+BENCH STATE: re-derive it, do not assume. The rev A show model MW-D24-1 (192.168.0.115) is NEVER touched. Nothing is flashed on MW-D24-2 until the desk part below is landed and PW has said the unit is free (factory runner may be live; the GUI app conflicts with it).
+
+BUILD — desk first:
+1. A single declared list of the D24's firmware images: id, target device, file, source path in the dsp repo, how it is applied on the unit, and the order. Images: H1S1, H1S3, H1S4, MH1, P1, DSP A, DSP B, CPLD, power MCU. If the list belongs in defs (a product table), write it as a 🔴 hub proposal with the schema — do NOT add defs rows yourself; until then keep it in one place in the app, not scattered constants.
+2. The builder stages EVERY image on that list into the package, with md5 and version in the integrity manifest. A missing or stale image is a BUILD FAILURE with a plain message naming the file — never a warning. P1 stays embedded in the app binary as well only if the pedal service needs it there; say which copy is the source of truth and how the two are proven identical.
+3. One generation identity for the package: derived from the app, the matrix and every firmware image, written into the package and readable on the unit after install. State how it relates to the existing matrix generation id; do not change the D24 generation `46109e9fb812` rules without a 🔴 hub item.
+4. The unit applies the images in a fixed, declared order, each step verified (read back or version query), skipping an image that already matches. The order must respect: MH1 before the switch MCUs it relays for; H1S4 before the P1 pedal (the relay lives in H1S4); AN_EN analog last up, first down around anything that disturbs clocks or the 595 chain; CPLD-in-flash provenance (a bitstream change is recorded). A failed step stops the sequence and leaves the unit on a reported, recoverable state — say what the glass shows.
+5. The S170 open item closes here: when the left switch MCU lacks the pedal relay, the package brings the H1S4 image that has it, so "foot pedal update not available on this unit" becomes a transient state, not a dead end. Keep S170's default (the app does not flash H1S4 outside a package install).
+6. Tests: unit tests for the builder (each image missing → failure; manifest content; generation id stable for identical inputs, different for any changed image) and for the install sequencer against simulated devices (order, skip-when-matching, failure at each step).
+
+BENCH PROOF (only after the desk part is landed and PW frees the unit): build one package from current heads; install on MW-D24-2; show every image's version/md5 on the unit matching the manifest and the single generation id; then install the same package again and show every step skipped.
+
+Not in scope: the option card (RT1180/RT1186) firmware — the card is not built and has its own MCUboot path; the CM4 OS image and the A/B slot scheme; MXU signing or key custody changes; rev D power-MCU features (update hold). If the power MCU cannot be programmed in-system on rev C, say so with the evidence and leave it as a listed image with "applied at the bench" — do not invent a path.
+🔴 PW/hub items to bring back with options: the defs table for the image list; anything that would change the generation rules; the power MCU path if it needs hardware; whether a package install may run while the factory runner is the unit's normal software.
+Outcome wanted: what was established for (a)–(c), what was built and where, test counts, the app and dsp commits, the bench proof lines if run, and the 🔴 items with options.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-03 17:23Z — S170: the D24 app updates the P1 pedal over the cable — pedal service, decision logic, glass text, tests, headless bench proof   [status: 🔴 built + 185/185 tests + bench (a) no-op and (b) forced update with setting kept PROVEN; (c) interrupted update NOT YET — PW did not pull the cable at 19:00:30, re-run recipe below; mx26 c0500f7..f1e3c5e]   [model: opus]
 
 model: opus
