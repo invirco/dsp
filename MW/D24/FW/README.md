@@ -29,3 +29,7 @@ The power MCU must provide, for P1 firmware updates over the cable:
 Reason: CHANGE 6 drops the pedal supply on heartbeat loss, and the P1 ROM bootloader sends no heartbeat (S167). Text only; no firmware change made. Belongs in the power-MCU def (`defs`, hub item) when rev D is specified.
 
 Tools here: `hex2shex.py` (Intel hex → shex, MCU id as arg), `sreset.py` (S_RESET before `loadfw`; runs on the unit's CM4).
+
+## In the D24 package (S171)
+
+Every image here — plus the CPLD bitstream (`shared/dsp4-logic/bitstream/`), the DSP pair (`MW/D32/DSP/SHARC/build_<arm>/chip{1,2}.ldr` + `.sym.json`) and the power MCU image (mx26 `src/fw/pwr-mcu/pwr-mcu.img`) — is declared in mx26 `src/sw/app/Resources/firmware/d24-firmware.csv` with its md5. The package builder takes the files from this repo (`$DSP_REPO`, else `~/dsp`) and refuses a package if one is missing or no longer matches; after rebuilding an image here, record it with mx26 `scripts/sync-d24-firmware.sh` (and change its version label in the CSV).
