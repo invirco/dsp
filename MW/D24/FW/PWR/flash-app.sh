@@ -3,7 +3,9 @@
 # bootloader pages (which WRP additionally protects). An interrupted run
 # leaves a CRC-invalid app -> bootloader triple-blink, rails per the rocker
 # (rocker-gate bootloader), unit reflashable: the field-update path
-# (fn.fw_update).
+# (fn.fw_update). With the 2026-10-15 bootloader the interrupted part also
+# listens on the host link, so tools/pi/d24_pwrlink.py update recovers it
+# without SWD (option 2).
 #
 # HOT-ATTACH ONLY — never `reset halt` (PW ruling 2026-09-18). The CM4
 # running this script is powered by rails U34's own pins enable; a reset

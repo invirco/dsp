@@ -1,10 +1,12 @@
 /* STM32F030F4P6: 16 KB flash, 4 KB SRAM.
    App region: 12 KB above the 4 KB WRP bootloader (boot.ld). The app is
-   flashed as the mkimage.py output (length patched, CRC32 appended). */
+   flashed as the mkimage.py output (length patched, CRC32 appended).
+   The top 8 bytes of SRAM are the boot mailbox (board.h MAILBOX_ADDR): the
+   initial SP sits under it and no section may reach it. */
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x08001000, LENGTH = 12K
-  RAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 4K
+  RAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 4K - 8
 }
 
 SECTIONS
@@ -41,4 +43,7 @@ SECTIONS
     *(COMMON)
     _ebss = .;
   } > RAM
+
+  /* at least 512 B of stack between .bss and the mailbox */
+  ASSERT(_ebss <= 0x20000FF8 - 512, "app RAM leaves under 512 B of stack")
 }

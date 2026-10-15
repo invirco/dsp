@@ -44,4 +44,38 @@
 #define CFG_CLK48_RAMP_START        8       /* phantom starts at 20 % ... */
 #define CFG_CLK48_RAMP_MS           100     /* ... and ramps to 32 (80 %); starts only after 12CLK is at full duty (phantom last up) */
 
+/* Host link (link.h, 2026-10-15). AN_EN now carries command frames as well
+   as the analog request, so the analog request is its LEVEL held for this
+   long (frame pulses are under 2 ms). Adds this much to the AN_EN -> clocks
+   and AN_EN-low -> clocks-stop latency. */
+#define CFG_ANEN_STABLE_MS          20
+/* A bootloader session the app asked for (ENTER_BOOT) with no frame for
+   this long goes back to a valid app (host tool crashed or unplugged). */
+#define CFG_BOOT_IDLE_MS            120000
+
+/* J8 pedal supply, rev D CHANGE 6 (p1.h). Codes are 12-bit ADC on PA7.
+   Expected (desk arithmetic, NOT measured): final level ~0.2 V (~250) for
+   both an open jack and a pedal; an open jack is there within microseconds,
+   P1's input caps crawl to it with tau ~0.23 s (100K || 30K x ~10 uF):
+   ~12 % at 30 ms, ~82 % at 400 ms. All thresholds [TBD bench, rev D]. */
+#define CFG_P1_FIRST_PROBE_MS       500     /* after the rails come up */
+#define CFG_P1_PROBE_PERIOD_MS      2000    /* re-probe while clamped */
+#define CFG_P1_DISCHARGE_MS         500     /* PA7 low: re-probe discharge */
+#define CFG_P1_EARLY_MS             30
+#define CFG_P1_LATE_MS              400
+#define CFG_P1_EARLY_MAX            120     /* [TBD] still low early ... */
+#define CFG_P1_LATE_MIN             150     /* [TBD] ... well up late ... */
+#define CFG_P1_LATE_MAX             400     /* [TBD] ... but not driven high */
+#define CFG_P1_RISE_MIN             60      /* [TBD] late - early */
+/* Heartbeat: the D24 app sends P1_ALIVE while it hears the pedal (U34 has
+   no path to the pedal UART itself). 1 = re-clamp when it stops (CHANGE 6
+   as drawn); a host that never sends it gets the pedal powered for
+   CFG_P1_FIRST_HB_MS per probe cycle. */
+#define CFG_P1_HEARTBEAT_REQUIRED   1
+#define CFG_P1_FIRST_HB_MS          10000   /* first beat owed after 9 V on */
+#define CFG_P1_HEARTBEAT_MS         3000    /* then one at least this often */
+#define CFG_P1_HOLD_MAX_S           60      /* UPDATE HOLD bound (PW 10-03) */
+#define CFG_P1_CYCLE_MIN_MS         100
+#define CFG_P1_CYCLE_MAX_MS         10000
+
 #endif

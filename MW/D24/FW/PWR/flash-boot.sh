@@ -4,6 +4,9 @@
 #   ... -c "init; halt; flash protect 0 0 0 off; stm32f1x options_load 0"
 # and re-enable afterwards (see tasks/def notes). Normal firmware work uses
 # flash-app.sh only. Bench only: the bootloader is never replaced in the field.
+# ORDER (incident 2026-09-15, lesson b): bootloader FIRST, app second — the
+# 2026-10-15 boot.bin drives the rails before anything else and is what makes
+# a halted, half-written or ENTER_BOOT-reset app survivable.
 #
 # HOT-ATTACH ONLY — never `reset halt` (PW ruling 2026-09-18; see
 # flash-app.sh for why). The running core is halted with its rail pins

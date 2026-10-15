@@ -1,4 +1,11 @@
-# Build outputs (make): the D24 firmware list records pwr-mcu.img by md5 (S171).
+# Build outputs (make). The images are filed by hand in image/ (built) and
+# baseline/ (the mx26 tree's images, for the reproduction proof).
 *.elf
 *.bin
 *.img
+!image/*
+!baseline/*
+tests/link_test
+tests/boot_test
+tests/p1_test
+tests/*.txt

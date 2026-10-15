@@ -7,10 +7,15 @@
  *   PA2  UPS_EN out      (+5V5 buck + +5V_PI boost pair)
  *   PA3  PSU_DIG_EN out  (+5V/+3V3/+0.9V digital bucks)
  *   PA4  PSU_12_CLK      TIM14_CH1 AF4, 1 MHz 20%  (gates the ±15 V set)
- *   PA5  PI_SD out       (save-and-shutdown request, active high)
+ *   PA5  PI_SD out       (save-and-shutdown request, active high; also the
+ *                         host link's MCU->host line, link.h)
+ *   PA6  P1_EN out       rev D: J8 pedal 9 V, ACTIVE LOW (low releases the
+ *                         U38 ADJ clamp; hi-Z/high = clamped = off). rev C N/C.
+ *   PA7  P1_SENSE in     rev D: J8 probe divider 22K/10K, ADC ch7. rev C N/C.
  *   PA9  PWR_FAIL out    (0 = radios off in hardware; low in standby to
  *                         avoid back-powering an unpowered CM4)
- *   PA10 AN_EN in        (Pi requests analog power)           [pull-down]
+ *   PA10 AN_EN in        (Pi requests analog power; also the host link's
+ *                         host->MCU line, link.h)              [pull-down]
  *   PB1  PSU_48_CLK      TIM3_CH4 AF1, 1 MHz 80%  (gates +45 V phantom)
  *   PF0  PWR_SW in       (rocker: closed = GND = ON; external 10K pull-up)
  *   PF1  PWR_LED out
@@ -30,6 +35,11 @@
 #define RCC_APB1ENR     REG(0x4002101Cu)
 #define RCC_CSR         REG(0x40021024u)   /* reset-cause flags [31:24], RMVF bit 24 */
 #define FLASH_ACR       REG(0x40022000u)
+#define FLASH_KEYR      REG(0x40022004u)
+#define FLASH_SR        REG(0x4002200Cu)   /* BSY 0, PGERR 2, WRPRTERR 4, EOP 5 */
+#define FLASH_CR        REG(0x40022010u)   /* PG 0, PER 1, STRT 6, LOCK 7 */
+#define FLASH_AR        REG(0x40022014u)
+#define FLASH_PAGE      1024u
 
 /* GPIO ports (offsets: MODER 0, PUPDR C, IDR 10, ODR 14, AFRL 20, AFRH 24) */
 #define GPIOA           0x48000000u
@@ -46,6 +56,9 @@
 /* timers (PSU sync clocks) */
 #define TIM3            0x40000400u
 #define TIM14           0x40002000u
+#define TIM17           0x40014800u        /* free-running 1 us count: host link */
+#define TIM_EGR(t)      REG((t) + 0x14u)
+#define TIM_CNT(t)      REG((t) + 0x24u)
 #define TIM_CR1(t)      REG((t) + 0x00u)
 #define TIM_CCMR1(t)    REG((t) + 0x18u)
 #define TIM_CCMR2(t)    REG((t) + 0x1Cu)
@@ -66,5 +79,19 @@
 /* SysTick (polled, no interrupts) */
 #define SYST_CSR        REG(0xE000E010u)
 #define SYST_RVR        REG(0xE000E014u)
+#define SCB_AIRCR       REG(0xE000ED0Cu)
+#define AIRCR_SYSRESETREQ 0x05FA0004u
+
+/* RCC_CSR reset-cause bits */
+#define CSR_PORRSTF     (1u << 27)
+
+/* Boot mailbox: the top 8 bytes of SRAM, above both images' stacks
+   (initial SP = MAILBOX_ADDR). The app writes it and resets; the bootloader
+   reads and clears it. SRAM survives SYSRESETREQ. */
+#define MAILBOX_ADDR    0x20000FF8u
+#define MAILBOX_UPDATE  0x55504454u        /* 'UPDT': stay in the bootloader */
+#define MAILBOX         ((volatile uint32_t *)MAILBOX_ADDR)
+
+#define APP_BASE        0x08001000u        /* size/magic: bootcmd.h */
 
 #endif

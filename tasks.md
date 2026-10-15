@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-15 16:48Z — POWER-MCU FW — one image rev C/rev D: stagger, soft start, bootloader options 2/4, P1 sense (desk only, opus)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-15 16:48Z — POWER-MCU FW — one image rev C/rev D: stagger, soft start, bootloader options 2/4, P1 sense (desk only, opus)   [status: 🟢 done, desk only, for PW review: firmware moved to MW/D24/FW/PWR (the mx26 tree's 3 images reproduce byte-for-byte); one image boot 2624 B/4 KB + app 3868 B/12 KB, CRC OK, 0 warnings; bootloader drives the rails first (power-on stagger), option 2 update over AN_EN/PI_SD, triple-blink loop kept; app keeps f6c146c stagger + duty ramps (the 09-15 outage was the reset-halt flow, not this code), P1 sense/heartbeat/hold/cycle; all off-target tests pass; 🔴 option 4 blocked by hardware (no empty check on F030x4, BOOT0/NRST/PA9 not CM4-reachable), recommend drop; 🔴 D24 app must send P1_ALIVE (rev D); report MW/D24/FW/PWR/report-2026-10-15.md]   [model: opus]
 
 model: opus
 POWER-MCU FIRMWARE (U34, STM32F0) — one image for rev C (rocker-follow hand-mod boards) and rev D — DESK ONLY (PW 2026-10-15: "power mcu fw go").

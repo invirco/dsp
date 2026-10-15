@@ -11,13 +11,22 @@
  * Takeover is glitchless: output data values are written before the pins
  * become outputs — the rails get the ROCKER's value (2026-09-13: driving
  * them high unconditionally made every reset pulse the rails).
- * No interrupts; superloop on a polled 1 ms SysTick.
- * Bootloader + WRP + app-only erase (fn.fw_update) come later — this image
- * still occupies flash from 0x08000000.
+ * No interrupts; superloop on a polled 1 ms SysTick. Between ticks the
+ * host link (link.h: frames on AN_EN, replies on PI_SD) is polled against
+ * TIM17's 1 us count. The app sits at 0x08001000 behind the WRP bootloader
+ * (boot.c), which drives the rails before this code ever runs.
+ *
+ * 2026-10-15: host link commands (proto.h) — PING, ENTER_BOOT (option 2
+ * update), and the rev D J8 pedal supply (p1.c: sense before enable,
+ * heartbeat re-clamp, UPDATE HOLD, power-cycle). AN_EN's analog request is
+ * its level held CFG_ANEN_STABLE_MS. One image for rev C and rev D.
  */
 
 #include "config.h"
 #include "board.h"
+#include "link.h"
+#include "proto.h"
+#include "p1.h"
 
 /* ---- vectors ------------------------------------------------------- */
 void Reset_Handler(void);
@@ -25,7 +34,7 @@ static void Fault_Handler(void) { for (;;) { } }
 
 __attribute__((section(".isr_vector"), used))
 static const void *vectors[] = {
-    (void *)0x20001000u,        /* initial SP: top of 4 KB SRAM */
+    (void *)MAILBOX_ADDR,       /* initial SP: under the boot mailbox */
     Reset_Handler,
     Fault_Handler,              /* NMI */
     Fault_Handler,              /* HardFault */
@@ -53,6 +62,16 @@ static uint32_t mhrx_high_ms;                    /* last ms MHRX read low: Pi is
                                                     for CFG_MHRX_UP_MS */
 static int      rocker_raw_prev, rocker_on;      /* debounced level      */
 static int      v12_ok = 1;                      /* hysteresis output    */
+static int      anen_level;                      /* AN_EN's level, held
+                                                    CFG_ANEN_STABLE_MS: the
+                                                    analog request (frame
+                                                    pulses never reach it) */
+static uint32_t anen_level_ms;                   /* last ms it agreed */
+static struct link lk;                           /* host link (link.h) */
+static struct p1   ped;                          /* J8 pedal supply (p1.h) */
+static int      pi_sd_req;                       /* PI_SD = save-and-shutdown */
+static int      enter_boot_pending;              /* ENTER_BOOT acked: reset
+                                                    once the reply is out */
 static int      mhrx_seen_high;                  /* guards a stuck-low MHRX
                                                     sense: a low only counts
                                                     as the Pi-off ack after
@@ -173,21 +192,25 @@ static void gpio_init(void)
        residual window while NRST is asserted (pins hi-Z) cannot be closed
        in firmware — rev C makes the enables default OFF (errata CHANGE 3). */
     int rocker_now = !pin_read(GPIOF, 0);                /* low = ON */
-    GPIO_ODR(GPIOA) = rocker_now ? ((1u << 2) | (1u << 3)) : 0u;
+    GPIO_ODR(GPIOA) = (rocker_now ? ((1u << 2) | (1u << 3)) : 0u)
+                    | (1u << 6);                          /* P1_EN high = clamped */
     GPIO_ODR(GPIOF) = 0;                                  /* LED off */
 
-    /* pull-downs on the two Pi-driven inputs (float when Pi is off) */
+    /* pull-downs on the two Pi-driven inputs (float when Pi is off) and on
+       PA7 P1_SENSE (rev C: N/C, so it reads 0 = "no pedal") */
     GPIO_PUPDR(GPIOA) = (GPIO_PUPDR(GPIOA)
-        & ~((3u << (0 * 2)) | (3u << (10 * 2))))
-        |  ((2u << (0 * 2)) | (2u << (10 * 2)));
+        & ~((3u << (0 * 2)) | (3u << (7 * 2)) | (3u << (10 * 2))))
+        |  ((2u << (0 * 2)) | (2u << (7 * 2)) | (2u << (10 * 2)));
 
-    /* PA1 analog; PA2/3/5/9 out; PA4 AF; PA10/PA0 in; SWD pins untouched */
+    /* PA1 analog; PA2/3/5/6/9 out; PA4 AF; PA0/PA7/PA10 in; SWD untouched */
     GPIO_MODER(GPIOA) = (GPIO_MODER(GPIOA)
-        & ~((3u << 2) | (3u << 4) | (3u << 6) | (3u << 8) | (3u << 10) | (3u << 18)))
+        & ~((3u << 2) | (3u << 4) | (3u << 6) | (3u << 8) | (3u << 10)
+          | (3u << 12) | (3u << 14) | (3u << 18)))
         |  ((3u << 2)                                   /* PA1 analog   */
           | (1u << 4) | (1u << 6)                       /* PA2,PA3 out  */
           | (2u << 8)                                   /* PA4 AF       */
           | (1u << 10)                                  /* PA5 out      */
+          | (1u << 12)                                  /* PA6 out      */
           | (1u << 18));                                /* PA9 out      */
     GPIO_AFRL(GPIOA) = (GPIO_AFRL(GPIOA) & ~(0xFu << 16)) | (4u << 16); /* PA4 AF4 */
 
@@ -214,6 +237,13 @@ static void pwm_init(void)
     TIM_CCMR2(TIM3)  = (6u << 12) | (1u << 11);
     TIM_CCER(TIM3)   = (1u << 12);
     TIM_CR1(TIM3)    = 1u;
+
+    /* TIM17: free-running 1 us count for the host link */
+    RCC_APB2ENR     |= (1u << 18);
+    TIM_PSC(TIM17)   = 39u;                    /* 40 MHz -> 1 MHz */
+    TIM_ARR(TIM17)   = 0xFFFFu;
+    TIM_EGR(TIM17)   = 1u;
+    TIM_CR1(TIM17)   = 1u;
 }
 
 static void adc_init(void)
@@ -234,6 +264,30 @@ static uint32_t adc_read(void)
     return ADC_DR;
 }
 
+/* ---- J8 pedal supply hooks (p1.h) ------------------------------------ */
+void p1_hw_enable(int on) { if (on) pin_low(GPIOA, 6); else pin_high(GPIOA, 6); }
+
+void p1_hw_discharge(int on)
+{
+    if (on) {
+        pin_low(GPIOA, 7);
+        GPIO_MODER(GPIOA) = (GPIO_MODER(GPIOA) & ~(3u << 14)) | (1u << 14);
+    } else {
+        GPIO_MODER(GPIOA) &= ~(3u << 14);      /* input, pull-down */
+    }
+}
+
+/* analog only for the conversion; the pull-down holds the pin otherwise */
+uint16_t p1_hw_adc(void)
+{
+    GPIO_MODER(GPIOA) |= (3u << 14);
+    ADC_CHSELR = (1u << 7);
+    uint32_t v = adc_read();
+    ADC_CHSELR = (1u << 1);
+    GPIO_MODER(GPIOA) &= ~(3u << 14);
+    return (uint16_t)v;
+}
+
 /* ---- debounced inputs ---------------------------------------------- */
 static void inputs_tick(void)
 {
@@ -252,6 +306,72 @@ static void inputs_tick(void)
     if (pin_read(GPIOA, 0))  { mhrx_low_ms = ms; mhrx_seen_high = 1; }
     else                     { mhrx_high_ms = ms; }
     if (pin_read(GPIOA, 10)) { anen_low_ms = ms; anen_seen_high = 1; }
+
+    /* the analog request: the link's idle level (pulses removed), held */
+    if (lk.idle == anen_level)                          anen_level_ms = ms;
+    else if (ms - anen_level_ms >= CFG_ANEN_STABLE_MS)  anen_level = lk.idle;
+}
+
+/* ---- host link -------------------------------------------------------- */
+static void link_poll(void)
+{
+    int o = link_step(&lk, (uint16_t)TIM_CNT(TIM17), pin_read(GPIOA, 10));
+    GPIO_BSRR(GPIOA) = (pi_sd_req || o) ? (1u << 5) : (1u << (5 + 16));
+    if (enter_boot_pending && !link_tx_busy(&lk)) {
+        p1_hw_enable(0);
+        MAILBOX[0] = MAILBOX_UPDATE;
+        MAILBOX[1] = ~MAILBOX_UPDATE;
+        __asm volatile("dsb");
+        SCB_AIRCR = AIRCR_SYSRESETREQ;
+        for (;;) { }
+    }
+}
+
+static int clocks_running(void) { return TIM_CCR1(TIM14) != 0u || TIM_CCR4(TIM3) != 0u; }
+
+static void link_cmd(void)
+{
+    uint8_t c, n;
+    const uint8_t *p;
+    if (!link_rx(&lk, &c, &n, &p)) return;
+    if (state != ST_BOOT && state != ST_ON) { link_rx_done(&lk); return; }  /* Pi not up */
+
+    uint8_t r[20];
+    uint8_t rn = 1;
+    r[0] = ST_OK;
+    switch (c) {
+    case CMD_PING: {
+        uint32_t odr = GPIO_ODR(GPIOA);
+        uint32_t hl = (p1_hold_left_ms(&ped, ms) + 999u) / 1000u;
+        r[1] = MODE_APP; r[2] = FW_VERSION_MAJOR; r[3] = FW_VERSION_MINOR;
+        r[4] = (uint8_t)state;
+        r[5] = (uint8_t)((rocker_on ? 1u : 0u) | (v12_ok ? 2u : 0u) | (anen_level ? 4u : 0u)
+             | (clocks_running() ? 8u : 0u) | ((odr >> 2) & 1u) << 4 | ((odr >> 3) & 1u) << 5);
+        r[6] = ped.state; r[7] = ped.why; r[8] = (uint8_t)hl;
+        r[9] = (uint8_t)(ped.early >> 8); r[10] = (uint8_t)ped.early;
+        r[11] = (uint8_t)(ped.late >> 8); r[12] = (uint8_t)ped.late;
+        r[13] = (uint8_t)ped.probes; r[14] = (uint8_t)ped.enables; r[15] = (uint8_t)ped.reclamps;
+        r[16] = (uint8_t)rslg.count;
+        rn = 17;
+        break;
+    }
+    case CMD_P1_ALIVE:   r[0] = (uint8_t)p1_alive(&ped, ms); break;
+    case CMD_P1_HOLD:    r[0] = n == 1 ? (uint8_t)p1_hold(&ped, ms, p[0]) : ST_BAD_ARG; break;
+    case CMD_P1_RELEASE: r[0] = (uint8_t)p1_release(&ped, ms); break;
+    case CMD_P1_CYCLE:
+        r[0] = n == 2 ? (uint8_t)p1_cycle(&ped, ms, ((uint32_t)p[0] << 8) | p[1]) : ST_BAD_ARG;
+        break;
+    case CMD_ENTER_BOOT:
+        if (n != 4 || p[0] != 'B' || p[1] != 'O' || p[2] != 'O' || p[3] != 'T') r[0] = ST_BAD_ARG;
+        else if (clocks_running()) r[0] = ST_REFUSED;    /* AN_EN low first */
+        else enter_boot_pending = 1;
+        break;
+    default:
+        r[0] = ST_UNKNOWN;
+        break;
+    }
+    link_rx_done(&lk);
+    link_send(&lk, (uint8_t)(c | 0x80u), r, rn);
 }
 
 /* ---- state machine -------------------------------------------------- */
@@ -271,7 +391,7 @@ static void enter_shutdown(enum trigger t)
     if (t == TRIG_FAIL || !CFG_KEEP_DIG_ON_SWITCH_OFF)
         rail_dig(0);                           /* shed load immediately */
     pin_low(GPIOA, 9);                         /* PWR_FAIL: radios off */
-    pin_high(GPIOA, 5);                        /* PI_SD: app saves     */
+    pi_sd_req = 1;                             /* PI_SD: app saves     */
     mhrx_low_ms = ms;
     anen_low_ms = ms;
     mhrx_seen_high = 0;
@@ -284,7 +404,7 @@ static void standby_outputs(void)
     clk12(0); clk48(0);
     rail_dig(0);
     rail_ups(0);
-    pin_low(GPIOA, 5);                         /* no back-powering the CM4 */
+    pi_sd_req = 0;                             /* no back-powering the CM4 */
     pin_low(GPIOA, 9);
     led(0);
 }
@@ -303,6 +423,9 @@ void Reset_Handler(void)
     gpio_init();
     pwm_init();
     adc_init();
+    link_init(&lk, (uint16_t)TIM_CNT(TIM17), pin_read(GPIOA, 10));
+    anen_level = lk.idle;
+    p1_init(&ped, 0);
 
     /* gpio_init already gave the rails the rocker's value; decide the
        initial state from the rocker AND the 12 V input. Booting blindly on
@@ -316,10 +439,14 @@ void Reset_Handler(void)
     mhrx_high_ms = ms;
 
     for (;;) {
+        link_poll();
         if (!(SYST_CSR & (1u << 16))) continue;   /* wait for 1 ms tick */
         ms++;
         rslg.prev_ms = ms;                     /* how far this run got */
         inputs_tick();
+        link_cmd();
+        p1_tick(&ped, ms, (state == ST_BOOT || state == ST_ON) &&
+                          (GPIO_ODR(GPIOA) & (1u << 3)));
 
         switch (state) {
         case ST_STANDBY:
@@ -349,7 +476,7 @@ void Reset_Handler(void)
                can hold MHRX high (2026-08-18) — then ST_ON is entered early,
                which costs nothing: rails are the same, clocks still follow
                AN_EN. Analog clocks are started by the ST_ON branch. */
-            if (pin_read(GPIOA, 10) ||
+            if (anen_level ||
                 ms - mhrx_high_ms >= CFG_MHRX_UP_MS) {
                 enter(ST_ON);
             }
@@ -361,7 +488,7 @@ void Reset_Handler(void)
             /* analog power follows AN_EN — the stop is ordered the same as
                in shutdown (main rails first, phantom after the delay): the
                pop risk is identical whoever commands the stop */
-            if (!pin_read(GPIOA, 10)) {
+            if (!anen_level) {
                 if (TIM_CCR1(TIM14) != 0u) { clk12(0); clk12_stop_ms = ms; }
                 if (TIM_CCR4(TIM3) != 0u &&
                     ms - clk12_stop_ms >= CFG_PHANTOM_OFF_DELAY_MS) clk48(0);
