@@ -1,0 +1,4 @@
+# Build outputs (make): the D24 firmware list records pwr-mcu.img by md5 (S171).
+*.elf
+*.bin
+*.img
