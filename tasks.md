@@ -1,3 +1,24 @@
+## HUB DISPATCH 2026-10-16 14:16Z — S172 — power MCU PA9 PWR_FAIL open-drain (sonnet, desk)   [status: 🟡 dispatched]   [model: sonnet]
+
+model: sonnet
+S172 — POWER MCU (U34): PA9 PWR_FAIL → OPEN-DRAIN, NEVER DRIVEN HIGH (PW 2026-10-16, digital review H-2/Q6). DESK ONLY — nothing flashed, no unit, no bench.
+
+WHY: PA9 drives the CM4's WL_nDisable / BT_nDisable (J24 pins 89/91). The CM4 datasheet: these pins "may only be driven low; can't be driven high"; the module has a 1.8 kΩ internal pull-up to its own 3.3 V. Today the fw configures PA9 as a push-pull output and calls pin_high(GPIOA, 9) (MW/D24/FW/PWR/main.c ~437 and ~456): driven high it back-feeds a powered-down CM4 and fights the module. R138 on the board stays as is. Ref: mx26 docs/review/d24-digital-revd-deep-review-2026-10-16.md (H-2).
+
+DO (MW/D24/FW/PWR, both images — boot.c AND the app):
+1. Configure PA9 as OPEN-DRAIN output (GPIOA OTYPER bit 9 = 1) wherever PA9 is set up as an output (main.c ~214 MODER block; check boot.c / bootcmd.c too — the bootloader "rails follow the rocker" path must obey the same rule).
+2. Replace every "PA9 high" with RELEASE (ODR bit set = hi-Z in open-drain mode — fine, but name it: add pwr_fail_assert() = drive low, pwr_fail_release() = release; no direct pin_high(GPIOA, 9) anywhere). Keep every existing low (standby, fail) as assert.
+3. No internal pull-up on PA9 (the module supplies it; with the module unpowered the line must sit low/undriven, not pulled to U34's 3.3 V).
+4. Update board.h's PA9 comment to say open-drain, never driven high, and why.
+5. Rebuild both images (0 warnings), re-run the off-target tests, add a test (or a static check in the Makefile/test) that fails if PA9 is ever configured push-pull or pin_high()'d. Record image sizes + CRCs.
+6. Add PA9 to the S171 unit-proof checklist in this tasks.md (the 🔴 owed list): "PA9 PWR_FAIL open-drain — scope PA9 with the CM4 unpowered (must stay ≤ 0.3 V, never 3.3 V) and powered (reads the module's 3.3 V via its 1.8K pull-up when released; Wi-Fi/BT up)".
+
+ACCEPT: both images build clean; tests pass incl. the new PA9 check; no pin_high(GPIOA, 9) / push-pull PA9 left in boot or app; board.h + README updated; S171 checklist line added; commit + push to main. Report: diff summary, sizes/CRCs, anything else found that drives a module-facing pin high while the module may be unpowered (report only, do not change).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-15 16:48Z — POWER-MCU FW — one image rev C/rev D: stagger, soft start, bootloader options 2/4, P1 sense (desk only, opus)   [status: 🟢 done, desk only, for PW review: firmware moved to MW/D24/FW/PWR (the mx26 tree's 3 images reproduce byte-for-byte); one image boot 2624 B/4 KB + app 3868 B/12 KB, CRC OK, 0 warnings; bootloader drives the rails first (power-on stagger), option 2 update over AN_EN/PI_SD, triple-blink loop kept; app keeps f6c146c stagger + duty ramps (the 09-15 outage was the reset-halt flow, not this code), P1 sense/heartbeat/hold/cycle; all off-target tests pass; 🔴 option 4 blocked by hardware (no empty check on F030x4, BOOT0/NRST/PA9 not CM4-reachable), recommend drop; 🔴 D24 app must send P1_ALIVE (rev D); report MW/D24/FW/PWR/report-2026-10-15.md]   [model: opus]
 
 model: opus
