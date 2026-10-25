@@ -1,3 +1,22 @@
+## HUB DISPATCH 2026-10-25 11:28Z — S173 — DSP card rev D support beside rev C (CPLD rev D build, rev reporting, app difference list)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+S173 — DSP card rev D support beside rev C: CPLD rev D build, board-rev reporting, and the rev C / rev D difference list for the app (PW 2026-10-25: "the app must be compatible with both dsp card revs, and allow for the differences, esp ram addition to revD"). Repo invirco/dsp, this machine. Hardware: NONE touched — nothing flashed to any unit; desk + compile only.
+
+Inputs (read from the hub's dspcard repo hand-off notes, pasted / fetched by you from GitHub invirco/dspcard — do not edit that repo): review/l8d (3 CPLD pin swaps), review/l8e/cpld-repin.md (DSPA_RESOUT / NI0 swap), review/l8k/cpld-swap.md (swap S1, 8 pins, exact qsf lines), review/l11-report.md (rev ID straps: H1S1 U7 PC1-PC3 = REV_ID0-2, rev D = code 1, 10K straps; CPLD BOARD_REV0 strap U3.81 to GND on rev D), the rev D schematic / netlist in kicad/ and review/l8k/net.xml, and the rev D memory additions (HyperRAM etc. — list exactly what rev D adds vs rev C from the schematic).
+
+DO:
+1. CPLD: add a REV D REVISION of shared/dsp4-logic (Quartus revision / second qsf, same RTL) with every rev D pin move; the rev C qsf and its bitstream stay BYTE-IDENTICAL. Compile both; pin + timing reports; check every rev D location against the dspcard netlist (0 mismatches). Rev D reads BOARD_REV0 (U3.81) into a register readable by the existing CM4 / H1S1 path; give its address and the rev C value. Report both design IDs.
+2. H1S1 firmware: read REV_ID0-2 (PC1-PC3, internal pulls OFF, read once at boot) and report it on the MH1 matrix bus as a read-only cell / response (propose the cell name — cell names are forever, so pick it carefully, e.g. DspCardRev — and the encoding: rev D = 1, rev C build reports nothing / absent per PW). Build rev C and rev D H1S1 images if they differ; nothing flashed.
+3. THE DIFFERENCE LIST for the app (the key deliverable for the next mx26 task): every functional difference between DSP card rev C and rev D that the app / DSP firmware must handle — esp. the RAM added on rev D (what it is, size, which DSP, what it enables: longer delays, reverb / FX memory, recorder buffers, more channels?), the CPLD pin moves (transparent to the app?), boot / flash differences, any cell or feature only available on rev D. For each: how the D24 app should detect it (the rev cell / CPLD register / H1S1 chip ID) and behave on each rev (enable / hide / default). Also the DSP firmware side: one image with run-time rev detection, or one image per rev — recommend.
+4. STOP (review stop): a findings section + block status with the two CPLD design IDs, the proposed cell, the difference list, numbered PW questions 1by1 with recommendations. Commit + push main.
+
+Rules: single trunk — pull main first; no AI attribution anywhere; step ID S173 (tag DSPC- for dspcard references); defs is the single SOT for cells — if a new cell is proposed, write it as a defs proposal, do not hand-edit generated files; do not edit invirco/dspcard or mx26.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-16 14:16Z — S172 — power MCU PA9 PWR_FAIL open-drain (sonnet, desk)   [status: 🟡 dispatched]   [model: sonnet]
 
 model: sonnet
