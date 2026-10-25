@@ -51,6 +51,20 @@
 #   --self-test <dir>  run the remote half locally against the stubs in <dir>.
 #
 # ---------------------------------------------------------------------------
+# THE CARD GUARD (S174; PW ruling S173 Q4 (a)): no flash without POSITIVE
+# identification of the DSP card. A rev C image on rev D copper is a bus
+# fight (S173-2: FSI1-3/BCKI1 driven into DSPB's O0-O3, TEST1 into NI0, TEST3
+# into PI_TX2), and so is the reverse. The artifact says which card it is for
+# (its manifest: `board: rev D`; a manifest with no board line predates rev D
+# and is rev C; no manifest = refused), the rollback must be for the same
+# card, and the bench must name the card through dspcard_id.py -- H1S1's
+# announcement or a rev-D-image knock. "Nothing answered" is not a card. There
+# is no override flag: if the card cannot be identified, identify it (boot an
+# H1S1 image that announces, or read it off the board) and say so in the log.
+# The ID needs /dev/serial0, so with matrix-app running only the knock can
+# answer; --stop-app frees the bus first.
+#
+# ---------------------------------------------------------------------------
 # WHY THE INTERLOCK IS THE FIRST THING IN THE SCRIPT AND NOT A LINE IN A
 # DISPATCH (S35-1).
 #
@@ -160,6 +174,27 @@ SVF=$(basename "$SRC")
 MD5=$(md5sum "$SRC" | cut -d' ' -f1)
 MANIFEST="${SRC%.svf}.manifest"
 
+# Which card the artifact is for (THE CARD GUARD, header).
+board_of() {
+  [ -f "$1" ] || { echo none; return; }
+  if grep -q '^board: rev D' "$1"; then echo D
+  elif grep -q '^board:' "$1"; then echo other
+  else echo C; fi
+}
+ART_REV=$(board_of "$MANIFEST")
+RB_REV=$(board_of "$BITDIR/${ROLLBACK%.svf}.manifest")
+case "$ART_REV" in
+  C|D) ;;
+  none)  echo "!! $SVF has no manifest beside it: it cannot say which DSP card it is for. Not flashing." >&2; exit 2 ;;
+  *)     echo "!! $SVF's manifest names a board this tool does not know: $(grep '^board:' "$MANIFEST")" >&2; exit 2 ;;
+esac
+if [ "$RB_REV" != "$ART_REV" ]; then
+  echo "!! rollback $ROLLBACK is for card rev $RB_REV, the artifact for rev $ART_REV." >&2
+  echo "   A rollback for the other card is a second bus fight, not a rollback." >&2
+  echo "   Name one with --rollback (its manifest must be in $BITDIR)." >&2
+  exit 2
+fi
+
 # ---- THE BENCH LOCK (S86) -------------------------------------------------
 #
 # S80-12 put the lock into seven bench drivers and `loadlogic.sh` took it at
@@ -193,6 +228,7 @@ else
   echo "   manifest   : NONE BESIDE IT — this artifact cannot say what it is."
 fi
 echo "   rollback   : $ROLLBACK"
+echo "   for card   : rev $ART_REV (artifact and rollback)"
 [ "$DRYRUN" = "1" ] && echo "   MODE       : DRY RUN — every gate and read, no write"
 [ -n "$WAIVER" ]    && echo "   AN_EN      : WAIVED — $WAIVER"
 
@@ -213,7 +249,8 @@ RUN=(ssh "$BENCH")
 [ -n "$SELFTEST" ] && RUN=(env "PATH=$SELFTEST:$PATH" bash -c)
 
 "${RUN[@]}" "SVF='$SVF' MD5='$MD5' ROLLBACK='$ROLLBACK' DRYRUN='$DRYRUN' \
-      STOPAPP='$STOPAPP' RESTART='$RESTART' WAIVER='$WAIVER' bash -s" <<'REMOTE'
+      STOPAPP='$STOPAPP' RESTART='$RESTART' WAIVER='$WAIVER' ART_REV='$ART_REV' \
+      DSPCARD_ID='${DSPCARD_ID:-/home/app/dspboot/dspcard_id.py}' bash -s" <<'REMOTE'
 set -u
 cd /home/app 2>/dev/null || cd .
 LOG=./logic-flash.log
@@ -251,6 +288,37 @@ if [ "$STOPAPP" = "1" ]; then
     say "   (dry run: matrix-app left alone; the read below is the LIVE pin)"
   fi
 fi
+
+# ---- THE CARD GUARD (S174) ----------------------------------------------
+# Positive identification or nothing. Fail closed: a missing tool, an
+# unreadable source, UNKNOWN and CONFLICT all refuse.
+restart_app() {
+  [ "$STOPAPP" = "1" ] && [ "$RESTART" = "1" ] && [ "$DRYRUN" = "0" ] && {
+    say "   restarting matrix-app"; sudo systemctl start matrix-app >/dev/null 2>&1; }
+}
+[ -f "$DSPCARD_ID" ] || { restart_app; fail "card identification tool $DSPCARD_ID is not on the bench -- cannot identify the card, so cannot flash" 6; }
+ID_OUT=$(python3 "$DSPCARD_ID" --want "$ART_REV" 2>&1); ID_RC=$?
+printf '%s\n' "$ID_OUT" | grep -v '^{' | sed 's/^/   card id    : /'
+rec "card id (want rev $ART_REV, rc=$ID_RC): $(printf '%s' "$ID_OUT" | grep '^{')"
+if [ "$ID_RC" != "0" ]; then
+  say ""
+  case "$ID_RC" in
+    3) say "   !! THE CARD COULD NOT BE IDENTIFIED -- NOT FLASHING."
+       say "      Nothing named a revision (lines above). 'No answer' is not rev C:"
+       say "      a rev D card with a blank U7 or a rev C CPLD image is silent too."
+       say "      With matrix-app running only the knock can answer: --stop-app"
+       say "      lets H1S1's announcement through. Otherwise identify the card." ;;
+    4) say "   !! THE SOURCES DISAGREE ABOUT THE CARD -- NOT FLASHING. Find out why." ;;
+    5) say "   !! THIS IS NOT A REV $ART_REV CARD -- NOT FLASHING $SVF ONTO IT."
+       say "      Flashing a rev $ART_REV image here drives CPLD outputs into the"
+       say "      card's own outputs (S173-2). Use the image built for this card." ;;
+    *) say "   !! card identification failed (rc=$ID_RC) -- NOT FLASHING." ;;
+  esac
+  rec "REFUSED: card guard rc=$ID_RC, artifact for rev $ART_REV"
+  restart_app
+  exit 6
+fi
+say "   card guard : positively rev $ART_REV -- matches the artifact"
 
 # ---- THE INTERLOCK -------------------------------------------------------
 # Fail closed. An interlock that cannot be read is an interlock that is not

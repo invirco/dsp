@@ -1,11 +1,11 @@
 /* dsp_card_rev.h -- DSP card hardware revision straps, for the REV D H1S1
  * (U7 = STM32G0B1RET6). S173.
  *
- * NOT USED BY THE REV C IMAGE IN THIS FOLDER. Rev C's U7 is an STM32U575,
- * whose pads 14/15/16 are PA0/PA1/PA2 and carry rev C nets (DSPC-L11 §2);
- * rev C has no straps, and per PW (L11 Q4) its H1S1 reports nothing. This
- * header is the piece the G0B1 port of H1S1 includes; nothing in the rev C
- * build includes it, so the rev C image is unchanged.
+ * Rev D only. Rev C's U7 is an STM32U575, whose pads 14/15/16 are
+ * PA0/PA1/PA2 and carry rev C nets (DSPC-L11 §2); rev C has no straps, and
+ * per PW (L11 Q4) its H1S1 reports nothing. Written at S173 in
+ * MW/D24/FW/H1S1/revd/, moved here into the G0B1 port at S174, where
+ * matrix.cs calls it from MainInit and carries the cell handling below.
  *
  * The straps (DSPC-L11, PW 2026-10-25 "L11 1by1, all per rec"):
  *   U7 PC1 / PC2 / PC3 (LQFP-64 pins 14 / 15 / 16) = REV_ID0 / 1 / 2,
@@ -52,8 +52,8 @@ static inline uint8_t dsp_card_rev_read(void)
 }
 
 /* THE BUS CELL (proposal S173: Sys001DspCardRev001 -- see
- * proposals/CONTRACT-PROPOSAL-S173.md; it is not in defs yet, so there is
- * no pSys001DspCardRev001 in a generated matrix.h to hang this on):
+ * proposals/CONTRACT-PROPOSAL-S173.md; ruled Q1 (a), not in defs yet).
+ * Implemented in matrix.cs (MainInit, RevCellPoll) along these lines:
  *
  *   MainInit():  code = dsp_card_rev_read();
  *                matrix[pSys001DspCardRev001][TXD] = code;

@@ -22,6 +22,16 @@
 #include "dsp_block.h"
 
 /* ---------------------------------------------------------------------
+ * Card revision, as the host states it in CFG_BOARD_REV (0xF007,
+ * product_config.asm; S174). Distinct non-small codes, so a stray write of
+ * 0 or 1 cannot claim rev C. Anything but DIAG_BOARD_REV_C keeps the image
+ * in the common subset (PA_12 never driven; diag.asm HARDWARE note).
+ * ------------------------------------------------------------------- */
+#define DIAG_BOARD_REV_UNSTATED  0x00   /* default: the common subset    */
+#define DIAG_BOARD_REV_C         0x0C
+#define DIAG_BOARD_REV_D         0x0D
+
+/* ---------------------------------------------------------------------
  * Boot stages — the value in DIAG_BOOT_STAGE, and the number of LED
  * flashes when the firmware is stuck. A stage means "this step
  * COMPLETED"; the fault is in whatever comes next. So N flashes says

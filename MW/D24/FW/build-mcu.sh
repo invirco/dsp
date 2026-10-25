@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Headless build of one panel/hub MCU image from its folder here.
-#   ./build-mcu.sh <H1S1|H1S3|H1S4|MH1> <path-to-ST-Drivers-dir> [out-dir]
+#   ./build-mcu.sh <H1S1|H1S1G0|H1S3|H1S4|MH1> <path-to-ST-Drivers-dir> [out-dir]
 # Builds in a scratch copy (this tree is never touched), strips the one
 # CubeIDE-only flag (-fcyclomatic-complexity) that plain arm-none-eabi-gcc
 # rejects, and writes <MCU>.elf/.hex/.bin (+ .shex for the three panel MCUs).
@@ -12,6 +12,9 @@ trap 'rm -rf "$w"' EXIT
 rsync -a --exclude=Debug/Core --exclude=Debug/Drivers "$here/$mcu/" "$w/"
 rsync -a "$here/$mcu/Debug/" "$w/Debug/"
 ln -s "$(cd "$drv" && pwd)" "$w/Drivers"
+# H1S1G0 (the rev D port) takes the generated matrix.h from the rev C tree,
+# its one copy; see H1S1G0/Debug/makefile.linux.
+export MATRIX_INC="$here/H1S1/Core/Inc"
 cd "$w/Debug"
 find . -name '*.mk' -exec sed -i 's/-fcyclomatic-complexity//g' {} +
 make -f makefile.linux all -j"$(nproc)" >build.log 2>&1 || { tail -20 build.log; exit 1; }
@@ -19,6 +22,7 @@ mkdir -p "$out"; cp "$mcu".elf "$mcu".hex "$out"/
 arm-none-eabi-objcopy -O binary "$mcu".elf "$out/$mcu.bin"
 case $mcu in
   H1S1) id=H1S1 ;;   # shex header id: see README (H1S3/H1S4 ids are crossed)
+  H1S1G0) id=H1S1 ;; # same socket, rev D card (S174)
   H1S3) id=H1S4 ;;
   H1S4) id=H1S3 ;;
   *) id= ;;

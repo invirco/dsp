@@ -33,6 +33,20 @@
  *   polarity as src/blink/blink.asm, so the standalone blink image and
  *   the real firmware light the same LED.
  *
+ * REV D MOVES IT (S174, finding S173-1). On the rev D card BLINK_LED is
+ * PA_14 and PA_12 is SPI1_MOSI, wired through 22R to the CM4's SPI MOSI --
+ * the wire both DSPs boot over, shared with the CPLD, the codec and the
+ * 595 chain. Every LED transition on PA_12 fights that bus. So this image
+ * drives PA_14 always (an open pad on rev C) and PA_12 ONLY once the card
+ * is known to be rev C: the product config says so (CFG_BOARD_REV,
+ * product_config.asm) AND the SPI_RDY pull read at _diag_init agrees
+ * (PB_05 low = rev C's 10K pull-down, R34/R22; rev D pulls it up, MOD C).
+ * Either alone is not enough, and nothing else in the image touches PA_12.
+ * Until the host says rev C, a rev C card's LED is dark: the boot-stage
+ * flash codes before the config are visible over the diag link only.
+ * src/blink/*.asm still drive PA_12 unconditionally: rev C bench
+ * instruments, never run on a rev D card.
+ *
  * READ PROTOCOL. A read is a two-word SPI transaction like any other
  * write, with bit 13 (READ) set in word 0. But the RX watermark
  * interrupt only fires once BOTH words have been clocked in, by which
@@ -68,8 +82,12 @@
 .extern _scope_fired;
 .extern _scope_runs;
 
-/* PA_12 = BLINK_LED */
-#define DIAG_LED_BIT      0x00001000
+/* BLINK_LED pads, see HARDWARE above. The state machine drives the pads
+ * in _diag_led_bits, never a constant. */
+#define DIAG_LED_PA12     0x00001000        /* rev C BLINK_LED */
+#define DIAG_LED_PA14     0x00004000        /* rev D BLINK_LED */
+#define DIAG_LED_BOTH     0x00005000        /* rev C, confirmed */
+#define DIAG_STRAP_BIT    0x00000020        /* PB_05 = SPI2_RDY, read once */
 
 /*----------------------------------------------------------------------
  * TEMP bisect mirror (P2.2, 2026-08-21) — goes with the rest of the
@@ -255,6 +273,16 @@
 
 .global _diag_led_mode;
 .var _diag_led_mode = DIAG_LED_AUTO;
+/* The pads the LED drives: PA_14 until _diag_board_rev_set says rev C and
+ * the strap agrees. Peekable, so the bench can see which pads are live. */
+.global _diag_led_bits;
+.var _diag_led_bits = DIAG_LED_PA14;
+/* PB_05 as _diag_init found it: 0 = low (rev C's pull-down), 1 = high, or
+ * not readable because the pad was already on a peripheral (then it never
+ * vouches for rev C). Peekable; the read needs a bench proof on both
+ * revisions before anything but this veto rests on it. */
+.global _diag_rdy_strap;
+.var _diag_rdy_strap = 1;
 .var _diag_peek_addr = 0;
 
 /* LED state machine */
@@ -465,11 +493,72 @@ _bisect_dump_asm:
 _bisect_dump_asm.end:
 #endif
 
+/*----------------------------------------------------------------------
+ * _diag_board_rev_set — the host's word on the card revision (S174).
+ * In: r1 = CFG_BOARD_REV value. Called via _product_config_write, inside
+ * the SPI service; clobbers r0, r4.
+ *
+ * DIAG_BOARD_REV_C with the PB_05 strap low: the LED drives PA_14 + PA_12.
+ * Anything else: PA_14 only, and PA_12 goes back to an input -- a later
+ * "rev D" or "unstated" withdraws an earlier "rev C". _diag_led_bits is
+ * narrowed BEFORE the pad is released, so a tick that lands in between
+ * can only write the data latch of a pad that is no longer an output.
+ *----------------------------------------------------------------------*/
+.global _diag_board_rev_set;
+_diag_board_rev_set:
+    r4 = DIAG_BOARD_REV_C;
+    comp(r1, r4);
+    if ne jump (pc, .brs_common);
+    r4 = dm(_diag_rdy_strap);
+    r0 = 0;
+    comp(r4, r0);
+    if ne jump (pc, .brs_common);  /* strap disagrees: stay common */
+    r0 = DIAG_LED_PA12;
+    dm(REG_PORTA_FER_CLR)  = r0;
+    dm(REG_PORTA_INEN_CLR) = r0;
+    dm(REG_PORTA_DATA_CLR) = r0;
+    dm(REG_PORTA_DIR_SET)  = r0;
+    r0 = DIAG_LED_BOTH;
+    dm(_diag_led_bits) = r0;
+    rts;
+.brs_common:
+    r0 = DIAG_LED_PA14;
+    dm(_diag_led_bits) = r0;
+    r0 = DIAG_LED_PA12;
+    dm(REG_PORTA_DIR_CLR)  = r0;
+    dm(REG_PORTA_DATA_CLR) = r0;
+    rts;
+_diag_board_rev_set.end:
+
 .global _diag_init;
 _diag_init:
-    /* PA_12 -> GPIO output, driven low. FER bit clear selects GPIO over
-     * the peripheral function, which makes the pin's MUX setting moot. */
-    r0 = DIAG_LED_BIT;
+    /* The SPI_RDY pull as a revision strap. Nothing drives PB_05 yet: the
+     * boot kernel leaves PORTB_FER clear (dma_config.c pin-routing note)
+     * and DIR is clear from reset. If the pad is already on a peripheral
+     * the read would see SPI2, not the pull, so it is not taken and the
+     * strap stays 1 (never vouches for rev C). */
+    r0 = DIAG_STRAP_BIT;
+    r1 = dm(REG_PORTB_FER);
+    r1 = r1 and r0;
+    if ne jump (pc, .diag_strap_done);
+    dm(REG_PORTB_INEN_SET) = r0;
+    r1 = 1000;                    /* 10K into the pad: settle well clear */
+.diag_strap_wait:
+    r1 = r1 - 1;
+    if ne jump (pc, .diag_strap_wait);
+    r1 = dm(REG_PORTB_DATA);
+    dm(REG_PORTB_INEN_CLR) = r0;
+    r1 = r1 and r0;
+    if ne jump (pc, .diag_strap_done);
+    r1 = 0;
+    dm(_diag_rdy_strap) = r1;
+.diag_strap_done:
+
+    /* PA_14 -> GPIO output, driven low: the LED pad on rev D, an open pad
+     * on rev C. PA_12 stays untouched (reset state, input buffer off)
+     * until _diag_board_rev_set. FER bit clear selects GPIO over the
+     * peripheral function, which makes the pin's MUX setting moot. */
+    r0 = DIAG_LED_PA14;
     dm(REG_PORTA_FER_CLR)  = r0;
     dm(REG_PORTA_INEN_CLR) = r0;
     dm(REG_PORTA_DATA_CLR) = r0;
@@ -820,7 +909,7 @@ _diag_timer_isr:
     r0 = r0 - 1;
     dm(_diag_led_left) = r0;
 
-    r0 = DIAG_LED_BIT;
+    r0 = dm(_diag_led_bits);
     dm(REG_PORTA_DATA_SET) = r0;
     DIAG_MIRROR_HI
     r0 = 1;
@@ -830,7 +919,7 @@ _diag_timer_isr:
 
 .diag_led_to_off:
     /* ---- was ON -> turn OFF ---- */
-    r0 = DIAG_LED_BIT;
+    r0 = dm(_diag_led_bits);
     dm(REG_PORTA_DATA_CLR) = r0;
     DIAG_MIRROR_LO
     r0 = 0;
@@ -847,7 +936,7 @@ _diag_timer_isr:
     jump (pc, .diag_tick_done);
 
 .diag_led_off_now:
-    r0 = DIAG_LED_BIT;
+    r0 = dm(_diag_led_bits);
     dm(REG_PORTA_DATA_CLR) = r0;
     DIAG_MIRROR_LO
     r0 = 0;
@@ -857,7 +946,7 @@ _diag_timer_isr:
     jump (pc, .diag_tick_done);
 
 .diag_led_on_now:
-    r0 = DIAG_LED_BIT;
+    r0 = dm(_diag_led_bits);
     dm(REG_PORTA_DATA_SET) = r0;
     DIAG_MIRROR_HI
     r0 = 1;

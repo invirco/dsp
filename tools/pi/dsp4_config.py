@@ -47,6 +47,14 @@ CFG_MTX_MASK = 0xF006
 CFG_OUT_MUX = 0xF003
 CFG_COMMIT = 0xF004
 CFG_PATCH_BASE = 0xF010
+# THE CARD REVISION (S174). Acts on the write: 0x0C (rev C) lets the image
+# light its LED on PA_12 -- only if the DSP's own SPI_RDY strap read agrees --
+# and anything else keeps PA_12 an input, because on rev D that pad is the
+# CM4's SPI MOSI (finding S173-1). Not sent unless asked for, so every caller
+# that predates it configures the common subset: LED on PA_14 only, which is
+# dark on rev C. diag.h DIAG_BOARD_REV_*.
+CFG_BOARD_REV = 0xF007
+BOARD_REV_CODES = {'C': 0x0C, 'D': 0x0D}
 
 # CFG_PRODUCT_ID IS A SCOPE CLASS, NOT A PRODUCT IDENTITY (S28-4).
 #
@@ -188,7 +196,7 @@ PRODUCT_CONFIG = {
 }
 
 
-def transactions(product, chip, scope_id=None):
+def transactions(product, chip, scope_id=None, board_rev=None):
     """Yield (addr, value) writes for a product/chip, COMMIT last.
 
     `scope_id` overrides CFG_PRODUCT_ID and nothing else (S29). The word
@@ -211,6 +219,8 @@ def transactions(product, chip, scope_id=None):
     if chip == 1 and 'input_patch' in cfg:
         for i, v in enumerate(cfg['input_patch']):
             yield CFG_PATCH_BASE + i, v
+    if board_rev is not None:
+        yield CFG_BOARD_REV, BOARD_REV_CODES[board_rev]
     yield CFG_COMMIT, 1
 
 
@@ -339,6 +349,10 @@ def main():
                          '(the snake returns run), 1 = D24 scope (they are '
                          'gated off, as every other product gates them). '
                          'S29 gate 2.')
+    ap.add_argument('--board-rev', choices=sorted(BOARD_REV_CODES),
+                    help='state the DSP card revision (CFG_BOARD_REV). C '
+                         'lets a rev C card light its LED on PA_12; omit it '
+                         'on any card not positively identified (S174)')
     ap.add_argument('--chip', type=int, choices=(1, 2), default=1)
     ap.add_argument('--dev', default='0.0',
                     help='spidev bus.device (default 0.0)')
@@ -364,7 +378,8 @@ def main():
     if args.poke:
         writes = [(int(args.poke[0], 0), int(args.poke[1], 0))]
     elif args.product:
-        writes = list(transactions(args.product, args.chip, args.scope_id))
+        writes = list(transactions(args.product, args.chip, args.scope_id,
+                                    args.board_rev))
         if args.scope_id is not None:
             print(f'  scope class OVERRIDDEN: CFG_PRODUCT_ID = '
                   f'{args.scope_id} (product default '

@@ -1,0 +1,66 @@
+# makefile.linux -- H1S1 rev D (STM32G0B1RET6), S174. Hand-written, not a
+# CubeIDE export: the port has no .ioc yet (README). Same flags as the rev C
+# CubeIDE Debug configuration (-O0 -g3), for the Cortex-M0+.
+#
+#   run by ../../build-mcu.sh H1S1G0 <Drivers>, from Debug/ in a scratch
+#   copy, with ../Drivers -> the ST driver set (fetch-drivers.sh).
+#
+# MATRIX_INC: where matrix.h comes from. It is the GENERATED cell table the
+# app's pack tool writes, and it is the rev C H1S1's (same generation): one
+# copy, in MW/D24/FW/H1S1/Core/Inc, never duplicated here. build-mcu.sh
+# exports the path; the default only works in-tree.
+MATRIX_INC ?= ../../H1S1/Core/Inc
+EXTRA_CFLAGS ?=
+
+NAME := H1S1G0
+CC := arm-none-eabi-gcc
+ARCH := -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft
+DEFS := -DDEBUG -DUSE_HAL_DRIVER -DSTM32G0B1xx
+INCS := -I../Core/Inc -I../Drivers/STM32G0xx_HAL_Driver/Inc \
+        -I../Drivers/STM32G0xx_HAL_Driver/Inc/Legacy \
+        -I../Drivers/CMSIS/Device/ST/STM32G0xx/Include \
+        -I../Drivers/CMSIS/Include -I$(MATRIX_INC)
+CFLAGS := $(ARCH) -std=gnu11 -g3 $(DEFS) $(INCS) -O0 -ffunction-sections \
+          -fdata-sections -Wall -fstack-usage --specs=nano.specs $(EXTRA_CFLAGS)
+
+HAL := hal hal_cortex hal_dma hal_dma_ex hal_exti hal_flash hal_flash_ex \
+       hal_gpio hal_pwr hal_pwr_ex hal_rcc hal_rcc_ex hal_uart hal_uart_ex
+SRCS := $(wildcard ../Core/Src/*.c) \
+        $(patsubst %,../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_%.c,$(HAL))
+OBJS := $(patsubst ../%.c,%.o,$(SRCS)) Core/Startup/startup_stm32g0b1xx.o
+
+all: $(NAME).elf $(NAME).hex $(NAME).bin
+	arm-none-eabi-size $(NAME).elf
+
+Core/Src/%.o: ../Core/Src/%.c
+	@mkdir -p $(dir $@)
+	$(CC) -c $< $(CFLAGS) -MMD -MP -o $@
+
+Drivers/%.o: ../Drivers/%.c
+	@mkdir -p $(dir $@)
+	$(CC) -c $< $(CFLAGS) -MMD -MP -o $@
+
+Core/Startup/%.o: ../Core/Startup/%.s
+	@mkdir -p $(dir $@)
+	$(CC) -x assembler-with-cpp -c $< $(ARCH) -g3 -DDEBUG -o $@
+
+# matrix.cs is #included by main.c and is not a C source of its own.
+Core/Src/main.o: ../Core/Inc/matrix.cs ../Core/Inc/dsp_card_rev.h
+
+$(NAME).elf: $(OBJS) ../STM32G0B1RETX_FLASH.ld
+	$(CC) -o $@ $(OBJS) $(ARCH) -T../STM32G0B1RETX_FLASH.ld --specs=nosys.specs \
+	  -Wl,-Map=$(NAME).map -Wl,--gc-sections -static --specs=nano.specs \
+	  -Wl,--start-group -lc -lm -Wl,--end-group
+
+$(NAME).hex: $(NAME).elf
+	arm-none-eabi-objcopy -O ihex $< $@
+
+$(NAME).bin: $(NAME).elf
+	arm-none-eabi-objcopy -O binary $< $@
+
+clean:
+	rm -rf Core Drivers $(NAME).elf $(NAME).hex $(NAME).bin $(NAME).map
+
+-include $(OBJS:.o=.d)
+
+.PHONY: all clean

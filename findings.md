@@ -6,6 +6,37 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## DSP CARD REV D ENABLEMENT: LED, H1S1 G0B1 PORT, FLASH GUARD (2026-10-25, sessions 173-174)
+
+Hub dispatches `tasks.md` 2026-10-25 11:28Z (S173) and 13:07Z (S174). Desk only;
+nothing flashed.
+
+**S173 rulings (PW 2026-10-25, 1by1, all (a)).** Q1 cell `Sys001DspCardRev001`
+(strap code, rev D = 1, rev C absent, 0xFF = re-send; the hub lands it in defs);
+Q2 H1S1 G0B1 port now; Q3 one DSP image with run-time revision (product config +
+PB_05 early guard), common subset on both, HyperRAM rev D only, LED fix first;
+Q4 no CPLD / H1S1 flash without positive card identification; Q5 the app owns
+the AK4619 on rev D, H1S1 codec cells retire with rev C; Q6 SYS_RESOUT unread.
+S173-1..6 are in the S173 block.
+
+**S174-1.** The DSP image now drives PA_12 only when the host writes
+`CFG_BOARD_REV` (0xF007) = 0x0C AND the PB_05 strap read low at `_diag_init`;
+the LED otherwise lives on PA_14. Everything outside diag/product_config is
+object-identical. Cost: a rev C card's LED is dark until the host says rev C.
+
+**S174-2. The U7 chip ID is not readable today** (S173 said it was): MH1's
+`loadfw` enters the ROM loader and mass-erases in the same step, MH1 has no
+GET_ID, and no SWD channel to U7 is established.
+
+**S174-3. A virgin rev D card cannot be identified**, so the guard refuses its
+first CPLD and first H1S1 flash. Best breaker (S174-4): a JTAG SAMPLE of U3.81,
+which both CPLD images hold as a weak-pull-up input.
+
+**S174-5..8.** Rev C H1S1 keeps the UART-ISR trap MH1 fixed on 2026-08-19 (the
+port has the fix); `extram.asm` overwrites PORTA_MUX whole (the rev D SPI1 step
+must read-modify-write); rev D H1S1 drives RST_O, whose option-card side is
+unverified; the G0B1 empty-check may need a power cycle after the first load.
+
 ## MAIN HELD AT −18 dBFS BY FOUR STAGES NO CELL COULD REACH (2026-09-30, session 154)
 
 Hub dispatch `tasks.md` 2026-09-30 16:03Z (+ the constant-power addendum). Report

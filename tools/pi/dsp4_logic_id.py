@@ -21,6 +21,7 @@ from audio that happens to be playing.
 Exit status is 0 only if a reply was found (and matched --expect, if given).
 """
 import argparse
+import os
 import struct
 import subprocess
 import sys
@@ -101,6 +102,12 @@ def knock(seconds=3, knock_frames=2048):
     frames = [(0, 0)] * pre + body + [(0, 0)] * (RATE - len(body))
     raw = b"".join(struct.pack("<ii", s32(l), s32(r)) for l, r in frames)
     open("/tmp/dsp4_knock.raw", "wb").write(raw)
+    # The capture is read back from a fixed path: a stale one from an earlier
+    # run must not answer for an arecord that failed this time (S174).
+    try:
+        os.remove("/tmp/dsp4_knock_cap.raw")
+    except OSError:
+        pass
 
     rec = subprocess.Popen(
         ["arecord", "-D", REC_DEV, "-f", "S32_LE", "-c", "2", "-r", str(RATE),

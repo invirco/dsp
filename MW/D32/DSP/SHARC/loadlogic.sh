@@ -259,6 +259,21 @@ if [ -z "$DESIGN_ID" ]; then
 fi
 echo "== $SVF design_id 0x$DESIGN_ID (ask the part with: $0 --id)"
 
+# ---- THE CARD GUARD (S174; PW ruling S173 Q4 (a)) ----
+#
+# No CPLD flash without positive identification of the DSP card: an image for
+# the other card revision drives CPLD outputs into the card's own outputs
+# (S173-2). Every name above is a rev C image; the manifest decides, the same
+# rule as tools/pi/logic_flash.sh (`board: rev D` = rev D, no board line =
+# rev C, which is every artifact built before rev D existed). The bench names
+# the card through dspcard_id.py, after matrix-app is stopped so H1S1's
+# announcement can answer; "nothing answered" refuses.
+if grep -q '^board: rev D' "$MAN"; then ART_REV=D
+elif grep -q '^board:' "$MAN"; then
+    echo "$0: $SVF's manifest names a board this script does not know -- not flashing." >&2; exit 4
+else ART_REV=C; fi
+echo "== for card rev $ART_REV"
+
 if ! ssh $BENCH "test -f /home/app/$SVF"; then
     [ -f "$SRC" ] || { echo "no $SVF here or on the bench" >&2; exit 2; }
     echo "== staging $SVF ($(md5sum "$SRC" | cut -c1-8))"
@@ -269,12 +284,32 @@ ATTEMPTS="${ATTEMPTS:-3}"
 # in its environment. The previous form was a double-quoted ssh argument
 # with every remote `$` hand-escaped, which is one backslash away from the
 # desk expanding a bench variable and is not a thing to hand-audit.
-ssh $BENCH "SVF='$SVF' ATTEMPTS='$ATTEMPTS' bash -s" <<'REMOTE'
+ssh $BENCH "SVF='$SVF' ATTEMPTS='$ATTEMPTS' ART_REV='$ART_REV' bash -s" <<'REMOTE'
 set -u
 cd /home/app
 echo "== loading $SVF =="
 md5sum "$SVF"
 sudo systemctl stop matrix-app >/dev/null 2>&1
+
+# The card guard (header). Fail closed on every outcome but a positive match.
+ID=/home/app/dspboot/dspcard_id.py
+if [ ! -f "$ID" ]; then
+  echo "   !! $ID is not on the bench -- cannot identify the card, so NOT FLASHING"
+  echo "      (tools/pi/deploy-bench-tools.sh puts it there)"
+  exit 6
+fi
+ID_OUT=$(python3 "$ID" --want "$ART_REV" 2>&1); ID_RC=$?
+printf '%s\n' "$ID_OUT" | grep -v '^{' | sed 's/^/   card id: /'
+echo "$(date -u +%FT%TZ) [loadlogic] $SVF card id (want rev $ART_REV, rc=$ID_RC): $(printf '%s' "$ID_OUT" | grep '^{')" >> /home/app/logic-flash.log
+case "$ID_RC" in
+  0) echo "   card guard: positively rev $ART_REV -- matches the artifact" ;;
+  3) echo "   !! THE CARD COULD NOT BE IDENTIFIED -- NOT FLASHING. 'No answer' is not"
+     echo "      rev C: a rev D card with a blank U7 or a rev C CPLD image is silent too."
+     exit 6 ;;
+  4) echo "   !! THE SOURCES DISAGREE ABOUT THE CARD -- NOT FLASHING."; exit 6 ;;
+  5) echo "   !! THIS IS NOT A REV $ART_REV CARD -- NOT FLASHING $SVF ONTO IT (S173-2)."; exit 6 ;;
+  *) echo "   !! card identification failed (rc=$ID_RC) -- NOT FLASHING."; exit 6 ;;
+esac
 
 idcode() {
   sudo openocd -f cpld-jtag.cfg -c 'init; scan_chain; shutdown' 2>&1 \

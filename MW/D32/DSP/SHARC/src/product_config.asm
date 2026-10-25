@@ -24,6 +24,11 @@
  *                        snake output patch is not generated yet; the
  *                        TX gather must consume this when it lands.
  *   0xF004  CONFIG_COMMIT  write 1: apply patch + gates, release boot
+ *   0xF007  BOARD_REV    the DSP card revision as the host knows it
+ *                        (S174): 0x0C = rev C, 0x0D = rev D, 0 = not
+ *                        stated (default). Acts on the write, not at
+ *                        commit: only 0x0C, with the SPI_RDY strap
+ *                        agreeing, lets the LED drive PA_12 (diag.asm).
  *   0xF010+ INPUT_PATCH  (chip 1 only) one reg per packed RX channel i:
  *                        packed default index whose slot var receives
  *                        DMA channel i (identity by default). Used for
@@ -64,6 +69,11 @@
  * proposals/CONTRACT-PROPOSAL-S75.md); until it lands, nothing writes this
  * register and it holds its default. */
 #define CFG_EXTRAM      0xF005
+/* THE CARD REVISION (S174, finding S173-1). One image runs on rev C and
+ * rev D (S173 Q3), so what differs at the pins has to be said at boot. Today
+ * that is only the LED pad: PA_12 is BLINK_LED on rev C and the CM4's SPI
+ * MOSI on rev D. See diag.h for the codes and diag.asm for the rule. */
+#define CFG_BOARD_REV   0xF007
 #define CFG_PATCH_BASE  0xF010
 
 .section/dm seg_dmda;
@@ -120,6 +130,7 @@
 #endif
 .extern _boot_config_received;
 .extern _diag_boot_stage;
+.extern _diag_board_rev_set;
 
 #if CHIP_ID == 1
 .extern _rx_patch_regs;
@@ -172,6 +183,9 @@ _product_config_write:
     r4 = CFG_COMMIT;
     comp(r2, r4);
     if eq jump (pc, .cfg_commit);
+    r4 = CFG_BOARD_REV;
+    comp(r2, r4);
+    if eq jump (pc, .cfg_board_rev);
 #if DSP4_EXTRAM
     r4 = CFG_EXTRAM;
     comp(r2, r4);
@@ -219,6 +233,9 @@ _product_config_write:
     dm(_cfg_extram_off) = r1;
     rts;
 #endif
+
+.cfg_board_rev:
+    jump _diag_board_rev_set;     /* tail call; its rts returns to ISR */
 
 .cfg_commit:
     jump _product_config_commit;  /* tail call; commit's rts returns to ISR */

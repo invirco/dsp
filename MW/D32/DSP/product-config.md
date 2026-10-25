@@ -19,6 +19,7 @@ from `scope=` params in dsp.csv).
 | 0xF002 | AUX_MASK | active aux buses |
 | 0xF003 | OUT_MUX | bit 0: B_O2 content — 0 = D24 codec, 1 = D32 snake. Stored only; the snake output patch is not generated yet and the TX gather must consume this when it lands |
 | 0xF004 | CONFIG_COMMIT | write 1: apply input patch + scope gates, release boot |
+| 0xF007 | BOARD_REV | DSP card revision (S174): 0x0C = rev C, 0x0D = rev D, 0 = not stated (default). Acts on the write. Only 0x0C, with the DSP's own SPI_RDY strap read low, lets the status LED drive PA_12 (rev C BLINK_LED; on rev D that pad is the CM4's SPI MOSI). Otherwise the LED drives PA_14 only. `dsp4_config.py --board-rev C\|D`; omit on a card not positively identified |
 | 0xF010+ | INPUT_PATCH[i] | chip 1 only; one register per packed RX channel `i` (see below) |
 
 Addresses ≥ 0xF000 are routed to `_product_config_write` before the

@@ -89,7 +89,12 @@ dsp4_icrecv.py
 PAIRDROP="
 codec4619.py
 matrix_addr.py
+dsp4_logic_id.py
+dspcard_id.py
 "
+# dspcard_id.py + dsp4_logic_id.py (S174): the card guard that logic_flash.sh
+# and h1s1_flash.sh run on the bench, from $DSPBOOT_DEST. dspcard_id.py also
+# imports d24_bus_probe.py out of $DEST (TOOLS above).
 
 # STAGE_TOOLS, read out of the runner rather than repeated here, so a name added
 # to that tuple without being added above is reported and not silently skipped.
