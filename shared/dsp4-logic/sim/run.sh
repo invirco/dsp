@@ -21,11 +21,14 @@ command -v "$IV" >/dev/null || { echo "ERROR: iverilog not found" >&2; exit 2; }
 WORK="$HERE/work"
 mkdir -p "$WORK"
 
-ALL_TBS=(tb_clkgen tb_pcm_reframe tb_pcm_drive tb_pcm_capture tb_logic_top)
+ALL_TBS=(tb_clkgen tb_pcm_reframe tb_pcm_drive tb_pcm_capture tb_logic_top tb_revd_id)
 TBS=("${@:-}")
 [ -z "${TBS[0]:-}" ] && TBS=("${ALL_TBS[@]}")
 
 RTL=(../rtl/dsp4_clkgen.v ../rtl/dsp4_pcm_reframe.v ../rtl/dsp4_logic_top.v)
+# The rev D revision's own files (S173). Outside rtl/*.v on purpose: the rev C
+# artifact hash globs rtl/*.v, and these must not rename the rev C image.
+RTL+=(../rtl/revd/dsp4_revd_id_tap.v ../rtl/revd/dsp4_logic_revd_top.v)
 MODELS=(model_tdm_rx.v model_tdm_tx.v model_pi_i2s_tx.v model_pi_i2s_rx.v)
 
 fails=0

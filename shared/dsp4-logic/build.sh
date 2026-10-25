@@ -15,6 +15,31 @@ Q="${QUARTUS_DIR:-/opt/intelFPGA_lite/21.1/quartus}/bin"
 cd "$HERE"
 python3 gen_slot_map.py >/dev/null   # keep generated/ current
 
+# BOARD REVISION (S173). The DSP card's rev D moves eleven U3 pins and adds
+# the BOARD_REV0 strap, so it has its own Quartus revision:
+#
+#   BOARD_REV=C (default)  revision dsp4_logic       quartus/dsp4_logic.qsf
+#   BOARD_REV=D            revision dsp4_logic_revd  quartus/dsp4_logic_revd.qsf
+#                          (generated from the rev C qsf by gen_revd_qsf.py,
+#                          top = rtl/revd/dsp4_logic_revd_top.v around the
+#                          unchanged core)
+#
+# THE REV C PATH IS DELIBERATELY UNCHANGED: same hash inputs, same CFG_LINE,
+# same name, so the rev C image rebuilds byte-identical (S173 gate). Every
+# rev D difference below is behind BOARD_REV=D. A rev C bitstream on rev D
+# copper drives four DSPB output lanes and the NET input lane NI0 -- see
+# check_pins.py's negative run in the README -- so the two must never be
+# confused: the artifact NAME carries the revision, and the ID knock says it
+# (CFG_BITS[10] static, [11] the live strap).
+BOARD_REV="${BOARD_REV:-C}"
+case "$BOARD_REV" in
+    C) REV=dsp4_logic; REV_D=0 ;;
+    D) REV=dsp4_logic_revd; REV_D=1
+       python3 quartus/gen_revd_qsf.py --check
+       python3 check_pins.py quartus/dsp4_logic_revd.qsf boards/u3-pins-revD.csv ;;
+    *) echo "ERROR: BOARD_REV must be C or D" >&2; exit 1 ;;
+esac
+
 # SIM GATE: the RTL must pass the self-checking testbenches before it is
 # allowed to become a hash-labelled bitstream. Skip only with SKIP_SIM=1
 # (and then say so in the manifest).
@@ -57,7 +82,7 @@ fi
 # configuration from S85, shipping included, exactly like the cdc_o witness it
 # copies (hub ruling S84-N1) -- see the area cost stated beside it in
 # rtl/dsp4_logic_top.v.
-NAME="dsp4_logic"
+NAME="$REV"
 MACRO_ARG=()
 NONSHIP=()
 
@@ -151,7 +176,8 @@ CFG_BITS_N=$(( (${LOOPBACK:-0} ? 1 : 0) \
              | (${AD_RETIME:-0} ? 128 : 0) \
              | (${AD_FROM_CDC:-0} ? 256 : 0) \
              | (${LANE_ID:-0} ? 512 : 0) \
-             | ( ${#NONSHIP[@]} == 0 ? 16 : 0 ) ))
+             | ( ${#NONSHIP[@]} == 0 ? 16 : 0 ) \
+             | ( REV_D ? 1024 : 0 ) ))
 CFG_BITS=$(printf "16'h%04X" "$CFG_BITS_N")
 
 CFG_LINE="loopback=${LOOPBACK:-0} pi_selftest=${PI_SELFTEST:-0}"
@@ -161,11 +187,18 @@ CFG_LINE="$CFG_LINE ad_retime=${AD_RETIME:-0}"
 CFG_LINE="$CFG_LINE ad_from_cdc=${AD_FROM_CDC:-0}"
 CFG_LINE="$CFG_LINE lane_id=${LANE_ID:-0}"
 CFG_LINE="$CFG_LINE cfg_bits=$CFG_BITS"
+# Rev C's CFG_LINE must stay byte-for-byte what it was (it feeds the hash).
+[ "$BOARD_REV" = "D" ] && CFG_LINE="$CFG_LINE board=revD"
+if [ "$BOARD_REV" = "D" ]; then
+    HASH_SRC=(rtl/*.v rtl/revd/*.v quartus/dsp4_logic_revd.qsf quartus/dsp4_logic.sdc)
+else
+    HASH_SRC=(rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc)
+fi
 
 SRC_HASH=$(cat \
     <(grep -o 'sha256:[0-9a-f]*' generated/dsp4_slot_map.vh | head -1) \
     <(echo "$CFG_LINE") \
-    rtl/*.v quartus/dsp4_logic.qsf quartus/dsp4_logic.sdc \
+    "${HASH_SRC[@]}" \
     | sha256sum | cut -c1-12)
 
 # DESIGN ID: the low 32 bits of the artifact hash, stamped into the
@@ -179,22 +212,22 @@ MACRO_ARG+=(--verilog_macro="DSP4_DESIGN_ID=$DESIGN_ID")
 MACRO_ARG+=(--verilog_macro="DSP4_CFG_BITS=$CFG_BITS")
 
 cd quartus
-"$Q/quartus_map" dsp4_logic "${MACRO_ARG[@]}"
-"$Q/quartus_fit" dsp4_logic
-"$Q/quartus_sta" dsp4_logic
-"$Q/quartus_asm" dsp4_logic
+"$Q/quartus_map" dsp4_logic -c "$REV" "${MACRO_ARG[@]}"
+"$Q/quartus_fit" dsp4_logic -c "$REV"
+"$Q/quartus_sta" dsp4_logic -c "$REV"
+"$Q/quartus_asm" dsp4_logic -c "$REV"
 "$Q/quartus_cpf" -c -q 10MHz -g 3.3 -n p \
-    output_files/dsp4_logic.pof output_files/dsp4_logic.svf
+    "output_files/$REV.pof" "output_files/$REV.svf"
 
 # STA gate: fail on unmet timing
-if grep -q "Timing requirements not met" output_files/dsp4_logic.sta.rpt; then
+if grep -q "Timing requirements not met" output_files/$REV.sta.rpt; then
     echo "ERROR: timing not met" >&2
     exit 1
 fi
 
 mkdir -p ../bitstream
-cp output_files/dsp4_logic.pof "../bitstream/$NAME.$SRC_HASH.pof"
-cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
+cp "output_files/$REV.pof" "../bitstream/$NAME.$SRC_HASH.pof"
+cp "output_files/$REV.svf" "../bitstream/$NAME.$SRC_HASH.svf"
 {
     echo "artifact: $NAME.$SRC_HASH.{pof,svf}"
     if [ ${#NONSHIP[@]} -gt 0 ]; then
@@ -207,10 +240,17 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
     fi
     echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "config: $CFG_LINE"
+    echo "board: rev $BOARD_REV (Quartus revision $REV)"
     echo "design_id: $DESIGN_ID"
     echo "cfg_bits: $CFG_BITS"
     echo "id_readback: play {L=0xD5D51D1D, R=0x2A2AE2E2} on hw:dsp4pcm and"
     echo "  record: L = design_id, R = 0xD594<cfg_bits> for 128 frames"
+    if [ "$BOARD_REV" = "D" ]; then
+        echo "  rev D: cfg_bits[10] = 1 (built for the rev D pin set);"
+        echo "  cfg_bits[11] = LIVE BOARD_REV0 strap, 1 = U3.81 low = rev D copper."
+        echo "  So R = 0xD594$(printf '%04X' $((CFG_BITS_N | 2048))) on rev D copper; R = 0xD594$(printf '%04X' $CFG_BITS_N)"
+        echo "  means this image is on REV C copper -- wrong image, reflash."
+    fi
     echo "cdc_witness: play {L=0xCD0432B4, R=0x32FBCD4B} and record, 128 frames:"
     echo "  L = {7'b0, cdc_ones_last[8:0], 7'b0, cdc_ones_max[8:0]}"
     echo "  R = {0xCD04, cdc_toggles_last[8:0], frame_counter[15:9]}"
@@ -257,18 +297,18 @@ cp output_files/dsp4_logic.svf "../bitstream/$NAME.$SRC_HASH.svf"
     # session needs before it adds anything else, and because the fit is the
     # only place it is written down otherwise.
     echo "logic_elements: $(grep -m1 'Total logic elements' \
-          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
+          output_files/$REV.fit.rpt | awk -F';' '{print $3}' | xargs)"
     echo "registers: $(grep -m1 'Total registers' \
-          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
+          output_files/$REV.fit.rpt | awk -F';' '{print $3}' | xargs)"
     echo "pins: $(grep -m1 'Total pins' \
-          output_files/dsp4_logic.fit.rpt | awk -F';' '{print $3}' | xargs)"
+          output_files/$REV.fit.rpt | awk -F';' '{print $3}' | xargs)"
     echo "pi_link: $([ "${PI_TDM8:-0}" = "1" ] \
           && echo "2 ch x 32 bits at 192 kHz, 4 Pi frames per DSP frame, all 8 slots" \
           || echo "2 ch x 32 bits at 48 kHz, no regrouping, TDM slots 0/1 only")"
     echo "slot_map: $(grep -o 'sha256:[0-9a-f]*' ../generated/dsp4_slot_map.vh | head -1)"
     echo "sim_gate: $([ "${SKIP_SIM:-0}" = "1" ] && echo SKIPPED || echo PASS)"
     echo "device: 5M1270ZT144C4"
-    echo "fmax: $(grep -A4 '; Fmax' output_files/dsp4_logic.sta.rpt | grep MHz | head -1 | awk -F';' '{print $2}' | xargs)"
+    echo "fmax: $(grep -A4 '; Fmax' output_files/$REV.sta.rpt | grep MHz | head -1 | awk -F';' '{print $2}' | xargs)"
 } > "../bitstream/$NAME.$SRC_HASH.manifest"
 
 echo "OK: bitstream/$NAME.$SRC_HASH.{pof,svf,manifest}"

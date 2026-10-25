@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-25 11:28Z — S173 — DSP card rev D support beside rev C (CPLD rev D build, rev reporting, app difference list)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-25 11:28Z — S173 — DSP card rev D support beside rev C (CPLD rev D build, rev reporting, app difference list)   [status: 🔴 review stop — CPLD rev D built + netlist-checked (0 mismatches), rev C byte-identical; difference list written; rev D H1S1 image NOT buildable (no G0B1 port exists): 6 PW questions]   [model: opus]
 
 model: opus
 S173 — DSP card rev D support beside rev C: CPLD rev D build, board-rev reporting, and the rev C / rev D difference list for the app (PW 2026-10-25: "the app must be compatible with both dsp card revs, and allow for the differences, esp ram addition to revD"). Repo invirco/dsp, this machine. Hardware: NONE touched — nothing flashed to any unit; desk + compile only.
@@ -16,6 +16,44 @@ Rules: single trunk — pull main first; no AI attribution anywhere; step ID S17
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### S173 result (2026-10-25, desk + compile only, nothing flashed)
+
+**1. CPLD — done.** Two Quartus revisions over one RTL (`shared/dsp4-logic`, README "Rev D revision"):
+
+| | rev C | rev D |
+|---|---|---|
+| artifact | `dsp4_logic.99616cc44dc4` (**unchanged**) | `dsp4_logic_revd.ac2352077621` (new, committed) |
+| design ID | **`0x6cc44dc4`** | **`0x52077621`** |
+| ID knock reply R | `0xD5940010` | `0xD5940C10` on rev D copper; `0xD5940410` = rev D image on rev C copper |
+| LE / pins / Fmax / setup slack | 881 (69 %) / 68 / 67.44 MHz / +5.517 ns | 940 (74 %) / 69 / 62.13 MHz / +4.249 ns (hold +1.119) |
+| pins vs netlist (`check_pins.py`, qsf AND fitted `.pin`) | 68/68, 0 mismatches (mx26 rev C netlist) | 69/69, **0 mismatches** (dspcard `709a6af` L11 netlist) |
+
+- Rev C stays **byte-identical**: its qsf untouched; rebuilt twice with the new build.sh, same label, pof md5 `a3572e2aef0f66a2222d8af0e71cd981` (svf differs only in its timestamp comment). The rev D sources live in `rtl/revd/`, outside the rev C hash glob.
+- Rev D qsf is GENERATED (`quartus/gen_revd_qsf.py`) from the rev C qsf + `boards/revd-pin-moves.csv` (L8d+L8e+L8k: ni[0] 6→13, test[2] 8→84, test[0] 13→87, fsi[1..3]/bcki[1] ↔ o_dspb[0..3] 15/16/18/21 ↔ 48-51). Build: `BOARD_REV=D ./build.sh` (gates: qsf current, pins vs netlist, sim). U3 is 5M1270ZT144C4N on rev D (MOD 3 skipped). DEV_OE/DEV_CLRn Off in both fits.
+- **BOARD_REV0 register:** U3.81, weak pull-up ON (fit report confirms). Read by the CM4 over the existing PCM ID knock (play `{L=0xD5D51D1D, R=0x2A2AE2E2}`, `tools/pi/dsp4_logic_id.py`): reply R = `0xD594<cfg_bits>`, **`cfg_bits[10]`** = image built for rev D (static), **`cfg_bits[11]`** = strap reads low = rev D copper (live). **Rev C value: both 0** (`0x0010`); the rev C image does not read U3.81 (on rev C copper the strap would read 1 = open). Implemented as `rtl/revd/dsp4_revd_id_tap.v` (rewrites only that one bit inside an ID reply; every other pcm_din bit = the core's bit, one sysclk later); `sim/tb_revd_id.v` checks both straps end-to-end and transparency on every edge; negative control (wrong bit position) fails as it should. Sim gate 6/6.
+
+**2. H1S1 — partly; rev D image not buildable.** Rev D's U7 is an **STM32G0B1RET6** (MOD 5); the only H1S1 firmware is the rev C U575 tree, and **no G0B1 port exists anywhere** (dsp, mx26, dspcard). Done: the strap read + cell handling as `MW/D24/FW/H1S1/revd/dsp_card_rev.h` (register-level, addresses checked against ST's G0 CMSIS header, compiles clean `-mcpu=cortex-m0plus -Wall -Wextra -Werror`); rev C image untouched (reports nothing, per PW L11 Q4). **Proposed cell `Sys001DspCardRev001`** (`Sys[1-1]DspCardRev[1-1]`, MxDatS 255, read-only, owned by H1S1): value = strap code, **rev D = 1**, rev C = absent; write 0xFF = "send again" (reply can never equal the request, so no S81-style echo loop). Defs proposal: `proposals/CONTRACT-PROPOSAL-S173.md` (also flags fw.csv: U7 part, RDY pull notes, codec path).
+
+**3. Difference list — done:** `MW/D24/HW/dspcard-revC-vs-revD.md` (18 items, detection table, per-rev behaviour). Headlines: HyperRAM **S27KL0642 = 8 MB per DSP** (3.0 V, xSPI0 octal HyperBus, 100 MHz/200 MB/s) → all 32 channel delays to 250 ms at once (S75 arm, coded), stereo reverbs + 1000 ms FX echo + 4 main delays (chip 2, after S75-8 block kernels); not more channels, not a recorder. Runtime link SPI2 → SPI1 (CM4 side unchanged); XSPI_EN pull-down holds RAM in reset and keeps SPI2 connected; LED PA_12 → PA_14; RDY pull flips; CPLD pins (transparent with the right image); codec select moves to CM4 CS6 (GPIO17) — H1S1 codec cells dead on rev D; RST_D open-drain. **DSP firmware recommendation: ONE image, run-time revision** from the CM4's product config (+ PB_05 RDY-pull strap as an early guard, needs a bench proof), with a safe common subset that runs on both cards.
+
+#### S173 findings
+
+- **S173-1 🔴 the shipping DSP image is unsafe on a rev D card.** `diag.asm` drives PA_12 as the LED; on rev D PA_12 is SPI1_MOSI wired through 22R to the CM4's SPI MOSI, so every LED transition fights the shared bus (both DSPs' boot stream, CPLD, codec, 595). Fix before any rev D bring-up: LED on PA_14 (open pad on rev C), PA_12 only when the board is known to be rev C.
+- **S173-2 🔴 a rev C CPLD image on rev D copper is a bus fight** (check_pins negative run: 11 mismatches — FSI1-3/BCKI1 driven into DSPB O0-O3 outputs, TEST1 into NET input NI0, TEST3 into PI_TX2). Flashing must identify the card positively (U7 bootloader chip ID 0x482/0x467, or the knock); "no H1S1 reply" is not enough to flash on.
+- **S173-3 🔴 rev D has no RST_C driver without the H1S1 G0B1 port.** U7 is the only driver of RST_C (converters + 595 chain reset, ~30 analog-board loads). A rev D card with a blank / rev C-firmware U7 cannot run audio I/O. The G0B1 port is a prerequisite for rev D bring-up, not a nicety.
+- S173-4: `shared/dsp4-logic/README.md` said rev D moves to the 5M570ZT144C4; MOD 3 was skipped and 881 LE would not fit a 570Z. Corrected.
+- S173-5: S75-2's 1.8 V worry is closed for the primary RAM: the rev D BOM part is S27K**L**0642 (3.0 V).
+- S173-6: the G0B1 needs option bit nBOOT_SEL = 0 programmed at first load, else MH1's BOOT0 (S1) is ignored on a programmed part — the app's `loadfw` must handle it; G0 flash pages are 2 KB (U575: 8 KB).
+
+#### S173 questions for PW (1by1, recommendation first)
+
+1. **Cell name and encoding:** `Sys001DspCardRev001`, value = strap code (rev D = 1), rev C absent, 0xFF = re-send. **Rec: (a) as proposed.** (b) `Sys[1-1]HwRev[1-2]` (inst 1 = DSP card, 2 = digital board).
+2. **H1S1 G0B1 port:** **Rec: dispatch it now as its own step (opus, desk):** new CubeMX G0B1 project from the stage2b pin map, rev C feature set minus codec CS/PSU monitor, RST_C/RST_O, matrix bus, strap cell, nBOOT_SEL handling. Blocks all rev D audio (S173-3).
+3. **DSP image strategy:** **Rec: (a) one image, run-time rev** from the CM4 config (+ PB_05 early guard), common subset safe on both; first step = the PA_12 → PA_14 LED fix (S173-1). (b) one image per rev.
+4. **Flash guard:** **Rec: (a)** the app (and `logic_flash.sh`) refuse any CPLD/H1S1 flash without positive identification (U7 chip ID via the bootloader, or the knock showing a rev D image). (b) trust "no H1S1 reply = rev C".
+5. **Codec on rev D:** CM4 CS6 → !CS_C means the app owns codec init (StartAK4619) on rev D. **Rec: (a) the app gets a native AK4619 driver used on rev D (and optionally on rev C later via a fitted CS6 wire); H1S1 codec cells retire with rev C.**
+6. **Rev D CPLD image use of SYS_RESOUT (U3.77/85):** **Rec: (a) leave unread now; add a "DSP out of reset" bit to the knock in the same tap later if bring-up wants it** (rev C stays byte-identical either way).
 
 ## HUB DISPATCH 2026-10-16 14:16Z — S172 — power MCU PA9 PWR_FAIL open-drain (sonnet, desk)   [status: 🟡 dispatched]   [model: sonnet]
 

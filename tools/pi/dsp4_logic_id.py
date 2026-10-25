@@ -68,7 +68,26 @@ ID_MAGIC = 0xD594
 
 CFG_NAMES = [(1 << 0, "loopback"), (1 << 1, "pi_selftest"),
              (1 << 2, "pi_maincap"), (1 << 3, "pi_tdm8"),
-             (1 << 4, "SHIPPING")]
+             (1 << 4, "SHIPPING"), (1 << 5, "drive_all"),
+             (1 << 7, "ad_retime"), (1 << 8, "ad_from_cdc"),
+             (1 << 9, "lane_id")]
+
+# S173: the DSP card revision, in the same reply word.
+#   bit 10  static: the image was built from the REV D pin set
+#   bit 11  live:   the BOARD_REV0 strap (U3.81) reads low = rev D copper
+# A rev C image never sets either (it does not read U3.81).
+CFG_REVD_IMAGE = 1 << 10
+CFG_REVD_BOARD = 1 << 11
+
+
+def board(cfg):
+    """(image, copper, ok) for the two S173 bits."""
+    img = "rev D" if cfg & CFG_REVD_IMAGE else "rev C"
+    if not cfg & CFG_REVD_IMAGE:
+        # a rev C image cannot see the strap; the copper is unknown here
+        return img, "unknown (rev C image does not read BOARD_REV0)", True
+    copper = "rev D" if cfg & CFG_REVD_BOARD else "rev C"
+    return img, copper, copper == img
 
 
 def s32(v):
@@ -127,6 +146,12 @@ def main():
         cfg = cfgw & 0xFFFF
         print("design_id: 32'h%08x   cfg_bits: 16'h%04X   %s"
               % (did, cfg, describe(cfg)))
+        img, copper, match = board(cfg)
+        print("  image built for: %s   board copper: %s" % (img, copper))
+        if not match:
+            print("  WRONG IMAGE: a rev D CPLD image on rev C copper -- reflash"
+                  " the rev C image (pins differ, lanes are crossed)")
+            ok = False
         print("  reply frames %d of %d captured, %d distinct reply words"
               % (n, len(left), len(c)))
         if len(c) != 1:
