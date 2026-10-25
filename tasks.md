@@ -1,3 +1,22 @@
+## HUB DISPATCH 2026-10-25 13:07Z — S174 — rev D enablement: LED fix, H1S1 G0B1 port, flash guard (desk)   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+S174 — rev D enablement, desk only (PW rulings on S173, 2026-10-25, 1by1, all (a)). Repo invirco/dsp, this machine. Hardware: NONE touched — nothing flashed.
+
+FIRST record the S173 rulings in the S173 block (status → 🟢) and in findings: Q1 (a) cell Sys001DspCardRev001 (strap code, rev D = 1, rev C absent, 0xFF = re-send) — the defs proposal stands, the hub lands it in defs; Q2 (a) H1S1 G0B1 port now (this step); Q3 (a) ONE DSP image with run-time rev (CM4 product config + PB_05 early guard), common subset on both, HyperRAM features rev D only — first step the LED fix; Q4 (a) flash guard: no CPLD / H1S1 flash without positive card identification (U7 bootloader chip ID 0x482 / 0x467, or the CPLD knock); Q5 (a) the app owns AK4619 init on rev D (native driver in mx26 — hub task), H1S1 codec cells retire with rev C; Q6 (a) SYS_RESOUT unread for now.
+
+DO (S174):
+1. LED fix (S173-1): the DSP image never drives PA_12 unless the board is known to be rev C; LED on PA_14 on rev D (open pad on rev C). Build, prove the rev C image's behaviour is unchanged where it must be, and that no rev D path drives PA_12.
+2. H1S1 port to the STM32G0B1RET6 (rev D U7): new project from the rev D pin map (dspcard stage2b / L11), rev C feature set minus codec CS / PSU monitor; RST_C / RST_O drive (the only RST_C driver on rev D — S173-3), the MH1 matrix bus protocol as rev C, the Sys001DspCardRev001 cell (REV_ID0-2 on PC1-PC3, pulls off, read once at boot), nBOOT_SEL = 0 at first load (S173-6), 2 KB flash pages. Builds clean; rev C U575 tree untouched. List what is not yet testable without hardware.
+3. Flash guard in the dsp tools (logic_flash.sh and the H1S1 loader path): refuse without positive identification; message tells the operator what was found.
+4. STOP (review stop): block status + findings, build artefacts listed (nothing flashed), numbered PW questions 1by1 with recommendations. Commit + push main.
+
+Rules: single trunk — pull main first; no AI attribution anywhere; step ID S174; defs is the single SOT for cells (do not hand-edit generated files); do not edit invirco/dspcard or mx26 (the app side — rev cell display, flash guard, AK4619 driver, rev C / D feature gating from the S173 difference list — is a separate hub task).
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-25 11:28Z — S173 — DSP card rev D support beside rev C (CPLD rev D build, rev reporting, app difference list)   [status: 🔴 review stop — CPLD rev D built + netlist-checked (0 mismatches), rev C byte-identical; difference list written; rev D H1S1 image NOT buildable (no G0B1 port exists): 6 PW questions]   [model: opus]
 
 model: opus
