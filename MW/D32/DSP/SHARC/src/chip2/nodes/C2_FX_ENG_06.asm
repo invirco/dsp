@@ -605,8 +605,8 @@ jump (pc, .fx_bypass_C2_FX_ENG_06);
     /* float island exit: float32 -> Q4.28 (D5) */
     r1 = 0x4D800000;
     f1 = r1;
-    f0 = f0 * f1;
-    r0 = fix f0;
+    f1 = f0 * f1;                /* not F0: anomaly 20000072 */
+    r0 = fix f1;
     dm(_buf_C2_FX_ENG_06) = r0;
     dm(_buf_L_C2_FX_ENG_06) = r0;
     dm(_buf_R_C2_FX_ENG_06) = r0;

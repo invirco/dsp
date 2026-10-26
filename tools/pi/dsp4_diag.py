@@ -115,6 +115,9 @@ REGISTERS = [
     (0xE021, 'SPI_PART_SEEN', DEC),
     (0xE022, 'SPI_PART_SKIP', DEC),
     (0xE023, 'SPI_REQ_WORD',  HEX),
+    # S176: the part's own identity and the pin policy. 0 = pre-S176 image.
+    (0xE0F4, 'IDCODE',        HEX),
+    (0xE0F5, 'PINS',          HEX),
 ]
 
 BOOT_STAGES = {
@@ -368,6 +371,16 @@ def dump(diag, verbose=True):
             note = '   ' + SEC_SOURCES.get(v, 'unrecognised source')
         elif name == 'BUILD_ID':
             note = f'   ({v >> 16:04X}-{(v >> 8) & 0xFF:02X}-{v & 0xFF:02X})'
+        elif name == 'IDCODE':
+            # TAPC_IDCODE: REVID 31:28 is the silicon revision (anomaly
+            # list NR004940B p.1: 0 = 0.0, 1 = 0.1). Bit 0 is always 1, so 0
+            # can only mean an image that does not report it.
+            note = ('   (pre-S176 image: not reported)' if v == 0 else
+                    f'   (silicon rev 0.{v >> 28}, JTAG ID 0x{(v >> 12) & 0xFFFF:04X})')
+        elif name == 'PINS':
+            note = (f'   (rev-C pulls {"on" if v & 1 else "off"}, '
+                    f'SYS_CLKOUT {"off" if v & 2 else "NOT off (or pre-S176)"}, '
+                    f'RDY-rule corrections {(v >> 8) & 0xFF})')
         elif name == 'CHIP_ID':
             note = '   (DSPA/U6)' if v == 1 else '   (DSPB/U5)' if v == 2 else '   (?)'
         print(f'  {name:<14} {shown}{note}')

@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-26 16:01Z — S176 — 21564 cross-check firmware fixes (anomaly flags, REVID, RDY rule, pulls, CLKOUT off, F0 audit; bit-exact)   [status: 🟡 dispatched]   [model: opus]
+## HUB DISPATCH 2026-10-26 16:01Z — S176 — 21564 cross-check firmware fixes (anomaly flags, REVID, RDY rule, pulls, CLKOUT off, F0 audit; bit-exact)   [status: 🟢 done (desk, review stop) — all 6 fixes built, nothing flashed: `-si-revision any` + `-anomaly-detect all` + explicit workarounds 20000002/20000069 in every SHARC build (the tools had silently used 0.0 = same set); TAPC_IDCODE read at boot → DIAG_IDCODE 0xE0F4; RDY rule checked+enforced at boot (no source ever touches PB_04/SPI1); pull-ups on unused pins per revision from both netlists; SYS_CLKOUT → GND; 20000072 sites in the shipping pair 9 → 0 (generator + geq_design); bit-exact proved structurally on the images (code/data identical up to relocation outside the changed functions, r1 dead after every rename); pair `chip1.ad7ce020f536` / `chip2.10e33ce44d9e`; 6 PW questions]   [model: opus]
 
 model: opus
 S176 — DSP firmware fixes from the hub's ADSP-21564 cross-check (PW ruled Q7 (a), 2026-10-26). Repo invirco/dsp, this machine. Desk + build only: NOTHING flashed, no unit touched (the rev C D24 is disconnected for fixture work; S175's bench step waits for it).
@@ -22,6 +22,29 @@ Rules: single trunk — pull main first; no AI attribution anywhere; step ID S17
 Rules: single trunk — pull main first, commit + push main on completion;
 update this block's status (🟢 done / 🔴 blocked) with a short outcome;
 no AI attribution in commits or any work product.
+
+### S176 result (2026-10-26, desk + build; nothing flashed, no unit touched)
+
+S175 block: step (3) deferral and Q1 recorded there. Full write-up: findings.md "ADSP-21564 CROSS-CHECK, FIRMWARE HALF" (S176-1..8).
+
+1. **Anomaly flags.** `MW/D32/DSP/SHARC/build.sh`: `DSP4_SI_REVISION` (default `any`) → cc21k `-si-revision any -workaround 20000002,20000069`, easm21k `-si-revision any -anomaly-detect all`, linker `-si-revision any`; same flags in the legacy `MW/D24/DSP/SHARC/build.sh` (Wine wrapper, not buildable here, not built). Covered by the tools: 20000002 (compiler workaround + assembler detect), 20000069 (compiler), 20000096 (assembler detect, ea2571). CCES applies the identical set to 0.0, 0.1 and `any`; HEAD objects all said `0.0` (the unstated default), S176's 824 objects say `any`. Assembler detections in the tree: 0. 20000072 has no tool support (item 6).
+2. **REVID.** `_diag_pads_init` reads `TAPC_IDCODE` (0x31130000) at boot into `_diag_idcode`; diag register `DIAG_IDCODE` 0xE0F4; `tools/pi/dsp4_diag.py` prints it as "silicon rev 0.x" (0 = pre-S176 image). Not deployed to the bench.
+3. **RDY rule.** Code inspection: every PORTB FER/DIR/MUX write (dma_config.c, diag.asm, main.asm, bulk_read.asm, 5 bench probes) uses mask 0x20 = PB_05; nothing sets bit 4 or touches SPI1. Init-time check `_diag_rdy_check`, called from `_start` right after `_dma_cfg_init` (before SECI): if PB_04 and PB_05 could both drive, PB_04 is forced to an input and the correction counted in `DIAG_PINS` 0xE0F5 bits 15:8. Rule documented in `dma_config.c` and `dspcard-revC-vs-revD.md` item 2.
+4. **Pulls.** From both netlists (rev C mx26 `docs/d24-netlist-global-pins.csv`; rev D dspcard `37774a0`): always PB_01-03 + PA_02/03/06-09 (open on C; HyperRAM-only on D, RAM held in reset); rev C only (config C + strap, like the PA_12 LED; withdrawn on non-C) PA_10/11/15, PB_00, PB_04; none on the 24 bonded DAI pins (all wired to the CPLD on both revs). xSPI_SEL2 / SPI0_RDY / xSPI_RWDS have no pull register: pads held disconnected (PCFG0 PEN = 0).
+5. **SYS_CLKOUT off.** `CGU0_CLKOUTSEL` = 1 (GND) at boot, read back into `DIAG_PINS` bit 1.
+6. **20000072.** `tools/dsp/f0_stall_scan.py` on the linked images: chip 1 2 → 0, chip 2 7 → 0 (C1_NOISE exit, six FX engines' float-island exit, `_geq_design_N` on both). Generator `gen_noise_gen_fixed` / `gen_fx_engine_fixed` now write the product to F1; `lib/geq_design_fx.asm` reorders one independent load. Source text, all arms: 18 → 10 (the 10 are in non-shipping arms: C1_TEST_MEAS/OSC, DSP4_BQ_GUARD, a dynamics and a delay arm — Q3). Cycle effect ≤ ~112 stalls/block of 327,680; not measurable on the desk.
+7. **Bit-exact (structural; no simulator exists).** HEAD builds twice to identical .ldr md5s (deterministic). `tools/dsp/image_diff.py` HEAD vs S176: chip 1 789 / chip 2 650 functions identical up to relocation, changed only: F0 sites + `_diag_init`, `_diag_board_rev_set`, `_diag_read`, `_start` (one call), new `_diag_pads_init` / `_diag_rdy_check`; data (read from the boot streams) 5594 / 4012 objects identical, + `_diag_idcode`, `_diag_pins`. `tools/dsp/reg_dead_check.py`: r1 dead on every path after all 7 renamed exits (through rts into every caller; negative controls fail as they must); ISRs bank r0-r15; no PEYEN in these nodes. Desk suites: golden_harness 59/59, dsp_validate OK, codegen drift 0, check_shipping_config same triple, ldr_stream check OK, all 5 bench probes build. `regenerate-dsp-contract.sh` is red identically on HEAD (S150 graph-vs-landed state); S176 changes no cell or address. Bench bars (busgold/famverify) not run — no unit.
+
+**Artefacts (built, NOT flashed, NOT staged in `ldr/`):** `MW/D32/DSP/SHARC/build/chip1.ldr` md5 `43904a0c4488aae95c9eb1281a763c25` (sha256 `ad7ce020f536…`), `chip2.ldr` md5 `8af4aaf4693b3dd70a9d28ffca755d7b` (sha256 `10e33ce44d9e…`); HEAD baseline `b26de28a…` / `e2329ac4…`. One image, both products and both card revisions.
+
+#### S176 questions for PW (1by1, recommendation first)
+
+1. **Silicon revision in the build:** **Rec: (a) keep `-si-revision any`** — the tools treat 0.0/0.1/any identically and the image must run on either. (b) pin to the revision `DIAG_IDCODE` reads on the first part.
+2. **Regression gate for 20000072:** **Rec: (a) make `f0_stall_scan.py` a build.sh gate (fail on > 0 sites in the shipping pair)**, like `ldr_stream check`. (b) leave it a manual audit tool.
+3. **The 10 sites in non-shipping arms (bench test nodes, BQ_GUARD, two arms):** **Rec: (a) leave them** — performance-only, off the shipping image, each fix needs its own liveness proof. (b) sweep them too.
+4. **Bench proof:** **Rec: (a) with the S175 step-3 re-dispatch on MW-D24-2, also boot the S176 pair (RAM boot, no flash) and read `DIAG_IDCODE`/`DIAG_PINS` on both chips + busgold/famverify bit-exact bars**, then restore the staged pair. (b) wait for the first rev D card.
+5. **Extram arm (not shipping):** the always-pulled PA_02/03/06-09 keep their weak pull-up while HyperBus runs. **Rec: (a) leave it** (HRM: very weak pulls; revisit when DSP4_EXTRAM is armed). (b) release them in `_extram_init` now.
+6. **Stale objects in the build dir (findings S176-9):** **Rec: (a) `build.sh build` deletes the `.doj` files of its own tree before assembling** (one `rm` per output dir; `all` stays clean+build). (b) document "always use `all`" and leave it.
 
 ## HUB DISPATCH 2026-10-26 07:10Z — S175 — guard source J (JTAG SAMPLE U3.81), CFG_BOARD_REV, rev C read-only proof   [status: 🔴 blocked at step 3 — steps 1-2 built and desk-tested (source J in dspcard_id.py, self-test 18/18; BSDL generated by the local Quartus, sha256 recorded, kept out of git; CFG_BOARD_REV sent from the J verdict by dsp4_config --board-rev auto and d24_selftest boot_pair; message documented); BENCH PROOF NOT RUN: MW-D24-2 (192.168.1.219) had no route 07:12-07:25Z (ARP FAILED), nothing touched; 4 PW questions]   [model: opus]
 
@@ -59,6 +82,10 @@ no AI attribution in commits or any work product.
 - **S175-2** source J needs only five numbers from the BSDL, and the tool checks two of them (IDCODE, register length) on the part itself every run, so an off-by-device BSDL cannot give a silent wrong answer — it gives no evidence.
 - **S175-3** the shipping S174 rev C image leaves the LED dark until `CFG_BOARD_REV` arrives; with this step the bench's `boot_pair` sends it, the app still does not (hub).
 - **S175-4 🔴** the bench proof is outstanding: J has not been run on silicon. Until it has, the only proof that cell 522 reads U3.81 on this board is the BSDL plus the on-part length check.
+
+#### S175 deferral (recorded by S176, 2026-10-26)
+
+Bench step (3) is **deferred until the rev C D24 (MW-D24-2) is back from fixture work** (hub, S176 dispatch). **Q1 = (a): re-run step 3 then**, with the recipe above. Q2-Q4: PW to rule later.
 
 #### S175 questions for PW (1by1, recommendation first)
 

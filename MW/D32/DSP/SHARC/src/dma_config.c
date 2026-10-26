@@ -679,7 +679,16 @@ static void spi2_init(void)
      * 1, read-modify-written so the other port B pins keep theirs.
      *
      * The LED (PA_12) is deliberately NOT in this list — diag.asm owns it
-     * as GPIO, which is mux-independent. */
+     * as GPIO, which is mux-independent.
+     *
+     * ONE RDY OUTPUT, EVER (S176, hub 21564 cross-check F8). Rev D ties
+     * PB_04 (SPI1_RDY) to PB_05 (SPI2_RDY), so the two must never both be
+     * able to drive. SPI2 owns PB_05 here; PB_04 stays a GPIO input (FER
+     * and DIR clear) and SPI1 is never enabled. diag.asm's _diag_rdy_check
+     * enforces it at boot, right after this function returns. Moving the
+     * link to SPI1 (rev D MOD 2) means: SPI2 FCEN off and PB_05 FER/DIR
+     * clear FIRST, then PB_04 to SPI1_RDY -- and that check changes with
+     * it. */
     REG32(REG_PORTB_MUX) = (REG32(REG_PORTB_MUX) & ~BITM_PORT_MUX_MUX5)
                            | ((uint32_t)1u << BITP_PORT_MUX_MUX5);
     REG32(REG_PORTA_FER_SET) = (1u << 0) | (1u << 1) | (1u << 4) | (1u << 5);

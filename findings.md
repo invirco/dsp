@@ -6,6 +6,100 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## ADSP-21564 CROSS-CHECK, FIRMWARE HALF: ANOMALY FLAGS, REVID, RDY RULE, PULLS, CLKOUT, F0 (2026-10-26, session 176)
+
+Hub dispatch `tasks.md` 2026-10-26 16:01Z (S176), from the hub's cross-check
+(mx26 `docs/review/adsp21564-crosscheck-2026-10-26.md`, F8/F12/F13/F14, PW Q7 (a)).
+Desk and build only; nothing flashed, no unit touched.
+
+**S176-1. The tools already applied the workarounds, by accident.** With no
+`-si-revision` the CCES 3.0.3 tools take their command-line default, 0.0
+(`System/ArchDef/ADSP-21564-compiler.xml`), and 0.0, 0.1 and `any` carry the
+SAME set: cc21k workarounds 20000002 and 20000069, easm21k detection of
+20000002 and 20000096 (ea2571). Every object in the HEAD image says
+`CPU_silicon_revision = 0.0`; the S176 objects (824 of 824) say `any`, with the
+flags stated (`DSP4_SI_REVISION`, default `any`, in `build.sh`). The assembler
+detects nothing in the tree (no ea2571, before or after). 20000072 has no tool
+support at all. The other ten anomalies do not reach this firmware (cross-check
+§2.14, unchanged).
+
+**S176-2. The silicon revision is now reported, not assumed.** `_diag_pads_init`
+reads `TAPC_IDCODE` (0x31130000; the anomaly list names REVID 31:28 as the
+way to tell 0.0 from 0.1) once at boot; `DIAG_IDCODE` 0xE0F4 returns it and
+`dsp4_diag.py` decodes it. Not yet read on a part.
+
+**S176-3. The RDY rule holds by construction, and now by a check.** Every
+PORTB FER/DIR/MUX write in the tree (dma_config.c, diag.asm, main.asm,
+bulk_read.asm, the five bench probes) carries mask 0x20 = PB_05 only; nothing
+writes bit 4 and nothing touches SPI1. `_diag_rdy_check` runs once after
+`_dma_cfg_init` (before SECI is unmasked): if PB_04 and PB_05 could both drive
+(FER or DIR) it forces PB_04 to a plain input and counts it in `DIAG_PINS`
+15:8. The rule for the SPI1 move is written beside the SPI2 pin routing in
+`dma_config.c` and in item 2 of `MW/D24/HW/dspcard-revC-vs-revD.md`.
+
+**S176-4. "Unused" is per revision, so the pulls are too.** From both
+netlists (rev C mx26 `docs/d24-netlist-global-pins.csv`; rev D dspcard
+`37774a0` `kicad/dspcard.kicad_pcb`, U5 = U6): unconnected on BOTH = PB_01-03,
+xSPI_SEL2, SPI0_RDY, SYS_CLKOUT. PA_02/03/06-09 are open on rev C and reach
+only the HyperRAM on rev D, which XSPI_EN holds in reset in every non-extram
+image, so they float on both and are pulled on both. PA_10/11/15, PB_00 and
+PB_04 are open on rev C only (rev D: SPI1 CLK/MISO on the CM4 bus, BLINK,
+XSPI_EN with its 10K pull-down, the RDY net); they are pulled only once
+`CFG_BOARD_REV` = C and the PB_05 strap agree, the same gate as the PA_12 LED,
+and released again on any later non-C. All 24 bonded DAI pins are wired on
+both revisions (22R to the CPLD): none pulled. The three non-PORT pins have no
+pull register at all (HRM PADS chapter); their pads reset disconnected
+(PCFG0 *_PEN = 0: input and output off) and the boot now states that.
+
+**S176-5. SYS_CLKOUT is off.** `CGU0_CLKOUTSEL` = 1 (GND) at boot, read back
+into `DIAG_PINS` bit 1. With BMODE != 0 it came out of reset as buffered
+SYS_CLKIN0 into an open lead on both cards.
+
+**S176-6. 20000072: nine sites in the shipping pair, none left.** Scanned on
+the LINKED images (`tools/dsp/f0_stall_scan.py`, executable sections only):
+chip 1 had 2 (`C1_NOISE` exit, `_geq_design_N`), chip 2 had 7 (the six FX
+engines' float-island exit, `_geq_design_N`). Fixed at the source: the two
+generator templates (`gen_noise_gen_fixed`, `gen_fx_engine_fixed`) put the
+product in F1 (`f1 = f0 * f1; r0 = fix f1`), and `geq_design_fx.asm` moves an
+independent constant load between the CLIP and the ABS. After: 0 and 0. F0
+float writers 91 -> 90 (chip 1), 62 -> 56 (chip 2). Over the source text of
+every arm, 18 sites -> 10; the 10 left are all in arms that do not ship
+(`C1_TEST_MEAS`/`C1_TEST_OSC` bench nodes, `DSP4_BQ_GUARD`, a dynamics and a
+delay arm). Performance only: about 16 x 7 stalls a block at most against
+327,680 cycles a block; not measurable on the desk.
+
+**S176-7. Nothing audible changed, proved on the images.** No SHARC simulator
+exists here, so the proof is structural, on the linked HEAD and S176 pairs
+(two HEAD builds are md5-identical, so the build is deterministic):
+`tools/dsp/image_diff.py` compares every function and every loaded data
+object with addresses read as symbol+offset. Chip 1: 789 functions identical,
+chip 2: 650; the only changed functions are the F0 sites and the diag/boot
+code (`_diag_init`, `_diag_board_rev_set`, `_diag_read`, `_start`'s added
+call, new `_diag_pads_init`/`_diag_rdy_check`); data: 5594 / 4012 objects
+identical, two new words each (`_diag_idcode`, `_diag_pins`). The GEQ change
+is a reorder of independent instructions (same values in every register after
+it). The F1 rename leaves register 0 identical and changes only r1's exit
+value; `tools/dsp/reg_dead_check.py` proves r1 is written before it is read on
+every path after all seven sites, through `rts` into every caller (negative
+controls: the site's own FIX reads r1; `_exp2q_fx`'s r0 is found read by its
+callers through `rts`). All ISRs bank r0-r15; neither node runs with PEYEN set.
+Desk suites unchanged: `golden_harness` 59/59, `dsp_validate` OK, codegen drift
+0, `check_shipping_config` (same build-config triple), `ldr_stream check` OK.
+`regenerate-dsp-contract.sh` is red on HEAD and on S176 alike (graph vs
+landed defs dsp.csv, the S150 state); S176 changes no cell or address.
+
+**S176-9. `./build.sh build` on a used build dir links stale objects.** The
+default `MW/D32/DSP/SHARC/build/` still held chip-2 `.doj` files for 30 nodes the
+generator stopped emitting (C2_MAIN_O*_03/04, C2_SUB_*); `build` (no clean)
+linked them in, and the chip-2 image grew by 30 functions and 264 objects with
+no source change (md5 `5ff2cda0…` vs the clean `8af4aaf4…`). `./build.sh all`
+(clean first) or a fresh `DSP_BUILD_DIR` gives the real image. Every S176 hash
+is from a clean build. Pre-existing; not fixed here (Q6).
+
+**S176-8. Open.** IDCODE, PINS and the bit-exact bars (busgold / famverify)
+on silicon wait for a bench window; the D32C card's spare DAI pins (22R to
+nothing) belong to a firmware personality that does not exist (D11).
+
 ## DSP CARD REV D ENABLEMENT, PART 2: GUARD SOURCE J, CFG_BOARD_REV (2026-10-26, session 175)
 
 Hub dispatch `tasks.md` 2026-10-26 07:10Z (S175). Desk only; the bench step

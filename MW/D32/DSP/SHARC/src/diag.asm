@@ -89,6 +89,58 @@
 #define DIAG_LED_BOTH     0x00005000        /* rev C, confirmed */
 #define DIAG_STRAP_BIT    0x00000020        /* PB_05 = SPI2_RDY, read once */
 
+/* ---- PIN POLICY (S176, hub ADSP-21564 cross-check F8 / F14) ----------
+ *
+ * HRM 11-13: "for unused PORT/DAI pins, ensure that any unused pin does not
+ * go to floating state" -- enable the weak pull-up (PUD = 0, PUE = 1). The
+ * pulls reset DISABLED (PADS0_PORTx_PUE/PDE = 0). One image runs on both
+ * card revisions, so "unused" is read off BOTH netlists (rev C: mx26
+ * docs/d24-netlist-global-pins.csv; rev D: invirco/dspcard 37774a0
+ * kicad/dspcard.kicad_pcb, U5 and U6 identical):
+ *
+ *   always    PB_01 PB_02 PB_03      no copper on either revision
+ *             PA_02 PA_03 PA_06-09   open on rev C; on rev D they reach the
+ *                                    HyperRAM alone, which XSPI_EN (PB_00,
+ *                                    10K down) holds in reset in every image
+ *                                    that does not run extram.asm -- nothing
+ *                                    drives them on either card
+ *   rev C     PA_10 PA_11 PA_15      open on rev C; rev D: SPI1 CLK/MISO on
+ *             PB_00 PB_04            the CM4's shared bus, BLINK, XSPI_EN
+ *                                    (a pull-up would fight its 10K pull-down)
+ *                                    and the SPI_RDY net -- so only after
+ *                                    _diag_board_rev_set has rev C confirmed
+ *                                    by config AND strap, like the PA_12 LED
+ *   never     every other PORT pin and all 24 bonded DAI pins: connected on
+ *             both revisions (DAI through 22R to the CPLD)
+ *
+ * PA_14 is the LED output on both and is driven, not pulled. xSPI_SEL2,
+ * SPI0_RDY and xSPI_RWDS are not PORT pins and have no pull register; their
+ * pads reset DISCONNECTED (PADS0_PCFG0 *_PEN = 0: input buffer off, output
+ * off) and are held that way here. SYS_CLKOUT has no pad control either; it
+ * is switched to GND at the CGU (CLKOUTSEL = 1), because with BMODE != 0 it
+ * comes out of reset as a buffered copy of SYS_CLKIN0 into an open lead.
+ *
+ * THE RDY RULE (F8). PB_04 is SPI1_RDY, PB_05 is SPI2_RDY, and rev D ties
+ * the two leads together. Only one may ever be able to drive: today PB_05
+ * is SPI2's flow-control output (dma_config.c) and the GPIO the LED mirror,
+ * bisect and bulk paths drive, so PB_04 is a GPIO input forever -- FER and
+ * DIR clear. No source in the tree writes a PORTB FER/DIR/MUX mask with
+ * bit 4 or touches SPI1 (S176 audit); _diag_rdy_check enforces it at boot
+ * anyway and counts any correction in DIAG_PINS. A firmware that moves the
+ * link to SPI1 must release PB_05 (FER and DIR clear) BEFORE it gives PB_04
+ * to SPI1, and must change this check with it. */
+#define PADS_PULL_PA          0x000003CC    /* PA_02 PA_03 PA_06..PA_09 */
+#define PADS_PULL_PB          0x0000000E    /* PB_01 PB_02 PB_03 */
+#define PADS_PULL_PA_REVC     0x00008C00    /* PA_10 PA_11 PA_15 */
+#define PADS_PULL_PB_REVC     0x00000011    /* PB_00 PB_04 */
+#define PADS_PCFG0_PEN_ALL    0x00F00000    /* SPI0_RDY, xSPI CLKb/SEL2b/RWDS */
+#define CLKOUTSEL_GND         1
+#define RDY_PB04              0x00000010    /* SPI1_RDY: never an output */
+#define RDY_PB05              0x00000020    /* SPI2_RDY */
+#define DIAG_PINS_REVC_PULLS  0x00000001
+#define DIAG_PINS_CLKOUT_OFF  0x00000002
+#define DIAG_PINS_RDY_FIX     0x00000100    /* one RDY-rule correction */
+
 /*----------------------------------------------------------------------
  * TEMP bisect mirror (P2.2, 2026-08-21) — goes with the rest of the
  * DSP4_BISECT scaffolding (tasks.md NOW item 3).
@@ -283,6 +335,12 @@
  * revisions before anything but this veto rests on it. */
 .global _diag_rdy_strap;
 .var _diag_rdy_strap = 1;
+/* TAPC_IDCODE as read at boot (REVID 31:28) and the pin policy's state.
+ * Read back as DIAG_IDCODE / DIAG_PINS (diag.h). */
+.global _diag_idcode;
+.var _diag_idcode = 0;
+.global _diag_pins;
+.var _diag_pins = 0;
 .var _diag_peek_addr = 0;
 
 /* LED state machine */
@@ -498,11 +556,13 @@ _bisect_dump_asm.end:
  * In: r1 = CFG_BOARD_REV value. Called via _product_config_write, inside
  * the SPI service; clobbers r0, r4.
  *
- * DIAG_BOARD_REV_C with the PB_05 strap low: the LED drives PA_14 + PA_12.
- * Anything else: PA_14 only, and PA_12 goes back to an input -- a later
- * "rev D" or "unstated" withdraws an earlier "rev C". _diag_led_bits is
- * narrowed BEFORE the pad is released, so a tick that lands in between
- * can only write the data latch of a pad that is no longer an output.
+ * DIAG_BOARD_REV_C with the PB_05 strap low: the LED drives PA_14 + PA_12,
+ * and the rev-C-only pull-ups go on (PIN POLICY above, S176).
+ * Anything else: PA_14 only, PA_12 goes back to an input and the rev-C
+ * pulls come off -- a later "rev D" or "unstated" withdraws an earlier
+ * "rev C". _diag_led_bits is narrowed BEFORE the pad is released, so a
+ * tick that lands in between can only write the data latch of a pad that
+ * is no longer an output.
  *----------------------------------------------------------------------*/
 .global _diag_board_rev_set;
 _diag_board_rev_set:
@@ -520,6 +580,20 @@ _diag_board_rev_set:
     dm(REG_PORTA_DIR_SET)  = r0;
     r0 = DIAG_LED_BOTH;
     dm(_diag_led_bits) = r0;
+    /* Rev C confirmed: its open pads get their pull-ups (PUD is already
+     * clear for them, _diag_pads_init). */
+    r0 = dm(REG_PADS0_PORTA_PUE);
+    r4 = PADS_PULL_PA_REVC;
+    r0 = r0 or r4;
+    dm(REG_PADS0_PORTA_PUE) = r0;
+    r0 = dm(REG_PADS0_PORTB_PUE);
+    r4 = PADS_PULL_PB_REVC;
+    r0 = r0 or r4;
+    dm(REG_PADS0_PORTB_PUE) = r0;
+    r0 = dm(_diag_pins);
+    r4 = DIAG_PINS_REVC_PULLS;
+    r0 = r0 or r4;
+    dm(_diag_pins) = r0;
     rts;
 .brs_common:
     r0 = DIAG_LED_PA14;
@@ -527,8 +601,108 @@ _diag_board_rev_set:
     r0 = DIAG_LED_PA12;
     dm(REG_PORTA_DIR_CLR)  = r0;
     dm(REG_PORTA_DATA_CLR) = r0;
+    /* Not (or no longer) rev C: those pads may be wired on this card. */
+    r0 = dm(REG_PADS0_PORTA_PUE);
+    r4 = ~PADS_PULL_PA_REVC;
+    r0 = r0 and r4;
+    dm(REG_PADS0_PORTA_PUE) = r0;
+    r0 = dm(REG_PADS0_PORTB_PUE);
+    r4 = ~PADS_PULL_PB_REVC;
+    r0 = r0 and r4;
+    dm(REG_PADS0_PORTB_PUE) = r0;
+    r0 = dm(_diag_pins);
+    r4 = ~DIAG_PINS_REVC_PULLS;
+    r0 = r0 and r4;
+    dm(_diag_pins) = r0;
     rts;
 _diag_board_rev_set.end:
+
+/*----------------------------------------------------------------------
+ * _diag_pads_init — the boot half of the PIN POLICY (S176). Called from
+ * _diag_init, after the PB_05 strap has been read and before anything is
+ * driven. Clobbers r0, r1. Every write here is to a pad nothing else in
+ * the image uses, or to SYS_CLKOUT, which has no lead on either card.
+ *----------------------------------------------------------------------*/
+.global _diag_pads_init;
+_diag_pads_init:
+    /* The silicon revision, for the record (DIAG_IDCODE). The anomaly list
+     * names TAPC0_IDCODE.REVID as the way to tell 0.0 from 0.1. */
+    r0 = dm(REG_TAPC_IDCODE);
+    dm(_diag_idcode) = r0;
+
+    /* SYS_CLKOUT off: GND instead of the buffered CLKIN it leaves reset
+     * with (BMODE != 0). Read back so DIAG_PINS says whether it took. */
+    r0 = CLKOUTSEL_GND;
+    dm(REG_CGU0_CLKOUTSEL) = r0;
+    r0 = dm(REG_CGU0_CLKOUTSEL);
+    r1 = 0x1F;
+    r0 = r0 and r1;
+    r1 = CLKOUTSEL_GND;
+    comp(r0, r1);
+    if ne jump (pc, .pads_clkout_done);
+    r0 = DIAG_PINS_CLKOUT_OFF;
+    dm(_diag_pins) = r0;
+.pads_clkout_done:
+
+    /* The dedicated pads (SPI0_RDY, xSPI SEL2b / RWDS / CLKb) stay
+     * disconnected -- their reset state, stated rather than assumed.
+     * extram.asm connects the xSPI ones when the RAM is armed. */
+    r0 = dm(REG_PADS0_PCFG0);
+    r1 = ~PADS_PCFG0_PEN_ALL;
+    r0 = r0 and r1;
+    dm(REG_PADS0_PCFG0) = r0;
+
+    /* PUD clear for every pin the policy may pull (the rev-C set too, so
+     * _diag_board_rev_set only has to flip PUE), then PUE on for the
+     * always set. */
+    r0 = dm(REG_PADS0_PORTA_PDE);
+    r1 = ~(PADS_PULL_PA | PADS_PULL_PA_REVC);
+    r0 = r0 and r1;
+    dm(REG_PADS0_PORTA_PDE) = r0;
+    r0 = dm(REG_PADS0_PORTB_PDE);
+    r1 = ~(PADS_PULL_PB | PADS_PULL_PB_REVC);
+    r0 = r0 and r1;
+    dm(REG_PADS0_PORTB_PDE) = r0;
+    r0 = dm(REG_PADS0_PORTA_PUE);
+    r1 = PADS_PULL_PA;
+    r0 = r0 or r1;
+    dm(REG_PADS0_PORTA_PUE) = r0;
+    r0 = dm(REG_PADS0_PORTB_PUE);
+    r1 = PADS_PULL_PB;
+    r0 = r0 or r1;
+    dm(REG_PADS0_PORTB_PUE) = r0;
+    rts;
+_diag_pads_init.end:
+
+/*----------------------------------------------------------------------
+ * _diag_rdy_check — THE RDY RULE (F8), checked and enforced. Called from
+ * _start once the pins are routed (after _dma_cfg_init) and before any
+ * interrupt that could re-route them is unmasked. Clobbers r0-r2.
+ *
+ * A pad can drive when it is on its peripheral (FER set: SPI_RDY, or a
+ * timer output) or is a GPIO output (DIR set). If PB_04 can drive while
+ * PB_05 can too -- the two are one net on rev D -- PB_04 is forced back
+ * to a plain input and the correction is counted in DIAG_PINS 15:8.
+ * PB_05 is never touched here: it is the link's flow control.
+ *----------------------------------------------------------------------*/
+.global _diag_rdy_check;
+_diag_rdy_check:
+    r0 = dm(REG_PORTB_FER);
+    r1 = dm(REG_PORTB_DIR);
+    r0 = r0 or r1;                /* bit n set: PB_n can drive */
+    r1 = RDY_PB04 | RDY_PB05;
+    r0 = r0 and r1;
+    comp(r0, r1);
+    if ne rts;                    /* at most one of the two can drive */
+    r0 = RDY_PB04;
+    dm(REG_PORTB_FER_CLR) = r0;
+    dm(REG_PORTB_DIR_CLR) = r0;
+    r0 = dm(_diag_pins);
+    r1 = DIAG_PINS_RDY_FIX;
+    r0 = r0 + r1;
+    dm(_diag_pins) = r0;
+    rts;
+_diag_rdy_check.end:
 
 .global _diag_init;
 _diag_init:
@@ -553,6 +727,10 @@ _diag_init:
     r1 = 0;
     dm(_diag_rdy_strap) = r1;
 .diag_strap_done:
+
+    /* Unused-pin pulls, SYS_CLKOUT off, IDCODE (S176). After the strap
+     * read: nothing in it may bias PB_05 before that read is taken. */
+    call _diag_pads_init;
 
     /* PA_14 -> GPIO output, driven low: the LED pad on rev D, an open pad
      * on rev C. PA_12 stays untouched (reset state, input buffer off)
@@ -1086,6 +1264,12 @@ _diag_read:
     r4 = DIAG_BUILD_CFG2;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg2);
+    r4 = DIAG_IDCODE;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_idcode);
+    r4 = DIAG_PINS;
+    comp(r2, r4);
+    if eq jump (pc, .diag_rd_pins);
     r4 = DIAG_BUILD_CFG3;
     comp(r2, r4);
     if eq jump (pc, .diag_rd_build_cfg3);
@@ -1192,6 +1376,14 @@ _diag_read:
 
 .diag_rd_build_cfg3:
     r4 = dm(_diag_build_cfg3);
+    rts;
+
+.diag_rd_idcode:
+    r4 = dm(_diag_idcode);
+    rts;
+
+.diag_rd_pins:
+    r4 = dm(_diag_pins);
     rts;
 
 #if DSP4_EXTRAM

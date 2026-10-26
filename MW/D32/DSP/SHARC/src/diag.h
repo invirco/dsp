@@ -827,6 +827,24 @@
 #define DIAG_EXTRAM_XFERS    0xE0F2  /* R  MDMA staging transfers issued */
 #define DIAG_EXTRAM_STALLS   0xE0F3  /* R  blocks whose staging was skipped */
 
+/* ---- The part's own identity and the pin policy (S176) ----------------
+ *
+ * DIAG_IDCODE is TAPC_IDCODE as _diag_init read it at boot: REVID in bits
+ * 31:28 (0 = silicon 0.0, 1 = 0.1, anomaly list NR004940B p.1), JTAG ID in
+ * 27:12, manufacturer 11:1, bit 0 = 1. Read once and latched, so a reply of
+ * 0 means an image older than S176, never "revision 0.0".
+ *
+ * DIAG_PINS reports the pin policy _diag_pads_init and _diag_board_rev_set
+ * applied (diag.asm, "PIN POLICY"):
+ *   bit 0      the rev-C-only pull-ups are on (CFG_BOARD_REV said C and the
+ *              PB_05 strap agreed)
+ *   bit 1      SYS_CLKOUT is off (CGU0_CLKOUTSEL reads back GND)
+ *   bits 15:8  RDY-rule corrections: times the check found PB_04 able to
+ *              drive while PB_05 could too and forced PB_04 back to an
+ *              input. Anything but 0 is a firmware defect. */
+#define DIAG_IDCODE          0xE0F4  /* R  TAPC_IDCODE at boot (REVID 31:28) */
+#define DIAG_PINS            0xE0F5  /* R  pin policy state, see above */
+
 /* NOP — accepted and ignored. The host sends this as the second half of
  * a read (see diag.asm); it must not itself generate a response. */
 #define DIAG_NOP             0xE0FE  /* W */

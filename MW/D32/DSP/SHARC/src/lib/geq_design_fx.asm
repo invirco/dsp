@@ -131,8 +131,11 @@ _geq_design_N:
     f2 = r2;
     f0 = clip f0 by f2;              /* the contract domain, clamped */
 
-    f1 = abs f0;
+    /* The constant load sits between the CLIP and the ABS: a float compute
+     * into F0 straight before a single-operand compute is anomaly 20000072's
+     * pipeline stall. Same instructions, same results, one reordered. */
     r2 = GEQ_FLAT_EPS_F32;
+    f1 = abs f0;
     f2 = r2;
     comp(f1, f2);
     if lt jump (pc, .geqd_flat);

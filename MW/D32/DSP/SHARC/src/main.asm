@@ -178,6 +178,7 @@
 .extern _sport_cfg_init;
 .extern _dma_cfg_init;
 .extern _diag_init;
+.extern _diag_rdy_check;
 #if DSP4_BISECT >= 5
 .extern _bisect_park_asm;
 #endif
@@ -464,6 +465,11 @@ _start:
     CCALL(_dma_cfg_init)
     r0 = DIAG_STAGE_DMA;
     dm(_diag_boot_stage) = r0;
+
+    /* The RDY rule (S176, diag.asm): every pin is routed now, and nothing
+     * that could re-route one is unmasked yet. PB_04 never drives while
+     * PB_05 can -- rev D ties the two leads. */
+    call _diag_rdy_check;
 
     /* Unmask the SEC core interrupt and enable interrupts globally —
      * needed before .wait_boot: the product config arrives over SPI. */

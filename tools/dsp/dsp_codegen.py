@@ -18263,12 +18263,16 @@ def gen_noise_gen_fixed(node):
     body = gen_noise_gen(node)
     old = f""".noise_out_{nid}:
     dm(_buf_{nid}) = r0;"""
+    # The product goes to F1, not F0: a float compute into F0 followed by a
+    # single-operand compute (the FIX) is anomaly 20000072's stall (S176).
+    # Register 0 ends identical; only r1's exit value changes, and
+    # tools/dsp/reg_dead_check.py proves nothing reads it after the store.
     new = f""".noise_out_{nid}:
     /* float island boundary -> Q4.28 (D5) */
     r1 = 0x4D800000;
     f1 = r1;
-    f0 = f0 * f1;
-    r0 = fix f0;
+    f1 = f0 * f1;                    /* not F0: anomaly 20000072 */
+    r0 = fix f1;
     dm(_buf_{nid}) = r0;"""
     if old not in body:
         raise RuntimeError(
@@ -20015,11 +20019,13 @@ def gen_fx_engine_fixed(node):
             f'moved; update `old_in` in gen_fx_engine_fixed() to match it.')
     body = body.replace(old_in, new_in)
     old_out = f"    dm(_buf_{nid}) = r0;"
+    # F1, not F0, takes the product: anomaly 20000072 (S176), as in
+    # gen_noise_gen_fixed() above.
     new_out = (f"    /* float island exit: float32 -> Q4.28 (D5) */\n"
                f"    r1 = 0x4D800000;\n"
                f"    f1 = r1;\n"
-               f"    f0 = f0 * f1;\n"
-               f"    r0 = fix f0;\n"
+               f"    f1 = f0 * f1;                /* not F0: anomaly 20000072 */\n"
+               f"    r0 = fix f1;\n"
                f"    dm(_buf_{nid}) = r0;")
     if body.count(old_out) != 1:
         raise RuntimeError(

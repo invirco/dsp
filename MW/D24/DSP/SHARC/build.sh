@@ -26,10 +26,13 @@ LD21K="wine $CCES_DIR/ld21k.exe"
 # Processor target
 PROC="-proc ADSP-21564"
 
+# Silicon revision + anomaly workarounds, as MW/D32/DSP/SHARC/build.sh (S176).
+SIREV="-si-revision ${DSP4_SI_REVISION:-any}"
+
 # Compiler flags
-CFLAGS="$PROC -O2 -DNDEBUG"
-ASMFLAGS="$PROC"
-LDFLAGS="$PROC"
+CFLAGS="$PROC $SIREV -workaround 20000002,20000069 -O2 -DNDEBUG"
+ASMFLAGS="$PROC $SIREV -anomaly-detect all"
+LDFLAGS="$PROC $SIREV"
 
 # LDF (Linker Description File) — use CCES default or custom
 # LDF="$SCRIPT_DIR/ADSP-21564.ldf"

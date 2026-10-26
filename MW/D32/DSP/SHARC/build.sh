@@ -100,6 +100,25 @@ ASMFLAGS="$PROC -I $SRC_DIR"
 # (dsp_block.h carries the block size to dma_config.c).
 CFLAGS="$PROC -O -DNDEBUG -I $SRC_DIR"
 
+# SILICON REVISION AND ANOMALY WORKAROUNDS (S176, hub 21564 cross-check F12).
+# The ADSP-21564 anomaly list (NR004940B rev B) covers silicon 0.0 and 0.1,
+# and every one of its 13 entries applies to both. CCES 3.0.3 knows both
+# revisions and applies the SAME tool set to 0.0, 0.1 and `any`
+# (System/ArchDef/ADSP-21564-compiler.xml):
+#   cc21k   workaround 20000002 (Rn -> DAG forwarding with stalls)
+#           workaround 20000069 (PCSTK write then L2/L3 access)
+#   easm21k detect     20000002 and 20000096 (USTAT type 18a), warning ea2571
+# Before S176 nothing named a revision, so the tools took their command-line
+# default (0.0) -- the same set, but by accident. `any` says what is true
+# until the U5/U6 branding is read: the image must run on either revision.
+# The part reports its own revision at diag register DIAG_IDCODE (0xE0F4).
+# Anomaly 20000072 (F0 destination stalls) has no tool support; it is
+# handled in the code generator and audited by tools/dsp/f0_stall_scan.py.
+DSP4_SI_REVISION="${DSP4_SI_REVISION:-any}"
+SIREV="-si-revision $DSP4_SI_REVISION"
+ASMFLAGS="$ASMFLAGS $SIREV -anomaly-detect all"
+CFLAGS="$CFLAGS $SIREV -workaround 20000002,20000069"
+
 # P2.2 bisect variant selector (TEMPORARY — goes with the scaffolding when
 # tasks.md NOW item 3 lands). See the DSP4_BISECT block at the top of
 # src/dma_config.c for what each value parks on:
@@ -1101,7 +1120,7 @@ resolve_ldf() {
         LDF="$proxy_ldf"
         echo "  (fit-proxy: using generated $proxy_ldf)"
     fi
-    LDFLAGS="$PROC -T $LDF"
+    LDFLAGS="$PROC $SIREV -T $LDF"
 }
 
 # A non-21564 build is a temporary compatibility (fit-proxy) image only —
@@ -1135,7 +1154,7 @@ Validity:    proves toolchain, codegen, link and memory fit. Says nothing
 EOF
     echo "  Marker: $BUILD_DIR/COMPAT-BUILD.txt"
 }
-LDFLAGS="$PROC -T $LDF"
+LDFLAGS="$PROC $SIREV -T $LDF"
 
 clean() {
     echo "=== Clean ==="
