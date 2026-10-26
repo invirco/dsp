@@ -1,3 +1,22 @@
+## HUB DISPATCH 2026-10-26 07:10Z — S175 — guard source J (JTAG SAMPLE U3.81), CFG_BOARD_REV, rev C read-only proof   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+S175 — rev D enablement, part 2: guard source J (JTAG SAMPLE of U3.81), CFG_BOARD_REV from the bench tools, one READ-ONLY bench proof on the rev C unit. Repo invirco/dsp, this machine.
+
+FIRST record the S174 rulings (PW 2026-10-26, 1by1) in the S174 block (status → 🟢) and in findings: Q1 (a) source J = JTAG SAMPLE of U3.81; Q2 (a) rev C LED dark until the host sends CFG_BOARD_REV (app + bench tools send it from the detected revision); Q3 (a) the image clears nBOOT_SEL on its first run; Q4 (a) RST_O pulsed with RST_C at boot then held high (option-card polarity to be checked on the bench when a card is fitted); Q5 (a) keep `// H1S1 DSP G0B1 rev <code>` permanently beside the cell; Q6 (b) rev C H1S1 stays byte-identical, no UART-fix back-port. Also: defs-v2026.10.25 landed Sys[1-1]DspCardRev[1-1] = Sys001DspCardRev001 at MxAdd 5795 (hub); ./sync-defs.sh when you need it.
+
+DO (S175):
+1. Source J in tools/pi/dspcard_id.py: a JTAG SAMPLE/PRELOAD read of U3.81 (BOARD_REV0 strap: rev C reads 1 = open with the CPLD's weak pull-up, rev D reads 0 = strapped to GND) over the existing CPLD openocd path, non-intrusive (SAMPLE only — never EXTEST, never a reprogram). Fetch the 5M1270ZT144 BSDL from Intel (vendor file; record source URL + sha256 in the repo; if its licence forbids redistribution keep the file out of git and record how to fetch it). Verdict logic: J is positive evidence on its own (works on a virgin card with any or no image); define the H / K / J combination and CONFLICT rules; a virgin rev D card must identify as D so its first CPLD + H1S1 flashes are allowed.
+2. CFG_BOARD_REV (S174 Q2): the bench tools send 0x0C / 0x0D from dspcard_id.py's verdict before they expect the LED; document the exact message (bytes, when, who sends) in MW/D24/HW/dspcard-revC-vs-revD.md for the mx26 app task (hub).
+3. BENCH PROOF, read-only, on the rev C D24 unit (the hub assigns the unit to you for this step only): (i) ID knock before; (ii) JTAG SAMPLE of U3.81 reads 1; (iii) ID knock after, identical; (iv) audio / the running CPLD undisturbed (state what you checked). NOTHING flashed, no EXTEST, no reset of the CPLD. If openocd cannot reach the CPLD JTAG from the CM4 as wired, stop and report what is missing (cable, pins, adapter) — do not improvise hardware.
+4. STOP (review stop): block status + findings, numbered PW questions 1by1 with recommendations. Commit + push main.
+
+Rules: single trunk — pull main first; no AI attribution anywhere; step ID S175; defs is the single SOT for cells; do not edit invirco/dspcard or mx26; nothing flashed to any unit.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-25 13:07Z — S174 — rev D enablement: LED fix, H1S1 G0B1 port, flash guard (desk)   [status: 🔴 review stop — all 3 steps built, desk only, nothing flashed: DSP image never drives PA_12 unless config says rev C AND the PB_05 strap agrees (everything outside diag/product_config object-identical); H1S1 G0B1 port `MW/D24/FW/H1S1G0` builds clean, 0 warnings, rev C H1S1 still 19a5492d; card guard in logic_flash.sh + loadlogic.sh + new h1s1_flash.sh via new dspcard_id.py; U7 chip ID NOT readable (no MH1 GET_ID) so a virgin rev D card cannot be identified: 6 PW questions]   [model: opus]
 
 model: opus
