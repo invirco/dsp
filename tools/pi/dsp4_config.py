@@ -56,6 +56,32 @@ CFG_PATCH_BASE = 0xF010
 CFG_BOARD_REV = 0xF007
 BOARD_REV_CODES = {'C': 0x0C, 'D': 0x0D}
 
+
+def detect_board_rev():
+    """(rev or None, why): `--board-rev auto` (S175, PW ruling S174 Q2 (a)).
+
+    Source J only -- dspcard_id.py's JTAG SAMPLE of the BOARD_REV0 strap,
+    which reads the copper whatever runs on the CPLD and U7, needs neither the
+    matrix bus nor the PCM path, and disturbs neither. Anything but a positive
+    C or D sends nothing: an unstated revision is the common subset."""
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    for tool in (os.path.join(here, 'dspcard_id.py'),
+                 '/home/app/dspboot/dspcard_id.py'):
+        if os.path.isfile(tool):
+            break
+    else:
+        return None, 'dspcard_id.py not found beside this tool or in /home/app/dspboot'
+    r = subprocess.run([sys.executable, tool, '--only-jtag'],
+                       capture_output=True, text=True, timeout=120)
+    for line in r.stdout.splitlines():
+        if line.startswith('{'):
+            card = json.loads(line).get('card')
+            if card in BOARD_REV_CODES:
+                return card, 'dspcard_id: rev %s' % card
+            return None, 'dspcard_id: %s' % card
+    return None, 'dspcard_id gave no verdict (rc %d)' % r.returncode
+
 # CFG_PRODUCT_ID IS A SCOPE CLASS, NOT A PRODUCT IDENTITY (S28-4).
 #
 # `_scope_gates_apply` keeps the nodes whose `scope=` equals this word and
@@ -349,10 +375,12 @@ def main():
                          '(the snake returns run), 1 = D24 scope (they are '
                          'gated off, as every other product gates them). '
                          'S29 gate 2.')
-    ap.add_argument('--board-rev', choices=sorted(BOARD_REV_CODES),
+    ap.add_argument('--board-rev', choices=sorted(BOARD_REV_CODES) + ['auto'],
                     help='state the DSP card revision (CFG_BOARD_REV). C '
                          'lets a rev C card light its LED on PA_12; omit it '
-                         'on any card not positively identified (S174)')
+                         'on any card not positively identified (S174). '
+                         'auto: from dspcard_id.py\'s JTAG read of the strap, '
+                         'nothing sent unless that is positive (S175)')
     ap.add_argument('--chip', type=int, choices=(1, 2), default=1)
     ap.add_argument('--dev', default='0.0',
                     help='spidev bus.device (default 0.0)')
@@ -378,6 +406,11 @@ def main():
     if args.poke:
         writes = [(int(args.poke[0], 0), int(args.poke[1], 0))]
     elif args.product:
+        if args.board_rev == 'auto':
+            args.board_rev, why = detect_board_rev()
+            print(f'  board rev auto: {why} -> '
+                  + (f'CFG_BOARD_REV = 0x{BOARD_REV_CODES[args.board_rev]:02X}'
+                     if args.board_rev else 'not sent (common subset)'))
         writes = list(transactions(args.product, args.chip, args.scope_id,
                                     args.board_rev))
         if args.scope_id is not None:

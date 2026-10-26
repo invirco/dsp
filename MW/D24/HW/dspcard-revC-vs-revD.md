@@ -22,13 +22,14 @@ STM32G0B1RET6) and R33/R65 (22R → 1K, as already fitted on the rev C proto).
 | U | **U7 chip ID** from the STM32 ROM bootloader `GET_ID` | the silicon itself | `0x482` (U575) | `0x467` (G0B1) | **not today (S174-2)**: MH1 has no GET_ID path — its `loadfw` enters U7's loader and mass-erases in the same step — and no SWD channel to U7 is established |
 | H | **H1S1 announcement** on the panel bus (S174): `// H1S1 DSP` / `// H1S1 DSP G0B1 rev <code>` | the running H1S1 image, which runs only on its own part | `// H1S1 DSP` | `// H1S1 DSP G0B1 rev 1` | rev C now; rev D once the S174 port is loaded. `tools/pi/dspcard_id.py` |
 | K | **CPLD ID knock**, reply word `0xD594<cfg>`: `cfg[10]` rev D image, `cfg[11]` strap low | `tools/pi/dsp4_logic_id.py` | `cfg[11:10] = 00` (rev C image) | `11` | once the rev D CPLD image is on the card |
+| J | **BOARD_REV0 strap U3.81 read by JTAG SAMPLE** (S175): boundary cell 522 of 636, IR 0x005, over the CM4's CPLD JTAG (TCK 7, TDI 23, TDO 22, TMS 25 → J17) | the copper itself; works with any CPLD image, a blank CPLD, any or no U7 image; never drives a pin | **1** (open pad, CPLD weak pull-up) | **0** (tied to GND) | now. `tools/pi/dspcard_id.py` (`--only-jtag`); BSDL facts in `shared/dsp4-logic/bsdl/README.md`. **The only detector a virgin card answers** |
 | X | DSP `_extram_present` (S75 probe) | each DSP after boot | 0 | 1 when the RAM answers | rev D DSP image with the pool armed |
 
 **Rule for the app — runtime vs flashing.** For *runtime* behaviour, R is enough
 and "no reply = rev C" is fine (PW L11 Q4). For *flashing* the CPLD or H1S1,
 "no reply" is NOT enough: a rev D card whose U7 is blank or not yet ported also
 says nothing, and the rev C CPLD image on rev D copper is a bus fight (item 3).
-**Every CPLD / H1S1 flash must first identify the card positively** (ruled S173 Q4 (a)); S174 implements it with H and K in `tools/pi/dspcard_id.py`, used by `logic_flash.sh`, `loadlogic.sh` and `h1s1_flash.sh`, and refuses on doubt.
+**Every CPLD / H1S1 flash must first identify the card positively** (ruled S173 Q4 (a)); S174 implements it with H and K in `tools/pi/dspcard_id.py`, used by `logic_flash.sh`, `loadlogic.sh` and `h1s1_flash.sh`, and refuses on doubt; S175 adds J. **Combination rule:** a revision is positive when at least one of H / K / J names it and none names the other; any disagreement is CONFLICT (never flash; J ≠ K means the tool or the net is wrong, since both read U3.81); nothing named is UNKNOWN. J alone is enough, so a virgin rev D card (blank U7, blank CPLD) identifies as D and its first CPLD and H1S1 flashes are allowed.
 
 ## 1. The list
 
@@ -44,7 +45,7 @@ Behaviour columns: what the app (A) / DSP firmware (F) does on each revision.
 | 4 | **DSP LED / BLINK pads move** | BLINK_LED = PA_12 (lead 35), BLINK (shared with the other DSP, U3.58, U8.48) = PA_13 (36) | BLINK_LED = **PA_14** (37), BLINK = **PA_15** (40); PA_12/PA_13 are now SPI1 MOSI/SS **wired through 22R to the CM4's SPI MOSI and DSP CS** | **no — hazard** | **The shipping DSP image drives PA_12 (diag.asm LED codes). On rev D that pin is the CM4's MOSI**: every LED transition fights the shared SPI bus (both DSPs' boot, CPLD, codec, 595 chain). The current image must not run on a rev D card (finding S173-1). F: drive PA_14 always (open pad on rev C), PA_12 only once the board is known to be rev C — **done S174**: PA_12 only when the host writes `CFG_BOARD_REV` (0xF007) = 0x0C AND the PB_05 strap reads low; A: write 0xF007 per detected rev |
 | 5 | **SPI_RDY pull** (MOD C) | R22/R34 10K to **GND** (idle = low) | to **+3V3** (idle = high: a dead SHARC looks busy) | no | Host tools: RDY idle polarity per rev (dsp4_boot.py treats boot RDY active-low and the runtime tools active-high today, `dma_config.c` FCPL note). F: the SPI2/SPI1 FCPL setting follows. fw.csv `RdyDspA/B` notes say pull-down: defs follow-up |
 | 6 | **LOGIC CPLD pin-out** (L8d/L8e/L8k): ni[0], test[0], test[2], fsi[1..3], bcki[1], o_dspb[0..3] move | `dsp4_logic.qsf` | `dsp4_logic_revd.qsf` (S173): image `dsp4_logic_revd.ac2352077621`, design ID `0x52077621` | **yes, given the right image** — lane indices, slot map and DSP graph are unchanged | A: flash the image that matches the card (detector U/K), never the other: **a rev C image on rev D drives FSI1-3/BCKI1 into DSPB's O0-O3 outputs, TEST1 into the NET input NI0 and TEST3 into PI_TX2** (check_pins: 11 mismatches). Rev C image stays `dsp4_logic.99616cc44dc4` (byte-identical) |
-| 7 | **BOARD_REV0** strap U3.81 | single-pin net L1 (weak pull-up reads 1) | tied to GND | — | A: K detector, and the rev D CPLD image's self-check (`cfg[11:10] = 01` = rev D image on rev C copper → refuse and reflash) |
+| 7 | **BOARD_REV0** strap U3.81 | single-pin net L1 (weak pull-up reads 1) | tied to GND | — | A: J detector (any image, S175), K detector, and the rev D CPLD image's self-check (`cfg[11:10] = 01` = rev D image on rev C copper → refuse and reflash) |
 | 8 | **DSP SYS_RESOUT → CPLD** (MOD 12) | N/C | DSPA → U3.77, DSPB → U3.85 | yes | Not read by any image yet (reserved inputs). Available for a later "DSP alive" bit in the knock |
 | 9 | **U7 / H1S1 MCU** (MOD 5) | STM32U575RIT6, firmware `MW/D24/FW/H1S1` | **STM32G0B1RET6**, different pin-out (`review/stage2b-u7-pinmap.md`), **no firmware exists** | **no** | A: H1S1 image chosen by U7 chip ID (U). `loadfw`: same STM32 USART bootloader protocol on USART1 PA9/PA10, but the G0B1 needs option bit **nBOOT_SEL = 0** programmed at first load or BOOT0 (S1, driven by MH1) is ignored on a programmed part; G0 flash pages are 2 KB vs the U575's 8 KB — check the app's erase step. **Until the G0B1 port exists the rev D card has no RST_C driver: U7 is the ONLY driver of RST_C** (converter + 595 chain reset, 30-odd analog-board loads) — no audio I/O on rev D without it (finding S173-3) |
 | 10 | **Codec select !CS_C** (CS6 ruling) | driven by H1S1 PA15; CM4 reaches the AK4619 only through H1S1 (`Sys001Test001/002`, `codec4619.py`) | **CM4 CS6 = GPIO17 drives !CS_C directly**; H1S1 is off the net | **no** | A: codec path per rev: rev C via the H1S1 bus cells; rev D via the CM4's own SPI with CS6. `StartAK4619` (codec init) moves into the app on rev D. The H1S1 codec cells are dead on rev D |
@@ -92,3 +93,20 @@ TDM slot map and lane indices (the CPLD absorbs the pin moves), the DSP address
 map and every DSP cell, the 595 mic-gain chain (CM4 CS5 → !CS_M on both: proto
 wire on rev C, copper on rev D), the CPLD design-ID knock protocol, the CM4 PCM
 link, the boot protocol, the panel / MH1 bus wiring.
+
+## 4. `CFG_BOARD_REV` — the message the host sends (S174 Q2 (a), S175)
+
+For the mx26 app task (hub). The DSP image never drives PA_12 (rev C LED pad,
+rev D CM4 MOSI) until the host says the card is rev C, so **a rev C card's DSP
+LED is dark until this message arrives.**
+
+| | |
+|---|---|
+| **what** | one parameter-link write of config register `0xF007` (`CFG_BOARD_REV`, `product_config.asm`), ramp id 0 |
+| **bytes** (SPI mode 0, MSB first, one CS assertion, 8 bytes) | rev C: `F0 07 00 00  00 00 00 0C` — rev D: `F0 07 00 00  00 00 00 0D` (word0 = `0xF007 << 16`, word1 = the code; `DIAG_BOARD_REV_C/D` in `diag.h`) |
+| **to whom** | **both** DSPs: chip 1 on CS GPIO6, chip 2 on CS GPIO24 (the same link and CS as every product-config write; SPI_RDY GPIO8 / GPIO12) |
+| **when** | after every DSP boot (a reset clears it to unstated), with the product config: after PRODUCT_ID .. OUT_MUX and the input patch, **before** `CFG_COMMIT` (`F0 04 00 00 00 00 00 01`). It acts on the write itself, not at the commit, so a later write is honoured too |
+| **from what** | the detected revision: `dspcard_id.py` verdict C → `0x0C`, D → `0x0D`; **UNKNOWN or CONFLICT → send nothing** (the image stays in the common subset: LED on PA_14 only). Never "no reply = rev C" here: a wrong `0x0C` on rev D drives the CM4's MOSI |
+| **what the DSP does** | `0x0C` AND its own PB_05 strap read low at boot → LED on PA_14 + PA_12. `0x0C` with the strap high, `0x0D`, or anything else → PA_14 only, PA_12 released to an input (a later non-C withdraws an earlier C). Images older than S174 ignore `0xF007` (`.cfg_ignore`) |
+| **who sends it today** | bench: `dsp4_config.py --board-rev C\|D\|auto` (`auto` = `dspcard_id.py --only-jtag`, nothing sent unless positive); `d24_selftest.py boot_pair` reads J once per boot and passes it to both chips' config. **App: not yet** (hub task) — the app should send it from its own detected revision with the same rule |
+| **readback** | none: the `0xF000` block is write-only (`dsp4_config.verify`). Confirmation is the LED |

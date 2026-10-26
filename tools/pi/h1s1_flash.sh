@@ -120,7 +120,7 @@ printf '%s\n' "$ID_OUT" | grep -v '^{' | sed 's/^/   card id    : /'
 rec "card id (want rev $IMG_REV, rc=$ID_RC): $(printf '%s' "$ID_OUT" | grep '^{')"
 case "$ID_RC" in
   0) say "   card guard : positively rev $IMG_REV -- matches the image" ;;
-  3) fail "THE CARD COULD NOT BE IDENTIFIED -- NOT FLASHING. Nothing named a revision (lines above); a rev D card with a blank U7 or a rev C CPLD image is silent too, so 'no answer' is not rev C." 6 ;;
+  3) fail "THE CARD COULD NOT BE IDENTIFIED -- NOT FLASHING. Nothing named a revision (lines above); a rev D card with a blank U7 or a rev C CPLD image is silent too, so 'no answer' is not rev C; source J (JTAG read of U3.81) answers on every card -- its line above says why it did not." 6 ;;
   4) fail "THE SOURCES DISAGREE ABOUT THE CARD -- NOT FLASHING. Find out why." 6 ;;
   5) fail "THIS IS NOT A REV $IMG_REV CARD -- NOT FLASHING. loadfw mass-erases U7 first, and an image for the other part will not run: U7 would be left blank." 6 ;;
   *) fail "card identification failed (rc=$ID_RC) -- NOT FLASHING." 6 ;;

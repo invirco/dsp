@@ -58,11 +58,11 @@
 # (its manifest: `board: rev D`; a manifest with no board line predates rev D
 # and is rev C; no manifest = refused), the rollback must be for the same
 # card, and the bench must name the card through dspcard_id.py -- H1S1's
-# announcement or a rev-D-image knock. "Nothing answered" is not a card. There
-# is no override flag: if the card cannot be identified, identify it (boot an
-# H1S1 image that announces, or read it off the board) and say so in the log.
-# The ID needs /dev/serial0, so with matrix-app running only the knock can
-# answer; --stop-app frees the bus first.
+# announcement, a rev-D-image knock, or (S175) the BOARD_REV0 strap read off
+# the copper by a JTAG SAMPLE, which answers on any card including a virgin
+# one. "Nothing answered" is not a card. There is no override flag: if the
+# card cannot be identified, find out why J did not answer. H1S1's
+# announcement needs /dev/serial0, which matrix-app owns; --stop-app frees it.
 #
 # ---------------------------------------------------------------------------
 # WHY THE INTERLOCK IS THE FIRST THING IN THE SCRIPT AND NOT A LINE IN A
@@ -306,8 +306,8 @@ if [ "$ID_RC" != "0" ]; then
     3) say "   !! THE CARD COULD NOT BE IDENTIFIED -- NOT FLASHING."
        say "      Nothing named a revision (lines above). 'No answer' is not rev C:"
        say "      a rev D card with a blank U7 or a rev C CPLD image is silent too."
-       say "      With matrix-app running only the knock can answer: --stop-app"
-       say "      lets H1S1's announcement through. Otherwise identify the card." ;;
+       say "      Source J (the JTAG read of U3.81) answers on every card: if it"
+       say "      did not, its line above says why (tap, IDCODE, length, stability)." ;;
     4) say "   !! THE SOURCES DISAGREE ABOUT THE CARD -- NOT FLASHING. Find out why." ;;
     5) say "   !! THIS IS NOT A REV $ART_REV CARD -- NOT FLASHING $SVF ONTO IT."
        say "      Flashing a rev $ART_REV image here drives CPLD outputs into the"

@@ -6,6 +6,38 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+## DSP CARD REV D ENABLEMENT, PART 2: GUARD SOURCE J, CFG_BOARD_REV (2026-10-26, session 175)
+
+Hub dispatch `tasks.md` 2026-10-26 07:10Z (S175). Desk only; the bench step
+did not run (unit unreachable); nothing flashed or touched.
+
+**S174 rulings (PW 2026-10-26, 1by1).** Q1 (a) source J = JTAG SAMPLE of
+U3.81; Q2 (a) rev C LED dark until the host sends `CFG_BOARD_REV` (app and
+bench tools send it from the detected revision); Q3 (a) the image clears
+nBOOT_SEL on its first run; Q4 (a) RST_O pulsed with RST_C at boot, then held
+high (option-card polarity checked on the bench when a card is fitted); Q5 (a)
+keep `// H1S1 DSP G0B1 rev <code>` permanently; Q6 (b) rev C H1S1 stays
+byte-identical.
+
+**S175-1.** The vendor BSDL cannot be fetched from this machine (intel.com /
+altera.com 403, bsdl.info login-gated). The local Quartus generates it:
+`quartus_eda --bsdl 5M1270ZT144C4 --output_directory=<dir>`, deterministic,
+sha256 `7bdd8e3e...59f4bb70`. Not committed (Intel tool output);
+`shared/dsp4-logic/bsdl/regen_bsdl.sh` regenerates and checks it.
+
+**S175-2.** Source J (`dspcard_id.py`): SAMPLE only, U3.81 = boundary cell
+522 of 636. It is evidence only when the IDCODE is the 5M1270Z, a marker
+shows the register is 636 long, and three samples agree, so a wrong BSDL gives
+no evidence rather than a wrong answer. J alone identifies a virgin card.
+
+**S175-3.** `CFG_BOARD_REV` is sent from the J verdict by
+`dsp4_config.py --board-rev auto` and by `d24_selftest.py boot_pair`; images
+older than S174 ignore it. The app does not send it yet (hub). The message is
+§4 of `MW/D24/HW/dspcard-revC-vs-revD.md`.
+
+**S175-4. J has not run on silicon.** The read-only rev C proof is
+outstanding (MW-D24-2 had no route); the recipe is in the S175 block.
+
 ## DSP CARD REV D ENABLEMENT: LED, H1S1 G0B1 PORT, FLASH GUARD (2026-10-25, sessions 173-174)
 
 Hub dispatches `tasks.md` 2026-10-25 11:28Z (S173) and 13:07Z (S174). Desk only;

@@ -3548,14 +3548,27 @@ def boot_pair(r):
     # true here (S115). AL1 then does the full close + route write again.
     r.rsh('rm -f %s' % shlex.quote(os.path.join(r.a.stage, '.al1_route_standing')))
     log = []
+    # THE CARD REVISION GOES WITH THE CONFIG (S175, PW ruling S174 Q2 (a)):
+    # read once per boot off the copper (dspcard_id.py source J, a JTAG SAMPLE
+    # of the BOARD_REV0 strap -- nothing driven, the CPLD keeps running) and
+    # stated to both chips, so a rev C card lights its LED on PA_12. Anything
+    # but a positive C or D states nothing: the common subset, LED dark.
+    rev_arg = ''
+    j = r.rsh('python3 %s/dspcard_id.py --only-jtag 2>&1 | grep -v "^{"' % DSPBOOT,
+              timeout=120)
+    m = re.search(r'^CARD=([CD])$', j.stdout, re.M)
+    if m:
+        rev_arg = ' --board-rev %s' % m.group(1)
+    log.append('--- card revision (source J) -> %s ---\n%s'
+               % (rev_arg.strip() or 'not stated', j.stdout + j.stderr))
     for cycle in (1, 2):
         pin_handback(r)
         b = r.rsh('cd %s && python3 dsp4_boot.py --dir . 2>&1 | tail -12' % r.a.stage, timeout=300)
         log.append('--- boot cycle %d ---\n%s' % (cycle, b.stdout + b.stderr))
         for chip in (1, 2):
             r.pin('%d,%d op dh' % (CS_GPIO[1], CS_GPIO[2]))
-            c = r.rsh('cd %s && python3 dsp4_config.py --product d24 --chip %d 2>&1 | tail -6'
-                      % (r.a.stage, chip), timeout=300)
+            c = r.rsh('cd %s && python3 dsp4_config.py --product d24 --chip %d%s 2>&1 | tail -6'
+                      % (r.a.stage, chip, rev_arg), timeout=300)
             log.append('--- config cycle %d chip %d ---\n%s' % (cycle, chip, c.stdout + c.stderr))
     # s89_signbit takes the symbol directory as argv[1] -- called bare it raises
     # IndexError before it reads the part, and the gate silently scores nothing.
