@@ -1225,6 +1225,13 @@ build() {
     echo "=== Build D32 DSP ==="
     compat_banner
     resolve_ldf
+    # THE LINK TAKES EVERY .doj IN THESE DIRECTORIES, so an object whose
+    # source is gone (a node the generator no longer makes) is linked into
+    # the next image without a word. S176-9: a used build/ held 30 such
+    # chip-2 nodes and `./build.sh build` shipped them. Each build starts
+    # from its own objects only (PW 2026-10-26, S176 Q6).
+    rm -f "$BUILD_DIR"/chip1/*.doj "$BUILD_DIR"/chip2/*.doj \
+          "$BUILD_DIR"/lib/*.doj "$BUILD_DIR"/lib2/*.doj
     mkdir -p "$BUILD_DIR/chip1" "$BUILD_DIR/chip2" "$BUILD_DIR/lib"
 
     local total_errors=0
@@ -1422,11 +1429,19 @@ order_objs() {
     echo "=== Build OK ==="
     echo "  Chip 1: $BUILD_DIR/chip1.dxe"
     echo "  Chip 2: $BUILD_DIR/chip2.dxe"
+    # The boot streams and the F0 gate come after the link, and until S176
+    # their failures were counted and then dropped: build() returned
+    # count's 0, so an elfloader error exited the script 0.
     loader || total_errors=$((total_errors+1))
+    f0_gate || total_errors=$((total_errors+1))
     compat_marker
     compat_banner
     echo ""
     count
+    if [ $total_errors -gt 0 ]; then
+        echo "=== Build FAILED after link ($total_errors errors) ==="
+        return 1
+    fi
 }
 
 # ---- Boot streams (.ldr) ------------------------------------------------
@@ -1540,6 +1555,50 @@ loader() {
         fi
     done
     return $rc
+}
+
+# ---- Anomaly 20000072 gate (PW 2026-10-26, S176 Q2) ----------------------
+# A float compute into F0 followed at once by a one-operand compute stalls
+# the pipeline (tools/dsp/f0_stall_scan.py has the anomaly text). S176 took
+# the shipping pair from 9 sites to 0, and a generator template is all it
+# takes to bring them back, so a SHIPPING pair with any site FAILS THE
+# BUILD. Control and instrument arms are scanned and reported only: ten
+# sites live in non-shipping arms and stay there (S176 Q3).
+#
+# "Shipping" is decided the way the part reports it: this build's three
+# DIAG_BUILD_CFG words (cfg_words.py, environment honoured exactly as above)
+# against the words shipping.config produces with no DSP4_* override. The
+# instrument bit in CFG3 covers every switch the words carry no field for.
+# If the words cannot be computed, the gate applies.
+f0_gate() {
+    local tools="$SCRIPT_DIR/../../../../tools/dsp" this ship k
+    local -a clean=()
+    local imgs=() c
+    for c in 1 2; do
+        [ -f "$BUILD_DIR/chip$c.dxe" ] && imgs+=("$BUILD_DIR/chip$c.dxe")
+    done
+    [ ${#imgs[@]} -gt 0 ] || return 0
+    local fmt='import json,sys; d=json.load(sys.stdin); print("%08X,%08X,%08X" % (d["cfg"], d["cfg2"], d["cfg3"]))'
+    this=$(python3 "$tools/cfg_words.py" --json 2>/dev/null | python3 -c "$fmt" 2>/dev/null)
+    for k in $(compgen -e); do
+        case "$k" in DSP4_*) clean+=(-u "$k");; esac
+    done
+    ship=$(env "${clean[@]}" SHIPPING_CONFIG="$SCRIPT_DIR/shipping.config" \
+               python3 "$tools/cfg_words.py" --json 2>/dev/null | python3 -c "$fmt" 2>/dev/null)
+    echo "--- Anomaly 20000072 (F0 stall) ---"
+    if [ -n "$this" ] && [ -n "$ship" ] && [ "$this" != "$ship" ]; then
+        echo "  control/instrument arm (CFG $this, shipping $ship): report only"
+        python3 "$tools/f0_stall_scan.py" "${imgs[@]}" | sed 's/^/  /'
+        return 0
+    fi
+    [ -n "$this" ] && [ -n "$ship" ] \
+        || echo "  build-cfg words not computable: gating as a shipping pair"
+    python3 "$tools/f0_stall_scan.py" --gate 0 "${imgs[@]}" | sed 's/^/  /'
+    [ "${PIPESTATUS[0]}" -eq 0 ] && return 0
+    echo "  ERROR: the shipping pair carries anomaly 20000072 sites. Fix the"
+    echo "         generator template or the hand source (S176-6); list them with"
+    echo "         tools/dsp/f0_stall_scan.py --list $BUILD_DIR/chip1.dxe $BUILD_DIR/chip2.dxe"
+    return 1
 }
 
 # ---- Bring-up images ("is this board alive?") ----------------------------

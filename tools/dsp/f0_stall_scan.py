@@ -31,8 +31,11 @@ instructions in memory, which is what they are. These are listed so a reader
 can see what the count does not cover.
 
 Usage:
-    f0_stall_scan.py IMAGE.dxe [IMAGE.dxe ...] [--list] [--json OUT]
-Exit 0 always (it is a counter, not a gate) unless an image cannot be read.
+    f0_stall_scan.py IMAGE.dxe [IMAGE.dxe ...] [--list] [--json OUT] [--gate N]
+Exit 0 (a counter) unless an image cannot be read -- or, with --gate N, 1 when
+any image has more than N pattern sites. build.sh runs --gate 0 on every
+shipping pair it links (PW 2026-10-26, S176 Q2); imm-shift and undisassemblable
+successors are reported but do not trip it.
 """
 
 import argparse
@@ -235,8 +238,12 @@ def main():
     ap.add_argument('images', nargs='+')
     ap.add_argument('--list', action='store_true', help='print every stall-pattern site')
     ap.add_argument('--json')
+    ap.add_argument('--gate', type=int, metavar='N',
+                    help='exit 1 if any image has more than N pattern sites '
+                         '(build.sh runs --gate 0 on the shipping pair)')
     a = ap.parse_args()
     report = {}
+    over = []
     for img in a.images:
         writers, hits = scan(img)
         kinds = collections.Counter(h['kind'] for h in hits)
@@ -257,9 +264,15 @@ def main():
         report[name] = {'writers': writers, 'pattern': len(stall), 'imm_shift': len(imm),
                         'unknown': len(unk), 'by_func': dict(by_func),
                         'sites': stall + imm}
+        if a.gate is not None and len(stall) > a.gate:
+            over.append(name)
     if a.json:
         with open(a.json, 'w') as fh:
             json.dump(report, fh, indent=1)
+    if over:
+        print(f'  GATE: {", ".join(over)} over {a.gate} 20000072 site(s); '
+              f'rerun with --list for the addresses')
+        return 1
     return 0
 
 

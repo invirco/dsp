@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-26 16:01Z — S176 — 21564 cross-check firmware fixes (anomaly flags, REVID, RDY rule, pulls, CLKOUT off, F0 audit; bit-exact)   [status: 🟢 done (desk, review stop) — all 6 fixes built, nothing flashed: `-si-revision any` + `-anomaly-detect all` + explicit workarounds 20000002/20000069 in every SHARC build (the tools had silently used 0.0 = same set); TAPC_IDCODE read at boot → DIAG_IDCODE 0xE0F4; RDY rule checked+enforced at boot (no source ever touches PB_04/SPI1); pull-ups on unused pins per revision from both netlists; SYS_CLKOUT → GND; 20000072 sites in the shipping pair 9 → 0 (generator + geq_design); bit-exact proved structurally on the images (code/data identical up to relocation outside the changed functions, r1 dead after every rename); pair `chip1.ad7ce020f536` / `chip2.10e33ce44d9e`; 6 PW questions]   [model: opus]
+## HUB DISPATCH 2026-10-26 16:01Z — S176 — 21564 cross-check firmware fixes (anomaly flags, REVID, RDY rule, pulls, CLKOUT off, F0 audit; bit-exact)   [status: 🟢 done (desk, review stop) — all 6 fixes built, nothing flashed: `-si-revision any` + `-anomaly-detect all` + explicit workarounds 20000002/20000069 in every SHARC build (the tools had silently used 0.0 = same set); TAPC_IDCODE read at boot → DIAG_IDCODE 0xE0F4; RDY rule checked+enforced at boot (no source ever touches PB_04/SPI1); pull-ups on unused pins per revision from both netlists; SYS_CLKOUT → GND; 20000072 sites in the shipping pair 9 → 0 (generator + geq_design); bit-exact proved structurally on the images (code/data identical up to relocation outside the changed functions, r1 dead after every rename); pair `chip1.ad7ce020f536` / `chip2.10e33ce44d9e`; **PW ruled Q1-6 all (a); Q2 + Q6 landed**: build.sh gates the shipping pair on 20000072 (> 0 sites fails; planted site fails rc 1, shipping pair passes, control arm reports only), `build` purges its own .doj first, post-link failures now fail the build (they exited 0); shipping pair md5 unchanged; Q4 bench proof rides with the S175 step-3 re-run]   [model: opus]
 
 model: opus
 S176 — DSP firmware fixes from the hub's ADSP-21564 cross-check (PW ruled Q7 (a), 2026-10-26). Repo invirco/dsp, this machine. Desk + build only: NOTHING flashed, no unit touched (the rev C D24 is disconnected for fixture work; S175's bench step waits for it).
@@ -46,6 +46,21 @@ S175 block: step (3) deferral and Q1 recorded there. Full write-up: findings.md 
 5. **Extram arm (not shipping):** the always-pulled PA_02/03/06-09 keep their weak pull-up while HyperBus runs. **Rec: (a) leave it** (HRM: very weak pulls; revisit when DSP4_EXTRAM is armed). (b) release them in `_extram_init` now.
 6. **Stale objects in the build dir (findings S176-9):** **Rec: (a) `build.sh build` deletes the `.doj` files of its own tree before assembling** (one `rm` per output dir; `all` stays clean+build). (b) document "always use `all`" and leave it.
 
+#### S176 rulings (PW 2026-10-26, 1by1) and what landed
+
+- **Q1 (a)** keep `-si-revision any`. Nothing to change.
+- **Q2 (a)** `f0_stall_scan.py` is a build.sh gate. **Landed:** `f0_stall_scan.py --gate N` (exit 1 when any image has more than N pattern sites; imm-shift/undisassemblable reported, not gated); `build.sh` `f0_gate()` runs after the boot streams. The pair counts as SHIPPING when its three DIAG_BUILD_CFG words (`cfg_words.py`, environment honoured) equal the words `shipping.config` gives with every `DSP4_*` override removed — the CFG3 instrument bit covers the switches no word carries; then `--gate 0`. Any other arm is scanned and reported only (Q3's 10 sites live there). Words not computable → gated as shipping.
+- **Q3 (a)** the 10 non-shipping sites stay. Nothing to change.
+- **Q4 (a)** bench proof with the S175 step-3 re-run on MW-D24-2 when it is back from fixture work: RAM boot only, `DIAG_IDCODE` / `DIAG_PINS` on both chips, busgold / famverify bit-exact bars, staged pair restored. Recorded in the S175 deferral note too. **Open until then (S176-8).**
+- **Q5 (a)** leave the extram pulls. Nothing to change.
+- **Q6 (a)** `build.sh build` deletes the `.doj` files in its own `chip1/ chip2/ lib/ lib2/` first. **Landed** (`build()`, before the first assemble; `blink/` probes rebuild their own objects already).
+- **Found doing Q2 (findings S176-10):** `build()` counted `loader` and gate failures AFTER printing "Build OK" and then returned `count`'s 0, so an elfloader error (or a gate failure) exited the script 0. It now ends `=== Build FAILED after link (N errors) ===` and returns 1. Callers that check the exit (`MW/D24/DSP/s146/build-images.sh`) use `all` and now see it.
+
+**Proof (2026-10-26, desk):**
+1. Stale object: a copy planted as `build/chip2/C2_STALE_PLANT_99.doj`, then `./build.sh build` in the used `build/` → file gone, rc 0, gate `chip1 0 / chip2 0 sites`, **`chip1.ldr` 43904a0c4488aae95c9eb1281a763c25, `chip2.ldr` 8af4aaf4693b3dd70a9d28ffca755d7b — the S176 md5s, unchanged.**
+2. Planted site: `src/lib/geq_design_fx.asm` put back to its pre-S176 text (CLIP into F0 then `f1 = abs f0`), built to a scratch dir → gate `GATE: chip1.dxe, chip2.dxe over 0 20000072 site(s)` (`_geq_design_N`, 001861bb / 0018720d), `=== Build FAILED after link (1 errors) ===`, **rc 1**. Source restored (`git checkout`), tree clean.
+3. Control arm: `DSP4_FCWM=2` to a scratch dir → CFG3 `C4FC0FA6` vs shipping `C47C0FA6` (instrument bit), "control/instrument arm: report only", rc 0.
+
 ## HUB DISPATCH 2026-10-26 07:10Z — S175 — guard source J (JTAG SAMPLE U3.81), CFG_BOARD_REV, rev C read-only proof   [status: 🔴 blocked at step 3 — steps 1-2 built and desk-tested (source J in dspcard_id.py, self-test 18/18; BSDL generated by the local Quartus, sha256 recorded, kept out of git; CFG_BOARD_REV sent from the J verdict by dsp4_config --board-rev auto and d24_selftest boot_pair; message documented); BENCH PROOF NOT RUN: MW-D24-2 (192.168.1.219) had no route 07:12-07:25Z (ARP FAILED), nothing touched; 4 PW questions]   [model: opus]
 
 model: opus
@@ -85,7 +100,7 @@ no AI attribution in commits or any work product.
 
 #### S175 deferral (recorded by S176, 2026-10-26)
 
-Bench step (3) is **deferred until the rev C D24 (MW-D24-2) is back from fixture work** (hub, S176 dispatch). **Q1 = (a): re-run step 3 then**, with the recipe above. Q2-Q4: PW to rule later.
+Bench step (3) is **deferred until the rev C D24 (MW-D24-2) is back from fixture work** (hub, S176 dispatch). **Q1 = (a): re-run step 3 then**, with the recipe above. Q2-Q4: PW to rule later. **S176 Q4 (a) rides with it:** after step 3, RAM-boot the S176 pair (no flash), read `DIAG_IDCODE` / `DIAG_PINS` on both chips, run busgold / famverify bit-exact bars, restore the staged pair.
 
 #### S175 questions for PW (1by1, recommendation first)
 

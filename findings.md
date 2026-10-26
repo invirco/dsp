@@ -94,7 +94,22 @@ generator stopped emitting (C2_MAIN_O*_03/04, C2_SUB_*); `build` (no clean)
 linked them in, and the chip-2 image grew by 30 functions and 264 objects with
 no source change (md5 `5ff2cda0…` vs the clean `8af4aaf4…`). `./build.sh all`
 (clean first) or a fresh `DSP_BUILD_DIR` gives the real image. Every S176 hash
-is from a clean build. Pre-existing; not fixed here (Q6).
+is from a clean build. Pre-existing. **Fixed (Q6 (a), PW 2026-10-26):**
+`build` now deletes the `.doj` files in its own `chip1/ chip2/ lib/ lib2/`
+before assembling; a planted stale object is gone after `./build.sh build` and
+the pair rebuilds to the S176 md5s.
+
+**S176-10. A post-link failure exited `build.sh` 0.** `build()` ran `loader`
+after printing "Build OK", counted its failure in `total_errors`, and then
+returned `count`'s status, so an elfloader error (or an entry-address or
+mid-stream-fill check failure) left a script exit of 0 for every caller. Found
+when the new 20000072 gate (Q2 (a)) fired and the build still exited 0. Fixed:
+`build()` now ends `=== Build FAILED after link (N errors) ===` and returns 1.
+The gate: `f0_gate()` runs `f0_stall_scan.py --gate 0` on a pair whose three
+DIAG_BUILD_CFG words equal the shipping words (no `DSP4_*` override), and
+reports only on any other arm. Proved three ways: shipping pair passes (md5
+unchanged); the pre-S176 `geq_design_fx.asm` planted back fails on both chips
+(`_geq_design_N`) with rc 1; `DSP4_FCWM=2` (instrument bit set) reports only.
 
 **S176-8. Open.** IDCODE, PINS and the bit-exact bars (busgold / famverify)
 on silicon wait for a bench window; the D32C card's spare DAI pins (22R to
