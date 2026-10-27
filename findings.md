@@ -6,6 +6,40 @@ Numbered findings D1–D8x are recorded in `review-dsp-20260828.md` and in the
 dispatch blocks of `tasks.md`. This file carries findings raised by dispatched
 sessions after that review, newest first.
 
+
+## D24 LATENCY ≤ 1.0 ms, DESK STUDY (2026-10-27, session 177)
+
+Report `MW/D24/DSP/s177/s177-report.md`; model `s177_latency_model.py` beside it.
+
+**S177-1. The pipeline is the firmware's buffering, exactly.** One chip holds a
+sample for two of its blocks (one DMA row = one block, YCNT 2; the core reads
+the row that just completed and writes the row the DDE clocks next), and each
+`DSP4_TX_EARLY` chip adds one block. The rule reproduces every valid measured arm
+to half a sample (block 16: 66 / 82 / 99; block 32: 131) and S60's analog loop
+exactly: 80 + 10.8 (AK5558 5, AK4458 5.8) + 0.6 = 91.4 samples, 1.904 ms. The MIX
+fabric hop costs under a sample. The hub's 93 adds the Pi-path 82, which carries
+2–3 samples of re-framer and capture an analog path never crosses.
+
+**S177-2. The guard is for late frames, not late blocks.** The TX DMA fetches
+frame 0 of the next row about two frames before the boundary (S9-2), so a gather
+late in the period loses it with zero missed blocks. A missed block is lost
+whatever the guard (`_block_ready` is a flag). A TX row grid started k frames
+behind the RX grid, with the deferred gather writing the row the DDE starts k
+frames after the interrupt, gives a fixed, load-independent deadline for k
+samples instead of 16. **k = 3 → 1.633 ms on the current card, zero cycles.**
+
+**S177-3. ≤ 1.0 ms is not reachable with headroom on rev C/D.** It needs ≤ 36.6
+pipeline samples: block 8 on both chips plus the offset (0.988 ms at k = 2,
+1.029 ms at k = 3). Chip 2 projects 87.6–101.5 % at block 8 across S150's
+regimes, using S19's per-block cost (36.9 k cycles; today's is unmeasured). A
+one-chip critical path is blocked by the hardware: DSPA's outputs are the one-way
+direct MIX fabric, only DSPB drives the DACs, and there is no B → A lane. A rev E
+card with those two lanes reaches 0.967 ms at block 16.
+
+**S177-4. Open: nothing has measured latency since S89e.** `TX_DEFER=2` adds zero
+latency by construction, but neither the Pi-path 82 nor the analog loop has been
+re-taken since it shipped. It is the first row of the bench plan.
+
 ## ADSP-21564 CROSS-CHECK, FIRMWARE HALF: ANOMALY FLAGS, REVID, RDY RULE, PULLS, CLKOUT, F0 (2026-10-26, session 176)
 
 Hub dispatch `tasks.md` 2026-10-26 16:01Z (S176), from the hub's cross-check
