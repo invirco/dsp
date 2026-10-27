@@ -1,3 +1,27 @@
+## HUB DISPATCH 2026-10-27 — S177 — DESK STUDY: D24 analog-in → analog-out latency ≤ 1.0 ms (PW, pipelined 10-27). NO FLASH, NO BENCH   [status: 🟡 in progress]   [model: opus]
+
+model: opus
+Record this as a new HUB DISPATCH block at the top of tasks.md (S177) before starting.
+
+**Where we are (hub, 10-27):**
+- D24 today ≈ 93 samples ≈ 1.93 ms analog in → out = AK5558 ADC 5 (short-delay filter already: SD pin 48 high, confirmed on the schematic) + the SHARC pipeline 82 (the contract; S83 measured 80) + AK4458 DAC 5.8 (short delay, the parallel-mode default). The S60 bench loop measured 91 samples; reconcile it.
+- Converters are already optimal, except the AK4619 codec ADC (talkback / aux): H1S1 init reg 0AH 0x00 → 0x22 gives short delay, 22/fs → 8/fs. Note it in this study; the firmware change is a separate item, proven on the bench later.
+- Benchmarks: Behringer Wing ≈ 1.0 ms console in → out (48 kHz, 40-bit float, our closest match); A&H SQ < 0.7 ms (96 kHz FPGA).
+
+**The whole gap is the SHARC pipeline.** Target ≤ 1.0 ms total ⇒ pipeline ≤ ~37 samples at 48 kHz.
+
+**Deliverable** (`MW/D24/DSP/s177/s177-report.md` + any desk model), with every number counted or measured from our own code, never assumed:
+1. **The 82-sample budget, stage by stage:** input DMA / block assembly, chip-1 processing, the chip 1 → chip 2 fabric hop, chip-2 processing, the output guard (2 blocks), DMA out, any FIFO / alignment (e.g. the 98-sample aux contract, the 0.33 ms aux-matrix rule PW set 09-29).
+2. **The levers, each priced against the capacity-fit margin (PW: "a fit with no headroom is not a fit") and late-block safety** (the CM0 R1 work shows guard 2 absorbing late blocks; give the SHARC side's own late-block evidence):
+   - (a) block 16 → 8 (and 4?): per-block overhead, kernel efficiency loss, the new capacity at 32 strips;
+   - (b) output guard 2 → 1: the risk, using the measured late-block distribution;
+   - (c) fewer chip stages: a single-chip path for the latency-critical routes (mic → Main / monitors), the fabric hop removed or overlapped;
+   - (d) any combination that reaches ≤ 1.0 ms total, and the best achievable if none does.
+3. **96 kHz link:** the same budget at 96 kHz (time per stage halves at a fixed block size in samples; the compute doubles). One paragraph on what 96 kHz would need (capacity), for the team's 96 kHz question.
+4. **Recommendation + PW questions** (one by one, each with a recommendation) and a bench-proof plan for MW-D24-2 when it is back (the existing latency tool).
+
+Rules: desk only; MW-D24-2 is away on fixture work (do not contact it). Float-40 mandate; round once per strip. Commit + push main; no AI attribution. STOP at the review.
+
 ## HUB DISPATCH 2026-10-26 16:01Z — S176 — 21564 cross-check firmware fixes (anomaly flags, REVID, RDY rule, pulls, CLKOUT off, F0 audit; bit-exact)   [status: 🟢 done (desk, review stop) — all 6 fixes built, nothing flashed: `-si-revision any` + `-anomaly-detect all` + explicit workarounds 20000002/20000069 in every SHARC build (the tools had silently used 0.0 = same set); TAPC_IDCODE read at boot → DIAG_IDCODE 0xE0F4; RDY rule checked+enforced at boot (no source ever touches PB_04/SPI1); pull-ups on unused pins per revision from both netlists; SYS_CLKOUT → GND; 20000072 sites in the shipping pair 9 → 0 (generator + geq_design); bit-exact proved structurally on the images (code/data identical up to relocation outside the changed functions, r1 dead after every rename); pair `chip1.ad7ce020f536` / `chip2.10e33ce44d9e`; **PW ruled Q1-6 all (a); Q2 + Q6 landed**: build.sh gates the shipping pair on 20000072 (> 0 sites fails; planted site fails rc 1, shipping pair passes, control arm reports only), `build` purges its own .doj first, post-link failures now fail the build (they exited 0); shipping pair md5 unchanged; Q4 bench proof rides with the S175 step-3 re-run]   [model: opus]
 
 model: opus
