@@ -1,4 +1,4 @@
-## HUB DISPATCH 2026-10-28 12:05Z — NAMM-D24-6 D24 rev C board test runner   [status: 🟢 done (desk, review stop) — board test built on the factory runner, desk-proved, nothing deployed or flashed, unit not contacted: 7 board profiles (DSP 45 rows / Digital 68 / Analog 69 / Phone Jack 6 / Left 17 / Right 40 / P1 7, every catalog row in one) in tools/pi/d24_boards.py; board.conf session so the glass START tests one board, state + report keyed by the FIX-L2 ID; tools/accept/board_test.py start/fetch/end, result CSV under tools/accept/results/<ID>/; pre-existing bug fixed: a pass with no analog patch owed never ran the network/screen/CM4 tests; desk check 39/39, regression 17/18 (lamp_sweep pre-existing); coverage + missing-test list + bench kit in MW/D24/DSP/namm-d24-6/; 6 PW questions; bench run waits on the hub's window]   [model: opus]
+## HUB DISPATCH 2026-10-28 12:05Z — NAMM-D24-6 D24 rev C board test runner   [status: 🟡 waiting on the bench window — hub rulings Q1-Q6 all (a), recorded below; Q6 done desk-first: talkback switch + both LEDs test (row 92) in the right panel loop, P1 link check over the H1S4 relay (rows 101/129/145 + relay row 58) as the pedal station of the p1 profile; q6_check 30/30, board_test_check 39/39, regression 18/19 (lamp_sweep pre-existing); nothing deployed, flashed or contacted; next: Q3 lane patches (desk), then the window per Q1/Q2 when the hub says MW-D24-2 is free]   [model: opus]
 
 model: opus
 # NAMM-D24-6 — D24 rev C board test: the factory runner brought to a usable state for testing NEW rev C PCBs (PW 2026-10-28)
@@ -90,6 +90,32 @@ Report: `MW/D24/DSP/namm-d24-6/namm-d24-6-report.md`. Coverage per row: `coverag
 4. **Row 93, the mini-jack sense on the right panel.** **Rec (a), as built:** the right board's test carries the two mini-jack patches (K3). (b) Leave it to the Analog board test.
 5. **Board ID entry.** **Rec (a), as built:** typed at the desk. (b) A keypad on the glass (mx26 app work). (c) Wait for the FIX-L2 scanner station.
 6. **Missing tests to write before NAMM.** **Rec (a):** the talkback switch and LEDs (row 92) and a P1 link check over the cable (rows 101/129/145), both desk-first. (b) None before NAMM.
+
+#### NAMM-D24-6 hub rulings (2026-10-28, mandate-covered, PW informed)
+
+Q1 (a) one window: the J proof, deploy, reference passes, then new boards. Q2 (a) a standing go to program NEW boards only (never the harness's own) with the repo images, in the board-test window only. Q3 (a) one patch per converter lane. Q4 (a) as built. Q5 (a) a typed ID now (the FIX-L2 scanner later). Q6 (a) write the talkback + LED test and the P1 link check now, desk-first.
+
+Context (PW 2026-10-28): the show unit is a FRESH rev C board set, tested on the flatpack fixture: MW-D24-2's boards flat in holders, plus the station Pi 3 screen (fixtures are NAMM-D24-7). The per-board flow above is that flow.
+
+#### NAMM-D24-6 Q6 result (2026-10-28, desk; commits `23dca2c5`, `2d1d8982`, `c58f353d`)
+
+- **Row 92 (talkback switch and its two LEDs).** `d24_panel.talkback_check` runs in the right panel loop.
+  - It lights each LED in turn: a write to `Sys001SwTalk001` is the LED mask, bit 0 or bit 1.
+  - For each light it asks for one press and release. The switch reports both edges on the same cell.
+  - Verdicts: not lit → FAIL, naming the light; stuck → FAIL; releases with no press → FAIL; no traffic → NO DATA; otherwise PASS.
+  - A FAIL waits for YES/NO (S157).
+  - The LEDs are dark on exit.
+  - The row is BLOCKED only when the pack has no `Sys001SwTalk001`.
+- **Rows 101/129/145 (P1 link) and 58 (pedal relay).**
+  - `d24_pedal.link_check`: H1S4 relay identity, then P1's version line at 8N1; the relay is always shut afterwards.
+  - The pedal station (M3) is off for a whole-unit pass. It is on for the `p1` profile, or with `--pedal-station`.
+  - The operator plugs the pedal into its rear socket and the unit checks it at once.
+  - Rows 98-100 (footswitches, lamp, display) stay NOT TESTED. P1's `S`/`L` protocol could grade them; that test is not written.
+- **Coverage now.** P1: 4 run, 3 not run. Right switch: 34 panel loop, 1 not run (`coverage.md`).
+- **Not provable at the desk.**
+  - The unit's pack address for `Sys001SwTalk001` must be the one H1S3-B answers on (4644 in its `matrix.h`; the desk fixture pack has 5006). The right board's reference pass shows it.
+  - The P1 link timings are unchecked against a real pedal.
+- **Next.** Q3: one K1 patch per converter lane for the DSP and Digital profiles (desk). Then the bench window, run per Q1/Q2 when the hub frees MW-D24-2.
 
 ## HUB DISPATCH 2026-10-27 — S177 — DESK STUDY: D24 analog-in → analog-out latency ≤ 1.0 ms (PW, pipelined 10-27). NO FLASH, NO BENCH   [status: 🟢 done (desk, review stop) — today 91.4 samples = 1.904 ms analog in→out (S60, measured; the hub's 93 double-counts ~2 samples of Pi framing in the 82 contract); pipeline = 5 blocks of 16 (2 per chip + chip 2's TX_EARLY guard), fabric hop < 1 sample, model reproduces every measured arm (B16 66/82/99, B32 131, S60 91.40); ≤ 1.0 ms needs pipeline ≤ 36.6: NOT reachable with headroom on the current card — best that fits = block 16 with the guard replaced by a 3-frame TX phase offset, 78.4 samples / 1.633 ms, zero cycles; block 8 + offset = 0.988–1.029 ms but chip 2 projects 87.6–101.5 % at block 8 (F unmeasured since S19); single-chip path hardware-blocked (DSPA has no route to the DACs, no B→A lane) — rev E card = 0.967 ms at block 16; 7 PW questions; report MW/D24/DSP/s177/s177-report.md]   [model: opus]
 
