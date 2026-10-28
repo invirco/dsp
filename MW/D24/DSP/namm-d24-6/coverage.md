@@ -4,15 +4,15 @@ Catalog: the unit's copy, md5 `f380c70d7ba5`, 202 rows. Profiles: `tools/pi/d24_
 
 ## Summary
 
-| board | rows | auto | panel loop | analog patches | background | not run |
-|---|---|---|---|---|---|---|
-| DSP card | 45 | 28 | 0 | 0 | 0 | 17 |
-| Digital board | 68 | 29 | 0 | 0 | 3 | 36 |
-| Analog board | 69 | 8 | 0 | 46 | 2 | 13 |
-| Phone Jack board | 6 | 0 | 0 | 6 | 0 | 0 |
-| Left switch panel | 17 | 3 | 12 | 0 | 0 | 2 |
-| Right switch panel | 40 | 2 | 33 | 3 | 0 | 2 |
-| P1 foot pedal | 7 | 0 | 0 | 0 | 0 | 7 |
+| board | rows | auto | panel loop | analog patches | pedal link | background | not run |
+|---|---|---|---|---|---|---|---|
+| DSP card | 45 | 28 | 0 | 0 | 0 | 0 | 17 |
+| Digital board | 68 | 29 | 0 | 0 | 0 | 3 | 36 |
+| Analog board | 69 | 8 | 0 | 46 | 0 | 2 | 13 |
+| Phone Jack board | 6 | 0 | 0 | 6 | 0 | 0 | 0 |
+| Left switch panel | 17 | 3 | 12 | 0 | 0 | 0 | 2 |
+| Right switch panel | 40 | 2 | 34 | 3 | 0 | 0 | 1 |
+| P1 foot pedal | 7 | 0 | 0 | 0 | 4 | 0 | 3 |
 
 ## DSP card (`dsp`)
 
@@ -273,7 +273,7 @@ The left panel loop, the talkback microphone and speaker, and the panel processo
 The right panel loop and the panel processor link; the two mini-jack patches carry the jack-sense check.
 
 - **Automatic (no hands):** rows 125, 143
-- **Panel loop (finger and eye):** rows 59-77, 79-91, 94
+- **Panel loop (finger and eye):** rows 59-77, 79-92, 94
 - **Analog patches (leads):** rows 93, 95-96
 
 | row | item | role | how | detail |
@@ -311,7 +311,7 @@ The right panel loop and the panel processor link; the two mini-jack patches car
 | 89 | STUDIO CTL (fw.csv Studio) button LEDs (white pair) | home | panel | Right switch panel |
 | 90 | Encoder ring | home | panel | Right switch panel |
 | 91 | Encoder ring LEDs (8 white singles, fw.csv Enc1–Enc8) | home | panel | Right switch panel |
-| 92 | Talkback switch + LEDs (pass-through) | home | NOT RUN | Sys001SwTalk001 exists on this unit's pack (address 5006) but this tool has no read/light logic wired to it yet -- that is S135's bespoke H1S3 image, still optional |
+| 92 | Talkback switch + LEDs (pass-through) | home | panel | Right switch panel |
 | 93 | Mini-jack insertion sense (pass-through) | home | patch | mini-jack step |
 | 94 | TEMP / BLOWER / FAN sense (pass-through) | home | panel | Right switch panel |
 | 95 | Mini-jack 1 (3.5 mm, Mini Jack sub-assembly) | carrier | patch | Analog paths |
@@ -321,16 +321,17 @@ The right panel loop and the panel processor link; the two mini-jack patches car
 
 ## P1 foot pedal (`p1`)
 
-No runnable rows today: the pedal fixture is not built.
+Plug the pedal in: its link is checked over the cable; the footswitches and the display are not graded yet.
 
+- **Pedal link (plug the pedal in):** rows 58, 101, 129, 145
 
 | row | item | role | how | detail |
 |---|---|---|---|---|
-| 58 | Pedal UART through-path | link | NOT RUN | the pedal path through this panel needs the pedal and its lead, which is the foot pedal station |
+| 58 | Pedal UART through-path | link | pedal | pedal link (relay half) |
 | 98 | Footswitch 1 | home | NOT RUN | the host cannot see this control or sense line change: this unit has no per-control read through the panel processors |
 | 99 | Footswitch 2 | home | NOT RUN | the host cannot see this control or sense line change: this unit has no per-control read through the panel processors |
 | 100 | 7-segment display + LEDs | home | NOT RUN | the host cannot light one indicator at a time: this unit has no indicator drive for the panel processors |
-| 101 | Pedal link + 9 V | home | NOT RUN | the foot pedal and its lead are not at the bench |
-| 129 | P1 Foot Pedal (RJ45) | link | NOT RUN | the foot pedal and its lead are not at the bench |
-| 145 | Link 'pedal' | link | NOT RUN | the foot pedal and its lead are not at the bench |
+| 101 | Pedal link + 9 V | home | pedal | pedal link |
+| 129 | P1 Foot Pedal (RJ45) | link | pedal | pedal link |
+| 145 | Link 'pedal' | link | pedal | pedal link |
 

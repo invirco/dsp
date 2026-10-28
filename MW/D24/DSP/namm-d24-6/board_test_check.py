@@ -5,8 +5,8 @@
     catalog row is in at least one profile
   * a board pass reads its session from board.conf, keeps its verdicts under
     the board's ID, and leaves the whole-unit state alone
-  * a board with nothing runnable (the pedal) writes its report and stops
-    before the pair is booted
+  * a board with nothing runnable writes its report and stops before the
+    pair is booted
   * a bad board.conf stops the runner; no board.conf is the whole-unit pass,
     unchanged (all 202 rows, no board block)
   * the setup pages ask only for what the board's rows use
@@ -138,9 +138,14 @@ rc, out = run_main(['--dir', d, '--board-conf', cpath, '--serial', 'UNIT-1',
 check('a board.conf naming no profile stops the runner (never a whole-unit '
       'pass by accident)', isinstance(rc, tuple) and 'nonesuch' in rc[1], rc)
 
-# -- 4. the pedal: nothing runnable, nothing booted --------------------------
+# -- 4. a board with nothing runnable: report written, nothing booted -------
+# (The pedal was this case until Q6 gave it a link check; a temporary profile
+# of rows with no test stands in for any board in that position.)
+BB.PROFILES['nothing'] = dict(name='Test board', label='Test',
+                              rows=BB._rows(BB.HOME, (113, 119)),
+                              note='desk only')
 with open(cpath, 'w') as fh:
-    fh.write(BB.conf_text('p1', ID))
+    fh.write('profile=nothing\nid=%s\n' % ID)
 booted = []
 real_pair = RA.ensure_pair
 RA.ensure_pair = lambda *a, **k: booted.append(1)
@@ -149,7 +154,8 @@ try:
                         'UNIT-1', '--stdin', '--no-power-check'])
 finally:
     RA.ensure_pair = real_pair
-check('pedal board: returns 3 and boots nothing', rc == 3 and not booted,
+    del BB.PROFILES['nothing']
+check('nothing runnable: returns 3 and boots nothing', rc == 3 and not booted,
       (rc, booted, out[-300:]))
 js3 = newest(rep_dir, '.json')
 r3 = json.load(open(js3))
