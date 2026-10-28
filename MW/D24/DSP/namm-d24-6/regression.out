@@ -15,3 +15,4 @@
 == MW/D24/DSP/s138b/sense_sweep_check.py rc=0; last: all checks passed -- no unit, no serial port, no write, no BLOWER/FAN drive
 == MW/D24/DSP/s138b/shunt_sequence_check.py rc=0; last: all checks passed -- no SPI, no unit, no rails, no phantom applied
 == MW/D24/DSP/s164/s164_check.py rc=0; last: all checks passed -- no unit, no bus, no write, no rails
+== MW/D24/DSP/namm-d24-6/board_test_check.py rc=0; last: all checks passed -- no unit, no bus, no write, no rails

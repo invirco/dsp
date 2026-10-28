@@ -13,6 +13,8 @@
   * the analog station in a board scope walks only that board's patches
     (right panel: the two mini-jack patches; phone jack: the jack patches)
   * the desk's result file has one line per profile row
+  * a whole board pass in the factory order, unit stubbed: every automatic
+    phase runs even when no operator step is owed (the run_manual fix)
 """
 import contextlib
 import csv
@@ -239,6 +241,70 @@ try:
     check('a whole-unit report is refused as a board result', False)
 except SystemExit:
     check('a whole-unit report is refused as a board result', True)
+
+# -- 9. a whole board pass, the factory (overlapped) order, unit stubbed -----
+def board_pass(profile, answers):
+    t = tempfile.mkdtemp(prefix='namm-d24-6-pass-')
+    dd, cp = bench(t, BB.conf_text(profile, ID))
+    calls, saved = [], {}
+    by_phase = {}
+
+    def fake_auto(a, rows, state, ignored, glass, csv_path,
+                  patch_to_come=False, phase=None, **k):
+        calls.append('auto:%s' % phase)
+        owed, _tests = RA.auto_plan(rows, state, ignored)
+        res = []
+        for r in owed:
+            mine = [x for x in r.tests if phase is None
+                    or RA.phase_of(x) == phase]
+            if mine:
+                by_phase.setdefault(phase, set()).add(r.num)
+                res.append(dict(board=r.board, item=r.item, test=mine[0],
+                                verdict='PASS', measured='desk', limit='',
+                                evidence=''))
+        return 0.0, res, owed
+    stubs = dict(ensure_pair=lambda *a, **k: calls.append('pair'),
+                 lower_rails=lambda *a, **k: calls.append('rails-down'),
+                 run_auto=fake_auto,
+                 measure=lambda kind, tools: ('PASS', 'desk', '', ''))
+    for k, v in stubs.items():
+        saved[k] = getattr(RA, k)
+        setattr(RA, k, v)
+    old_stdin = sys.stdin
+    sys.stdin = io.StringIO(answers)
+    try:
+        rc, out = run_main(['--dir', dd, '--board-conf', cp, '--serial',
+                            'UNIT-1', '--stdin', '--no-power-check',
+                            '--no-review'])
+    finally:
+        sys.stdin = old_stdin
+        for k, v in saved.items():
+            setattr(RA, k, v)
+    rd = os.path.join(dd, 'reports', 'boards')
+    rp = json.load(open(newest(rd, '.json')))
+    st = json.load(open(os.path.join(dd, 'runall', 'boards', ID,
+                                     'state.json')))
+    shutil.rmtree(t, ignore_errors=True)
+    return calls, by_phase, rp, st, out
+
+
+calls, by_phase, rp, st, out = board_pass('dsp', '')
+check('DSP card pass: all three automatic phases run, no question asked',
+      [c for c in calls if c.startswith('auto:')]
+      == ['auto:serial', 'auto:dsp', 'auto:net'], calls)
+check('... 28 PASS and the 17 rows with no test NOT TESTED; the pass closes',
+      (rp['tally']['PASS'], rp['tally']['NOT TESTED']) == (28, 17)
+      and st['passes'] == 1 and st['current'] is None, rp['tally'])
+calls, by_phase, rp, st, out = board_pass('digital', 'done\n' * 4)
+check('Digital pass: the network phase runs although no analog patch is '
+      'owed (the run_manual early return)', 'auto:net' in calls, calls)
+net_rows = {127, 128, 151, 193, 203}
+check('... and grades the network, screen and compute-module rows',
+      net_rows <= by_phase.get('net', set()) and all(
+          st['rows'][str(n)]['verdict'] == 'PASS' for n in net_rows),
+      sorted(by_phase.get('net', set())))
+check('... the background rows (USB pair, mains inlet) are read',
+      all(st['rows'][str(n)]['verdict'] == 'PASS' for n in (130, 131, 133)))
 
 shutil.rmtree(tmp, ignore_errors=True)
 print('%s -- no unit, no bus, no write, no rails'

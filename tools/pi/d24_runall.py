@@ -1921,9 +1921,6 @@ def run_manual(a, rows, state, ignored, glass, passno, only=None,
             continue
         for r in manual_rows_for(st, rows, state, ignored):
             steps.append((st, r))
-    if not steps:
-        glass.progress('manual set: nothing owed')
-        return 0.0
     cur = state.d.get('current') or {}
     i = (int(cur.get('step', 0))
          if (cur.get('phase') == 'manual' and only is None) else 0)
@@ -1948,6 +1945,15 @@ def run_manual(a, rows, state, ignored, glass, passno, only=None,
     owns_analog = only is None or bool(PATCH_STATIONS & set(only))
     a.patch_station_ran = False
     try:
+        # NOTHING OWED IS NOT NOTHING TO RUN (NAMM-D24-6). This return used to
+        # sit above the network phase's start, so a pass with no analog patch
+        # owed -- a resume after the station finished, or a board with no
+        # analog rows -- never ran the network, screen and compute-module
+        # tests at all, and those rows stayed owed for ever. Found by a desk
+        # pass of the Digital board profile.
+        if not steps:
+            glass.progress('manual set: nothing owed')
+            return 0.0
         return _walk(a, rows, state, ignored, glass, passno, only, quiet_flag,
                      t0, steps, i, carded, rails_up, live, keys)
     finally:
