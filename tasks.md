@@ -1,3 +1,22 @@
+## HUB DISPATCH 2026-10-28 12:05Z — NAMM-D24-6 D24 rev C board test runner   [status: 🟡 dispatched]   [model: opus]
+
+model: opus
+# NAMM-D24-6 — D24 rev C board test: the factory runner brought to a usable state for testing NEW rev C PCBs (PW 2026-10-28)
+
+PW: "i also need test fixture code working to help me test the PCBs for new D24 revC models." Context: NAMM (late Jan 2027) is priority 1; a D24 show unit is being built from hand-modified rev C boards and parts on hand; new rev C PCBs will be tested on the bench with MW-D24-2 as the harness/reference. No fixture hardware (flatpack, smoke module) exists yet — the test is the factory runner (d24-testui, tools/pi/d24_panel.py, tools/accept rows) run from this machine against the unit.
+
+Goal: a board tester PW can run alone at the bench, per board, on a freshly assembled rev C board swapped into MW-D24-2:
+1. Audit what the runner does today (tasks.md S-series, tools/accept, acceptance-audio-layer.md, the KNOWN_ABSENT table, the "never moves past a FAIL without operator confirmation" ruling) and list which rows cover each board: Digital, Analog, DSP card, Left/Right Switch panels, P1 pedal.
+2. Define per-board test sets (a "board profile" = the subset of rows that exercise that board with the other boards known-good), with the operator flow PW ruled for the factory screen: one big instruction, n of N, PAUSE only, resume runs untested rows only; panel names, not J numbers.
+3. Make it run: fix whatever is broken since the last bench session (10-03 state in tasks.md), desk-side first (bit-exact / unit tests), then a bench run on MW-D24-2 when PW says the unit is available — ask the hub for the bench window; do not touch the unit until then.
+4. Output per run: a result file keyed by board ID (the FIX-L2 label scheme: 7+1 Crockford ID — accept a typed ID for now), PASS/FAIL per row, saved under tools/accept/results/.
+5. Report: which boards are covered, which rows are missing a test (list, don't invent), and what PW must have at the bench (cables, pad lead K6, signal sources).
+Rules: tag everything NAMM-D24-6 outside this repo; no AI references; small commits; STOP at the review stop with the row coverage table; questions to PW 1-by-1 with a recommendation; nothing flashed to the unit without the hub's go.
+
+Rules: single trunk — pull main first, commit + push main on completion;
+update this block's status (🟢 done / 🔴 blocked) with a short outcome;
+no AI attribution in commits or any work product.
+
 ## HUB DISPATCH 2026-10-27 — S177 — DESK STUDY: D24 analog-in → analog-out latency ≤ 1.0 ms (PW, pipelined 10-27). NO FLASH, NO BENCH   [status: 🟢 done (desk, review stop) — today 91.4 samples = 1.904 ms analog in→out (S60, measured; the hub's 93 double-counts ~2 samples of Pi framing in the 82 contract); pipeline = 5 blocks of 16 (2 per chip + chip 2's TX_EARLY guard), fabric hop < 1 sample, model reproduces every measured arm (B16 66/82/99, B32 131, S60 91.40); ≤ 1.0 ms needs pipeline ≤ 36.6: NOT reachable with headroom on the current card — best that fits = block 16 with the guard replaced by a 3-frame TX phase offset, 78.4 samples / 1.633 ms, zero cycles; block 8 + offset = 0.988–1.029 ms but chip 2 projects 87.6–101.5 % at block 8 (F unmeasured since S19); single-chip path hardware-blocked (DSPA has no route to the DACs, no B→A lane) — rev E card = 0.967 ms at block 16; 7 PW questions; report MW/D24/DSP/s177/s177-report.md]   [model: opus]
 
 model: opus
