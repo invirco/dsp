@@ -193,8 +193,10 @@ def test_the_runner_calls_row_94_a_loop_row():
           'listening' in step['check'], repr(step['check']))
     check('the button rows are untouched by that change',
           RA.manual_step(Row(66))['kind'] == RA.LOOP)
+    # Row 92 (talkback) was the example here until NAMM-D24-6 graded it; 78
+    # (the C button's red LED, no indicator declared) is still unreachable.
     check('and a row the station really cannot reach is still BLOCKED',
-          RA.manual_step(Row(92))['kind'] == RA.BLOCKED)
+          RA.manual_step(Row(78))['kind'] == RA.BLOCKED)
     check('row 94 carries its own wording for --dump-dialogs',
           PL.wording('right', 94)[0] and PL.wording('right', 94)[2],
           repr(PL.wording('right', 94)))

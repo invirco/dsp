@@ -139,9 +139,11 @@ ENC = _resolve_required('enc')        # Sys001Enc001  -- the encoder ring
 # carries the name, `SW_LEFT_ABSENT` is the reason string when it does not --
 # never a guess, never a crash, see `loop()`.
 SW_LEFT, SW_LEFT_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swleft'])
-# `Sys001SwTalk001` -- the talkback switch/LEDs cell, defs-v2026.09.27.3. Not
-# wired into this tool's read/light logic yet (that is S135's bespoke H1S3
-# image, still optional); its presence only changes ROW 92's reason below.
+# `Sys001SwTalk001` -- the talkback switch/LEDs cell, defs-v2026.09.27.3,
+# answered by S135's variant B H1S3 image (shipped by S131, MW/D24/FW/H1S3).
+# WRITE = the two-indicator mask, READ = the switch, both edges. Graded by
+# `talkback_check` (NAMM-D24-6); on a pack without the name row 92 stays
+# unreached with the pack's own reason.
 SW_TALK, SW_TALK_ABSENT = matrix_addr.try_resolve(CELL_NAMES['swtalk'])
 # `Sys001SwMiniJack001`/`Sys001SwTempFan001` -- the mini-jack insertion sense
 # and TEMP/BLOWER/FAN pass-through, both landed in defs at generation
@@ -235,12 +237,16 @@ ENC_ROWS = {'right': (90, 91)}
 # Rows this station reaches the panel for and still cannot grade, each with the
 # reason in the words the report prints.  Nothing here is invented: it is what
 # the firmware table and the netlist say.
-def _talkback_reason():
-    if SW_TALK is None:
-        return SW_TALK_ABSENT
-    return ('%s exists on this unit\'s pack (address %d) but this tool has no '
-            'read/light logic wired to it yet -- that is S135\'s bespoke H1S3 '
-            'image, still optional' % (CELL_NAMES['swtalk'], SW_TALK))
+# THE TALKBACK BUTTON (row 92, NAMM-D24-6). Not in the radio group: it has
+# a cell of its own whose WRITE lights its two indicators BITWISE (bit0, bit1)
+# and whose READ is the switch, 1 while held and 0 on release. One row grades
+# all three parts, so the button is walked twice, one indicator lit each time:
+# a press proves the switch both ways (the 1 and the 0) AND that the operator
+# saw that indicator, and NOT LIT names the indicator that stayed dark.
+TALKBACK = {
+    'right': (92, 'TALKBACK', ((1, 'one of its two lights'),
+                               (2, 'its other light'))),
+}
 
 
 UNREACHED = {
@@ -248,7 +254,6 @@ UNREACHED = {
         78: ('no indicator is declared for this designator: the firmware table '
              'gives the C button one indicator pair and the loop grades it on '
              'row 77'),
-        92: _talkback_reason(),
         # 94 IS GRADED NOW (S138b, gaps doc 2.3). It was "no matrix cell bound"
         # until S138 bound it and "no graded check wired yet" until this
         # session wired `sense_sweep()` below -- a second, read-only pass over
@@ -265,6 +270,9 @@ UNREACHED = {
              'which is the foot pedal station'),
     },
 }
+
+if SW_TALK is None:
+    UNREACHED['right'][92] = SW_TALK_ABSENT
 
 PANELS = {'right': RIGHT, 'left': LEFT}
 PANEL_NAME = {'right': 'right switch panel', 'left': 'left switch panel'}
@@ -288,6 +296,12 @@ def wording(side, num):
     if side in ALWAYS_ON and num in ALWAYS_ON[side][0]:
         return ('Look at %s.' % ALWAYS_ON[side][1],
                 'Are both lit?', '')
+    if side in TALKBACK and num == TALKBACK[side][0]:
+        return ('Press the lit button, TALKBACK, and let go. It is shown twice, '
+                'with one of its two lights on each time. If nothing lit, '
+                'press NOT LIT.', '',
+                'the switch reports the press (1) and the release (0), each '
+                'time with one light on')
     if side in ENC_ROWS:
         turn, leds = ENC_ROWS[side]
         if num == turn:
@@ -331,6 +345,8 @@ def rows_for(side):
         out.update(ALWAYS_ON[side][0])
     if side in ENC_ROWS:
         out.update(ENC_ROWS[side])
+    if side in TALKBACK:
+        out.add(TALKBACK[side][0])
     out.update(sense_rows_for(side))
     return out
 
@@ -438,7 +454,8 @@ class PanelBus:
             pass
         events = []
         for name, addr in (('skin', SKIN), ('swleft', SW_LEFT), ('enc', ENC),
-                          ('mjsw', MJSW), ('tempfan', TEMPFAN)):
+                          ('mjsw', MJSW), ('tempfan', TEMPFAN),
+                          ('swtalk', SW_TALK)):
             if addr is None:
                 continue        # not on this unit's pack (S136); nothing to match
             pre = C.cell_prefix(addr)
@@ -507,13 +524,14 @@ class InjectedBus:
 
         <delay_ms> mjsw <value>     MJ_SW pushed this value
         <delay_ms> tempfan <value>  the TEMP raw count was pushed
+        <delay_ms> swtalk <value>   the talkback switch: 1 pressed, 0 released
 
     Every fault the loop has to grade can be played this way, which is how the
     runner side is proved with no finger at the bench."""
 
     # The cells a scripted line may name. `poll()` hands these back the way
     # `PanelBus.poll` does, so `sense_sweep` cannot tell the two apart.
-    POLLED = ('mjsw', 'tempfan')
+    POLLED = ('mjsw', 'tempfan', 'swtalk')
 
     def __init__(self, path):
         self.script = []
@@ -549,7 +567,8 @@ class InjectedBus:
     def light(self, value, cells=(SKIN,)):
         self.lit = value
         for cell in cells:
-            self.lights.append(('swleft' if cell == SW_LEFT else 'skin', value))
+            self.lights.append(('swleft' if cell == SW_LEFT else
+                                'swtalk' if cell == SW_TALK else 'skin', value))
         return 1.8
 
     def light_enc(self, value):
@@ -767,6 +786,93 @@ def sense_sweep(bus, side, ask, timeout=30.0, log=print, owed=None,
         log('%s (row %d): %s -- %s'
             % (row.what, row.num, out[row.num][0], out[row.num][1]))
     return out
+
+
+def talkback_check(bus, side, ask, timeout=30.0, log=print):
+    """Row 92: the talkback button, its switch and its two indicators.
+
+    For each indicator in turn: write the mask that lights it ALONE, put the
+    press up (`ask(n, total)` returns the tick the button sweep uses, so NOT
+    LIT and PAUSE work as they do there), and listen on the cell for the
+    press (1) and the release (0). The drain is before the write, so nothing
+    the operator does lands in a window this code is not watching.
+
+    Returns (verdict, note, paused). The indicators are put dark on the way
+    out, whatever happened.
+    """
+    num, name, leds = TALKBACK[side]
+    if SW_TALK is None:
+        return NODATA, SW_TALK_ABSENT, False
+    seen = []                 # (what, outcome, values)
+    try:
+        for n, (mask, what) in enumerate(leds, 1):
+            bus.flush()
+            if bus.light(mask, cells=(SW_TALK,)) is None:
+                return (NODATA, 'the panel did not acknowledge the write that '
+                        'lights %s' % what, False)
+            tick = ask(n, len(leds))
+            vals, end = _edges(bus, 'swtalk', timeout, tick)
+            if end == 'pause':
+                return NODATA, 'the run was paused during this row', True
+            seen.append((what, end, vals))
+            log('talkback, %s lit (mask %d): %s %s'
+                % (what, mask, end, vals))
+    finally:
+        try:
+            bus.light(0, cells=(SW_TALK,))
+        except Exception:                                   # noqa: BLE001
+            pass
+    dark = [w for w, end, _v in seen if end == 'notlit']
+    if dark:
+        return (FAIL, 'the operator saw %s stay dark when it alone was lit '
+                '(mask %s)' % (' and '.join(dark), '/'.join(
+                    str(m) for m, w in leds if w in dark)), False)
+    if not any(v for _w, _e, v in seen):
+        return (NODATA, SENSE_NO_TRAFFIC % CELL_NAMES['swtalk'], False)
+    bad = [(w, v) for w, end, v in seen if end != 'both']
+    if bad:
+        w, v = bad[0]
+        if not v:
+            why = 'no press was reported while %s was lit' % w
+        elif 1 in v:
+            why = ('the press was reported but never the release while %s '
+                   'was lit (%s): the switch reads as stuck down' % (
+                       w, ', '.join(str(x) for x in v)))
+        else:
+            why = ('the switch reported %s while %s was lit, never a press '
+                   '(1)' % (', '.join(str(x) for x in v), w))
+        return FAIL, why, False
+    return (PASS, 'each light lit alone and the operator pressed under it; '
+            'the switch reported the press (1) and the release (0) both '
+            'times', False)
+
+
+def _edges(bus, key, timeout, tick=None):
+    """Listen for a press and its release on one cell.
+
+    Returns (values seen, how it ended): 'both' once a 1 has been followed by
+    a 0, 'notlit' / 'pause' from the glass, 'timeout' otherwise. A 0 before
+    any 1 is kept but does not end the wait: it is a release the cell owed
+    from before this window."""
+    t0 = time.time()
+    last = t0
+    vals = []
+    while time.time() - t0 < timeout:
+        for name, value in bus.poll():
+            if name != key:
+                continue
+            vals.append(value)
+            if value == 0 and 1 in vals:
+                return vals, 'both'
+        if tick is not None and time.time() - last >= 0.05:
+            last = time.time()
+            got = tick()
+            if got == 'notlit':
+                return vals, 'notlit'
+            if got in ('skip', 'pause'):
+                return vals, 'pause'
+        time.sleep(0.002)
+    return vals, 'timeout'
 
 
 def _listen(bus, key, timeout, tick=None):
