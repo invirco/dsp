@@ -196,7 +196,9 @@ PROFILES = {
         name='P1 foot pedal', label='P1',
         rows=_merge(_rows(HOME, (98, 101)),
                     _rows(LINK, 129, 145, 58)),
-        note='no runnable rows today: the pedal fixture is not built'),
+        pedal_station=True,
+        note='plug the pedal in: its link is checked over the cable; the '
+             'footswitches and the display are not graded yet'),
 }
 ORDER = ('dsp', 'digital', 'analog', 'phonejack', 'left', 'right', 'p1')
 assert set(ORDER) == set(PROFILES)

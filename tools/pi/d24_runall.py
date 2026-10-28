@@ -326,16 +326,32 @@ _ALL_STATIONS = [
     ('M2', 'Right switch panel',
      'a finger and an eye, at the right half of the front panel', False),
     ('M3', 'Foot pedal',
-     'the foot pedal, its lead and the network lead', False),
+     'the foot pedal and its lead', False),
     ('M4', 'Analog paths',
      'the five-lead patch kit: an XLR lead, a jack-to-XLR lead, an '
      'XLR-to-jack lead, an XLR-to-mini-jack lead and the 150 ohm plug',
      True),
 ]
-STATIONS = [x for x in _ALL_STATIONS if x[0] != 'M3' or PEDAL_STATION]
-STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
-STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
-STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
+def set_pedal_station(on):
+    """Switch the foot pedal station on or off: the station list and the
+    left panel's through-path row (graded there when it is on) move together.
+    Must run before the catalog is classified."""
+    global PEDAL_STATION, STATIONS, STATION_NAME, STATION_NUM, STATION_ORDER
+    PEDAL_STATION = bool(on)
+    STATIONS = [x for x in _ALL_STATIONS if x[0] != 'M3' or PEDAL_STATION]
+    STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
+    STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
+    STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
+    # GRADED_ELSEWHERE is defined further down; it exists by the time anything
+    # calls this after import.
+    ge = globals().get('GRADED_ELSEWHERE')
+    if ge is not None:
+        ge.pop(PEDAL_THROUGH_ROW, None)
+        if PEDAL_STATION:
+            ge[PEDAL_THROUGH_ROW] = PEDAL_GRADED
+
+
+set_pedal_station(PEDAL_STATION)
 
 # ---------------------------------------------------------------------------
 # THE ROWS THE MACHINE ANSWERS WITH NOBODY STANDING THERE (S126, ruling f)
@@ -473,6 +489,19 @@ GRADED_ELSEWHERE = {
 }
 
 
+# THE PEDAL LINK (NAMM-D24-6, hub ruling on Q6). Once the pedal station is
+# on, plugging the pedal in IS the test: the runner asks the left panel's
+# relay for its identity and the P1 app for `V` (d24_pedal.link_check), and a
+# pedal that answers proves the socket, the lead, the pedal's supply and the
+# pedal. The footswitches and the display (98-100) are not graded here.
+PEDAL_LINK_ROWS = (101, 129, 145)
+# The left panel's pedal through-path is ON the left board but only the pedal
+# can exercise it: with the station on, it is graded there (the relay half).
+PEDAL_THROUGH_ROW = 58
+PEDAL_GRADED = ('graded by the foot pedal station: the relay on this panel is '
+                'what carries the pedal\'s link check')
+
+
 def manual_step(r):
     """The one step a manual row becomes: what the operator is told, what kind
     of acknowledgement it takes, and what the runner measures afterwards.
@@ -533,6 +562,10 @@ def manual_step(r):
     if r.cls in ('pedal switch', 'pedal LED'):
         return dict(kind=BLOCKED,
                     reason=NO_LEDDRIVE if 'LED' in r.cls else NO_KEYREAD)
+    if r.group == 'M3' and PEDAL_STATION and r.num in PEDAL_LINK_ROWS:
+        return dict(kind=LOOP, action='Plug the foot pedal into the pedal '
+                                      'socket on the rear panel.',
+                    question='', check='the pedal answers over its cable')
     if r.group == 'M3':
         return dict(kind=FIXTURE, reason='the foot pedal and its lead are not at '
                                          'the bench',
@@ -1302,9 +1335,12 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     stopped = False
     reached_the_end = False
     try:
+        # The pedal station, when it is on, is walked with the panels: it
+        # uses the same serial bus, and nothing in the DSP phase does.
         panels = run_manual(a, rows, state, ignored, glass, passno,
-                            only=set(PANEL_STATIONS), quiet_flag=quiet,
-                            live=live, keys=keys)
+                            only=set(PANEL_STATIONS) | (
+                                {'M3'} if PEDAL_STATION else set()),
+                            quiet_flag=quiet, live=live, keys=keys)
         reached_the_end = True
     except Paused:
         stopped = True
@@ -2020,6 +2056,12 @@ def _walk(a, rows, state, ignored, glass, passno, only, quiet_flag, t0,
             while i < len(steps) and steps[i][0] == st:
                 i += 1
             continue
+        if st == 'M3' and PEDAL_STATION:
+            pedal_station(a, st, rows, state, ignored, glass, passno,
+                          live=live, keys=keys)
+            while i < len(steps) and steps[i][0] == st:
+                i += 1
+            continue
         need_rails = dict((k, rl) for k, _n, _h, rl in STATIONS)[st]
         if need_rails and not rails_up:
             rails_up = True
@@ -2189,7 +2231,8 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
     # pass whose presses all passed, the standing page below still said "press
     # the button that is lit" while only the temperature-sense listen ran, and
     # PW twice hunted a board with no light on it. No press owed, no press page.
-    press_owed = any(s[2] in owed or s[3] in owed for s in PL.PANELS[side])
+    press_owed = (any(s[2] in owed or s[3] in owed for s in PL.PANELS[side])
+                  or (side in PL.TALKBACK and PL.TALKBACK[side][0] in owed))
     if live is not None and not press_owed:
         live.set(state=LV.CHECKING,
                  instruction=LV.panel_no_presses_owed(panel_name),
@@ -2467,6 +2510,30 @@ def panel_station(a, st, rows, state, ignored, glass, passno, quiet_flag=None,
                     land(led_row, FAIL, 'the operator did not see all eight light')
                 else:
                     land(led_row, SKIPPED, ans.get('reason') or 'other')
+        # THE TALKBACK BUTTON (row 92, NAMM-D24-6): its own cell, two
+        # indicators lit one at a time, the press and the release read back.
+        # A failed step waits for the operator like every other (S157).
+        if side in PL.TALKBACK and PL.TALKBACK[side][0] in owed:
+            tb_row, tb_name, _leds = PL.TALKBACK[side]
+            tb_step = PL.Step(0, tb_name, tb_row, tb_row,
+                              'one of its two lights')
+            while True:
+                v, note, tb_paused = PL.talkback_check(
+                    bus, side, lambda n, total: ask(tb_step, n, total),
+                    timeout=a.panel_timeout, log=glass.progress)
+                if tb_paused or pending['paused']:
+                    raise Paused()
+                if v == PASS:
+                    break
+                what = confirm_step(tb_step, note,
+                                    words=note[:1].upper() + note[1:] + '.')
+                if what == 'pause':
+                    raise Paused()
+                if what == 'record':
+                    note += (' -- recorded by the operator after the step '
+                             'stopped')
+                    break
+            land(tb_row, v, note)
         # THE SENSE ROWS, ON THE SAME OPEN BUS (S138b, gaps doc 2.3). Read-only:
         # no `light()`, no cell write, and in particular never a write to
         # `Sys001SwTempFan001`, whose write half is the BLOWER/FAN drive mask.
@@ -2734,6 +2801,113 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
     if getattr(station, 'paused', False):
         raise Paused()
     return verdicts
+
+
+PEDAL_POLL_S = 2.0
+PEDAL_NAME = dict((k, n) for k, n, _h, _r in _ALL_STATIONS)['M3']
+
+
+def pedal_station(a, st, rows, state, ignored, glass, passno, live=None,
+                  keys=None):
+    """The foot pedal, as ONE LOOP (NAMM-D24-6). One instruction -- plug the
+    pedal in -- and the pedal answering is the go-ahead, exactly as a tone
+    arriving is on the analog station (PW 2026-09-28). The link is asked about
+    every PEDAL_POLL_S; nothing is pressed on the glass unless it never
+    answers, and then the step waits for the operator (S157): YES records the
+    fail, NO tries again, PAUSE pauses."""
+    import d24_pedal as PD
+    byrow = dict((r.num, r) for r in rows)
+    owed = [n for n in PEDAL_LINK_ROWS + (PEDAL_THROUGH_ROW,)
+            if n in byrow and n not in ignored and not state.settled(n)]
+    if not owed:
+        return {}
+    words = ('Plug the foot pedal into the pedal socket on the rear panel. '
+             'The unit checks it as soon as it is in.')
+
+    def check():
+        try:
+            rl = PD.Relay()
+        except OSError as e:
+            return dict(relay=None, v=None, error=str(e))
+        try:
+            return PD.link_check(rl)
+        finally:
+            rl.close()
+
+    while True:
+        if live is not None:
+            live.set(state=LV.WAITING, instruction=words, lead_line='',
+                     extra='', status=PEDAL_NAME, n=0, total=0,
+                     buttons=['pause'])
+            glass.progress('foot pedal: waiting for the pedal to answer')
+            t0, got = time.time(), None
+            while time.time() - t0 < 2 * a.panel_timeout:
+                got = check()
+                if got.get('v'):
+                    break
+                t1 = time.time()
+                while time.time() - t1 < PEDAL_POLL_S:
+                    live.beat()
+                    if live.command() == 'pause':
+                        raise Paused()
+                    time.sleep(ANSWER_POLL_S)
+        else:
+            ans = glass.ask('instruct', 'Foot pedal', [words],
+                            ['done', 'pause'], row=PEDAL_LINK_ROWS[0])
+            if ans.get('button') == 'pause':
+                raise Paused()
+            got = check()
+        res = PD.link_verdicts(got)
+        if res['pedal'] == PASS:
+            break
+        glass.progress('foot pedal: %s -- stopped, waiting for the operator'
+                       % res['note'])
+        lines = [res['note'][:1].upper() + res['note'][1:] + '.',
+                 'Press YES to record it, NO to try again.']
+        if live is not None:
+            live.set(state=LV.CHECKLEAD, banner='FAIL', banner_line='Foot pedal',
+                     instruction=lines[0], lead_line='', extra='',
+                     status=PEDAL_NAME, action=lines[1],
+                     buttons=list(LV.YESNO_BUTTONS))
+            b = None
+            btns = glass.post('instruct', 'Foot pedal', lines, ['yes', 'no'],
+                              row=PEDAL_LINK_ROWS[0], station=st)
+            while b is None:
+                live.beat()
+                cmd = live.command()
+                if cmd in ('yes', 'no', 'pause', 'retry'):
+                    b = cmd
+                    break
+                ans = glass.poll(btns)
+                if ans is not None:
+                    glass.taken(ans)
+                    b = ans.get('button')
+                    break
+                time.sleep(ANSWER_POLL_S)
+            live.set(banner='', banner_line='', action='')
+        else:
+            b = glass.ask('instruct', 'Foot pedal', lines,
+                          ['yes', 'no', 'pause'],
+                          row=PEDAL_LINK_ROWS[0]).get('button')
+        if b == 'pause':
+            raise Paused()
+        if b in ('yes', None):
+            res['note'] += (' -- recorded by the operator after the step '
+                            'stopped')
+            break
+    ev = '; '.join('%s=%s' % (k, got.get(k)) for k in ('relay', 'v', 'error')
+                   if got.get(k))
+    out = {}
+    for n in owed:
+        v = res['relay'] if n == PEDAL_THROUGH_ROW else res['pedal']
+        state.put(n, v, pass_no=passno, judged='runner', measured=res['note'],
+                  limit='the pedal answers V over its cable through the left '
+                        'panel\'s relay', evidence=ev, source='foot pedal link')
+        out[n] = v
+    state.save()
+    glass.progress('foot pedal: %s' % ', '.join('row %d %s' % x
+                                                 for x in sorted(out.items())))
+    return out
 
 
 def patch_carry(state):
@@ -3794,16 +3968,13 @@ def main(argv=None):
     a.serial = a.serial or unit_serial()
     a.board = board_session(a)
 
+    if a.board and BB.PROFILES[a.board['profile']].get('pedal_station'):
+        a.pedal_station = True
     if a.pedal_station:
         # One name, one place (see PEDAL_STATION). Switching it on has to
         # happen before anything reads STATIONS, which is why it is here and
         # not a flag threaded through twenty call sites.
-        global PEDAL_STATION, STATIONS, STATION_NAME, STATION_NUM, STATION_ORDER
-        PEDAL_STATION = True
-        STATIONS = list(_ALL_STATIONS)
-        STATION_NAME = {k: n for k, n, _h, _r in STATIONS}
-        STATION_NUM = {k: i + 1 for i, (k, _n, _h, _r) in enumerate(STATIONS)}
-        STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
+        set_pedal_station(True)
     rows, a.catalog_md5 = load_catalog(a.catalog)
     warn = classify(rows)
     if a.board:

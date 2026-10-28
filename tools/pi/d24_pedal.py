@@ -32,6 +32,8 @@ up (re-plug, or the app's ENTER-BOOTLOADER which resets it), then 0x7F first.
                                               flash, Go, V; the polarity setting is kept
     d24_pedal.py polarity --set A|C|U|?       P1 display polarity: anode, cathode, auto, read
     d24_pedal.py walk [--secs 3]              light each lamp alone, then D9..D0 on all, end all on
+    d24_pedal.py link                         the factory link check (NAMM-D24-6): relay
+                                              identity, then the P1 app's V; JSON out
     d24_pedal.py --selftest                   off-target: the ROM client against a model
 
 THE SETTINGS PAGE (S169): P1 keeps its settings (display polarity) in flash
@@ -476,6 +478,42 @@ def app_line(rl, text, want, secs=1.0):
     return None
 
 
+def link_check(rl, secs=1.0):
+    """The factory link check (NAMM-D24-6): does the pedal answer over its
+    cable? Returns {'relay': H1S4's identity line or None, 'v': the P1 app's
+    V line or None}. Asks nothing of the pedal but `V`, opens the relay at 8N1
+    for it and closes it again, so blink forwarding is back afterwards."""
+    out = {'relay': None, 'v': None}
+    try:
+        out['relay'] = rl.info()
+    except RuntimeError as e:           # MH1 never asked for the next line
+        out['error'] = str(e)
+    if out['relay'] is None:
+        return out
+    try:
+        rl.open('N')
+        out['v'] = app_line(rl, 'V', 'P1 ', secs)
+    finally:
+        rl.shut()
+    return out
+
+
+def link_verdicts(got):
+    """{'relay': verdict, 'pedal': verdict, 'note': words} from link_check().
+    'relay' grades the left panel's through-path, 'pedal' the socket, the lead
+    and the pedal (a pedal that answers is powered)."""
+    if got.get('relay') is None:
+        return dict(relay='FAIL', pedal='NO DATA',
+                    note='the left switch panel\'s pedal relay did not answer, '
+                         'so the pedal could not be reached')
+    if got.get('v') is None:
+        return dict(relay='NO DATA', pedal='FAIL',
+                    note='the relay answered (%s) but the pedal sent nothing '
+                         'back on its cable' % got['relay'])
+    return dict(relay='PASS', pedal='PASS',
+                note='the pedal answered over its cable: %s' % got['v'])
+
+
 WALK = ['LD1', 'LD2', 'LD3', 'LD4', 'seg a', 'seg b', 'seg c', 'seg d', 'seg e', 'seg f',
         'seg g', 'left dot', 'right dot']
 
@@ -536,7 +574,7 @@ def update(rl, path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('action', nargs='?', default='info',
-                    choices=['info', 'open', 'close', 'app', 'rom-id', 'rom-read',
+                    choices=['info', 'link', 'open', 'close', 'app', 'rom-id', 'rom-read',
                              'rom-flash', 'rom-recover', 'enter-boot', 'update', 'polarity',
                              'walk'])
     ap.add_argument('--fmt', default='E', choices=['E', 'N'])
@@ -558,6 +596,12 @@ def main():
 
     rl = Relay()
     try:
+        if a.action == 'link':
+            import json
+            got = link_check(rl)
+            got.update(link_verdicts(got))
+            print(json.dumps(got))
+            return 0 if got['pedal'] == 'PASS' else 1
         if a.action == 'info':
             log(rl.info())
         elif a.action == 'open':
