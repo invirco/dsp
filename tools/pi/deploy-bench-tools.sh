@@ -64,6 +64,7 @@ fi
 TOOLS="
 d24_selftest.py
 d24_runall.py
+d24_boards.py
 d24_patch.py
 d24_panel.py
 d24_live.py

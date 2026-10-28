@@ -2319,7 +2319,7 @@ class Station:
     def __init__(self, plist, unit, patcher, glass, limits, log=None,
                  blocks=None, live=None, analog=None, auto_advance=True,
                  keys=None, prearm=True, trials=False, trial_only=None,
-                 mj_input=None, owed_rows=None, carry=None):
+                 mj_input=None, owed_rows=None, carry=None, rowless=True):
         # 1.2(b). OFF unless asked for, because it is the one thing in this
         # station that applies phantom: `--click-trials`. `trial_only` is
         # `--trial-inputs`, PW naming the good channels by hand.
@@ -2400,6 +2400,11 @@ class Station:
         # that fold onto no catalog row, and for the EIN grade).
         self.owed_rows = set(owed_rows) if owed_rows is not None else None
         self.carry = carry or {}
+        # THE WORK THAT FOLDS ONTO NO CATALOG ROW (NAMM-D24-6): the line
+        # inputs and the headroom sub-tests. It is the analog board's, so a
+        # board test of any OTHER board (the jack board, the right panel's
+        # jack-sense) walks only the patches that feed its own rows.
+        self.rowless = rowless
         self.rerun = None        # (patches walked, patches in the list)
         for lane, e in sorted((self.carry.get('lane_refs') or {}).items()):
             self.sc.ref[int(lane)] = dict(h_db=float(e['h_db']),
@@ -4307,11 +4312,13 @@ class Station:
         retest = bool(self.carry.get('retest_failed'))
         if retest and rows[0]['expect'] == 'noise' and self.lim.ein_ready():
             return rec.get('ein') != PASS
-        if self._hr_owed(pid, rows):
+        if self.rowless and self._hr_owed(pid, rows):
             return True
         nums = {int(x) for r in rows for x in str(r.get('rows') or '').split()}
         if nums:
             return bool(nums & self.owed_rows)
+        if not self.rowless:
+            return False
         return (rec.get('verdict') != PASS) if retest else not rec
 
     def _hr_owed(self, pid, rows):
@@ -4334,6 +4341,8 @@ class Station:
         sub-test writes its own code-0 chain image and drive, so it stands
         alone."""
         hr = [r for r in rows if r.get('sub') == HEADROOM_SUB]
+        if hr and not self.rowless:
+            return [r for r in rows if r.get('sub') != HEADROOM_SUB] or rows
         if not hr or not self._hr_owed(pid, rows):
             return rows
         rest = [r for r in rows if r.get('sub') != HEADROOM_SUB]

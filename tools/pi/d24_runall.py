@@ -56,6 +56,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import d24_boards as BB                                # noqa: E402
 import d24_panel as PL                                  # noqa: E402
 import d24_patch as PT                                 # noqa: E402
 import d24_live as LV                                  # noqa: E402
@@ -1286,6 +1287,8 @@ def overlapped(a, rows, state, ignored, glass, csv_path, passno,
     # There is no close in this function any more: one screen belongs to the
     # whole pass and `main` is what takes it down. See `pass_screen`.
     pages = setup_pages(a)
+    if getattr(a, 'board', None):
+        pages = board_pages(pages, rows, patch_to_come)
     ok = Setup(a, glass, pages, live=live, keys=keys).run()
     ser.join(glass, PHASE_WORDS['serial'])
     results += ser.results
@@ -2628,7 +2631,8 @@ def patch_station(a, st, rows, state, ignored, glass, passno, live=None,
         state.d['lane_refs'] = dict(carry['lane_refs'])
     station = PT.Station(plist, unit, patcher, glass, limits,
                          log=glass.progress, analog=an, live=live, keys=keys,
-                         owed_rows=owed, carry=carry)
+                         owed_rows=owed, carry=carry,
+                         rowless=board_owns_station(a))
     try:
         results = station.run()
     finally:
@@ -3121,10 +3125,20 @@ def write_report(a, rows, state, ignored, stale, timing):
         IGNORED if r.num in ignored else state.verdict(r.num), 2), r.num))
 
     md = []
-    md.append('# D24 factory test report')
-    md.append('')
-    md.append('Unit %s  ·  %s  ·  pass %d  ·  test image %s'
-              % (a.serial, stamp(), state.d['passes'], img[0]))
+    board = getattr(a, 'board', None)
+    if board:
+        md.append('# D24 board test report')
+        md.append('')
+        md.append('%s %s%s  ·  tested in unit %s  ·  %s  ·  pass %d  ·  '
+                  'test image %s'
+                  % (board['name'], BB.show_id(a.serial),
+                     (' rev %s' % board['rev']) if board.get('rev') else '',
+                     board['harness'], stamp(), state.d['passes'], img[0]))
+    else:
+        md.append('# D24 factory test report')
+        md.append('')
+        md.append('Unit %s  ·  %s  ·  pass %d  ·  test image %s'
+                  % (a.serial, stamp(), state.d['passes'], img[0]))
     md.append('')
     md.append('| result | rows |')
     md.append('|---|---|')
@@ -3240,6 +3254,13 @@ def write_report(a, rows, state, ignored, stale, timing):
                            **{k: v for k, v in (state.row(r.num) or {}).items()
                               if k != 'verdict'})
                       for r in sorted(rows, key=lambda x: x.num)])
+    if board:
+        twin['board'] = dict(
+            profile=board['profile'], name=board['name'], id=a.serial,
+            rev=board.get('rev', ''), operator=board.get('operator', ''),
+            harness_unit=board['harness'],
+            roles={str(n): BB.PROFILES[board['profile']]['rows'][n]
+                   for n in sorted(r.num for r in rows)})
     with open(base + '.json', 'w') as fh:
         json.dump(twin, fh, indent=1, sort_keys=True)
     return base + '.md', base + '.json'
@@ -3357,6 +3378,68 @@ def dump_dialogs(rows, path):
                 runner_measures=s.get('measure', ''),
                 not_run_reason=r.reason if r.category == 'not-run' else ''))
     print('wrote %s' % path)
+
+
+# ---------------------------------------------------------------------------
+# THE BOARD TEST (NAMM-D24-6)
+# ---------------------------------------------------------------------------
+# One new board swapped into a known-good unit; the profile in d24_boards.py
+# says which rows exercise it. Everything below is the whole-unit pass with the
+# catalog cut down to those rows -- the same tests, the same screens, the same
+# PAUSE and resume -- and the verdicts kept under the board's label ID rather
+# than the unit's serial.
+def board_session(a):
+    """The board this pass tests, or None for a whole-unit pass. `--board`
+    on the command line wins; otherwise the session file the desk wrote."""
+    if a.board:
+        if not a.board_id:
+            raise SystemExit('--board needs --board-id: the verdicts are kept '
+                             'under the board\'s label')
+        try:
+            BB.profile(a.board)
+            conf = {'profile': a.board, 'id': BB.normalise_id(a.board_id)}
+        except ValueError as e:
+            raise SystemExit(str(e))
+    else:
+        conf = BB.read_conf(a.board_conf)
+        if conf is None:
+            return None
+    p = BB.profile(conf['profile'])
+    conf.update(name=p['name'], label=p['label'], harness=a.serial)
+    a.serial = conf['id']
+    a.reports = os.path.join(a.reports, 'boards')
+    # A NEW ANALOG BOARD IS TESTED ON EVERY INPUT. The unit's list.conf names
+    # the list for the unit's OWN analog board (MW-D24-2's has eight inputs
+    # with no front end), and that board is the one that has been taken out.
+    if p.get('whole_station') and not a.patch_list_dir:
+        global LIST_DIR
+        LIST_DIR = full_list_dir()
+    return conf
+
+
+def board_owns_station(a):
+    """Does this pass walk the analog station's row-less work (the line
+    inputs, the headroom sub-tests)? A whole-unit pass and the analog board
+    do; any other board walks only the patches that feed its own rows."""
+    board = getattr(a, 'board', None)
+    return not board or bool(BB.PROFILES[board['profile']].get('whole_station'))
+
+
+def full_list_dir():
+    for d in PT.LIST_DIR_CANDIDATES:
+        if os.path.exists(os.path.join(d, 'patch-paths.csv')):
+            return d
+    raise SystemExit('the full patch list is not on this unit; looked in %s'
+                     % ', '.join(PT.LIST_DIR_CANDIDATES))
+
+
+def board_pages(pages, rows, patch_to_come):
+    """The setup pages a board pass needs: nobody is asked for a network
+    lead, USB sticks or the lead kit that this board's rows never use."""
+    nums = set(r.num for r in rows)
+    need = {'network': 128 in nums, 'usb-pair': bool(nums & {130, 131}),
+            'kit-bench': patch_to_come}
+    return [p for p in pages if need.get(p['key'], True)]
 
 
 def check_md(path):
@@ -3558,6 +3641,10 @@ def session_end(a, state, glass):
                   'on the factory screen, which draws no dialogs. Row 134 '
                   'stays not tested.', flush=True)
         lower_rails(glass)
+    elif getattr(a, 'board', None) and 134 not in a.board_rows:
+        # A board pass asks the power-switch question only of the board the
+        # switch is on.
+        lower_rails(glass)
     elif not a.no_power_check:
         session_end_power_check(state, glass)
 
@@ -3672,6 +3759,18 @@ def main(argv=None):
                          'instead of the bus -- proves the runner side with no '
                          'finger at the bench (see d24_panel.py)')
     ap.add_argument('--serial')
+    ap.add_argument('--board', metavar='PROFILE',
+                    help='NAMM-D24-6: test ONE board swapped into this unit, '
+                         'on its profile\'s rows only (%s). Normally set by '
+                         'the board session file instead (--board-conf), so '
+                         'the glass START is a board pass too'
+                         % ', '.join(BB.ORDER))
+    ap.add_argument('--board-id', metavar='ID',
+                    help='the board\'s label ID (FIX-L2, 8 characters); '
+                         'needed with --board')
+    ap.add_argument('--board-conf', default=BB.BOARD_CONF,
+                    help='the board session file (default %(default)s); '
+                         'while it exists every pass is a board pass')
     a = ap.parse_args(argv)
 
     if a.check_md:
@@ -3687,6 +3786,7 @@ def main(argv=None):
     a.reports = os.path.join(a.dir, 'reports')
     a.ignored = os.path.join(a.dir, 'ignored.csv')
     a.serial = a.serial or unit_serial()
+    a.board = board_session(a)
 
     if a.pedal_station:
         # One name, one place (see PEDAL_STATION). Switching it on has to
@@ -3700,10 +3800,19 @@ def main(argv=None):
         STATION_ORDER = [k for k, _n, _h, _r in STATIONS]
     rows, a.catalog_md5 = load_catalog(a.catalog)
     warn = classify(rows)
+    if a.board:
+        rows = BB.scope(rows, a.board['profile'])
+        a.board_rows = set(r.num for r in rows)
     if a.dump_dialogs:
         dump_dialogs(rows, a.dump_dialogs)
         return
     state_path = os.path.join(a.runall, 'state.json')
+    if a.board:
+        # THE BOARD'S OWN VERDICTS, NOT THE UNIT'S. A board is tested in a
+        # unit, but the cumulative state follows the board: a board that goes
+        # to rework and comes back resumes its own untested rows, and the
+        # unit's whole-unit state is never touched by a board pass.
+        state_path = os.path.join(a.runall, 'boards', a.serial, 'state.json')
     if (a.reset_state or a.reset_only) and os.path.exists(state_path):
         os.remove(state_path)
         print('the cumulative verdicts for this unit are forgotten: the next '
@@ -3794,8 +3903,13 @@ def main(argv=None):
         signal.signal(_s, _stop)
 
     glass = Glass(a.runall, stdin=a.stdin, autoskip=a.autoskip)
-    print('D24 RUN ALL -- unit %s -- catalog %s (%d rows) -- %s'
-          % (a.serial, a.catalog_md5[:12], len(rows), stamp()))
+    if a.board:
+        print('D24 BOARD TEST -- %s %s in unit %s -- %d rows of catalog %s -- %s'
+              % (a.board['name'], BB.show_id(a.serial), a.board['harness'],
+                 len(rows), a.catalog_md5[:12], stamp()))
+    else:
+        print('D24 RUN ALL -- unit %s -- catalog %s (%d rows) -- %s'
+              % (a.serial, a.catalog_md5[:12], len(rows), stamp()))
     for w in warn:
         print('   catalog warning: %s' % w)
     cats = {}
@@ -3807,6 +3921,18 @@ def main(argv=None):
         md, js = write_report(a, rows, state, live, stale, {})
         print('report: %s\n        %s' % (md, js))
         return
+    if a.board and not any(r.category != 'not-run' for r in rows):
+        # A BOARD WITH NOTHING THE RUNNER CAN RUN (the pedal, today). The pass
+        # would boot the pair and raise the rails to test nothing, so it is
+        # not started: the report is written with every row's reason, which
+        # is the list of tests that board is owed.
+        record_not_run(rows, state, state.d['passes'])
+        state.save()
+        md, js = write_report(a, rows, state, live, stale, {})
+        print('the %s has no row this runner can test yet: nothing was run. '
+              'report: %s' % (a.board['name'], md), flush=True)
+        lock.release()
+        return 3
 
     resumed = bool(state.d.get('current'))
     while True:
